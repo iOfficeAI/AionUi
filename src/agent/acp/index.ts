@@ -182,6 +182,7 @@ export class AcpAgent {
 
   // 启动ACP连接和会话
   async start(): Promise<void> {
+    const startTotal = Date.now();
     try {
       this.emitStatusMessage('connecting');
 
@@ -190,6 +191,7 @@ export class AcpAgent {
         connectTimeoutId = setTimeout(() => reject(new Error('Connection timeout after 70 seconds')), 70000);
       });
 
+      const connectStart = Date.now();
       try {
         await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
       } finally {
@@ -197,12 +199,20 @@ export class AcpAgent {
           clearTimeout(connectTimeoutId);
         }
       }
+      console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
+
       this.emitStatusMessage('connected');
+
+      const authStart = Date.now();
       await this.performAuthentication();
+      console.log(`[ACP-PERF] start: authentication completed ${Date.now() - authStart}ms`);
+
       // 避免重复创建会话：仅当尚无活动会话时再创建
       // Create new session or resume existing one (if ACP backend supports it)
       if (!this.connection.hasActiveSession) {
+        const sessionStart = Date.now();
         await this.createOrResumeSession();
+        console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
       }
 
       // YOLO mode: bypass all permission checks for supported backends
@@ -214,7 +224,9 @@ export class AcpAgent {
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
           try {
+            const modeStart = Date.now();
             await this.connection.setSessionMode(sessionMode);
+            console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             throw new Error(`[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`);
@@ -227,7 +239,9 @@ export class AcpAgent {
         const configuredModel = getClaudeModel();
         if (configuredModel) {
           try {
+            const modelStart = Date.now();
             await this.connection.setModel(configuredModel);
+            console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
             // Log warning but don't fail - fallback to default model
             console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
@@ -236,7 +250,9 @@ export class AcpAgent {
       }
 
       this.emitStatusMessage('session_active');
+      console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
     } catch (error) {
+      console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
     }
@@ -260,12 +276,16 @@ export class AcpAgent {
 
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
+    const sendStart = Date.now();
     try {
       // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+        const reconnectStart = Date.now();
         try {
           await this.start();
+          console.log(`[ACP-PERF] send: auto-reconnect completed ${Date.now() - reconnectStart}ms`);
         } catch (reconnectError) {
+          console.log(`[ACP-PERF] send: auto-reconnect failed ${Date.now() - reconnectStart}ms`);
           const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
           return {
             success: false,
@@ -306,9 +326,17 @@ export class AcpAgent {
 
       // Process @ file references in the message
       // 处理消息中的 @ 文件引用
+      const atFileStart = Date.now();
       processedContent = await this.processAtFileReferences(processedContent, data.files);
+      const atFileDuration = Date.now() - atFileStart;
+      if (atFileDuration > 10) {
+        console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
+      }
 
+      const promptStart = Date.now();
       await this.connection.sendPrompt(processedContent);
+      console.log(`[ACP-PERF] send: sendPrompt completed ${Date.now() - promptStart}ms (total send: ${Date.now() - sendStart}ms)`);
+
       this.statusMessageId = null;
       return { success: true, data: null };
     } catch (error) {

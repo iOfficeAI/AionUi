@@ -7,7 +7,7 @@
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { execSync, spawn } from 'child_process';
+import { exec, execSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -44,10 +44,12 @@ function loadShellEnvironment(): Record<string, string> {
     return cachedShellEnv;
   }
 
+  const startTime = Date.now();
   cachedShellEnv = {};
 
   // Skip on Windows - shell config loading not needed
   if (process.platform === 'win32') {
+    console.log(`[ACP-PERF] connect: shell env skipped (Windows) ${Date.now() - startTime}ms`);
     return cachedShellEnv;
   }
 
@@ -82,6 +84,71 @@ function loadShellEnvironment(): Record<string, string> {
   } catch (error) {
     // Silent fail - shell environment loading is best-effort
     console.warn('[ACP] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
+  }
+
+  console.log(`[ACP-PERF] connect: shell env loaded ${Date.now() - startTime}ms`);
+  return cachedShellEnv;
+}
+
+/**
+ * Async version of loadShellEnvironment() for preloading at app startup.
+ * Uses async exec instead of execSync to avoid blocking the main process.
+ *
+ * 异步版本的 loadShellEnvironment()，用于应用启动时预加载。
+ * 使用异步 exec 替代 execSync，避免阻塞主进程。
+ */
+export async function loadShellEnvironmentAsync(): Promise<Record<string, string>> {
+  if (cachedShellEnv !== null) {
+    return cachedShellEnv;
+  }
+
+  if (process.platform === 'win32') {
+    cachedShellEnv = {};
+    return cachedShellEnv;
+  }
+
+  const startTime = Date.now();
+
+  try {
+    const shell = process.env.SHELL || '/bin/bash';
+    const command = `${shell} -i -l -c 'env' 2>/dev/null`;
+
+    const output = await new Promise<string>((resolve, reject) => {
+      exec(
+        command,
+        {
+          encoding: 'utf-8',
+          timeout: 5000,
+          env: { ...process.env, HOME: os.homedir() },
+        },
+        (error, stdout) => {
+          if (error) reject(error);
+          else resolve(stdout);
+        }
+      );
+    });
+
+    const env: Record<string, string> = {};
+    for (const line of output.split('\n')) {
+      const eqIndex = line.indexOf('=');
+      if (eqIndex > 0) {
+        const key = line.substring(0, eqIndex);
+        const value = line.substring(eqIndex + 1);
+        if (SHELL_INHERITED_ENV_VARS.includes(key as (typeof SHELL_INHERITED_ENV_VARS)[number])) {
+          env[key] = value;
+        }
+      }
+    }
+
+    cachedShellEnv = env;
+
+    if (cachedShellEnv.PATH) {
+      console.log('[ACP] Preloaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
+    }
+    console.log(`[ACP-PERF] preload: shell env async loaded ${Date.now() - startTime}ms`);
+  } catch (error) {
+    cachedShellEnv = {};
+    console.warn('[ACP] Failed to async load shell environment:', error instanceof Error ? error.message : String(error));
   }
 
   return cachedShellEnv;
@@ -210,6 +277,10 @@ export class AcpConnection {
   private initializeResponse: AcpResponse | null = null;
   private workingDir: string = process.cwd();
 
+  // Performance tracking: timestamp when last prompt was sent
+  private lastPromptSentAt: number = 0;
+  private firstChunkReceived: boolean = true;
+
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
     optionId: string;
@@ -224,12 +295,17 @@ export class AcpConnection {
 
   // 通用的后端连接方法
   private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+    const spawnStart = Date.now();
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
+    console.log(`[ACP-PERF] connect: ${backend} process spawned ${Date.now() - spawnStart}ms`);
     await this.setupChildProcessHandlers(backend);
   }
 
   async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+    const connectStart = Date.now();
+    console.log(`[ACP-PERF] connect: start backend=${backend}`);
+
     if (this.child) {
       this.disconnect();
     }
@@ -270,6 +346,8 @@ export class AcpConnection {
       default:
         throw new Error(`Unsupported backend: ${backend}`);
     }
+
+    console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
   private async connectClaude(workingDir: string = process.cwd()): Promise<void> {
@@ -277,23 +355,27 @@ export class AcpConnection {
     // This eliminates dependency packaging issues and simplifies deployment
     console.error('[ACP] Using NPX approach for Claude ACP bridge');
 
+    const envStart = Date.now();
     // Use enhanced env with shell variables, then clean up Node.js debugging vars
     const cleanEnv = getEnhancedEnv();
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
+    console.log(`[ACP-PERF] connect: env prepared ${Date.now() - envStart}ms`);
 
     // Use npx to run the Claude ACP bridge directly from npm registry
     const isWindows = process.platform === 'win32';
     const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
-    const spawnArgs = ['@zed-industries/claude-code-acp'];
+    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-code-acp'];
 
+    const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: cleanEnv,
       shell: isWindows,
     });
+    console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms`);
 
     await this.setupChildProcessHandlers('claude');
   }
@@ -324,8 +406,8 @@ export class AcpConnection {
       }
     });
 
-    // Wait a bit for the process to start
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Yield to event loop so spawn error/exit events can fire
+    await new Promise((resolve) => setImmediate(resolve));
 
     // Check if process spawn failed
     if (spawnError) {
@@ -348,9 +430,13 @@ export class AcpConnection {
       for (const line of lines) {
         if (line.trim()) {
           try {
+            const handleStart = Date.now();
             const message = JSON.parse(line) as AcpMessage;
-            // console.log('AcpMessage==>', JSON.stringify(message));
             this.handleMessage(message);
+            const handleDuration = Date.now() - handleStart;
+            if (handleDuration > 5) {
+              console.log(`[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as any).method : 'response'}`);
+            }
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
           }
@@ -359,6 +445,7 @@ export class AcpConnection {
     });
 
     // Initialize protocol with timeout
+    const initStart = Date.now();
     await Promise.race([
       this.initialize(),
       new Promise((_, reject) =>
@@ -367,6 +454,7 @@ export class AcpConnection {
         }, 60000)
       ),
     ]);
+    console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
     // Mark setup as complete - future exits will be handled as runtime disconnects
     this.isSetupComplete = true;
@@ -588,6 +676,11 @@ export class AcpConnection {
       // 可辨识联合类型：TypeScript 根据 method 字面量自动窄化 params 类型
       switch (message.method) {
         case ACP_METHODS.SESSION_UPDATE:
+          // Track first chunk latency since prompt was sent
+          if (!this.firstChunkReceived && this.lastPromptSentAt > 0) {
+            this.firstChunkReceived = true;
+            console.log(`[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`);
+          }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
           this.onSessionUpdate(message.params);
@@ -810,6 +903,10 @@ export class AcpConnection {
     if (!this.sessionId) {
       throw new Error('No active ACP session');
     }
+
+    this.lastPromptSentAt = Date.now();
+    this.firstChunkReceived = false;
+    console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,
