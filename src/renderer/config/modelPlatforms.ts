@@ -16,6 +16,7 @@
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import OpenAILogo from '@/renderer/assets/logos/openai.svg';
 import AnthropicLogo from '@/renderer/assets/logos/anthropic.svg';
+import BedrockLogo from '@/renderer/assets/logos/bedrock.svg';
 import DeepSeekLogo from '@/renderer/assets/logos/deepseek.svg';
 import OpenRouterLogo from '@/renderer/assets/logos/openrouter.svg';
 import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.svg';
@@ -39,7 +40,7 @@ import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
  * 平台类型
  * Platform type
  */
-export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api';
+export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api' | 'bedrock';
 
 /**
  * 模型平台配置接口
@@ -84,6 +85,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   // 预设供应商（按字母顺序排列）
   { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
   { name: 'Anthropic', value: 'Anthropic', logo: AnthropicLogo, platform: 'anthropic', baseUrl: 'https://api.anthropic.com' },
+  { name: 'AWS Bedrock', value: 'AWS-Bedrock', logo: BedrockLogo, platform: 'bedrock', i18nKey: 'settings.platformBedrock' },
   { name: 'DeepSeek', value: 'DeepSeek', logo: DeepSeekLogo, platform: 'custom', baseUrl: 'https://api.deepseek.com/v1' },
   { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
   { name: 'OpenRouter', value: 'OpenRouter', logo: OpenRouterLogo, platform: 'custom', baseUrl: 'https://openrouter.ai/api/v1' },

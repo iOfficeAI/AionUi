@@ -150,8 +150,13 @@ export const gemini = {
   subscriptionStatus: bridge.buildProvider<IBridgeResponse<{ isSubscriber: boolean; tier?: string; lastChecked: number; message?: string }>, { proxy?: string }>('gemini.subscription-status'),
 };
 
+// AWS Bedrock 相关接口 / AWS Bedrock interfaces
+export const bedrock = {
+  testConnection: bridge.buildProvider<IBridgeResponse<{ msg?: string }>, { bedrockConfig: { authMethod: 'accessKey' | 'profile'; region: string; accessKeyId?: string; secretAccessKey?: string; profile?: string } }>('bedrock.test-connection'),
+};
+
 export const mode = {
-  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string>; fix_base_url?: string }>, { base_url?: string; api_key: string; try_fix?: boolean; platform?: string }>('mode.get-model-list'),
+  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string | { id: string; name: string }>; fix_base_url?: string }>, { base_url?: string; api_key: string; try_fix?: boolean; platform?: string; bedrockConfig?: { authMethod: 'accessKey' | 'profile'; region: string; accessKeyId?: string; secretAccessKey?: string; profile?: string } }>('mode.get-model-list'),
   saveModelConfig: bridge.buildProvider<IBridgeResponse, IProvider[]>('mode.save-model-config'),
   getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
   /** 协议检测接口 - 自动检测 API 端点使用的协议类型 / Protocol detection - auto-detect API protocol type */

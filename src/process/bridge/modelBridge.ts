@@ -12,6 +12,7 @@ import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
 import { ipcBridge } from '../../common';
 import { ProcessConfig } from '../initStorage';
+import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
 
 /**
  * OpenAI 兼容 API 的常见路径格式
@@ -31,8 +32,36 @@ const API_PATH_PATTERNS = [
   '/api/paas/v4', // 智谱 / Zhipu
 ];
 
+/**
+ * Bedrock model ID to friendly name mapping
+ * Maps AWS Bedrock model IDs to user-friendly display names
+ */
+const BEDROCK_MODEL_NAMES: Record<string, string> = {
+  'anthropic.claude-opus-4-5-20251101-v1:0': 'Claude Opus 4.5',
+  'anthropic.claude-sonnet-4-5-20250929-v1:0': 'Claude Sonnet 4.5',
+  'anthropic.claude-haiku-4-5-20251001-v1:0': 'Claude Haiku 4.5',
+  'anthropic.claude-sonnet-4-20250514-v1:0': 'Claude Sonnet 4',
+  'anthropic.claude-3-7-sonnet-20250219-v1:0': 'Claude 3.7 Sonnet',
+  'anthropic.claude-3-5-sonnet-20241022-v2:0': 'Claude 3.5 Sonnet v2',
+  'anthropic.claude-3-5-sonnet-20240620-v1:0': 'Claude 3.5 Sonnet',
+  'anthropic.claude-3-opus-20240229-v1:0': 'Claude 3 Opus',
+  'anthropic.claude-3-sonnet-20240229-v1:0': 'Claude 3 Sonnet',
+  'anthropic.claude-3-sonnet-20240229-v1:0:28k': 'Claude 3 Sonnet (28k)',
+  'anthropic.claude-3-sonnet-20240229-v1:0:200k': 'Claude 3 Sonnet (200k)',
+  'anthropic.claude-3-haiku-20240307-v1:0': 'Claude 3 Haiku',
+};
+
+/**
+ * Get friendly display name for a Bedrock model ID
+ * @param modelId - The Bedrock model ID
+ * @returns The friendly display name, or the original ID if not found
+ */
+function getBedrockModelDisplayName(modelId: string): string {
+  return BEDROCK_MODEL_NAMES[modelId] || modelId;
+}
+
 export function initModelBridge(): void {
-  ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+  ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform, bedrockConfig }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string | { id: string; name: string }>; fix_base_url?: string } }> {
     // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
     // If multiple keys (comma or newline separated), use only the first one
     let actualApiKey = api_key;
@@ -126,6 +155,90 @@ export function initModelBridge(): void {
         return { success: true, data: { mode: res.data.map((v) => v.id) } };
       } catch (e: any) {
         return { success: false, msg: e.message || e.toString() };
+      }
+    }
+
+    // 如果是 AWS Bedrock 平台，使用 AWS API 动态获取模型列表
+    // For AWS Bedrock platform, use AWS API to dynamically fetch model list
+    if (platform?.includes('bedrock') && bedrockConfig?.region) {
+      try {
+        const region = bedrockConfig.region;
+
+        // Store original environment variables
+        const originalEnv = {
+          AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+          AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+          AWS_PROFILE: process.env.AWS_PROFILE,
+          AWS_REGION: process.env.AWS_REGION,
+        };
+
+        try {
+          // Set environment variables based on auth method
+          if (bedrockConfig.authMethod === 'accessKey') {
+            process.env.AWS_ACCESS_KEY_ID = bedrockConfig.accessKeyId;
+            process.env.AWS_SECRET_ACCESS_KEY = bedrockConfig.secretAccessKey;
+            delete process.env.AWS_PROFILE;
+          } else if (bedrockConfig.authMethod === 'profile') {
+            process.env.AWS_PROFILE = bedrockConfig.profile;
+            delete process.env.AWS_ACCESS_KEY_ID;
+            delete process.env.AWS_SECRET_ACCESS_KEY;
+          }
+          process.env.AWS_REGION = region;
+
+          // Create Bedrock client
+          const bedrockClient = new BedrockClient({ region });
+
+          // List inference profiles (cross-region inference endpoints)
+          const command = new ListInferenceProfilesCommand({});
+          const response = await bedrockClient.send(command);
+
+          // Filter inference profiles that contain Claude models
+          const inferenceProfiles = response.inferenceProfileSummaries || [];
+          const claudeProfiles = inferenceProfiles.filter((profile) => profile.inferenceProfileId?.includes('anthropic.claude'));
+
+          if (claudeProfiles.length === 0) {
+            return {
+              success: false,
+              msg: `No Claude models available in region ${region}. Try a different region.`,
+            };
+          }
+
+          // Map to objects with friendly names
+          const modelsWithNames = claudeProfiles.map((profile) => ({
+            id: profile.inferenceProfileId || '',
+            name: getBedrockModelDisplayName(profile.inferenceProfileId || ''),
+          }));
+
+          return { success: true, data: { mode: modelsWithNames } };
+        } finally {
+          // Restore original environment variables
+          if (originalEnv.AWS_ACCESS_KEY_ID !== undefined) {
+            process.env.AWS_ACCESS_KEY_ID = originalEnv.AWS_ACCESS_KEY_ID;
+          } else {
+            delete process.env.AWS_ACCESS_KEY_ID;
+          }
+          if (originalEnv.AWS_SECRET_ACCESS_KEY !== undefined) {
+            process.env.AWS_SECRET_ACCESS_KEY = originalEnv.AWS_SECRET_ACCESS_KEY;
+          } else {
+            delete process.env.AWS_SECRET_ACCESS_KEY;
+          }
+          if (originalEnv.AWS_PROFILE !== undefined) {
+            process.env.AWS_PROFILE = originalEnv.AWS_PROFILE;
+          } else {
+            delete process.env.AWS_PROFILE;
+          }
+          if (originalEnv.AWS_REGION !== undefined) {
+            process.env.AWS_REGION = originalEnv.AWS_REGION;
+          } else {
+            delete process.env.AWS_REGION;
+          }
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return {
+          success: false,
+          msg: `Failed to fetch Bedrock models: ${errorMessage}`,
+        };
       }
     }
 
