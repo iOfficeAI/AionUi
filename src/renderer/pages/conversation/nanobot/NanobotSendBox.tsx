@@ -172,13 +172,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     });
   }, [conversation_id, addOrUpdateMessage]);
 
-  useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
-
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
       const filePaths = pastedFiles.map((file) => file.path);
@@ -258,8 +251,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       try {
         setAiProcessing(true);
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
+        const res = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+        const resolvedWorkspace = res?.extra?.workspace ?? '';
+        setWorkspacePath(resolvedWorkspace);
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
-        const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+        const initialDisplayMessage = buildDisplayMessage(input, files, resolvedWorkspace);
 
         const userMessage: TMessage = {
           id: msg_id,
@@ -281,16 +277,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         setAiProcessing(false);
       }
     };
-
-    const timer = setTimeout(() => {
-      processInitialMessage().catch((error) => {
-        console.error('Failed to process initial message:', error);
-      });
-    }, 200);
-
-    return () => {
-      clearTimeout(timer);
-    };
+    processInitialMessage().catch(console.error);
   }, [conversation_id, addOrUpdateMessage]);
 
   const handleStop = async (): Promise<void> => {
