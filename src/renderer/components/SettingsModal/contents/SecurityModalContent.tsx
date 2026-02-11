@@ -181,7 +181,9 @@ const SecurityModalContent: React.FC = () => {
               <Shield theme='outline' size='20' fill={iconColors.secondary} className='flex' />
               <span className='text-16px font-500 text-t-primary leading-20px'>{t('settings.autoApprove')}</span>
               <Tooltip content={t('settings.autoApproveDesc')}>
-                <Help theme='outline' size='16' fill={iconColors.disabled} className='flex cursor-help' />
+                <span className='inline-flex items-center cursor-help'>
+                  <Help theme='outline' size='16' fill={iconColors.disabled} className='flex' />
+                </span>
               </Tooltip>
             </div>
 
