@@ -13,6 +13,9 @@ export const CLAUDE_YOLO_SESSION_MODE = 'bypassPermissions' as const;
 /** Qwen Code: auto-approve all operations */
 export const QWEN_YOLO_SESSION_MODE = 'yolo' as const;
 
+/** iFlow CLI: auto-approve all operations (verified via ACP test) */
+export const IFLOW_YOLO_SESSION_MODE = 'yolo' as const;
+
 /** Goose: environment variable for auto mode (set before process spawn) */
 export const GOOSE_YOLO_ENV_VAR = 'GOOSE_MODE' as const;
 export const GOOSE_YOLO_ENV_VALUE = 'auto' as const;

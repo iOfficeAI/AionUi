@@ -429,6 +429,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         onStop={handleStop}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
         tools={
           <Button
             type='secondary'

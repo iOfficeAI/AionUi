@@ -17,6 +17,7 @@ import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType, getOauthInfoWithCache } from '@office-ai/aioncli-core';
 import { GeminiApprovalStore } from '../../agent/gemini/GeminiApprovalStore';
 import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
+import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
@@ -72,6 +73,9 @@ export class GeminiAgentManager extends BaseAgentManager<
   /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
   private forceYoloMode?: boolean;
 
+  /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
+  private currentMode: string = 'default';
+
   constructor(
     data: {
       workspace: string;
@@ -85,6 +89,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       enabledSkills?: string[];
       /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
       yoloMode?: boolean;
+      /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+      acpSessionMode?: string;
     },
     model: TProviderWithModel
   ) {
@@ -96,6 +102,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.presetRules = data.presetRules;
     this.enabledSkills = data.enabledSkills;
     this.forceYoloMode = data.yoloMode;
+    this.currentMode = data.acpSessionMode || 'default';
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
@@ -333,10 +340,32 @@ export class GeminiAgentManager extends BaseAgentManager<
       options,
     };
   };
+  /**
+   * Check if a confirmation should be auto-approved based on current mode.
+   * Returns true if auto-approved (caller should skip UI), false otherwise.
+   */
+  private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
+    const type = content.confirmationDetails?.type;
+    console.log(`[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`);
+    if (this.currentMode === 'autoEdit') {
+      // autoEdit: auto-approve edit (write/replace) and info (read) operations
+      // Only exec and mcp still require manual confirmation
+      if (type === 'edit' || type === 'info') {
+        console.log(`[GeminiAgentManager] Auto-approving ${type}: callId=${content.callId}`);
+        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        return true;
+      }
+    }
+    return false;
+  }
+
   private handleConformationMessage(message: IMessageToolGroup) {
     const execMessages = message.content.filter((c) => c.status === 'Confirming');
     if (execMessages.length) {
       execMessages.forEach((content) => {
+        // Check mode-based auto-approval before showing UI
+        if (this.tryAutoApprove(content)) return;
+
         const { question, options, description } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
         const hasDetails = Boolean(content.confirmationDetails);
         const hasOptions = options && options.length > 0;
@@ -511,6 +540,51 @@ export class GeminiAgentManager extends BaseAgentManager<
       return true;
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Get the current session mode.
+   * 获取当前会话模式。
+   */
+  getMode(): { mode: string; initialized: boolean } {
+    console.log(`[GeminiAgentManager] getMode: mode=${this.currentMode}, conversationId=${this.conversation_id}`);
+    return { mode: this.currentMode, initialized: true };
+  }
+
+  /**
+   * Set the session mode (e.g., default, autoEdit).
+   * 设置会话模式（如 default、autoEdit）。
+   *
+   * Unlike ACP agents, Gemini mode affects approval behavior at the manager layer,
+   * not via a protocol-level session/set_mode call.
+   */
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    console.log(`[GeminiAgentManager] setMode: mode=${mode}, prev=${this.currentMode}, conversationId=${this.conversation_id}`);
+    this.currentMode = mode;
+    this.saveSessionMode(mode);
+    console.log(`[GeminiAgentManager] setMode done: currentMode=${this.currentMode}`);
+    return { success: true, data: { mode: this.currentMode } };
+  }
+
+  /**
+   * Save session mode to database for resume support.
+   * 保存会话模式到数据库以支持恢复。
+   */
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'gemini') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          acpSessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[GeminiAgentManager] Failed to save session mode:', error);
     }
   }
 

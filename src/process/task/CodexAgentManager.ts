@@ -21,6 +21,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { getDatabase } from '@process/database';
 import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
@@ -39,6 +40,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   private isFirstMessage: boolean = true;
   private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
 
+  /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
+  private currentMode: string = 'default';
+
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
     super('codex', data);
@@ -46,6 +50,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.workspace = data.workspace;
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
     this.status = 'pending';
+    this.currentMode = data.acpSessionMode || 'default';
 
     this.initAgent(data);
   }
@@ -252,6 +257,33 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // Emit to frontend - frontend will handle transformation and persistence
       ipcBridge.codexConversation.responseStream.emit(message);
       throw e;
+    }
+  }
+
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: true };
+  }
+
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    this.currentMode = mode;
+    this.saveSessionMode(mode);
+    return { success: true, data: { mode: this.currentMode } };
+  }
+
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'codex') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          acpSessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[CodexAgentManager] Failed to save session mode:', error);
     }
   }
 
@@ -481,6 +513,17 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
    * 委托给 BaseAgentManager 的 addConfirmation 进行统一管理
    */
   addConfirmation(data: IConfirmation): void {
+    // Codex primarily uses 'exec' for all operations (file writes via commands),
+    // unlike Gemini which has separate 'edit'/'info'/'exec' types.
+    // In autoEdit mode, auto-approve all action types for Codex.
+    if (this.currentMode === 'autoEdit') {
+      const allowOption = data.options?.find((opt) => String(opt.value).includes('allow_once')) || data.options?.[0];
+      if (allowOption) {
+        console.log(`[CodexAgentManager] Auto-approving ${data.action}: callId=${data.callId}`);
+        void this.confirm(data.id, data.callId, String(allowOption.value));
+        return;
+      }
+    }
     super.addConfirmation(data);
   }
 

@@ -1,4 +1,16 @@
 {
+  "agentMode": {
+    "plan": "계획 모드",
+    "default": "기본",
+    "acceptEdits": "편집 자동 승인",
+    "autoEdit": "자동 편집",
+    "yolo": "전자동",
+    "bypass": "검사 우회",
+    "build": "빌드 모드",
+    "switchMode": "모드 전환",
+    "switchSuccess": "모드가 전환되었습니다",
+    "switchFailed": "모드 전환에 실패했습니다"
+  },
   "common": {
     "send": "전송",
     "cancel": "취소",

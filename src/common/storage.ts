@@ -130,6 +130,8 @@ export type TChatConversation =
         enabledSkills?: string[];
         /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
         presetAssistantId?: string;
+        /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+        acpSessionMode?: string;
       }
     >
   | Omit<
@@ -168,6 +170,8 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
+          /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+          acpSessionMode?: string;
         }
       >,
       'model'

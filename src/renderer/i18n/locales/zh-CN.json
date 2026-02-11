@@ -1,4 +1,16 @@
 {
+  "agentMode": {
+    "plan": "计划模式",
+    "default": "默认",
+    "acceptEdits": "自动接受编辑",
+    "autoEdit": "自动编辑",
+    "yolo": "全自动",
+    "bypass": "绕过检查",
+    "build": "构建模式",
+    "switchMode": "切换模式",
+    "switchSuccess": "模式切换成功",
+    "switchFailed": "模式切换失败"
+  },
   "common": {
     "send": "发送",
     "cancel": "取消",

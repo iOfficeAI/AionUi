@@ -1,4 +1,16 @@
 {
+  "agentMode": {
+    "plan": "プランモード",
+    "default": "デフォルト",
+    "acceptEdits": "編集を自動承認",
+    "autoEdit": "自動編集",
+    "yolo": "全自動",
+    "bypass": "チェックをバイパス",
+    "build": "ビルドモード",
+    "switchMode": "モード切替",
+    "switchSuccess": "モードを切り替えました",
+    "switchFailed": "モードの切り替えに失敗しました"
+  },
   "update": {
     "modalTitle": "ソフトウェア更新",
     "checking": "更新を確認しています...",

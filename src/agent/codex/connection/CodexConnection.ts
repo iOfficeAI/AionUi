@@ -178,7 +178,10 @@ export class CodexConnection {
         finalArgs = [...finalArgs, '-c', `approval_policy=${userApprovalPolicy}`];
       }
       // If no user config, don't add any flag - let Codex use its default
+      // Note: In workspace-write sandbox mode, CLI auto-approves within workspace regardless of approval_policy
     }
+
+    console.log(`[CodexConnection] start: cliPath=${cliPath}, yoloMode=${options?.yoloMode}, finalArgs=${JSON.stringify(finalArgs)}`);
 
     return new Promise((resolve, reject) => {
       try {

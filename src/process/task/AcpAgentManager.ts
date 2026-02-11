@@ -34,6 +34,8 @@ interface AcpAgentManagerData {
   acpSessionId?: string;
   /** Last update time of ACP session / ACP session 最后更新时间 */
   acpSessionUpdatedAt?: number;
+  /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+  acpSessionMode?: string;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -42,6 +44,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private bootstrap: Promise<AcpAgent> | undefined;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
+  private currentMode: string = 'default';
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -51,6 +54,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
+    this.currentMode = data.acpSessionMode || 'default';
     this.status = 'pending';
   }
 
@@ -234,7 +238,19 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           ipcBridge.acpConversation.responseStream.emit(v);
         },
       });
-      return this.agent.start().then(() => this.agent);
+      return this.agent.start().then(async () => {
+        // Re-apply persisted mode after session start/resume
+        // 在会话启动/恢复后重新应用持久化的模式
+        if (this.currentMode && this.currentMode !== 'default') {
+          try {
+            await this.agent.setMode(this.currentMode);
+            console.log(`[AcpAgentManager] Re-applied persisted mode: ${this.currentMode}`);
+          } catch (error) {
+            console.warn(`[AcpAgentManager] Failed to re-apply mode ${this.currentMode}:`, error);
+          }
+        }
+        return this.agent;
+      });
     })();
     return this.bootstrap;
   }
@@ -371,6 +387,78 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return this.agent.stop();
     }
     return Promise.resolve();
+  }
+
+  /**
+   * Get the current session mode for this agent.
+   * 获取此代理的当前会话模式。
+   *
+   * @returns Object with current mode and whether agent is initialized
+   */
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: !!this.agent };
+  }
+
+  /**
+   * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
+   * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
+   *
+   * Note: Agent must be initialized (user must have sent at least one message)
+   * before mode switching is possible, as we need an active ACP session.
+   *
+   * @param mode - The mode ID to set
+   * @returns Promise that resolves with success status and current mode
+   */
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    console.log(`[AcpAgentManager] setMode called: mode=${mode}, hasAgent=${!!this.agent}`);
+
+    // If agent is not initialized, try to initialize it first
+    // 如果 agent 未初始化，先尝试初始化
+    if (!this.agent) {
+      console.log('[AcpAgentManager] Agent not initialized, attempting to initialize...');
+      try {
+        await this.initAgent(this.options);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error('[AcpAgentManager] Failed to initialize agent for mode switch:', errorMsg);
+        return { success: false, msg: `Agent initialization failed: ${errorMsg}` };
+      }
+    }
+
+    // Check again after initialization attempt
+    if (!this.agent) {
+      return { success: false, msg: 'Agent not initialized' };
+    }
+
+    console.log(`[AcpAgentManager] Calling agent.setMode(${mode})`);
+    const result = await this.agent.setMode(mode);
+    console.log(`[AcpAgentManager] setMode result: success=${result.success}, error=${result.error}`);
+    if (result.success) {
+      this.currentMode = mode;
+      this.saveSessionMode(mode);
+    }
+    return { success: result.success, msg: result.error, data: { mode: this.currentMode } };
+  }
+
+  /**
+   * Save session mode to database for resume support.
+   * 保存会话模式到数据库以支持恢复。
+   */
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          acpSessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[AcpAgentManager] Failed to save session mode:', error);
+    }
   }
 
   /**
