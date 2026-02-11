@@ -196,6 +196,20 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | Omit<
+      IChatConversation<
+        'nanobot',
+        {
+          workspace?: string;
+          customWorkspace?: boolean;
+          /** 启用的 skills 列表 / Enabled skills list */
+          enabledSkills?: string[];
+          /** 预设助手 ID / Preset assistant ID */
+          presetAssistantId?: string;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {

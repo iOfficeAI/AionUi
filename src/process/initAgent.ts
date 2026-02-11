@@ -112,6 +112,24 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
   };
 };
 
+export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`nanobot-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  return {
+    type: 'nanobot',
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
 export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`openclaw-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);

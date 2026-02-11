@@ -19,6 +19,7 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
@@ -184,6 +185,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   copilot: GitHubLogo,
   qoder: QoderLogo,
   'openclaw-gateway': OpenClawLogo,
+  nanobot: NanobotLogo,
 };
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
@@ -1077,6 +1079,51 @@ const Guid: React.FC = () => {
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         alert(`Failed to create OpenClaw conversation: ${errorMessage}`);
+        throw error;
+      }
+      return;
+    } else if (selectedAgent === 'nanobot') {
+      // Nanobot conversation type (standalone CLI agent, not ACP)
+      const nanobotAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'nanobot',
+          name: input,
+          model: currentModel!, // not used by nanobot, but required by type
+          extra: {
+            defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            presetAssistantId: isPreset ? nanobotAgentInfo?.customAgentId : undefined,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create Nanobot conversation. Please ensure nanobot is installed.');
+          return;
+        }
+
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          openTab(conversation);
+        }
+
+        emitter.emit('chat.history.refresh');
+
+        // Store initial message to be picked up by NanobotSendBox
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`nanobot_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create Nanobot conversation: ${errorMessage}`);
         throw error;
       }
       return;

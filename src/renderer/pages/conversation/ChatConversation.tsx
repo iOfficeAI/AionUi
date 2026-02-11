@@ -22,6 +22,7 @@ import AcpChat from './acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
 import CodexChat from './codex/CodexChat';
+import NanobotChat from './nanobot/NanobotChat';
 import OpenClawChat from './openclaw/OpenClawChat';
 import GeminiChat from './gemini/GeminiChat';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
@@ -140,6 +141,8 @@ const ChatConversation: React.FC<{
         return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       case 'openclaw-gateway':
         return <OpenClawChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
+      case 'nanobot':
+        return <NanobotChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       default:
         return null;
     }
@@ -172,7 +175,7 @@ const ChatConversation: React.FC<{
         agentLogoIsEmoji: presetAssistantInfo.isEmoji,
       }
     : {
-        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : undefined,
+        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : conversation?.type === 'nanobot' ? 'nanobot' : undefined,
         agentName: (conversation?.extra as { agentName?: string })?.agentName,
       };
 
