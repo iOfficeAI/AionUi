@@ -150,10 +150,11 @@ jobs:
       - name: Prettier Check
         run: npm run format:check
 
-  # Job 3: Trigger GPT AI review (only if code-quality passes)
+  # Job 3: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
     needs: [code-quality]
+    if: github.event.action == 'opened'
     uses: './.github/workflows/gpt-review.yml'
     permissions:
       contents: read

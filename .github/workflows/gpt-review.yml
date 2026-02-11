@@ -332,8 +332,6 @@ jobs:
               '| HIGH | N |',
               '| MEDIUM | N |',
               '',
-              '[1-2 sentence overall assessment of the PR]',
-              '',
               '## Rules',
               '- ONLY report issues you are **highly confident** about. If you are unsure whether something is a real problem, DO NOT report it.',
               '- **CRITICAL** means the code WILL break, crash, or cause data loss/security breach in production. Theoretical edge cases or defensive programming suggestions are NOT critical.',
