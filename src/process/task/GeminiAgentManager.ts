@@ -376,8 +376,14 @@ export class GeminiAgentManager extends BaseAgentManager<
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
-      if (data.type === 'finish') {
+      // Mark as finished when content is output (visible to user)
+      // Gemini uses: content, tool_group
+      const contentTypes = ['content', 'tool_group'];
+      if (contentTypes.includes(data.type)) {
         this.status = 'finished';
+      }
+
+      if (data.type === 'finish') {
         // When stream finishes, check for cron commands in the accumulated message
         // Use longer delay and retry logic to ensure message is persisted
         this.checkCronWithRetry(0);

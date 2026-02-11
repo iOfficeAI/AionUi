@@ -258,6 +258,19 @@ export interface IProvider {
    * e.g. { "gemini-2.5-pro": "gemini", "claude-sonnet-4": "anthropic", "gpt-4o": "openai" }
    */
   modelProtocols?: Record<string, string>;
+  /**
+   * AWS Bedrock specific configuration
+   * Only used when platform is 'bedrock'
+   */
+  bedrockConfig?: {
+    authMethod: 'accessKey' | 'profile';
+    region: string;
+    // For access key method
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    // For profile method
+    profile?: string;
+  };
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
