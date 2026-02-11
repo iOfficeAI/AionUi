@@ -85,7 +85,8 @@ jobs:
             // Truncate diff to 100K characters
             const MAX_DIFF = 100000;
             const diffStr = String(diff);
-            const truncatedDiff = diffStr.length > MAX_DIFF
+            const diffTruncated = diffStr.length > MAX_DIFF;
+            const truncatedDiff = diffTruncated
               ? diffStr.substring(0, MAX_DIFF) + '\n\n... [diff truncated at 100K chars]'
               : diffStr;
 
@@ -107,8 +108,10 @@ jobs:
             core.setOutput('deletions', String(deletions));
             core.setOutput('total_lines', String(totalLines));
             core.setOutput('file_count', String(allFiles.length));
+            core.setOutput('diff_truncated', String(diffTruncated));
 
       - name: 'Read changed file contents for cross-file analysis'
+        id: 'read_contents'
         if: steps.gather.outputs.skip != 'true'
         uses: 'actions/github-script@v7'
         with:
@@ -173,7 +176,9 @@ jobs:
               }
             }
 
+            const contentsTruncated = totalSize >= MAX_CONTENT;
             fs.writeFileSync(`${tmpDir}/file_contents.txt`, contents.join('\n'));
+            core.setOutput('contents_truncated', String(contentsTruncated));
 
       - name: 'Call OpenAI GPT for code review'
         id: 'gpt_review'
@@ -186,6 +191,8 @@ jobs:
           ADDITIONS: '${{ steps.gather.outputs.additions }}'
           DELETIONS: '${{ steps.gather.outputs.deletions }}'
           TOTAL_LINES: '${{ steps.gather.outputs.total_lines }}'
+          DIFF_TRUNCATED: '${{ steps.gather.outputs.diff_truncated }}'
+          CONTENTS_TRUNCATED: '${{ steps.read_contents.outputs.contents_truncated }}'
         with:
           script: |
             const fs = require('fs');
@@ -446,11 +453,28 @@ jobs:
               return;
             }
 
+            // Append truncation warning if diff or file contents were truncated
+            const diffTruncated = process.env.DIFF_TRUNCATED === 'true';
+            const contentsTruncated = process.env.CONTENTS_TRUNCATED === 'true';
+            let truncationNote = '';
+            if (diffTruncated || contentsTruncated) {
+              const parts = [];
+              if (diffTruncated) parts.push('diff (>100K chars)');
+              if (contentsTruncated) parts.push('file contents (>80K chars)');
+              truncationNote = [
+                '',
+                '> **Note**: The following inputs were truncated due to size limits: ' + parts.join(', ') + '.',
+                '> This review may not cover all changes. Please review the omitted portions manually.',
+              ].join('\n');
+            }
+
+            const reviewWithNote = reviewContent + truncationNote;
+
             // Truncate review if it exceeds GitHub's 65536 char limit for review body
             const MAX_REVIEW_LENGTH = 65000;
-            const finalReview = reviewContent.length > MAX_REVIEW_LENGTH
-              ? reviewContent.substring(0, MAX_REVIEW_LENGTH) + '\n\n---\n*[Review truncated due to length]*'
-              : reviewContent;
+            const finalReview = reviewWithNote.length > MAX_REVIEW_LENGTH
+              ? reviewWithNote.substring(0, MAX_REVIEW_LENGTH) + '\n\n---\n*[Review truncated due to length]*'
+              : reviewWithNote;
 
             // Count issues by severity (split by ## headers and count ### within each)
             const sections = finalReview.split(/^## /gm);
