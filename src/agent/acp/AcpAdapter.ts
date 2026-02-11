@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpToolCall, IMessageAvailableCommands, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, AvailableCommandsUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/types/acpTypes';
+import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/types/acpTypes';
 
 /**
  * Adapter class to convert ACP messages to AionUI message format
@@ -101,15 +101,11 @@ export class AcpAdapter {
         break;
       }
 
-      case 'available_commands_update': {
-        const commandsMessage = this.convertAvailableCommandsUpdate(sessionUpdate as AvailableCommandsUpdate);
-        if (commandsMessage) {
-          messages.push(commandsMessage);
-        }
-        // Reset message tracking so next agent_message_chunk gets new msg_id
+      // Disabled: available_commands messages are too noisy and distracting in the chat UI
+      case 'available_commands_update':
+        // Still reset message tracking so next agent_message_chunk gets new msg_id
         this.resetMessageTracking();
         break;
-      }
 
       default: {
         // Handle unexpected session update types
@@ -269,31 +265,5 @@ export class AcpAdapter {
     return null;
   }
 
-  /**
-   * Convert available commands update to AionUI message
-   */
-  private convertAvailableCommandsUpdate(update: AvailableCommandsUpdate): TMessage | null {
-    const commandsData = update.update;
-    if (commandsData.availableCommands && commandsData.availableCommands.length > 0) {
-      const commands = commandsData.availableCommands.map((command) => ({
-        name: command.name,
-        description: command.description,
-        hint: command.input?.hint,
-      }));
-
-      return {
-        id: uuid(),
-        msg_id: uuid(),
-        conversation_id: this.conversationId,
-        createdAt: Date.now(),
-        position: 'left' as const,
-        type: 'available_commands',
-        content: {
-          commands,
-        },
-      } as IMessageAvailableCommands;
-    }
-
-    return null;
-  }
+  // Removed: convertAvailableCommandsUpdate - available_commands messages are too noisy and distracting in the chat UI
 }

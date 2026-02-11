@@ -242,6 +242,27 @@ export class AcpAgent {
     }
   }
 
+  /**
+   * Enable yoloMode on a running agent.
+   * If already enabled, this is a no-op. Otherwise, sets the session mode
+   * on the active connection (for backends that support it).
+   */
+  async enableYoloMode(): Promise<void> {
+    if (this.extra.yoloMode) return;
+    this.extra.yoloMode = true;
+
+    if (this.connection.isConnected && this.connection.hasActiveSession) {
+      const yoloModeMap: Partial<Record<AcpBackend, string>> = {
+        claude: CLAUDE_YOLO_SESSION_MODE,
+        qwen: QWEN_YOLO_SESSION_MODE,
+      };
+      const sessionMode = yoloModeMap[this.extra.backend];
+      if (sessionMode) {
+        await this.connection.setSessionMode(sessionMode);
+      }
+    }
+  }
+
   stop(): Promise<void> {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected');
@@ -919,10 +940,9 @@ export class AcpAgent {
           responseMessage.data = message.content;
         }
         break;
+      // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands':
-        responseMessage.type = 'available_commands';
-        responseMessage.data = message.content;
-        break;
+        return;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);

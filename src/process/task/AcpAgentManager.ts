@@ -363,6 +363,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
+   * Ensure yoloMode is enabled for cron job reuse.
+   * If already enabled, returns true immediately.
+   * If not, enables yoloMode on the active ACP session dynamically.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    if (this.options.yoloMode) {
+      return true;
+    }
+    this.options.yoloMode = true;
+    if (this.agent?.isConnected && this.agent?.hasActiveSession) {
+      try {
+        await this.agent.enableYoloMode();
+        return true;
+      } catch (error) {
+        console.error('[AcpAgentManager] Failed to enable yoloMode dynamically:', error);
+        return false;
+      }
+    }
+    // Agent not connected yet - yoloMode will be applied on next start()
+    return true;
+  }
+
+  /**
    * Override stop() because AcpAgentManager doesn't use ForkTask's subprocess architecture.
    * It directly creates AcpAgent in the main process, so we need to call agent.stop() directly.
    */
