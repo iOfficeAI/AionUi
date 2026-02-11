@@ -30,6 +30,9 @@ const SHELL_INHERITED_ENV_VARS = [
   'REQUESTS_CA_BUNDLE',
   'CURL_CA_BUNDLE',
   'NODE_TLS_REJECT_UNAUTHORIZED',
+  'ANTHROPIC_AUTH_TOKEN', // Claude authentication (#776)
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_BASE_URL',
 ] as const;
 
 /** Cache for shell environment (loaded once per session) */
