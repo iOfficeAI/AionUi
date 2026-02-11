@@ -2,7 +2,7 @@ name: '✅ PR Checks'
 
 on:
   pull_request:
-    types: [opened, reopened, edited, synchronize]
+    types: [opened, synchronize, edited]
     branches: [main, dev]
 
 concurrency:
@@ -12,8 +12,6 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
-  issues: write
-  id-token: write
 
 jobs:
   # Job 1: Check if PR links to an issue
@@ -127,6 +125,7 @@ jobs:
   # Job 2: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -151,122 +150,12 @@ jobs:
       - name: Prettier Check
         run: npm run format:check
 
-  # Job 3: Post PR summary (only for new PRs)
-  summary:
-    name: PR Summary
-    runs-on: ubuntu-latest
-    if: github.event.action == 'opened'
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate PR Summary
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            const prAuthor = context.payload.pull_request.user.login;
-
-            // Get changed files
-            const { data: files } = await github.rest.pulls.listFiles({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
-
-            const additions = files.reduce((sum, f) => sum + f.additions, 0);
-            const deletions = files.reduce((sum, f) => sum + f.deletions, 0);
-            const fileCount = files.length;
-
-            // Categorize files by type
-            const filesByType = {};
-            for (const file of files) {
-              const ext = file.filename.split('.').pop() || 'other';
-              if (!filesByType[ext]) filesByType[ext] = [];
-              filesByType[ext].push(file.filename);
-            }
-
-            // Build file summary
-            let fileSummary = '';
-            for (const [ext, fileList] of Object.entries(filesByType)) {
-              fileSummary += `- **${ext}**: ${fileList.length} file(s)\n`;
-            }
-
-            // Check if summary already exists
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
-
-            const summaryComment = comments.data.find(comment =>
-              (comment.user.type === 'Bot' || comment.user.login === 'github-actions[bot]') &&
-              comment.body.includes('<!-- pr-summary-bot -->')
-            );
-
-            if (summaryComment) {
-              core.info('Summary already exists, skipping.');
-              return;
-            }
-
-            const summaryBody = [
-              '<!-- pr-summary-bot -->',
-              '',
-              '## PR Summary',
-              '',
-              `Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick summary:`,
-              '',
-              '### Stats',
-              '| Metric | Value |',
-              '|--------|-------|',
-              `| Files Changed | ${fileCount} |`,
-              `| Additions | +${additions} |`,
-              `| Deletions | -${deletions} |`,
-              '',
-              '### Files by Type',
-              fileSummary,
-              '',
-              '### Review Status',
-              '- Automated code review in progress...',
-              '',
-              '---',
-              '**Using AI Review**',
-              '',
-              'You can request assistance at any point by creating a comment:',
-              '| Command | Description |',
-              '|---------|-------------|',
-              '| `@gemini-cli /review` | Request a code review |',
-              '| `@gemini-cli <question>` | Ask a question about this PR |',
-              '',
-              '---',
-              '*This is an automated summary. The detailed code review will follow shortly.*'
-            ].join('\n');
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: summaryBody,
-            });
-
-            core.info('Posted PR summary.');
-
-  # Job 4: Trigger Gemini AI review
+  # Job 3: Trigger GPT AI review (only if code-quality passes)
   review:
     name: AI Review
-    needs: [summary]
-    if: |
-      always() &&
-      (needs.summary.result == 'success' || needs.summary.result == 'skipped')
-    uses: './.github/workflows/gemini-review.yml'
+    needs: [code-quality]
+    uses: './.github/workflows/gpt-review.yml'
     permissions:
       contents: read
-      id-token: write
-      issues: write
       pull-requests: write
     secrets: inherit
