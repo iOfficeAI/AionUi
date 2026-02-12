@@ -18,7 +18,7 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'opencode';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode';
 
 /**
  * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
@@ -27,7 +27,7 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'opencode';
  * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
  * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
  */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'opencode'] as const;
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode'] as const;
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
@@ -44,6 +44,7 @@ export type AcpBackendAll =
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex MCP
+  | 'codebuddy' // Tencent CodeBuddy Code CLI
   | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
   | 'auggie' // Augment Code CLI
@@ -323,6 +324,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
     supportsStreaming: false,
+  },
+  codebuddy: {
+    id: 'codebuddy',
+    name: 'CodeBuddy',
+    cliCommand: 'codebuddy',
+    defaultCliPath: 'npx @tencent-ai/codebuddy-code',
+    authRequired: true,
+    enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['--acp'], // codebuddy 使用 --acp flag
   },
   goose: {
     id: 'goose',

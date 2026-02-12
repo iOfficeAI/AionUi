@@ -9,6 +9,7 @@ import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { execFileSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
 import { findSuitableNodeBin, getEnhancedEnv } from '@process/utils/shellEnv';
 
@@ -100,7 +101,7 @@ export class AcpConnection {
   private isSetupComplete = false;
 
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codebuddy' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const spawnStart = Date.now();
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
@@ -124,6 +125,10 @@ export class AcpConnection {
     switch (backend) {
       case 'claude':
         await this.connectClaude(workingDir);
+        break;
+
+      case 'codebuddy':
+        await this.connectCodebuddy(workingDir);
         break;
 
       case 'gemini':
@@ -227,6 +232,41 @@ export class AcpConnection {
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms`);
 
     await this.setupChildProcessHandlers('claude');
+  }
+
+  private async connectCodebuddy(workingDir: string = process.cwd()): Promise<void> {
+    // Use NPX to run CodeBuddy Code CLI directly from npm registry (same pattern as Claude)
+    console.error('[ACP] Using NPX approach for CodeBuddy ACP');
+
+    // Use enhanced env with shell variables, then clean up Node.js debugging vars
+    const cleanEnv = getEnhancedEnv();
+    delete cleanEnv.NODE_OPTIONS;
+    delete cleanEnv.NODE_INSPECT;
+    delete cleanEnv.NODE_DEBUG;
+
+    const isWindows = process.platform === 'win32';
+    const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    const spawnArgs = ['@tencent-ai/codebuddy-code', '--acp'];
+
+    // Load user's MCP config if available (~/.codebuddy/mcp.json)
+    // CodeBuddy CLI in --acp mode does not auto-load mcp.json, so we pass it explicitly
+    const mcpConfigPath = path.join(os.homedir(), '.codebuddy', 'mcp.json');
+    try {
+      await fs.access(mcpConfigPath);
+      spawnArgs.push('--mcp-config', mcpConfigPath);
+      console.error(`[ACP] Loading CodeBuddy MCP config from ${mcpConfigPath}`);
+    } catch {
+      console.error('[ACP] No CodeBuddy MCP config found, starting without MCP servers');
+    }
+
+    this.child = spawn(spawnCommand, spawnArgs, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: cleanEnv,
+      shell: isWindows,
+    });
+
+    await this.setupChildProcessHandlers('codebuddy');
   }
 
   private async setupChildProcessHandlers(backend: string): Promise<void> {
@@ -726,27 +766,26 @@ export class AcpConnection {
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
-    // Build _meta for Claude ACP resume support
-    // claude-code-acp uses _meta.claudeCode.options.resume for session resume
-    // claude-code-acp 使用 _meta.claudeCode.options.resume 来恢复会话
-    const meta =
-      this.backend === 'claude' && options?.resumeSessionId
-        ? {
-            claudeCode: {
-              options: {
-                resume: options.resumeSessionId,
-              },
+    // Build _meta for Claude/CodeBuddy ACP resume support
+    // claude-code-acp and codebuddy use _meta.claudeCode.options.resume for session resume
+    const useMetaResume = (this.backend === 'claude' || this.backend === 'codebuddy') && options?.resumeSessionId;
+    const meta = useMetaResume
+      ? {
+          claudeCode: {
+            options: {
+              resume: options.resumeSessionId,
             },
-          }
-        : undefined;
+          },
+        }
+      : undefined;
 
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd: normalizedCwd,
       mcpServers: [] as unknown[],
-      // Claude ACP uses _meta for resume
+      // Claude/CodeBuddy ACP uses _meta for resume
       ...(meta && { _meta: meta }),
       // Generic resume parameters for other ACP backends
-      ...(this.backend !== 'claude' && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
+      ...(this.backend !== 'claude' && this.backend !== 'codebuddy' && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 

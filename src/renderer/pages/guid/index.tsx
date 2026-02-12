@@ -12,6 +12,7 @@ import { resolveLocaleKey, uuid } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
@@ -176,6 +177,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
+  codebuddy: CodeBuddyLogo,
   droid: DroidLogo,
   iflow: IflowLogo,
   goose: GooseLogo,
@@ -752,7 +754,7 @@ const Guid: React.FC = () => {
    * Priority: gemini > claude > codex > opencode
    */
   const getAvailableFallbackAgent = useCallback((): PresetAgentType | null => {
-    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'opencode'];
+    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'codebuddy', 'opencode'];
     for (const agentType of fallbackOrder) {
       if (isMainAgentAvailable(agentType)) {
         return agentType;

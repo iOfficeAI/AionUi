@@ -617,6 +617,7 @@
     "yoloAlwaysOn": "常にオン",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39 は自動承認をサポートしていません",
     "yoloNotSupportedAuggie": "セキュリティ優先設計、バイパスオプションなし",
+    "yoloNotSupportedCodebuddy": "未検証、手動確認が必要な場合があります",
     "yoloNotSupportedIflow": "未検証、手動確認が必要な場合があります",
     "yoloNotSupportedUnknown": "未検証、手動確認が必要な場合があります",
     "channels": "チャンネル",
