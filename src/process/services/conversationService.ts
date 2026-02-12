@@ -89,9 +89,6 @@ export class ConversationService {
         conversation.source = params.source;
       }
 
-      // Register with WorkerManage
-      WorkerManage.buildConversation(conversation);
-
       // Save to database
       const db = getDatabase();
       const result = db.createConversation(conversation);
@@ -99,6 +96,9 @@ export class ConversationService {
         console.error('[ConversationService] Failed to create conversation in database:', result.error);
         return { success: false, error: result.error };
       }
+
+      // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
+      WorkerManage.buildConversation(conversation);
 
       console.log(`[ConversationService] Created conversation ${conversation.id} with source=${params.source || 'aionui'}`);
       return { success: true, conversation };
@@ -159,11 +159,6 @@ export class ConversationService {
         conversation.source = source;
       }
 
-      // Register with WorkerManage
-      // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called
-      // This allows frontend to check agent availability and show AgentSetupCard before auth flow
-      WorkerManage.buildConversation(conversation);
-
       // Save to database
       const db = getDatabase();
       const result = db.createConversation(conversation);
@@ -171,6 +166,10 @@ export class ConversationService {
         console.error('[ConversationService] Failed to create conversation in database:', result.error);
         return { success: false, error: result.error };
       }
+
+      // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
+      // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called.
+      WorkerManage.buildConversation(conversation);
 
       console.log(`[ConversationService] Created ${type} conversation ${conversation.id} with source=${source || 'aionui'}`);
       return { success: true, conversation };

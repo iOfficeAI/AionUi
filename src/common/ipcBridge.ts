@@ -212,6 +212,32 @@ export const codexConversation = {
 export const openclawConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
+  getRuntime: bridge.buildProvider<
+    IBridgeResponse<{
+      conversationId: string;
+      runtime: {
+        workspace?: string;
+        backend?: string;
+        agentName?: string;
+        cliPath?: string;
+        model?: string;
+        sessionKey?: string | null;
+        isConnected?: boolean;
+        hasActiveSession?: boolean;
+        identityHash?: string | null;
+      };
+      expected?: {
+        expectedWorkspace?: string;
+        expectedBackend?: string;
+        expectedAgentName?: string;
+        expectedCliPath?: string;
+        expectedModel?: string;
+        expectedIdentityHash?: string | null;
+        switchedAt?: number;
+      };
+    }>,
+    { conversation_id: string }
+  >('openclaw.get-runtime'),
 };
 
 // Database operations
@@ -300,7 +326,7 @@ export const cron = {
   onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
   onJobRemoved: bridge.buildEmitter<{ jobId: string }>('cron.job-removed'),
-  onJobExecuted: bridge.buildEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped'; error?: string }>('cron.job-executed'),
+  onJobExecuted: bridge.buildEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped' | 'missed'; error?: string }>('cron.job-executed'),
 };
 
 // Cron job types for IPC
@@ -323,7 +349,7 @@ export interface ICronJob {
   state: {
     nextRunAtMs?: number;
     lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped';
+    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
     lastError?: string;
     runCount: number;
     retryCount: number;
@@ -366,7 +392,7 @@ export interface ICreateConversationParams {
     workspace?: string;
     customWorkspace?: boolean;
     defaultFiles?: string[];
-    backend?: AcpBackend;
+    backend?: AcpBackendAll;
     cliPath?: string;
     webSearchEngine?: 'google' | 'default';
     agentName?: string;
@@ -386,6 +412,16 @@ export interface ICreateConversationParams {
     presetContext?: string;
     /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
     presetAssistantId?: string;
+    /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
+    runtimeValidation?: {
+      expectedWorkspace?: string;
+      expectedBackend?: string;
+      expectedAgentName?: string;
+      expectedCliPath?: string;
+      expectedModel?: string;
+      expectedIdentityHash?: string | null;
+      switchedAt?: number;
+    };
   };
 }
 interface IResetConversationParams {

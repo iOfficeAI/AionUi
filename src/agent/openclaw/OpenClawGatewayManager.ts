@@ -7,6 +7,9 @@
 import { spawn, type ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 interface GatewayManagerConfig {
   /** Path to openclaw CLI (default: 'openclaw') */
@@ -44,11 +47,86 @@ export class OpenClawGatewayManager extends EventEmitter {
   private isStarting = false;
   private startPromise: Promise<number> | null = null;
 
+  private static readonly MIN_NODE = { major: 22, minor: 12, patch: 0 } as const;
+
   constructor(config: GatewayManagerConfig = {}) {
     super();
     this.cliPath = config.cliPath || 'openclaw';
     this.port = config.port || 18789;
     this.customEnv = config.customEnv;
+  }
+
+  private resolveCommandPath(cmd: string, envPath?: string): string {
+    // Absolute/relative paths: use as-is.
+    if (cmd.includes('/') || cmd.includes('\\')) return cmd;
+    const p = envPath || process.env.PATH || '';
+    const sep = process.platform === 'win32' ? ';' : ':';
+    for (const dir of p.split(sep)) {
+      if (!dir) continue;
+      const candidate = path.join(dir, cmd);
+      try {
+        fs.accessSync(candidate, fs.constants.X_OK);
+        return candidate;
+      } catch {
+        // continue
+      }
+    }
+    return cmd;
+  }
+
+  private parseNodeVersion(raw: string): { major: number; minor: number; patch: number } | null {
+    const m = raw.trim().match(/(\d+)\.(\d+)\.(\d+)/);
+    if (!m) return null;
+    return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]) };
+  }
+
+  private isNodeVersionAtLeast(a: { major: number; minor: number; patch: number } | null, b: { major: number; minor: number; patch: number }): boolean {
+    if (!a) return false;
+    if (a.major !== b.major) return a.major > b.major;
+    if (a.minor !== b.minor) return a.minor > b.minor;
+    return a.patch >= b.patch;
+  }
+
+  private findBestNodeBinary(env: Record<string, string>): string | null {
+    const envPath = env.PATH || '';
+    const sep = process.platform === 'win32' ? ';' : ':';
+    const nodeName = process.platform === 'win32' ? 'node.exe' : 'node';
+
+    let best: { file: string; ver: { major: number; minor: number; patch: number } } | null = null;
+    for (const dir of envPath.split(sep)) {
+      if (!dir) continue;
+      const candidate = path.join(dir, nodeName);
+      try {
+        fs.accessSync(candidate, fs.constants.X_OK);
+      } catch {
+        continue;
+      }
+      try {
+        const versionRaw = execFileSync(candidate, ['-v'], { encoding: 'utf8', env });
+        const ver = this.parseNodeVersion(versionRaw);
+        if (!this.isNodeVersionAtLeast(ver, OpenClawGatewayManager.MIN_NODE)) continue;
+        if (!best || this.isNodeVersionAtLeast(ver, best.ver)) {
+          best = { file: candidate, ver: ver! };
+        }
+      } catch {
+        // Ignore broken node binaries.
+      }
+    }
+    return best?.file ?? null;
+  }
+
+  private shouldRunCliViaNode(resolvedCliPath: string): boolean {
+    if (/\.(mjs|cjs|js)$/i.test(resolvedCliPath)) return true;
+    try {
+      const fd = fs.openSync(resolvedCliPath, 'r');
+      const buf = Buffer.alloc(128);
+      const n = fs.readSync(fd, buf, 0, buf.length, 0);
+      fs.closeSync(fd);
+      const head = buf.slice(0, n).toString('utf8');
+      return head.startsWith('#!') && head.includes('node');
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -101,9 +179,16 @@ export class OpenClawGatewayManager extends EventEmitter {
 
       const isWindows = process.platform === 'win32';
 
-      console.log(`[OpenClawGatewayManager] Starting: ${this.cliPath} ${args.join(' ')}`);
+      const resolvedCli = this.resolveCommandPath(this.cliPath, env.PATH);
+      const bestNode = this.findBestNodeBinary(env);
+      const runViaNode = bestNode && this.shouldRunCliViaNode(resolvedCli);
 
-      this.process = spawn(this.cliPath, args, {
+      const spawnCommand = runViaNode ? bestNode! : resolvedCli;
+      const spawnArgs = runViaNode ? [resolvedCli, ...args] : args;
+
+      console.log(`[OpenClawGatewayManager] Starting: ${spawnCommand} ${spawnArgs.join(' ')}`);
+
+      this.process = spawn(spawnCommand, spawnArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
         env,
         shell: isWindows,

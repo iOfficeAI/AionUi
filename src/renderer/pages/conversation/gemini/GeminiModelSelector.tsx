@@ -5,11 +5,30 @@ import { useTranslation } from 'react-i18next';
 
 // 统一的模型下拉，供会话头部使用
 // Unified model dropdown rendered in the chat header
-const GeminiModelSelector: React.FC<{ selection: GeminiModelSelection }> = ({ selection }) => {
+const GeminiModelSelector: React.FC<{
+  selection?: GeminiModelSelection;
+  disabled?: boolean;
+  label?: string;
+}> = ({ selection, disabled = false, label: customLabel }) => {
   const { t } = useTranslation();
+
+  // 禁用状态（非 Gemini Agent）：仅展示带 Tooltip 的按钮，无需 Dropdown
+  // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
+  if (disabled || !selection) {
+    const displayLabel = customLabel || t('conversation.welcome.useCliModel');
+
+    return (
+      <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+        <Button className='sendbox-model-btn header-model-btn' shape='round' size='small' style={{ cursor: 'default' }}>
+          {displayLabel}
+        </Button>
+      </Tooltip>
+    );
+  }
+
   const { currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
 
-  const label = currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel');
+  const label = customLabel || (currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel'));
 
   return (
     <Dropdown

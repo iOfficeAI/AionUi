@@ -34,7 +34,7 @@ export interface CronJob {
   state: {
     nextRunAtMs?: number;
     lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped';
+    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
     lastError?: string;
     runCount: number;
     retryCount: number;
@@ -147,7 +147,7 @@ function rowToJob(row: CronJobRow): CronJob {
     state: {
       nextRunAtMs: row.next_run_at ?? undefined,
       lastRunAtMs: row.last_run_at ?? undefined,
-      lastStatus: row.last_status as 'ok' | 'error' | 'skipped' | undefined,
+      lastStatus: row.last_status as 'ok' | 'error' | 'skipped' | 'missed' | undefined,
       lastError: row.last_error ?? undefined,
       runCount: row.run_count,
       retryCount: row.retry_count,

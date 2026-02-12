@@ -13,6 +13,7 @@ import useSWR from 'swr';
 
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GitHubLogo from '@/renderer/assets/logos/github.svg';
@@ -32,6 +33,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
+  codebuddy: CodeBuddyLogo,
   iflow: IflowLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,

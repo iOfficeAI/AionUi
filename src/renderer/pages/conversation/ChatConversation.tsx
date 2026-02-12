@@ -181,8 +181,12 @@ const ChatConversation: React.FC<{
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
+  // 对于非 Gemini 对话，也显示模型选择器（禁用状态）
+  // For non-Gemini conversations, also show model selector (disabled state)
+  const modelSelector = conversation ? <GeminiModelSelector disabled={true} /> : undefined;
+
   return (
-    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
+    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
       {conversationNode}
     </ChatLayout>
   );

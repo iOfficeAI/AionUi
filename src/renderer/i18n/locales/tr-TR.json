@@ -221,6 +221,8 @@
       "newConversation": "Yeni Sohbet",
       "multiAgentModeEnabled": "Çoklu ajan moduna giriliyor",
       "selectModel": "Model Seç",
+      "useCliModel": "CLI'deki modeli kullan",
+      "modelSwitchNotSupported": "Mevcut Agent model değiştirmeyi desteklemiyor. Konuşmalar varsayılan olarak CLI çalışma zamanındaki modeli kullanacaktır (model değiştirme özelliği gelecekte aşamalı olarak genişletilecektir)",
       "specifyWorkspace": "Klasörde Sohbet Et",
       "currentWorkspace": "Mevcut Çalışma Alanı",
       "clearWorkspace": "Klasörü kaldır",
@@ -352,6 +354,12 @@
   },
   "settings": {
     "title": "Ayarlar",
+    "assistant": {
+      "agentDescTelegram": "Telegram sohbetleri icin kullanilir",
+      "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et",
+      "agentSwitched": "Agent degistirildi. Kullanmaya devam etmek icin bu kanalin gecmis sohbetlerini silin, yeni sohbetler yeni yapilandirmayi kullanacaktir. (Sonraki surumde otomatik sicak guncelleme desteklenecektir)",
+      "modelSwitched": "Model degistirildi. Kullanmaya devam etmek icin bu kanalin gecmis sohbetlerini silin, yeni sohbetler yeni yapilandirmayi kullanacaktir. (Sonraki surumde otomatik sicak guncelleme desteklenecektir)"
+    },
     "authMethod": "Kimlik Doğrulama",
     "geminiApiKey": "Gemini API Anahtarı",
     "vertexApiKey": "Vertex AI",
@@ -519,6 +527,7 @@
     "yoloAlwaysOn": "Her zaman açık",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39 otomatik onayı desteklemiyor",
     "yoloNotSupportedAuggie": "Güvenlik öncelikli tasarım, bypass seçeneği yok",
+    "yoloNotSupportedCodebuddy": "Doğrulanmadı, manuel onay gerekebilir",
     "yoloNotSupportedIflow": "Doğrulanmadı, manuel onay gerekebilir",
     "yoloNotSupportedUnknown": "Doğrulanmadı, manuel onay gerekebilir",
     "channels": "Kanallar",
@@ -625,7 +634,7 @@
     "assistant.copyCode": "Eşleştirme kodunu kopyala",
     "assistant.modelSaved": "Model kaydedildi",
     "assistant.modelSaveFailed": "Model kaydedilemedi",
-    "assistant.tokenLocked": "Token değiştirmek için tüm kullanıcıları kaldırın.",
+    "assistant.tokenLocked": "Yapılandırmayı değiştirmeden önce lütfen Channel'ı kapatın ve tüm yetkili kullanıcıları silin",
     "assistant.tokenValid": "Token geçerli",
     "assistant.defaultModel": "Varsayılan Model",
     "assistant.defaultModelDesc": "Telegram sohbetleri için kullanılan model. Varsayılan olarak GEMINI CLI Ajanı kullanılır.",
@@ -796,7 +805,13 @@
     "allSkillsExist": "Bulunan tüm yetenekler zaten mevcut",
     "noSkillsFound": "Seçilen yolda geçerli yetenek bulunamadı",
     "skillScanFailed": "Yetenekler taranamadı",
-    "quickScan": "Ortak Yolları Hızlı Tara"
+    "quickScan": "Ortak Yolları Hızlı Tara",
+    "lark": {
+      "agent": "Ajan",
+      "agentDesc": "Lark sohbetleri icin kullanilir",
+      "defaultModelDesc": "Lark sohbetleri icin kullanilan model",
+      "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et"
+    }
   },
 
   "messages": {

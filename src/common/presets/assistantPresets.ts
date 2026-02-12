@@ -259,4 +259,27 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': ['画一个用户登录流程图', '创建一个 API 时序图', '画一个 TCP 状态图'],
     },
   },
+  {
+    id: 'openclaw-setup',
+    avatar: '🦞',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/openclaw-setup',
+    ruleFiles: {
+      'en-US': 'openclaw-setup.md',
+      'zh-CN': 'openclaw-setup.zh-CN.md',
+    },
+    defaultEnabledSkills: ['openclaw-setup', 'aionui-webui-setup'],
+    nameI18n: {
+      'en-US': 'OpenClaw Setup Expert',
+      'zh-CN': 'OpenClaw 部署专家',
+    },
+    descriptionI18n: {
+      'en-US': 'Expert guide for installing, deploying, configuring, and troubleshooting OpenClaw. Proactively helps with setup, diagnoses issues, and provides security best practices.',
+      'zh-CN': 'OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
+    },
+    promptsI18n: {
+      'en-US': ['Help me install OpenClaw', "My OpenClaw isn't working", 'Configure Telegram channel for OpenClaw'],
+      'zh-CN': ['帮我安装 OpenClaw', '我的 OpenClaw 出问题了', '为 OpenClaw 配置 Telegram 渠道'],
+    },
+  },
 ];

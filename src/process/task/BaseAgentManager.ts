@@ -22,24 +22,48 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
   protected conversation_id: string;
   protected confirmations: Array<IConfirmation<ConfirmationOption>> = [];
   status: 'pending' | 'running' | 'finished' | undefined;
+
+  /**
+   * Whether this agent is in yolo mode (auto-approve)
+   */
+  protected yoloMode: boolean = false;
+
   constructor(type: AgentType, data: Data) {
     super(path.resolve(__dirname, type + '.js'), {
       type: type,
       data: data,
     });
     this.type = type;
+
+    // Set yoloMode from data if present
+    if (data && typeof data === 'object' && 'yoloMode' in data) {
+      this.yoloMode = !!(data as any).yoloMode;
+    }
   }
   protected init(): void {
     super.init();
   }
   protected addConfirmation(data: IConfirmation<ConfirmationOption>) {
-    const origin = this.confirmations.find((p) => p.id === data.id);
-    if (origin) {
-      Object.assign(origin, data);
+    // If yoloMode is active, attempt to auto-confirm instead of adding
+    if (this.yoloMode && data.options && data.options.length > 0) {
+      // Select the first "allow" option (usually proceed_once or similar)
+      // Most agents put the positive confirmation as the first option
+      const autoOption = data.options[0];
+
+      // Delay slightly to allow the agent to reach a stable state if needed
+      setTimeout(() => {
+        void this.confirm(data.id, data.callId, autoOption.value);
+      }, 50);
+      return;
+    }
+
+    const originIndex = this.confirmations.findIndex((p) => p.id === data.id);
+    if (originIndex !== -1) {
+      this.confirmations = this.confirmations.map((item, i) => (i === originIndex ? { ...item, ...data } : item));
       ipcBridge.conversation.confirmation.update.emit({ ...data, conversation_id: this.conversation_id });
       return;
     }
-    this.confirmations.push(data);
+    this.confirmations = [...this.confirmations, data];
     ipcBridge.conversation.confirmation.add.emit({ ...data, conversation_id: this.conversation_id });
   }
   confirm(_msg_id: string, callId: string, _data: ConfirmationOption) {
@@ -79,6 +103,16 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
 
   sendMessage(data: any) {
     return this.postMessagePromise('send.message', data);
+  }
+
+  /**
+   * Ensure yoloMode (auto-approve) is enabled for this agent.
+   * Used by CronService to enable yoloMode on existing agents without killing them.
+   * Returns true if yoloMode is already active or was successfully enabled.
+   * Subclasses should override to implement agent-specific yoloMode logic.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return false;
   }
 }
 

@@ -12,10 +12,26 @@ import { NavigationInterceptor } from '@/common/navigation';
 import { uuid } from '@/common/utils';
 import type { AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
+import net from 'node:net';
 import { OpenClawGatewayConnection } from './OpenClawGatewayConnection';
 import { OpenClawGatewayManager } from './OpenClawGatewayManager';
 import { getGatewayAuthPassword, getGatewayAuthToken, getGatewayPort } from './openclawConfig';
 import type { ChatEvent, EventFrame, HelloOk, OpenClawGatewayConfig } from './types';
+
+async function isTcpPortOpen(host: string, port: number, timeoutMs = 300): Promise<boolean> {
+  return await new Promise<boolean>((resolve) => {
+    const socket = net.createConnection({ host, port });
+    const done = (result: boolean) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => done(true));
+    socket.once('timeout', () => done(false));
+    socket.once('error', () => done(false));
+  });
+}
 
 export interface OpenClawAgentConfig {
   /** Conversation ID */
@@ -103,16 +119,24 @@ export class OpenClawAgent {
 
       // Start gateway process if not using external
       if (!useExternal) {
-        this.gatewayManager = new OpenClawGatewayManager({
-          cliPath: gatewayConfig.cliPath || 'openclaw',
-          port,
-        });
+        // If a gateway is already listening on the target port, don't try to spawn another one.
+        // This avoids failures like "port already in use" when the user runs the Gateway service via launchd/systemd.
+        const probeHost = host === 'localhost' ? '127.0.0.1' : host;
+        const alreadyListening = await isTcpPortOpen(probeHost, port);
+        if (alreadyListening) {
+          console.log(`[OpenClawAgent] Gateway already listening on ${probeHost}:${port}, skip spawning`);
+        } else {
+          this.gatewayManager = new OpenClawGatewayManager({
+            cliPath: gatewayConfig.cliPath || 'openclaw',
+            port,
+          });
 
-        try {
-          await this.gatewayManager.start();
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
-          throw new Error(`Failed to start OpenClaw Gateway: ${errorMsg}`);
+          try {
+            await this.gatewayManager.start();
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            throw new Error(`Failed to start OpenClaw Gateway: ${errorMsg}`);
+          }
         }
       }
 
@@ -667,9 +691,13 @@ export class OpenClawAgent {
         responseMessage.type = 'plan';
         responseMessage.data = message.content;
         break;
+      case 'tool_group':
+        responseMessage.type = 'tool_group';
+        responseMessage.data = message.content;
+        break;
       default:
-        responseMessage.type = 'content';
-        responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
+        // Skip unknown message types to avoid sending raw JSON to external channels
+        return;
     }
 
     this.onStreamEvent(responseMessage);
