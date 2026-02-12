@@ -10,6 +10,7 @@ import { uuid } from '@/common/utils';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
+import { computeOpenClawIdentityHash } from './utils/openclawUtils';
 
 /**
  * 创建工作空间目录（不复制文件）
@@ -80,6 +81,9 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
+      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -133,13 +137,26 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
 export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`openclaw-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  const expectedIdentityHash = await computeOpenClawIdentityHash(workspace);
   return {
     type: 'openclaw-gateway',
     extra: {
       workspace: workspace,
+      backend: extra.backend,
+      agentName: extra.agentName,
       customWorkspace,
       gateway: {
         cliPath: extra.cliPath,
+      },
+      runtimeValidation: {
+        expectedWorkspace: workspace,
+        expectedBackend: extra.backend,
+        expectedAgentName: extra.agentName,
+        expectedCliPath: extra.cliPath,
+        // Note: model is not used by openclaw-gateway, so skip expectedModel to avoid
+        // validation mismatch (conversation object doesn't store model for this type)
+        expectedIdentityHash,
+        switchedAt: extra.runtimeValidation?.switchedAt ?? Date.now(),
       },
       // Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,

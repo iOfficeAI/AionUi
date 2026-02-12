@@ -1,0 +1,78 @@
+name: 'Read File Contents'
+description: 'Read changed file contents for cross-file analysis. Requires checkout and gather-pr-diff to have run first.'
+
+outputs:
+  contents_truncated:
+    description: 'Whether file contents were truncated'
+    value: '${{ steps.read.outputs.contents_truncated }}'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: 'read'
+      uses: 'actions/github-script@v7'
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+          const fileList = JSON.parse(fs.readFileSync(`${tmpDir}/file_list.json`, 'utf-8'));
+
+          const SKIP_PATTERNS = [
+            /package-lock\.json$/,
+            /yarn\.lock$/,
+            /pnpm-lock\.yaml$/,
+            /\.lock$/,
+            /\.png$/i, /\.jpg$/i, /\.jpeg$/i, /\.gif$/i, /\.svg$/i, /\.ico$/i, /\.webp$/i,
+            /\.woff2?$/i, /\.ttf$/i, /\.eot$/i, /\.otf$/i,
+            /\.mp3$/i, /\.mp4$/i, /\.wav$/i, /\.ogg$/i, /\.webm$/i,
+            /\.zip$/i, /\.tar$/i, /\.gz$/i, /\.br$/i,
+            /\.pdf$/i, /\.wasm$/i,
+            /\.map$/,
+            /dist\//,
+            /\.min\./,
+            /node_modules\//,
+          ];
+
+          // Priority scoring: lower = more important, read first
+          function filePriority(filename) {
+            if (/^src\/(process|agent|webserver)\//.test(filename)) return 0;
+            if (/^src\/channels\//.test(filename)) return 1;
+            if (/^src\/common\//.test(filename)) return 2;
+            if (/^src\/worker\//.test(filename)) return 3;
+            if (/^src\/renderer\//.test(filename)) return 4;
+            if (/\.(ts|tsx|js|jsx)$/.test(filename)) return 5;
+            return 6;
+          }
+
+          const MAX_CONTENT = 80000;
+          let totalSize = 0;
+          const contents = [];
+
+          const sortedFiles = fileList
+            .filter(f => f.status !== 'removed')
+            .filter(f => !SKIP_PATTERNS.some(p => p.test(f.filename)))
+            .sort((a, b) => filePriority(a.filename) - filePriority(b.filename));
+
+          for (const file of sortedFiles) {
+            if (totalSize >= MAX_CONTENT) {
+              contents.push(`\n--- [remaining files omitted, ${MAX_CONTENT / 1000}K content limit reached] ---`);
+              break;
+            }
+            const filePath = path.join(process.cwd(), file.filename);
+            try {
+              const content = fs.readFileSync(filePath, 'utf-8');
+              const remaining = MAX_CONTENT - totalSize;
+              const truncated = content.length > remaining
+                ? content.substring(0, remaining) + '\n... [file truncated]'
+                : content;
+              contents.push(`=== FILE: ${file.filename} ===\n${truncated}\n`);
+              totalSize += truncated.length;
+            } catch {
+              // File might not exist in checkout (e.g. binary or renamed from)
+            }
+          }
+
+          const contentsTruncated = totalSize >= MAX_CONTENT;
+          fs.writeFileSync(`${tmpDir}/file_contents.txt`, contents.join('\n'));
+          core.setOutput('contents_truncated', String(contentsTruncated));

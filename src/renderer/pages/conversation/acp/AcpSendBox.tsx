@@ -174,6 +174,13 @@ const useAcpMessage = (conversation_id: string) => {
               setRunning(false);
               runningRef.current = false;
             }
+            // Reset all loading states on error or disconnect so UI doesn't stay stuck
+            if (['error', 'disconnected'].includes(agentData.status)) {
+              setRunning(false);
+              runningRef.current = false;
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
+            }
           }
           addOrUpdateMessage(transformedMessage);
           break;
@@ -190,7 +197,9 @@ const useAcpMessage = (conversation_id: string) => {
           addOrUpdateMessage(transformedMessage);
           break;
         case 'error':
-          // Stop AI processing state when error occurs
+          // Stop all loading states when error occurs
+          setRunning(false);
+          runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
           addOrUpdateMessage(transformedMessage);

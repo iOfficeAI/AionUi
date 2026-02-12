@@ -21,7 +21,6 @@ const pluginRegistry: Map<PluginType, PluginConstructor> = new Map();
  */
 export function registerPlugin(type: PluginType, constructor: PluginConstructor): void {
   pluginRegistry.set(type, constructor);
-  console.log(`[PluginManager] Registered plugin type: ${type}`);
 }
 
 /**
@@ -124,7 +123,6 @@ export class PluginManager {
 
     // Check if plugin is already running
     if (this.plugins.has(id)) {
-      console.log(`[PluginManager] Plugin ${id} is already running`);
       return;
     }
 
@@ -199,8 +197,6 @@ export class PluginManager {
 
     // Emit status change event
     this.emitStatusChange(id, plugin);
-
-    console.log(`[PluginManager] Plugin ${id} started successfully`);
   }
 
   /**
@@ -209,7 +205,6 @@ export class PluginManager {
   async stopPlugin(pluginId: string): Promise<void> {
     const plugin = this.plugins.get(pluginId);
     if (!plugin) {
-      console.log(`[PluginManager] Plugin ${pluginId} is not running`);
       return;
     }
 
@@ -225,8 +220,6 @@ export class PluginManager {
 
     // Emit status change event
     this.emitStatusChange(pluginId, plugin);
-
-    console.log(`[PluginManager] Plugin ${pluginId} stopped`);
   }
 
   /**
@@ -325,8 +318,6 @@ export class PluginManager {
    * Routes to the appropriate action handler
    */
   private async handleIncomingMessage(message: IUnifiedIncomingMessage): Promise<void> {
-    console.log(`[PluginManager] Received message from ${message.platform}: ${message.content.type}`);
-
     // Update user activity
     this.sessionManager.updateSessionActivity(message.user.id);
 

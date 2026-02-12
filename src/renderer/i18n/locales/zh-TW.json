@@ -324,6 +324,8 @@
       "newConversation": "新對話",
       "multiAgentModeEnabled": "已進入多智能體模式",
       "selectModel": "選擇模型",
+      "useCliModel": "使用CLI中的模型",
+      "modelSwitchNotSupported": "當前Agent暫不支援切換模型，對話時將預設使用執行CLI時的模型（後續將逐步擴展模型切換能力）",
       "specifyWorkspace": "關聯資料夾對話",
       "currentWorkspace": "目前工作空間",
       "clearWorkspace": "移除資料夾",
@@ -435,6 +437,18 @@
   },
   "settings": {
     "about": "關於",
+    "assistant": {
+      "agentDescTelegram": "用於 Telegram 對話",
+      "autoFollowCliModel": "自動跟隨CLI運行時的模型",
+      "agentSwitched": "對話Agent已切換。請刪除該渠道的歷史會話後繼續使用，新會話將使用新配置。（下個版本將自動熱更新）",
+      "modelSwitched": "對話模型已切換。請刪除該渠道的歷史會話後繼續使用，新會話將使用新配置。（下個版本將自動熱更新）",
+      "copyCode": "複製配對碼",
+      "modelSaved": "模型已儲存",
+      "modelSaveFailed": "儲存模型失敗",
+      "tokenLocked": "請先關閉 Channel 並刪除所有已授權用戶後，再嘗試修改",
+      "tokenValid": "Token 有效",
+      "defaultModel": "對話模型"
+    },
     "assistants": "助理",
     "assistantsList": "可用助理清單",
     "assistantsEmpty": "目前沒有可用的助理。",

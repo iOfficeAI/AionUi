@@ -6,11 +6,11 @@
 
 import type { TMessage } from '@/common/chatLib';
 import { getDatabase } from '@/process/database';
+import { ProcessConfig } from '@/process/initStorage';
 import { ConversationService } from '@/process/services/conversationService';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
 import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
-import { getChannelConversationName, isChannelPlatform } from '../types';
 import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
@@ -22,6 +22,7 @@ import { createMainMenuKeyboard, createResponseActionsKeyboard, createToolConfir
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
 import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
+import type { AcpBackend } from '@/types/acpTypes';
 
 // ==================== Platform-specific Helpers ====================
 
@@ -202,6 +203,17 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
       };
     }
 
+    case 'acp_permission':
+    case 'codex_permission': {
+      // Channels (Telegram/Lark) use automatic approval via yoloMode.
+      // Show a subtle indicator instead of an error message.
+      return {
+        type: 'text',
+        text: `⏳ ${formatTextForPlatform('Applying automatic approval for permission request...', platform)}`,
+        parseMode: 'HTML',
+      };
+    }
+
     default:
       // 其他类型暂不支持，显示通用消息
       // Other types not supported yet, show generic message
@@ -252,8 +264,6 @@ export class ActionExecutor {
   private async handleIncomingMessage(message: IUnifiedIncomingMessage): Promise<void> {
     const { platform, chatId, user, content, action } = message;
 
-    console.log(`[ActionExecutor] Processing message from ${platform}:${user.id}`, JSON.stringify(message));
-
     // Get plugin for sending responses
     const plugin = this.getPluginForMessage(message);
     if (!plugin) {
@@ -277,7 +287,6 @@ export class ActionExecutor {
     try {
       // Check if user is authorized
       const isAuthorized = this.pairingService.isUserAuthorized(user.id, platform);
-      console.log(`[ActionExecutor] User ${user.id} authorized: ${isAuthorized}`);
 
       // Handle /start command - always show pairing
       if (content.type === 'command' && content.text === '/start') {
@@ -319,22 +328,68 @@ export class ActionExecutor {
       // 获取或创建会话，优先复用该平台来源的会话
       let session = this.sessionManager.getSession(channelUser.id);
       if (!session || !session.conversationId) {
-        // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
-        const channelPlatform = isChannelPlatform(platform) ? platform : 'telegram';
-        const model = await getChannelDefaultModel(channelPlatform);
+        const conversationName = platform === 'lark' ? 'Lark Assistant' : 'Telegram Assistant';
+        const source = platform === 'lark' ? 'lark' : 'telegram';
 
-        // 使用 ConversationService 获取或创建会话（根据平台）
-        // Use ConversationService to get or create conversation (based on platform)
-        const conversationName = getChannelConversationName(channelPlatform);
-        const result = await ConversationService.getOrCreateChannelConversation({
-          model,
-          name: conversationName,
-          source: channelPlatform,
-        });
+        // Read selected agent for this platform (defaults to Gemini)
+        let savedAgent: unknown = undefined;
+        try {
+          savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : ProcessConfig.get('assistant.telegram.agent'));
+        } catch {
+          // ignore
+        }
+        const backend = (savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string' ? (savedAgent as any).backend : 'gemini') as string;
+        const customAgentId = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).customAgentId as string | undefined) : undefined;
+        const agentName = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
+
+        // Always resolve a provider model (required by ICreateConversationParams typing; ignored by ACP/Codex)
+        const model = await getChannelDefaultModel(platform);
+
+        // Try to reuse latest conversation for this source only when it matches the selected agent.
+        const db2 = getDatabase();
+        const latest = db2.getLatestConversationBySource(source);
+        const existing = latest.success ? latest.data : null;
+
+        const matchesSelection = (() => {
+          if (!existing) return false;
+          if (backend === 'codex') return existing.type === 'codex';
+          if (backend === 'gemini') return existing.type === 'gemini';
+          if (existing.type !== 'acp') return false;
+          const e = existing.extra as any;
+          return e?.backend === backend && (customAgentId ? e?.customAgentId === customAgentId : true);
+        })();
+
+        const result = matchesSelection
+          ? { success: true as const, conversation: existing }
+          : backend === 'codex'
+            ? await ConversationService.createConversation({
+                type: 'codex',
+                model,
+                name: conversationName,
+                source,
+                extra: {},
+              })
+            : backend === 'gemini'
+              ? await ConversationService.createGeminiConversation({
+                  model,
+                  name: conversationName,
+                  source,
+                })
+              : await ConversationService.createConversation({
+                  type: 'acp',
+                  model,
+                  name: conversationName,
+                  source,
+                  extra: {
+                    backend: backend as AcpBackend,
+                    customAgentId,
+                    agentName,
+                  },
+                });
 
         if (result.success && result.conversation) {
-          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id);
-          console.log(`[ActionExecutor] Using conversation via ConversationService: ${result.conversation.id}`);
+          const agentType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
+          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType);
         } else {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
@@ -349,10 +404,8 @@ export class ActionExecutor {
       context.conversationId = session.conversationId;
 
       // Route based on action or content
-      console.log(`[ActionExecutor] Routing - action:`, action, `content.type:`, content.type);
       if (action) {
         // Explicit action from button press
-        console.log(`[ActionExecutor] Executing action: ${action.name} with params:`, action.params);
         await this.executeAction(context, action.name, action.params);
       } else if (content.type === 'action') {
         // Action encoded in content
@@ -395,8 +448,6 @@ export class ActionExecutor {
       });
       return;
     }
-
-    console.log(`[ActionExecutor] Executing action: ${actionName}`);
 
     try {
       const result = await action.handler(context, params);
@@ -462,10 +513,8 @@ export class ActionExecutor {
         const targetMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
         try {
           await context.editMessage(targetMsgId, msg);
-        } catch (editError) {
-          // 忽略编辑错误（消息未修改等）
+        } catch {
           // Ignore edit errors (message not modified, etc.)
-          console.debug('[ActionExecutor] Edit error (ignored):', editError);
         }
       };
 
@@ -482,8 +531,6 @@ export class ActionExecutor {
         // Save last message content
         lastMessageContent = outgoingMessage;
 
-        console.log(`[ActionExecutor] Stream callback - isInsert: ${isInsert}, msg_id: ${message.msg_id}, type: ${message.type}, sentMessageIds count: ${sentMessageIds.length}`);
-
         // IMPORTANT: Always treat first streaming message as update to thinking message
         // This prevents async race condition where first insert's sendMessage takes time
         // while subsequent messages arrive and get processed as updates
@@ -492,9 +539,6 @@ export class ActionExecutor {
         if (isInsert && sentMessageIds.length === 1) {
           // First streaming message: update thinking message instead of inserting
           // 第一个流式消息：更新thinking消息而不是插入新消息
-          console.log(`[ActionExecutor] First streaming message, updating thinking message instead of inserting`);
-          const targetMsgId = sentMessageIds[0] || thinkingMsgId;
-          console.log(`[ActionExecutor] Updating message, targetMsgId: ${targetMsgId}, content preview: ${outgoingMessage.text?.slice(0, 50)}`);
           pendingMessage = outgoingMessage;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
@@ -522,15 +566,12 @@ export class ActionExecutor {
           try {
             const newMsgId = await context.sendMessage(outgoingMessage);
             sentMessageIds.push(newMsgId);
-            console.log(`[ActionExecutor] Inserted new message, newMsgId: ${newMsgId}, total messages: ${sentMessageIds.length}`);
-          } catch (sendError) {
-            console.debug('[ActionExecutor] Send error (ignored):', sendError);
+          } catch {
+            // Ignore send errors
           }
         } else {
           // 更新消息：使用定时器节流，确保最后一条消息能被发送
           // Update message: throttle with timer to ensure last message is sent
-          const targetMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
-          console.log(`[ActionExecutor] Updating message, targetMsgId: ${targetMsgId}, content preview: ${outgoingMessage.text?.slice(0, 50)}`);
           pendingMessage = outgoingMessage;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
@@ -570,8 +611,8 @@ export class ActionExecutor {
       if (pendingMessage) {
         try {
           await doEditMessage(pendingMessage);
-        } catch (error) {
-          console.debug('[ActionExecutor] Final pending message edit error (ignored):', error);
+        } catch {
+          // Ignore final edit error
         }
         pendingMessage = null;
       }
@@ -630,7 +671,5 @@ export class ActionExecutor {
     for (const action of platformActions) {
       this.actionRegistry.set(action.name, action);
     }
-
-    console.log(`[ActionExecutor] Registered ${this.actionRegistry.size} actions`);
   }
 }
