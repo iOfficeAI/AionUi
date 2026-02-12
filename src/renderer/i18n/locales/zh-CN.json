@@ -212,6 +212,8 @@
       "newConversation": "新对话",
       "multiAgentModeEnabled": "已进入多智能体模式",
       "selectModel": "选择模型",
+      "useCliModel": "使用CLI中的模型",
+      "modelSwitchNotSupported": "当前Agent暂不支持切换模型，对话时将默认使用运行CLI时的模型（后续将逐步扩展模型切换能力）",
       "specifyWorkspace": "关联文件夹对话",
       "currentWorkspace": "当前工作空间",
       "clearWorkspace": "移除已选文件夹",

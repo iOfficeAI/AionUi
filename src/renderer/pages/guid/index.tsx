@@ -1574,7 +1574,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
+                {(selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable) ? (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1683,6 +1683,12 @@ const Guid: React.FC = () => {
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
+                ) : (
+                  <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+                    <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
+                      {t('conversation.welcome.useCliModel')}
+                    </Button>
+                  </Tooltip>
                 )}
 
                 {isPresetAgent && selectedAgentInfo && (
