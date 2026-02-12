@@ -9,8 +9,10 @@ import { uuid } from '@/common/utils';
 import { type ProtocolDetectionRequest, type ProtocolDetectionResponse, type ProtocolType, type MultiKeyTestResult, parseApiKeys, maskApiKey, normalizeBaseUrl, removeApiPathSuffix, guessProtocolFromUrl, guessProtocolFromKey, getProtocolDisplayName } from '@/common/utils/protocolDetector';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
+import { isNewApiPlatform } from '@/common/utils/platformConstants';
 import { ipcBridge } from '../../common';
 import { ProcessConfig } from '../initStorage';
+import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
 
 /**
  * OpenAI 兼容 API 的常见路径格式
@@ -30,8 +32,36 @@ const API_PATH_PATTERNS = [
   '/api/paas/v4', // 智谱 / Zhipu
 ];
 
+/**
+ * Bedrock model ID to friendly name mapping
+ * Maps AWS Bedrock model IDs to user-friendly display names
+ */
+const BEDROCK_MODEL_NAMES: Record<string, string> = {
+  'anthropic.claude-opus-4-5-20251101-v1:0': 'Claude Opus 4.5',
+  'anthropic.claude-sonnet-4-5-20250929-v1:0': 'Claude Sonnet 4.5',
+  'anthropic.claude-haiku-4-5-20251001-v1:0': 'Claude Haiku 4.5',
+  'anthropic.claude-sonnet-4-20250514-v1:0': 'Claude Sonnet 4',
+  'anthropic.claude-3-7-sonnet-20250219-v1:0': 'Claude 3.7 Sonnet',
+  'anthropic.claude-3-5-sonnet-20241022-v2:0': 'Claude 3.5 Sonnet v2',
+  'anthropic.claude-3-5-sonnet-20240620-v1:0': 'Claude 3.5 Sonnet',
+  'anthropic.claude-3-opus-20240229-v1:0': 'Claude 3 Opus',
+  'anthropic.claude-3-sonnet-20240229-v1:0': 'Claude 3 Sonnet',
+  'anthropic.claude-3-sonnet-20240229-v1:0:28k': 'Claude 3 Sonnet (28k)',
+  'anthropic.claude-3-sonnet-20240229-v1:0:200k': 'Claude 3 Sonnet (200k)',
+  'anthropic.claude-3-haiku-20240307-v1:0': 'Claude 3 Haiku',
+};
+
+/**
+ * Get friendly display name for a Bedrock model ID
+ * @param modelId - The Bedrock model ID
+ * @returns The friendly display name, or the original ID if not found
+ */
+function getBedrockModelDisplayName(modelId: string): string {
+  return BEDROCK_MODEL_NAMES[modelId] || modelId;
+}
+
 export function initModelBridge(): void {
-  ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+  ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform, bedrockConfig }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string | { id: string; name: string }>; fix_base_url?: string } }> {
     // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
     // If multiple keys (comma or newline separated), use only the first one
     let actualApiKey = api_key;
@@ -47,11 +77,169 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: vertexAIModels } };
     }
 
-    // 如果是 Anthropic/Claude 平台，直接返回 Anthropic 支持的模型列表
-    // For Anthropic/Claude platform, return the supported model list directly
+    // 如果是 MiniMax 平台，直接返回 MiniMax 支持的模型列表
+    // MiniMax does not provide /v1/models endpoint (verified 2026-02), return hardcoded list
+    // For MiniMax platform, return the supported model list directly
+    if (base_url && isMiniMaxAPI(base_url)) {
+      console.log('Using MiniMax model list (text models only)');
+      const minimaxModels = [
+        // Text/Chat Models - For conversational AI use
+        'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
+        'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)
+        'MiniMax-M2', // 200k context, 128k output - Complex reasoning & function calling
+        'M2-her', // Role-play & character-driven conversations
+      ];
+      return { success: true, data: { mode: minimaxModels } };
+    }
+
+    // 如果是 Anthropic/Claude 平台，使用 Anthropic API 获取模型列表
+    // For Anthropic/Claude platform, use Anthropic API to fetch models
     if (platform?.includes('anthropic') || platform?.includes('claude')) {
-      const anthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
-      return { success: true, data: { mode: anthropicModels } };
+      try {
+        const anthropicUrl = base_url ? `${base_url}/v1/models` : 'https://api.anthropic.com/v1/models';
+
+        const response = await fetch(anthropicUrl, {
+          headers: {
+            'x-api-key': actualApiKey,
+            'anthropic-version': '2023-06-01',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.data || !Array.isArray(data.data)) {
+          throw new Error('Invalid response format');
+        }
+
+        // Extract model IDs from response
+        const modelList = data.data.map((model: { id: string }) => model.id);
+
+        return { success: true, data: { mode: modelList } };
+      } catch (e: unknown) {
+        // Fall back to default model list on API failure
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.warn('Failed to fetch Anthropic models via API, falling back to default list:', errorMessage);
+        const defaultAnthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-7-sonnet-20250219', 'claude-3-haiku-20240307'];
+        return { success: true, data: { mode: defaultAnthropicModels } };
+      }
+    }
+
+    // 如果是 New API 网关，使用 OpenAI 兼容协议获取模型列表
+    // For New API gateway, use OpenAI-compatible protocol to fetch model list
+    // new-api 暴露标准的 /v1/models 端点，直接走 OpenAI 路径
+    // new-api exposes standard /v1/models endpoint, use OpenAI path directly
+    if (isNewApiPlatform(platform)) {
+      // 确保 base_url 带有 /v1 后缀 / Ensure base_url has /v1 suffix
+      let openaiBaseUrl = base_url?.replace(/\/+$/, '') || '';
+      if (openaiBaseUrl && !openaiBaseUrl.endsWith('/v1')) {
+        openaiBaseUrl = `${openaiBaseUrl}/v1`;
+      }
+
+      const openai = new OpenAI({
+        baseURL: openaiBaseUrl,
+        apiKey: actualApiKey,
+        defaultHeaders: {
+          'User-Agent': 'AionUI/1.0',
+        },
+      });
+
+      try {
+        const res = await openai.models.list();
+        if (res.data?.length === 0) {
+          throw new Error('Invalid response: empty data');
+        }
+        return { success: true, data: { mode: res.data.map((v) => v.id) } };
+      } catch (e: any) {
+        return { success: false, msg: e.message || e.toString() };
+      }
+    }
+
+    // 如果是 AWS Bedrock 平台，使用 AWS API 动态获取模型列表
+    // For AWS Bedrock platform, use AWS API to dynamically fetch model list
+    if (platform?.includes('bedrock') && bedrockConfig?.region) {
+      try {
+        const region = bedrockConfig.region;
+
+        // Store original environment variables
+        const originalEnv = {
+          AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+          AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+          AWS_PROFILE: process.env.AWS_PROFILE,
+          AWS_REGION: process.env.AWS_REGION,
+        };
+
+        try {
+          // Set environment variables based on auth method
+          if (bedrockConfig.authMethod === 'accessKey') {
+            process.env.AWS_ACCESS_KEY_ID = bedrockConfig.accessKeyId;
+            process.env.AWS_SECRET_ACCESS_KEY = bedrockConfig.secretAccessKey;
+            delete process.env.AWS_PROFILE;
+          } else if (bedrockConfig.authMethod === 'profile') {
+            process.env.AWS_PROFILE = bedrockConfig.profile;
+            delete process.env.AWS_ACCESS_KEY_ID;
+            delete process.env.AWS_SECRET_ACCESS_KEY;
+          }
+          process.env.AWS_REGION = region;
+
+          // Create Bedrock client
+          const bedrockClient = new BedrockClient({ region });
+
+          // List inference profiles (cross-region inference endpoints)
+          const command = new ListInferenceProfilesCommand({});
+          const response = await bedrockClient.send(command);
+
+          // Filter inference profiles that contain Claude models
+          const inferenceProfiles = response.inferenceProfileSummaries || [];
+          const claudeProfiles = inferenceProfiles.filter((profile) => profile.inferenceProfileId?.includes('anthropic.claude'));
+
+          if (claudeProfiles.length === 0) {
+            return {
+              success: false,
+              msg: `No Claude models available in region ${region}. Try a different region.`,
+            };
+          }
+
+          // Map to objects with friendly names
+          const modelsWithNames = claudeProfiles.map((profile) => ({
+            id: profile.inferenceProfileId || '',
+            name: getBedrockModelDisplayName(profile.inferenceProfileId || ''),
+          }));
+
+          return { success: true, data: { mode: modelsWithNames } };
+        } finally {
+          // Restore original environment variables
+          if (originalEnv.AWS_ACCESS_KEY_ID !== undefined) {
+            process.env.AWS_ACCESS_KEY_ID = originalEnv.AWS_ACCESS_KEY_ID;
+          } else {
+            delete process.env.AWS_ACCESS_KEY_ID;
+          }
+          if (originalEnv.AWS_SECRET_ACCESS_KEY !== undefined) {
+            process.env.AWS_SECRET_ACCESS_KEY = originalEnv.AWS_SECRET_ACCESS_KEY;
+          } else {
+            delete process.env.AWS_SECRET_ACCESS_KEY;
+          }
+          if (originalEnv.AWS_PROFILE !== undefined) {
+            process.env.AWS_PROFILE = originalEnv.AWS_PROFILE;
+          } else {
+            delete process.env.AWS_PROFILE;
+          }
+          if (originalEnv.AWS_REGION !== undefined) {
+            process.env.AWS_REGION = originalEnv.AWS_REGION;
+          } else {
+            delete process.env.AWS_REGION;
+          }
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return {
+          success: false,
+          msg: `Failed to fetch Bedrock models: ${errorMessage}`,
+        };
+      }
     }
 
     // 如果是 Gemini 平台，使用 Gemini API 协议
@@ -717,6 +905,25 @@ async function testMultipleKeys(
     invalid: results.filter((r) => !r.valid).length,
     details: results,
   };
+}
+
+/**
+ * 检测是否为 MiniMax API
+ * Check if it's MiniMax API
+ *
+ * 使用 URL 解析确保只匹配真正的 MiniMax 域名，防止 URL 注入攻击
+ * Use URL parsing to ensure only real MiniMax domains match, preventing URL injection attacks
+ */
+function isMiniMaxAPI(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    const hostname = url.hostname.toLowerCase();
+    // 精确匹配 minimaxi.com、minimax.io 或其子域名
+    // Exact match minimaxi.com, minimax.io or their subdomains
+    return hostname === 'minimaxi.com' || hostname.endsWith('.minimaxi.com') || hostname === 'minimax.io' || hostname.endsWith('.minimax.io');
+  } catch {
+    return false;
+  }
 }
 
 /**

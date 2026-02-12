@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Yapay Zekanızla Birlikte Çalışın: Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie ve daha fazlası</strong><br>
+  <strong>🚀 Yapay Zekanızla Birlikte Çalışın: Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie ve daha fazlası</strong><br>
   <em>Kullanıcı Dostu | Görsel Grafik Arayüz | Çoklu Model Desteği | Yerel Veri Güvenliği</em>
 </p>
 
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">WeChat (Çince Grup)</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat-group-3.png" target="_blank">WeChat (Çince Grup)</a>
 </p>
 
 ---
@@ -55,23 +55,28 @@
 ## ✨ AionUi Neler Yapabilir?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - CLI Yapay Zeka Ajanınızla Birlikte Çalışın" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - CLI Yapay Zeka Ajanınızla Birlikte Çalışın" width="800">
 </p>
 
 ### 🤖 **Çoklu Ajan Modu - Komut Satırı Yapay Zeka Araçlarınız İçin Ortak Çalışma, Birleşik Grafik Arayüz**
 
-_Eğer Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code gibi komut satırı araçları yüklü ise, AionUi bunları otomatik olarak algılar ve birleşik bir grafik arayüz sunar_
+AionUi, komut satırı yapay zeka araçlarınız için birleşik bir grafik arayüz sağlar. Dahili Gemini CLI dahil, kurulum gerekmez.
 
-- ✅ **Otomatik Algılama + Birleşik Arayüz** - Yerel CLI araçlarını otomatik tanır, tek bir grafik arayüz sunar, komut satırına elveda deyin
-- ✅ **Yerel Depolama + Çoklu Oturum** - Konuşmalar yerel olarak kaydedilir, birden fazla paralel oturumu destekler, her oturum bağımsız bağlama sahiptir
+**Desteklenen araçlar：** Gemini CLI (dahili) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="Çoklu Ajan Modu Demo" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**Temel özellikler：**
+
+- ✅ **Otomatik algılama** - Yerel CLI araçlarını otomatik olarak tanır ve entegre eder
+- ✅ **Birleşik arayüz** - Tüm AI araçlarınız için tek bir arayüz, komut satırına elveda
+- ✅ **Yerel depolama + çoklu oturum** - Konuşmalar yerel olarak kaydedilir, bağımsız bağlamlara sahip birden fazla paralel oturum
 
 ---
 
-### 🌐 **Her Yerden Erişim - WebUI & Telegram Kanalı**
+### 🌐 **Her Yerden Erişim - WebUI ve sohbet platformları Kanalı**
 
 _7/24 Yapay Zeka Asistanınız - AionUi'ye herhangi bir cihazdan, her yerden erişin! İş gezisinde, evde, ofiste; yapay zeka araçlarınızı WebUI veya Telegram üzerinden her an kullanın_
 
@@ -88,7 +93,7 @@ Yapay zeka asistanınızla doğrudan Telegram üzerinden herhangi bir cihazdan s
 > 💡 **Nasıl kurulur:** Ayarlar → Kanallar → Telegram yolunu izleyin, [@BotFather](https://t.me/BotFather) üzerinden Bot Token'ınızı alın ve sohbete başlayın!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="Her Yerden Erişim - WebUI & Telegram" width="800">
+  <img src="./resources/remote.png" alt="Her Yerden Erişim - WebUI ve sohbet platformları" width="800">
 </p>
 
 ---
@@ -101,7 +106,7 @@ _Toplu yeniden adlandırma, otomatik düzenleme, akıllı sınıflandırma, dosy
 - **Verimli Toplu İşlem**: Tek tıkla yeniden adlandırın, dosyaları birleştirin, sıkıcı manuel işlere veda edin.
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
 </p>
 
 ---
@@ -133,10 +138,10 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 ### 🤖 **Çoklu Model Desteği**
 
-_Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi yerel modelleri destekler. Çeşitli görev gereksinimlerini karşılamak için farklı modeller arasında esnek geçiş yapın._
+_Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi yerel modelleri destekler. AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini(çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi) destekler. Çeşitli görev gereksinimlerini karşılamak için farklı modeller arasında esnek geçiş yapın._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Çoklu Model Desteği" width="800">
+  <img src="./resources/llm_newapi.png" alt="Çoklu Model Desteği" width="800">
 </p>
 
 ---
@@ -146,7 +151,7 @@ _Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi
 _Kendi CSS kodunuzla özelleştirin, arayüzü tercihlerinize uygun hale getirin_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Özel Arayüz Demo" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS Özel Arayüz Demo" width="800">
 </p>
 
 - ✅ **Tamamen Özelleştirilebilir** - Arayüz renklerini, stillerini, düzenini CSS koduyla özgürce özelleştirin, size özel deneyiminizi yaratın

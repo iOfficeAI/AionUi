@@ -5,88 +5,23 @@
  */
 
 import type { CodexToolCallUpdate } from '@/common/chatLib';
-import { Tag } from '@arco-design/web-react';
-import React from 'react';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import Diff2Html from '../../../components/Diff2Html';
-import BaseToolCallDisplay from './BaseToolCallDisplay';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) => {
   const { t } = useTranslation();
-  const { toolCallId, data } = content;
+  const { data } = content;
   const { unified_diff } = data;
 
-  // 解析统一diff格式，提取文件信息
-  const extractFileInfo = (diff: string) => {
-    const lines = diff.split('\n');
-    const gitLine = lines.find((line) => line.startsWith('diff --git'));
-    if (gitLine) {
-      const match = gitLine.match(/diff --git a\/(.+) b\/(.+)/);
-      if (match) {
-        const fullPath = match[1];
-        const fileName = fullPath.split('/').pop() || fullPath; // 只取文件名
-        return {
-          fileName,
-          fullPath,
-          isNewFile: diff.includes('new file mode'),
-          isDeletedFile: diff.includes('deleted file mode'),
-        };
-      }
-    }
-    return {
-      fileName: t('tools.unknownFile', { defaultValue: 'Unknown file' }),
-      fullPath: t('tools.unknownFile', { defaultValue: 'Unknown file' }),
-      isNewFile: false,
-      isDeletedFile: false,
-    };
-  };
+  const fileInfo = useMemo(() => parseDiff(unified_diff), [unified_diff]);
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: unified_diff, displayName: fileInfo.fileName, filePath: fileInfo.fullPath });
 
-  const fileInfo = extractFileInfo(unified_diff);
-  const { fileName, fullPath, isNewFile, isDeletedFile } = fileInfo;
-
-  // 截断长路径的函数
-  const truncatePath = (path: string, maxLength: number = 60) => {
-    if (path.length <= maxLength) return path;
-    const parts = path.split('/');
-    if (parts.length <= 2) return path;
-
-    // 保留开头和结尾，中间用 ... 代替
-    const start = parts.slice(0, 2).join('/');
-    const end = parts.slice(-2).join('/');
-    return `${start}/.../${end}`;
-  };
-
-  // 生成额外的标签来显示文件状态
-  const additionalTags = (
-    <>
-      {isNewFile && <Tag color='green'>{t('tools.newFile', { defaultValue: 'New File' })}</Tag>}
-      {isDeletedFile && <Tag color='red'>{t('tools.deletedFile', { defaultValue: 'Deleted File' })}</Tag>}
-      {!isNewFile && !isDeletedFile && <Tag color='blue'>{t('tools.modified', { defaultValue: 'Modified' })}</Tag>}
-    </>
-  );
-
-  return (
-    <BaseToolCallDisplay
-      toolCallId={toolCallId}
-      title={t('tools.fileChanges', { defaultValue: 'File Changes' })}
-      status='success'
-      description={
-        <div className='max-w-full overflow-hidden'>
-          <div className='text-sm text-t-secondary truncate' title={fullPath}>
-            {truncatePath(fullPath)}
-          </div>
-        </div>
-      }
-      icon='📝'
-      additionalTags={additionalTags}
-    >
-      <div className='mt-3 max-w-full overflow-hidden'>
-        <Diff2Html diff={unified_diff} title={fileName} filePath={fullPath} className='border rounded w-full' />
-      </div>
-    </BaseToolCallDisplay>
-  );
+  return <FileChangesPanel title={t('messages.fileChangesCount', { count: 1 })} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
 };
 
 export default TurnDiffDisplay;

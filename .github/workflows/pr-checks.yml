@@ -2,7 +2,7 @@ name: '✅ PR Checks'
 
 on:
   pull_request:
-    types: [opened, reopened, edited, synchronize]
+    types: [opened, synchronize, edited]
     branches: [main, dev]
 
 concurrency:
@@ -12,121 +12,13 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
-  issues: write
-  id-token: write
+  issues: read
 
 jobs:
-  # Job 1: Check if PR links to an issue
-  check-issue-link:
-    name: Issue Link Check
-    runs-on: ubuntu-latest
-    outputs:
-      has_issue_link: ${{ steps.check.outputs.has_issue_link }}
-      is_new_pr: ${{ steps.check.outputs.is_new_pr }}
-    steps:
-      - name: Check if PR links to an issue
-        id: check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prBody = context.payload.pull_request.body || '';
-            const prNumber = context.payload.pull_request.number;
-            const prAuthor = context.payload.pull_request.user.login;
-            const action = context.payload.action;
-
-            // Check if this is a new PR (opened) vs edited
-            const isNewPr = action === 'opened';
-            core.setOutput('is_new_pr', isNewPr);
-
-            // Check if PR body contains issue linking keywords
-            const issuePatterns = [
-              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*#\d+/gi,
-              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+https:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/\d+/gi,
-              /#\d+/g
-            ];
-
-            let hasIssueLink = false;
-            for (const pattern of issuePatterns) {
-              if (pattern.test(prBody)) {
-                hasIssueLink = true;
-                break;
-              }
-            }
-
-            core.setOutput('has_issue_link', hasIssueLink);
-
-            // Check if this bot has already commented
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
-
-            const botComment = comments.data.find(comment =>
-              (comment.user.type === 'Bot' || comment.user.login === 'github-actions[bot]') &&
-              comment.body.includes('<!-- pr-issue-check-bot -->')
-            );
-
-            if (hasIssueLink) {
-              // If issue is linked and bot comment exists, delete it
-              if (botComment) {
-                await github.rest.issues.deleteComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id,
-                });
-                core.info('Issue link found. Removed previous bot comment.');
-              }
-              core.info('PR is properly linked to an issue. Will proceed to code review.');
-              return;
-            }
-
-            // Post comment if not already commented
-            if (!botComment) {
-              const commentBody = [
-                '<!-- pr-issue-check-bot -->',
-                '',
-                '**Issue Link Required**',
-                '',
-                `Hi @${prAuthor},`,
-                '',
-                'Thank you for your contribution! However, this PR **cannot be merged** until it is linked to an issue.',
-                '',
-                '### Required Action',
-                '',
-                '1. **Create an Issue** (if one doesn\'t exist) - Describe what this PR addresses (bug fix, feature, enhancement, etc.)',
-                '2. **Link this PR to the Issue** - Add one of the following to your PR description:',
-                '   - `Fixes #<issue_number>`',
-                '   - `Closes #<issue_number>`',
-                '   - `Resolves #<issue_number>`',
-                '',
-                '### Why is this required?',
-                '',
-                'This helps us:',
-                '- Track all changes through our [Project Roadmap](https://github.com/orgs/iOfficeAI/projects/5)',
-                '- Maintain a clear history of issues and resolutions',
-                '- Ensure changes are properly reviewed and prioritized',
-                '',
-                '---',
-                '*Once you link an issue, this check will pass automatically.*'
-              ].join('\n');
-
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: commentBody,
-              });
-
-              core.info('Posted comment asking for issue link.');
-            }
-
-            // Fail the check - PR cannot be merged without issue link
-            core.setFailed('PR must be linked to an issue. Please add "Fixes #<issue_number>" to the PR description.');
-
-  # Job 2: Code quality checks (TypeScript, ESLint, Prettier)
+  # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -151,122 +43,59 @@ jobs:
       - name: Prettier Check
         run: npm run format:check
 
-  # Job 3: Post PR summary (only for new PRs)
-  summary:
-    name: PR Summary
-    runs-on: ubuntu-latest
+  # Job 2: Trigger GPT AI review (only on first PR submission)
+  review:
+    name: AI Review
+    needs: [code-quality]
     if: github.event.action == 'opened'
+    uses: './.github/workflows/gpt-review.yml'
+    with:
+      pr_number: '${{ github.event.pull_request.number }}'
     permissions:
       contents: read
       pull-requests: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    secrets: inherit
 
-      - name: Generate PR Summary
+  # Job 3: Check if PR author is an external contributor
+  check-external:
+    name: Check External
+    needs: [code-quality]
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    outputs:
+      is_external: ${{ steps.check.outputs.is_external }}
+    steps:
+      - name: Check author permission level
+        id: check
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = context.payload.pull_request.number;
-            const prAuthor = context.payload.pull_request.user.login;
-
-            // Get changed files
-            const { data: files } = await github.rest.pulls.listFiles({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-            });
-
-            const additions = files.reduce((sum, f) => sum + f.additions, 0);
-            const deletions = files.reduce((sum, f) => sum + f.deletions, 0);
-            const fileCount = files.length;
-
-            // Categorize files by type
-            const filesByType = {};
-            for (const file of files) {
-              const ext = file.filename.split('.').pop() || 'other';
-              if (!filesByType[ext]) filesByType[ext] = [];
-              filesByType[ext].push(file.filename);
+            const username = context.payload.pull_request.user.login;
+            try {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username,
+              });
+              const permission = data.permission;
+              const isExternal = permission !== 'admin' && permission !== 'maintain' && permission !== 'write';
+              core.info(`User ${username}: permission=${permission}, is external: ${isExternal}`);
+              core.setOutput('is_external', String(isExternal));
+            } catch (error) {
+              core.info(`User ${username}: permission check failed (${error.message}), treating as external`);
+              core.setOutput('is_external', 'true');
             }
 
-            // Build file summary
-            let fileSummary = '';
-            for (const [ext, fileList] of Object.entries(filesByType)) {
-              fileSummary += `- **${ext}**: ${fileList.length} file(s)\n`;
-            }
-
-            // Check if summary already exists
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
-
-            const summaryComment = comments.data.find(comment =>
-              (comment.user.type === 'Bot' || comment.user.login === 'github-actions[bot]') &&
-              comment.body.includes('<!-- pr-summary-bot -->')
-            );
-
-            if (summaryComment) {
-              core.info('Summary already exists, skipping.');
-              return;
-            }
-
-            const summaryBody = [
-              '<!-- pr-summary-bot -->',
-              '',
-              '## PR Summary',
-              '',
-              `Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick summary:`,
-              '',
-              '### Stats',
-              '| Metric | Value |',
-              '|--------|-------|',
-              `| Files Changed | ${fileCount} |`,
-              `| Additions | +${additions} |`,
-              `| Deletions | -${deletions} |`,
-              '',
-              '### Files by Type',
-              fileSummary,
-              '',
-              '### Review Status',
-              '- Automated code review in progress...',
-              '',
-              '---',
-              '**Using AI Review**',
-              '',
-              'You can request assistance at any point by creating a comment:',
-              '| Command | Description |',
-              '|---------|-------------|',
-              '| `@gemini-cli /review` | Request a code review |',
-              '| `@gemini-cli <question>` | Ask a question about this PR |',
-              '',
-              '---',
-              '*This is an automated summary. The detailed code review will follow shortly.*'
-            ].join('\n');
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: summaryBody,
-            });
-
-            core.info('Posted PR summary.');
-
-  # Job 4: Trigger Gemini AI review
-  review:
-    name: AI Review
-    needs: [summary]
-    if: |
-      always() &&
-      (needs.summary.result == 'success' || needs.summary.result == 'skipped')
-    uses: './.github/workflows/gemini-review.yml'
+  # Job 4: Trigger GPT PR assessment for external contributors
+  assessment:
+    name: PR Assessment
+    needs: [check-external]
+    if: needs.check-external.outputs.is_external == 'true'
+    uses: './.github/workflows/gpt-pr-assessment.yml'
+    with:
+      pr_number: '${{ github.event.pull_request.number }}'
     permissions:
       contents: read
-      id-token: write
-      issues: write
       pull-requests: write
+      issues: read
     secrets: inherit

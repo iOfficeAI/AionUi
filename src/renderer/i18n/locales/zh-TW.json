@@ -409,7 +409,13 @@
       "quotaExceededBody": "當前模型額度已用盡，是否切換到 {{model}}？",
       "quotaExceededNoFallback": "當前模型額度已用盡，請切換到其他可用模型。",
       "quotaSwitched": "已切換到 {{model}}。",
-      "confirmationLoadError": "確認對話框載入失敗"
+      "apiErrorNoCli": "API 錯誤，沒有可用的 CLI 代理進行回退。",
+      "apiErrorSwitchFailed": "建立回退會話失敗。",
+      "apiErrorSwitched": "API 錯誤，已自動切換到 {{cli}} CLI",
+      "confirmationLoadError": "確認對話框載入失敗",
+      "tryAnotherAgent": "嘗試其他 Agent：",
+      "switchedToAgent": "已切換到 {{agent}}",
+      "switchAgentFailed": "切換 Agent 失敗"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
@@ -499,6 +505,9 @@
     "dirNotConfigured": "尚未設定目錄",
     "customOpenAI": "自定義(相容OpenAI)",
     "platformCustom": "自定義",
+    "platformNewApi": "New API",
+    "modelProtocol": "請求協議",
+    "modelProtocolTip": "選擇該模型的 API 請求格式。new-api 閘道將使用所選協議路由到上游服務。",
     "darkMode": "深色",
     "deleteAllModelConfirm": "是否刪除所有模型？",
     "deleteModelConfirm": "是否刪除該模型？",
@@ -555,6 +564,19 @@
     "agent": "代理",
     "tools": "工具",
     "webui": "WebUI",
+    "security": "執行授權",
+    "autoApprove": "執行授權",
+    "autoApproveDesc": "啟用後，Agent 執行命令和檔案操作時將跳過確認彈框。請謹慎使用。",
+    "installed": "已安裝",
+    "builtin": "內建",
+    "noAgentsFound": "找不到 Agent",
+    "yoloNotNeeded": "無權限系統，預設自動批准",
+    "yoloAlwaysOn": "始終開啟",
+    "yoloNotSupportedOpencode": "OpenCode v1.1.39 不支援自動批准",
+    "yoloNotSupportedAuggie": "安全優先設計，無繞過選項",
+    "yoloNotSupportedIflow": "未驗證，可能需要手動確認",
+    "yoloNotSupportedUnknown": "未驗證，可能需要手動確認",
+    "channels": "頻道",
     "webui.configuration": "WebUI 配置",
     "webui.enable": "啟用 WebUI",
     "webui.enableDesc": "啟動 Web 服務，允許透過瀏覽器存取",
@@ -1003,5 +1025,51 @@
   "cron.drawer.schedule": "執行規則",
   "cron.drawer.nextRun": "下次執行",
   "cron.drawer.save": "儲存",
-  "cron.drawer.saveSuccess": "儲存成功"
+  "cron.drawer.saveSuccess": "儲存成功",
+  "guid.agentFallbackNotice": "{{original}} 不可用，已自動切換到 {{fallback}}。",
+  "guid.noAgentAvailable": "沒有可用的 Main Agent。請登入 Google 或安裝 Claude/Codex CLI。是否前往設定？",
+  "guid.noAgentAvailableShort": "沒有可用的 Main Agent。點擊配置。",
+  "guid.agentTabAutoSwitch": "模型不相容 Gemini，已自動切換到 {{fallback}}",
+  "guid.autoSwitchToAgent": "Gemini 未配置，正在自動切換到 {{agent}}",
+  "guid.autoSwitchedAgent": "{{from}} 不可用，已自動切換到 {{to}}",
+  "guid.scanning": {
+    "initialMessage": "當前Agent不可用, 正在檢測其他可用agent...",
+    "scanningMessage": "正在掃描本地可用agent...",
+    "connectingMessage": "已連接成功，請稍後...",
+    "establishingConnection": "正在建立連接...",
+    "statusQueued": "排隊中",
+    "statusTesting": "正在測試延遲...",
+    "statusUnreachable": "不可達",
+    "statusAvailable": "可用"
+  },
+  "agent": {
+    "health": {
+      "detectedError": "檢測到當前 Agent ({{agent}}) 回應異常",
+      "autoSwitching": "。系統將自動嘗試切換線路。",
+      "evaluating": "正在評估網路延遲與模型可用性...",
+      "checking": "檢查 {{agent}} 節點...",
+      "foundBest": "已找到最佳替代方案",
+      "recommendSwitch": "推薦切換",
+      "available": "可用",
+      "lowLatency": "低延遲",
+      "mediumLatency": "中等延遲",
+      "highLatency": "高延遲",
+      "bestMatch": "最佳匹配",
+      "noAvailable": "當前環境沒有可用 agent",
+      "checkConfig": "請檢查配置或稍後重試"
+    },
+    "setup": {
+      "connectionError": "連接錯誤",
+      "notConfigured": "{{agent}} 尚未配置",
+      "authRequired": "使用此 Agent 需要先完成認證或配置 API Key。",
+      "findingAlternatives": "正在查找可用的替代方案...",
+      "checkingAgent": "正在檢查 {{agent}}...",
+      "alternativesFound": "找到 {{count}} 個可用的替代方案",
+      "autoSwitching": "正在自動切換到最佳可用 Agent...",
+      "configError": "配置有問題，請檢查配置或選擇其他 Agent：",
+      "noAlternatives": "未找到可用的 Agent",
+      "configureFirst": "請先在設定中配置一個 Agent。",
+      "switching": "正在切換 Agent..."
+    }
+  }
 }

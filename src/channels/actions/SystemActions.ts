@@ -14,18 +14,24 @@ import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMainMenuCard, createPairingGuideCard, createSessionStatusCard, createSettingsCard, createTipsCard } from '../plugins/lark/LarkCards';
-import type { ChannelAgentType } from '../types';
+import { getChannelConversationName, isChannelPlatform } from '../types';
+import type { ChannelAgentType, ChannelPlatform } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 
+export type { ChannelPlatform };
+export { getChannelConversationName };
+
 /**
- * Get the default model for Telegram assistant
+ * Get the default model for a channel platform
  * Reads from saved config or falls back to default Gemini model
  */
-export async function getTelegramDefaultModel(): Promise<TProviderWithModel> {
+export async function getChannelDefaultModel(platform: ChannelPlatform): Promise<TProviderWithModel> {
+  const configKey = platform === 'lark' ? 'assistant.lark.defaultModel' : 'assistant.telegram.defaultModel';
+
   try {
     // Try to get saved model selection
-    const savedModel = await ProcessConfig.get('assistant.telegram.defaultModel');
+    const savedModel = await ProcessConfig.get(configKey);
     if (savedModel?.id && savedModel?.useModel) {
       // Get full provider config from model.config
       const providers = await ProcessConfig.get('model.config');
@@ -52,7 +58,7 @@ export async function getTelegramDefaultModel(): Promise<TProviderWithModel> {
       }
     }
   } catch (error) {
-    console.warn('[SystemActions] Failed to get saved model, using default:', error);
+    console.warn(`[SystemActions] Failed to get saved model for ${platform}, using default:`, error);
   }
 
   // Default fallback - minimal config for Gemini
@@ -109,15 +115,17 @@ export const handleSessionNew: ActionHandler = async (context) => {
   }
   sessionManager.clearSession(context.channelUser.id);
 
-  // 获取用户选择的模型 / Get user selected model
-  const model = await getTelegramDefaultModel();
+  // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
+  const platform: ChannelPlatform = isChannelPlatform(context.platform) ? context.platform : 'telegram';
+  const model = await getChannelDefaultModel(platform);
+  const conversationName = getChannelConversationName(platform);
 
   // 使用 ConversationService 创建新会话（始终创建新的，不复用）
   // Use ConversationService to create new conversation (always new, don't reuse)
   const result = await ConversationService.createGeminiConversation({
     model,
-    source: 'telegram',
-    name: 'Telegram Assistant',
+    source: platform,
+    name: conversationName,
   });
 
   if (!result.success || !result.conversation) {

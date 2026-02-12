@@ -93,8 +93,7 @@ out/
 
 # IDE and Editor files
 .idea
-.vscode/launch.json
-.vscode/*.log
+.vscode
 
 # AI CLI tool configurations (may contain sensitive information)
 **/.claude/settings.local.json
@@ -154,6 +153,7 @@ specs/**/work-*
 .spec-cache/
 .tmp/
 my-video
+${env.ELECTRON_CACHE}/
 
 # Agent Kit
 .agent

@@ -215,7 +215,11 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       /ark\.cn-beijing\.volces\.com/, // 火山引擎
       /open\.bigmodel\.cn/, // 智谱 AI
       /api\.siliconflow\.cn/, // SiliconFlow
+      /api\.siliconflow\.com/, // SiliconFlow (.com)
       /api\.lingyiwanwu\.com/, // 零一万物
+      /api\.minimaxi\.com/, // MiniMax China
+      /api\.minimax\.io/, // MiniMax Global
+      /platform\.minimaxi\.com/, // MiniMax Platform
       /localhost/, // 本地服务
       /127\.0\.0\.1/, // 本地服务
       /0\.0\.0\.0/, // 本地服务

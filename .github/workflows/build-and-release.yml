@@ -7,7 +7,9 @@ permissions:
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ dev ]
+    tags:
+      - '*'
 
 jobs:
   # 代码质量检查
@@ -41,7 +43,8 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
+    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
 
     strategy:
       fail-fast: false
@@ -264,6 +267,9 @@ jobs:
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
+          # Node.js memory limit for webpack bundling (prevents OOM during build)
+          # Node.js 内存限制，防止 webpack 打包时内存不足
+          NODE_OPTIONS: "--max-old-space-size=8192"
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
@@ -307,61 +313,101 @@ jobs:
           rm -f /tmp/*.dmg 2>/dev/null || true
           echo "Cleanup complete"
 
-      - name: Build with electron-builder (non-Windows)
-        if: "!startsWith(matrix.platform, 'windows')"
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 80
-          max_attempts: 2
-          retry_wait_seconds: 300
-          continue_on_error: ${{ startsWith(matrix.platform, 'macos') }}
-          command: ${{ matrix.command }}
-          on_retry_command: |
-            echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
-            echo "这可能是临时网络问题或 Apple 公证服务延迟"
-            # Clean up stale disk images before retry (macOS)
-            if [[ "$RUNNER_OS" == "macOS" ]]; then
-              echo "Cleaning up stale disk images before retry..."
-              hdiutil info 2>/dev/null | grep '/dev/disk' | awk '{print $1}' | while read disk; do
-                hdiutil detach "$disk" -force 2>/dev/null || true
-              done
-              rm -f /tmp/*.dmg 2>/dev/null || true
+      # macOS: Build with notarization - DMG failure = CI failure, notarization failure = warning only
+      # macOS: 构建并公证 - DMG 失败 = CI 失败，公证失败 = 仅警告
+      - name: Build with electron-builder (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        id: macos-build
+        shell: bash
+        run: |
+          set +e  # Handle errors manually
+
+          # Run build command
+          ${{ matrix.command }} 2>&1 | tee "${RUNNER_TEMP}/build.log"
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+
+          # Check if DMG was created (most important artifact)
+          DMG_EXISTS=false
+          if ls out/*.dmg 1>/dev/null 2>&1; then
+            DMG_EXISTS=true
+            echo "✅ DMG created successfully"
+          fi
+
+          # If build succeeded completely
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Build completed successfully"
+            echo "notarization_status=success" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Build failed - check if it's just notarization failure
+          if [ "$DMG_EXISTS" = true ]; then
+            # DMG exists but build failed - likely notarization issue
+            if grep -qiE "notariz|staple" "${RUNNER_TEMP}/build.log"; then
+              echo "⚠️ DMG created but notarization failed"
+              echo "notarization_status=failed" >> $GITHUB_OUTPUT
+              echo "::warning title=Notarization Failed::DMG was built successfully but notarization failed. Users may see Gatekeeper warnings."
+              # Write to job summary
+              echo "## ⚠️ Notarization Warning" >> $GITHUB_STEP_SUMMARY
+              echo "DMG was built and signed successfully, but **notarization failed**." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Users may see Gatekeeper warnings when opening the app for the first time." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "To fix: Right-click the app → Open → Open" >> $GITHUB_STEP_SUMMARY
+              exit 0  # Allow CI to continue
             fi
+          fi
+
+          # DMG doesn't exist or other fatal error - fail CI
+          echo "❌ Build failed - DMG was not created"
+          echo "notarization_status=build_failed" >> $GITHUB_OUTPUT
+          exit 1
         env:
-          # Target architecture / 目标架构
+          NODE_OPTIONS: "--max-old-space-size=8192"
           npm_config_arch: ${{ matrix.arch }}
-          # App ID configuration / 应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
-          # macOS signing configuration / macOS 签名配置
           appleId: ${{ secrets.APPLE_ID }}
           appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
           teamId: ${{ secrets.TEAM_ID }}
           identity: ${{ secrets.IDENTITY }}
-          # electron-builder signing configuration / electron-builder 签名配置
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Native dependency compilation / 原生依赖编译缓存
-          # Prefer prebuilt binaries for better compatibility (especially on Linux)
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-          # Use official GitHub releases for electron-builder binaries (dmg-builder, etc.)
-          # npmmirror may be missing some binaries causing 404 errors
-          # 使用官方 GitHub 源下载 electron-builder 二进制文件（如 dmg-builder）
-          # npmmirror 可能缺少部分文件导致 404 错误
           ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          # Also set npm_config_ version to ensure electron-builder reads it correctly
-          # 同时设置 npm_config_ 版本以确保 electron-builder 正确读取
           npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          # Clear ELECTRON_MIRROR to prevent auto-derived (incorrect) binaries mirror
-          # 清除 ELECTRON_MIRROR 以防止自动派生错误的 binaries 镜像路径
           ELECTRON_MIRROR: ""
-          # Electron headers download / Electron 头文件下载源
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
-          # CI flag & GitHub token / CI 标识与 GitHub Token
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # Linux: Standard build without special error handling
+      # Linux: 标准构建，无特殊错误处理
+      - name: Build with electron-builder (Linux)
+        if: matrix.platform == 'linux'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 2
+          retry_wait_seconds: 60
+          command: ${{ matrix.command }}
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          ELECTRON_MIRROR: ""
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_target_arch: ${{ matrix.arch }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -374,34 +420,28 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
-      # macOS 构建超时或失败通知
-      - name: Notify on macOS build timeout or failure
+      # macOS 构建失败通知
+      # macOS build failure notification
+      - name: Notify on macOS build failure
         if: startsWith(matrix.platform, 'macos') && failure()
         run: |
-          echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
+          echo "::error title=macOS Build Failed::Build failed. Check the logs for details."
           echo ""
-          echo "⚠️  macOS Build Issue Detected"
+          echo "❌ macOS Build Failed"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          echo "The macOS build exceeded the 40-minute timeout or encountered an error."
-          echo ""
           echo "Common causes:"
-          echo "  • Apple notarization service delays (first-time apps may take days)"
-          echo "  • Apple server experiencing high load"
-          echo "  • Network connectivity issues"
+          echo "  • hdiutil/DMG creation failure (Device not configured)"
+          echo "  • Code signing issues"
+          echo "  • Notarization timeout"
+          echo "  • Out of memory (OOM)"
           echo ""
-          echo "Recommended actions:"
-          echo "  1. Check if signed (but not notarized) artifacts were uploaded"
-          echo "  2. Wait a few hours and manually retry the workflow"
-          echo "  3. For urgent releases, consider using the signed-only version"
-          echo ""
-          echo "Note: According to Apple, first-time notarizations can take 'a few days'"
-          echo "Reference: https://developer.apple.com/forums/thread/756867"
+          echo "Check the build logs above for the specific error."
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: success() || (failure() && startsWith(matrix.platform, 'macos'))
+        if: success() || failure()
         shell: bash
         run: |
           echo "=========================================="
@@ -416,11 +456,19 @@ jobs:
             echo "No out directory found!"
           fi
 
+      # Upload artifacts when:
+      # - Build succeeded (all platforms)
+      # - macOS: notarization timeout but artifacts exist (handled in build step)
+      # - Windows: only if windows-build step succeeded
+      # 上传产物条件：
+      # - 构建成功（所有平台）
+      # - macOS: 公证超时但有产物（已在构建步骤中处理）
+      # - Windows: 仅当 windows-build 步骤成功
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
-          (success() && (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success'))
-          || (failure() && startsWith(matrix.platform, 'macos'))
+          success() &&
+          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
         with:
           name: ${{ matrix.artifact-name }}
           path: |
@@ -495,12 +543,12 @@ jobs:
             exit 1
           fi
 
-  # 自动创建tag（main/dev分支推送时）
+  # 自动创建tag（仅 dev 分支推送时）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [ build ]
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: success() && github.ref == 'refs/heads/dev'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
@@ -596,9 +644,11 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [ build, create-tag ]
-    if: always() && needs.create-tag.result == 'success'
+    # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
+    if: always() && needs.build.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -606,15 +656,21 @@ jobs:
       - name: Get version for release
         id: version
         run: |
-          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
-          IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          
-          if [ "$IS_DEV" = "true" ]; then
-            echo "🔧 Creating development release: $TAG_NAME"
+          # 判断触发来源：正式 tag 推送 or dev 分支
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # 正式 Tag 推送触发（-dev- tag 已被排除，不会到达这里）
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            IS_DEV="false"
+            echo "🚀 Creating stable release from tag: $TAG_NAME"
           else
-            echo "🚀 Creating stable release: $TAG_NAME"
+            # dev 分支触发，使用 create-tag job 的输出
+            TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+            IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
+            echo "🔧 Creating development release: $TAG_NAME"
           fi
+
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v7
@@ -625,7 +681,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
-          name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
+          name: ${{ steps.version.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
             build-artifacts/**/*.exe
             build-artifacts/**/*.msi
@@ -635,6 +691,6 @@ jobs:
             build-artifacts/**/*.zip
           generate_release_notes: true
           draft: true
-          prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
+          prerelease: ${{ steps.version.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

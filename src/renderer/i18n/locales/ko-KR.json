@@ -313,7 +313,13 @@
       "quotaExceededBody": "현재 모델 할당량이 소진되었습니다. {{model}}(으)로 전환하여 계속하시겠습니까?",
       "quotaExceededNoFallback": "모델 할당량에 도달했습니다. 다른 사용 가능한 모델로 전환하세요.",
       "quotaSwitched": "{{model}}(으)로 전환되었습니다.",
-      "confirmationLoadError": "확인 대화 상자 로드 실패"
+      "apiErrorNoCli": "API 오류가 발생했습니다. 폴백용 CLI 에이전트가 없습니다.",
+      "apiErrorSwitchFailed": "폴백 대화 생성에 실패했습니다.",
+      "apiErrorSwitched": "API 오류, {{cli}} CLI로 자동 전환되었습니다",
+      "confirmationLoadError": "확인 대화 상자 로드 실패",
+      "tryAnotherAgent": "다른 에이전트 시도:",
+      "switchedToAgent": "{{agent}}(으)로 전환되었습니다",
+      "switchAgentFailed": "에이전트 전환 실패"
     },
     "contextUsage": {
       "contextUsed": "사용된 컨텍스트"
@@ -485,6 +491,9 @@
     "addModelTips": "모델 이름을 직접 붙여넣을 수 있습니다. 최상의 호환성을 위해 공급자 콘솔과 일치시키세요.",
     "customOpenAI": "사용자 정의 (OpenAI 호환)",
     "platformCustom": "사용자 정의",
+    "platformNewApi": "New API",
+    "modelProtocol": "요청 프로토콜",
+    "modelProtocolTip": "이 모델의 API 요청 형식을 선택하세요. new-api 게이트웨이가 선택된 프로토콜로 업스트림에 라우팅합니다.",
     "proxyHttpOnly": "http/https 프로토콜만 지원",
     "baseUrlAutoFix": "기본 URL 자동 수정: {{base_url}}",
     "updateConfirm": "변경 사항 확인",
@@ -498,6 +507,19 @@
     "agent": "에이전트",
     "tools": "도구",
     "webui": "WebUI",
+    "security": "자동 승인",
+    "autoApprove": "자동 승인",
+    "autoApproveDesc": "활성화하면 Agent가 명령 및 파일 작업을 실행할 때 확인 대화 상자를 건너뜁니다. 주의해서 사용하세요.",
+    "installed": "설치됨",
+    "builtin": "내장",
+    "noAgentsFound": "에이전트를 찾을 수 없음",
+    "yoloNotNeeded": "권한 시스템 없음, 기본적으로 자동 승인",
+    "yoloAlwaysOn": "항상 켜짐",
+    "yoloNotSupportedOpencode": "OpenCode v1.1.39는 자동 승인을 지원하지 않습니다",
+    "yoloNotSupportedAuggie": "보안 우선 설계, 우회 옵션 없음",
+    "yoloNotSupportedIflow": "검증되지 않음, 수동 확인이 필요할 수 있음",
+    "yoloNotSupportedUnknown": "검증되지 않음, 수동 확인이 필요할 수 있음",
+    "channels": "채널",
     "webui.configuration": "WebUI 구성",
     "webui.enable": "WebUI 활성화",
     "webui.enableDesc": "브라우저 접근을 허용하는 웹 서비스 시작",
@@ -1070,5 +1092,51 @@
   "cron.drawer.schedule": "실행 규칙",
   "cron.drawer.nextRun": "다음 실행",
   "cron.drawer.save": "저장",
-  "cron.drawer.saveSuccess": "저장되었습니다"
+  "cron.drawer.saveSuccess": "저장되었습니다",
+  "guid.agentFallbackNotice": "{{original}}을(를) 사용할 수 없어 {{fallback}}으로 자동 전환되었습니다.",
+  "guid.noAgentAvailable": "사용 가용한 Main Agent가 없습니다. Google에 로그인하거나 Claude/Codex CLI를 설치하세요. 설정으로 이동하시겠습니까?",
+  "guid.noAgentAvailableShort": "사용 가능한 Main Agent가 없습니다. 클릭하여 설정하세요.",
+  "guid.agentTabAutoSwitch": "모델이 Gemini와 호환되지 않아 {{fallback}}으로 자동 전환되었습니다",
+  "guid.autoSwitchToAgent": "Gemini가 설정되지 않아 {{agent}}로 자동 전환 중",
+  "guid.autoSwitchedAgent": "{{from}}을(를) 사용할 수 없어 {{to}}으로 자동 전환되었습니다",
+  "guid.scanning": {
+    "initialMessage": "현재 Agent를 사용할 수 없습니다. 다른 사용 가능한 agent를 감지 중...",
+    "scanningMessage": "로컬에서 사용 가능한 agent 스캔 중...",
+    "connectingMessage": "연결 성공, 잠시 기다려 주세요...",
+    "establishingConnection": "연결 설정 중...",
+    "statusQueued": "대기 중",
+    "statusTesting": "지연 테스트 중...",
+    "statusUnreachable": "연결 불가",
+    "statusAvailable": "사용 가능"
+  },
+  "agent": {
+    "health": {
+      "detectedError": "현재 에이전트 ({{agent}})에서 오류 감지됨",
+      "autoSwitching": ". 시스템이 자동으로 전환을 시도합니다.",
+      "evaluating": "네트워크 지연 및 모델 가용성 평가 중...",
+      "checking": "{{agent}} 엔드포인트 확인 중...",
+      "foundBest": "최적의 대안을 찾았습니다",
+      "recommendSwitch": "추천",
+      "available": "사용 가능",
+      "lowLatency": "낮은 지연",
+      "mediumLatency": "중간 지연",
+      "highLatency": "높은 지연",
+      "bestMatch": "최적 일치",
+      "noAvailable": "현재 환경에서 사용 가능한 에이전트 없음",
+      "checkConfig": "설정을 확인하거나 나중에 다시 시도하세요"
+    },
+    "setup": {
+      "connectionError": "연결 오류",
+      "notConfigured": "{{agent}}이(가) 설정되지 않았습니다",
+      "authRequired": "이 에이전트를 사용하려면 인증 또는 API 키가 필요합니다.",
+      "findingAlternatives": "사용 가능한 대안을 찾는 중...",
+      "checkingAgent": "{{agent}} 확인 중...",
+      "alternativesFound": "{{count}}개의 사용 가능한 대안을 찾았습니다",
+      "autoSwitching": "최적의 에이전트로 자동 전환 중...",
+      "configError": "설정 오류. 설정을 확인하거나 다른 에이전트를 선택하세요:",
+      "noAlternatives": "사용 가능한 에이전트가 없습니다",
+      "configureFirst": "먼저 설정에서 에이전트를 구성하세요.",
+      "switching": "에이전트 전환 중..."
+    }
+  }
 }

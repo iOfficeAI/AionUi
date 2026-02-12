@@ -19,7 +19,7 @@ import { mapPermissionDecision } from '@/common/codex/utils';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage } from '@process/message';
+import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
@@ -45,6 +45,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
+    this.status = 'pending';
 
     this.initAgent(data);
   }
@@ -169,6 +170,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
+    // Set status to running when message is being processed
+    this.status = 'running';
     try {
       await this.bootstrap;
       const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
@@ -215,6 +218,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
     } catch (e) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
       const errorMsg = e instanceof Error ? e.message : String(e);
@@ -343,9 +347,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   private handleNetworkError(error: NetworkError): void {
-    // Emit network error as status message
-    this.emitStatus('error');
-
     // Create a user-friendly error message based on error type
     let userMessage = '';
     let recoveryActions: string[] = [];
@@ -396,20 +397,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
-  private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected') {
-    const statusMessage: IResponseMessage = {
-      type: 'agent_status',
-      conversation_id: this.conversation_id,
-      msg_id: uuid(),
-      data: {
-        backend: 'codex', // Agent identifier from AcpBackend type
-        status,
-      },
-    };
-    // Use emitAndPersistMessage to ensure status messages are both emitted and persisted
-    this.emitAndPersistMessage(statusMessage);
-  }
-
   getDiagnostics() {
     const agentDiagnostics = this.agent.getDiagnostics();
     const sessionInfo = this.agent.getSessionManager().getSessionInfo();
@@ -455,6 +442,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     message.conversation_id = this.conversation_id;
 
+    // Mark as finished when content is output (visible to user)
+    // Codex uses: content, agent_status, codex_tool_call
+    const contentTypes = ['content', 'agent_status', 'codex_tool_call'];
+    if (contentTypes.includes(message.type)) {
+      this.status = 'finished';
+    }
+
     // Handle preview_open event (chrome-devtools navigation interception)
     // 处理 preview_open 事件（chrome-devtools 导航拦截）
     if (handlePreviewOpenEvent(message)) {
@@ -465,7 +459,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     if (persist) {
       const tMessage = transformMessage(message);
       if (tMessage) {
-        addMessage(this.conversation_id, tMessage);
+        // These message types go through composeMessage/addOrUpdateMessage for merging:
+        // - agent_status: uses fixed globalStatusMessageId (from CodexSessionManager) to merge with last status
+        // - codex_tool_call: has dedicated merge logic that searches by toolCallId
+        if (tMessage.type === 'agent_status' || tMessage.type === 'codex_tool_call') {
+          addOrUpdateMessage(this.conversation_id, tMessage);
+        } else {
+          addMessage(this.conversation_id, tMessage);
+        }
         // Note: Cron command detection is handled in CodexMessageProcessor.processFinalMessage
         // where we have the complete agent_message text
       }

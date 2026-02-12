@@ -4,7 +4,7 @@ import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Message, Select } from '@arco-design/web-react';
-import { Search, LinkCloud, Edit } from '@icon-park/react';
+import { LinkCloud, Edit, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
@@ -12,7 +12,7 @@ import useProtocolDetection from '../../../hooks/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
-import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, isGeminiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
+import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
 
 /**
  * 供应商 Logo 组件
@@ -58,6 +58,8 @@ const AddPlatformModal = ModalHOC<{
   const platformValue = Form.useWatch('platform', form);
   const baseUrl = Form.useWatch('baseUrl', form);
   const apiKey = Form.useWatch('apiKey', form);
+  const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
+  const _bedrockRegion = Form.useWatch('bedrockRegion', form);
 
   // 获取当前选中的平台配置 / Get current selected platform config
   const selectedPlatform = useMemo(() => getPlatformByValue(platformValue), [platformValue]);
@@ -65,7 +67,12 @@ const AddPlatformModal = ModalHOC<{
   const platform = selectedPlatform?.platform ?? 'gemini';
   // 判断是否为"自定义"选项（没有预设 baseUrl） / Check if "Custom" option (no preset baseUrl)
   const isCustom = isCustomOption(platformValue);
+  const isBedrock = platform === 'bedrock';
   const isGemini = isGeminiPlatform(platform);
+  const isNewApi = isNewApiPlatform(platform);
+
+  // new-api 每模型协议选择状态 / new-api per-model protocol selection state
+  const [modelProtocol, setModelProtocol] = useState<string>('openai');
 
   // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
   // Calculate actual baseUrl (prefer user input, fallback to platform preset)
@@ -74,7 +81,9 @@ const AddPlatformModal = ModalHOC<{
     return selectedPlatform?.baseUrl || '';
   }, [baseUrl, selectedPlatform?.baseUrl]);
 
-  const modelListState = useModeModeList(platform, actualBaseUrl, apiKey, true);
+  // For Bedrock, don't pass bedrockConfig to avoid auto-refresh on input changes
+  // We'll build it dynamically in onFocus
+  const modelListState = useModeModeList(platform, actualBaseUrl, apiKey, true, undefined);
 
   // 协议检测 Hook / Protocol detection hook
   // 启用检测的条件：
@@ -118,8 +127,11 @@ const AddPlatformModal = ModalHOC<{
     if (modalProps.visible) {
       form.resetFields();
       form.setFieldValue('platform', 'gemini');
+      form.setFieldValue('bedrockAuthMethod', 'accessKey');
+      form.setFieldValue('bedrockRegion', 'us-east-1');
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
+      setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
     }
   }, [modalProps.visible]);
 
@@ -144,16 +156,39 @@ const AddPlatformModal = ModalHOC<{
         // 如果有 i18nKey 使用翻译后的名称，否则使用 platform 的 name
         // If i18nKey exists use translated name, otherwise use platform name
         const name = selectedPlatform?.i18nKey ? t(selectedPlatform.i18nKey) : (selectedPlatform?.name ?? values.platform);
-        onSubmit({
+        const provider: IProvider = {
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
           name,
           // 优先使用用户输入的 baseUrl，否则使用平台预设值
           // Prefer user input baseUrl, fallback to platform preset
-          baseUrl: values.baseUrl || selectedPlatform?.baseUrl || '',
-          apiKey: values.apiKey,
+          baseUrl: isBedrock ? '' : values.baseUrl || selectedPlatform?.baseUrl || '',
+          apiKey: isBedrock ? '' : values.apiKey,
           model: [values.model],
-        });
+        };
+
+        // Add Bedrock configuration if platform is Bedrock
+        if (isBedrock) {
+          provider.bedrockConfig = {
+            authMethod: values.bedrockAuthMethod,
+            region: values.bedrockRegion,
+            ...(values.bedrockAuthMethod === 'accessKey'
+              ? {
+                  accessKeyId: values.bedrockAccessKeyId,
+                  secretAccessKey: values.bedrockSecretAccessKey,
+                }
+              : {
+                  profile: values.bedrockProfile,
+                }),
+          };
+        }
+
+        // new-api 平台：保存每模型协议配置 / new-api platform: save per-model protocol config
+        if (isNewApi && values.model) {
+          provider.modelProtocols = { [values.model]: modelProtocol };
+        }
+
+        onSubmit(provider);
         modalCtrl.close();
       })
       .catch(() => {
@@ -196,10 +231,10 @@ const AddPlatformModal = ModalHOC<{
             </Select>
           </Form.Item>
 
-          {/* Base URL - 仅自定义选项和标准 Gemini 显示 / Base URL - only for Custom option and standard Gemini */}
-          <Form.Item hidden={!isCustom && platformValue !== 'gemini'} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
+          {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
+          <Form.Item hidden={isBedrock || (!isCustom && !isNewApi && platformValue !== 'gemini')} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom || isNewApi} rules={[{ required: isCustom || isNewApi }]}>
             <Input
-              placeholder={selectedPlatform?.baseUrl || ''}
+              placeholder={isNewApi ? 'https://your-newapi-instance.com' : selectedPlatform?.baseUrl || ''}
               onBlur={() => {
                 void modelListState.mutate();
               }}
@@ -208,9 +243,10 @@ const AddPlatformModal = ModalHOC<{
 
           {/* API Key */}
           <Form.Item
+            hidden={isBedrock}
             label={t('settings.apiKey')}
-            required
-            rules={[{ required: true }]}
+            required={!isBedrock}
+            rules={[{ required: !isBedrock }]}
             field={'apiKey'}
             extra={
               <div className='space-y-2px'>
@@ -228,6 +264,43 @@ const AddPlatformModal = ModalHOC<{
             />
           </Form.Item>
 
+          {/* AWS Bedrock Authentication Method */}
+          <Form.Item hidden={!isBedrock} label={t('settings.bedrock.authMethod')} field={'bedrockAuthMethod'} initialValue='accessKey' required={isBedrock} rules={[{ required: isBedrock }]}>
+            <Select>
+              <Select.Option value='accessKey'>{t('settings.bedrock.authMethodAccessKey')}</Select.Option>
+              <Select.Option value='profile'>{t('settings.bedrock.authMethodProfile')}</Select.Option>
+            </Select>
+          </Form.Item>
+
+          {/* AWS Region */}
+          <Form.Item hidden={!isBedrock} label={t('settings.bedrock.region')} field={'bedrockRegion'} initialValue='us-east-1' required={isBedrock} rules={[{ required: isBedrock }]} extra={t('settings.bedrock.regionHint')}>
+            <Select showSearch>
+              <Select.Option value='us-east-1'>US East (N. Virginia)</Select.Option>
+              <Select.Option value='us-west-2'>US West (Oregon)</Select.Option>
+              <Select.Option value='eu-west-1'>Europe (Ireland)</Select.Option>
+              <Select.Option value='eu-central-1'>Europe (Frankfurt)</Select.Option>
+              <Select.Option value='ap-southeast-1'>Asia Pacific (Singapore)</Select.Option>
+              <Select.Option value='ap-northeast-1'>Asia Pacific (Tokyo)</Select.Option>
+              <Select.Option value='ap-southeast-2'>Asia Pacific (Sydney)</Select.Option>
+              <Select.Option value='ca-central-1'>Canada (Central)</Select.Option>
+            </Select>
+          </Form.Item>
+
+          {/* Access Key ID */}
+          <Form.Item hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'} label={t('settings.bedrock.accessKeyId')} field={'bedrockAccessKeyId'} required={isBedrock && bedrockAuthMethod === 'accessKey'} rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}>
+            <Input.Password placeholder='AKIA...' visibilityToggle />
+          </Form.Item>
+
+          {/* Secret Access Key */}
+          <Form.Item hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'} label={t('settings.bedrock.secretAccessKey')} field={'bedrockSecretAccessKey'} required={isBedrock && bedrockAuthMethod === 'accessKey'} rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}>
+            <Input.Password visibilityToggle />
+          </Form.Item>
+
+          {/* AWS Profile */}
+          <Form.Item hidden={!isBedrock || bedrockAuthMethod !== 'profile'} label={t('settings.bedrock.profile')} field={'bedrockProfile'} required={isBedrock && bedrockAuthMethod === 'profile'} rules={[{ required: isBedrock && bedrockAuthMethod === 'profile' }]} extra={t('settings.bedrock.profileHint')}>
+            <Input placeholder='default' />
+          </Form.Item>
+
           {/* 模型选择 / Model Selection */}
           <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
             <Select
@@ -236,24 +309,87 @@ const AddPlatformModal = ModalHOC<{
               allowCreate
               suffixIcon={
                 <Search
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    if (isCustom && !baseUrl) {
+                    if ((isCustom || isNewApi) && !baseUrl) {
                       message.warning(t('settings.pleaseEnterBaseUrl'));
                       return;
                     }
+                    // For Bedrock, build bedrockConfig from current form values and fetch models
+                    if (isBedrock) {
+                      const values = form.getFields();
+                      if (!values.bedrockAuthMethod || !values.bedrockRegion) {
+                        message.warning(t('settings.bedrock.fillRequiredFields'));
+                        return;
+                      }
+                      if (values.bedrockAuthMethod === 'accessKey' && (!values.bedrockAccessKeyId || !values.bedrockSecretAccessKey)) {
+                        message.warning(t('settings.bedrock.fillRequiredFields'));
+                        return;
+                      }
+                      if (values.bedrockAuthMethod === 'profile' && !values.bedrockProfile) {
+                        message.warning(t('settings.bedrock.fillRequiredFields'));
+                        return;
+                      }
+                      // Build bedrockConfig and fetch models manually
+                      const bedrockConfig = {
+                        authMethod: values.bedrockAuthMethod,
+                        region: values.bedrockRegion,
+                        ...(values.bedrockAuthMethod === 'accessKey'
+                          ? {
+                              accessKeyId: values.bedrockAccessKeyId,
+                              secretAccessKey: values.bedrockSecretAccessKey,
+                            }
+                          : {
+                              profile: values.bedrockProfile,
+                            }),
+                      };
+                      try {
+                        const res = await ipcBridge.mode.fetchModelList.invoke({
+                          platform,
+                          api_key: '',
+                          bedrockConfig,
+                        });
+                        if (res.success) {
+                          const models =
+                            res.data?.mode.map((v: any) => {
+                              if (typeof v === 'string') {
+                                return { label: v, value: v };
+                              } else {
+                                return { label: v.name, value: v.id };
+                              }
+                            }) || [];
+                          // Update the model list state manually
+                          void modelListState.mutate({ models }, false);
+                        } else {
+                          message.error(res.msg || 'Failed to fetch models');
+                        }
+                      } catch (error: any) {
+                        message.error(error.message || 'Failed to fetch models');
+                      }
+                      return;
+                    }
+                    // For Gemini, no apiKey check needed
                     if (!isGemini && !apiKey) {
                       message.warning(t('settings.pleaseEnterApiKey'));
                       return;
                     }
                     void modelListState.mutate();
                   }}
-                  className='flex'
+                  theme='outline'
+                  size={16}
+                  className='cursor-pointer text-t-secondary hover:text-t-primary'
                 />
               }
               options={modelListState.data?.models || []}
             />
           </Form.Item>
+
+          {/* New API 协议选择 / New API Protocol Selection */}
+          {isNewApi && (
+            <Form.Item label={t('settings.modelProtocol')} extra={<span className='text-11px text-t-secondary'>{t('settings.modelProtocolTip')}</span>}>
+              <Select value={modelProtocol} onChange={setModelProtocol} options={NEW_API_PROTOCOL_OPTIONS} />
+            </Form.Item>
+          )}
         </Form>
       </div>
 

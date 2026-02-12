@@ -80,6 +80,9 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
+      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -102,6 +105,47 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`nanobot-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  return {
+    type: 'nanobot',
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
+export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`openclaw-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  return {
+    type: 'openclaw-gateway',
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      gateway: {
+        cliPath: extra.cliPath,
+      },
+      // Enabled skills list (loaded via SkillManager)
+      enabledSkills: extra.enabledSkills,
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
     },

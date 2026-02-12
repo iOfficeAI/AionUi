@@ -1,0 +1,293 @@
+name: '🤖 GPT Review'
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: string
+
+concurrency:
+  group: 'gpt-review-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}'
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  review:
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 10
+    permissions:
+      contents: 'read'
+      pull-requests: 'write'
+    steps:
+      - name: 'Checkout repository'
+        uses: 'actions/checkout@v4'
+
+      - name: 'Gather PR diff and changed files'
+        id: 'gather'
+        uses: './.github/actions/gather-pr-diff'
+        with:
+          pr_number: '${{ inputs.pr_number }}'
+
+      - name: 'Read changed file contents'
+        id: 'read_contents'
+        if: steps.gather.outputs.skip != 'true'
+        uses: './.github/actions/read-file-contents'
+
+      - name: 'Construct GPT prompts'
+        id: 'prompts'
+        if: steps.gather.outputs.skip != 'true'
+        uses: 'actions/github-script@v7'
+        env:
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+          FILE_COUNT: '${{ steps.gather.outputs.file_count }}'
+          ADDITIONS: '${{ steps.gather.outputs.additions }}'
+          DELETIONS: '${{ steps.gather.outputs.deletions }}'
+          TOTAL_LINES: '${{ steps.gather.outputs.total_lines }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            // Read PR metadata: from event context or fetch via API for manual trigger
+            let prTitle, prBody, prAuthor;
+            if (context.payload.pull_request) {
+              prTitle = context.payload.pull_request.title || '';
+              prBody = context.payload.pull_request.body || '';
+              prAuthor = context.payload.pull_request.user.login || '';
+            } else {
+              const prNum = Number(process.env.INPUT_PR_NUMBER);
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNum,
+              });
+              prTitle = pr.title || '';
+              prBody = pr.body || '';
+              prAuthor = pr.user.login || '';
+            }
+
+            const fileCount = process.env.FILE_COUNT || '0';
+            const additions = process.env.ADDITIONS || '0';
+            const deletions = process.env.DELETIONS || '0';
+            const totalLines = process.env.TOTAL_LINES || '0';
+
+            // Read large data from temp files
+            const diff = fs.readFileSync(`${tmpDir}/pr_diff.txt`, 'utf-8');
+            const fileListRaw = fs.readFileSync(`${tmpDir}/file_list.json`, 'utf-8');
+            let fileContents = '';
+            try {
+              fileContents = fs.readFileSync(`${tmpDir}/file_contents.txt`, 'utf-8');
+            } catch {
+              core.warning('Could not read file contents, proceeding with diff only');
+            }
+
+            const systemPrompt = [
+              'You are a world-class code review expert for the AionUi project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
+              '',
+              '## Tech Stack',
+              '- Electron 37.x + React 19.x + TypeScript 5.8.x (strict mode)',
+              '- Express 5.x (WebUI server), Better SQLite3 (local DB)',
+              '- Arco Design 2.x (UI), UnoCSS 66.x (atomic CSS), Monaco Editor 4.x',
+              '- Anthropic SDK, Google GenAI, OpenAI SDK, MCP SDK',
+              '- Webpack 6.x, Electron Forge 7.8.x',
+              '',
+              '## Architecture',
+              '- Multi-process: Main (Electron + DB + IPC), Renderer (React UI), Worker (background AI tasks)',
+              '- IPC via secure contextBridge isolation',
+              '- WebUI: Express + WebSocket + JWT auth',
+              '- Agent system: channels/, agent/ directories',
+              '- Security-sensitive paths: src/process/, src/agent/, src/webserver/auth/',
+              '',
+              '## Code Conventions',
+              '- TypeScript strict mode, prefer `type` over `interface`',
+              '- Functional React components only, hooks with `use*` prefix',
+              '- IMMUTABILITY: always create new objects, never mutate',
+              '- Path aliases: @/*, @process/*, @renderer/*, @worker/*',
+              '- UnoCSS atomic classes + CSS modules',
+              '- English code comments, conventional commits',
+              '',
+              '## ESLint Key Rules',
+              '- @typescript-eslint/consistent-type-definitions: prefer type',
+              '- @typescript-eslint/no-explicit-any: warn',
+              '- no-console: warn (no console.log in production code)',
+              '- react-hooks/rules-of-hooks: error',
+              '- react-hooks/exhaustive-deps: warn',
+              '',
+              '## Review Dimensions (Priority Order)',
+              '1. **Correctness** — Logic errors, unhandled edge cases, race conditions, incorrect API usage',
+              '2. **Security** — Injection, insecure storage, access control, secrets exposure, OWASP Top 10',
+              '3. **Performance** — Bottlenecks, memory leaks, unnecessary computation, inefficient data structures',
+              '4. **Maintainability** — Readability, modularity, naming, adherence to project conventions',
+              '5. **Immutability** — Object mutations, array mutations, state mutations (CRITICAL for this project)',
+              '6. **Error Handling** — Missing try/catch, swallowed errors, unhelpful error messages',
+              '7. **Type Safety** — any usage, missing types, incorrect type assertions, unsafe casts',
+              '',
+              '## Cross-File Analysis',
+              'You are provided with both the diff AND the full content of changed files. Use the full file content to:',
+              '- Trace function call chains across files',
+              '- Verify exported/imported symbols exist and are correct',
+              '- Check that cache/state management is consistent',
+              '- Identify dead code introduced by the changes',
+              '- Verify error handling propagation across module boundaries',
+              '',
+              '## Output Format',
+              '',
+              '**CRITICAL: Detect the language of the PR title and body. Write your ENTIRE review in that same language.** If the PR is in Chinese, write in Chinese. If in English, write in English. If mixed or unclear, default to English.',
+              '',
+              'Structure your review as a single comprehensive comment using this EXACT format:',
+              '',
+              '# Code Review',
+              '',
+              '## CRITICAL Issues',
+              '',
+              '### 1. [Issue Title]',
+              '',
+              '**File**: `path/to/file.ts:LINE-LINE`',
+              '',
+              '```typescript',
+              '// problematic code snippet',
+              '```',
+              '',
+              '**Problem**: [Detailed explanation of why this is critical]',
+              '',
+              '**Fix**: [Concrete fix suggestion with code if applicable]',
+              '',
+              '---',
+              '',
+              '## HIGH Issues',
+              '',
+              '### N. [Issue Title]',
+              '',
+              '**File**: `path/to/file.ts:LINE-LINE`',
+              '',
+              '**Problem**: [Explanation]',
+              '',
+              '**Fix**: [Suggestion]',
+              '',
+              '---',
+              '',
+              '## MEDIUM Issues',
+              '',
+              '### N. [Issue Title]',
+              '',
+              '**File**: `path/to/file.ts`',
+              '',
+              '[Description of the issue and recommendation]',
+              '',
+              '---',
+              '',
+              '## Summary',
+              '',
+              '| Level | Count |',
+              '|-------|-------|',
+              '| CRITICAL | N |',
+              '| HIGH | N |',
+              '| MEDIUM | N |',
+              '',
+              '## Rules',
+              '- ONLY report issues you are **highly confident** about. If you are unsure whether something is a real problem, DO NOT report it.',
+              '- **CRITICAL** means the code WILL break, crash, or cause data loss/security breach in production. Theoretical edge cases or defensive programming suggestions are NOT critical.',
+              '- **HIGH** means the code has a clear bug or significant problem that will likely manifest in normal usage. Stylistic preferences or "could be improved" suggestions are NOT high.',
+              '- **MEDIUM** is for genuine improvements, not hypothetical concerns.',
+              '- Do NOT inflate severity. If you cannot point to a specific, realistic scenario where the issue causes a failure, lower the severity or omit it.',
+              '- Do NOT fabricate issues to fill sections. It is perfectly fine — and preferred — to report fewer issues or none at all.',
+              '- If a section has no issues, OMIT that section entirely (do not write "None found").',
+              '- Include code snippets from the diff to pinpoint exact locations.',
+              '- Each issue must have a concrete, actionable fix suggestion.',
+              '- Number issues sequentially across all sections (1, 2, 3...).',
+              '- For CRITICAL and HIGH issues, always include the specific file path and line numbers.',
+              '- Do NOT comment on: lock files, auto-generated files, license headers, formatting-only changes, or well-known API parameters used correctly.',
+              '- If the PR has NO issues at any level, output exactly: "# Code Review\\n\\nNo issues found. The changes are clean and well-implemented."',
+              '',
+              '## Footer',
+              'After the Summary section, ALWAYS append this exact footer:',
+              '',
+              '---',
+              '',
+              '*🤖 This review was generated by AI and may contain inaccuracies. Please focus on issues you agree with and feel free to disregard any that seem incorrect. Thank you for your contribution!*',
+            ].join('\n');
+
+            const userPrompt = [
+              '## Pull Request',
+              '',
+              `**Title**: ${prTitle}`,
+              `**Author**: ${prAuthor}`,
+              `**Stats**: ${fileCount} files changed, +${additions} -${deletions} (${totalLines} total lines)`,
+              '',
+              '**Description**:',
+              prBody || '(No description provided)',
+              '',
+              '**Changed Files**:',
+              fileListRaw,
+              '',
+              '## Diff',
+              '',
+              diff,
+              '',
+              '## Full File Contents (for cross-file analysis)',
+              '',
+              fileContents || '(No file contents available)',
+            ].join('\n');
+
+            fs.writeFileSync(`${tmpDir}/system_prompt.txt`, systemPrompt);
+            fs.writeFileSync(`${tmpDir}/user_prompt.txt`, userPrompt);
+
+      - name: 'Call OpenAI GPT for code review'
+        if: steps.gather.outputs.skip != 'true'
+        uses: './.github/actions/call-openai'
+        with:
+          openai_api_key: '${{ secrets.OPENAI_API_KEY }}'
+          output_file: 'review_body.txt'
+          diff_truncated: '${{ steps.gather.outputs.diff_truncated }}'
+          contents_truncated: '${{ steps.read_contents.outputs.contents_truncated }}'
+
+      - name: 'Submit review to PR'
+        if: steps.gather.outputs.skip != 'true' && success()
+        uses: 'actions/github-script@v7'
+        env:
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            const reviewBody = fs.readFileSync(`${tmpDir}/review_body.txt`, 'utf-8');
+            const prNumber = context.payload.pull_request?.number
+              || Number(process.env.INPUT_PR_NUMBER);
+
+            core.info(`Submitting COMMENT review to PR #${prNumber}`);
+
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event: 'COMMENT',
+                body: reviewBody,
+              });
+              core.info('Review submitted successfully via createReview');
+            } catch (reviewError) {
+              core.warning(`createReview failed: ${reviewError.message}, falling back to comment`);
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: `<!-- gpt-review-bot -->\n\n${reviewBody}`,
+                });
+                core.info('Review posted as comment (fallback)');
+              } catch (commentError) {
+                core.setFailed(`Failed to post review: ${commentError.message}`);
+              }
+            }

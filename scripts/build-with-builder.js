@@ -5,9 +5,108 @@
  * Coordinates Electron Forge (webpack) and electron-builder (packaging)
  */
 
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+// DMG retry logic for macOS: detects DMG creation failures by checking artifacts
+// (.app exists but .dmg missing) and retries only the DMG step using
+// electron-builder --prepackaged with the .app path (not the parent directory).
+// This preserves full DMG styling (window size, icon positions, background)
+// while skipping the pack/sign steps.
+// Background: GitHub Actions macos-14 runners occasionally suffer from transient
+// "Device not configured" hdiutil errors (electron-builder#8415, actions/runner-images#12323).
+const DMG_RETRY_MAX = 3;
+const DMG_RETRY_DELAY_SEC = 30;
+
+function cleanupDiskImages() {
+  try {
+    // Detach all mounted disk images that may block subsequent DMG creation:
+    // hdiutil info → grep device paths → force detach each
+    const result = spawnSync('sh', ['-c',
+      'hdiutil info 2>/dev/null | grep /dev/disk | awk \'{print $1}\' | xargs -I {} hdiutil detach {} -force 2>/dev/null'
+    ], { stdio: 'ignore' });
+    if (result.status !== 0) {
+      console.log(`   ℹ️  Disk image cleanup exit code: ${result.status}`);
+    }
+    return result.status === 0;
+  } catch (error) {
+    console.log(`   ℹ️  Disk image cleanup failed: ${error.message}`);
+    return false;
+  }
+}
+
+// Find the .app directory from electron-builder output
+function findAppDir(outDir) {
+  const candidates = ['mac', 'mac-arm64', 'mac-x64', 'mac-universal'];
+  for (const dir of candidates) {
+    const fullPath = path.join(outDir, dir);
+    if (fs.existsSync(fullPath)) {
+      const hasApp = fs.readdirSync(fullPath).some(f => f.endsWith('.app'));
+      if (hasApp) return fullPath;
+    }
+  }
+  return null;
+}
+
+// Check if DMG exists in output directory
+function dmgExists(outDir) {
+  try {
+    return fs.readdirSync(outDir).some(f => f.endsWith('.dmg'));
+  } catch {
+    return false;
+  }
+}
+
+// Create DMG using electron-builder --prepackaged with .app path
+// This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
+function createDmgWithPrepackaged(appDir, targetArch) {
+  const appName = fs.readdirSync(appDir).find(f => f.endsWith('.app'));
+  if (!appName) throw new Error(`No .app found in ${appDir}`);
+  const appPath = path.join(appDir, appName);
+
+  execSync(
+    `npx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
+    { stdio: 'inherit' }
+  );
+}
+
+function buildWithDmgRetry(cmd, targetArch) {
+  const isMac = process.platform === 'darwin';
+  const outDir = path.resolve(__dirname, '../out');
+
+  try {
+    execSync(cmd, { stdio: 'inherit' });
+    return;
+  } catch (error) {
+    // On non-macOS or if .app doesn't exist, just throw
+    const appDir = isMac ? findAppDir(outDir) : null;
+    if (!appDir || dmgExists(outDir)) throw error;
+
+    // .app exists but no .dmg → DMG creation failed
+    console.log('\n🔄 Build failed during DMG creation (.app exists, .dmg missing)');
+    console.log('   Retrying DMG creation with --prepackaged...');
+
+    for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
+      cleanupDiskImages();
+      spawnSync('sleep', [String(DMG_RETRY_DELAY_SEC)]);
+
+      try {
+        console.log(`\n📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`);
+        createDmgWithPrepackaged(appDir, targetArch);
+        console.log('✅ DMG created successfully on retry');
+        return;
+      } catch (retryError) {
+        console.log(`   ⚠️  DMG retry ${attempt}/${DMG_RETRY_MAX} failed`);
+        cleanupDiskImages();
+        if (attempt === DMG_RETRY_MAX) {
+          console.log(`   ❌ DMG creation failed after ${DMG_RETRY_MAX} retries`);
+          throw retryError;
+        }
+      }
+    }
+  }
+}
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -152,10 +251,32 @@ try {
     ensureDir(sourceDir, webpackDir, 'native_modules');
   }
 
+  // 4.1 Validate renderer entry exists (critical for packaged app)
+  const rendererIndex = path.join(webpackDir, 'renderer', 'main_window', 'index.html');
+  if (!fs.existsSync(rendererIndex)) {
+    const topLevelDirs = fs.readdirSync(webpackDir, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
+
+    for (const dirName of topLevelDirs) {
+      const candidate = path.join(webpackDir, dirName, 'renderer', 'main_window', 'index.html');
+      if (fs.existsSync(candidate)) {
+        console.log(`🔁 Found renderer entry under .webpack/${dirName}, copying to .webpack/renderer...`);
+        ensureDir(path.join(webpackDir, dirName), webpackDir, 'renderer');
+        break;
+      }
+    }
+  }
+
+  if (!fs.existsSync(rendererIndex)) {
+    throw new Error('Missing renderer entry: .webpack/renderer/main_window/index.html');
+  }
+
   // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
-  const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
-  const publishArg = isRelease ? '' : '--publish=never';
+  // Always disable auto-publish to avoid electron-builder's implicit tag-based publishing
+  // Publishing is handled by a separate release job in CI
+  const publishArg = '--publish=never';
 
   // 根据模式添加架构标志
   // Add arch flags based on mode
@@ -172,7 +293,7 @@ try {
     console.log(`🚀 Creating distributables for ${targetArch}...`);
   }
 
-  execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
+  buildWithDmgRetry(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, targetArch);
 
   console.log('✅ Build completed!');
 } catch (error) {

@@ -9,16 +9,17 @@ import type { IMessageToolGroup } from '@/common/chatLib';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design/web-react';
 import { Copy, Download, LoadingOne } from '@icon-park/react';
-import 'diff2html/bundles/css/diff2html.min.css';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
+import MessageFileChanges from './codex/MessageFileChanges';
 import CollapsibleContent from '../components/CollapsibleContent';
-import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
 import { ToolConfirmationOutcome } from '../types/tool-confirmation';
 import { ImagePreviewContext } from './MessageList';
-import MessageFileChanges from './codex/MessageFileChanges';
 import { COLLAPSE_CONFIG, TEXT_CONFIG } from './constants';
 import type { ImageGenerationResult, WriteFileResult } from './types';
 
@@ -122,6 +123,14 @@ const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['mes
   }, [confirmationDetails, t]);
 };
 
+const EditConfirmationDiff: React.FC<{ diff: string; fileName: string; title: string }> = ({ diff, fileName, title }) => {
+  const fileInfo = useMemo(() => parseDiff(diff, fileName), [diff, fileName]);
+  const displayName = fileName.split(/[/\\]/).pop() || fileName;
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: diff, displayName, filePath: fileName, title });
+
+  return <FileChangesPanel title={title} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
+};
+
 const ConfirmationDetails: React.FC<{
   content: IMessageToolGroupProps['message']['content'][number];
   onConfirm: (outcome: ToolConfirmationOutcome) => void;
@@ -131,14 +140,9 @@ const ConfirmationDetails: React.FC<{
   if (!confirmationDetails) return;
   const node = useMemo(() => {
     if (!confirmationDetails) return null;
-    const isConfirm = content.status === 'Confirming';
     switch (confirmationDetails.type) {
       case 'edit':
-        return (
-          <div>
-            <Diff2Html title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''} filePath={confirmationDetails.fileName}></Diff2Html>
-          </div>
-        );
+        return null; // Rendered separately below with hooks support
       case 'exec': {
         const bashSnippet = `\`\`\`bash\n${confirmationDetails.command}\n\`\`\``;
         return (
@@ -152,15 +156,17 @@ const ConfirmationDetails: React.FC<{
       case 'mcp':
         return <span className='text-t-primary'>{confirmationDetails.toolDisplayName}</span>;
     }
-  }, [confirmationDetails, content]);
+  }, [confirmationDetails]);
 
   const { question = '', options = [] } = useConfirmationButtons(confirmationDetails, t);
 
   const [selected, setSelected] = useState<ToolConfirmationOutcome | null>(null);
 
+  const isConfirm = content.status === 'Confirming';
+
   return (
     <div>
-      {node}
+      {confirmationDetails.type === 'edit' ? <EditConfirmationDiff diff={confirmationDetails?.fileDiff || ''} fileName={confirmationDetails.fileName} title={isConfirm ? confirmationDetails.title : content.description} /> : node}
       {content.status === 'Confirming' && (
         <>
           <div className='mt-10px text-t-primary'>{question}</div>
@@ -418,8 +424,8 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                     callId: callId,
                     conversation_id: message.conversation_id,
                   })
-                  .then((res) => {
-                    console.log('------onConfirm.res>:', res);
+                  .then(() => {
+                    // confirmation sent successfully
                   })
                   .catch((error) => {
                     console.error('Failed to confirm message:', error);

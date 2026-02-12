@@ -39,6 +39,15 @@ const useAcpMessage = (conversation_id: string) => {
   const [acpStatus, setAcpStatus] = useState<'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null>(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
 
+  // Use refs to sync state for immediate access in event handlers
+  // 使用 ref 同步状态，以便在事件处理程序中立即访问
+  const runningRef = useRef(running);
+  const aiProcessingRef = useRef(aiProcessing);
+
+  // Track whether current turn has content output
+  // Only reset aiProcessing when finish arrives after content (not after tool calls)
+  const hasContentInTurnRef = useRef(false);
+
   // Think 消息节流：限制更新频率，减少渲染次数
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -93,25 +102,65 @@ const useAcpMessage = (conversation_id: string) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
+      // Cancel pending finish timeout if new message arrives
+      // 如果新消息到达，取消待处理的 finish timeout
+      const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
+      if (pendingTimeout && message.type !== 'finish') {
+        clearTimeout(pendingTimeout);
+        (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
+      }
+
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
+          // Auto-recover running state if thought arrives after finish
+          // 如果 thought 在 finish 后到达，自动恢复 running 状态
+          if (!runningRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'start':
           setRunning(true);
+          runningRef.current = true;
+          // Don't reset aiProcessing here - let content arrival handle it
+          // 不在这里重置 aiProcessing - 让 content 到达时处理
           break;
         case 'finish':
-          setRunning(false);
-          setAiProcessing(false);
-          setThought({ subject: '', description: '' });
+          {
+            // Use delayed reset to detect true end of task
+            // 使用延迟重置来检测任务的真正结束
+            const timeoutId = setTimeout(() => {
+              setRunning(false);
+              runningRef.current = false;
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
+              setThought({ subject: '', description: '' });
+            }, 1000);
+            (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
+            hasContentInTurnRef.current = false;
+          }
           break;
         case 'content':
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
+          // Auto-recover running state if content arrives after finish
+          if (!runningRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
           // Clear thought when final answer arrives
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
           break;
         case 'agent_status': {
+          // Auto-recover running state if agent_status arrives after finish
+          if (!runningRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
           // Update ACP/Agent status
           const agentData = message.data as {
             status?: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
@@ -122,6 +171,14 @@ const useAcpMessage = (conversation_id: string) => {
             // Reset running state when authentication is complete
             if (['authenticated', 'session_active'].includes(agentData.status)) {
               setRunning(false);
+              runningRef.current = false;
+            }
+            // Reset all loading states on error or disconnect so UI doesn't stay stuck
+            if (['error', 'disconnected'].includes(agentData.status)) {
+              setRunning(false);
+              runningRef.current = false;
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
             }
           }
           addOrUpdateMessage(transformedMessage);
@@ -131,14 +188,27 @@ const useAcpMessage = (conversation_id: string) => {
           addOrUpdateMessage(transformedMessage);
           break;
         case 'acp_permission':
+          // Auto-recover running state if permission request arrives after finish
+          if (!runningRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
           addOrUpdateMessage(transformedMessage);
           break;
         case 'error':
-          // Stop AI processing state when error occurs
+          // Stop all loading states when error occurs
+          setRunning(false);
+          runningRef.current = false;
           setAiProcessing(false);
+          aiProcessingRef.current = false;
           addOrUpdateMessage(transformedMessage);
           break;
         default:
+          // Auto-recover running state if other messages arrive after finish
+          if (!runningRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
           addOrUpdateMessage(transformedMessage);
           break;
       }
@@ -150,18 +220,52 @@ const useAcpMessage = (conversation_id: string) => {
     return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
   }, [handleResponseMessage]);
 
-  // Reset state when conversation changes
+  // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    setRunning(false);
+    // Clear pending finish timeout when conversation changes
+    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
+    if (pendingTimeout) {
+      clearTimeout(pendingTimeout);
+      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
+    }
+
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
-    setAiProcessing(false);
+    hasContentInTurnRef.current = false;
+
+    // Check actual conversation status from backend before resetting running/aiProcessing
+    // to avoid flicker when switching to a running conversation
+    // 先获取后端状态再重置 running/aiProcessing，避免切换到运行中的会话时闪烁
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res) {
+        setRunning(false);
+        runningRef.current = false;
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        return;
+      }
+      const isRunning = res.status === 'running';
+      setRunning(isRunning);
+      runningRef.current = isRunning;
+      setAiProcessing(isRunning);
+      aiProcessingRef.current = isRunning;
+    });
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
+    // Clear pending finish timeout
+    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
+    if (pendingTimeout) {
+      clearTimeout(pendingTimeout);
+      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
+    }
+
     setRunning(false);
+    runningRef.current = false;
     setAiProcessing(false);
+    aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
   }, []);
 
   return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing, resetState };
@@ -206,26 +310,17 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
+  const { thought, running, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
-
-  useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
-  const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
@@ -258,30 +353,25 @@ const AcpSendBox: React.FC<{
     []
   );
 
-  // Check for and send initial message from guid page when ACP is authenticated
+  // Check for and send initial message from guid page
+  // Note: We don't wait for acpStatus because:
+  // 1. ACP connection is initialized when first message is sent
+  // 2. Waiting for 'session_active' creates a deadlock (status only updates after message is sent)
+  // 3. This matches the behavior of onSendHandler which sends immediately
   useEffect(() => {
-    if (!acpStatus) {
-      return;
-    }
-    if (acpStatus !== 'session_active') {
-      return;
-    }
+    const storageKey = `acp_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
+
+    if (!storedMessage) return;
+
+    // Clear immediately to prevent duplicate sends (e.g., if component remounts while sendMessage is pending)
+    sessionStorage.removeItem(storageKey);
 
     const sendInitialMessage = async () => {
-      // Check flag at the actual execution time
-      if (sendingInitialMessageRef.current) {
-        return;
-      }
-      sendingInitialMessageRef.current = true;
-      const storageKey = `acp_initial_message_${conversation_id}`;
-      const storedMessage = sessionStorage.getItem(storageKey);
-
-      if (!storedMessage) {
-        return;
-      }
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
+
         // ACP: 不使用 buildDisplayMessage，直接传原始 input
         // 文件引用由后端 ACP agent 负责添加（使用复制后的实际路径）
         // 避免消息中出现两套不一致的文件引用
@@ -301,9 +391,6 @@ const AcpSendBox: React.FC<{
         if (result && result.success === true) {
           // Initial message sent successfully
           void checkAndUpdateTitle(conversation_id, input);
-          // 等待一小段时间确保后端数据库更新完成
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          sessionStorage.removeItem(storageKey);
           emitter.emit('chat.history.refresh');
         } else {
           // Handle send failure
@@ -322,13 +409,10 @@ const AcpSendBox: React.FC<{
             createdAt: Date.now() + 2,
           };
           addOrUpdateMessageRef.current(errorMessage, true);
-          sendingInitialMessageRef.current = false; // Reset flag on failure
           setAiProcessing(false); // Stop loading state on failure
         }
       } catch (error) {
         console.error('Error sending initial message:', error);
-        sessionStorage.removeItem(storageKey);
-        sendingInitialMessageRef.current = false; // Reset flag on error
         setAiProcessing(false); // Stop loading state on error
       }
     };
@@ -336,7 +420,7 @@ const AcpSendBox: React.FC<{
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [conversation_id, backend, acpStatus]);
+  }, [conversation_id, backend]);
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();

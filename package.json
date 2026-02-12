@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.8.2",
+  "version": "1.8.7",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
@@ -103,6 +103,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
+    "@aws-sdk/client-bedrock": "^3.978.0",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.0",
@@ -189,7 +190,7 @@
     "jws@>=4": "4.0.1",
     "diff": "^8.0.3",
     "lodash-es": "^4.17.23",
-    "tar": "^6.2.1",
+    "tar": "^7.5.7",
     "hono": "^4.11.7"
   },
   "lint-staged": {

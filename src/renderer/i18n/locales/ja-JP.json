@@ -438,7 +438,13 @@
       "quotaExceededBody": "現在のモデルの上限に達しました。{{model}}に切り替えて続行しますか？",
       "quotaExceededNoFallback": "現在のモデルの上限に達しました。別の利用可能なモデルに切り替えてください。",
       "quotaSwitched": "{{model}}に切り替えました。",
-      "confirmationLoadError": "確認ダイアログの読み込みに失敗しました"
+      "apiErrorNoCli": "APIエラーが発生しました。フォールバック用のCLIエージェントがありません。",
+      "apiErrorSwitchFailed": "フォールバック会話の作成に失敗しました。",
+      "apiErrorSwitched": "APIエラー、{{cli}} CLIに自動切り替えしました",
+      "confirmationLoadError": "確認ダイアログの読み込みに失敗しました",
+      "tryAnotherAgent": "別のエージェントを試す：",
+      "switchedToAgent": "{{agent}}に切り替えました",
+      "switchAgentFailed": "エージェントの切り替えに失敗しました"
     },
     "contextUsage": {
       "contextUsed": "コンテキスト使用量"
@@ -528,6 +534,9 @@
     "dirNotConfigured": "まだ設定されていません",
     "customOpenAI": "カスタム（OpenAI互換）",
     "platformCustom": "カスタム",
+    "platformNewApi": "New API",
+    "modelProtocol": "リクエストプロトコル",
+    "modelProtocolTip": "このモデルのAPIリクエスト形式を選択します。new-apiゲートウェイは選択されたプロトコルでアップストリームにルーティングします。",
     "darkMode": "ダーク",
     "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
     "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
@@ -584,6 +593,19 @@
     "agent": "エージェント",
     "tools": "ツール",
     "webui": "WebUI",
+    "security": "自動承認",
+    "autoApprove": "自動承認",
+    "autoApproveDesc": "有効にすると、Agent がコマンドやファイル操作を実行する際に確認ダイアログをスキップします。慎重にご使用ください。",
+    "installed": "インストール済み",
+    "builtin": "内蔵",
+    "noAgentsFound": "エージェントが見つかりません",
+    "yoloNotNeeded": "権限システムなし、デフォルトで自動承認",
+    "yoloAlwaysOn": "常にオン",
+    "yoloNotSupportedOpencode": "OpenCode v1.1.39 は自動承認をサポートしていません",
+    "yoloNotSupportedAuggie": "セキュリティ優先設計、バイパスオプションなし",
+    "yoloNotSupportedIflow": "未検証、手動確認が必要な場合があります",
+    "yoloNotSupportedUnknown": "未検証、手動確認が必要な場合があります",
+    "channels": "チャンネル",
     "webui.configuration": "WebUI 設定",
     "webui.enable": "WebUI を有効にする",
     "webui.enableDesc": "ブラウザからのアクセスを許可するWebサービスを開始",
@@ -1015,5 +1037,51 @@
   "cron.drawer.schedule": "実行ルール",
   "cron.drawer.nextRun": "次回実行",
   "cron.drawer.save": "保存",
-  "cron.drawer.saveSuccess": "保存しました"
+  "cron.drawer.saveSuccess": "保存しました",
+  "guid.agentFallbackNotice": "{{original}} が利用できないため、{{fallback}} に自動切り替えしました。",
+  "guid.noAgentAvailable": "利用可能なMain Agentがありません。Googleにログインするか、Claude/Codex CLIをインストールしてください。設定に移動しますか？",
+  "guid.noAgentAvailableShort": "利用可能なMain Agentがありません。クリックして設定。",
+  "guid.agentTabAutoSwitch": "モデルがGeminiと互換性がないため、{{fallback}}に自動切り替えしました",
+  "guid.autoSwitchToAgent": "Geminiが設定されていないため、{{agent}}に自動切り替え中",
+  "guid.autoSwitchedAgent": "{{from}} が利用できないため、{{to}} に自動切り替えしました",
+  "guid.scanning": {
+    "initialMessage": "現在のAgentが利用できません。他の利用可能なagentを検出中...",
+    "scanningMessage": "ローカルで利用可能なagentをスキャン中...",
+    "connectingMessage": "接続成功、お待ちください...",
+    "establishingConnection": "接続を確立中...",
+    "statusQueued": "待機中",
+    "statusTesting": "遅延テスト中...",
+    "statusUnreachable": "到達不能",
+    "statusAvailable": "利用可能"
+  },
+  "agent": {
+    "health": {
+      "detectedError": "現在のエージェント ({{agent}}) の応答エラーを検出しました",
+      "autoSwitching": "。システムは自動的に切り替えを試みます。",
+      "evaluating": "ネットワーク遅延とモデルの可用性を評価中...",
+      "checking": "{{agent}} エンドポイントを確認中...",
+      "foundBest": "最適な代替案を見つけました",
+      "recommendSwitch": "推奨",
+      "available": "利用可能",
+      "lowLatency": "低遅延",
+      "mediumLatency": "中遅延",
+      "highLatency": "高遅延",
+      "bestMatch": "最適一致",
+      "noAvailable": "現在の環境で利用可能なエージェントがありません",
+      "checkConfig": "設定を確認するか、後でもう一度お試しください"
+    },
+    "setup": {
+      "connectionError": "接続エラー",
+      "notConfigured": "{{agent}} は設定されていません",
+      "authRequired": "このエージェントを使用するには認証またはAPIキーが必要です。",
+      "findingAlternatives": "利用可能な代替案を検索中...",
+      "checkingAgent": "{{agent}} を確認中...",
+      "alternativesFound": "{{count}} 個の利用可能な代替案が見つかりました",
+      "autoSwitching": "最適なエージェントに自動切り替え中...",
+      "configError": "設定エラー。設定を確認するか、別のエージェントを選択してください：",
+      "noAlternatives": "利用可能なエージェントが見つかりません",
+      "configureFirst": "まず設定でエージェントを設定してください。",
+      "switching": "エージェントを切り替え中..."
+    }
+  }
 }

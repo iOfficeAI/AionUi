@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、Auggie などをベースとした「Cowork」個人アシスタント</strong><br>
+  <strong>🚀 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI, OpenClaw、Auggie などをベースとした「Cowork」個人アシスタント</strong><br>
   <em>ユーザーフレンドリー | 視覚的なグラフィカルインターフェース | マルチモデル対応 | ローカルデータセキュリティ</em>
 </p>
 
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -55,19 +55,24 @@
 ## ✨ AionUiでできること？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
 
-_AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ使えます。追加インストール不要です。すでに Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code などのコマンドラインツールをインストールしている場合、AionUi が自動検出して統一されたグラフィカルインターフェースを提供し、体験がさらに豊かになります_
+AionUi はコマンドライン AI ツールに統一グラフィカルインターフェースを提供します。内蔵 Gemini CLI 付き、セットアップ不要。
 
-- ✅ **自動検出 + 統一インターフェース** - ローカルCLIツールを自動認識し、統一されたグラフィカルインターフェースを提供、コマンドラインに別れを告げる
-- ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
+**サポートツール：** Gemini CLI（内蔵） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="マルチエージェントモードデモ" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**主要機能：**
+
+- ✅ **自動検出** - ローカル CLI ツールを自動認識し統合
+- ✅ **統一インターフェース** - すべての AI ツールを一つのインターフェースで管理、コマンドラインに別れを告げる
+- ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、複数の並列セッションをサポート、各セッションは独立したコンテキスト
 
 ---
 
@@ -75,7 +80,7 @@ _AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ
 
 _あなたの 7×24 時間 AI アシスタント - 任意のデバイス、どこからでもAionUiにアクセス！出張中、自宅、オフィス、いつでもどこでもWebUIまたはTelegramを通じてAIツールを使用_
 
-AionUiは2つのリモートアクセス方法を提供します：
+AionUiは複数のリモートアクセス方法を提供します：
 
 - **🌐 WebUIモード**
 
@@ -83,14 +88,19 @@ AionUiは2つのリモートアクセス方法を提供します：
 
   > 💡 **詳細な設定ガイドが必要ですか？** [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
 
-- **📱 Telegram Channel**
+- **📱 チャットプラットフォーム統合**
+  - **Telegram** - 任意のデバイスでAIアシスタントとチャット
+  - **Lark (Feishu)** - Feishuボットによる企業コラボレーション
+  - **Slack** その他、さらに多くのプラットフォームが近日公開予定 🚧
+
+  > 💡 **セットアップ方法:** AionUi設定 → WebUI設定 → Channelに移動し、対応するBot Tokenを設定して開始!
 
   任意のデバイスからTelegramを通じてAIアシスタントと直接チャット。シンプルなペアリングコードシステムで安全なアクセスを確保。
 
   > 💡 **設定方法：** AionUi設定 → WebUI設定 → Channel に移動し、[@BotFather](https://t.me/BotFather) からBot Tokenを取得して、チャットを開始！
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="どこからでもアクセス - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="どこからでもアクセス - WebUIとチャットプラットフォーム" width="800">
 </p>
 
 ---
@@ -119,7 +129,7 @@ _一括リネーム、自動整理、スマート分類、ファイルマージ_
 - **効率的な一括処理**：ワンクリックでリネームや結合を行い、煩雑な手作業から解放されます。
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="スマートファイル管理デモ" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="スマートファイル管理デモ" width="800">
 </p>
 
 ---
@@ -151,10 +161,10 @@ _インテリジェントな画像生成、編集、認識、Geminiが駆動_
 
 ### 🤖 **マルチモデルサポート**
 
-_Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、LM Studioなどのローカルモデルをサポート。さまざまなタスク要件を満たすために、異なるモデル間を柔軟に切り替え。_
+_Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、LM Studioなどのローカルモデルをサポート。AionUiは[NewAPI](https://github.com/QuantumNous/new-api)中継サービス(様々な大規模言語モデルを集約・配布する統合AIモデルハブ)もサポートしています。さまざまなタスク要件を満たすために、異なるモデル間を柔軟に切り替え。_
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="マルチモデルサポート" width="800">
+  <img src="./resources/llm_newapi.png" alt="マルチモデルサポート" width="800">
 </p>
 
 ---
@@ -164,7 +174,7 @@ _Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、LM 
 _独自のCSSコードでカスタマイズし、インターフェースを好みに合わせる_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSSカスタムインターフェースデモ" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSSカスタムインターフェースデモ" width="800">
 </p>
 
 - ✅ **完全にカスタマイズ可能** - CSSコードを通じてインターフェースの色、スタイル、レイアウトを自由にカスタマイズし、専属の使用体験を作成
@@ -355,7 +365,7 @@ brew install aionui
 - [🐛 問題を報告](https://github.com/iOfficeAI/AionUi/issues) - バグや機能リクエストを報告
 - [📦 リリース更新](https://github.com/iOfficeAI/AionUi/releases) - 最新版を取得
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Discord の英語コミュニティに参加**
-- [💬 微信 (中文群)](./resources/wx.png) - **QRコードを表示するにはクリック**
+- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **QRコードを表示するにはクリック**
 
 ### 🤝 コード貢献
 

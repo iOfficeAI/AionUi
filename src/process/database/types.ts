@@ -70,11 +70,11 @@ export interface IConversationRow {
   id: string;
   user_id: string;
   name: string;
-  type: 'gemini' | 'acp' | 'codex';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
-  source?: 'aionui' | 'telegram'; // 会话来源 / Conversation source
+  source?: 'aionui' | 'telegram' | 'lark'; // 会话来源 / Conversation source
   created_at: number;
   updated_at: number;
 }
@@ -160,11 +160,34 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
   }
 
   // Codex type
-  return {
-    ...base,
-    type: 'codex' as const,
-    extra: JSON.parse(row.extra),
-  } as TChatConversation;
+  if (row.type === 'codex') {
+    return {
+      ...base,
+      type: 'codex' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
+  // OpenClaw Gateway type
+  if (row.type === 'openclaw-gateway') {
+    return {
+      ...base,
+      type: 'openclaw-gateway' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
+  // Nanobot type
+  if (row.type === 'nanobot') {
+    return {
+      ...base,
+      type: 'nanobot' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
+  // Unknown type - should never happen with valid data
+  throw new Error(`Unknown conversation type: ${row.type}`);
 }
 
 /**

@@ -389,8 +389,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   const builtinSkillsDir = resolveBuiltinDir('skills');
   const userSkillsDir = getSkillsDir();
 
-  console.log(`[AionUi] initBuiltinAssistantRules: rulesDir=${rulesDir}, builtinSkillsDir=${builtinSkillsDir}, userSkillsDir=${userSkillsDir}, assistantsDir=${assistantsDir}`);
-
   // 复制技能脚本目录到用户配置目录
   // Copy skills scripts directory to user config directory
   if (existsSync(builtinSkillsDir)) {
@@ -401,7 +399,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       }
       // 复制内置技能到用户目录（不覆盖已存在的文件）
       await copyDirectoryRecursively(builtinSkillsDir, userSkillsDir, { overwrite: false });
-      console.log(`[AionUi] Skills directory initialized: ${userSkillsDir}`);
     } catch (error) {
       console.warn(`[AionUi] Failed to copy skills directory:`, error);
     }
@@ -410,7 +407,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   // 确保助手目录存在 / Ensure assistants directory exists
   if (!existsSync(assistantsDir)) {
     mkdirSync(assistantsDir);
-    console.log(`[AionUi] Created assistants directory: ${assistantsDir}`);
   }
 
   for (const preset of ASSISTANT_PRESETS) {
@@ -445,7 +441,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           // Replace relative paths with absolute paths so AI can find scripts correctly
           content = content.replace(/skills\//g, userSkillsDir + '/');
           await fs.writeFile(targetPath, content, 'utf-8');
-          console.log(`[AionUi] Updated builtin rule: ${targetFileName}`);
         } catch (error) {
           // 忽略缺失的语言文件 / Ignore missing locale files
           console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
@@ -461,7 +456,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           if (rulesFilePattern.test(file)) {
             const filePath = path.join(assistantsDir, file);
             await fs.unlink(filePath);
-            console.log(`[AionUi] Removed deprecated rule file: ${file}`);
           }
         }
       } catch (error) {
@@ -492,7 +486,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           // Replace relative paths with absolute paths so AI can find scripts correctly
           content = content.replace(/skills\//g, userSkillsDir + '/');
           await fs.writeFile(targetPath, content, 'utf-8');
-          console.log(`[AionUi] Updated builtin skill: ${targetFileName}`);
         } catch (error) {
           // 忽略缺失的技能文件 / Ignore missing skill files
           console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
@@ -510,7 +503,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           if (skillsFilePattern.test(file)) {
             const filePath = path.join(assistantsDir, file);
             await fs.unlink(filePath);
-            console.log(`[AionUi] Removed deprecated skill file: ${file}`);
           }
         }
       } catch (error) {
@@ -701,11 +693,9 @@ const initStorage = async () => {
     // 标记迁移完成 / Mark migration as done
     if (needsMigration) {
       await configFile.set(ASSISTANT_ENABLED_MIGRATION_KEY, true);
-      console.log('[AionUi] Assistant enabled migration completed');
     }
     if (needsBuiltinSkillsMigration) {
       await configFile.set(BUILTIN_SKILLS_MIGRATION_KEY, true);
-      console.log('[AionUi] Builtin assistants default skills migration completed');
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);

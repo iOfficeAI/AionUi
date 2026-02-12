@@ -6,6 +6,8 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
+import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { Tag, Tooltip } from '@arco-design/web-react';
@@ -30,6 +32,9 @@ const AGENT_LOGO_MAP: Record<string, string> = {
   kimi: KimiLogo,
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
+  openclaw: OpenClawLogo,
+  'openclaw-gateway': OpenClawLogo,
+  nanobot: NanobotLogo,
 };
 
 const getAgentLogo = (agent: string): string | null => {

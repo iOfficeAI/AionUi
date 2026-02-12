@@ -50,7 +50,8 @@
     "browse": "Browse",
     "remove": "Remove",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "goToSettings": "Go to Settings"
   },
   "update": {
     "modalTitle": "Software update",
@@ -313,7 +314,13 @@
       "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
       "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
       "quotaSwitched": "Switched to {{model}}.",
-      "confirmationLoadError": "Failed to load confirmation dialog"
+      "apiErrorNoCli": "API error occurred. No CLI agent available for fallback.",
+      "apiErrorSwitchFailed": "Failed to create fallback conversation.",
+      "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
+      "confirmationLoadError": "Failed to load confirmation dialog",
+      "tryAnotherAgent": "Try another agent:",
+      "switchedToAgent": "Switched to {{agent}}",
+      "switchAgentFailed": "Failed to switch agent"
     },
     "contextUsage": {
       "contextUsed": "context used"
@@ -485,6 +492,25 @@
     "addModelTips": "You can paste any model name directly. Keep it consistent with the provider console for best compatibility.",
     "customOpenAI": "Custom (OpenAI Compatible)",
     "platformCustom": "Custom",
+    "platformNewApi": "New API",
+    "modelProtocol": "Request Protocol",
+    "modelProtocolTip": "Choose the API request format for this model. new-api gateway will route to the upstream using the selected protocol.",
+    "platformBedrock": "AWS Bedrock",
+    "bedrock": {
+      "authMethod": "Authentication Method",
+      "authMethodAccessKey": "Access Key",
+      "authMethodProfile": "AWS Profile",
+      "region": "AWS Region",
+      "regionHint": "Select the AWS region for Bedrock models",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "profile": "AWS Profile",
+      "profileHint": "Profile name from ~/.aws/config (e.g., 'default')",
+      "testConnection": "Test Connection",
+      "connectionSuccess": "Connection successful! AWS credentials are valid.",
+      "connectionFailed": "Connection failed. Please check your credentials.",
+      "fillRequiredFields": "Please fill in all required fields first."
+    },
     "proxyHttpOnly": "Only support http/https protocol",
     "baseUrlAutoFix": "base_url auto fix to: {{base_url}}",
     "updateConfirm": "Confirm Changes",
@@ -498,6 +524,18 @@
     "agent": "Agent",
     "tools": "Tools",
     "webui": "WebUI",
+    "security": "Auto-Approve",
+    "autoApprove": "Auto-Approve",
+    "autoApproveDesc": "When enabled, agents will skip permission confirmation dialogs for command and file operations. Use with caution.",
+    "installed": "Installed",
+    "builtin": "Built-in",
+    "noAgentsFound": "No agents found",
+    "yoloNotNeeded": "No permission system, auto-approved by default",
+    "yoloAlwaysOn": "Always On",
+    "yoloNotSupportedOpencode": "OpenCode v1.1.39 does not support auto-approve",
+    "yoloNotSupportedAuggie": "Security-first design, no bypass option",
+    "yoloNotSupportedIflow": "Not verified, may require manual confirmation",
+    "yoloNotSupportedUnknown": "Not verified, may require manual confirmation",
     "channels": "Channels",
     "webui.description": "Use AionUi as your \"24/7 Remote Assistant\" - arrange tasks from any remote device, anytime, anywhere.",
     "webui.steps": "Step 1. Turn on WebUI; Step 2. Copy the access URL; Step 3. Open in remote browser",
@@ -817,9 +855,10 @@
     },
     "lark": {
       "appId": "App ID",
-      "appIdDesc": "Open Feishu Developer Console to get your App ID",
+      "devConsoleLink": "Feishu Developer Console",
+      "appIdDescSuffix": "to get your App ID",
       "appSecret": "App Secret",
-      "appSecretDesc": "App Secret from Feishu Developer Console",
+      "appSecretDescSuffix": "to get App Secret",
       "encryptKey": "Encrypt Key",
       "encryptKeyDesc": "Optional: For event encryption (from Event Subscription settings)",
       "verificationToken": "Verification Token",
@@ -842,7 +881,9 @@
       "step2": "Send any message to initiate pairing",
       "step3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
       "step4": "Once approved, you can start chatting with the AI assistant through Lark!",
-      "waitingConnection": "WebSocket connection is being established. Please wait..."
+      "waitingConnection": "WebSocket connection is being established. Please wait...",
+      "showOptionalFields": "Show optional settings",
+      "hideOptionalFields": "Hide optional settings"
     }
   },
   "messages": {
@@ -862,6 +903,7 @@
     "downloadFailed": "Failed to download",
     "imageLoadFailed": "Failed to load image",
     "scrollToBottom": "Scroll to bottom",
+    "availableCommands": "{{count}} Available Commands",
     "unknownMessageType": "Unknown message type: {{type}}",
     "permissionRequest": "Permission Request",
     "agentRequestingPermission": "The agent is requesting permission.",
@@ -1205,5 +1247,51 @@
   "cron.drawer.schedule": "Schedule",
   "cron.drawer.nextRun": "Next Run",
   "cron.drawer.save": "Save",
-  "cron.drawer.saveSuccess": "Saved successfully"
+  "cron.drawer.saveSuccess": "Saved successfully",
+  "guid.agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead.",
+  "guid.noAgentAvailable": "No Main Agent is available. Please login to Google or install Claude/Codex CLI. Go to settings?",
+  "guid.noAgentAvailableShort": "No Main Agent available. Click to configure.",
+  "guid.agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
+  "guid.autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
+  "guid.autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
+  "guid.scanning": {
+    "initialMessage": "Current Agent is unavailable, detecting other available agents...",
+    "scanningMessage": "Scanning local available agents...",
+    "connectingMessage": "Connected successfully, please wait...",
+    "establishingConnection": "Establishing connection...",
+    "statusQueued": "Queued",
+    "statusTesting": "Testing latency...",
+    "statusUnreachable": "Unreachable",
+    "statusAvailable": "Available"
+  },
+  "agent": {
+    "health": {
+      "detectedError": "Detected error with current agent ({{agent}})",
+      "autoSwitching": ". System will attempt to switch automatically.",
+      "evaluating": "Evaluating network latency and model availability...",
+      "checking": "Checking {{agent}} endpoint...",
+      "foundBest": "Found best alternative",
+      "recommendSwitch": "Recommended",
+      "available": "Available",
+      "lowLatency": "Low Latency",
+      "mediumLatency": "Medium Latency",
+      "highLatency": "High Latency",
+      "bestMatch": "Best Match",
+      "noAvailable": "No available agents in current environment",
+      "checkConfig": "Please check configuration or try again later"
+    },
+    "setup": {
+      "connectionError": "Connection Error",
+      "notConfigured": "{{agent}} is not configured",
+      "authRequired": "Authentication or API key is required to use this agent.",
+      "findingAlternatives": "Finding available alternatives...",
+      "checkingAgent": "Checking {{agent}}...",
+      "alternativesFound": "{{count}} available alternatives found",
+      "autoSwitching": "Auto-switching to best available agent...",
+      "configError": "Configuration error. Please check your settings or select an alternative:",
+      "noAlternatives": "No available agents found",
+      "configureFirst": "Please configure an agent in Settings first.",
+      "switching": "Switching agent..."
+    }
+  }
 }
