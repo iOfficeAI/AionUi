@@ -11,10 +11,11 @@ import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import { iconColors } from '@/renderer/theme/colors';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
+import MistralLogo from '@renderer/assets/logos/mistral.svg';
 import React from 'react';
-import { iconColors } from '@/renderer/theme/colors';
 
 interface McpAgentStatusDisplayProps {
   serverName: string;
@@ -35,6 +36,7 @@ const AGENT_LOGO_MAP: Record<string, string> = {
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
   openclaw: OpenClawLogo,
+  vibe: MistralLogo,
   'openclaw-gateway': OpenClawLogo,
   nanobot: NanobotLogo,
 };

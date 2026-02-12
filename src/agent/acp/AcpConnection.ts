@@ -43,8 +43,9 @@ export function createGenericSpawnConfig(cliPath: string, workingDir: string, ac
   // Use enhanced env that includes shell environment variables (PATH, SSL certs, etc.)
   const env = getEnhancedEnv(customEnv);
 
-  // Default to --experimental-acp if no acpArgs specified
-  const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
+  // Default to --experimental-acp only if acpArgs is strictly undefined.
+  // This allows passing an empty array [] to bypass default flags.
+  const effectiveAcpArgs = acpArgs === undefined ? ['--experimental-acp'] : acpArgs;
 
   let spawnCommand: string;
   let spawnArgs: string[];
@@ -141,6 +142,7 @@ export class AcpConnection {
       case 'opencode':
       case 'copilot':
       case 'qoder':
+      case 'vibe':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }

@@ -53,6 +53,7 @@ export type AcpBackendAll =
   | 'copilot' // GitHub Copilot CLI
   | 'qoder' // Qoder CLI
   | 'openclaw-gateway' // OpenClaw Gateway WebSocket
+  | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
   | 'custom'; // User-configured custom ACP agent
 
@@ -387,7 +388,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'copilot',
     authRequired: false,
     enabled: true, // ✅ GitHub Copilot CLI，使用 `copilot --acp --stdio` 启动
-    supportsStreaming: true,
+    supportsStreaming: false,
     acpArgs: ['--acp', '--stdio'], // copilot 使用 --acp --stdio 启动 ACP mode
   },
   qoder: {
@@ -398,6 +399,15 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Qoder CLI，使用 `qodercli --acp` 启动
     supportsStreaming: false,
     acpArgs: ['--acp'], // qoder 使用 --acp flag
+  },
+  vibe: {
+    id: 'vibe',
+    name: 'Mistral Vibe',
+    cliCommand: 'vibe-acp',
+    authRequired: false,
+    enabled: true, // ✅ Mistral Vibe CLI，使用 `vibe-acp` 启动
+    supportsStreaming: false,
+    acpArgs: [],
   },
   'openclaw-gateway': {
     id: 'openclaw-gateway',
