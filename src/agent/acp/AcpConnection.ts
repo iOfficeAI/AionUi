@@ -200,7 +200,14 @@ export class AcpConnection {
       if (suitableBinDir) {
         const sep = isWindows ? ';' : ':';
         cleanEnv.PATH = suitableBinDir + sep + (cleanEnv.PATH || '');
-        console.log(`[ACP] Node.js ${detectedVersion} is below v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0 — auto-corrected PATH with: ${suitableBinDir}`);
+
+        // Verify the corrected PATH actually resolves to a good node (npx uses the same PATH)
+        try {
+          const correctedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], { env: cleanEnv, encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+          console.log(`[ACP] Node.js ${detectedVersion} is below v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0 — auto-corrected to ${correctedVersion} from: ${suitableBinDir}`);
+        } catch {
+          console.warn(`[ACP] PATH corrected with ${suitableBinDir} but node verification failed — proceeding anyway`);
+        }
       } else {
         throw new Error(`Node.js ${detectedVersion} is too old for Claude ACP bridge. ` + `Minimum required: v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0. ` + `Please upgrade Node.js: https://nodejs.org/`);
       }
@@ -223,12 +230,18 @@ export class AcpConnection {
   }
 
   private async setupChildProcessHandlers(backend: string): Promise<void> {
+    // Capture non-null reference; fail fast if child process is not initialized
+    const child = this.child;
+    if (!child) {
+      throw new Error(`[ACP ${backend}] Child process not initialized`);
+    }
+
     let spawnError: Error | null = null;
 
     // Collect stderr output (capped at 2KB) for diagnostics on early crash
     const STDERR_MAX = 2048;
     let stderrOutput = '';
-    this.child.stderr?.on('data', (data) => {
+    child.stderr?.on('data', (data: Buffer) => {
       const chunk = data.toString();
       console.error(`[ACP ${backend} STDERR]:`, chunk);
       if (stderrOutput.length < STDERR_MAX) {
@@ -239,7 +252,7 @@ export class AcpConnection {
       }
     });
 
-    this.child.on('error', (error) => {
+    child.on('error', (error) => {
       spawnError = error;
     });
 
@@ -249,11 +262,9 @@ export class AcpConnection {
     const processExitPromise = new Promise<never>((_resolve, reject) => {
       processExitReject = reject;
     });
-    // Swallow unhandled rejection — it will be cleaned up in finally
-    processExitPromise.catch(() => {});
 
     // Exit handler for both startup and runtime phases
-    this.child.on('exit', (code, signal) => {
+    child.on('exit', (code, signal) => {
       console.error(`[ACP ${backend}] Process exited with code: ${code}, signal: ${signal}`);
 
       if (!this.isSetupComplete) {
@@ -279,13 +290,13 @@ export class AcpConnection {
     }
 
     // Check if process is still running
-    if (!this.child || this.child.killed) {
+    if (child.killed) {
       throw new Error(`${backend} ACP process failed to start or exited immediately`);
     }
 
     // Handle messages from ACP server
     let buffer = '';
-    this.child.stdout?.on('data', (data) => {
+    child.stdout?.on('data', (data: Buffer) => {
       const dataStr = data.toString();
       buffer += dataStr;
       const lines = buffer.split('\n');
@@ -323,8 +334,11 @@ export class AcpConnection {
         processExitPromise,
       ]);
     } finally {
-      // Neutralize processExitPromise so it won't reject after setup completes
+      // Neutralize processExitReject so later exits won't call a stale reject.
+      // Attach .catch only now — prevents unhandled rejection if the process exits
+      // after setup completed (or after another racer won).
       processExitReject = null;
+      processExitPromise.catch(() => {});
     }
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
