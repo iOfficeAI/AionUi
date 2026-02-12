@@ -5,7 +5,7 @@
  */
 
 import './utils/configureChromium';
-import { app, BrowserWindow, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, nativeImage, powerMonitor, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -305,6 +305,18 @@ const handleAppReady = async (): Promise<void> => {
     // Preload shell environment in background for faster ACP connections
     void loadShellEnvironmentAsync();
   }
+
+  // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
+  powerMonitor.on('resume', () => {
+    console.log('[App] System resumed from sleep, triggering cron recovery');
+    import('@process/services/cron/CronService')
+      .then(({ cronService }) => {
+        void cronService.handleSystemResume();
+      })
+      .catch((error) => {
+        console.error('[App] Failed to handle system resume for cron:', error);
+      });
+  });
 };
 
 // Ensure we don't miss the ready event when running in CLI/WebUI mode

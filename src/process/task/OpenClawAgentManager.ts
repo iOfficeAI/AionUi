@@ -229,6 +229,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     ipcBridge.conversation.responseStream.emit(message);
   }
 
+  /**
+   * Check if yoloMode is already enabled for this OpenClaw agent.
+   * Returns true if agent was started with yoloMode.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return !!this.options.yoloMode;
+  }
+
   stop() {
     return this.agent?.stop?.() ?? Promise.resolve();
   }

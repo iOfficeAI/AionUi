@@ -514,6 +514,15 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
+  /**
+   * Check if yoloMode is already enabled for this Gemini worker.
+   * Gemini workers cannot change yoloMode at runtime (forked process),
+   * so this only returns true if the worker was started with yoloMode.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return !!this.forceYoloMode;
+  }
+
   confirm(id: string, callId: string, data: string) {
     // Store "always allow" decision before removing confirmation from cache
     // 在从缓存中移除确认之前，存储 "always allow" 决策

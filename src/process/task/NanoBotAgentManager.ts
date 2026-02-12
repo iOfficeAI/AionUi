@@ -140,6 +140,13 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     ipcBridge.conversation.responseStream.emit(message);
   }
 
+  /**
+   * Nanobot does not support yoloMode dynamically.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return false;
+  }
+
   stop() {
     return this.agent?.stop?.() ?? Promise.resolve();
   }

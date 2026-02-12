@@ -407,16 +407,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data as any,
       };
     }
-    case 'available_commands': {
-      return {
-        id: uuid(),
-        type: 'available_commands',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        content: message.data as any,
-      };
-    }
+    // Disabled: available_commands messages are too noisy and distracting in the chat UI
+    case 'available_commands':
+      break;
     case 'start':
     case 'finish':
     case 'thought':
