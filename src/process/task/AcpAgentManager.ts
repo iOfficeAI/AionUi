@@ -347,6 +347,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
       // Emit to frontend for UI display only
       ipcBridge.acpConversation.responseStream.emit(message);
+
+      // Emit finish signal so the frontend resets loading state
+      // (mirrors AcpAgent.handleDisconnect pattern)
+      const finishMessage: IResponseMessage = {
+        type: 'finish',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: null,
+      };
+      ipcBridge.acpConversation.responseStream.emit(finishMessage);
+
       return new Promise((_, reject) => {
         nextTickToLocalFinish(() => {
           reject(e);
