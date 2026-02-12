@@ -1,14 +1,11 @@
 import { ipcBridge } from '@/common';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
 import type { IProvider } from '@/common/storage';
 import { useCallback, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useGeminiGoogleAuthModels } from './useGeminiGoogleAuthModels';
 import type { GeminiModeOption } from './useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-
-// Stable ID for Google Auth provider — must remain constant across mounts
-// so that persisted model selections can be restored correctly.
-const GOOGLE_AUTH_PROVIDER_ID = 'google-auth-gemini';
 
 export interface ModelProviderListResult {
   providers: IProvider[];

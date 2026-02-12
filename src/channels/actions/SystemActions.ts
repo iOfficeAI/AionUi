@@ -17,15 +17,13 @@ import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMai
 import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
 import type { AcpBackend } from '@/types/acpTypes';
 
 /**
  * Get the default model for Channel assistant (Telegram/Lark)
  * Reads from saved config or falls back to default Gemini model
  */
-// Stable ID shared with the frontend useModelProviderList hook.
-// When the user selects a model via Google Auth in settings, this ID is persisted.
-const GOOGLE_AUTH_PROVIDER_ID = 'google-auth-gemini';
 
 export async function getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel> {
   try {
@@ -50,7 +48,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
       const providers = await ProcessConfig.get('model.config');
       if (providers && Array.isArray(providers)) {
         const provider = providers.find((p) => p.id === savedModel.id);
-        if (provider) {
+        if (provider && provider.model?.includes(savedModel.useModel)) {
           return {
             ...provider,
             useModel: savedModel.useModel,
