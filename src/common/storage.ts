@@ -93,7 +93,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark';
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -196,6 +196,20 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | Omit<
+      IChatConversation<
+        'nanobot',
+        {
+          workspace?: string;
+          customWorkspace?: boolean;
+          /** 启用的 skills 列表 / Enabled skills list */
+          enabledSkills?: string[];
+          /** 预设助手 ID / Preset assistant ID */
+          presetAssistantId?: string;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {
@@ -244,6 +258,19 @@ export interface IProvider {
    * e.g. { "gemini-2.5-pro": "gemini", "claude-sonnet-4": "anthropic", "gpt-4o": "openai" }
    */
   modelProtocols?: Record<string, string>;
+  /**
+   * AWS Bedrock specific configuration
+   * Only used when platform is 'bedrock'
+   */
+  bedrockConfig?: {
+    authMethod: 'accessKey' | 'profile';
+    region: string;
+    // For access key method
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    // For profile method
+    profile?: string;
+  };
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };

@@ -495,6 +495,22 @@
     "platformNewApi": "New API",
     "modelProtocol": "Request Protocol",
     "modelProtocolTip": "Choose the API request format for this model. new-api gateway will route to the upstream using the selected protocol.",
+    "platformBedrock": "AWS Bedrock",
+    "bedrock": {
+      "authMethod": "Authentication Method",
+      "authMethodAccessKey": "Access Key",
+      "authMethodProfile": "AWS Profile",
+      "region": "AWS Region",
+      "regionHint": "Select the AWS region for Bedrock models",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key",
+      "profile": "AWS Profile",
+      "profileHint": "Profile name from ~/.aws/config (e.g., 'default')",
+      "testConnection": "Test Connection",
+      "connectionSuccess": "Connection successful! AWS credentials are valid.",
+      "connectionFailed": "Connection failed. Please check your credentials.",
+      "fillRequiredFields": "Please fill in all required fields first."
+    },
     "proxyHttpOnly": "Only support http/https protocol",
     "baseUrlAutoFix": "base_url auto fix to: {{base_url}}",
     "updateConfirm": "Confirm Changes",
@@ -839,9 +855,10 @@
     },
     "lark": {
       "appId": "App ID",
-      "appIdDesc": "Open Feishu Developer Console to get your App ID",
+      "devConsoleLink": "Feishu Developer Console",
+      "appIdDescSuffix": "to get your App ID",
       "appSecret": "App Secret",
-      "appSecretDesc": "App Secret from Feishu Developer Console",
+      "appSecretDescSuffix": "to get App Secret",
       "encryptKey": "Encrypt Key",
       "encryptKeyDesc": "Optional: For event encryption (from Event Subscription settings)",
       "verificationToken": "Verification Token",
@@ -864,7 +881,9 @@
       "step2": "Send any message to initiate pairing",
       "step3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
       "step4": "Once approved, you can start chatting with the AI assistant through Lark!",
-      "waitingConnection": "WebSocket connection is being established. Please wait..."
+      "waitingConnection": "WebSocket connection is being established. Please wait...",
+      "showOptionalFields": "Show optional settings",
+      "hideOptionalFields": "Hide optional settings"
     }
   },
   "messages": {
@@ -884,6 +903,7 @@
     "downloadFailed": "Failed to download",
     "imageLoadFailed": "Failed to load image",
     "scrollToBottom": "Scroll to bottom",
+    "availableCommands": "{{count}} Available Commands",
     "unknownMessageType": "Unknown message type: {{type}}",
     "permissionRequest": "Permission Request",
     "agentRequestingPermission": "The agent is requesting permission.",

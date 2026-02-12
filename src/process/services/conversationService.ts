@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getChannelConversationName, isChannelPlatform } from '@/channels/types';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import path from 'path';
-import { createAcpAgent, createCodexAgent, createGeminiAgent, createOpenClawAgent } from '../initAgent';
+import { createAcpAgent, createCodexAgent, createGeminiAgent, createNanobotAgent, createOpenClawAgent } from '../initAgent';
 import WorkerManage from '../WorkerManage';
 
 /**
@@ -141,6 +142,8 @@ export class ConversationService {
         conversation = await createCodexAgent(params);
       } else if (type === 'openclaw-gateway') {
         conversation = await createOpenClawAgent(params);
+      } else if (type === 'nanobot') {
+        conversation = await createNanobotAgent(params);
       } else {
         return { success: false, error: 'Invalid conversation type' };
       }
@@ -187,27 +190,37 @@ export class ConversationService {
   }
 
   /**
-   * 获取或创建 Telegram 会话
-   * Get or create a Telegram conversation
+   * 获取或创建指定渠道的会话
+   * Get or create a conversation for the specified channel
    *
-   * 优先复用最后一个 source='telegram' 的会话，没有则创建新会话
-   * Prefers reusing the latest conversation with source='telegram', creates new if none exists
+   * 优先复用最后一个对应 source 的会话，没有则创建新会话
+   * Prefers reusing the latest conversation with matching source, creates new if none exists
    */
-  static async getOrCreateTelegramConversation(params: ICreateGeminiConversationParams): Promise<ICreateConversationResult> {
+  static async getOrCreateChannelConversation(params: ICreateGeminiConversationParams & { source: ConversationSource }): Promise<ICreateConversationResult> {
     const db = getDatabase();
+    const source = params.source;
 
-    // Try to find existing telegram conversation
-    const latestTelegramConv = db.getLatestConversationBySource('telegram');
-    if (latestTelegramConv.success && latestTelegramConv.data) {
-      console.log(`[ConversationService] Reusing existing telegram conversation: ${latestTelegramConv.data.id}`);
-      return { success: true, conversation: latestTelegramConv.data };
+    // Try to find existing conversation for this channel
+    const latestConv = db.getLatestConversationBySource(source);
+    if (latestConv.success && latestConv.data) {
+      const conv = latestConv.data;
+      // Check if the model matches the current config (channel conversations are always gemini type)
+      const existingModel = 'model' in conv ? conv.model : undefined;
+      if (!existingModel) {
+        console.log(`[ConversationService] No model info in existing ${source} conversation ${conv.id}, creating new`);
+      } else if (existingModel.id === params.model.id && existingModel.useModel === params.model.useModel) {
+        console.log(`[ConversationService] Reusing existing ${source} conversation: ${conv.id}`);
+        return { success: true, conversation: conv };
+      } else {
+        console.log(`[ConversationService] Model changed for ${source} conversation (existing: ${existingModel.id}/${existingModel.useModel}, configured: ${params.model.id}/${params.model.useModel}), creating new`);
+      }
     }
 
-    // Create new telegram conversation
+    // Create new conversation for this channel
     return this.createGeminiConversation({
       ...params,
-      source: 'telegram',
-      name: params.name || 'Telegram Assistant',
+      source,
+      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source) : `${source} Assistant`),
     });
   }
 }
@@ -215,4 +228,4 @@ export class ConversationService {
 // Export convenience functions
 export const createGeminiConversation = ConversationService.createGeminiConversation.bind(ConversationService);
 export const createConversation = ConversationService.createConversation.bind(ConversationService);
-export const getOrCreateTelegramConversation = ConversationService.getOrCreateTelegramConversation.bind(ConversationService);
+export const getOrCreateChannelConversation = ConversationService.getOrCreateChannelConversation.bind(ConversationService);

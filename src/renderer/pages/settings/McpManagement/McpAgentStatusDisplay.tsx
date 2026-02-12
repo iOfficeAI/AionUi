@@ -6,6 +6,7 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
@@ -35,6 +36,7 @@ const AGENT_LOGO_MAP: Record<string, string> = {
   openclaw: OpenClawLogo,
   vibe: MistralLogo,
   'openclaw-gateway': OpenClawLogo,
+  nanobot: NanobotLogo,
 };
 
 const getAgentLogo = (agent: string): string | null => {

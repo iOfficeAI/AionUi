@@ -5,10 +5,12 @@
  */
 
 import type { IMessageAcpToolCall } from '@/common/chatLib';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';
-import React from 'react';
-import Diff2Html from '../../components/Diff2Html';
+import React, { useMemo } from 'react';
 import MarkdownView from '../../components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
@@ -27,31 +29,32 @@ const StatusTag: React.FC<{ status: string }> = ({ status }) => {
   return <Tag color={color}>{text}</Tag>;
 };
 
+// Diff content display as a separate component to ensure hooks are called unconditionally
+const DiffContentView: React.FC<{ oldText: string; newText: string; path: string }> = ({ oldText, newText, path }) => {
+  const displayName = path.split(/[/\\]/).pop() || path || 'Unknown file';
+  const formattedDiff = useMemo(() => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }), [displayName, oldText, newText]);
+  const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: formattedDiff, displayName, filePath: path || displayName });
+
+  return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
+};
+
 const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update']['content'][0] }> = ({ content }) => {
-  // 处理 diff 类型
   if (content.type === 'diff') {
-    const oldText = content.oldText || '';
-    const newText = content.newText || '';
-    const resolvedPath = content.path || '';
-    const displayName = resolvedPath.split(/[/\\]/).pop() || resolvedPath || 'Unknown file';
-    const formattedDiff = createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 });
-    return <Diff2Html diff={formattedDiff} title={`File: ${displayName}`} className='border rounded' filePath={resolvedPath || displayName} />;
+    return <DiffContentView oldText={content.oldText || ''} newText={content.newText || ''} path={content.path || ''} />;
   }
 
   // 处理 content 类型，包含 text 内容
-  const contentAny = content as any;
-  if (content.type === 'content' && contentAny.content) {
-    if (contentAny.content.type === 'text' && contentAny.content.text) {
-      return (
-        <div className='mt-3'>
-          <div className='bg-1 p-3 rounded border overflow-hidden'>
-            <div className='overflow-x-auto break-words'>
-              <MarkdownView>{contentAny.content.text}</MarkdownView>
-            </div>
+  if (content.type === 'content' && content.content && content.content.type === 'text' && content.content.text) {
+    return (
+      <div className='mt-3'>
+        <div className='bg-1 p-3 rounded border overflow-hidden'>
+          <div className='overflow-x-auto break-words'>
+            <MarkdownView>{content.content.text}</MarkdownView>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   return null;

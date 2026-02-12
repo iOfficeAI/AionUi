@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">WeChat (Çince Grup)</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat-group-3.png" target="_blank">WeChat (Çince Grup)</a>
 </p>
 
 ---
@@ -60,17 +60,19 @@
 
 ### 🤖 **Çoklu Ajan Modu - Komut Satırı Yapay Zeka Araçlarınız İçin Ortak Çalışma, Birleşik Grafik Arayüz**
 
-_Eğer Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code gibi komut satırı araçları yüklü ise, AionUi bunları otomatik olarak algılar ve birleşik bir grafik arayüz sunar_
+AionUi, komut satırı yapay zeka araçlarınız için birleşik bir grafik arayüz sağlar. Dahili Gemini CLI dahil, kurulum gerekmez.
 
-- ✅ **Otomatik Algılama + Birleşik Arayüz** - Yerel CLI araçlarını otomatik tanır, tek bir grafik arayüz sunar, komut satırına elveda deyin
-- ✅ **Yerel Depolama + Çoklu Oturum** - Konuşmalar yerel olarak kaydedilir, birden fazla paralel oturumu destekler, her oturum bağımsız bağlama sahiptir
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="Çoklu Ajan Modu Demo" width="800"></p>
+**Desteklenen araçlar：** Gemini CLI (dahili) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**Temel özellikler：**
+
+- ✅ **Otomatik algılama** - Yerel CLI araçlarını otomatik olarak tanır ve entegre eder
+- ✅ **Birleşik arayüz** - Tüm AI araçlarınız için tek bir arayüz, komut satırına elveda
+- ✅ **Yerel depolama + çoklu oturum** - Konuşmalar yerel olarak kaydedilir, bağımsız bağlamlara sahip birden fazla paralel oturum
 
 ---
 
@@ -136,10 +138,10 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 ### 🤖 **Çoklu Model Desteği**
 
-_Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi yerel modelleri destekler. Çeşitli görev gereksinimlerini karşılamak için farklı modeller arasında esnek geçiş yapın._
+_Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi yerel modelleri destekler. AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini(çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi) destekler. Çeşitli görev gereksinimlerini karşılamak için farklı modeller arasında esnek geçiş yapın._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Çoklu Model Desteği" width="800">
+  <img src="./resources/llm_newapi.png" alt="Çoklu Model Desteği" width="800">
 </p>
 
 ---

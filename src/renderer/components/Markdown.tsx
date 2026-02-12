@@ -13,7 +13,12 @@ import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import katex from 'katex';
+// Import KaTeX CSS to make it available in the document
+import 'katex/dist/katex.min.css';
+
 import { ipcBridge } from '@/common';
+import { diffColors } from '@/renderer/theme/colors';
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
@@ -44,7 +49,25 @@ const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?
   return condition ? trueComponent : falseComponent;
 };
 
+/**
+ * Get line background style for diff rendering
+ * Highlights additions (green), deletions (red), and hunk headers (blue)
+ */
+const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties => {
+  if (line.startsWith('+') && !line.startsWith('+++')) {
+    return { backgroundColor: isDark ? diffColors.additionBgDark : diffColors.additionBgLight };
+  }
+  if (line.startsWith('-') && !line.startsWith('---')) {
+    return { backgroundColor: isDark ? diffColors.deletionBgDark : diffColors.deletionBgLight };
+  }
+  if (line.startsWith('@@')) {
+    return { backgroundColor: isDark ? diffColors.hunkBgDark : diffColors.hunkBgLight };
+  }
+  return {};
+};
+
 function CodeBlock(props: any) {
+  const { t } = useTranslation();
   const [fold, setFlow] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
@@ -70,6 +93,25 @@ function CodeBlock(props: any) {
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+
+    // Render latex/math code blocks as KaTeX display math
+    // Skip full LaTeX documents (with \documentclass, \begin{document}, etc.) — KaTeX only handles math
+    if (language === 'latex' || language === 'math' || language === 'tex') {
+      const latexSource = String(children).replace(/\n$/, '');
+      const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
+      if (!isFullDocument) {
+        try {
+          const html = katex.renderToString(latexSource, {
+            displayMode: true,
+            throwOnError: false,
+          });
+          return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
+        } catch {
+          // Fall through to render as code block if KaTeX fails
+        }
+      }
+    }
+
     if (!String(children).includes('\n')) {
       return (
         <code
@@ -78,24 +120,16 @@ function CodeBlock(props: any) {
           style={{
             fontWeight: 'bold',
           }}
-          // style={{
-          //   backgroundColor: 'var(--bg-1)',
-          //   padding: '2px 4px',
-          //   margin: '0 4px',
-          //   borderRadius: '4px',
-          //   border: '1px solid',
-          //   borderColor: 'var(--bg-3)',
-          //   display: 'inline-block',
-          //   maxWidth: '100%',
-          //   overflowWrap: 'anywhere',
-          //   wordBreak: 'break-word',
-          //   whiteSpace: 'break-spaces',
-          // }}
         >
           {children}
         </code>
       );
     }
+
+    const isDiff = language === 'diff';
+    const formattedContent = formatCode(children);
+    const diffLines = isDiff ? formattedContent.split('\n') : [];
+
     return (
       <div style={{ width: '100%', ...(props.codeStyle || {}) }}>
         <div
@@ -138,7 +172,7 @@ function CodeBlock(props: any) {
                 fill='var(--text-secondary)'
                 onClick={() => {
                   void navigator.clipboard.writeText(formatCode(children)).then(() => {
-                    Message.success('复制成功');
+                    Message.success(t('common.copySuccess'));
                   });
                 }}
               />
@@ -149,10 +183,18 @@ function CodeBlock(props: any) {
           {logicRender(
             !fold,
             <SyntaxHighlighter
-              children={formatCode(children)}
+              children={formattedContent}
               language={language}
               style={codeTheme}
               PreTag='div'
+              wrapLines={isDiff}
+              lineProps={
+                isDiff
+                  ? (lineNumber: number) => ({
+                      style: { display: 'block', ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark') },
+                    })
+                  : undefined
+              }
               customStyle={{
                 marginTop: '0',
                 margin: '0',
@@ -174,7 +216,7 @@ function CodeBlock(props: any) {
         </div>
       </div>
     );
-  }, [props, currentTheme, fold]);
+  }, [props, currentTheme, fold, t]);
 }
 
 const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
@@ -264,6 +306,19 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     overflow-wrap: anywhere;
     max-width: 100%;
   }
+  /* Allow KaTeX to use its own line-height for proper fraction/superscript rendering */
+  .katex,
+  .katex * {
+    line-height: normal;
+  }
+
+  /* Display math: only scroll horizontally when formula exceeds container width */
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5em 0;
+  }
+
   .loading {
     animation: loading 1s linear infinite;
   }
@@ -282,6 +337,52 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   ${customCss || ''}
   `;
   return style;
+};
+
+// Cache for KaTeX stylesheet to share across Shadow DOM instances
+let katexStyleSheet: CSSStyleSheet | null = null;
+
+/**
+ * Get or create a shared KaTeX CSSStyleSheet for Shadow DOM adoption
+ * This extracts KaTeX styles from the document and creates a constructable stylesheet
+ */
+const getKatexStyleSheet = (): CSSStyleSheet | null => {
+  if (katexStyleSheet) return katexStyleSheet;
+
+  try {
+    // Find the KaTeX stylesheet in the document
+    const katexSheet = [...document.styleSheets].find((sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex);
+
+    if (katexSheet) {
+      const cssRules = [...katexSheet.cssRules].map((rule) => rule.cssText).join('\n');
+      katexStyleSheet = new CSSStyleSheet();
+      katexStyleSheet.replaceSync(cssRules);
+      return katexStyleSheet;
+    }
+
+    // Fallback: try to find KaTeX styles by checking style tags
+    const styleSheets = [...document.styleSheets];
+    for (const sheet of styleSheets) {
+      try {
+        const rules = [...sheet.cssRules];
+        // Check if this stylesheet contains KaTeX rules
+        const hasKatexRules = rules.some((rule) => rule.cssText.includes('.katex'));
+        if (hasKatexRules) {
+          const cssRules = rules.map((rule) => rule.cssText).join('\n');
+          katexStyleSheet = new CSSStyleSheet();
+          katexStyleSheet.replaceSync(cssRules);
+          return katexStyleSheet;
+        }
+      } catch {
+        // CORS may block access to cssRules for external stylesheets
+        continue;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to create KaTeX stylesheet for Shadow DOM:', error);
+  }
+
+  return null;
 };
 
 const ShadowView = ({ children }: { children: React.ReactNode }) => {
@@ -347,6 +448,13 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
       const newStyle = createInitStyle(currentTheme, cssVars, customCss);
       styleRef.current = newStyle;
       shadowRoot.appendChild(newStyle);
+
+      // Inject KaTeX styles into Shadow DOM using adoptedStyleSheets
+      // This allows math expressions to render correctly
+      const katexSheet = getKatexStyleSheet();
+      if (katexSheet && !shadowRoot.adoptedStyleSheets.includes(katexSheet)) {
+        shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, katexSheet];
+      }
     },
     [customCss]
   );
@@ -428,23 +536,6 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
             rehypePlugins={[rehypeKatex]}
             components={{
               span: ({ node: _node, className, children, ...props }) => {
-                if (className?.includes('katex')) {
-                  return (
-                    <span
-                      {...props}
-                      className={className}
-                      style={{
-                        maxWidth: '100%',
-                        overflowX: 'auto',
-                        display: 'inline-block',
-                        verticalAlign: 'middle',
-                      }}
-                    >
-                      {children}
-                    </span>
-                  );
-                }
-
                 return (
                   <span {...props} className={className}>
                     {children}

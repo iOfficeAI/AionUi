@@ -492,6 +492,22 @@
     "platformNewApi": "New API",
     "modelProtocol": "请求协议",
     "modelProtocolTip": "选择该模型的 API 请求格式。new-api 网关将使用所选协议路由到上游服务。",
+    "platformBedrock": "AWS Bedrock",
+    "bedrock": {
+      "authMethod": "认证方式",
+      "authMethodAccessKey": "访问密钥",
+      "authMethodProfile": "AWS Profile",
+      "region": "AWS 区域",
+      "regionHint": "选择使用 Bedrock 模型的 AWS 区域",
+      "accessKeyId": "访问密钥 ID",
+      "secretAccessKey": "私有访问密钥",
+      "profile": "AWS Profile",
+      "profileHint": "来自 ~/.aws/config 的配置文件名称（例如 'default'）",
+      "testConnection": "测试连接",
+      "connectionSuccess": "连接成功！AWS 凭证有效。",
+      "connectionFailed": "连接失败，请检查您的凭证。",
+      "fillRequiredFields": "请先填写所有必填字段。"
+    },
     "proxyHttpOnly": "仅支持 http/https 协议",
     "baseUrlAutoFix": "base_url 自动修复为：{{base_url}}",
     "updateConfirm": "确认修改",
@@ -835,9 +851,10 @@
     },
     "lark": {
       "appId": "App ID",
-      "appIdDesc": "打开飞书开放平台开发者后台获取 App ID",
+      "devConsoleLink": "飞书开放平台开发者后台",
+      "appIdDescSuffix": "获取 App ID",
       "appSecret": "App Secret",
-      "appSecretDesc": "飞书开放平台开发者后台获取 App Secret",
+      "appSecretDescSuffix": "获取 App Secret",
       "encryptKey": "Encrypt Key",
       "encryptKeyDesc": "可选：用于事件加密（来自事件订阅配置）",
       "verificationToken": "Verification Token",
@@ -860,7 +877,9 @@
       "step2": "发送任意消息开始配对",
       "step3": "配对请求会显示在下方，点击「批准」授权用户",
       "step4": "授权成功后，你可以通过飞书与 AI 助手聊天！",
-      "waitingConnection": "WebSocket 连接正在建立，请稍候..."
+      "waitingConnection": "WebSocket 连接正在建立，请稍候...",
+      "showOptionalFields": "显示可选配置",
+      "hideOptionalFields": "隐藏可选配置"
     }
   },
   "messages": {
@@ -880,6 +899,7 @@
     "downloadFailed": "下载失败",
     "imageLoadFailed": "图片加载失败",
     "scrollToBottom": "滚动到底部",
+    "availableCommands": "{{count}} 个可用命令",
     "unknownMessageType": "未知消息类型：{{type}}",
     "permissionRequest": "权限请求",
     "agentRequestingPermission": "代理正在请求权限。",

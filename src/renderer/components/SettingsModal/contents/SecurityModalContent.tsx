@@ -117,8 +117,9 @@ const SecurityModalContent: React.FC = () => {
         codex: (codexConfig as { yoloMode?: boolean })?.yoloMode ?? false,
       };
 
-      // Load ACP backend yoloModes
+      // Load ACP backend yoloModes (skip codex, it uses codex.config)
       for (const id of ACP_AGENT_IDS) {
+        if (id === 'codex') continue;
         const backendConfig = (acpConfig as Record<string, { yoloMode?: boolean }> | undefined)?.[id];
         modes[id] = backendConfig?.yoloMode ?? false;
       }
@@ -180,7 +181,9 @@ const SecurityModalContent: React.FC = () => {
               <Shield theme='outline' size='20' fill={iconColors.secondary} className='flex' />
               <span className='text-16px font-500 text-t-primary leading-20px'>{t('settings.autoApprove')}</span>
               <Tooltip content={t('settings.autoApproveDesc')}>
-                <Help theme='outline' size='16' fill={iconColors.disabled} className='flex cursor-help' />
+                <span className='inline-flex items-center cursor-help'>
+                  <Help theme='outline' size='16' fill={iconColors.disabled} className='flex' />
+                </span>
               </Tooltip>
             </div>
 

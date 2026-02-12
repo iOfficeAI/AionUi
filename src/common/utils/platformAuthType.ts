@@ -31,6 +31,11 @@ export function getAuthTypeFromPlatform(platform: string): AuthType {
     return AuthType.USE_ANTHROPIC;
   }
 
+  // AWS Bedrock 平台
+  if (platformLower.includes('bedrock')) {
+    return AuthType.USE_BEDROCK;
+  }
+
   // New API 网关默认使用 OpenAI 兼容协议（per-model 协议由 getProviderAuthType 处理）
   // New API gateway defaults to OpenAI compatible (per-model protocol handled by getProviderAuthType)
   // 其他所有平台默认使用OpenAI兼容协议

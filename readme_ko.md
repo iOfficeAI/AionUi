@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -60,17 +60,19 @@
 
 ### 🤖 **멀티 에이전트 모드 - 명령줄 AI 도구를 위한 통합 그래픽 인터페이스**
 
-_AionUi에는 Gemini CLI가 내장되어 있어 다운로드 즉시 사용 가능하며 추가 설치가 필요 없습니다. 이미 Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code 같은 명령줄 도구를 설치했다면 AionUi가 자동으로 감지해 통합 그래픽 인터페이스를 제공하고 더 풍부한 경험을 제공합니다_
+AionUi는 명령줄 AI 도구에 통합 그래픽 인터페이스를 제공합니다. 내장 Gemini CLI 포함, 설정 불필요.
 
-- ✅ **자동 감지 + 통합 인터페이스** - 로컬 CLI 도구를 자동으로 인식하고 통합 그래픽 인터페이스를 제공하여 명령줄과 작별
-- ✅ **로컬 저장 + 다중 세션** - 대화가 로컬에 저장되고 독립적인 컨텍스트를 가진 다중 병렬 세션 지원
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="멀티 에이전트 모드 데모" width="800"></p>
+**지원 도구：** Gemini CLI（내장） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**주요 기능：**
+
+- ✅ **자동 감지** - 로컬 CLI 도구를 자동으로 인식하고 통합
+- ✅ **통합 인터페이스** - 모든 AI 도구를 하나의 인터페이스로 관리, 명령줄과 작별
+- ✅ **로컬 저장 + 다중 세션** - 대화가 로컬에 저장되고 독립적인 컨텍스트를 가진 다중 병렬 세션 지원
 
 ---
 
@@ -157,10 +159,10 @@ _Gemini 기반의 지능형 이미지 생성, 편집 및 인식_
 
 ### 🤖 **다중 모델 지원**
 
-_Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 및 Ollama, LM Studio와 같은 로컬 모델을 지원합니다. 다양한 작업 요구 사항을 충족하기 위해 다른 모델 간에 유연하게 전환합니다._
+_Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 및 Ollama, LM Studio와 같은 로컬 모델을 지원합니다. AionUi는 [NewAPI](https://github.com/QuantumNous/new-api) 중계 서비스(다양한 대규모 언어 모델을 집계 및 배포하는 통합 AI 모델 허브)도 지원합니다. 다양한 작업 요구 사항을 충족하기 위해 다른 모델 간에 유연하게 전환합니다._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="다중 모델 지원" width="800">
+  <img src="./resources/llm_newapi.png" alt="다중 모델 지원" width="800">
 </p>
 
 ---
@@ -363,7 +365,7 @@ brew install aionui
 - [🐛 문제 보고](https://github.com/iOfficeAI/AionUi/issues) - 버그 또는 기능 요청 보고
 - [📦 릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) - 최신 버전 받기
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Discord에서 영어 커뮤니티에 가입하세요**
-- [💬 微信 (中文群)](./resources/wx.png) - **QR 코드 보기**
+- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **QR 코드 보기**
 
 ### 🤝 기여하기
 

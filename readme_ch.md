@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -60,18 +60,19 @@
 
 ### 🤖 **多代理模式 - Cowork for 你的命令行 AI 工具，统一图形界面**
 
-_AionUi 内置 Gemini CLI，下载即用，无需额外安装；如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、OpenClaw、Augment Code 等命令行工具，AionUi 会自动检测并为它们提供统一的图形界面，体验更丰富_
+AionUi 为你的命令行 AI 工具提供统一图形界面。内置 Gemini CLI，开箱即用。
 
-- ✅ **自动检测 + 统一界面** - 自动识别本地 CLI 工具，提供统一的图形界面，告别命令行
-- ✅ **本地保存 + 多会话** - 对话保存在本地，支持多会话并行，每个会话独立上下文
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="多代理模式演示" width="800">
-</p>
+**支持的工具：** Gemini CLI（内置） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="AionUi 中的 OpenClaw 集成" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**核心特性：**
+
+- ✅ **自动检测** - 自动识别并集成本地 CLI 工具
+- ✅ **统一界面** - 一个界面管理所有 AI 工具，告别命令行
+- ✅ **本地保存 + 多会话** - 对话本地保存，支持多会话并行，每个会话独立上下文
 
 ---
 
@@ -156,10 +157,10 @@ _智能图像生成、编辑和识别，由 Gemini 驱动_
 
 ### 🤖 **多模型支持**
 
-_支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。灵活切换不同模型，满足各种任务需求。_
+_支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。AionUi 还支持 [NewAPI](https://github.com/QuantumNous/new-api) 中转服务(这是一个统一的 AI 模型中心，可聚合和分发各种大语言模型)。灵活切换不同模型，满足各种任务需求。_
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="多模型支持" width="800">
+  <img src="./resources/llm_newapi.png" alt="多模型支持" width="800">
 </p>
 
 ---
@@ -396,7 +397,7 @@ brew install aionui
 - [🐛 报告问题](https://github.com/iOfficeAI/AionUi/issues) - 反馈 Bug 或功能请求
 - [📦 发布更新](https://github.com/iOfficeAI/AionUi/releases) - 获取最新版本
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **加入我们的英文 Discord 社区**
-- [💬 微信 (中文群)](./resources/wx.png) - **点击查看二维码**
+- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **点击查看二维码**
 
 ### 🤝 贡献代码
 

@@ -53,6 +53,7 @@ export type AcpBackendAll =
   | 'qoder' // Qoder CLI
   | 'openclaw-gateway' // OpenClaw Gateway WebSocket
   | 'vibe' // Mistral Vibe CLI
+  | 'nanobot' // nanobot CLI
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -405,6 +406,14 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ OpenClaw Gateway WebSocket mode
     supportsStreaming: true,
     acpArgs: ['gateway'], // openclaw gateway command (for detection)
+  },
+  nanobot: {
+    id: 'nanobot',
+    name: 'Nano Bot',
+    cliCommand: 'nanobot',
+    authRequired: false,
+    enabled: true,
+    supportsStreaming: false,
   },
   custom: {
     id: 'custom',

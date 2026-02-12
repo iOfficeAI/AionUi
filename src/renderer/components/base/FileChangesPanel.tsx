@@ -7,7 +7,7 @@
 import classNames from 'classnames';
 import React, { useState } from 'react';
 import { Down, PreviewOpen } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { diffColors, iconColors } from '@/renderer/theme/colors';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -34,8 +34,10 @@ export interface FileChangesPanelProps {
   files: FileChangeItem[];
   /** 默认是否展开 / Default expanded state */
   defaultExpanded?: boolean;
-  /** 点击文件的回调 / Callback when file is clicked */
+  /** 点击预览按钮的回调 / Callback when preview button is clicked */
   onFileClick?: (file: FileChangeItem) => void;
+  /** 点击变更统计的回调（+8/-3 数字触发，打开 diff 对比）/ Callback when change stats are clicked (opens diff view) */
+  onDiffClick?: (file: FileChangeItem) => void;
   /** 额外的类名 / Additional class name */
   className?: string;
 }
@@ -47,7 +49,7 @@ export interface FileChangesPanelProps {
  * 用于显示会话中生成/修改的文件列表，支持展开收起
  * Used to display generated/modified files in conversation, supports expand/collapse
  */
-const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defaultExpanded = true, onFileClick, className }) => {
+const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defaultExpanded = true, onFileClick, onDiffClick, className }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -61,7 +63,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
       <div className='flex items-center justify-between px-16px py-12px cursor-pointer select-none' onClick={() => setExpanded(!expanded)}>
         <div className='flex items-center gap-8px'>
           {/* 绿色圆点 / Green dot */}
-          <span className='w-8px h-8px rounded-full bg-[#52c41a] shrink-0'></span>
+          <span className='w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: diffColors.addition }}></span>
           {/* 标题 / Title */}
           <span className='text-14px text-t-primary font-medium'>{title}</span>
         </div>
@@ -73,17 +75,42 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
       {expanded && (
         <div className='w-full bg-2'>
           {files.map((file, index) => (
-            <div key={`${file.fullPath}-${index}`} className={classNames('group flex items-center justify-between px-16px py-12px cursor-pointer hover:bg-3 transition-colors')} onClick={() => onFileClick?.(file)}>
-              <div className='flex items-center'>
-                {/* 文件名 / File name */}
+            <div key={`${file.fullPath}-${index}`} className={classNames('group flex items-center justify-between px-16px py-12px hover:bg-3 transition-colors')}>
+              {/* 文件名 / File name */}
+              <div className='flex items-center min-w-0'>
                 <span className='text-14px text-t-primary truncate'>{file.fileName}</span>
               </div>
-              {/* 变更统计 / Change statistics */}
+              {/* 变更统计 + 预览按钮 / Change statistics + Preview button */}
               <div className='flex items-center gap-8px shrink-0'>
-                {file.insertions > 0 && <span className='text-14px text-[#52c41a] font-medium'>+{file.insertions}</span>}
-                {file.deletions > 0 && <span className='text-14px text-[#ff4d4f] font-medium'>-{file.deletions}</span>}
-                {/* 预览按钮 - hover时显示 / Preview button - show on hover */}
-                <span className='group-hover:opacity-100 transition-opacity shrink-0 ml-8px flex items-center gap-4px text-12px text-t-secondary'>
+                {/* 变更统计 - 点击打开 diff 对比 / Change stats - click to open diff view */}
+                {(file.insertions > 0 || file.deletions > 0) && (
+                  <span
+                    className={classNames('flex items-center gap-4px rd-4px px-4px py-2px', onDiffClick && 'cursor-pointer hover:bg-4 transition-colors')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDiffClick?.(file);
+                    }}
+                  >
+                    {file.insertions > 0 && (
+                      <span className='text-14px font-medium' style={{ color: diffColors.addition }}>
+                        +{file.insertions}
+                      </span>
+                    )}
+                    {file.deletions > 0 && (
+                      <span className='text-14px font-medium' style={{ color: diffColors.deletion }}>
+                        -{file.deletions}
+                      </span>
+                    )}
+                  </span>
+                )}
+                {/* 预览按钮 - 点击打开文件预览 / Preview button - click to open file preview */}
+                <span
+                  className='group-hover:opacity-100 transition-opacity shrink-0 ml-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFileClick?.(file);
+                  }}
+                >
                   <PreviewOpen className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />
                   {t('preview.preview')}
                 </span>
