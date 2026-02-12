@@ -49,6 +49,8 @@ jobs:
     needs: [code-quality]
     if: github.event.action == 'opened'
     uses: './.github/workflows/gpt-review.yml'
+    with:
+      pr_number: '${{ github.event.pull_request.number }}'
     permissions:
       contents: read
       pull-requests: write
@@ -76,7 +78,7 @@ jobs:
                 username,
               });
               const permission = data.permission;
-              const isExternal = permission !== 'admin' && permission !== 'write';
+              const isExternal = permission !== 'admin' && permission !== 'maintain' && permission !== 'write';
               core.info(`User ${username}: permission=${permission}, is external: ${isExternal}`);
               core.setOutput('is_external', String(isExternal));
             } catch (error) {
@@ -90,6 +92,8 @@ jobs:
     needs: [check-external]
     if: needs.check-external.outputs.is_external == 'true'
     uses: './.github/workflows/gpt-pr-assessment.yml'
+    with:
+      pr_number: '${{ github.event.pull_request.number }}'
     permissions:
       contents: read
       pull-requests: write
