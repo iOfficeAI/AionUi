@@ -54,14 +54,35 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 3: Trigger GPT PR assessment for external contributors
+  # Job 3: Check if PR author is an external contributor
+  check-external:
+    name: Check External
+    needs: [code-quality]
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    outputs:
+      is_external: ${{ steps.check.outputs.is_external }}
+    steps:
+      - name: Check author association via API
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            const association = pr.author_association;
+            const isExternal = association !== 'OWNER' && association !== 'MEMBER';
+            core.info(`Author association: ${association}, is external: ${isExternal}`);
+            core.setOutput('is_external', String(isExternal));
+
+  # Job 4: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
-    needs: [code-quality]
-    if: >-
-      github.event.action == 'opened' &&
-      github.event.pull_request.author_association != 'OWNER' &&
-      github.event.pull_request.author_association != 'MEMBER'
+    needs: [check-external]
+    if: needs.check-external.outputs.is_external == 'true'
     uses: './.github/workflows/gpt-pr-assessment.yml'
     permissions:
       contents: read
