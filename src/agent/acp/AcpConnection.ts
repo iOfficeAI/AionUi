@@ -101,6 +101,76 @@ export class AcpConnection {
   // Track if initial setup is complete (to distinguish startup errors from runtime exits)
   private isSetupComplete = false;
 
+  // Track if child process was spawned with detached: true (needs process group kill)
+  private isDetached = false;
+
+  /**
+   * Prepare a clean environment for npx-based ACP backends.
+   * Removes Node.js debugging vars and npm lifecycle vars that can interfere
+   * with child npx processes.
+   */
+  private prepareNpxEnv(): Record<string, string | undefined> {
+    const cleanEnv = getEnhancedEnv();
+    delete cleanEnv.NODE_OPTIONS;
+    delete cleanEnv.NODE_INSPECT;
+    delete cleanEnv.NODE_DEBUG;
+    // Strip npm lifecycle vars inherited from parent `npm start` process.
+    // These (npm_config_*, npm_lifecycle_*, npm_package_*) can cause npx to
+    // behave as if running inside an npm script, interfering with package
+    // resolution and child process startup.
+    for (const key of Object.keys(cleanEnv)) {
+      if (key.startsWith('npm_')) {
+        delete cleanEnv[key];
+      }
+    }
+    return cleanEnv;
+  }
+
+  /**
+   * Pre-check Node.js version and auto-correct PATH if too old.
+   * Requires Node >= minMajor.minMinor for npx-based ACP backends.
+   * Mutates cleanEnv.PATH when auto-correction is needed.
+   */
+  private ensureMinNodeVersion(cleanEnv: Record<string, string | undefined>, minMajor: number, minMinor: number, backendLabel: string): void {
+    const isWindows = process.platform === 'win32';
+    let versionTooOld = false;
+    let detectedVersion = '';
+
+    try {
+      detectedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], { env: cleanEnv, encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+
+      const match = detectedVersion.match(/^v(\d+)\.(\d+)\./);
+      if (match) {
+        const major = parseInt(match[1], 10);
+        const minor = parseInt(match[2], 10);
+        if (major < minMajor || (major === minMajor && minor < minMinor)) {
+          versionTooOld = true;
+        }
+      }
+    } catch {
+      // node not found — let spawn attempt handle it
+      console.warn('[ACP] Node.js version check skipped: node not found in PATH');
+    }
+
+    if (versionTooOld) {
+      const suitableBinDir = findSuitableNodeBin(minMajor, minMinor);
+      if (suitableBinDir) {
+        const sep = isWindows ? ';' : ':';
+        cleanEnv.PATH = suitableBinDir + sep + (cleanEnv.PATH || '');
+
+        // Verify the corrected PATH actually resolves to a good node (npx uses the same PATH)
+        try {
+          const correctedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], { env: cleanEnv, encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+          console.log(`[ACP] Node.js ${detectedVersion} is below v${minMajor}.${minMinor}.0 — auto-corrected to ${correctedVersion} from: ${suitableBinDir}`);
+        } catch {
+          console.warn(`[ACP] PATH corrected with ${suitableBinDir} but node verification failed — proceeding anyway`);
+        }
+      } else {
+        throw new Error(`Node.js ${detectedVersion} is too old for ${backendLabel}. ` + `Minimum required: v${minMajor}.${minMinor}.0. ` + `Please upgrade Node.js: https://nodejs.org/`);
+      }
+    }
+  }
+
   // 通用的后端连接方法
   private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codebuddy' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const spawnStart = Date.now();
@@ -169,58 +239,13 @@ export class AcpConnection {
     console.error('[ACP] Using NPX approach for Claude ACP bridge');
 
     const envStart = Date.now();
-    // Use enhanced env with shell variables, then clean up Node.js debugging vars
-    const cleanEnv = getEnhancedEnv();
-    delete cleanEnv.NODE_OPTIONS;
-    delete cleanEnv.NODE_INSPECT;
-    delete cleanEnv.NODE_DEBUG;
+    const cleanEnv = this.prepareNpxEnv();
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: env prepared ${Date.now() - envStart}ms`);
 
-    // Pre-check Node.js version: @zed-industries/claude-code-acp requires >= 20.10.
-    // If the resolved node is too old, try to auto-correct PATH using a suitable
-    // version found in nvm/fnm/volta before giving up.
-    const isWindows = process.platform === 'win32';
-    const MIN_NODE_MAJOR = 20;
-    const MIN_NODE_MINOR = 10;
-
-    let versionTooOld = false;
-    let detectedVersion = '';
-
-    try {
-      detectedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], { env: cleanEnv, encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-
-      const match = detectedVersion.match(/^v(\d+)\.(\d+)\./);
-      if (match) {
-        const major = parseInt(match[1], 10);
-        const minor = parseInt(match[2], 10);
-        if (major < MIN_NODE_MAJOR || (major === MIN_NODE_MAJOR && minor < MIN_NODE_MINOR)) {
-          versionTooOld = true;
-        }
-      }
-    } catch {
-      // node not found — let spawn attempt handle it
-      console.warn('[ACP] Node.js version check skipped: node not found in PATH');
-    }
-
-    if (versionTooOld) {
-      const suitableBinDir = findSuitableNodeBin(MIN_NODE_MAJOR, MIN_NODE_MINOR);
-      if (suitableBinDir) {
-        const sep = isWindows ? ';' : ':';
-        cleanEnv.PATH = suitableBinDir + sep + (cleanEnv.PATH || '');
-
-        // Verify the corrected PATH actually resolves to a good node (npx uses the same PATH)
-        try {
-          const correctedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], { env: cleanEnv, encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-          console.log(`[ACP] Node.js ${detectedVersion} is below v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0 — auto-corrected to ${correctedVersion} from: ${suitableBinDir}`);
-        } catch {
-          console.warn(`[ACP] PATH corrected with ${suitableBinDir} but node verification failed — proceeding anyway`);
-        }
-      } else {
-        throw new Error(`Node.js ${detectedVersion} is too old for Claude ACP bridge. ` + `Minimum required: v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0. ` + `Please upgrade Node.js: https://nodejs.org/`);
-      }
-    }
+    this.ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
 
     // Use npx to run the Claude ACP bridge directly from npm registry
+    const isWindows = process.platform === 'win32';
     const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
     const spawnArgs = ['--prefer-offline', '@zed-industries/claude-code-acp'];
 
@@ -240,15 +265,17 @@ export class AcpConnection {
     // Use NPX to run CodeBuddy Code CLI directly from npm registry (same pattern as Claude)
     console.error('[ACP] Using NPX approach for CodeBuddy ACP');
 
-    // Use enhanced env with shell variables, then clean up Node.js debugging vars
-    const cleanEnv = getEnhancedEnv();
-    delete cleanEnv.NODE_OPTIONS;
-    delete cleanEnv.NODE_INSPECT;
-    delete cleanEnv.NODE_DEBUG;
+    const envStart = Date.now();
+    const cleanEnv = this.prepareNpxEnv();
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codebuddy: env prepared ${Date.now() - envStart}ms`);
 
+    this.ensureMinNodeVersion(cleanEnv, 20, 10, 'CodeBuddy ACP');
+
+    // Use npx with --yes (prevent interactive download prompt that blocks stdin pipe)
+    // and --prefer-offline (use cached packages when available)
     const isWindows = process.platform === 'win32';
     const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
-    const spawnArgs = ['@tencent-ai/codebuddy-code', '--acp'];
+    const spawnArgs = ['--yes', '--prefer-offline', '@tencent-ai/codebuddy-code', '--acp'];
 
     // Load user's MCP config if available (~/.codebuddy/mcp.json)
     // CodeBuddy CLI in --acp mode does not auto-load mcp.json, so we pass it explicitly
@@ -261,14 +288,30 @@ export class AcpConnection {
       console.error('[ACP] No CodeBuddy MCP config found, starting without MCP servers');
     }
 
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codebuddy: spawning ${spawnCommand} ${spawnArgs.join(' ')}`);
+    const spawnStart = Date.now();
+    // Use detached: true to create a new session (setsid) so the child
+    // has no controlling terminal. Without this, CodeBuddy CLI's attempt
+    // to write to /dev/tty triggers SIGTTOU, which suspends the entire
+    // Electron process group and freezes the UI.
+    this.isDetached = !isWindows;
     this.child = spawn(spawnCommand, spawnArgs, {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: cleanEnv,
       shell: isWindows,
+      detached: this.isDetached,
     });
+    // Prevent the detached child from keeping the parent alive when
+    // the parent wants to exit normally.
+    if (this.isDetached) {
+      this.child.unref();
+    }
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codebuddy: process spawned ${Date.now() - spawnStart}ms`);
 
+    const handlerStart = Date.now();
     await this.setupChildProcessHandlers('codebuddy');
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codebuddy: handlers setup + initialize completed ${Date.now() - handlerStart}ms`);
   }
 
   private async setupChildProcessHandlers(backend: string): Promise<void> {
@@ -406,6 +449,7 @@ export class AcpConnection {
     this.sessionId = null;
     this.isInitialized = false;
     this.isSetupComplete = false;
+    this.isDetached = false;
     this.backend = null;
     this.initializeResponse = null;
     this.child = null;
@@ -865,7 +909,20 @@ export class AcpConnection {
 
   disconnect(): void {
     if (this.child) {
-      this.child.kill();
+      const pid = this.child.pid;
+      if (this.isDetached && pid) {
+        // For detached processes (CodeBuddy on non-Windows), kill the entire
+        // process group so npx's child CLI also terminates.
+        // Negative PID = process group kill (POSIX setsid).
+        try {
+          process.kill(-pid, 'SIGTERM');
+        } catch {
+          // Fallback: process group kill failed (e.g., already exited)
+          this.child.kill('SIGTERM');
+        }
+      } else {
+        this.child.kill('SIGTERM');
+      }
       this.child = null;
     }
 
@@ -874,6 +931,7 @@ export class AcpConnection {
     this.sessionId = null;
     this.isInitialized = false;
     this.isSetupComplete = false;
+    this.isDetached = false;
     this.backend = null;
     this.initializeResponse = null;
   }
