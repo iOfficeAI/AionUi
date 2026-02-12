@@ -93,23 +93,29 @@ function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo 
  * @param conversation - 会话对象 / Conversation object
  * @returns 预设助手信息或 null / Preset assistant info or null
  */
-export function usePresetAssistantInfo(conversation: TChatConversation | undefined): PresetAssistantInfo | null {
+export function usePresetAssistantInfo(conversation: TChatConversation | undefined): {
+  info: PresetAssistantInfo | null;
+  isLoading: boolean;
+} {
   const { i18n } = useTranslation();
 
   // Fetch custom agents to support custom preset assistants
-  const { data: customAgents } = useSWR('acp.customAgents', () => ConfigStorage.get('acp.customAgents'));
+  const { data: customAgents, isLoading: isLoadingCustomAgents } = useSWR('acp.customAgents', () => ConfigStorage.get('acp.customAgents'));
 
   return useMemo(() => {
-    if (!conversation) return null;
+    if (!conversation) return { info: null, isLoading: false };
 
     const presetId = resolvePresetId(conversation);
-    if (!presetId) return null;
+    if (!presetId) return { info: null, isLoading: false };
 
-    // First try to find in built-in presets
+    // First try to find in built-in presets (synchronous, no loading needed)
     const builtinInfo = buildPresetInfo(presetId, i18n.language || 'en-US');
     if (builtinInfo) {
-      return builtinInfo;
+      return { info: builtinInfo, isLoading: false };
     }
+
+    // Custom agents data still loading — don't fall through to fallback yet
+    if (isLoadingCustomAgents) return { info: null as PresetAssistantInfo | null, isLoading: true };
 
     // If not found in built-in presets, try to find in custom agents
     if (customAgents && Array.isArray(customAgents)) {
@@ -144,13 +150,16 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         }
 
         return {
-          name: customAgent.nameI18n?.[localeKey] || customAgent.name || presetId,
-          logo,
-          isEmoji,
+          info: {
+            name: customAgent.nameI18n?.[localeKey] || customAgent.name || presetId,
+            logo,
+            isEmoji,
+          },
+          isLoading: false,
         };
       }
     }
 
-    return null;
-  }, [conversation, i18n.language, customAgents]);
+    return { info: null, isLoading: false };
+  }, [conversation, i18n.language, customAgents, isLoadingCustomAgents]);
 }

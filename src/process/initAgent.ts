@@ -80,6 +80,9 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
+      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
