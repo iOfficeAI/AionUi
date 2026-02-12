@@ -14,24 +14,19 @@ import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMainMenuCard, createPairingGuideCard, createSessionStatusCard, createSettingsCard, createTipsCard } from '../plugins/lark/LarkCards';
-import { getChannelConversationName, isChannelPlatform } from '../types';
-import type { ChannelAgentType, ChannelPlatform } from '../types';
+import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
-
-export type { ChannelPlatform };
-export { getChannelConversationName };
+import type { AcpBackend } from '@/types/acpTypes';
 
 /**
- * Get the default model for a channel platform
+ * Get the default model for Channel assistant (Telegram/Lark)
  * Reads from saved config or falls back to default Gemini model
  */
-export async function getChannelDefaultModel(platform: ChannelPlatform): Promise<TProviderWithModel> {
-  const configKey = platform === 'lark' ? 'assistant.lark.defaultModel' : 'assistant.telegram.defaultModel';
-
+export async function getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel> {
   try {
     // Try to get saved model selection
-    const savedModel = await ProcessConfig.get(configKey);
+    const savedModel = platform === 'lark' ? await ProcessConfig.get('assistant.lark.defaultModel') : await ProcessConfig.get('assistant.telegram.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
       // Get full provider config from model.config
       const providers = await ProcessConfig.get('model.config');
@@ -58,7 +53,7 @@ export async function getChannelDefaultModel(platform: ChannelPlatform): Promise
       }
     }
   } catch (error) {
-    console.warn(`[SystemActions] Failed to get saved model for ${platform}, using default:`, error);
+    console.warn('[SystemActions] Failed to get saved model, using default:', error);
   }
 
   // Default fallback - minimal config for Gemini
@@ -107,7 +102,6 @@ export const handleSessionNew: ActionHandler = async (context) => {
     if (existingSession.conversationId) {
       try {
         WorkerManage.kill(existingSession.conversationId);
-        console.log(`[SystemActions] Killed old conversation: ${existingSession.conversationId}`);
       } catch (err) {
         console.warn(`[SystemActions] Failed to kill old conversation:`, err);
       }
@@ -115,18 +109,51 @@ export const handleSessionNew: ActionHandler = async (context) => {
   }
   sessionManager.clearSession(context.channelUser.id);
 
-  // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
-  const platform: ChannelPlatform = isChannelPlatform(context.platform) ? context.platform : 'telegram';
-  const model = await getChannelDefaultModel(platform);
-  const conversationName = getChannelConversationName(platform);
+  const platform = context.platform;
+  const source = platform === 'lark' ? 'lark' : 'telegram';
+  const name = platform === 'lark' ? 'Lark Assistant' : 'Telegram Assistant';
 
-  // 使用 ConversationService 创建新会话（始终创建新的，不复用）
-  // Use ConversationService to create new conversation (always new, don't reuse)
-  const result = await ConversationService.createGeminiConversation({
-    model,
-    source: platform,
-    name: conversationName,
-  });
+  // Selected agent (defaults to Gemini)
+  let savedAgent: unknown = undefined;
+  try {
+    savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : ProcessConfig.get('assistant.telegram.agent'));
+  } catch {
+    // ignore
+  }
+  const backend = (savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string' ? (savedAgent as any).backend : 'gemini') as string;
+  const customAgentId = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).customAgentId as string | undefined) : undefined;
+  const agentName = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
+
+  // Provider model is required by typing; ACP/Codex will ignore it.
+  const model = await getChannelDefaultModel(platform);
+
+  // Always create a NEW conversation for "session.new"
+  const result =
+    backend === 'codex'
+      ? await ConversationService.createConversation({
+          type: 'codex',
+          model,
+          source,
+          name,
+          extra: {},
+        })
+      : backend === 'gemini'
+        ? await ConversationService.createGeminiConversation({
+            model,
+            source,
+            name,
+          })
+        : await ConversationService.createConversation({
+            type: 'acp',
+            model,
+            source,
+            name,
+            extra: {
+              backend: backend as AcpBackend,
+              customAgentId,
+              agentName,
+            },
+          });
 
   if (!result.success || !result.conversation) {
     return createErrorResponse(`Failed to create session: ${result.error || 'Unknown error'}`);
@@ -134,7 +161,8 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   // Create session with the new conversation ID
   // 使用新会话 ID 创建 session
-  const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id);
+  const agentType: ChannelAgentType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
+  const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, agentType);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : createMainMenuKeyboard();
   return createSuccessResponse({
@@ -370,7 +398,6 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
     if (existingSession.conversationId) {
       try {
         WorkerManage.kill(existingSession.conversationId);
-        console.log(`[SystemActions] Killed old conversation for agent switch: ${existingSession.conversationId}`);
       } catch (err) {
         console.warn(`[SystemActions] Failed to kill old conversation:`, err);
       }
@@ -380,8 +407,6 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
 
   // Create new session with the selected agent type
   const session = sessionManager.createSession(context.channelUser, newAgentType);
-
-  console.log(`[SystemActions] Switched agent to ${newAgentType} for user ${context.channelUser.id}`);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : createMainMenuKeyboard();
   return createSuccessResponse({

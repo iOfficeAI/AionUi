@@ -10,6 +10,7 @@ import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -45,6 +46,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
+    this.status = 'pending';
 
     this.initAgent(data);
   }
@@ -169,6 +171,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
+    // Set status to running when message is being processed
+    this.status = 'running';
     try {
       await this.bootstrap;
       const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
@@ -215,6 +219,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
     } catch (e) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
       const errorMsg = e instanceof Error ? e.message : String(e);
@@ -438,6 +443,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     message.conversation_id = this.conversation_id;
 
+    // Mark as finished when content is output (visible to user)
+    // Codex uses: content, agent_status, codex_tool_call
+    const contentTypes = ['content', 'agent_status', 'codex_tool_call'];
+    if (contentTypes.includes(message.type)) {
+      this.status = 'finished';
+    }
+
     // Handle preview_open event (chrome-devtools navigation interception)
     // 处理 preview_open 事件（chrome-devtools 导航拦截）
     if (handlePreviewOpenEvent(message)) {
@@ -463,6 +475,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+
+    // Also emit to Channel global event bus (Telegram/Lark streaming)
+    channelEventBus.emitAgentMessage(this.conversation_id, message);
   }
 
   /**

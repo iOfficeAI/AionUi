@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Cowork with Your AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie, and more</strong><br>
+  <strong>🚀 Cowork with Your AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie, and more</strong><br>
   <em>User-friendly | Visual graphical interface | Multi-model support | Local data security</em>
 </p>
 
@@ -61,18 +61,19 @@
 
 ### 🤖 **Multi-Agent Mode - Cowork for Your Command-Line AI Tools, Unified Graphical Interface**
 
-_AionUi comes with built-in Gemini CLI, ready to use out of the box with no additional installation required; if you have already installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code, AionUi will automatically detect them and provide a unified graphical interface for a richer experience_
+AionUi provides a unified graphical interface for your command-line AI tools. Built-in Gemini CLI included, no setup required.
 
-- ✅ **Auto Detection + Unified Interface** - Automatically recognizes local CLI tools, provides a unified graphical interface, say goodbye to command line
-- ✅ **Local Storage + Multi-Session** - Conversations saved locally, supports multiple parallel sessions, each session with independent context
-
-<p align="center">
-  <img src="./resources/acp home page.gif" alt="Multi-Agent Mode Demo" width="800">
-</p>
+**Supported Tools:** Gemini CLI (built-in) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="OpenClaw Integration in AionUi" width="800">
 </p>
+
+**Key Features:**
+
+- ✅ **Auto Detection** - Automatically recognizes and integrates local CLI tools
+- ✅ **Unified Interface** - One interface for all your AI tools, no more command line
+- ✅ **Local Storage + Multi-Session** - Conversations saved locally, multiple parallel sessions with independent context
 
 ---
 
@@ -87,10 +88,6 @@ AionUi provides multiple remote access methods:
   Access AionUi from any device via browser - phone, tablet, computer. Supports LAN, cross-network, and server deployment. You can log in by scanning a QR code or using account password, making it simple and convenient.
 
   > 💡 **Need detailed configuration guide?** Check out [Remote Internet Access Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
-
-  <p align="center">
-    <img src="./resources/webui-remote.png" alt="WebUI Remote Access" width="800">
-  </p>
 
 - **📱 Chat Platform Integration**
   - **Telegram** - Chat with your AI assistant directly from Telegram on any device. Simple pairing code system for secure access.
@@ -161,10 +158,10 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 
 ### 🤖 **Multi-Model Support**
 
-_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local models like Ollama, LM Studio. Flexibly switch between different models to meet various task requirements._
+_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local models like Ollama, LM Studio. AionUi also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway service(a unified AI model hub that aggregates and distributes various LLMs). Flexibly switch between different models to meet various task requirements._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Multi-Model Support" width="800">
+  <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 ---

@@ -1,0 +1,117 @@
+name: 'Gather PR Diff'
+description: 'Fetch PR diff, changed file list, and statistics via GitHub API'
+
+inputs:
+  pr_number:
+    description: 'PR number (required for workflow_dispatch triggers)'
+    required: false
+    default: ''
+
+outputs:
+  skip:
+    description: 'Whether to skip processing (empty diff)'
+    value: '${{ steps.gather.outputs.skip }}'
+  pr_number:
+    description: 'Resolved PR number'
+    value: '${{ steps.gather.outputs.pr_number }}'
+  additions:
+    description: 'Total lines added'
+    value: '${{ steps.gather.outputs.additions }}'
+  deletions:
+    description: 'Total lines deleted'
+    value: '${{ steps.gather.outputs.deletions }}'
+  total_lines:
+    description: 'Total lines changed (additions + deletions)'
+    value: '${{ steps.gather.outputs.total_lines }}'
+  file_count:
+    description: 'Number of changed files'
+    value: '${{ steps.gather.outputs.file_count }}'
+  diff_truncated:
+    description: 'Whether the diff was truncated'
+    value: '${{ steps.gather.outputs.diff_truncated }}'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: 'gather'
+      uses: 'actions/github-script@v7'
+      env:
+        INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+      with:
+        script: |
+          const fs = require('fs');
+          const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+          // Support both PR event trigger and manual workflow_dispatch
+          const prNumber = context.payload.pull_request?.number
+            || Number(process.env.INPUT_PR_NUMBER)
+            || null;
+
+          if (!prNumber) {
+            core.setFailed('No PR number found. Provide pr_number input for manual trigger.');
+            return;
+          }
+
+          core.setOutput('pr_number', String(prNumber));
+
+          // Fetch diff (returns raw text when using diff media type)
+          const { data: diff } = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: prNumber,
+            mediaType: { format: 'diff' },
+          });
+
+          if (!diff || String(diff).trim().length === 0) {
+            core.warning('PR has an empty diff, skipping');
+            core.setOutput('skip', 'true');
+            return;
+          }
+
+          // Fetch all changed files (paginated)
+          const allFiles = [];
+          let page = 1;
+          while (true) {
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              per_page: 100,
+              page,
+            });
+            allFiles.push(...files);
+            if (files.length < 100) break;
+            page++;
+          }
+
+          const additions = allFiles.reduce((s, f) => s + f.additions, 0);
+          const deletions = allFiles.reduce((s, f) => s + f.deletions, 0);
+          const totalLines = additions + deletions;
+
+          // Truncate diff to 100K characters
+          const MAX_DIFF = 100000;
+          const diffStr = String(diff);
+          const diffTruncated = diffStr.length > MAX_DIFF;
+          const truncatedDiff = diffTruncated
+            ? diffStr.substring(0, MAX_DIFF) + '\n\n... [diff truncated at 100K chars]'
+            : diffStr;
+
+          // Build compact file list
+          const fileList = allFiles.map(f => ({
+            filename: f.filename,
+            status: f.status,
+            additions: f.additions,
+            deletions: f.deletions,
+          }));
+
+          // Write large data to temp files (avoid output size limits)
+          fs.writeFileSync(`${tmpDir}/pr_diff.txt`, truncatedDiff);
+          fs.writeFileSync(`${tmpDir}/file_list.json`, JSON.stringify(fileList));
+
+          // Only small values as step outputs
+          core.setOutput('skip', 'false');
+          core.setOutput('additions', String(additions));
+          core.setOutput('deletions', String(deletions));
+          core.setOutput('total_lines', String(totalLines));
+          core.setOutput('file_count', String(allFiles.length));
+          core.setOutput('diff_truncated', String(diffTruncated));

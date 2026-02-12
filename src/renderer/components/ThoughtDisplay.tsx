@@ -35,7 +35,7 @@ const formatElapsedTime = (seconds: number): string => {
   return `${minutes}m ${remainingSeconds}s`;
 };
 
-const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'default', running = false, onStop }) => {
+const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'default', running = false, onStop: _onStop }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -59,21 +59,6 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
 
     return () => clearInterval(timer);
   }, [running, thought?.subject]);
-
-  // 处理 ESC 键取消 Handle ESC key to cancel
-  useEffect(() => {
-    if (!running || !onStop) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onStop();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [running, onStop]);
 
   // 根据主题和样式计算最终样式 Calculate final style based on theme and style prop
   const containerStyle = useMemo(() => {
@@ -106,13 +91,14 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
         <Spin size={14} />
         <span className='text-t-secondary'>
           {t('conversation.chat.processing')}
-          <span className='ml-8px opacity-60'>
-            ({t('common.escToCancel')}, {formatElapsedTime(elapsedTime)})
-          </span>
+          <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>
         </span>
       </div>
     );
   }
+
+  // Check if description is different from subject (avoid showing duplicate content)
+  const showDescription = thought.description && thought.description !== thought.subject;
 
   return (
     <div className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary' style={containerStyle}>
@@ -121,12 +107,8 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
         <Tag color='arcoblue' size='small'>
           {thought.subject}
         </Tag>
-        <span className='flex-1 truncate'>{thought.description}</span>
-        {running && (
-          <span className='text-t-tertiary text-12px whitespace-nowrap'>
-            ({t('common.escToCancel')}, {formatElapsedTime(elapsedTime)})
-          </span>
-        )}
+        {showDescription && <span className='flex-1 truncate'>{thought.description}</span>}
+        {running && <span className='text-t-tertiary text-12px whitespace-nowrap'>({formatElapsedTime(elapsedTime)})</span>}
       </div>
     </div>
   );

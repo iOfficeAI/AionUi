@@ -15,12 +15,60 @@ import { ProcessChat } from '../initStorage';
 import { ConversationService } from '../services/conversationService';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import type NanoBotAgentManager from '../task/NanoBotAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
+import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
 import WorkerManage from '../WorkerManage';
 import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
+  ipcBridge.openclawConversation.getRuntime.provider(async ({ conversation_id }) => {
+    try {
+      const db = getDatabase();
+      const convResult = db.getConversation(conversation_id);
+      if (!convResult.success || !convResult.data || convResult.data.type !== 'openclaw-gateway') {
+        return { success: false, msg: 'OpenClaw conversation not found' };
+      }
+      const conversation = convResult.data;
+      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as OpenClawAgentManager | undefined;
+      if (!task || task.type !== 'openclaw-gateway') {
+        return { success: false, msg: 'OpenClaw runtime not available' };
+      }
+
+      // Await bootstrap to ensure the agent is fully connected before returning runtime info.
+      // Without this, getRuntime may return isConnected=false while the agent is still connecting.
+      await task.bootstrap.catch(() => {});
+
+      const diagnostics = task.getDiagnostics();
+      const identityHash = await computeOpenClawIdentityHash(diagnostics.workspace || conversation.extra?.workspace);
+      const conversationModel = (conversation as { model?: { useModel?: string } }).model;
+      const extra = conversation.extra as { cliPath?: string; gateway?: { cliPath?: string }; runtimeValidation?: unknown } | undefined;
+      const gatewayCliPath = extra?.gateway?.cliPath;
+
+      return {
+        success: true,
+        data: {
+          conversationId: conversation_id,
+          runtime: {
+            workspace: diagnostics.workspace || conversation.extra?.workspace,
+            backend: diagnostics.backend || conversation.extra?.backend,
+            agentName: diagnostics.agentName || conversation.extra?.agentName,
+            cliPath: diagnostics.cliPath || extra?.cliPath || gatewayCliPath,
+            model: conversationModel?.useModel,
+            sessionKey: diagnostics.sessionKey,
+            isConnected: diagnostics.isConnected,
+            hasActiveSession: diagnostics.hasActiveSession,
+            identityHash,
+          },
+          expected: extra?.runtimeValidation,
+        },
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
     // 使用 ConversationService 创建会话 / Use ConversationService to create conversation
     const result = await ConversationService.createConversation({
@@ -346,7 +394,7 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
-    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex' && task.type !== 'openclaw-gateway') {
+    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex' && task.type !== 'openclaw-gateway' && task.type !== 'nanobot') {
       return { success: false, msg: 'not support' };
     }
     await task.stop();
@@ -357,9 +405,9 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
     console.log(`[conversationBridge] sendMessage called: conversation_id=${conversation_id}, msg_id=${other.msg_id}`);
 
-    let task: GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | undefined;
+    let task: GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | NanoBotAgentManager | undefined;
     try {
-      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | undefined;
+      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | NanoBotAgentManager | undefined;
     } catch (err) {
       console.log(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
       return { success: false, msg: err instanceof Error ? err.message : 'conversation not found' };
@@ -388,6 +436,9 @@ export function initConversationBridge(): void {
         return { success: true };
       } else if (task.type === 'openclaw-gateway') {
         await (task as OpenClawAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        return { success: true };
+      } else if (task.type === 'nanobot') {
+        await (task as NanoBotAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else {
         return { success: false, msg: `Unsupported task type: ${task.type}` };

@@ -63,7 +63,6 @@ export class ChannelManager {
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log('[ChannelManager] Already initialized');
       return;
     }
 
@@ -82,8 +81,6 @@ export class ChannelManager {
       // Set confirm handler for tool confirmations
       // 设置工具确认处理器
       this.pluginManager.setConfirmHandler(async (userId: string, platform: string, callId: string, value: string) => {
-        console.log(`[ChannelManager] Confirm handler called: userId=${userId}, platform=${platform}, callId=${callId}, value=${value}`);
-
         // 查找用户
         // Find user
         const db = getDatabase();
@@ -105,7 +102,6 @@ export class ChannelManager {
         // Call confirm
         try {
           await getChannelMessageService().confirm(session.conversationId, callId, value);
-          console.log(`[ChannelManager] Tool confirmation successful: callId=${callId}`);
         } catch (error) {
           console.error(`[ChannelManager] Tool confirmation failed:`, error);
         }
@@ -176,7 +172,6 @@ export class ChannelManager {
     }
 
     const enabledPlugins = result.data.filter((p) => p.enabled);
-    console.log(`[ChannelManager] Found ${enabledPlugins.length} enabled plugin(s)`);
 
     for (const plugin of enabledPlugins) {
       try {
@@ -193,7 +188,6 @@ export class ChannelManager {
    * Start a specific plugin
    */
   private async startPlugin(config: IChannelPluginConfig): Promise<void> {
-    console.log(`[ChannelManager] Starting plugin: ${config.name} (${config.type}), hasPluginManager=${!!this.pluginManager}, initialized=${this.initialized}`);
     if (!this.pluginManager) {
       throw new Error('PluginManager not initialized');
     }
@@ -356,21 +350,17 @@ export class ChannelManager {
       return false;
     }
 
-    console.log(`[ChannelManager] Cleaning up conversation: ${conversationId}`);
-
     let cleanedUp = false;
 
     // 1. Clear session associated with this conversation
     const clearedSession = this.sessionManager?.clearSessionByConversationId(conversationId);
     if (clearedSession) {
       cleanedUp = true;
-      console.log(`[ChannelManager] Cleared session ${clearedSession.id} for conversation ${conversationId}`);
 
       // 2. Clear AssistantGeminiService agent cache for this session
       try {
         const geminiService = getChannelMessageService();
         await geminiService.clearContext(clearedSession.id);
-        console.log(`[ChannelManager] Cleared Gemini context for session ${clearedSession.id}`);
       } catch (error) {
         console.warn(`[ChannelManager] Failed to clear Gemini context:`, error);
       }

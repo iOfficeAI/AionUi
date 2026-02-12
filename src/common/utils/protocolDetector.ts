@@ -215,6 +215,7 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       /ark\.cn-beijing\.volces\.com/, // 火山引擎
       /open\.bigmodel\.cn/, // 智谱 AI
       /api\.siliconflow\.cn/, // SiliconFlow
+      /api\.siliconflow\.com/, // SiliconFlow (.com)
       /api\.lingyiwanwu\.com/, // 零一万物
       /api\.minimaxi\.com/, // MiniMax China
       /api\.minimax\.io/, // MiniMax Global

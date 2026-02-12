@@ -19,6 +19,7 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
@@ -184,6 +185,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   copilot: GitHubLogo,
   qoder: QoderLogo,
   'openclaw-gateway': OpenClawLogo,
+  nanobot: NanobotLogo,
 };
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
@@ -282,6 +284,15 @@ const Guid: React.FC = () => {
     }>
   >();
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
+  const availableCustomAgentIds = useMemo(() => {
+    const ids = new Set<string>();
+    (availableAgents || []).forEach((agent) => {
+      if (agent.backend === 'custom' && agent.customAgentId) {
+        ids.add(agent.customAgentId);
+      }
+    });
+    return ids;
+  }, [availableAgents]);
 
   /**
    * 获取代理的唯一选择键
@@ -551,17 +562,6 @@ const Guid: React.FC = () => {
           _setSelectedAgentKey(savedAgentKey);
           return;
         }
-
-        // 2. For custom agents, check storage
-        if (savedAgentKey.startsWith('custom:')) {
-          const customId = savedAgentKey.slice(7);
-          const agents = await ConfigStorage.get('acp.customAgents');
-          if (cancelled) return;
-
-          if (agents?.some((a: AcpBackendConfig) => a.id === customId)) {
-            _setSelectedAgentKey(savedAgentKey);
-          }
-        }
       } catch (error) {
         console.error('Failed to load last selected agent:', error);
       }
@@ -579,7 +579,8 @@ const Guid: React.FC = () => {
     ConfigStorage.get('acp.customAgents')
       .then((agents) => {
         if (!isActive) return;
-        setCustomAgents(agents || []);
+        const list = (agents || []).filter((agent: AcpBackendConfig) => availableCustomAgentIds.has(agent.id));
+        setCustomAgents(list);
       })
       .catch((error) => {
         console.error('Failed to load custom agents:', error);
@@ -587,7 +588,7 @@ const Guid: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [availableAgentsData]);
+  }, [availableCustomAgentIds]);
 
   useEffect(() => {
     if (mentionOpen) {
@@ -1040,6 +1041,17 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
+            backend: openclawAgentInfo?.backend,
+            cliPath: openclawAgentInfo?.cliPath,
+            agentName: openclawAgentInfo?.name,
+            runtimeValidation: {
+              expectedWorkspace: finalWorkspace,
+              expectedBackend: openclawAgentInfo?.backend,
+              expectedAgentName: openclawAgentInfo?.name,
+              expectedCliPath: openclawAgentInfo?.cliPath,
+              expectedModel: currentModel?.useModel,
+              switchedAt: Date.now(),
+            },
             // Gateway configuration is handled by OpenClawAgentManager
             // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
             enabledSkills: isPreset ? enabledSkills : undefined,
@@ -1077,6 +1089,51 @@ const Guid: React.FC = () => {
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         alert(`Failed to create OpenClaw conversation: ${errorMessage}`);
+        throw error;
+      }
+      return;
+    } else if (selectedAgent === 'nanobot') {
+      // Nanobot conversation type (standalone CLI agent, not ACP)
+      const nanobotAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'nanobot',
+          name: input,
+          model: currentModel!, // not used by nanobot, but required by type
+          extra: {
+            defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            presetAssistantId: isPreset ? nanobotAgentInfo?.customAgentId : undefined,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create Nanobot conversation. Please ensure nanobot is installed.');
+          return;
+        }
+
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          openTab(conversation);
+        }
+
+        emitter.emit('chat.history.refresh');
+
+        // Store initial message to be picked up by NanobotSendBox
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`nanobot_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create Nanobot conversation: ${errorMessage}`);
         throw error;
       }
       return;
@@ -1517,7 +1574,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
+                {(selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable) ? (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1626,6 +1683,12 @@ const Guid: React.FC = () => {
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
+                ) : (
+                  <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+                    <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
+                      {t('conversation.welcome.useCliModel')}
+                    </Button>
+                  </Tooltip>
                 )}
 
                 {isPresetAgent && selectedAgentInfo && (

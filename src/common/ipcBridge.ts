@@ -150,8 +150,13 @@ export const gemini = {
   subscriptionStatus: bridge.buildProvider<IBridgeResponse<{ isSubscriber: boolean; tier?: string; lastChecked: number; message?: string }>, { proxy?: string }>('gemini.subscription-status'),
 };
 
+// AWS Bedrock 相关接口 / AWS Bedrock interfaces
+export const bedrock = {
+  testConnection: bridge.buildProvider<IBridgeResponse<{ msg?: string }>, { bedrockConfig: { authMethod: 'accessKey' | 'profile'; region: string; accessKeyId?: string; secretAccessKey?: string; profile?: string } }>('bedrock.test-connection'),
+};
+
 export const mode = {
-  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string>; fix_base_url?: string }>, { base_url?: string; api_key: string; try_fix?: boolean; platform?: string }>('mode.get-model-list'),
+  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string | { id: string; name: string }>; fix_base_url?: string }>, { base_url?: string; api_key: string; try_fix?: boolean; platform?: string; bedrockConfig?: { authMethod: 'accessKey' | 'profile'; region: string; accessKeyId?: string; secretAccessKey?: string; profile?: string } }>('mode.get-model-list'),
   saveModelConfig: bridge.buildProvider<IBridgeResponse, IProvider[]>('mode.save-model-config'),
   getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
   /** 协议检测接口 - 自动检测 API 端点使用的协议类型 / Protocol detection - auto-detect API protocol type */
@@ -207,6 +212,32 @@ export const codexConversation = {
 export const openclawConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
+  getRuntime: bridge.buildProvider<
+    IBridgeResponse<{
+      conversationId: string;
+      runtime: {
+        workspace?: string;
+        backend?: string;
+        agentName?: string;
+        cliPath?: string;
+        model?: string;
+        sessionKey?: string | null;
+        isConnected?: boolean;
+        hasActiveSession?: boolean;
+        identityHash?: string | null;
+      };
+      expected?: {
+        expectedWorkspace?: string;
+        expectedBackend?: string;
+        expectedAgentName?: string;
+        expectedCliPath?: string;
+        expectedModel?: string;
+        expectedIdentityHash?: string | null;
+        switchedAt?: number;
+      };
+    }>,
+    { conversation_id: string }
+  >('openclaw.get-runtime'),
 };
 
 // Database operations
@@ -353,7 +384,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -361,7 +392,7 @@ export interface ICreateConversationParams {
     workspace?: string;
     customWorkspace?: boolean;
     defaultFiles?: string[];
-    backend?: AcpBackend;
+    backend?: AcpBackendAll;
     cliPath?: string;
     webSearchEngine?: 'google' | 'default';
     agentName?: string;
@@ -381,6 +412,16 @@ export interface ICreateConversationParams {
     presetContext?: string;
     /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
     presetAssistantId?: string;
+    /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
+    runtimeValidation?: {
+      expectedWorkspace?: string;
+      expectedBackend?: string;
+      expectedAgentName?: string;
+      expectedCliPath?: string;
+      expectedModel?: string;
+      expectedIdentityHash?: string | null;
+      switchedAt?: number;
+    };
   };
 }
 interface IResetConversationParams {

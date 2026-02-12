@@ -10,6 +10,7 @@ import { readFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import type { CodexEventParams } from '@/common/codex/types';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
 
@@ -158,7 +159,7 @@ export class CodexConnection {
 
   start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean }): Promise<void> {
     // 根据 Codex 版本自动检测合适的 MCP 命令 / Auto-detect appropriate MCP command based on Codex version
-    const cleanEnv = { ...process.env };
+    const cleanEnv = getEnhancedEnv();
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
@@ -186,7 +187,7 @@ export class CodexConnection {
           cwd,
           stdio: ['pipe', 'pipe', 'pipe'],
           env: {
-            ...process.env,
+            ...cleanEnv,
             CODEX_NO_INTERACTIVE: '1',
             CODEX_AUTO_CONTINUE: '1',
           },

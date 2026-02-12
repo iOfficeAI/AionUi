@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <strong>Español</strong> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">Sitio oficial</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <strong>Español</strong> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">Sitio oficial</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
@@ -45,6 +45,7 @@
 
 [✨ ¿Qué puede hacer AionUi?](#qué-puede-hacer-aionui) ·
 [🤔 ¿Por qué elegir AionUi?](#por-qué-elegir-aionui) ·
+[✨ Funciones principales](#-funciones-principales) ·
 [🚀 Inicio rápido](#inicio-rápido) ·
 [💬 Comunidad](#comunidad-y-soporte)
 
@@ -60,17 +61,19 @@
 
 ### 🤖 **Modo multiagente - Cowork para tus herramientas de IA en línea de comandos, interfaz gráfica unificada**
 
-_AionUi incluye Gemini CLI de forma integrada, listo para usar desde la instalación sin extras. Si ya tienes herramientas de línea de comandos como Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI o Augment Code, AionUi las detecta automáticamente y ofrece una interfaz gráfica unificada para una experiencia más completa_
+AionUi proporciona una interfaz gráfica unificada para tus herramientas de IA en línea de comandos. Gemini CLI integrado incluido, sin configuración requerida.
 
-- ✅ **Detección automática + interfaz unificada** - Reconoce automáticamente las herramientas CLI locales y proporciona una interfaz gráfica unificada, despídete de la línea de comandos
-- ✅ **Almacenamiento local + multi-sesión** - Conversaciones guardadas localmente, admite múltiples sesiones en paralelo, cada una con contexto independiente
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="Multi-Agent Mode Demo" width="800"></p>
+**Herramientas compatibles:** Gemini CLI (integrado) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**Características principales:**
+
+- ✅ **Detección automática** - Reconoce e integra automáticamente las herramientas CLI locales
+- ✅ **Interfaz unificada** - Una interfaz para todas tus herramientas de IA, adiós a la línea de comandos
+- ✅ **Almacenamiento local + multi-sesión** - Conversaciones guardadas localmente, múltiples sesiones en paralelo con contexto independiente
 
 ---
 
@@ -78,7 +81,7 @@ _AionUi incluye Gemini CLI de forma integrada, listo para usar desde la instalac
 
 _Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo, en cualquier lugar. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar a través de WebUI o varias plataformas de chat_
 
-AionUi proporciona múltiples métodos de acceso remoto：
+AionUi proporciona múltiples métodos de acceso remoto:
 
 - **🌐 Modo WebUI**
 
@@ -153,17 +156,47 @@ _Generación, edición y reconocimiento inteligente de imágenes, impulsado por 
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
+> 💡 **¿Necesitas ayuda para configurar la generación de imágenes gratuita?** [Sigue el tutorial para configurar modelos de generación de imágenes](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+
 ---
 
 ### 🤖 **Soporte multi-modelo**
 
-_Admite modelos principales como Gemini, OpenAI, Claude, Qwen, y modelos locales como Ollama, LM Studio. Cambia flexiblemente entre diferentes modelos para satisfacer varios requisitos de tareas._
+_Admite modelos principales como Gemini, OpenAI, Claude, Qwen, y modelos locales como Ollama, LM Studio. AionUi también admite el servicio de puerta de enlace [NewAPI](https://github.com/QuantumNous/new-api)(un centro unificado de modelos de IA que agrega y distribuye varios LLM). Cambia flexiblemente entre diferentes modelos para satisfacer varios requisitos de tareas._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Soporte multi-modelo" width="800">
+  <img src="./resources/llm_newapi.png" alt="Soporte multi-modelo" width="800">
 </p>
 
 ---
+
+### 🛠️ **Asistentes de IA y ecosistema de Skills**
+
+_Sistema de asistentes ampliable con asistentes especializados integrados y soporte para skills personalizados_
+
+<details>
+<summary><strong>🔍 Haz clic para explorar Asistentes de IA y Skills ▶️</strong></summary>
+
+<br>
+
+AionUi incluye **más de 10 asistentes profesionales** con capacidades predefinidas, ampliables mediante skills personalizados:
+
+- **🤝 Cowork** - Ejecución autónoma de tareas (operaciones de archivos, procesamiento de documentos, planificación de flujos)
+- **📊 Generador PPTX** - Generar presentaciones PPTX
+- **📄 PDF a PPT** - Convertir PDF a PPT
+- **🎮 Juego 3D** - Generación de juegos 3D en un solo archivo
+- **🎨 UI/UX Pro Max** - Diseño UI/UX profesional (57 estilos, 95 paletas de color)
+- **📋 Planificación con archivos** - Planificación basada en archivos para tareas complejas
+- **🧭 HUMAN 3.0 Coach** - Coach de desarrollo personal
+- **📣 Publicador de ofertas** - Publicación y difusión de ofertas de empleo
+- **🦞 moltbook** - Integración sin despliegue con programación de heartbeat, informes de actividad y redes sociales de agentes IA
+- **📈 Beautiful Mermaid** - Diagramas de flujo, secuencia y más
+
+**Skills personalizados:** Crea skills en el directorio `skills/`, activa/desactiva skills para que los asistentes amplíen las capacidades de IA. Skills integrados: `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, y más.
+
+> 💡 Cada asistente se define en un archivo markdown. Consulta el directorio `assistant/` para ver ejemplos.
+
+</details>
 
 ### 🎨 **Personalización de interfaz personalizada**
 
@@ -278,6 +311,47 @@ _Mira cómo los creadores de contenido reseñan y usan AionUi_
 </p>
 
 > 💡 **¿Has hecho un video sobre AionUi?** [Cuéntanos en X](https://x.com/AionUi) y lo destacaremos aquí. Valoramos tus comentarios y seguiremos mejorando.
+
+### 📰 Artículos de la comunidad
+
+- [🔥 ¡Explosivo! Versión gratuita open source de Cowork, integración de modelos completos + operaciones de archivos autónomas, redefiniendo el trabajo de oficina con IA.](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Open Source AI Project Landing
+- [Hacer que la gente use Claude Code como una APP, qué es el protocolo ACP](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
+- [5500 Stars: Cómo el open source rompe el monopolio de herramientas IA de Anthropic](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
+
+---
+
+## ✨ Funciones principales
+
+### 💬 **Chat multi-sesión**
+
+- **Multi-sesión + contexto independiente** - Abre varios chats a la vez, cada sesión tiene memoria de contexto independiente, sin confusiones
+- **Almacenamiento local** - Todas las conversaciones se guardan localmente y no se pierden
+
+### 🤖 **Soporte multi-modelo**
+
+- **Soporte multiplataforma** - Modelos principales como Gemini, OpenAI, Claude, Qwen, cambio flexible
+- **Soporte para modelos locales** - Despliegue local con Ollama, LM Studio; selecciona plataforma Custom y configura la API local (ej. `http://localhost:11434/v1`)
+- **Optimización suscripción Gemini 3** - Identifica automáticamente usuarios suscritos, recomienda modelos avanzados
+
+### 🗂️ **Gestión de archivos**
+
+- **Exploración en árbol + arrastrar y soltar** - Navega por archivos como carpetas, soporta arrastrar archivos o carpetas para importar
+- **Organización inteligente** - Deja que la IA organice carpetas y clasifique automáticamente
+
+### 📄 **Panel de vista previa - Una pantalla para el agente IA**
+
+- **Vista previa de 9+ formatos** - PDF, Word, Excel, PPT, código, Markdown, imágenes, etc.; ve resultados al instante tras la generación
+- **Seguimiento en tiempo real + editable** - Rastrea cambios de archivos, edición y depuración en tiempo real de Markdown, código, HTML
+
+### 🎨 **Generación y edición de imágenes con IA**
+
+- **Generación inteligente** - Múltiples modelos (Gemini 2.5 Flash Image Preview, Nano, Banana, etc.)
+- **Reconocimiento y edición** - Análisis y edición de imágenes impulsados por IA
+
+### 🌐 **Acceso remoto WebUI**
+
+- **Acceso multiplataforma** - Accede desde cualquier dispositivo en la red vía navegador, incl. móviles
+- **Seguridad de datos local** - Datos en base SQLite local, adecuado para despliegue en servidor
 
 ---
 
