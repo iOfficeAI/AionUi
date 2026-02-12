@@ -1,4 +1,5 @@
 import { AcpAgent } from '@/agent/acp';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -13,6 +14,9 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../messag
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
+/** Enable ACP performance diagnostics via ACP_PERF=1 */
+const ACP_PERF_LOG = process.env.ACP_PERF === '1';
+
 import BaseAgentManager from './BaseAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
@@ -133,6 +137,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           this.saveAcpSessionId(sessionId);
         },
         onStreamEvent: (message) => {
+          const pipelineStart = Date.now();
+
           // Handle preview_open event (chrome-devtools navigation interception)
           // 处理 preview_open 事件（chrome-devtools 导航拦截）
           if (handlePreviewOpenEvent(message)) {
@@ -147,9 +153,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           if (message.type !== 'thought') {
+            const transformStart = Date.now();
             const tMessage = transformMessage(message as IResponseMessage);
+            const transformDuration = Date.now() - transformStart;
+
             if (tMessage) {
+              const dbStart = Date.now();
               addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
+              const dbDuration = Date.now() - dbStart;
+
+              if (transformDuration > 5 || dbDuration > 5) {
+                if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${message.type}`);
+              }
 
               // Track streaming content for cron detection when turn ends
               // ACP sends content in chunks, we accumulate here for later detection
@@ -169,8 +184,25 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           // Filter think tags from streaming content before emitting to UI
           // 在发送到 UI 之前过滤流式内容中的 think 标签
+          const filterStart = Date.now();
           const filteredMessage = this.filterThinkTagsFromMessage(message as IResponseMessage);
+          const filterDuration = Date.now() - filterStart;
+
+          const emitStart = Date.now();
           ipcBridge.acpConversation.responseStream.emit(filteredMessage);
+          const emitDuration = Date.now() - emitStart;
+
+          // Also emit to Channel global event bus (Telegram/Lark streaming)
+          // 同时发送到 Channel 全局事件总线（用于 Telegram/Lark 等外部平台）
+          channelEventBus.emitAgentMessage(this.conversation_id, {
+            ...filteredMessage,
+            conversation_id: this.conversation_id,
+          });
+
+          const totalDuration = Date.now() - pipelineStart;
+          if (totalDuration > 10) {
+            if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`);
+          }
         },
         onSignalEvent: async (v) => {
           // 仅发送信号到前端，不更新消息列表
@@ -186,6 +218,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
                 label: option.name,
                 value: option,
               })),
+            });
+
+            // Channels (Telegram/Lark) currently don't have interactive permission UX.
+            // Emit a readable error to avoid "silent hang" in external platforms.
+            channelEventBus.emitAgentMessage(this.conversation_id, {
+              type: 'error',
+              conversation_id: this.conversation_id,
+              msg_id: v.msg_id,
+              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
             });
             return;
           }
@@ -232,6 +273,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
+
+          // Forward signals (finish/error/etc.) to Channel global event bus
+          channelEventBus.emitAgentMessage(this.conversation_id, {
+            ...(v as any),
+            conversation_id: this.conversation_id,
+          });
         },
       });
       return this.agent.start().then(() => this.agent);
@@ -244,12 +291,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     msg?: string;
     message?: string;
   }> {
+    const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
     try {
+      const initStart = Date.now();
       await this.initAgent(this.options);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: initAgent completed ${Date.now() - initStart}ms`);
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
@@ -286,7 +336,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         };
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
 
+        const agentSendStart = Date.now();
         const result = await this.agent.sendMessage({ ...data, content: contentToSend });
+        if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
         // 首条消息发送后标记，无论是否有 presetContext
         if (this.isFirstMessage) {
           this.isFirstMessage = false;
@@ -296,7 +348,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // It will be cleared when the conversation ends or on error.
         return result;
       }
-      return await this.agent.sendMessage(data);
+      const agentSendStart = Date.now();
+      const result = await this.agent.sendMessage(data);
+      console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
+      return result;
     } catch (e) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
       this.status = 'finished';
@@ -315,6 +370,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
       // Emit to frontend for UI display only
       ipcBridge.acpConversation.responseStream.emit(message);
+
+      // Emit finish signal so the frontend resets loading state
+      // (mirrors AcpAgent.handleDisconnect pattern)
+      const finishMessage: IResponseMessage = {
+        type: 'finish',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: null,
+      };
+      ipcBridge.acpConversation.responseStream.emit(finishMessage);
+
       return new Promise((_, reject) => {
         nextTickToLocalFinish(() => {
           reject(e);

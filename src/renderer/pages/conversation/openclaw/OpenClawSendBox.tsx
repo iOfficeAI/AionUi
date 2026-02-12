@@ -14,7 +14,7 @@ import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
-import { Button, Tag } from '@arco-design/web-react';
+import { Button, Message, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -41,6 +41,50 @@ const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw-gateway', {
   uploadFile: [],
 });
 
+/**
+ * Validate that the OpenClaw runtime matches the expected configuration.
+ * Returns true if validation passes, false otherwise (with user-facing error).
+ */
+const validateRuntimeMismatch = async (conversationId: string): Promise<boolean> => {
+  const runtimeResult = await ipcBridge.openclawConversation.getRuntime.invoke({ conversation_id: conversationId });
+  if (!runtimeResult?.success || !runtimeResult.data) {
+    Message.error('Failed to validate agent runtime');
+    return false;
+  }
+
+  const runtime = runtimeResult.data.runtime || {};
+  const expected = runtimeResult.data.expected || {};
+  const mismatches: string[] = [];
+
+  const norm = (v?: string | null) => (v || '').trim();
+  const eqPath = (a?: string | null, b?: string | null) => norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
+
+  if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.workspace)) {
+    mismatches.push(`workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`);
+  }
+  if (expected.expectedBackend && norm(expected.expectedBackend) !== norm(runtime.backend)) {
+    mismatches.push(`backend: expected=${expected.expectedBackend || '-'} actual=${runtime.backend || '-'}`);
+  }
+  if (expected.expectedAgentName && norm(expected.expectedAgentName) !== norm(runtime.agentName)) {
+    mismatches.push(`agent: expected=${expected.expectedAgentName || '-'} actual=${runtime.agentName || '-'}`);
+  }
+  if (expected.expectedCliPath && norm(expected.expectedCliPath) !== norm(runtime.cliPath)) {
+    mismatches.push(`cliPath: expected=${expected.expectedCliPath || '-'} actual=${runtime.cliPath || '-'}`);
+  }
+  if (expected.expectedModel && norm(expected.expectedModel) !== norm(runtime.model)) {
+    mismatches.push(`model: expected=${expected.expectedModel || '-'} actual=${runtime.model || '-'}`);
+  }
+  if (expected.expectedIdentityHash && norm(expected.expectedIdentityHash) !== norm(runtime.identityHash)) {
+    mismatches.push(`identity: expected=${expected.expectedIdentityHash || '-'} actual=${runtime.identityHash || '-'}`);
+  }
+
+  if (mismatches.length > 0) {
+    Message.error(`Agent switch validation failed: ${mismatches.join(' | ')}`);
+    return false;
+  }
+  return true;
+};
+
 const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -62,6 +106,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Delayed finish timeout to detect true end of task
+  const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -132,10 +179,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
     // Clear pending finish timeout when conversation changes
-    const pendingTimeout = (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
+    if (finishTimeoutRef.current) {
+      clearTimeout(finishTimeoutRef.current);
+      finishTimeoutRef.current = null;
     }
 
     setOpenClawStatus(null);
@@ -155,6 +201,21 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
     });
+
+    // Eagerly initialize the OpenClaw agent and recover its connection status.
+    // The agent may have already emitted 'session_active' before this listener was set up
+    // (race condition: agent starts in constructor during conversation.create, before navigation).
+    // getRuntime awaits bootstrap, so by the time it returns the agent is fully connected.
+    void ipcBridge.openclawConversation.getRuntime
+      .invoke({ conversation_id })
+      .then((res) => {
+        if (res?.success && res.data?.runtime?.hasActiveSession) {
+          setOpenClawStatus('session_active');
+        }
+      })
+      .catch(() => {
+        // Agent not ready or conversation not found – ignore
+      });
   }, [conversation_id]);
 
   useEffect(() => {
@@ -180,11 +241,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       }
 
       // Cancel pending finish timeout if new message arrives
-      // 如果新消息到达，取消待处理的 finish timeout
-      const pendingTimeout = (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout;
-      if (pendingTimeout && message.type !== 'finish') {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
+      if (finishTimeoutRef.current && message.type !== 'finish') {
+        clearTimeout(finishTimeoutRef.current);
+        finishTimeoutRef.current = null;
       }
 
       switch (message.type) {
@@ -201,12 +260,12 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           {
             // Use delayed reset to detect true end of task
             // 使用延迟重置来检测任务的真正结束
-            const timeoutId = setTimeout(() => {
+            finishTimeoutRef.current = setTimeout(() => {
               setAiProcessing(false);
               aiProcessingRef.current = false;
               setThought({ subject: '', description: '' });
+              finishTimeoutRef.current = null;
             }, 1000);
-            (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = timeoutId;
             hasContentInTurnRef.current = false;
           }
           break;
@@ -289,6 +348,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   });
 
   const onSendHandler = async (message: string) => {
+    const runtimeOk = await validateRuntimeMismatch(conversation_id);
+    if (!runtimeOk) return;
+
     const msg_id = uuid();
     setContent('');
     emitter.emit('openclaw-gateway.selected.file.clear');
@@ -342,9 +404,12 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       const stored = sessionStorage.getItem(storageKey);
       if (!stored) return;
       if (sessionStorage.getItem(processedKey)) return;
-      sessionStorage.setItem(processedKey, 'true');
 
       try {
+        const runtimeOk = await validateRuntimeMismatch(conversation_id);
+        if (!runtimeOk) return;
+
+        sessionStorage.setItem(processedKey, 'true');
         setAiProcessing(true);
         aiProcessingRef.current = true;
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
@@ -391,10 +456,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
       // Clear pending finish timeout
-      const pendingTimeout = (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout;
-      if (pendingTimeout) {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
+      if (finishTimeoutRef.current) {
+        clearTimeout(finishTimeoutRef.current);
+        finishTimeoutRef.current = null;
       }
 
       setAiProcessing(false);

@@ -113,9 +113,14 @@ export function readOpenClawConfig(): OpenClawConfig | null {
 
   try {
     const content = fs.readFileSync(configPath, 'utf8');
-    // Remove comments (JSON5 style) before parsing
-    const cleanContent = content.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
-    return JSON.parse(cleanContent) as OpenClawConfig;
+    try {
+      return JSON.parse(content) as OpenClawConfig;
+    } catch {
+      // If standard parse fails, try removing comments (JSONC style)
+      // Use a string-aware approach: skip // and /* */ only outside quoted strings
+      const cleanContent = content.replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) => (match.startsWith('"') ? match : match.startsWith('/*') ? '' : ''));
+      return JSON.parse(cleanContent) as OpenClawConfig;
+    }
   } catch (error) {
     console.warn('[OpenClawConfig] Failed to read config:', error);
     return null;

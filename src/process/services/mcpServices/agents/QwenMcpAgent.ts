@@ -12,8 +12,11 @@ import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '../../../../common/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 const execAsync = promisify(exec);
+/** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '' } });
 
 /**
  * Qwen Code MCP代理实现
@@ -35,7 +38,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
     const detectOperation = async () => {
       try {
         // 尝试通过Qwen CLI命令获取MCP配置
-        const { stdout: result } = await execAsync('qwen mcp list', { timeout: this.timeout });
+        const { stdout: result } = await execAsync('qwen mcp list', { timeout: this.timeout, ...getExecEnv() });
 
         // 如果没有配置任何MCP服务器，返回空数组
         if (result.trim() === 'No MCP servers configured.' || !result.trim()) {
@@ -166,7 +169,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
             command += ' -s user';
 
             try {
-              await execAsync(command, { timeout: 5000 });
+              await execAsync(command, { timeout: 5000, ...getExecEnv() });
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Qwen Code:`, error);
             }
@@ -194,7 +197,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
         // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
         try {
           const removeCommand = `qwen mcp remove "${mcpServerName}" -s user`;
-          const result = await execAsync(removeCommand, { timeout: 5000 });
+          const result = await execAsync(removeCommand, { timeout: 5000, ...getExecEnv() });
 
           // 检查输出是否表示真正的成功删除
           if (result.stdout && result.stdout.includes('removed from user settings')) {
@@ -210,7 +213,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
           // user作用域失败，尝试project作用域
           try {
             const removeCommand = `qwen mcp remove "${mcpServerName}" -s project`;
-            const result = await execAsync(removeCommand, { timeout: 5000 });
+            const result = await execAsync(removeCommand, { timeout: 5000, ...getExecEnv() });
 
             // 检查输出是否表示真正的成功删除
             if (result.stdout && result.stdout.includes('removed from project settings')) {

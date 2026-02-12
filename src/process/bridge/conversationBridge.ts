@@ -18,10 +18,57 @@ import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type NanoBotAgentManager from '../task/NanoBotAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
+import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
 import WorkerManage from '../WorkerManage';
 import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
+  ipcBridge.openclawConversation.getRuntime.provider(async ({ conversation_id }) => {
+    try {
+      const db = getDatabase();
+      const convResult = db.getConversation(conversation_id);
+      if (!convResult.success || !convResult.data || convResult.data.type !== 'openclaw-gateway') {
+        return { success: false, msg: 'OpenClaw conversation not found' };
+      }
+      const conversation = convResult.data;
+      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as OpenClawAgentManager | undefined;
+      if (!task || task.type !== 'openclaw-gateway') {
+        return { success: false, msg: 'OpenClaw runtime not available' };
+      }
+
+      // Await bootstrap to ensure the agent is fully connected before returning runtime info.
+      // Without this, getRuntime may return isConnected=false while the agent is still connecting.
+      await task.bootstrap.catch(() => {});
+
+      const diagnostics = task.getDiagnostics();
+      const identityHash = await computeOpenClawIdentityHash(diagnostics.workspace || conversation.extra?.workspace);
+      const conversationModel = (conversation as { model?: { useModel?: string } }).model;
+      const extra = conversation.extra as { cliPath?: string; gateway?: { cliPath?: string }; runtimeValidation?: unknown } | undefined;
+      const gatewayCliPath = extra?.gateway?.cliPath;
+
+      return {
+        success: true,
+        data: {
+          conversationId: conversation_id,
+          runtime: {
+            workspace: diagnostics.workspace || conversation.extra?.workspace,
+            backend: diagnostics.backend || conversation.extra?.backend,
+            agentName: diagnostics.agentName || conversation.extra?.agentName,
+            cliPath: diagnostics.cliPath || extra?.cliPath || gatewayCliPath,
+            model: conversationModel?.useModel,
+            sessionKey: diagnostics.sessionKey,
+            isConnected: diagnostics.isConnected,
+            hasActiveSession: diagnostics.hasActiveSession,
+            identityHash,
+          },
+          expected: extra?.runtimeValidation,
+        },
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
     // 使用 ConversationService 创建会话 / Use ConversationService to create conversation
     const result = await ConversationService.createConversation({

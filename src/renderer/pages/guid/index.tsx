@@ -12,6 +12,7 @@ import { resolveLocaleKey, uuid } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
@@ -176,6 +177,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
+  codebuddy: CodeBuddyLogo,
   droid: DroidLogo,
   iflow: IflowLogo,
   goose: GooseLogo,
@@ -284,6 +286,15 @@ const Guid: React.FC = () => {
     }>
   >();
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
+  const availableCustomAgentIds = useMemo(() => {
+    const ids = new Set<string>();
+    (availableAgents || []).forEach((agent) => {
+      if (agent.backend === 'custom' && agent.customAgentId) {
+        ids.add(agent.customAgentId);
+      }
+    });
+    return ids;
+  }, [availableAgents]);
 
   /**
    * 获取代理的唯一选择键
@@ -553,17 +564,6 @@ const Guid: React.FC = () => {
           _setSelectedAgentKey(savedAgentKey);
           return;
         }
-
-        // 2. For custom agents, check storage
-        if (savedAgentKey.startsWith('custom:')) {
-          const customId = savedAgentKey.slice(7);
-          const agents = await ConfigStorage.get('acp.customAgents');
-          if (cancelled) return;
-
-          if (agents?.some((a: AcpBackendConfig) => a.id === customId)) {
-            _setSelectedAgentKey(savedAgentKey);
-          }
-        }
       } catch (error) {
         console.error('Failed to load last selected agent:', error);
       }
@@ -581,7 +581,8 @@ const Guid: React.FC = () => {
     ConfigStorage.get('acp.customAgents')
       .then((agents) => {
         if (!isActive) return;
-        setCustomAgents(agents || []);
+        const list = (agents || []).filter((agent: AcpBackendConfig) => availableCustomAgentIds.has(agent.id));
+        setCustomAgents(list);
       })
       .catch((error) => {
         console.error('Failed to load custom agents:', error);
@@ -589,7 +590,7 @@ const Guid: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [availableAgentsData]);
+  }, [availableCustomAgentIds]);
 
   useEffect(() => {
     if (mentionOpen) {
@@ -753,7 +754,7 @@ const Guid: React.FC = () => {
    * Priority: gemini > claude > codex > opencode
    */
   const getAvailableFallbackAgent = useCallback((): PresetAgentType | null => {
-    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'opencode'];
+    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'codebuddy', 'opencode'];
     for (const agentType of fallbackOrder) {
       if (isMainAgentAvailable(agentType)) {
         return agentType;
@@ -1042,6 +1043,17 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
+            backend: openclawAgentInfo?.backend,
+            cliPath: openclawAgentInfo?.cliPath,
+            agentName: openclawAgentInfo?.name,
+            runtimeValidation: {
+              expectedWorkspace: finalWorkspace,
+              expectedBackend: openclawAgentInfo?.backend,
+              expectedAgentName: openclawAgentInfo?.name,
+              expectedCliPath: openclawAgentInfo?.cliPath,
+              expectedModel: currentModel?.useModel,
+              switchedAt: Date.now(),
+            },
             // Gateway configuration is handled by OpenClawAgentManager
             // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
             enabledSkills: isPreset ? enabledSkills : undefined,
@@ -1564,7 +1576,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
+                {(selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable) ? (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1673,6 +1685,12 @@ const Guid: React.FC = () => {
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
+                ) : (
+                  <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+                    <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
+                      {t('conversation.welcome.useCliModel')}
+                    </Button>
+                  </Tooltip>
                 )}
 
                 {isPresetAgent && selectedAgentInfo && (

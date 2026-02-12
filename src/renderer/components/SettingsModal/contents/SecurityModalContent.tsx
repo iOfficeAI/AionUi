@@ -36,7 +36,7 @@ const BUILTIN_AGENTS: AgentItem[] = [{ id: 'gemini', name: 'Gemini CLI', type: '
 const EXCLUDED_ACP_BACKENDS: AcpBackendAll[] = ['gemini', 'custom'];
 
 // Verified ACP backends that support yoloMode via session/set_mode
-const YOLO_SUPPORTED_BACKENDS: AcpBackendAll[] = ['claude', 'qwen', 'goose', 'codex'];
+const YOLO_SUPPORTED_BACKENDS: AcpBackendAll[] = ['claude', 'codebuddy', 'qwen', 'goose', 'codex'];
 
 // ACP backends without permission system (auto-approve by default, no config needed)
 const YOLO_NOT_NEEDED_BACKENDS: AcpBackendAll[] = ['droid', 'kimi', 'openclaw-gateway'];
@@ -181,7 +181,9 @@ const SecurityModalContent: React.FC = () => {
               <Shield theme='outline' size='20' fill={iconColors.secondary} className='flex' />
               <span className='text-16px font-500 text-t-primary leading-20px'>{t('settings.autoApprove')}</span>
               <Tooltip content={t('settings.autoApproveDesc')}>
-                <Help theme='outline' size='16' fill={iconColors.disabled} className='flex cursor-help' />
+                <span className='inline-flex items-center cursor-help'>
+                  <Help theme='outline' size='16' fill={iconColors.disabled} className='flex' />
+                </span>
               </Tooltip>
             </div>
 

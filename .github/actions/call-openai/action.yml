@@ -1,0 +1,146 @@
+name: 'Call OpenAI'
+description: 'Call OpenAI Chat Completions API with retry logic. Reads system_prompt.txt and user_prompt.txt from RUNNER_TEMP.'
+
+inputs:
+  openai_api_key:
+    description: 'OpenAI API key'
+    required: true
+  output_file:
+    description: 'Output filename in RUNNER_TEMP for the GPT response'
+    required: false
+    default: 'gpt_response.txt'
+  diff_truncated:
+    description: 'Whether the diff was truncated (for appending note)'
+    required: false
+    default: 'false'
+  contents_truncated:
+    description: 'Whether file contents were truncated (for appending note)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - id: 'call'
+      uses: 'actions/github-script@v7'
+      env:
+        OPENAI_API_KEY: '${{ inputs.openai_api_key }}'
+        OUTPUT_FILE: '${{ inputs.output_file }}'
+        DIFF_TRUNCATED: '${{ inputs.diff_truncated }}'
+        CONTENTS_TRUNCATED: '${{ inputs.contents_truncated }}'
+      with:
+        script: |
+          const fs = require('fs');
+          const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+          const apiKey = process.env.OPENAI_API_KEY;
+          if (!apiKey) {
+            core.setFailed('OPENAI_API_KEY is not configured');
+            return;
+          }
+
+          // Read prompts from temp files
+          let systemPrompt, userPrompt;
+          try {
+            systemPrompt = fs.readFileSync(`${tmpDir}/system_prompt.txt`, 'utf-8');
+            userPrompt = fs.readFileSync(`${tmpDir}/user_prompt.txt`, 'utf-8');
+          } catch (err) {
+            core.setFailed(`Failed to read prompt files: ${err.message}`);
+            return;
+          }
+
+          // Call OpenAI Chat Completions API with retry logic
+          async function callOpenAI(retries = 2) {
+            for (let attempt = 0; attempt <= retries; attempt++) {
+              try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                  },
+                  body: JSON.stringify({
+                    model: 'gpt-5.2',
+                    messages: [
+                      { role: 'system', content: systemPrompt },
+                      { role: 'user', content: userPrompt },
+                    ],
+                    temperature: 0.1,
+                    max_completion_tokens: 16384,
+                  }),
+                });
+
+                if (response.status === 429 || response.status >= 500) {
+                  if (attempt < retries) {
+                    const delay = Math.pow(2, attempt + 1) * 1000;
+                    core.warning(`OpenAI API returned ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`);
+                    await new Promise(r => setTimeout(r, delay));
+                    continue;
+                  }
+                }
+
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(`OpenAI API error ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                const content = data?.choices?.[0]?.message?.content;
+                if (typeof content !== 'string' || content.trim().length === 0) {
+                  throw new Error(
+                    `OpenAI response missing choices[0].message.content. Payload keys: ${Object.keys(data || {}).join(', ')}`
+                  );
+                }
+                return content;
+              } catch (error) {
+                const isRetryable = attempt < retries && (
+                  error.cause?.code === 'ECONNRESET' ||
+                  error.cause?.code === 'ETIMEDOUT' ||
+                  error.cause?.code === 'ENOTFOUND' ||
+                  error.message.includes('fetch') ||
+                  error.message.includes('network') ||
+                  error.message.includes('socket')
+                );
+                if (isRetryable) {
+                  const delay = Math.pow(2, attempt + 1) * 1000;
+                  core.warning(`Network error, retrying in ${delay}ms: ${error.message}`);
+                  await new Promise(r => setTimeout(r, delay));
+                  continue;
+                }
+                throw error;
+              }
+            }
+          }
+
+          const gptContent = await callOpenAI();
+          if (!gptContent) {
+            core.setFailed('GPT returned empty response');
+            return;
+          }
+
+          // Append truncation warning if inputs were truncated
+          const diffTruncated = process.env.DIFF_TRUNCATED === 'true';
+          const contentsTruncated = process.env.CONTENTS_TRUNCATED === 'true';
+          let truncationNote = '';
+          if (diffTruncated || contentsTruncated) {
+            const parts = [];
+            if (diffTruncated) parts.push('diff (>100K chars)');
+            if (contentsTruncated) parts.push('file contents (>80K chars)');
+            truncationNote = [
+              '',
+              '> **Note**: The following inputs were truncated due to size limits: ' + parts.join(', ') + '.',
+              '> Please review the omitted portions manually.',
+            ].join('\n');
+          }
+
+          const withNote = gptContent + truncationNote;
+
+          // Truncate if exceeds GitHub's 65536 char limit
+          const MAX_LENGTH = 65000;
+          const finalContent = withNote.length > MAX_LENGTH
+            ? withNote.substring(0, MAX_LENGTH) + '\n\n---\n*[Output truncated due to length]*'
+            : withNote;
+
+          const outputFile = process.env.OUTPUT_FILE || 'gpt_response.txt';
+          fs.writeFileSync(`${tmpDir}/${outputFile}`, finalContent);
+          core.info(`GPT response written to ${outputFile} (${finalContent.length} chars)`);

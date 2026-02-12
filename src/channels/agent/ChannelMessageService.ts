@@ -5,6 +5,7 @@
  */
 
 import WorkerManage from '@/process/WorkerManage';
+import { getDatabase } from '@/process/database';
 import type BaseAgentManager from '@/process/task/BaseAgentManager';
 import { composeMessage, transformMessage, type TMessage } from '../../common/chatLib';
 import { uuid } from '../../common/utils';
@@ -74,7 +75,6 @@ export class ChannelMessageService {
     });
 
     this.initialized = true;
-    console.log('[ChannelMessageService] Initialized with global event listener');
   }
 
   /**
@@ -99,21 +99,15 @@ export class ChannelMessageService {
       return;
     }
 
-    console.log('[ChannelMessageService] Incoming message:', message.msg_id, message.type, 'content preview:', message.type === 'text' ? message.content.content?.slice(0, 30) : 'non-text');
-
     let messageList = this.messageListMap.get(conversationId);
     if (!messageList) {
       messageList = [];
-      console.log('[ChannelMessageService] New conversation, empty messageList');
-    } else {
-      console.log('[ChannelMessageService] Existing conversation, messageList has', messageList.length, 'messages, last msg_id:', messageList[messageList.length - 1]?.msg_id);
     }
 
     messageList = composeMessage(message, messageList, (type, msg: TMessage) => {
       // insert: true 表示新消息，false 表示更新现有消息
       // insert: true means new message, false means update existing message
 
-      console.log('%c [  ]-130', 'font-size:13px; background:pink; color:#bf2c9f;', type, msg);
       const isInsert = type === 'insert';
       stream.callback(msg, isInsert);
     });
@@ -142,7 +136,15 @@ export class ChannelMessageService {
     // Get task
     let task: BaseAgentManager<unknown>;
     try {
-      task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
+      // Check conversation source, enable yoloMode if it's from a Channel
+      const db = getDatabase();
+      const dbResult = db.getConversation(conversationId);
+      const isFromChannel = dbResult.success && (dbResult.data?.source === 'lark' || dbResult.data?.source === 'telegram');
+
+      task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
+        yoloMode: isFromChannel,
+      });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to get conversation task';
       console.error(`[ChannelMessageService] Failed to get task:`, errorMsg);
@@ -172,20 +174,17 @@ export class ChannelMessageService {
         reject,
       });
 
-      // 发送消息
-      // Send message
-      task
-        .sendMessage({
-          input: message,
-          msg_id: msgId,
-        })
-        .catch((error: Error) => {
-          const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
-          console.error(`[ChannelMessageService] Send error:`, error);
-          onStream({ type: 'tips', id: uuid(), conversation_id: conversationId, content: { type: 'error', content: errorMessage } }, true);
-          this.activeStreams.delete(conversationId);
-          reject(error);
-        });
+      // Build payload based on agent type.
+      // Gemini expects { input }, ACP/Codex expect { content }.
+      const payload: { input?: string; content?: string; msg_id: string } = task.type === 'gemini' ? { input: message, msg_id: msgId } : task.type === 'acp' || task.type === 'codex' ? { content: message, msg_id: msgId } : { content: message, msg_id: msgId };
+
+      task.sendMessage(payload).catch((error: Error) => {
+        const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
+        console.error(`[ChannelMessageService] Send error:`, error);
+        onStream({ type: 'tips', id: uuid(), conversation_id: conversationId, content: { type: 'error', content: errorMessage } }, true);
+        this.activeStreams.delete(conversationId);
+        reject(error);
+      });
     });
   }
 
@@ -195,8 +194,8 @@ export class ChannelMessageService {
    *
    * 清理会话上下文。Agent 的清理由 WorkerManage 处理。
    */
-  async clearContext(sessionId: string): Promise<void> {
-    console.log(`[ChannelMessageService] clearContext called for session ${sessionId}`);
+  async clearContext(_sessionId: string): Promise<void> {
+    // Agent cleanup is handled by WorkerManage
   }
 
   /**
@@ -207,7 +206,6 @@ export class ChannelMessageService {
     const stream = this.activeStreams.get(conversationId);
     if (stream) {
       this.activeStreams.delete(conversationId);
-      console.log(`[ChannelMessageService] Cleared stream for conversation ${conversationId}`);
     }
   }
 
@@ -244,7 +242,6 @@ export class ChannelMessageService {
       // 调用 agent 的 confirm 方法
       // Call agent's confirm method
       task.confirm(conversationId, callId, value);
-      console.log(`[ChannelMessageService] Confirmed tool call ${callId} with value ${value}`);
     } catch (error) {
       console.error(`[ChannelMessageService] Failed to confirm tool call:`, error);
       throw error;
@@ -271,7 +268,6 @@ export class ChannelMessageService {
     }
 
     this.initialized = false;
-    console.log('[ChannelMessageService] Shutdown complete');
   }
 }
 

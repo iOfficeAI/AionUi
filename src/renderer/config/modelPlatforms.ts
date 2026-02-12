@@ -19,7 +19,7 @@ import AnthropicLogo from '@/renderer/assets/logos/anthropic.svg';
 import BedrockLogo from '@/renderer/assets/logos/bedrock.svg';
 import DeepSeekLogo from '@/renderer/assets/logos/deepseek.svg';
 import OpenRouterLogo from '@/renderer/assets/logos/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.svg';
+import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import ZhipuLogo from '@/renderer/assets/logos/zhipu.svg';
@@ -90,7 +90,8 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
   { name: 'OpenRouter', value: 'OpenRouter', logo: OpenRouterLogo, platform: 'custom', baseUrl: 'https://openrouter.ai/api/v1' },
   { name: 'Dashscope', value: 'Dashscope', logo: QwenLogo, platform: 'custom', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-  { name: 'SiliconFlow', value: 'SiliconFlow', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.cn/v1' },
+  { name: 'SiliconFlow-CN', value: 'SiliconFlow-CN', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.cn/v1' },
+  { name: 'SiliconFlow', value: 'SiliconFlow', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.com/v1' },
   { name: 'Zhipu', value: 'Zhipu', logo: ZhipuLogo, platform: 'custom', baseUrl: 'https://open.bigmodel.cn/api/paas/v4' },
   { name: 'Moonshot (China)', value: 'Moonshot', logo: KimiLogo, platform: 'custom', baseUrl: 'https://api.moonshot.cn/v1' },
   { name: 'Moonshot (Global)', value: 'Moonshot-Global', logo: KimiLogo, platform: 'custom', baseUrl: 'https://api.moonshot.ai/v1' },
