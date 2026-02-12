@@ -215,6 +215,8 @@
       "newConversation": "New Chat",
       "multiAgentModeEnabled": "Entering multi-agent mode",
       "selectModel": "Select Model",
+      "useCliModel": "Use model from CLI",
+      "modelSwitchNotSupported": "Current Agent does not support model switching. Conversations will use the model from CLI runtime by default (model switching capability will be gradually expanded in future versions)",
       "specifyWorkspace": "Chat in Folder",
       "currentWorkspace": "Current Workspace",
       "clearWorkspace": "Remove folder",

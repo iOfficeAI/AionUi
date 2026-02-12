@@ -331,6 +331,7 @@ const Guid: React.FC = () => {
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
+  const [modelDropdownVisible, setModelDropdownVisible] = useState(false);
   const [_isTyping, setIsTyping] = useState(true);
   const mentionMatchRegex = useMemo(() => /(?:^|\s)@([^\s@]*)$/, []);
 
@@ -1564,116 +1565,154 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
-                  <Dropdown
-                    trigger='hover'
-                    droplist={
-                      <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
-                        {!modelList || modelList.length === 0
-                          ? [
-                              /* 暂无可用模型提示 */
-                              <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
-                                {t('settings.noAvailableModels')}
-                              </Menu.Item>,
-                              /* Add Model 选项 */
-                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
-                                <Plus theme='outline' size='12' />
-                                {t('settings.addModel')}
-                              </Menu.Item>,
-                            ]
-                          : [
-                              ...(modelList || []).map((provider) => {
-                                const availableModels = getAvailableModels(provider);
-                                // 只渲染有可用模型的 provider
-                                if (availableModels.length === 0) return null;
-                                return (
-                                  <Menu.ItemGroup title={provider.name} key={provider.id}>
-                                    {availableModels.map((modelName) => {
-                                      const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-                                      const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+                {(() => {
+                  const isGeminiAgent = (selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable);
+                  const modelButtonLabel = isGeminiAgent ? (currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')) : t('conversation.welcome.useCliModel');
 
-                                      // Manual 模式：显示带子菜单的选项
-                                      // Manual mode: show submenu with specific models
-                                      if (option?.subModels && option.subModels.length > 0) {
+                  return (
+                    <Tooltip content={!isGeminiAgent ? t('conversation.welcome.modelSwitchNotSupported') : undefined} position='top'>
+                      <span>
+                        <Dropdown
+                          trigger='hover'
+                          popupVisible={!isGeminiAgent ? modelDropdownVisible : undefined}
+                          onVisibleChange={
+                            !isGeminiAgent
+                              ? (visible) => {
+                                  // 阻止下拉菜单打开，保持禁用行为但使用正常颜色
+                                  setModelDropdownVisible(false);
+                                }
+                              : undefined
+                          }
+                          droplist={
+                            isGeminiAgent ? (
+                              <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
+                                {!modelList || modelList.length === 0
+                                  ? [
+                                      /* 暂无可用模型提示 */
+                                      <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
+                                        {t('settings.noAvailableModels')}
+                                      </Menu.Item>,
+                                      /* Add Model 选项 */
+                                      <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
+                                        <Plus theme='outline' size='12' />
+                                        {t('settings.addModel')}
+                                      </Menu.Item>,
+                                    ]
+                                  : [
+                                      ...(modelList || []).map((provider) => {
+                                        const availableModels = getAvailableModels(provider);
+                                        // 只渲染有可用模型的 provider
+                                        if (availableModels.length === 0) return null;
                                         return (
-                                          <Menu.SubMenu
-                                            key={provider.id + modelName}
-                                            title={
-                                              <div className='flex items-center justify-between gap-12px w-full'>
-                                                <span>{option.label}</span>
-                                              </div>
-                                            }
-                                          >
-                                            {option.subModels.map((subModel) => (
-                                              <Menu.Item
-                                                key={provider.id + subModel.value}
-                                                className={currentModel?.id + currentModel?.useModel === provider.id + subModel.value ? '!bg-2' : ''}
-                                                onClick={() => {
-                                                  setCurrentModel({ ...provider, useModel: subModel.value }).catch((error) => {
-                                                    console.error('Failed to set current model:', error);
-                                                  });
-                                                }}
-                                              >
-                                                {subModel.label}
-                                              </Menu.Item>
-                                            ))}
-                                          </Menu.SubMenu>
-                                        );
-                                      }
+                                          <Menu.ItemGroup title={provider.name} key={provider.id}>
+                                            {availableModels.map((modelName) => {
+                                              const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                                              const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
 
-                                      // 普通模式：显示单个选项
-                                      // Normal mode: show single item
-                                      return (
-                                        <Menu.Item
-                                          key={provider.id + modelName}
-                                          className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
-                                          onClick={() => {
-                                            setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
-                                              console.error('Failed to set current model:', error);
-                                            });
-                                          }}
-                                        >
-                                          {(() => {
-                                            if (!option) {
-                                              return modelName;
-                                            }
-                                            return (
-                                              <Tooltip
-                                                position='right'
-                                                trigger='hover'
-                                                content={
-                                                  <div className='max-w-240px space-y-6px'>
-                                                    <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
-                                                    {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
-                                                  </div>
-                                                }
-                                              >
-                                                <div className='flex items-center justify-between gap-12px w-full'>
-                                                  <span>{option.label}</span>
-                                                </div>
-                                              </Tooltip>
-                                            );
-                                          })()}
-                                        </Menu.Item>
-                                      );
-                                    })}
-                                  </Menu.ItemGroup>
-                                );
-                              }),
-                              /* Add Model 选项 */
-                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
-                                <Plus theme='outline' size='12' />
-                                {t('settings.addModel')}
-                              </Menu.Item>,
-                            ]}
-                      </Menu>
-                    }
-                  >
-                    <Button className={'sendbox-model-btn'} shape='round'>
-                      {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
-                    </Button>
-                  </Dropdown>
-                )}
+                                              // Manual 模式：显示带子菜单的选项
+                                              // Manual mode: show submenu with specific models
+                                              if (option?.subModels && option.subModels.length > 0) {
+                                                return (
+                                                  <Menu.SubMenu
+                                                    key={provider.id + modelName}
+                                                    title={
+                                                      <div className='flex items-center justify-between gap-12px w-full'>
+                                                        <span>{option.label}</span>
+                                                      </div>
+                                                    }
+                                                  >
+                                                    {option.subModels.map((subModel) => (
+                                                      <Menu.Item
+                                                        key={provider.id + subModel.value}
+                                                        className={currentModel?.id + currentModel?.useModel === provider.id + subModel.value ? '!bg-2' : ''}
+                                                        onClick={() => {
+                                                          setCurrentModel({ ...provider, useModel: subModel.value }).catch((error) => {
+                                                            console.error('Failed to set current model:', error);
+                                                          });
+                                                        }}
+                                                      >
+                                                        {subModel.label}
+                                                      </Menu.Item>
+                                                    ))}
+                                                  </Menu.SubMenu>
+                                                );
+                                              }
+
+                                              // 普通模式：显示单个选项
+                                              // Normal mode: show single item
+                                              return (
+                                                <Menu.Item
+                                                  key={provider.id + modelName}
+                                                  className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                                                  onClick={() => {
+                                                    setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                                      console.error('Failed to set current model:', error);
+                                                    });
+                                                  }}
+                                                >
+                                                  {(() => {
+                                                    if (!option) {
+                                                      return modelName;
+                                                    }
+                                                    return (
+                                                      <Tooltip
+                                                        position='right'
+                                                        trigger='hover'
+                                                        content={
+                                                          <div className='max-w-240px space-y-6px'>
+                                                            <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
+                                                            {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                                          </div>
+                                                        }
+                                                      >
+                                                        <div className='flex items-center justify-between gap-12px w-full'>
+                                                          <span>{option.label}</span>
+                                                        </div>
+                                                      </Tooltip>
+                                                    );
+                                                  })()}
+                                                </Menu.Item>
+                                              );
+                                            })}
+                                          </Menu.ItemGroup>
+                                        );
+                                      }),
+                                      /* Add Model 选项 */
+                                      <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
+                                        <Plus theme='outline' size='12' />
+                                        {t('settings.addModel')}
+                                      </Menu.Item>,
+                                    ]}
+                              </Menu>
+                            ) : (
+                              <Menu>
+                                <Menu.Item key='disabled' disabled>
+                                  {t('conversation.welcome.useCliModel')}
+                                </Menu.Item>
+                              </Menu>
+                            )
+                          }
+                        >
+                          <Button
+                            className={'sendbox-model-btn'}
+                            shape='round'
+                            onClick={
+                              !isGeminiAgent
+                                ? (e) => {
+                                    // 阻止点击事件，保持禁用行为但使用正常颜色
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
+                                : undefined
+                            }
+                          >
+                            {modelButtonLabel}
+                          </Button>
+                        </Dropdown>
+                      </span>
+                    </Tooltip>
+                  );
+                })()}
 
                 {isPresetAgent && selectedAgentInfo && (
                   <div
