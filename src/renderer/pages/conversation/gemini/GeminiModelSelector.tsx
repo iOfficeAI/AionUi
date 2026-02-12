@@ -11,38 +11,17 @@ const GeminiModelSelector: React.FC<{
   label?: string;
 }> = ({ selection, disabled = false, label: customLabel }) => {
   const { t } = useTranslation();
-  // 用于控制禁用状态下拉菜单不打开
-  // Used to prevent dropdown from opening in disabled state
-  const [popupVisible, setPopupVisible] = React.useState(false);
 
-  // 如果禁用或没有 selection，说明是禁用状态（非 Gemini Agent）
-  // If disabled or no selection, it's in disabled state (non-Gemini Agent)
+  // 禁用状态（非 Gemini Agent）：仅展示带 Tooltip 的按钮，无需 Dropdown
+  // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
   if (disabled || !selection) {
     const displayLabel = customLabel || t('conversation.welcome.useCliModel');
 
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <span>
-          <Dropdown
-            trigger='click'
-            popupVisible={popupVisible}
-            onVisibleChange={(visible) => {
-              // 阻止下拉菜单打开，保持禁用行为但使用正常颜色
-              setPopupVisible(false);
-            }}
-            droplist={
-              <Menu>
-                <Menu.Item key='disabled' disabled>
-                  {displayLabel}
-                </Menu.Item>
-              </Menu>
-            }
-          >
-            <Button className='sendbox-model-btn header-model-btn' shape='round' size='small'>
-              {displayLabel}
-            </Button>
-          </Dropdown>
-        </span>
+        <Button className='sendbox-model-btn header-model-btn' shape='round' size='small' style={{ cursor: 'default' }}>
+          {displayLabel}
+        </Button>
       </Tooltip>
     );
   }
