@@ -18,7 +18,7 @@ const execFileAsync = promisify(execFile);
 /**
  * CodeBuddy MCP server entry in ~/.codebuddy/mcp.json
  */
-interface CodebuddyMcpEntry {
+type CodebuddyMcpEntry = {
   // stdio transport
   command?: string;
   args?: string[];
@@ -38,7 +38,7 @@ interface CodebuddyMcpEntry {
   };
 
   disabled?: boolean;
-}
+};
 
 /**
  * CodeBuddy Code MCP Agent
