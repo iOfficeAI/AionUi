@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -13,7 +13,7 @@ import type { IMcpServer } from '../../../../common/storage';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * CodeBuddy MCP server entry in ~/.codebuddy/mcp.json
@@ -52,7 +52,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    return ['stdio', 'streamable-http', 'sse'];
+    return ['stdio', 'streamable_http', 'sse'];
   }
 
   /**
@@ -108,7 +108,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
           } else {
             // streamable-http, sse, or http
             transportObj = {
-              type: transportType as 'sse',
+              type: transportType as 'sse' | 'streamable_http' | 'http',
               url: entry.url || '',
               headers: entry.headers || entry.transport?.headers || {},
             };
@@ -151,27 +151,29 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
   }
 
   /**
-   * Resolve the effective transport type from a CodeBuddy MCP entry
+   * Resolve the effective transport type from a CodeBuddy MCP entry.
+   * Maps external format (e.g. "streamable-http") to internal type (e.g. "streamable_http").
    */
   private resolveTransportType(entry: CodebuddyMcpEntry): string {
-    // Explicit transportType field (e.g. "streamable-http", "sse")
-    if (entry.transportType) {
-      return entry.transportType;
-    }
-    // Nested transport object (e.g. { transport: { type: "http" } })
-    if (entry.transport?.type) {
-      return entry.transport.type;
-    }
-    // Explicit type field (e.g. "stdio")
-    if (entry.type) {
-      return entry.type;
+    const raw = entry.transportType || entry.transport?.type || entry.type;
+    if (raw) {
+      return this.normalizeTransportType(raw);
     }
     // If url is present without command, it's an HTTP-based transport
     if (entry.url && !entry.command) {
-      return 'streamable-http';
+      return 'streamable_http';
     }
     // Default to stdio
     return 'stdio';
+  }
+
+  /**
+   * Normalize external transport type names to internal IMcpServerTransport type values.
+   * CodeBuddy config may use "streamable-http" (with dash), but IMcpServerTransport uses "streamable_http" (with underscore).
+   */
+  private normalizeTransportType(type: string): string {
+    if (type === 'streamable-http') return 'streamable_http';
+    return type;
   }
 
   /**
@@ -184,25 +186,20 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
           try {
             if (server.transport.type === 'stdio') {
               // Format: codebuddy mcp add -s user <name> <command> -- [args...] [-e KEY=VALUE...]
-              const envArgs = Object.entries(server.transport.env || {})
-                .map(([key, value]) => `-e ${key}=${value}`)
-                .join(' ');
-
-              let command = `codebuddy mcp add -s user "${server.name}" "${server.transport.command}"`;
+              const args = ['mcp', 'add', '-s', 'user', server.name, server.transport.command];
 
               if (server.transport.args?.length || Object.keys(server.transport.env || {}).length) {
-                command += ' --';
+                args.push('--');
                 if (server.transport.args?.length) {
-                  const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
-                  command += ` ${quotedArgs}`;
+                  args.push(...server.transport.args);
                 }
               }
 
-              if (envArgs) {
-                command += ` ${envArgs}`;
+              for (const [key, value] of Object.entries(server.transport.env || {})) {
+                args.push('-e', `${key}=${value}`);
               }
 
-              await execAsync(command, {
+              await execFileAsync('codebuddy', args, {
                 timeout: 5000,
                 env: { ...process.env, NODE_OPTIONS: '' },
               });
@@ -216,10 +213,8 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
                 config.headers = server.transport.headers;
               }
 
-              const jsonStr = JSON.stringify(config).replace(/"/g, '\\"');
-              const command = `codebuddy mcp add-json -s user "${server.name}" "${jsonStr}"`;
-
-              await execAsync(command, {
+              const jsonStr = JSON.stringify(config);
+              await execFileAsync('codebuddy', ['mcp', 'add-json', '-s', 'user', server.name, jsonStr], {
                 timeout: 5000,
                 env: { ...process.env, NODE_OPTIONS: '' },
               });
@@ -249,8 +244,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
 
         for (const scope of scopes) {
           try {
-            const removeCommand = `codebuddy mcp remove -s ${scope} "${mcpServerName}"`;
-            const result = await execAsync(removeCommand, {
+            const result = await execFileAsync('codebuddy', ['mcp', 'remove', '-s', scope, mcpServerName], {
               timeout: 5000,
               env: { ...process.env, NODE_OPTIONS: '' },
             });
