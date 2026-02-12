@@ -8,10 +8,12 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '../../../../common/storage';
-import { getEnhancedEnv } from '@/agent/acp/AcpConnection';
+import type { IMcpServer } from '@/common/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 const execAsync = promisify(exec);
+/** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '' } });
 
 /**
  * Claude Code MCP代理实现
@@ -35,7 +37,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         // 使用Claude Code CLI命令获取MCP配置
         const { stdout: result } = await execAsync('claude mcp list', {
           timeout: this.timeout,
-          env: { ...getEnhancedEnv(), NODE_OPTIONS: '' }, // Use shell env for Finder/launchd launches (#776)
+          ...getExecEnv(),
         });
 
         // 如果没有配置任何MCP服务器，返回空数组
@@ -164,7 +166,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             try {
               await execAsync(command, {
                 timeout: 5000,
-                env: { ...getEnhancedEnv(), NODE_OPTIONS: '' }, // Use shell env for Finder/launchd launches (#776)
+                ...getExecEnv(),
               });
               console.log(`[ClaudeMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
@@ -201,7 +203,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             const removeCommand = `claude mcp remove -s ${scope} "${mcpServerName}"`;
             const result = await execAsync(removeCommand, {
               timeout: 5000,
-              env: { ...getEnhancedEnv(), NODE_OPTIONS: '' }, // Use shell env for Finder/launchd launches (#776)
+              ...getExecEnv(),
             });
 
             // 检查是否成功删除

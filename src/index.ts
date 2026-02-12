@@ -12,7 +12,7 @@ import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
-import { loadShellEnvironmentAsync } from './agent/acp/AcpConnection';
+import { loadShellEnvironmentAsync } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import WorkerManage from './process/WorkerManage';

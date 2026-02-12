@@ -7,223 +7,16 @@
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { execFile, execFileSync, spawn } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
-import os from 'os';
 import path from 'path';
+import { findSuitableNodeBin, getEnhancedEnv } from '@process/utils/shellEnv';
+
+// Re-export shell env utilities so existing consumers keep working
+export { getEnhancedEnv, loadShellEnvironmentAsync, mergePaths } from '@process/utils/shellEnv';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
-
-/**
- * Environment variables to inherit from user's shell.
- * These may not be available when Electron app starts from Finder/launchd.
- *
- * 需要从用户 shell 继承的环境变量。
- * 当 Electron 应用从 Finder/launchd 启动时，这些变量可能不可用。
- */
-const SHELL_INHERITED_ENV_VARS = [
-  'PATH', // Required for finding CLI tools (e.g., ~/.npm-global/bin, ~/.nvm/...)
-  'NODE_EXTRA_CA_CERTS', // Custom CA certificates
-  'SSL_CERT_FILE',
-  'SSL_CERT_DIR',
-  'REQUESTS_CA_BUNDLE',
-  'CURL_CA_BUNDLE',
-  'NODE_TLS_REJECT_UNAUTHORIZED',
-  'ANTHROPIC_AUTH_TOKEN', // Claude authentication (#776)
-  'ANTHROPIC_API_KEY',
-  'ANTHROPIC_BASE_URL',
-] as const;
-
-/** Cache for shell environment (loaded once per session) */
-let cachedShellEnv: Record<string, string> | null = null;
-
-/**
- * Load environment variables from user's login shell.
- * Captures variables set in .bashrc, .zshrc, .bash_profile, etc.
- *
- * 从用户的登录 shell 加载环境变量。
- * 捕获 .bashrc、.zshrc、.bash_profile 等配置中设置的变量。
- */
-function loadShellEnvironment(): Record<string, string> {
-  if (cachedShellEnv !== null) {
-    return cachedShellEnv;
-  }
-
-  const startTime = Date.now();
-  cachedShellEnv = {};
-
-  // Skip on Windows - shell config loading not needed
-  if (process.platform === 'win32') {
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: shell env skipped (Windows) ${Date.now() - startTime}ms`);
-    return cachedShellEnv;
-  }
-
-  try {
-    const shell = process.env.SHELL || '/bin/bash';
-    if (!path.isAbsolute(shell)) {
-      console.warn('[ACP] SHELL is not an absolute path, skipping shell env loading:', shell);
-      return cachedShellEnv;
-    }
-    // Use -i (interactive) and -l (login) to load all shell configs
-    // including .bashrc, .zshrc, .bash_profile, .zprofile, etc.
-    const output = execFileSync(shell, ['-i', '-l', '-c', 'env'], {
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, HOME: os.homedir() },
-    });
-
-    // Parse and capture only the variables we need
-    for (const line of output.split('\n')) {
-      const eqIndex = line.indexOf('=');
-      if (eqIndex > 0) {
-        const key = line.substring(0, eqIndex);
-        const value = line.substring(eqIndex + 1);
-        if (SHELL_INHERITED_ENV_VARS.includes(key as (typeof SHELL_INHERITED_ENV_VARS)[number])) {
-          cachedShellEnv[key] = value;
-        }
-      }
-    }
-
-    if (ACP_PERF_LOG && cachedShellEnv.PATH) {
-      console.log('[ACP] Loaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
-    }
-  } catch (error) {
-    // Silent fail - shell environment loading is best-effort
-    console.warn('[ACP] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
-  }
-
-  if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: shell env loaded ${Date.now() - startTime}ms`);
-  return cachedShellEnv;
-}
-
-/**
- * Async version of loadShellEnvironment() for preloading at app startup.
- * Uses async exec instead of execSync to avoid blocking the main process.
- *
- * 异步版本的 loadShellEnvironment()，用于应用启动时预加载。
- * 使用异步 exec 替代 execSync，避免阻塞主进程。
- */
-export async function loadShellEnvironmentAsync(): Promise<Record<string, string>> {
-  if (cachedShellEnv !== null) {
-    return cachedShellEnv;
-  }
-
-  if (process.platform === 'win32') {
-    cachedShellEnv = {};
-    return cachedShellEnv;
-  }
-
-  const startTime = Date.now();
-
-  try {
-    const shell = process.env.SHELL || '/bin/bash';
-    if (!path.isAbsolute(shell)) {
-      console.warn('[ACP] SHELL is not an absolute path, skipping async shell env loading:', shell);
-      cachedShellEnv = {};
-      return cachedShellEnv;
-    }
-
-    const output = await new Promise<string>((resolve, reject) => {
-      execFile(
-        shell,
-        ['-i', '-l', '-c', 'env'],
-        {
-          encoding: 'utf-8',
-          timeout: 5000,
-          env: { ...process.env, HOME: os.homedir() },
-        },
-        (error, stdout) => {
-          if (error) reject(error);
-          else resolve(stdout);
-        }
-      );
-    });
-
-    const env: Record<string, string> = {};
-    for (const line of output.split('\n')) {
-      const eqIndex = line.indexOf('=');
-      if (eqIndex > 0) {
-        const key = line.substring(0, eqIndex);
-        const value = line.substring(eqIndex + 1);
-        if (SHELL_INHERITED_ENV_VARS.includes(key as (typeof SHELL_INHERITED_ENV_VARS)[number])) {
-          env[key] = value;
-        }
-      }
-    }
-
-    cachedShellEnv = env;
-
-    if (ACP_PERF_LOG && cachedShellEnv.PATH) {
-      console.log('[ACP] Preloaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
-    }
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] preload: shell env async loaded ${Date.now() - startTime}ms`);
-  } catch (error) {
-    cachedShellEnv = {};
-    console.warn('[ACP] Failed to async load shell environment:', error instanceof Error ? error.message : String(error));
-  }
-
-  return cachedShellEnv;
-}
-
-/**
- * Merge two PATH strings, removing duplicates while preserving order.
- * Exported for unit testing.
- *
- * 合并两个 PATH 字符串，去重并保持顺序。
- */
-export function mergePaths(path1?: string, path2?: string): string {
-  const separator = process.platform === 'win32' ? ';' : ':';
-  const paths1 = path1?.split(separator).filter(Boolean) || [];
-  const paths2 = path2?.split(separator).filter(Boolean) || [];
-
-  const seen = new Set<string>();
-  const merged: string[] = [];
-
-  // Add paths from first source (process.env, typically from terminal)
-  for (const p of paths1) {
-    if (!seen.has(p)) {
-      seen.add(p);
-      merged.push(p);
-    }
-  }
-
-  // Add paths from second source (shell env, for Finder/launchd launches)
-  for (const p of paths2) {
-    if (!seen.has(p)) {
-      seen.add(p);
-      merged.push(p);
-    }
-  }
-
-  return merged.join(separator);
-}
-
-/**
- * Get enhanced environment variables by merging shell env with process.env.
- * For PATH, we merge both sources to ensure CLI tools are found regardless of
- * how the app was started (terminal vs Finder/launchd).
- *
- * 获取增强的环境变量，合并 shell 环境变量和 process.env。
- * 对于 PATH，合并两个来源以确保无论应用如何启动都能找到 CLI 工具。
- */
-export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
-  const shellEnv = loadShellEnvironment();
-
-  // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
-  // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
-  const mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
-
-  return {
-    ...process.env,
-    ...shellEnv,
-    ...customEnv,
-    // PATH must be set after spreading to ensure merged value is used
-    // When customEnv.PATH exists, merge it with the already merged path (fix: don't override)
-    PATH: customEnv?.PATH ? mergePaths(mergedPath, customEnv.PATH) : mergedPath,
-  } as Record<string, string>;
-}
 
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
@@ -376,8 +169,44 @@ export class AcpConnection {
     delete cleanEnv.NODE_DEBUG;
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: env prepared ${Date.now() - envStart}ms`);
 
-    // Use npx to run the Claude ACP bridge directly from npm registry
+    // Pre-check Node.js version: @zed-industries/claude-code-acp requires >= 20.10.
+    // If the resolved node is too old, try to auto-correct PATH using a suitable
+    // version found in nvm/fnm/volta before giving up.
     const isWindows = process.platform === 'win32';
+    const MIN_NODE_MAJOR = 20;
+    const MIN_NODE_MINOR = 10;
+
+    let versionTooOld = false;
+    let detectedVersion = '';
+
+    try {
+      detectedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], { env: cleanEnv, encoding: 'utf-8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+
+      const match = detectedVersion.match(/^v(\d+)\.(\d+)\./);
+      if (match) {
+        const major = parseInt(match[1], 10);
+        const minor = parseInt(match[2], 10);
+        if (major < MIN_NODE_MAJOR || (major === MIN_NODE_MAJOR && minor < MIN_NODE_MINOR)) {
+          versionTooOld = true;
+        }
+      }
+    } catch {
+      // node not found — let spawn attempt handle it
+      console.warn('[ACP] Node.js version check skipped: node not found in PATH');
+    }
+
+    if (versionTooOld) {
+      const suitableBinDir = findSuitableNodeBin(MIN_NODE_MAJOR, MIN_NODE_MINOR);
+      if (suitableBinDir) {
+        const sep = isWindows ? ';' : ':';
+        cleanEnv.PATH = suitableBinDir + sep + (cleanEnv.PATH || '');
+        console.log(`[ACP] Node.js ${detectedVersion} is below v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0 — auto-corrected PATH with: ${suitableBinDir}`);
+      } else {
+        throw new Error(`Node.js ${detectedVersion} is too old for Claude ACP bridge. ` + `Minimum required: v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0. ` + `Please upgrade Node.js: https://nodejs.org/`);
+      }
+    }
+
+    // Use npx to run the Claude ACP bridge directly from npm registry
     const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
     const spawnArgs = ['--prefer-offline', '@zed-industries/claude-code-acp'];
 
@@ -396,13 +225,32 @@ export class AcpConnection {
   private async setupChildProcessHandlers(backend: string): Promise<void> {
     let spawnError: Error | null = null;
 
+    // Collect stderr output (capped at 2KB) for diagnostics on early crash
+    const STDERR_MAX = 2048;
+    let stderrOutput = '';
     this.child.stderr?.on('data', (data) => {
-      console.error(`[ACP ${backend} STDERR]:`, data.toString());
+      const chunk = data.toString();
+      console.error(`[ACP ${backend} STDERR]:`, chunk);
+      if (stderrOutput.length < STDERR_MAX) {
+        stderrOutput += chunk;
+        if (stderrOutput.length > STDERR_MAX) {
+          stderrOutput = stderrOutput.slice(0, STDERR_MAX);
+        }
+      }
     });
 
     this.child.on('error', (error) => {
       spawnError = error;
     });
+
+    // Promise that rejects when the child process exits during setup.
+    // Used in Promise.race to detect early crashes without waiting for the 60s timeout.
+    let processExitReject: ((err: Error) => void) | null = null;
+    const processExitPromise = new Promise<never>((_resolve, reject) => {
+      processExitReject = reject;
+    });
+    // Swallow unhandled rejection — it will be cleaned up in finally
+    processExitPromise.catch(() => {});
 
     // Exit handler for both startup and runtime phases
     this.child.on('exit', (code, signal) => {
@@ -413,6 +261,9 @@ export class AcpConnection {
         if (code !== 0 && !spawnError) {
           spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
         }
+        // Reject processExitPromise so Promise.race returns immediately
+        const errMsg = stderrOutput ? `${backend} ACP process exited during startup (code: ${code}):\n${stderrOutput}` : `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
+        processExitReject?.(new Error(errMsg));
       } else {
         // Runtime phase - handle unexpected exit
         this.handleProcessExit(code, signal);
@@ -459,16 +310,22 @@ export class AcpConnection {
       }
     });
 
-    // Initialize protocol with timeout
+    // Initialize protocol with timeout, also racing against early process exit
     const initStart = Date.now();
-    await Promise.race([
-      this.initialize(),
-      new Promise((_, reject) =>
-        setTimeout(() => {
-          reject(new Error('Initialize timeout after 60 seconds'));
-        }, 60000)
-      ),
-    ]);
+    try {
+      await Promise.race([
+        this.initialize(),
+        new Promise((_, reject) =>
+          setTimeout(() => {
+            reject(new Error('Initialize timeout after 60 seconds'));
+          }, 60000)
+        ),
+        processExitPromise,
+      ]);
+    } finally {
+      // Neutralize processExitPromise so it won't reject after setup completes
+      processExitReject = null;
+    }
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
     // Mark setup as complete - future exits will be handled as runtime disconnects

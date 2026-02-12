@@ -6,7 +6,7 @@
 
 import { spawn, type ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
-import { getEnhancedEnv } from '@/agent/acp/AcpConnection';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 interface GatewayManagerConfig {
   /** Path to openclaw CLI (default: 'openclaw') */
