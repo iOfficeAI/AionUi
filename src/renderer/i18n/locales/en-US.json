@@ -640,7 +640,7 @@
     "assistant.copyCode": "Copy pairing code",
     "assistant.modelSaved": "Model saved",
     "assistant.modelSaveFailed": "Failed to save model",
-    "assistant.tokenLocked": "Revoke all users to change token.",
+    "assistant.tokenLocked": "Please close the Channel and delete all authorized users before modifying the configuration",
     "assistant.tokenValid": "Token valid",
     "assistant.defaultModel": "Default Model",
     "assistant.defaultModelDesc": "Model used for Telegram conversations. Default uses GEMINI CLI as Agent",
@@ -851,7 +851,11 @@
       "revokeAccess": "Revoke access",
       "userRevoked": "User access revoked",
       "revokeFailed": "Failed to revoke user",
-      "copyCode": "Copy pairing code"
+      "copyCode": "Copy pairing code",
+      "agentDescTelegram": "Used for Telegram conversations",
+      "autoFollowCliModel": "Automatically follow the model when CLI is running",
+      "agentSwitched": "Agent switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)",
+      "modelSwitched": "Model switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"
     },
     "lark": {
       "appId": "App ID",
@@ -883,7 +887,10 @@
       "step4": "Once approved, you can start chatting with the AI assistant through Lark!",
       "waitingConnection": "WebSocket connection is being established. Please wait...",
       "showOptionalFields": "Show optional settings",
-      "hideOptionalFields": "Hide optional settings"
+      "hideOptionalFields": "Hide optional settings",
+      "agent": "Agent",
+      "agentDesc": "Used for Lark conversations",
+      "autoFollowCliModel": "Automatically follow the model when CLI is running"
     }
   },
   "messages": {

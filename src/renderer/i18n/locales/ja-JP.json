@@ -452,6 +452,18 @@
   },
   "settings": {
     "about": "情報",
+    "assistant": {
+      "agentDescTelegram": "Telegram の会話に使用",
+      "autoFollowCliModel": "CLI実行時のモデルに自動的に従う",
+      "agentSwitched": "Agent が切り替わりました。続けて使用するには、このチャンネルの履歴会話を削除してください。新しい会話では新しい設定が使用されます。（次のバージョンでは自動ホットアップデートがサポートされます）",
+      "modelSwitched": "モデルが切り替わりました。続けて使用するには、このチャンネルの履歴会話を削除してください。新しい会話では新しい設定が使用されます。（次のバージョンでは自動ホットアップデートがサポートされます）",
+      "copyCode": "ペアリングコードをコピー",
+      "modelSaved": "モデルを保存しました",
+      "modelSaveFailed": "モデルの保存に失敗しました",
+      "tokenLocked": "設定を変更する前に、Channel を閉じてすべての承認済みユーザーを削除してください",
+      "tokenValid": "Token が有効です",
+      "defaultModel": "デフォルトモデル"
+    },
     "assistants": "アシスタント",
     "assistantsList": "利用可能なアシスタント一覧",
     "assistantsEmpty": "利用可能なアシスタントがありません。",
@@ -811,7 +823,13 @@
     "multiKeyTestResult": "マルチキーテスト：{{valid}}/{{total}} 個有効",
     "multiKeyAllValid": "すべての {{total}} 個のキーが有効です",
     "multiKeyPartialValid": "{{valid}} 個有効、{{invalid}} 個無効",
-    "multiKeyAllInvalid": "すべての {{total}} 個のキーが無効です"
+    "multiKeyAllInvalid": "すべての {{total}} 個のキーが無効です",
+    "lark": {
+      "agent": "エージェント",
+      "agentDesc": "Lark の会話に使用",
+      "defaultModelDesc": "Lark の会話に使用するモデル",
+      "autoFollowCliModel": "CLI実行時のモデルに自動的に従う"
+    }
   },
   "messages": {
     "fileChanges": "ファイル変更",

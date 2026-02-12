@@ -5,11 +5,13 @@
  */
 
 import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
+import type { AcpBackendAll } from '@/types/acpTypes';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
@@ -17,6 +19,8 @@ import BaseAgentManager from '@process/task/BaseAgentManager';
 export interface OpenClawAgentManagerData {
   conversation_id: string;
   workspace?: string;
+  backend?: AcpBackendAll;
+  agentName?: string;
   /** Gateway configuration */
   gateway?: {
     host?: string;
@@ -94,9 +98,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Persist messages to database
     const tMessage = transformMessage(msg);
     if (tMessage) {
-      // Use addOrUpdateMessage for streaming content to merge deltas with same msg_id
+      // Use addOrUpdateMessage for types that reuse the same msg_id (content streaming, agent_status updates)
       // Use addMessage for non-streaming messages that should be inserted as-is
-      if (msg.type === 'content' && msg.msg_id) {
+      if ((msg.type === 'content' || msg.type === 'agent_status') && msg.msg_id) {
         addOrUpdateMessage(this.conversation_id, tMessage);
       } else {
         addMessage(this.conversation_id, tMessage);
@@ -105,6 +109,11 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
     // Emit to frontend
     ipcBridge.openclawConversation.responseStream.emit(msg);
+    // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
+    ipcBridge.conversation.responseStream.emit(msg);
+
+    // Emit to Channel global event bus (Telegram/Lark streaming)
+    channelEventBus.emitAgentMessage(this.conversation_id, msg);
   }
 
   private handleSignalEvent(message: IResponseMessage): void {
@@ -141,6 +150,10 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
     // Emit signal events to frontend
     ipcBridge.openclawConversation.responseStream.emit(msg);
+    ipcBridge.conversation.responseStream.emit(msg);
+
+    // Forward signals to Channel global event bus
+    channelEventBus.emitAgentMessage(this.conversation_id, msg);
   }
 
   private handleSessionKeyUpdate(sessionKey: string): void {
@@ -213,6 +226,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
 
     ipcBridge.openclawConversation.responseStream.emit(message);
+    ipcBridge.conversation.responseStream.emit(message);
   }
 
   stop() {
@@ -230,6 +244,11 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   getDiagnostics() {
     return {
       workspace: this.workspace,
+      backend: this.options.backend,
+      agentName: this.options.agentName,
+      cliPath: this.options.gateway?.cliPath ?? null,
+      gatewayHost: this.options.gateway?.host ?? null,
+      gatewayPort: this.options.gateway?.port ?? 18789,
       conversation_id: this.conversation_id,
       isConnected: this.agent?.isConnected ?? false,
       hasActiveSession: this.agent?.hasActiveSession ?? false,

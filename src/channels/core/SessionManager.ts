@@ -35,7 +35,6 @@ export class SessionManager {
       for (const session of result.data) {
         this.activeSessions.set(session.userId, session);
       }
-      console.log(`[SessionManager] Loaded ${this.activeSessions.size} active session(s)`);
     }
   }
 
@@ -79,7 +78,6 @@ export class SessionManager {
     // Clear existing session if any
     const existingSession = this.activeSessions.get(user.id);
     if (existingSession) {
-      console.log(`[SessionManager] Clearing existing session for user ${user.id}`);
       db.deleteChannelSession(existingSession.id);
     }
 
@@ -104,7 +102,6 @@ export class SessionManager {
     // Update user's session reference
     db.getChannelUserByPlatform(user.platformUserId, user.platformType);
 
-    console.log(`[SessionManager] Created new session ${session.id} with conversation ${conversationId} for user ${user.id}`);
     return session;
   }
 
@@ -135,7 +132,6 @@ export class SessionManager {
     // Save to database
     db.upsertChannelSession(session);
 
-    console.log(`[SessionManager] Updated session ${sessionId} with conversation ${conversationId}`);
     return true;
   }
 
@@ -165,7 +161,6 @@ export class SessionManager {
     db.deleteChannelSession(session.id);
     this.activeSessions.delete(userId);
 
-    console.log(`[SessionManager] Cleared session for user ${userId}`);
     return true;
   }
 
@@ -197,7 +192,6 @@ export class SessionManager {
     db.deleteChannelSession(foundSession.id);
     this.activeSessions.delete(foundUserId);
 
-    console.log(`[SessionManager] Cleared session ${foundSession.id} for conversation ${conversationId}`);
     return foundSession;
   }
 

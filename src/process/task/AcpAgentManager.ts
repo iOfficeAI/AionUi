@@ -1,4 +1,5 @@
 import { AcpAgent } from '@/agent/acp';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -191,6 +192,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           ipcBridge.acpConversation.responseStream.emit(filteredMessage);
           const emitDuration = Date.now() - emitStart;
 
+          // Also emit to Channel global event bus (Telegram/Lark streaming)
+          // 同时发送到 Channel 全局事件总线（用于 Telegram/Lark 等外部平台）
+          channelEventBus.emitAgentMessage(this.conversation_id, {
+            ...filteredMessage,
+            conversation_id: this.conversation_id,
+          });
+
           const totalDuration = Date.now() - pipelineStart;
           if (totalDuration > 10) {
             if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`);
@@ -210,6 +218,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
                 label: option.name,
                 value: option,
               })),
+            });
+
+            // Channels (Telegram/Lark) currently don't have interactive permission UX.
+            // Emit a readable error to avoid "silent hang" in external platforms.
+            channelEventBus.emitAgentMessage(this.conversation_id, {
+              type: 'error',
+              conversation_id: this.conversation_id,
+              msg_id: v.msg_id,
+              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
             });
             return;
           }
@@ -256,6 +273,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
+
+          // Forward signals (finish/error/etc.) to Channel global event bus
+          channelEventBus.emitAgentMessage(this.conversation_id, {
+            ...(v as any),
+            conversation_id: this.conversation_id,
+          });
         },
       });
       return this.agent.start().then(() => this.agent);

@@ -10,6 +10,7 @@ import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -474,6 +475,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+
+    // Also emit to Channel global event bus (Telegram/Lark streaming)
+    channelEventBus.emitAgentMessage(this.conversation_id, message);
   }
 
   /**
