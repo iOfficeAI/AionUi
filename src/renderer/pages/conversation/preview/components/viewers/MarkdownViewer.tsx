@@ -11,6 +11,7 @@ import { useTextSelection } from '@/renderer/hooks/useTextSelection';
 import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -398,6 +399,23 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
                   const codeContent = String(children).replace(/\n$/, '');
                   const language = match ? match[1] : '';
                   const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+
+                  // Render latex/math code blocks as KaTeX display math
+                  // Skip full LaTeX documents (with \documentclass, \begin{document}, etc.) — KaTeX only handles math
+                  if (language === 'latex' || language === 'math' || language === 'tex') {
+                    const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(codeContent);
+                    if (!isFullDocument) {
+                      try {
+                        const html = katex.renderToString(codeContent, {
+                          displayMode: true,
+                          throwOnError: false,
+                        });
+                        return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
+                      } catch {
+                        // Fall through to render as code block if KaTeX fails
+                      }
+                    }
+                  }
 
                   // 代码高亮 / Code highlighting
                   return language ? (
