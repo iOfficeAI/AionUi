@@ -377,7 +377,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'copilot',
     authRequired: false,
     enabled: true, // ✅ GitHub Copilot CLI，使用 `copilot --acp --stdio` 启动
-    supportsStreaming: true,
+    supportsStreaming: false,
     acpArgs: ['--acp', '--stdio'], // copilot 使用 --acp --stdio 启动 ACP mode
   },
   qoder: {
@@ -396,7 +396,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true, // ✅ Mistral Vibe CLI，使用 `vibe-acp` 启动
     supportsStreaming: false,
-    acpArgs: [''],
+    acpArgs: [],
   },
   'openclaw-gateway': {
     id: 'openclaw-gateway',
