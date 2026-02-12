@@ -12,117 +12,10 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
+  issues: read
 
 jobs:
-  # Job 1: Check if PR links to an issue
-  check-issue-link:
-    name: Issue Link Check
-    runs-on: ubuntu-latest
-    outputs:
-      has_issue_link: ${{ steps.check.outputs.has_issue_link }}
-      is_new_pr: ${{ steps.check.outputs.is_new_pr }}
-    steps:
-      - name: Check if PR links to an issue
-        id: check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prBody = context.payload.pull_request.body || '';
-            const prNumber = context.payload.pull_request.number;
-            const prAuthor = context.payload.pull_request.user.login;
-            const action = context.payload.action;
-
-            // Check if this is a new PR (opened) vs edited
-            const isNewPr = action === 'opened';
-            core.setOutput('is_new_pr', isNewPr);
-
-            // Check if PR body contains issue linking keywords
-            const issuePatterns = [
-              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*#\d+/gi,
-              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+https:\/\/github\.com\/[^\/]+\/[^\/]+\/issues\/\d+/gi,
-              /#\d+/g
-            ];
-
-            let hasIssueLink = false;
-            for (const pattern of issuePatterns) {
-              if (pattern.test(prBody)) {
-                hasIssueLink = true;
-                break;
-              }
-            }
-
-            core.setOutput('has_issue_link', hasIssueLink);
-
-            // Check if this bot has already commented
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-            });
-
-            const botComment = comments.data.find(comment =>
-              (comment.user.type === 'Bot' || comment.user.login === 'github-actions[bot]') &&
-              comment.body.includes('<!-- pr-issue-check-bot -->')
-            );
-
-            if (hasIssueLink) {
-              // If issue is linked and bot comment exists, delete it
-              if (botComment) {
-                await github.rest.issues.deleteComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id,
-                });
-                core.info('Issue link found. Removed previous bot comment.');
-              }
-              core.info('PR is properly linked to an issue. Will proceed to code review.');
-              return;
-            }
-
-            // Post comment if not already commented
-            if (!botComment) {
-              const commentBody = [
-                '<!-- pr-issue-check-bot -->',
-                '',
-                '**Issue Link Required**',
-                '',
-                `Hi @${prAuthor},`,
-                '',
-                'Thank you for your contribution! However, this PR **cannot be merged** until it is linked to an issue.',
-                '',
-                '### Required Action',
-                '',
-                '1. **Create an Issue** (if one doesn\'t exist) - Describe what this PR addresses (bug fix, feature, enhancement, etc.)',
-                '2. **Link this PR to the Issue** - Add one of the following to your PR description:',
-                '   - `Fixes #<issue_number>`',
-                '   - `Closes #<issue_number>`',
-                '   - `Resolves #<issue_number>`',
-                '',
-                '### Why is this required?',
-                '',
-                'This helps us:',
-                '- Track all changes through our [Project Roadmap](https://github.com/orgs/iOfficeAI/projects/5)',
-                '- Maintain a clear history of issues and resolutions',
-                '- Ensure changes are properly reviewed and prioritized',
-                '',
-                '---',
-                '*Once you link an issue, this check will pass automatically.*'
-              ].join('\n');
-
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: commentBody,
-              });
-
-              core.info('Posted comment asking for issue link.');
-            }
-
-            // Fail the check - PR cannot be merged without issue link
-            core.setFailed('PR must be linked to an issue. Please add "Fixes #<issue_number>" to the PR description.');
-
-  # Job 2: Code quality checks (TypeScript, ESLint, Prettier)
+  # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
     if: github.event.action != 'edited'
@@ -150,7 +43,7 @@ jobs:
       - name: Prettier Check
         run: npm run format:check
 
-  # Job 3: Trigger GPT AI review (only on first PR submission)
+  # Job 2: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
     needs: [code-quality]
@@ -159,4 +52,19 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    secrets: inherit
+
+  # Job 3: Trigger GPT PR assessment for external contributors
+  assessment:
+    name: PR Assessment
+    needs: [code-quality]
+    if: >-
+      github.event.action == 'opened' &&
+      github.event.pull_request.author_association != 'OWNER' &&
+      github.event.pull_request.author_association != 'MEMBER'
+    uses: './.github/workflows/gpt-pr-assessment.yml'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
     secrets: inherit
