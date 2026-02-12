@@ -6,30 +6,14 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
 import { acpConversation, channel } from '@/common/ipcBridge';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
+import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-/**
- * Get available primary models for a provider (supports function calling)
- */
-const getAvailableModels = (provider: IProvider): string[] => {
-  const result: string[] = [];
-  for (const modelName of provider.model || []) {
-    const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
-    const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
-
-    if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
-      result.push(modelName);
-    }
-  }
-  return result;
-};
 
 /**
  * Preference row component
@@ -62,34 +46,13 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-/**
- * Status badge component
- */
-const StatusBadge: React.FC<{ status: 'running' | 'stopped' | 'error' | string; text?: string }> = ({ status, text }) => {
-  const colors = {
-    running: 'bg-green-500/20 text-green-600',
-    stopped: 'bg-gray-500/20 text-gray-500',
-    error: 'bg-red-500/20 text-red-600',
-  };
-
-  const defaultTexts = {
-    running: 'Running',
-    stopped: 'Stopped',
-    error: 'Error',
-  };
-
-  return <span className={`px-8px py-2px rd-4px text-12px ${colors[status as keyof typeof colors] || colors.stopped}`}>{text || defaultTexts[status as keyof typeof defaultTexts] || status}</span>;
-};
-
 interface TelegramConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
-  modelList: IProvider[];
-  selectedModel: TProviderWithModel | null;
+  modelSelection: GeminiModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
-  onModelChange: (model: TProviderWithModel | null) => void;
 }
 
-const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelList, selectedModel, onStatusChange, onModelChange }) => {
+const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t } = useTranslation();
 
   const [telegramToken, setTelegramToken] = useState('');
@@ -267,22 +230,6 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     setTestedBotUsername(null);
   };
 
-  // Save model selection
-  const handleModelSelect = async (provider: IProvider, modelName: string) => {
-    const newModel: TProviderWithModel = { ...provider, useModel: modelName };
-    onModelChange(newModel);
-    try {
-      await ConfigStorage.set('assistant.telegram.defaultModel', {
-        id: provider.id,
-        useModel: modelName,
-      });
-      Message.success(t('settings.assistant.modelSwitched', "Model switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"));
-    } catch (error) {
-      console.error('[ChannelSettings] Failed to save model:', error);
-      Message.error(t('settings.assistant.modelSaveFailed', 'Failed to save model'));
-    }
-  };
-
   // Approve pairing
   const handleApprovePairing = async (code: string) => {
     try {
@@ -418,50 +365,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
 
       {/* Default Model Selection */}
       <PreferenceRow label={t('settings.assistant.defaultModel', '对话模型')} description={t('settings.assistant.defaultModelDesc', '用于Agent对话时调用')}>
-        {isGeminiAgent ? (
-          <Dropdown
-            trigger='click'
-            position='br'
-            droplist={
-              <Menu selectedKeys={selectedModel ? [selectedModel.id + selectedModel.useModel] : []}>
-                {!modelList || modelList.length === 0 ? (
-                  <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center' disabled>
-                    {t('settings.assistant.noAvailableModels', 'No Gemini models configured')}
-                  </Menu.Item>
-                ) : (
-                  modelList.map((provider) => {
-                    const availableModels = getAvailableModels(provider);
-                    if (availableModels.length === 0) return null;
-                    return (
-                      <Menu.ItemGroup title={provider.name} key={provider.id}>
-                        {availableModels.map((modelName) => (
-                          <Menu.Item
-                            key={provider.id + modelName}
-                            className={selectedModel?.id + selectedModel?.useModel === provider.id + modelName ? '!bg-fill-2' : ''}
-                            onClick={() => {
-                              handleModelSelect(provider, modelName).catch((error) => {
-                                console.error('Failed to select model:', error);
-                              });
-                            }}
-                          >
-                            {modelName}
-                          </Menu.Item>
-                        ))}
-                      </Menu.ItemGroup>
-                    );
-                  })
-                )}
-              </Menu>
-            }
-          >
-            <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-              <span className='truncate'>{selectedModel?.useModel || t('settings.assistant.selectModel', 'Select Model')}</span>
-              <Down theme='outline' size={14} />
-            </Button>
-          </Dropdown>
-        ) : (
-          <div className='text-14px text-t-secondary min-w-160px'>{t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型')}</div>
-        )}
+        <GeminiModelSelector selection={isGeminiAgent ? modelSelection : undefined} disabled={!isGeminiAgent} label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined} variant='settings' />
       </PreferenceRow>
 
       {/* Next Steps Guide - show when bot is enabled and no authorized users yet */}
