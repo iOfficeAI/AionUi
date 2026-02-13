@@ -60,7 +60,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
           // Runtime options / 运行时选项
           yoloMode: options?.yoloMode,
           // Persisted session mode for resume / 持久化的会话模式用于恢复
-          acpSessionMode: conversation.extra.acpSessionMode,
+          sessionMode: conversation.extra.sessionMode,
         },
         conversation.model
       );
@@ -89,7 +89,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
         // Runtime options / 运行时选项
         yoloMode: options?.yoloMode,
         // Persisted session mode for resume / 持久化的会话模式用于恢复
-        acpSessionMode: conversation.extra.acpSessionMode,
+        sessionMode: conversation.extra.sessionMode,
       });
       if (!options?.skipCache) {
         taskList.push({ id: conversation.id, task });

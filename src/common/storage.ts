@@ -143,7 +143,7 @@ export type TChatConversation =
         /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
         presetAssistantId?: string;
         /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-        acpSessionMode?: string;
+        sessionMode?: string;
       }
     >
   | Omit<
@@ -165,6 +165,8 @@ export type TChatConversation =
           acpSessionId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
+          /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+          sessionMode?: string;
         }
       >,
       'model'
@@ -183,7 +185,7 @@ export type TChatConversation =
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-          acpSessionMode?: string;
+          sessionMode?: string;
         }
       >,
       'model'

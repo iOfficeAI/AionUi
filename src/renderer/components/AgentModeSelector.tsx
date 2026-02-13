@@ -54,6 +54,10 @@ export interface AgentModeSelectorProps {
   conversationId?: string;
   /** Compact mode: only show mode label + dropdown, no logo/name / 紧凑模式：仅显示模式标签和下拉 */
   compact?: boolean;
+  /** Initial mode override (for Guid page pre-conversation selection) */
+  initialMode?: string;
+  /** Callback when mode is selected locally (no conversationId needed) */
+  onModeSelect?: (mode: string) => void;
 }
 
 /**
@@ -63,15 +67,28 @@ export interface AgentModeSelectorProps {
  * 代理模式选择器 - 用于切换代理模式的下拉组件
  * 显示代理 logo 和名称，通过下拉菜单选择模式
  */
-const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentName, agentLogo, agentLogoIsEmoji, conversationId, compact }) => {
+const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentName, agentLogo, agentLogoIsEmoji, conversationId, compact, initialMode, onModeSelect }) => {
   const modes = getAgentModes(backend);
   const defaultMode = modes[0]?.value ?? 'default';
-  const [currentMode, setCurrentMode] = useState<string>(defaultMode);
+  // Validate initialMode against available modes; fall back to backend's default
+  // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')
+  const validInitialMode = initialMode && modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
+  const [currentMode, setCurrentMode] = useState<string>(validInitialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
-  const canSwitchMode = supportsModeSwitch(backend) && conversationId;
+  const canSwitchMode = supportsModeSwitch(backend) && (conversationId || onModeSelect);
   console.log(`[AgentModeSelector] render: backend=${backend}, conversationId=${conversationId}, canSwitchMode=${canSwitchMode}, modes=${modes.length}, currentMode=${currentMode}`);
+
+  // When initialMode prop changes (e.g. agent switch on Guid page), update local state.
+  // Validate against available modes to handle backends with non-standard default
+  // (e.g. opencode uses 'build' instead of 'default').
+  useEffect(() => {
+    if (initialMode !== undefined) {
+      const valid = modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
+      setCurrentMode(valid);
+    }
+  }, [initialMode, modes, defaultMode]);
 
   // Sync mode from backend when mounting or switching conversation tabs
   useEffect(() => {
@@ -99,7 +116,16 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
       // Close dropdown immediately after selection
       setDropdownVisible(false);
 
-      if (!conversationId || mode === currentMode) return;
+      if (mode === currentMode) return;
+
+      // Local mode (Guid page): update state and notify parent, no IPC needed
+      if (!conversationId && onModeSelect) {
+        setCurrentMode(mode);
+        onModeSelect(mode);
+        return;
+      }
+
+      if (!conversationId) return;
 
       setIsLoading(true);
       try {
@@ -123,7 +149,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
         setIsLoading(false);
       }
     },
-    [conversationId, currentMode]
+    [conversationId, currentMode, onModeSelect]
   );
 
   // Render logo based on source

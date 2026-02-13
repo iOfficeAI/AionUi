@@ -90,7 +90,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
       yoloMode?: boolean;
       /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-      acpSessionMode?: string;
+      sessionMode?: string;
     },
     model: TProviderWithModel
   ) {
@@ -102,7 +102,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.presetRules = data.presetRules;
     this.enabledSkills = data.enabledSkills;
     this.forceYoloMode = data.yoloMode;
-    this.currentMode = data.acpSessionMode || 'default';
+    this.currentMode = data.sessionMode || 'default';
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
@@ -140,9 +140,26 @@ export class GeminiAgentManager extends BaseAgentManager<
           enabledSkills: allEnabledSkills,
         });
 
-        // Determine yoloMode: forceYoloMode (cron jobs) takes priority over config setting
-        // 确定 yoloMode：forceYoloMode（定时任务）优先于配置设置
-        const yoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
+        // Determine yoloMode from legacy config (SecurityModalContent)
+        const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
+
+        // Migrate legacy yoloMode config to currentMode.
+        // When old config has yoloMode=true and no explicit session mode was set,
+        // initialize currentMode to 'yolo' so the mode selector reflects the setting.
+        // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
+        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+          this.currentMode = 'yolo';
+        }
+
+        // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
+        // on the Guid page, clear the legacy config so it won't re-activate next time.
+        if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+          void this.clearLegacyYoloConfig();
+        }
+
+        // Derive effective yoloMode from currentMode so that the worker respects
+        // the user's explicit mode choice. forceYoloMode (cron jobs) always takes priority.
+        const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
         return this.start({
           ...config,
@@ -160,8 +177,8 @@ export class GeminiAgentManager extends BaseAgentManager<
           // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
           // Enabled skills list for filtering skills in SkillManager
           enabledSkills: this.enabledSkills,
-          // Yolo mode: auto-approve all tool calls / 自动允许模式
-          yoloMode,
+          // Yolo mode: derived from currentMode, not directly from legacy config
+          yoloMode: effectiveYoloMode,
         });
       })
       .then(async () => {
@@ -347,6 +364,12 @@ export class GeminiAgentManager extends BaseAgentManager<
   private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
     const type = content.confirmationDetails?.type;
     console.log(`[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`);
+    if (this.currentMode === 'yolo') {
+      // yolo: auto-approve ALL operations
+      console.log(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
+      void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+      return true;
+    }
     if (this.currentMode === 'autoEdit') {
       // autoEdit: auto-approve edit (write/replace) and info (read) operations
       // Only exec and mcp still require manual confirmation
@@ -561,8 +584,16 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
     console.log(`[GeminiAgentManager] setMode: mode=${mode}, prev=${this.currentMode}, conversationId=${this.conversation_id}`);
+    const prev = this.currentMode;
     this.currentMode = mode;
     this.saveSessionMode(mode);
+
+    // Sync legacy yoloMode config: when leaving yolo mode, clear the old
+    // SecurityModalContent setting to prevent it from re-activating on next session.
+    if (prev === 'yolo' && mode !== 'yolo') {
+      void this.clearLegacyYoloConfig();
+    }
+
     console.log(`[GeminiAgentManager] setMode done: currentMode=${this.currentMode}`);
     return { success: true, data: { mode: this.currentMode } };
   }
@@ -579,12 +610,28 @@ export class GeminiAgentManager extends BaseAgentManager<
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
-          acpSessionMode: mode,
+          sessionMode: mode,
         };
         db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
       }
     } catch (error) {
       console.error('[GeminiAgentManager] Failed to save session mode:', error);
+    }
+  }
+
+  /**
+   * Clear legacy yoloMode in gemini.config.
+   * This syncs back to the old SecurityModalContent config key so that
+   * switching away from YOLO mode persists across new sessions.
+   */
+  private async clearLegacyYoloConfig(): Promise<void> {
+    try {
+      const config = await ProcessConfig.get('gemini.config');
+      if (config?.yoloMode) {
+        await ProcessConfig.set('gemini.config', { ...config, yoloMode: false });
+      }
+    } catch (error) {
+      console.error('[GeminiAgentManager] Failed to clear legacy yoloMode config:', error);
     }
   }
 

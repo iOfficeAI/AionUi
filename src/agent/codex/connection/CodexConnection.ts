@@ -91,6 +91,10 @@ export class CodexConnection {
   private nextId = 0;
   private pending = new Map<JsonRpcId, PendingReq>();
   private elicitationMap = new Map<string, JsonRpcId>(); // codex_call_id -> request id
+  // Pending auto-approval decisions: stored when respondElicitation is called before
+  // elicitation/create arrives (race condition between codex/event notification and
+  // elicitation/create request). Consumed when elicitation/create is received.
+  private pendingAutoApprovals = new Map<string, string>(); // callId -> decision
 
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
@@ -173,16 +177,18 @@ export class CodexConnection {
       // yoloMode: auto-approve all operations without user confirmation
       finalArgs = [...finalArgs, '-c', 'approval_policy=never'];
     } else {
-      // Read user's config.toml setting and pass it explicitly to mcp-server
+      // Read user's config.toml setting and pass it explicitly to mcp-server.
+      // IMPORTANT: Skip 'never' — AionUi manages approval decisions at the Manager
+      // layer (Plan / Auto Edit / Full Auto modes). Passing 'never' to CLI causes
+      // a dual-approval conflict where both CLI and Manager try to approve,
+      // leading to the CLI hanging on exec_approval_request events.
       const userApprovalPolicy = readUserApprovalPolicyConfig();
-      if (userApprovalPolicy) {
+      if (userApprovalPolicy && userApprovalPolicy !== 'never') {
         finalArgs = [...finalArgs, '-c', `approval_policy=${userApprovalPolicy}`];
       }
-      // If no user config, don't add any flag - let Codex use its default
-      // Note: In workspace-write sandbox mode, CLI auto-approves within workspace regardless of approval_policy
+      // If no user config or user had 'never', don't add any flag -
+      // let Codex use its default (ensures approval events are sent to us)
     }
-
-    console.log(`[CodexConnection] start: cliPath=${cliPath}, yoloMode=${options?.yoloMode}, finalArgs=${JSON.stringify(finalArgs)}`);
 
     return new Promise((resolve, reject) => {
       try {
@@ -303,8 +309,9 @@ export class CodexConnection {
       if (p.timeout) clearTimeout(p.timeout);
       this.pending.delete(id);
     }
-    // Clear pending elicitations
+    // Clear pending elicitations and auto-approvals
     this.elicitationMap.clear();
+    this.pendingAutoApprovals.clear();
     return Promise.resolve();
   }
 
@@ -434,8 +441,20 @@ export class CodexConnection {
         if (codexCallId) {
           const callIdStr = String(codexCallId);
 
-          this.elicitationMap.set(callIdStr, reqId);
-          this.isPaused = true;
+          // Check for pending auto-approval (set when addConfirmation auto-approved
+          // via respondElicitation before this elicitation/create arrived)
+          const pendingDecision = this.pendingAutoApprovals.get(callIdStr);
+          if (pendingDecision) {
+            this.pendingAutoApprovals.delete(callIdStr);
+            const result = { decision: pendingDecision };
+            const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
+            const line = JSON.stringify(response) + '\n';
+            this.child?.stdin?.write(line);
+            // Don't pause or add to map — already responded
+          } else {
+            this.elicitationMap.set(callIdStr, reqId);
+            this.isPaused = true;
+          }
         } else {
           this.isPaused = true;
         }
@@ -491,6 +510,9 @@ export class CodexConnection {
     const normalized = callId.replace(/^patch_/, '').replace(/^elicitation_/, '');
     const reqId = this.elicitationMap.get(normalized) || this.elicitationMap.get(callId);
     if (reqId === undefined) {
+      // codex/event notification arrives before elicitation/create request.
+      // Store decision so we can auto-respond when elicitation/create comes in.
+      this.pendingAutoApprovals.set(normalized, decision);
       return;
     }
     const result = { decision };
