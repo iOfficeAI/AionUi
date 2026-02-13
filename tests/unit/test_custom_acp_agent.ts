@@ -206,7 +206,9 @@ describe('Custom ACP Agent Configuration', () => {
 
     it('should use custom args when provided for npx command', () => {
       const config = createGenericSpawnConfig('npx @my-agent/cli', workingDir, ['--mode', 'acp']);
-      expect(config.command).toBe(process.platform === 'win32' ? 'npx.cmd' : 'npx');
+      // resolveNpxPath may return full path (e.g. /Users/x/.nvm/.../bin/npx) or bare npx
+      const npxSuffix = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+      expect(config.command.endsWith(npxSuffix)).toBe(true);
       expect(config.args).toEqual(['@my-agent/cli', '--mode', 'acp']);
     });
 
@@ -218,7 +220,8 @@ describe('Custom ACP Agent Configuration', () => {
 
     it('should default to --experimental-acp when no custom args for npx command', () => {
       const config = createGenericSpawnConfig('npx @anthropic/claude-code', workingDir);
-      expect(config.command).toBe(process.platform === 'win32' ? 'npx.cmd' : 'npx');
+      const npxSuffix = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+      expect(config.command.endsWith(npxSuffix)).toBe(true);
       expect(config.args).toEqual(['@anthropic/claude-code', '--experimental-acp']);
     });
 
