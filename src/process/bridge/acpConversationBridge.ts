@@ -73,8 +73,8 @@ export function initAcpConversationBridge(): void {
     const agents = acpDetector.getDetectedAgents();
     const agent = agents.find((a) => a.backend === backend);
 
-    // Skip CLI check for claude (uses npx) and codex (has its own detection)
-    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codex') {
+    // Skip CLI check for claude/codebuddy (uses npx) and codex (has its own detection)
+    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
       return {
         success: false,
         msg: `${backend} CLI not found`,

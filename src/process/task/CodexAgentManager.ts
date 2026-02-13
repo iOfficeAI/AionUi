@@ -500,6 +500,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Cleanup completed
   }
 
+  /**
+   * Check if yoloMode is already enabled for this Codex agent.
+   * Codex agents cannot change yoloMode at runtime,
+   * so this only returns true if the agent was started with yoloMode.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return !!this.options.yoloMode;
+  }
+
   // Stop current Codex stream in-process (override ForkTask default which targets a worker)
   stop() {
     return this.agent?.stop?.() ?? Promise.resolve();

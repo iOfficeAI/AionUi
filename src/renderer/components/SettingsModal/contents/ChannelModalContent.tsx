@@ -5,85 +5,90 @@
  */
 
 import type { IChannelPluginStatus } from '@/channels/types';
-import { ipcBridge } from '@/common';
-import { channel } from '@/common/ipcBridge';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
+import { channel } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
-import { uuid } from '@/common/utils';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import { useModelProviderList } from '@/renderer/hooks/useModelProviderList';
+import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
+import { useGeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 import { useSettingsViewMode } from '../settingsViewContext';
 import ChannelItem from './channels/ChannelItem';
 import type { ChannelConfig } from './channels/types';
 import LarkConfigForm from './LarkConfigForm';
 import TelegramConfigForm from './TelegramConfigForm';
 
-/**
- * Get available primary models for a provider (supports function calling)
- */
-const getAvailableModels = (provider: IProvider): string[] => {
-  const result: string[] = [];
-  for (const modelName of provider.model || []) {
-    const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
-    const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
-
-    if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
-      result.push(modelName);
-    }
-  }
-  return result;
-};
+type ChannelModelConfigKey = 'assistant.telegram.defaultModel' | 'assistant.lark.defaultModel';
 
 /**
- * Check if provider has available models
+ * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
+ * for a specific channel config key (e.g. 'assistant.telegram.defaultModel').
+ *
+ * Restoration is done by resolving the saved model reference into a full
+ * TProviderWithModel and passing it as `initialModel` — this avoids triggering
+ * the onSelectModel callback (and its toast) on mount.
  */
-const hasAvailableModels = (provider: IProvider): boolean => {
-  return getAvailableModels(provider).length > 0;
-};
+const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModelSelection => {
+  const { t } = useTranslation();
 
-/**
- * Hook to get available model list for Telegram channel
- * Matches the implementation in guid/index.tsx
- */
-const useChannelModelList = () => {
-  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
-  const { data: modelConfig } = useSWR('model.config.assistant', () => {
-    return ipcBridge.mode.getModelConfig.invoke().then((data: IProvider[]) => {
-      return (data || []).filter((platform: IProvider) => !!platform.model.length);
-    });
-  });
+  // Resolve persisted model into a full TProviderWithModel for initialModel.
+  // useModelProviderList is SWR-backed so the duplicate call inside
+  // useGeminiModelSelection is deduplicated automatically.
+  const { providers } = useModelProviderList();
+  const [resolvedInitialModel, setResolvedInitialModel] = useState<TProviderWithModel | undefined>(undefined);
+  const [restored, setRestored] = useState(false);
 
-  const geminiModelValues = useMemo(() => geminiModeOptions.map((option) => option.value), [geminiModeOptions]);
+  useEffect(() => {
+    if (restored || providers.length === 0) return;
 
-  const modelList = useMemo(() => {
-    let allProviders: IProvider[] = [];
+    const restore = async () => {
+      try {
+        const saved = (await ConfigStorage.get(configKey)) as { id: string; useModel: string } | undefined;
+        if (saved?.id && saved?.useModel) {
+          const provider = providers.find((p) => p.id === saved.id);
+          if (provider) {
+            // Google Auth provider's model array only contains top-level modes
+            // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
+            // 'gemini-2.5-flash' are also valid — skip strict membership check.
+            const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+            if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
+              setResolvedInitialModel({
+                ...provider,
+                useModel: saved.useModel,
+              } as TProviderWithModel);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[ChannelSettings] Failed to restore model for ${configKey}:`, error);
+      } finally {
+        setRestored(true);
+      }
+    };
 
-    if (isGoogleAuth) {
-      // Add Google Auth provider with available models
-      const geminiProvider: IProvider = {
-        id: uuid(),
-        name: 'Gemini Google Auth',
-        platform: 'gemini-with-google-auth',
-        baseUrl: '',
-        apiKey: '',
-        model: geminiModelValues,
-        capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
-      };
-      allProviders = [geminiProvider, ...(modelConfig || [])];
-    } else {
-      allProviders = modelConfig || [];
-    }
+    void restore();
+  }, [configKey, providers, restored]);
 
-    // Filter providers with available primary models
-    return allProviders.filter(hasAvailableModels);
-  }, [geminiModelValues, isGoogleAuth, modelConfig]);
+  // Only called on explicit user selection — not during restoration
+  const onSelectModel = useCallback(
+    async (provider: IProvider, modelName: string) => {
+      try {
+        await ConfigStorage.set(configKey, { id: provider.id, useModel: modelName });
+        Message.success(t('settings.assistant.modelSwitched', "Model switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"));
+        return true;
+      } catch (error) {
+        console.error(`[ChannelSettings] Failed to save model for ${configKey}:`, error);
+        Message.error(t('settings.assistant.modelSaveFailed', 'Failed to save model'));
+        return false;
+      }
+    },
+    [configKey, t]
+  );
 
-  return { modelList };
+  return useGeminiModelSelection({ initialModel: resolvedInitialModel, onSelectModel });
 };
 
 /**
@@ -97,7 +102,6 @@ const ChannelModalContent: React.FC = () => {
   // Plugin state
   const [pluginStatus, setPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [larkPluginStatus, setLarkPluginStatus] = useState<IChannelPluginStatus | null>(null);
-  const [loading, setLoading] = useState(false);
   const [enableLoading, setEnableLoading] = useState(false);
   const [larkEnableLoading, setLarkEnableLoading] = useState(false);
 
@@ -109,14 +113,12 @@ const ChannelModalContent: React.FC = () => {
     lark: true,
   });
 
-  // Model selection state
-  const { modelList } = useChannelModelList();
-  const [selectedModel, setSelectedModel] = useState<TProviderWithModel | null>(null);
-  const [larkSelectedModel, setLarkSelectedModel] = useState<TProviderWithModel | null>(null);
+  // Model selection state — uses unified hook with ConfigStorage persistence
+  const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
+  const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
 
   // Load plugin status
   const loadPluginStatus = useCallback(async () => {
-    setLoading(true);
     try {
       const result = await channel.getPluginStatus.invoke();
       if (result.success && result.data) {
@@ -127,8 +129,6 @@ const ChannelModalContent: React.FC = () => {
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load plugin status:', error);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -136,37 +136,6 @@ const ChannelModalContent: React.FC = () => {
   useEffect(() => {
     void loadPluginStatus();
   }, [loadPluginStatus]);
-
-  // Load saved model selection
-  useEffect(() => {
-    if (!modelList || modelList.length === 0) return;
-
-    const loadSavedModel = async () => {
-      try {
-        // Load Telegram model
-        const savedTelegramModel = await ConfigStorage.get('assistant.telegram.defaultModel');
-        if (savedTelegramModel && savedTelegramModel.id && savedTelegramModel.useModel) {
-          const provider = modelList.find((p) => p.id === savedTelegramModel.id);
-          if (provider && provider.model?.includes(savedTelegramModel.useModel)) {
-            setSelectedModel({ ...provider, useModel: savedTelegramModel.useModel });
-          }
-        }
-
-        // Load Lark model
-        const savedLarkModel = await ConfigStorage.get('assistant.lark.defaultModel');
-        if (savedLarkModel && savedLarkModel.id && savedLarkModel.useModel) {
-          const provider = modelList.find((p) => p.id === savedLarkModel.id);
-          if (provider && provider.model?.includes(savedLarkModel.useModel)) {
-            setLarkSelectedModel({ ...provider, useModel: savedLarkModel.useModel });
-          }
-        }
-      } catch (error) {
-        console.error('[ChannelSettings] Failed to load saved model:', error);
-      }
-    };
-
-    void loadSavedModel();
-  }, [modelList]);
 
   // Listen for plugin status changes
   useEffect(() => {
@@ -279,8 +248,8 @@ const ChannelModalContent: React.FC = () => {
       disabled: enableLoading,
       isConnected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
-      defaultModel: selectedModel?.useModel,
-      content: <TelegramConfigForm pluginStatus={pluginStatus} modelList={modelList || []} selectedModel={selectedModel} onStatusChange={setPluginStatus} onModelChange={setSelectedModel} />,
+      defaultModel: telegramModelSelection.currentModel?.useModel,
+      content: <TelegramConfigForm pluginStatus={pluginStatus} modelSelection={telegramModelSelection} onStatusChange={setPluginStatus} />,
     };
 
     const larkChannel: ChannelConfig = {
@@ -291,8 +260,8 @@ const ChannelModalContent: React.FC = () => {
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
       isConnected: larkPluginStatus?.connected || false,
-      defaultModel: larkSelectedModel?.useModel,
-      content: <LarkConfigForm pluginStatus={larkPluginStatus} modelList={modelList || []} selectedModel={larkSelectedModel} onStatusChange={setLarkPluginStatus} onModelChange={setLarkSelectedModel} />,
+      defaultModel: larkModelSelection.currentModel?.useModel,
+      content: <LarkConfigForm pluginStatus={larkPluginStatus} modelSelection={larkModelSelection} onStatusChange={setLarkPluginStatus} />,
     };
 
     const comingSoonChannels: ChannelConfig[] = [
@@ -317,7 +286,7 @@ const ChannelModalContent: React.FC = () => {
     ];
 
     return [telegramChannel, larkChannel, ...comingSoonChannels];
-  }, [pluginStatus, larkPluginStatus, selectedModel, larkSelectedModel, modelList, enableLoading, larkEnableLoading, t]);
+  }, [pluginStatus, larkPluginStatus, telegramModelSelection, larkModelSelection, enableLoading, larkEnableLoading, t]);
 
   // Get toggle handler for each channel
   const getToggleHandler = (channelId: string) => {

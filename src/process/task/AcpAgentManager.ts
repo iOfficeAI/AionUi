@@ -467,6 +467,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
+   * Ensure yoloMode is enabled for cron job reuse.
+   * If already enabled, returns true immediately.
+   * If not, enables yoloMode on the active ACP session dynamically.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    if (this.options.yoloMode) {
+      return true;
+    }
+    this.options.yoloMode = true;
+    if (this.agent?.isConnected && this.agent?.hasActiveSession) {
+      try {
+        await this.agent.enableYoloMode();
+        return true;
+      } catch (error) {
+        console.error('[AcpAgentManager] Failed to enable yoloMode dynamically:', error);
+        return false;
+      }
+    }
+    // Agent not connected yet - yoloMode will be applied on next start()
+    return true;
+  }
+
+  /**
    * Override stop() because AcpAgentManager doesn't use ForkTask's subprocess architecture.
    * It directly creates AcpAgent in the main process, so we need to call agent.stop() directly.
    */
@@ -498,17 +521,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * @returns Promise that resolves with success status and current mode
    */
   async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
-    console.log(`[AcpAgentManager] setMode called: mode=${mode}, hasAgent=${!!this.agent}`);
-
     // If agent is not initialized, try to initialize it first
     // 如果 agent 未初始化，先尝试初始化
     if (!this.agent) {
-      console.log('[AcpAgentManager] Agent not initialized, attempting to initialize...');
       try {
         await this.initAgent(this.options);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error('[AcpAgentManager] Failed to initialize agent for mode switch:', errorMsg);
         return { success: false, msg: `Agent initialization failed: ${errorMsg}` };
       }
     }
@@ -518,9 +537,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return { success: false, msg: 'Agent not initialized' };
     }
 
-    console.log(`[AcpAgentManager] Calling agent.setMode(${mode})`);
     const result = await this.agent.setMode(mode);
-    console.log(`[AcpAgentManager] setMode result: success=${result.success}, error=${result.error}`);
     if (result.success) {
       const prev = this.currentMode;
       this.currentMode = mode;
@@ -579,6 +596,45 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     } catch (error) {
       console.error('[AcpAgentManager] Failed to save session mode:', error);
     }
+  }
+
+  /**
+   * Override kill() to ensure ACP CLI process is terminated.
+   *
+   * Problem: AcpAgentManager spawns CLI agents (claude, codex, etc.) as child
+   * processes via AcpConnection. The default kill() from the base class only
+   * kills the immediate worker, leaving the CLI process running as an orphan.
+   *
+   * Solution: Call agent.stop() first, which triggers AcpConnection.disconnect()
+   * → ChildProcess.kill(). We add a grace period for the process to exit
+   * cleanly before calling super.kill() to tear down the worker.
+   *
+   * A hard timeout ensures we don't hang forever if stop() gets stuck.
+   * An idempotent doKill() guard prevents double super.kill() when the hard
+   * timeout and graceful path race against each other.
+   */
+  kill() {
+    let killed = false;
+    const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
+    const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs
+
+    const doKill = () => {
+      if (killed) return;
+      killed = true;
+      clearTimeout(hardTimer);
+      super.kill();
+    };
+
+    // Hard fallback: force kill after timeout regardless
+    const hardTimer = setTimeout(doKill, HARD_TIMEOUT_MS);
+
+    // Graceful path: stop → grace period → kill
+    void (this.agent?.stop?.() || Promise.resolve())
+      .catch((err) => {
+        console.warn('[AcpAgentManager] agent.stop() failed during kill:', err);
+      })
+      .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
+      .finally(doKill);
   }
 
   /**

@@ -634,6 +634,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 <Select.Option value='gemini'>Gemini</Select.Option>
                 <Select.Option value='claude'>Claude</Select.Option>
                 <Select.Option value='codex'>Codex</Select.Option>
+                <Select.Option value='codebuddy'>CodeBuddy</Select.Option>
                 <Select.Option value='opencode'>OpenCode</Select.Option>
               </Select>
             </div>

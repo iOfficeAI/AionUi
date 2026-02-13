@@ -17,18 +17,34 @@ import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMai
 import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
 import type { AcpBackend } from '@/types/acpTypes';
 
 /**
  * Get the default model for Channel assistant (Telegram/Lark)
  * Reads from saved config or falls back to default Gemini model
  */
+
 export async function getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel> {
   try {
     // Try to get saved model selection
     const savedModel = platform === 'lark' ? await ProcessConfig.get('assistant.lark.defaultModel') : await ProcessConfig.get('assistant.telegram.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
-      // Get full provider config from model.config
+      // Google Auth provider is a frontend-only virtual provider — it has no
+      // entry in model.config. For Google Auth, return a minimal config that
+      // lets the Gemini CLI use the selected model via Google authentication.
+      if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
+        return {
+          id: GOOGLE_AUTH_PROVIDER_ID,
+          platform: 'gemini-with-google-auth',
+          name: 'Gemini Google Auth',
+          baseUrl: '',
+          apiKey: '',
+          useModel: savedModel.useModel,
+        } as TProviderWithModel;
+      }
+
+      // For regular (API-key-based) providers, look up full config
       const providers = await ProcessConfig.get('model.config');
       if (providers && Array.isArray(providers)) {
         const provider = providers.find((p) => p.id === savedModel.id);

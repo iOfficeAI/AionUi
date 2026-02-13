@@ -571,7 +571,6 @@ export class GeminiAgentManager extends BaseAgentManager<
    * 获取当前会话模式。
    */
   getMode(): { mode: string; initialized: boolean } {
-    console.log(`[GeminiAgentManager] getMode: mode=${this.currentMode}, conversationId=${this.conversation_id}`);
     return { mode: this.currentMode, initialized: true };
   }
 
@@ -583,7 +582,6 @@ export class GeminiAgentManager extends BaseAgentManager<
    * not via a protocol-level session/set_mode call.
    */
   async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
-    console.log(`[GeminiAgentManager] setMode: mode=${mode}, prev=${this.currentMode}, conversationId=${this.conversation_id}`);
     const prev = this.currentMode;
     this.currentMode = mode;
     this.saveSessionMode(mode);
@@ -594,8 +592,16 @@ export class GeminiAgentManager extends BaseAgentManager<
       void this.clearLegacyYoloConfig();
     }
 
-    console.log(`[GeminiAgentManager] setMode done: currentMode=${this.currentMode}`);
     return { success: true, data: { mode: this.currentMode } };
+  }
+
+  /**
+   * Check if yoloMode is already enabled for this Gemini worker.
+   * Gemini workers cannot change yoloMode at runtime (forked process),
+   * so this only returns true if the worker was started with yoloMode.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return !!this.forceYoloMode;
   }
 
   /**
