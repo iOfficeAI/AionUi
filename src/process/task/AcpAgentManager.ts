@@ -463,6 +463,45 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
+   * Override kill() to ensure ACP CLI process is terminated.
+   *
+   * Problem: AcpAgentManager spawns CLI agents (claude, codex, etc.) as child
+   * processes via AcpConnection. The default kill() from the base class only
+   * kills the immediate worker, leaving the CLI process running as an orphan.
+   *
+   * Solution: Call agent.stop() first, which triggers AcpConnection.disconnect()
+   * → ChildProcess.kill(). We add a grace period for the process to exit
+   * cleanly before calling super.kill() to tear down the worker.
+   *
+   * A hard timeout ensures we don't hang forever if stop() gets stuck.
+   * An idempotent doKill() guard prevents double super.kill() when the hard
+   * timeout and graceful path race against each other.
+   */
+  kill() {
+    let killed = false;
+    const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
+    const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs
+
+    const doKill = () => {
+      if (killed) return;
+      killed = true;
+      clearTimeout(hardTimer);
+      super.kill();
+    };
+
+    // Hard fallback: force kill after timeout regardless
+    const hardTimer = setTimeout(doKill, HARD_TIMEOUT_MS);
+
+    // Graceful path: stop → grace period → kill
+    void (this.agent?.stop?.() || Promise.resolve())
+      .catch((err) => {
+        console.warn('[AcpAgentManager] agent.stop() failed during kill:', err);
+      })
+      .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
+      .finally(doKill);
+  }
+
+  /**
    * Save ACP session ID to database for resume support.
    * 保存 ACP session ID 到数据库以支持会话恢复。
    */
