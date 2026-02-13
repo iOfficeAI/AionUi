@@ -248,7 +248,8 @@ export function initModelBridge(): void {
       try {
         // 使用自定义 base_url 或默认的 Gemini endpoint
         // Use custom base_url or default Gemini endpoint
-        const geminiUrl = base_url ? `${base_url}/models?key=${encodeURIComponent(actualApiKey)}` : `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
+        const geminiBaseUrl = base_url?.replace(/\/+$/, '') || 'https://generativelanguage.googleapis.com';
+        const geminiUrl = `${geminiBaseUrl}/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
 
         const response = await fetch(geminiUrl);
 
