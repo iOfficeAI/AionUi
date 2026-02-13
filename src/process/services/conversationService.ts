@@ -135,7 +135,7 @@ export class ConversationService {
         const enabledSkills = extraWithPresets.enabledSkills;
         const presetAssistantId = extraWithPresets.presetAssistantId;
 
-        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId);
+        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode);
       } else if (type === 'acp') {
         conversation = await createAcpAgent(params);
       } else if (type === 'codex') {

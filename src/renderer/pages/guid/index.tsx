@@ -26,6 +26,8 @@ import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import { supportsModeSwitch } from '@/renderer/constants/agentModes';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
@@ -341,6 +343,7 @@ const Guid: React.FC = () => {
   const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
   const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
+  const [selectedMode, setSelectedMode] = useState<string>('default');
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
@@ -613,6 +616,44 @@ const Guid: React.FC = () => {
     if (!target) return;
     target.scrollIntoView({ block: 'nearest' });
   }, [mentionActiveIndex, mentionOpen, mentionSelectorOpen]);
+
+  // Read legacy yoloMode config (from old SecurityModalContent settings).
+  // If yoloMode was enabled for the selected agent, pre-select YOLO mode.
+  // If false, keep default — no action needed.
+  useEffect(() => {
+    setSelectedMode('default'); // Reset on agent change
+    if (!selectedAgent) return;
+
+    const readLegacyYoloMode = async () => {
+      try {
+        let yoloMode = false;
+        if (selectedAgent === 'gemini') {
+          const config = await ConfigStorage.get('gemini.config');
+          yoloMode = config?.yoloMode ?? false;
+        } else if (selectedAgent === 'codex') {
+          const config = await ConfigStorage.get('codex.config');
+          yoloMode = config?.yoloMode ?? false;
+        } else if (selectedAgent !== 'custom' && selectedAgent !== 'openclaw-gateway' && selectedAgent !== 'nanobot') {
+          const config = await ConfigStorage.get('acp.config');
+          yoloMode = (config?.[selectedAgent as AcpBackend] as any)?.yoloMode ?? false;
+        }
+        if (yoloMode) {
+          // Map to the correct yolo mode value for this backend
+          const yoloValues: Record<string, string> = {
+            claude: 'bypassPermissions',
+            gemini: 'yolo',
+            codex: 'yolo',
+            iflow: 'yolo',
+            qwen: 'yolo',
+          };
+          setSelectedMode(yoloValues[selectedAgent] || 'yolo');
+        }
+      } catch {
+        /* silent */
+      }
+    };
+    void readLegacyYoloMode();
+  }, [selectedAgent]);
 
   const { compositionHandlers, isComposing } = useCompositionInput();
 
@@ -939,6 +980,10 @@ const Guid: React.FC = () => {
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: presetAssistantIdToPass,
+            // Initial session mode from Guid page mode selector.
+            // Always pass the value (including 'default') so the agent manager can
+            // distinguish "user explicitly chose default" from "no selection made".
+            sessionMode: selectedMode,
           },
         });
 
@@ -997,6 +1042,8 @@ const Guid: React.FC = () => {
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
+            // Initial session mode from Guid page mode selector
+            sessionMode: selectedMode,
           },
         });
 
@@ -1188,6 +1235,8 @@ const Guid: React.FC = () => {
             // 使用原始 agentInfo 的 ID，确保 agent 类型切换后仍保留预设助手信息
             // Use original agentInfo's ID to preserve preset assistant info after agent type fallback
             presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
+            // Initial session mode from Guid page mode selector
+            sessionMode: selectedMode,
           },
         });
 
@@ -1694,6 +1743,8 @@ const Guid: React.FC = () => {
                     </Button>
                   </Tooltip>
                 )}
+
+                {supportsModeSwitch(selectedAgent) && <AgentModeSelector backend={selectedAgent} compact initialMode={selectedMode} onModeSelect={(mode) => setSelectedMode(mode)} />}
 
                 {isPresetAgent && selectedAgentInfo && (
                   <div

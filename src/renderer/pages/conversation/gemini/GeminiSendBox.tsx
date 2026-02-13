@@ -24,6 +24,7 @@ import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/mess
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
 import { Button, Message, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
@@ -809,18 +810,21 @@ const GeminiSendBox: React.FC<{
         defaultMultiLine={true}
         lockMultiLine={true}
         tools={
-          <Button
-            type='secondary'
-            shape='circle'
-            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-            onClick={() => {
-              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                if (files && files.length > 0) {
-                  setUploadFile([...uploadFile, ...files]);
-                }
-              });
-            }}
-          />
+          <div className='flex items-center gap-4px'>
+            <Button
+              type='secondary'
+              shape='circle'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              onClick={() => {
+                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                  if (files && files.length > 0) {
+                    setUploadFile([...uploadFile, ...files]);
+                  }
+                });
+              }}
+            />
+            <AgentModeSelector backend='gemini' conversationId={conversation_id} compact />
+          </div>
         }
         sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}
         prefix={

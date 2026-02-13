@@ -37,7 +37,7 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string): Promise<TChatConversation> => {
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
 
   return {
@@ -57,6 +57,8 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId,
+      // Initial session mode from Guid page mode selector
+      sessionMode,
     },
     desc: finalCustomWorkspace ? newWorkspace : '',
     createTime: Date.now(),
@@ -84,6 +86,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
+      // Initial session mode selected on Guid page (from AgentModeSelector)
+      sessionMode: extra.sessionMode,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -108,6 +112,8 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
+      // Initial session mode selected on Guid page (from AgentModeSelector)
+      sessionMode: extra.sessionMode,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

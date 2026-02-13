@@ -18,7 +18,7 @@ import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
 import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
+import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, IFLOW_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
@@ -225,6 +225,7 @@ export class AcpAgent {
           claude: CLAUDE_YOLO_SESSION_MODE,
           codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
+          iflow: IFLOW_YOLO_SESSION_MODE,
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
@@ -1031,6 +1032,32 @@ export class AcpAgent {
     this.stop().catch((error) => {
       console.error('Error stopping ACP agent:', error);
     });
+  }
+
+  /**
+   * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
+   * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
+   *
+   * @param mode - The mode ID to set
+   * @returns Promise that resolves when mode is set
+   */
+  async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
+    console.log(`[AcpAgent] setMode called: mode=${mode}, isConnected=${this.connection.isConnected}, hasActiveSession=${this.connection.hasActiveSession}`);
+
+    if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+      console.log('[AcpAgent] No active session, cannot switch mode');
+      return { success: false, error: 'No active session. Please send a message first to establish a session.' };
+    }
+    try {
+      console.log(`[AcpAgent] Calling connection.setSessionMode(${mode})`);
+      const response = await this.connection.setSessionMode(mode);
+      console.log('[AcpAgent] setSessionMode response:', JSON.stringify(response));
+      return { success: true };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[AcpAgent] Failed to set mode:', errorMsg);
+      return { success: false, error: errorMsg };
+    }
   }
 
   private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {

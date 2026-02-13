@@ -38,6 +38,8 @@ interface AcpAgentManagerData {
   acpSessionId?: string;
   /** Last update time of ACP session / ACP session 最后更新时间 */
   acpSessionUpdatedAt?: number;
+  /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+  sessionMode?: string;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -46,6 +48,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private bootstrap: Promise<AcpAgent> | undefined;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
+  private currentMode: string = 'default';
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -55,6 +58,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
+    this.currentMode = data.sessionMode || 'default';
     this.status = 'pending';
   }
 
@@ -94,7 +98,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
         // yoloMode priority: data.yoloMode (from CronService) > config setting
         // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-        yoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+        const legacyYoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+
+        // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
+        // Maps to each backend's native yolo mode value for correct protocol behavior.
+        // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
+        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+          const yoloModeValues: Record<string, string> = {
+            claude: 'bypassPermissions',
+            qwen: 'yolo',
+            iflow: 'yolo',
+          };
+          this.currentMode = yoloModeValues[data.backend] || 'yolo';
+        }
+
+        // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
+        // on the Guid page, clear the legacy config so it won't re-activate next time.
+        if (legacyYoloMode && data.sessionMode && !this.isYoloMode(data.sessionMode)) {
+          void this.clearLegacyYoloConfig();
+        }
+
+        // Derive effective yoloMode from currentMode so that the agent respects
+        // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
+        yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
 
         // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
         const backendConfig = ACP_BACKENDS_ALL[data.backend];
@@ -281,7 +307,19 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           });
         },
       });
-      return this.agent.start().then(() => this.agent);
+      return this.agent.start().then(async () => {
+        // Re-apply persisted mode after session start/resume
+        // 在会话启动/恢复后重新应用持久化的模式
+        if (this.currentMode && this.currentMode !== 'default') {
+          try {
+            await this.agent.setMode(this.currentMode);
+            console.log(`[AcpAgentManager] Re-applied persisted mode: ${this.currentMode}`);
+          } catch (error) {
+            console.warn(`[AcpAgentManager] Failed to re-apply mode ${this.currentMode}:`, error);
+          }
+        }
+        return this.agent;
+      });
     })();
     return this.bootstrap;
   }
@@ -460,6 +498,104 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return this.agent.stop();
     }
     return Promise.resolve();
+  }
+
+  /**
+   * Get the current session mode for this agent.
+   * 获取此代理的当前会话模式。
+   *
+   * @returns Object with current mode and whether agent is initialized
+   */
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: !!this.agent };
+  }
+
+  /**
+   * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
+   * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
+   *
+   * Note: Agent must be initialized (user must have sent at least one message)
+   * before mode switching is possible, as we need an active ACP session.
+   *
+   * @param mode - The mode ID to set
+   * @returns Promise that resolves with success status and current mode
+   */
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    // If agent is not initialized, try to initialize it first
+    // 如果 agent 未初始化，先尝试初始化
+    if (!this.agent) {
+      try {
+        await this.initAgent(this.options);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return { success: false, msg: `Agent initialization failed: ${errorMsg}` };
+      }
+    }
+
+    // Check again after initialization attempt
+    if (!this.agent) {
+      return { success: false, msg: 'Agent not initialized' };
+    }
+
+    const result = await this.agent.setMode(mode);
+    if (result.success) {
+      const prev = this.currentMode;
+      this.currentMode = mode;
+      this.saveSessionMode(mode);
+
+      // Sync legacy yoloMode config: when leaving yolo mode, clear the old
+      // SecurityModalContent setting to prevent it from re-activating on next session.
+      if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
+        void this.clearLegacyYoloConfig();
+      }
+    }
+    return { success: result.success, msg: result.error, data: { mode: this.currentMode } };
+  }
+
+  /** Check if a mode value represents YOLO mode for any backend */
+  private isYoloMode(mode: string): boolean {
+    return mode === 'yolo' || mode === 'bypassPermissions';
+  }
+
+  /**
+   * Clear legacy yoloMode in acp.config for the current backend.
+   * This syncs back to the old SecurityModalContent config key so that
+   * switching away from YOLO mode persists across new sessions.
+   */
+  private async clearLegacyYoloConfig(): Promise<void> {
+    try {
+      const config = await ProcessConfig.get('acp.config');
+      const backendConfig = config?.[this.options.backend];
+      if ((backendConfig as any)?.yoloMode) {
+        await ProcessConfig.set('acp.config', {
+          ...config,
+          [this.options.backend]: { ...backendConfig, yoloMode: false },
+        });
+      }
+    } catch (error) {
+      console.error('[AcpAgentManager] Failed to clear legacy yoloMode config:', error);
+    }
+  }
+
+  /**
+   * Save session mode to database for resume support.
+   * 保存会话模式到数据库以支持恢复。
+   */
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          sessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[AcpAgentManager] Failed to save session mode:', error);
+    }
   }
 
   /**

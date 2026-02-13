@@ -22,6 +22,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { getDatabase } from '@process/database';
 import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
@@ -40,6 +41,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   private isFirstMessage: boolean = true;
   private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
 
+  /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
+  private currentMode: string = 'default';
+
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
     super('codex', data);
@@ -47,6 +51,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.workspace = data.workspace;
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
     this.status = 'pending';
+    this.currentMode = data.sessionMode || 'default';
 
     this.initAgent(data);
   }
@@ -89,7 +94,27 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // yoloMode priority: data.yoloMode (from CronService) > config setting
       // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
       const codexConfig = await ProcessConfig.get('codex.config');
-      const yoloMode = data.yoloMode ?? codexConfig?.yoloMode;
+      const legacyYoloMode = data.yoloMode ?? codexConfig?.yoloMode;
+
+      // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
+      // When old config has yoloMode=true and no explicit session mode was set,
+      // initialize currentMode to 'yolo' so the mode selector reflects the setting.
+      // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
+      if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+        this.currentMode = 'yolo';
+      }
+
+      // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
+      // on the Guid page, clear the legacy config so it won't re-activate next time.
+      if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+        void this.clearLegacyYoloConfig();
+      }
+
+      // Codex CLI hangs when approval_policy=never is set yet approval requests
+      // are still emitted — our respondElicitation collides with the CLI's own
+      // internal auto-approve. To avoid this dual-approval conflict, we never
+      // pass yoloMode to the CLI. All approval modes (Plan/Auto Edit/Full Auto)
+      // are handled uniformly at the Manager layer via addConfirmation().
 
       this.agent = new CodexAgent({
         id: data.conversation_id,
@@ -99,7 +124,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         sessionManager,
         fileOperationHandler,
         sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
-        yoloMode: yoloMode, // yoloMode from CronService or config
+        yoloMode: false, // Always false — approval handled by Manager, not CLI
         onNetworkError: (error) => {
           this.handleNetworkError(error);
         },
@@ -253,6 +278,57 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // Emit to frontend - frontend will handle transformation and persistence
       ipcBridge.codexConversation.responseStream.emit(message);
       throw e;
+    }
+  }
+
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: true };
+  }
+
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    const prev = this.currentMode;
+    this.currentMode = mode;
+    this.saveSessionMode(mode);
+
+    // Sync legacy yoloMode config: when leaving yolo mode, clear the old
+    // SecurityModalContent setting to prevent it from re-activating on next session.
+    if (prev === 'yolo' && mode !== 'yolo') {
+      void this.clearLegacyYoloConfig();
+    }
+
+    return { success: true, data: { mode: this.currentMode } };
+  }
+
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'codex') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          sessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[CodexAgentManager] Failed to save session mode:', error);
+    }
+  }
+
+  /**
+   * Clear legacy yoloMode in codex.config.
+   * This syncs back to the old SecurityModalContent config key so that
+   * switching away from YOLO mode persists across new sessions.
+   */
+  private async clearLegacyYoloConfig(): Promise<void> {
+    try {
+      const config = await ProcessConfig.get('codex.config');
+      if (config?.yoloMode) {
+        await ProcessConfig.set('codex.config', { ...config, yoloMode: false });
+      }
+    } catch (error) {
+      console.error('[CodexAgentManager] Failed to clear legacy yoloMode config:', error);
     }
   }
 
@@ -494,6 +570,40 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
    * 委托给 BaseAgentManager 的 addConfirmation 进行统一管理
    */
   addConfirmation(data: IConfirmation): void {
+    // Codex confirmations use action='edit' for file patches and action='exec' for shell commands.
+    // yolo: auto-approve ALL operations
+    // autoEdit: auto-approve file edits only, shell commands still require confirmation
+    if (this.currentMode === 'yolo' || (this.currentMode === 'autoEdit' && data.action === 'edit')) {
+      // Direct synchronous approval — avoids the timing issue with async confirm().
+      // When auto-approving, we must respond to the CLI within the same event-handling
+      // call chain (handleIncoming → onEvent → addConfirmation). The async confirm()
+      // path defers via `await this.bootstrap` (microtask boundary), which can cause
+      // the CLI to hang waiting for a response that arrives too late.
+      // User-initiated approval (Plan mode) works because it runs in a separate
+      // event-loop tick triggered by the IPC bridge.
+      const origCallId = data.callId.startsWith('permission_') ? data.callId.substring(11) : data.callId;
+
+      // Clean up pending confirmation tracking
+      this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
+
+      // For edit actions, apply patch changes asynchronously (fire-and-forget)
+      if (data.action === 'edit') {
+        const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
+        if (changes) {
+          void this.applyPatchChanges(data.callId, changes).catch((err) => {
+            console.error('[CodexAgentManager] Failed to apply patch changes during auto-approve:', err);
+          });
+        }
+      }
+
+      // Send approval response to CLI (synchronous write to stdin)
+      this.agent.respondElicitation(origCallId, 'approved');
+
+      // Unpause the connection and resume any queued requests
+      this.agent.resolvePermission(origCallId, true);
+
+      return;
+    }
     super.addConfirmation(data);
   }
 
