@@ -16,6 +16,7 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
+import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
@@ -1042,14 +1043,14 @@ export class AcpAgent {
       }
 
       // 使用与 AcpConnection 相同的命令解析逻辑
+      const cleanEnv = getEnhancedEnv();
       let command: string;
       let args: string[];
 
       if (this.extra.cliPath.startsWith('npx ')) {
         // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
         const parts = this.extra.cliPath.split(' ');
-        const isWindows = process.platform === 'win32';
-        command = isWindows ? 'npx.cmd' : 'npx';
+        command = resolveNpxPath(cleanEnv);
         args = [...parts.slice(1), loginArg];
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
@@ -1058,8 +1059,9 @@ export class AcpAgent {
       }
 
       const loginProcess = spawn(command, args, {
-        stdio: 'pipe', // 避免干扰用户界面
+        stdio: 'pipe',
         timeout: 70000,
+        env: cleanEnv,
       });
 
       await new Promise<void>((resolve, reject) => {

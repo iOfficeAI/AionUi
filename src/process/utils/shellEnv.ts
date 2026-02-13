@@ -299,3 +299,112 @@ export function findSuitableNodeBin(minMajor: number, minMinor: number): string 
   candidates.sort((a, b) => b.major - a.major || b.minor - a.minor || b.patch - a.patch);
   return candidates[0].binDir;
 }
+
+/**
+ * Parse `env` command output into a key-value map.
+ * Handles multi-line values correctly by detecting new variable starts
+ * with the pattern: KEY=value (KEY must match [A-Za-z_][A-Za-z0-9_]*).
+ */
+function parseEnvOutput(output: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const varStartRe = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)/;
+  let currentKey: string | null = null;
+  let currentValue: string | null = null;
+
+  for (const line of output.split('\n')) {
+    const match = varStartRe.exec(line);
+    if (match) {
+      // Flush previous variable
+      if (currentKey !== null) {
+        result[currentKey] = currentValue!;
+      }
+      currentKey = match[1];
+      currentValue = match[2];
+    } else if (currentKey !== null) {
+      // Continuation of a multi-line value
+      currentValue += '\n' + line;
+    }
+  }
+  // Flush last variable
+  if (currentKey !== null) {
+    result[currentKey] = currentValue!;
+  }
+  return result;
+}
+
+/**
+ * Resolve a modern npx binary (npm >= 7) from the same directory as the
+ * active node binary.  Old standalone npx packages (npm v5/v6 era) don't
+ * understand `@scope/package` syntax and fail with
+ * "ERROR: You must supply a command."
+ *
+ * @param env - Environment to use for locating node/npx (should include shell PATH)
+ * @returns Absolute path to a modern npx, or bare `npx`/`npx.cmd` as fallback
+ */
+export function resolveNpxPath(env: Record<string, string | undefined>): string {
+  const isWindows = process.platform === 'win32';
+  const npxName = isWindows ? 'npx.cmd' : 'npx';
+  try {
+    const whichCmd = isWindows ? 'where' : 'which';
+    const nodePath = execFileSync(whichCmd, ['node'], {
+      env,
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+      .trim()
+      .split('\n')[0]; // `where` on Windows may return multiple lines
+    const npxCandidate = path.join(path.dirname(nodePath), npxName);
+    // Verify the candidate exists AND is modern (npm >= 7 bundles npx >= 7)
+    const versionOutput = execFileSync(npxCandidate, ['--version'], {
+      env,
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    const majorVersion = parseInt(versionOutput.split('.')[0], 10);
+    if (majorVersion >= 7) {
+      return npxCandidate;
+    }
+    console.warn(`[ShellEnv] npx at ${npxCandidate} is v${versionOutput} (too old), falling back to PATH lookup`);
+  } catch {
+    // which/node/npx resolution failed
+  }
+  return npxName;
+}
+
+/** Separate cache for full (unfiltered) shell environment */
+let cachedFullShellEnv: Record<string, string> | null = null;
+
+/**
+ * Load ALL environment variables from user's login shell (no whitelist).
+ * Used by agents (e.g. Codex) that need the complete shell env.
+ * Shares the same shell invocation approach as loadShellEnvironment()
+ * but caches separately and does not filter.
+ */
+export function loadFullShellEnvironment(): Record<string, string> {
+  if (cachedFullShellEnv !== null) return cachedFullShellEnv;
+  cachedFullShellEnv = {};
+  if (process.platform === 'win32') return cachedFullShellEnv;
+
+  try {
+    const shell = process.env.SHELL || '/bin/bash';
+    if (!path.isAbsolute(shell)) return cachedFullShellEnv;
+
+    const output = execFileSync(shell, ['-i', '-l', '-c', 'env'], {
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, HOME: os.homedir() },
+    });
+
+    cachedFullShellEnv = parseEnvOutput(output);
+    const varCount = Object.keys(cachedFullShellEnv).length;
+    const shellPath = cachedFullShellEnv.PATH || '(empty)';
+    console.log(`[ShellEnv] Full shell env loaded: ${varCount} vars, shell=${shell}`);
+    console.log(`[ShellEnv] Shell PATH (first 200 chars): ${shellPath.substring(0, 200)}`);
+  } catch (error) {
+    console.warn('[ShellEnv] Failed to load full shell env:', error instanceof Error ? error.message : String(error));
+  }
+  return cachedFullShellEnv;
+}

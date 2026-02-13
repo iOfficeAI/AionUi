@@ -6,11 +6,11 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn, execSync } from 'child_process';
-import { readFileSync } from 'fs';
+import { accessSync, readFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import type { CodexEventParams } from '@/common/codex/types';
-import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { loadFullShellEnvironment, mergePaths } from '@process/utils/shellEnv';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
 
@@ -118,13 +118,14 @@ export class CodexConnection {
    * @param cliPath - Codex CLI 路径 / Path to Codex CLI
    * @returns 启动 MCP 服务器的命令参数数组 / Array of command arguments for starting MCP server
    */
-  private detectMcpCommand(cliPath: string): string[] {
+  private detectMcpCommand(cliPath: string, env?: Record<string, string>): string[] {
     try {
       // 尝试获取 Codex 版本 / Try to get Codex version
       const versionOutput = execSync(`${cliPath} --version`, {
         encoding: 'utf8',
         timeout: 5000,
         stdio: ['pipe', 'pipe', 'ignore'],
+        env,
       }).trim();
 
       // 提取版本号（例如从 "codex version 0.39.0" 中提取 "0.39.0"）
@@ -140,31 +141,62 @@ export class CodexConnection {
         // 版本 0.39.x 及以下使用 "mcp serve"
         // Version 0.40.0 and above use "mcp-server"
         // Version 0.39.x and below use "mcp serve"
-        if (majorVer > 0 || (majorVer === 0 && minorVer >= 40)) {
-          return ['mcp-server'];
-        } else {
-          return ['mcp', 'serve'];
-        }
+        const cmd = majorVer > 0 || (majorVer === 0 && minorVer >= 40) ? ['mcp-server'] : ['mcp', 'serve'];
+        console.log(`[Codex-Startup] Version detected: ${this.detectedVersion}, MCP command: ${cmd.join(' ')}`);
+        return cmd;
       }
 
       // 如果版本检测失败，默认使用 mcp-server（适用于新版本）
       // If version detection fails, try mcp-server first (for newer versions)
+      console.warn(`[Codex-Startup] Version parse failed from output: "${versionOutput}", defaulting to mcp-server`);
       return ['mcp-server'];
     } catch (error) {
       // 如果版本命令执行失败，默认使用 mcp-server（新版本）
       // If version command fails, default to mcp-server (newer versions)
+      console.warn(`[Codex-Startup] Version detection failed for "${cliPath}": ${error instanceof Error ? error.message : String(error)}`);
       return ['mcp-server'];
     }
   }
 
   start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean }): Promise<void> {
-    // 根据 Codex 版本自动检测合适的 MCP 命令 / Auto-detect appropriate MCP command based on Codex version
-    const cleanEnv = getEnhancedEnv();
+    console.log(`[Codex-Startup] ===== Codex startup diagnostics =====`);
+    console.log(`[Codex-Startup] cliPath=${cliPath}, cwd=${cwd}, platform=${process.platform}`);
+    console.log(`[Codex-Startup] process.env.PATH (first 200): ${(process.env.PATH || '(empty)').substring(0, 200)}`);
+
+    // Build full shell environment for Codex (needs complete env, not just whitelisted vars)
+    const fullShellEnv = loadFullShellEnvironment();
+    const shellVarCount = Object.keys(fullShellEnv).length;
+    console.log(`[Codex-Startup] Full shell env: ${shellVarCount} vars loaded`);
+
+    const mergedPath = mergePaths(process.env.PATH, fullShellEnv.PATH);
+    console.log(`[Codex-Startup] Merged PATH (first 300): ${mergedPath.substring(0, 300)}`);
+
+    const cleanEnv: Record<string, string> = {
+      ...process.env,
+      ...fullShellEnv,
+      PATH: mergedPath,
+    } as Record<string, string>;
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
+
+    // Check if cliPath is discoverable on the merged PATH
+    const pathDirs = mergedPath.split(process.platform === 'win32' ? ';' : ':');
+    const cliBasename = cliPath.includes('/') ? null : cliPath; // only check bare commands
+    if (cliBasename) {
+      const found = pathDirs.find((dir) => {
+        try {
+          accessSync(join(dir, cliBasename));
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      console.log(`[Codex-Startup] CLI "${cliBasename}" on PATH: ${found ? `YES (${found})` : 'NO — not found on any PATH directory'}`);
+    }
+
     const isWindows = process.platform === 'win32';
-    let finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+    let finalArgs = args.length ? args : this.detectMcpCommand(cliPath, cleanEnv);
 
     // Add approval_policy config for mcp-server
     // mcp-server may not automatically read all config.toml settings, so we explicitly pass it
@@ -180,6 +212,11 @@ export class CodexConnection {
       }
       // If no user config, don't add any flag - let Codex use its default
     }
+
+    const envVarCount = Object.keys(cleanEnv).length;
+    console.log(`[Codex-Startup] Spawn: ${cliPath} ${finalArgs.join(' ')}`);
+    console.log(`[Codex-Startup] Env vars passed to child: ${envVarCount}`);
+    console.log(`[Codex-Startup] ===== End diagnostics =====`);
 
     return new Promise((resolve, reject) => {
       try {

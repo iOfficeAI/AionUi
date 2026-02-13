@@ -11,10 +11,7 @@ import { execFileSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { findSuitableNodeBin, getEnhancedEnv } from '@process/utils/shellEnv';
-
-// Re-export shell env utilities so existing consumers keep working
-export { getEnhancedEnv, loadShellEnvironmentAsync, mergePaths } from '@process/utils/shellEnv';
+import { findSuitableNodeBin, getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -53,7 +50,7 @@ export function createGenericSpawnConfig(cliPath: string, workingDir: string, ac
   if (cliPath.startsWith('npx ')) {
     // For "npx @package/name", split into command and arguments
     const parts = cliPath.split(' ');
-    spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    spawnCommand = resolveNpxPath(env);
     spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
   } else {
     // For regular paths like '/usr/local/bin/cli' or simple commands like 'goose'
@@ -244,9 +241,10 @@ export class AcpConnection {
 
     this.ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
 
-    // Use npx to run the Claude ACP bridge directly from npm registry
+    // Resolve npx from the same bin directory as the verified node binary
+    // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
-    const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    const spawnCommand = resolveNpxPath(cleanEnv);
     const spawnArgs = ['--prefer-offline', '@zed-industries/claude-code-acp'];
 
     const spawnStart = Date.now();
@@ -271,10 +269,9 @@ export class AcpConnection {
 
     this.ensureMinNodeVersion(cleanEnv, 20, 10, 'CodeBuddy ACP');
 
-    // Use npx with --yes (prevent interactive download prompt that blocks stdin pipe)
-    // and --prefer-offline (use cached packages when available)
+    // Resolve npx from the verified node bin directory (same as connectClaude)
     const isWindows = process.platform === 'win32';
-    const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    const spawnCommand = resolveNpxPath(cleanEnv);
     const spawnArgs = ['--yes', '--prefer-offline', '@tencent-ai/codebuddy-code', '--acp'];
 
     // Load user's MCP config if available (~/.codebuddy/mcp.json)

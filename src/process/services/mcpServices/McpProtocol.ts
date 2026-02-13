@@ -14,6 +14,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { getEnhancedEnv, resolveNpxPath } from '@/process/utils/shellEnv';
 
 /**
  * MCP源类型 - 包括所有ACP后端和AionUi内置
@@ -197,11 +198,16 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     try {
       // app imported statically
 
-      // 创建 Stdio 传输层
+      // Use enhanced env (includes shell PATH) instead of bare process.env
+      // so CLI tools installed via nvm/fnm/volta are discoverable in packaged mode
+      const enhancedEnv = getEnhancedEnv(transport.env);
+      // Resolve bare 'npx' to a modern npx to avoid old standalone npx (pre npm 7)
+      const command = transport.command === 'npx' ? resolveNpxPath(enhancedEnv) : transport.command;
+
       const stdioTransport = new StdioClientTransport({
-        command: transport.command,
+        command,
         args: transport.args || [],
-        env: { ...process.env, ...transport.env },
+        env: enhancedEnv,
       });
 
       // 创建 MCP 客户端
