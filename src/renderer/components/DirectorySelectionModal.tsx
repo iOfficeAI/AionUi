@@ -45,7 +45,15 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
           method: 'GET',
           credentials: 'include',
         });
+        if (!response.ok) {
+          console.error('Directory browse failed:', response.status);
+          return;
+        }
         const data = await response.json();
+        if (!data || !Array.isArray(data.items)) {
+          console.error('Invalid directory response:', data);
+          return;
+        }
         setDirectoryData(data);
         setCurrentPath(path);
       } catch (error) {
