@@ -130,6 +130,8 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
+  /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
+  channelChatId?: string;
 }
 
 // Token 使用统计数据类型

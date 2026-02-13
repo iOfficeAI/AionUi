@@ -106,16 +106,14 @@ export const handleSessionNew: ActionHandler = async (context) => {
     return createErrorResponse('User not authorized');
   }
 
-  // Clear existing session and agent for this user
-  // 清除现有会话和 agent
-  const existingSession = sessionManager.getSession(context.channelUser.id);
+  // Clear existing session and agent for this user+chat
+  const existingSession = sessionManager.getSession(context.channelUser.id, context.chatId);
   if (existingSession) {
-    // 清除 ChannelMessageService 中的 agent 缓存
+    // Clear agent cache in ChannelMessageService
     const messageService = getChannelMessageService();
     await messageService.clearContext(existingSession.id);
 
-    // 直接使用 session.conversationId 清理 WorkerManage 中的 agent
-    // 确保即使 sessionConversationMap 为空也能正确清理
+    // Kill the worker for the old conversation
     if (existingSession.conversationId) {
       try {
         WorkerManage.kill(existingSession.conversationId);
@@ -124,7 +122,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
       }
     }
   }
-  sessionManager.clearSession(context.channelUser.id);
+  sessionManager.clearSession(context.channelUser.id, context.chatId);
 
   const platform = context.platform;
   const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
@@ -144,7 +142,8 @@ export const handleSessionNew: ActionHandler = async (context) => {
   // Provider model is required by typing; ACP/Codex will ignore it.
   const model = await getChannelDefaultModel(platform);
 
-  // Always create a NEW conversation for "session.new"
+  // Always create a NEW conversation for "session.new" (scoped by chatId)
+  const channelChatId = context.chatId;
   const result =
     backend === 'codex'
       ? await ConversationService.createConversation({
@@ -152,6 +151,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
           model,
           source,
           name,
+          channelChatId,
           extra: {},
         })
       : backend === 'gemini'
@@ -159,12 +159,14 @@ export const handleSessionNew: ActionHandler = async (context) => {
             model,
             source,
             name,
+            channelChatId,
           })
         : await ConversationService.createConversation({
             type: 'acp',
             model,
             source,
             name,
+            channelChatId,
             extra: {
               backend: backend as AcpBackend,
               customAgentId,
@@ -176,10 +178,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
     return createErrorResponse(`Failed to create session: ${result.error || 'Unknown error'}`);
   }
 
-  // Create session with the new conversation ID
-  // 使用新会话 ID 创建 session
+  // Create session with the new conversation ID (scoped by chatId)
   const agentType: ChannelAgentType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
-  const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, agentType);
+  const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, agentType, undefined, channelChatId);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : context.platform === 'dingtalk' ? createDingTalkMainMenuCard() : createMainMenuKeyboard();
   return createSuccessResponse({
@@ -202,7 +203,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
   }
 
   const userId = context.channelUser?.id;
-  const session = userId ? sessionManager.getSession(userId) : null;
+  const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
 
   // Use platform-specific markup
   if (context.platform === 'lark') {
@@ -384,9 +385,9 @@ export const handleAgentShow: ActionHandler = async (context) => {
     return createErrorResponse('Session manager not available');
   }
 
-  // Get current agent type from session
+  // Get current agent type from session (scoped by chatId)
   const userId = context.channelUser?.id;
-  const session = userId ? sessionManager.getSession(userId) : null;
+  const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
   const currentAgent = session?.agentType || 'gemini';
 
   // Get available agents dynamically
@@ -445,8 +446,8 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
     return createErrorResponse('Invalid or unavailable agent type');
   }
 
-  // Get current session
-  const existingSession = sessionManager.getSession(context.channelUser.id);
+  // Get current session (scoped by chatId)
+  const existingSession = sessionManager.getSession(context.channelUser.id, context.chatId);
 
   // If same agent, no need to switch
   if (existingSession?.agentType === newAgentType) {
@@ -459,7 +460,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
     });
   }
 
-  // Clear existing session and agent
+  // Clear existing session and agent (scoped by chatId)
   if (existingSession) {
     const messageService = getChannelMessageService();
     await messageService.clearContext(existingSession.id);
@@ -472,10 +473,10 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
       }
     }
   }
-  sessionManager.clearSession(context.channelUser.id);
+  sessionManager.clearSession(context.channelUser.id, context.chatId);
 
-  // Create new session with the selected agent type
-  const session = sessionManager.createSession(context.channelUser, newAgentType);
+  // Create new session with the selected agent type (scoped by chatId)
+  const session = sessionManager.createSession(context.channelUser, newAgentType, undefined, context.chatId);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : context.platform === 'dingtalk' ? createDingTalkMainMenuCard() : createMainMenuKeyboard();
   return createSuccessResponse({

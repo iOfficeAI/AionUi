@@ -120,6 +120,7 @@ export interface IChannelSession {
   agentType: ChannelAgentType;
   conversationId?: string;
   workspace?: string;
+  chatId?: string; // Channel chat isolation ID (e.g. user:xxx, group:xxx)
   createdAt: number;
   lastActivity: number;
 }
@@ -133,6 +134,7 @@ export interface IChannelSessionRow {
   agent_type: string;
   conversation_id: string | null;
   workspace: string | null;
+  chat_id: string | null; // Channel chat isolation ID
   created_at: number;
   last_activity: number;
 }
@@ -386,6 +388,7 @@ export function rowToChannelSession(row: IChannelSessionRow): IChannelSession {
     agentType: row.agent_type as ChannelAgentType,
     conversationId: row.conversation_id ?? undefined,
     workspace: row.workspace ?? undefined,
+    chatId: row.chat_id ?? undefined,
     createdAt: row.created_at,
     lastActivity: row.last_activity,
   };
@@ -401,6 +404,7 @@ export function channelSessionToRow(session: IChannelSession): IChannelSessionRo
     agent_type: session.agentType,
     conversation_id: session.conversationId ?? null,
     workspace: session.workspace ?? null,
+    chat_id: session.chatId ?? null,
     created_at: session.createdAt,
     last_activity: session.lastActivity,
   };

@@ -341,9 +341,8 @@ export class ActionExecutor {
       // Set the assistant user in context
       context.channelUser = channelUser;
 
-      // Get or create session
-      // 获取或创建会话，优先复用该平台来源的会话
-      let session = this.sessionManager.getSession(channelUser.id);
+      // Get or create session (scoped by chatId for per-chat isolation)
+      let session = this.sessionManager.getSession(channelUser.id, chatId);
       if (!session || !session.conversationId) {
         const conversationName = platform === 'lark' ? 'Lark Assistant' : platform === 'dingtalk' ? 'DingTalk Assistant' : 'Telegram Assistant';
         const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
@@ -362,21 +361,17 @@ export class ActionExecutor {
         // Always resolve a provider model (required by ICreateConversationParams typing; ignored by ACP/Codex)
         const model = await getChannelDefaultModel(platform);
 
-        // Try to reuse latest conversation for this source only when it matches the selected agent.
+        // Map backend to conversation type for lookup
+        const convType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
+        // For ACP, pass backend to distinguish claude/iflow/codebuddy etc.
+        const convBackend = convType === 'acp' ? backend : undefined;
+
+        // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
         const db2 = getDatabase();
-        const latest = db2.getLatestConversationBySource(source);
+        const latest = db2.findChannelConversation(source, chatId, convType, convBackend);
         const existing = latest.success ? latest.data : null;
 
-        const matchesSelection = (() => {
-          if (!existing) return false;
-          if (backend === 'codex') return existing.type === 'codex';
-          if (backend === 'gemini') return existing.type === 'gemini';
-          if (existing.type !== 'acp') return false;
-          const e = existing.extra as any;
-          return e?.backend === backend && (customAgentId ? e?.customAgentId === customAgentId : true);
-        })();
-
-        const result = matchesSelection
+        const result = existing
           ? { success: true as const, conversation: existing }
           : backend === 'codex'
             ? await ConversationService.createConversation({
@@ -384,6 +379,7 @@ export class ActionExecutor {
                 model,
                 name: conversationName,
                 source,
+                channelChatId: chatId,
                 extra: {},
               })
             : backend === 'gemini'
@@ -391,12 +387,14 @@ export class ActionExecutor {
                   model,
                   name: conversationName,
                   source,
+                  channelChatId: chatId,
                 })
               : await ConversationService.createConversation({
                   type: 'acp',
                   model,
                   name: conversationName,
                   source,
+                  channelChatId: chatId,
                   extra: {
                     backend: backend as AcpBackend,
                     customAgentId,
@@ -406,7 +404,7 @@ export class ActionExecutor {
 
         if (result.success && result.conversation) {
           const agentType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
-          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType);
+          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType, undefined, chatId);
         } else {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
@@ -486,9 +484,9 @@ export class ActionExecutor {
    * Handle chat message - send to AI and stream response
    */
   private async handleChatMessage(context: IActionContext, text: string): Promise<void> {
-    // Update session activity
+    // Update session activity (scoped by chatId)
     if (context.channelUser) {
-      this.sessionManager.updateSessionActivity(context.channelUser.id);
+      this.sessionManager.updateSessionActivity(context.channelUser.id, context.chatId);
     }
 
     // Send "thinking" indicator

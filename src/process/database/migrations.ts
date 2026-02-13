@@ -729,13 +729,14 @@ const migration_v14: IMigration = {
         model TEXT,
         status TEXT CHECK(status IN ('pending', 'running', 'finished')),
         source TEXT CHECK(source IS NULL OR source IN ('aionui', 'telegram', 'lark', 'dingtalk')),
+        channel_chat_id TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
-      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
+      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, NULL, created_at, updated_at FROM conversations;
 
       DROP TABLE conversations;
       ALTER TABLE conversations_new RENAME TO conversations;
@@ -746,9 +747,16 @@ const migration_v14: IMigration = {
       CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
       CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC);
     `);
 
-    console.log('[Migration v14] Added dingtalk to assistant_plugins type and conversations source constraints');
+    // 3. Add chat_id to assistant_sessions for per-chat session isolation
+    const sessTableInfo = db.prepare('PRAGMA table_info(assistant_sessions)').all() as Array<{ name: string }>;
+    if (!sessTableInfo.some((col) => col.name === 'chat_id')) {
+      db.exec(`ALTER TABLE assistant_sessions ADD COLUMN chat_id TEXT;`);
+    }
+
+    console.log('[Migration v14] Added dingtalk support and channel_chat_id for per-chat isolation');
   },
   down: (db) => {
     // Rollback assistant_plugins: remove 'dingtalk'
@@ -813,7 +821,7 @@ const migration_v14: IMigration = {
       CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
     `);
 
-    console.log('[Migration v14] Rolled back: Removed dingtalk from assistant_plugins type and conversations source constraints');
+    console.log('[Migration v14] Rolled back: Removed dingtalk and channel_chat_id');
   },
 };
 
