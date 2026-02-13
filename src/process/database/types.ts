@@ -74,7 +74,7 @@ export interface IConversationRow {
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
-  source?: 'aionui' | 'telegram' | 'lark'; // 会话来源 / Conversation source
+  source?: 'aionui' | 'telegram' | 'lark' | 'dingtalk'; // 会话来源 / Conversation source
   created_at: number;
   updated_at: number;
 }

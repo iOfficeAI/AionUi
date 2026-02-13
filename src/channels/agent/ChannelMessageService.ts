@@ -90,6 +90,13 @@ export class ChannelMessageService {
       return;
     }
 
+    // Detect stream completion: 'finish' event means the agent is done
+    if (event.type === 'finish') {
+      this.activeStreams.delete(conversationId);
+      stream.resolve(stream.msgId);
+      return;
+    }
+
     // 转换消息
     // Transform message
     const message = transformMessage(event);
@@ -140,7 +147,7 @@ export class ChannelMessageService {
       // Check conversation source, enable yoloMode if it's from a Channel
       const db = getDatabase();
       const dbResult = db.getConversation(conversationId);
-      const isFromChannel = dbResult.success && (dbResult.data?.source === 'lark' || dbResult.data?.source === 'telegram');
+      const isFromChannel = dbResult.success && (dbResult.data?.source === 'lark' || dbResult.data?.source === 'telegram' || dbResult.data?.source === 'dingtalk');
 
       task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
         yoloMode: isFromChannel,

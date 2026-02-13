@@ -18,6 +18,8 @@ import type { PairingService } from '../pairing/PairingService';
 import type { PluginMessageHandler } from '../plugins/BasePlugin';
 import { createMainMenuCard, createErrorRecoveryCard, createResponseActionsCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
+import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
+import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createResponseActionsKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
 import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
@@ -33,6 +35,9 @@ function getMainMenuMarkup(platform: PluginType) {
   if (platform === 'lark') {
     return createMainMenuCard();
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkMainMenuCard();
+  }
   return createMainMenuKeyboard();
 }
 
@@ -42,6 +47,9 @@ function getMainMenuMarkup(platform: PluginType) {
 function getResponseActionsMarkup(platform: PluginType, text?: string) {
   if (platform === 'lark') {
     return createResponseActionsCard(text || '');
+  }
+  if (platform === 'dingtalk') {
+    return createDingTalkResponseActionsCard(text || '');
   }
   return createResponseActionsKeyboard();
 }
@@ -53,6 +61,9 @@ function getToolConfirmationMarkup(platform: PluginType, callId: string, options
   if (platform === 'lark') {
     return createToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
+  }
   return createToolConfirmationKeyboard(callId, options);
 }
 
@@ -63,6 +74,9 @@ function getErrorRecoveryMarkup(platform: PluginType, errorMessage?: string) {
   if (platform === 'lark') {
     return createErrorRecoveryCard(errorMessage);
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkErrorRecoveryCard(errorMessage);
+  }
   return createMainMenuKeyboard(); // Telegram uses main menu for recovery
 }
 
@@ -72,6 +86,9 @@ function getErrorRecoveryMarkup(platform: PluginType, errorMessage?: string) {
 function formatTextForPlatform(text: string, platform: PluginType): string {
   if (platform === 'lark') {
     return convertHtmlToLarkMarkdown(text);
+  }
+  if (platform === 'dingtalk') {
+    return convertHtmlToDingTalkMarkdown(text);
   }
   return escapeHtml(text);
 }
@@ -328,13 +345,13 @@ export class ActionExecutor {
       // 获取或创建会话，优先复用该平台来源的会话
       let session = this.sessionManager.getSession(channelUser.id);
       if (!session || !session.conversationId) {
-        const conversationName = platform === 'lark' ? 'Lark Assistant' : 'Telegram Assistant';
-        const source = platform === 'lark' ? 'lark' : 'telegram';
+        const conversationName = platform === 'lark' ? 'Lark Assistant' : platform === 'dingtalk' ? 'DingTalk Assistant' : 'Telegram Assistant';
+        const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 
         // Read selected agent for this platform (defaults to Gemini)
         let savedAgent: unknown = undefined;
         try {
-          savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : ProcessConfig.get('assistant.telegram.agent'));
+          savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : platform === 'dingtalk' ? ProcessConfig.get('assistant.dingtalk.agent') : ProcessConfig.get('assistant.telegram.agent'));
         } catch {
           // ignore
         }

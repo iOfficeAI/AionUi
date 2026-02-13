@@ -9,7 +9,7 @@
 /**
  * Supported platform types for plugins
  */
-export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark';
+export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk';
 
 /**
  * Plugin connection status
@@ -27,6 +27,9 @@ export interface IPluginCredentials {
   appSecret?: string;
   encryptKey?: string;
   verificationToken?: string;
+  // DingTalk
+  clientId?: string;
+  clientSecret?: string;
 }
 
 /**
@@ -439,13 +442,13 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
  * Channel platform type for model configuration.
  * Subset of PluginType that currently supports channel conversations.
  */
-export type ChannelPlatform = 'telegram' | 'lark';
+export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk';
 
 /**
  * Type guard to check if a string is a valid ChannelPlatform
  */
 export function isChannelPlatform(value: string): value is ChannelPlatform {
-  return value === 'telegram' || value === 'lark';
+  return value === 'telegram' || value === 'lark' || value === 'dingtalk';
 }
 
 /**
@@ -455,6 +458,7 @@ export function getChannelConversationName(platform: ChannelPlatform): string {
   const names: Record<ChannelPlatform, string> = {
     telegram: 'Telegram Assistant',
     lark: 'Lark Assistant',
+    dingtalk: 'DingTalk Assistant',
   };
   return names[platform];
 }

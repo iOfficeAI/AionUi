@@ -128,6 +128,7 @@
     "cors": "^2.8.5",
     "croner": "^9.1.0",
     "diff2html": "^3.4.55",
+    "dingtalk-stream": "^2.1.4",
     "docx": "^9.5.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",

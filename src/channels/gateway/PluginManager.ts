@@ -260,6 +260,8 @@ export class PluginManager {
     let hasToken = false;
     if (config.type === 'lark') {
       hasToken = !!(config.credentials?.appId && config.credentials?.appSecret);
+    } else if (config.type === 'dingtalk') {
+      hasToken = !!(config.credentials?.clientId && config.credentials?.clientSecret);
     } else {
       hasToken = !!config.credentials?.token;
     }
@@ -308,7 +310,7 @@ export class PluginManager {
       error: errorMessage,
       activeUsers: 0,
       botUsername: undefined,
-      hasToken: !!config.credentials?.token,
+      hasToken: config.type === 'lark' ? !!(config.credentials?.appId && config.credentials?.appSecret) : config.type === 'dingtalk' ? !!(config.credentials?.clientId && config.credentials?.clientSecret) : !!config.credentials?.token,
     };
     channelBridge.pluginStatusChanged.emit({ pluginId, status });
   }
