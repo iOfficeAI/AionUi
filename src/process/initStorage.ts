@@ -13,7 +13,7 @@ import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { copyDirectoryRecursively, ensureDirectory, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
 // Platform and architecture types (moved from deleted updateConfig)
@@ -584,12 +584,9 @@ const initStorage = async () => {
   await migrateLegacyData();
 
   // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
-  if (!existsSync(getHomePage())) {
-    mkdirSync(getHomePage());
-  }
-  if (!existsSync(getDataPath())) {
-    mkdirSync(getDataPath());
-  }
+  // Use ensureDirectory to handle cases where a regular file blocks the path (#841)
+  ensureDirectory(getHomePage());
+  ensureDirectory(getDataPath());
 
   // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);
