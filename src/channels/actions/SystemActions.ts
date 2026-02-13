@@ -77,7 +77,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     id: 'gemini_default',
     platform: 'gemini',
     name: 'Gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    baseUrl: 'https://generativelanguage.googleapis.com',
     apiKey: '',
     useModel: 'gemini-2.0-flash',
   };
