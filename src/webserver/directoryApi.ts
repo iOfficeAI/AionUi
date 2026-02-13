@@ -28,7 +28,12 @@ const router = Router();
  * Check if a path falls within the allowed directory trees
  */
 function isPathAllowed(targetPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIRECTORIES): boolean {
-  const resolved = path.resolve(targetPath);
+  let resolved = path.resolve(targetPath);
+  try {
+    resolved = fs.realpathSync(resolved);
+  } catch {
+    // keep resolved if realpath fails (e.g. path doesn't exist yet)
+  }
   return allowedBasePaths.some((basePath) => {
     const relative = path.relative(basePath, resolved);
     return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
