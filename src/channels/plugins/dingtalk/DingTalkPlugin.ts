@@ -334,12 +334,20 @@ export class DingTalkPlugin extends BasePlugin {
         if (unifiedMessage.content.type === 'text' && unifiedMessage.content.text) {
           const buttonAction = this.getMenuButtonAction(unifiedMessage.content.text);
           if (buttonAction) {
-            unifiedMessage.content.type = 'action';
-            unifiedMessage.content.text = buttonAction.action;
-            unifiedMessage.action = {
-              type: buttonAction.type as 'system' | 'platform' | 'chat',
-              name: buttonAction.action,
+            const actionMessage = {
+              ...unifiedMessage,
+              content: {
+                ...unifiedMessage.content,
+                type: 'action' as const,
+                text: buttonAction.action,
+              },
+              action: {
+                type: buttonAction.type as 'system' | 'platform' | 'chat',
+                name: buttonAction.action,
+              },
             };
+            void this.emitMessage(actionMessage).catch((error) => console.error('[DingTalkPlugin] Error handling message:', error));
+            return;
           }
         }
 

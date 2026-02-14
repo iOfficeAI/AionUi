@@ -119,26 +119,32 @@ export class SessionManager {
   updateSessionConversation(sessionId: string, conversationId: string): boolean {
     const db = getDatabase();
 
-    // Find session by ID
-    let session: IChannelSession | null = null;
-    for (const s of this.activeSessions.values()) {
+    // Find session by ID and its key
+    let foundKey: string | null = null;
+    let foundSession: IChannelSession | null = null;
+    for (const [key, s] of this.activeSessions.entries()) {
       if (s.id === sessionId) {
-        session = s;
+        foundKey = key;
+        foundSession = s;
         break;
       }
     }
 
-    if (!session) {
+    if (!foundSession || !foundKey) {
       console.warn(`[SessionManager] Session ${sessionId} not found`);
       return false;
     }
 
-    // Update session
-    session.conversationId = conversationId;
-    session.lastActivity = Date.now();
+    // Create updated session (immutable)
+    const updated: IChannelSession = {
+      ...foundSession,
+      conversationId,
+      lastActivity: Date.now(),
+    };
 
-    // Save to database
-    db.upsertChannelSession(session);
+    // Save to database and update cache
+    db.upsertChannelSession(updated);
+    this.activeSessions.set(foundKey, updated);
 
     return true;
   }
@@ -147,13 +153,16 @@ export class SessionManager {
    * Update session's last activity timestamp
    */
   updateSessionActivity(userId: string, chatId?: string): void {
-    const session = this.activeSessions.get(this.buildKey(userId, chatId));
+    const key = this.buildKey(userId, chatId);
+    const session = this.activeSessions.get(key);
     if (!session) return;
 
-    session.lastActivity = Date.now();
+    // Create updated session (immutable)
+    const updated: IChannelSession = { ...session, lastActivity: Date.now() };
+    this.activeSessions.set(key, updated);
 
     const db = getDatabase();
-    db.upsertChannelSession(session);
+    db.upsertChannelSession(updated);
   }
 
   /**

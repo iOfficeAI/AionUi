@@ -33,6 +33,17 @@ export interface IPluginCredentials {
 }
 
 /**
+ * Check whether a plugin has valid credentials configured.
+ * Centralized so every call-site stays in sync when a new platform is added.
+ */
+export function hasPluginCredentials(type: PluginType, credentials?: IPluginCredentials): boolean {
+  if (!credentials) return false;
+  if (type === 'lark') return !!(credentials.appId && credentials.appSecret);
+  if (type === 'dingtalk') return !!(credentials.clientId && credentials.clientSecret);
+  return !!credentials.token;
+}
+
+/**
  * Plugin configuration options
  */
 export interface IPluginConfigOptions {
