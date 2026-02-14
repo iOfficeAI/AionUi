@@ -229,9 +229,11 @@ export class ChannelMessageService {
    */
   clearStreamByConversationId(conversationId: string): void {
     const stream = this.activeStreams.get(conversationId);
-    if (stream) {
-      this.activeStreams.delete(conversationId);
-    }
+    if (!stream) return;
+    this.activeStreams.delete(conversationId);
+    // Resolve (not reject) so the caller's post-stream cleanup runs normally
+    // (e.g., ActionExecutor finalizing the card with action buttons).
+    stream.resolve(stream.msgId);
   }
 
   /**
