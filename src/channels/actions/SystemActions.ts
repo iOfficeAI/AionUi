@@ -13,6 +13,7 @@ import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
+import { getChannelConversationName } from '../types';
 import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMainMenuCard, createPairingGuideCard, createSessionStatusCard, createSettingsCard, createTipsCard } from '../plugins/lark/LarkCards';
 import { createAgentSelectionCard as createDingTalkAgentSelectionCard, createFeaturesCard as createDingTalkFeaturesCard, createHelpCard as createDingTalkHelpCard, createMainMenuCard as createDingTalkMainMenuCard, createPairingGuideCard as createDingTalkPairingGuideCard, createSessionStatusCard as createDingTalkSessionStatusCard, createSettingsCard as createDingTalkSettingsCard, createTipsCard as createDingTalkTipsCard } from '../plugins/dingtalk/DingTalkCards';
 import type { ChannelAgentType, PluginType } from '../types';
@@ -126,7 +127,6 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   const platform = context.platform;
   const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
-  const name = platform === 'lark' ? 'Lark Assistant' : platform === 'dingtalk' ? 'DingTalk Assistant' : 'Telegram Assistant';
 
   // Selected agent (defaults to Gemini)
   let savedAgent: unknown = undefined;
@@ -144,6 +144,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   // Always create a NEW conversation for "session.new" (scoped by chatId)
   const channelChatId = context.chatId;
+  const convType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
+  const convBackend = convType === 'acp' ? backend : undefined;
+  const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
   const result =
     backend === 'codex'
       ? await ConversationService.createConversation({

@@ -16,6 +16,7 @@ import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
 import type { PairingService } from '../pairing/PairingService';
 import type { PluginMessageHandler } from '../plugins/BasePlugin';
+import { getChannelConversationName } from '../types';
 import { createMainMenuCard, createErrorRecoveryCard, createResponseActionsCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
 import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
@@ -344,7 +345,6 @@ export class ActionExecutor {
       // Get or create session (scoped by chatId for per-chat isolation)
       let session = this.sessionManager.getSession(channelUser.id, chatId);
       if (!session || !session.conversationId) {
-        const conversationName = platform === 'lark' ? 'Lark Assistant' : platform === 'dingtalk' ? 'DingTalk Assistant' : 'Telegram Assistant';
         const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 
         // Read selected agent for this platform (defaults to Gemini)
@@ -365,6 +365,7 @@ export class ActionExecutor {
         const convType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
         // For ACP, pass backend to distinguish claude/iflow/codebuddy etc.
         const convBackend = convType === 'acp' ? backend : undefined;
+        const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
 
         // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
         const db2 = getDatabase();

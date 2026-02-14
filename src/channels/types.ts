@@ -456,13 +456,18 @@ export function isChannelPlatform(value: string): value is ChannelPlatform {
 }
 
 /**
- * Get default conversation name for a channel platform
+ * Build a structured conversation name for a channel platform.
+ * Format: {shortPlatform}-{type}-{backend}-{chatIdPrefix}
+ * - platform is shortened: telegram -> tg, dingtalk -> ding, lark -> lark
+ * - backend is only included when type === 'acp'
+ * - chatIdPrefix is the first 8 characters of chatId
+ * - empty segments are omitted
  */
-export function getChannelConversationName(platform: ChannelPlatform): string {
-  const names: Record<ChannelPlatform, string> = {
-    telegram: 'Telegram Assistant',
-    lark: 'Lark Assistant',
-    dingtalk: 'DingTalk Assistant',
-  };
-  return names[platform];
+export function getChannelConversationName(platform: ChannelPlatform | PluginType, type?: string, backend?: string, chatId?: string): string {
+  const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding' };
+  const parts: string[] = [shortPlatform[platform] ?? platform];
+  if (type) parts.push(type);
+  if (type === 'acp' && backend) parts.push(backend);
+  if (chatId) parts.push(chatId.slice(0, 8));
+  return parts.join('-');
 }

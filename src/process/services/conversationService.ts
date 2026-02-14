@@ -222,7 +222,7 @@ export class ConversationService {
     return this.createGeminiConversation({
       ...params,
       source,
-      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source) : `${source} Assistant`),
+      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source, 'gemini', undefined, params.channelChatId) : `${source} Assistant`),
     });
   }
 }
