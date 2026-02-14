@@ -631,8 +631,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             <div className='flex-shrink-0'>
               <Typography.Text bold>{t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}</Typography.Text>
               <Select className='mt-10px w-full rounded-4px' value={editAgent} onChange={(value) => setEditAgent(value as PresetAgentType)}>
-                <Select.Option value='gemini'>Gemini</Select.Option>
-                <Select.Option value='claude'>Claude</Select.Option>
+                <Select.Option value='gemini'>Gemini CLI</Select.Option>
+                <Select.Option value='claude'>Claude Code</Select.Option>
                 <Select.Option value='codex'>Codex</Select.Option>
                 <Select.Option value='codebuddy'>CodeBuddy</Select.Option>
                 <Select.Option value='opencode'>OpenCode</Select.Option>
