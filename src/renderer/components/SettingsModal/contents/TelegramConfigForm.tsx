@@ -135,7 +135,8 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.telegram.agent', agent);
-      Message.success(t('settings.assistant.agentSwitched', "Agent switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"));
+      await channel.syncChannelSettings.invoke({ platform: 'telegram', agent }).catch(() => {});
+      Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[TelegramConfig] Failed to save agent:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));

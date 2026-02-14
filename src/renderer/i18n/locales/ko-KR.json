@@ -354,8 +354,8 @@
     "assistant": {
       "agentDescTelegram": "Telegram 대화에 사용",
       "autoFollowCliModel": "CLI 실행 시 모델을 자동으로 따름",
-      "agentSwitched": "Agent가 전환되었습니다. 계속 사용하려면 이 채널의 기록된 대화를 삭제한 후 사용하세요. 새로운 대화는 새 설정을 사용합니다. (다음 버전에서는 자동 핫 업데이트가 지원됩니다)",
-      "modelSwitched": "모델이 전환되었습니다. 계속 사용하려면 이 채널의 기록된 대화를 삭제한 후 사용하세요. 새로운 대화는 새 설정을 사용합니다. (다음 버전에서는 자동 핫 업데이트가 지원됩니다)",
+      "agentSwitched": "Agent 전환 성공",
+      "modelSwitched": "모델 전환 성공",
       "copyCode": "페어링 코드 복사",
       "modelSaved": "모델이 저장되었습니다",
       "modelSaveFailed": "모델 저장에 실패했습니다",

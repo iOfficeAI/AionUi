@@ -428,8 +428,8 @@
     "assistant": {
       "agentDescTelegram": "用於 Telegram 對話",
       "autoFollowCliModel": "自動跟隨CLI運行時的模型",
-      "agentSwitched": "對話Agent已切換。請刪除該渠道的歷史會話後繼續使用，新會話將使用新配置。（下個版本將自動熱更新）",
-      "modelSwitched": "對話模型已切換。請刪除該渠道的歷史會話後繼續使用，新會話將使用新配置。（下個版本將自動熱更新）",
+      "agentSwitched": "Agent 切換成功",
+      "modelSwitched": "模型切換成功",
       "copyCode": "複製配對碼",
       "modelSaved": "模型已儲存",
       "modelSaveFailed": "儲存模型失敗",

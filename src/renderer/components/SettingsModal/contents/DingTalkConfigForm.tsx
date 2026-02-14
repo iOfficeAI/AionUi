@@ -144,7 +144,8 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.dingtalk.agent', agent);
-      Message.success(t('settings.assistant.agentSwitched', "Agent switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"));
+      await channel.syncChannelSettings.invoke({ platform: 'dingtalk', agent }).catch(() => {});
+      Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[DingTalkConfig] Failed to save agent:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));

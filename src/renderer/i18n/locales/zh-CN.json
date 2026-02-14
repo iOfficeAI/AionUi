@@ -855,8 +855,8 @@
       "copyCode": "复制配对码",
       "agentDescTelegram": "用于与Channel进行对话",
       "autoFollowCliModel": "自动跟随CLI运行时的模型",
-      "agentSwitched": "对话Agent已切换。请删除该渠道的历史会话后继续使用，新会话将使用新配置。（下个版本将自动热更新）",
-      "modelSwitched": "对话模型已切换。请删除该渠道的历史会话后继续使用，新会话将使用新配置。（下个版本将自动热更新）"
+      "agentSwitched": "Agent 切换成功",
+      "modelSwitched": "模型切换成功"
     },
     "lark": {
       "appId": "App ID",

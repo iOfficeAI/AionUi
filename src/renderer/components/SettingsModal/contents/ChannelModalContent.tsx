@@ -77,8 +77,22 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
   const onSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
       try {
-        await ConfigStorage.set(configKey, { id: provider.id, useModel: modelName });
-        Message.success(t('settings.assistant.modelSwitched', "Model switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"));
+        const modelRef = { id: provider.id, useModel: modelName };
+        await ConfigStorage.set(configKey, modelRef);
+
+        // Derive platform from configKey and sync to channel system
+        const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as 'telegram' | 'lark' | 'dingtalk';
+        const agentKey = `assistant.${platform}.agent` as const;
+        const currentAgent = await ConfigStorage.get(agentKey);
+        await channel.syncChannelSettings
+          .invoke({
+            platform,
+            agent: (currentAgent as { backend: string; customAgentId?: string; name?: string }) || { backend: 'gemini' },
+            model: modelRef,
+          })
+          .catch(() => {});
+
+        Message.success(t('settings.assistant.modelSwitched', 'Model switched successfully'));
         return true;
       } catch (error) {
         console.error(`[ChannelSettings] Failed to save model for ${configKey}:`, error);

@@ -14,6 +14,7 @@ import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion 
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import type { IChannelPluginConfig, IChannelUser, IChannelSession, IChannelPairingRequest, IChannelUserRow, IChannelSessionRow, IChannelPairingCodeRow, PluginType, PluginStatus } from '@/channels/types';
+import type { TProviderWithModel } from '@/common/storage';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 import { encryptCredentials, decryptCredentials } from '@/channels/utils/credentialCrypto';
 
@@ -473,6 +474,26 @@ export class AionUIDatabase {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  /**
+   * Batch-update the model field on channel conversations matching source + type.
+   * Used when channel settings change to propagate new model to existing conversations.
+   */
+  updateChannelConversationModel(source: 'telegram' | 'lark' | 'dingtalk', type: string, model: TProviderWithModel, userId?: string): IQueryResult<number> {
+    try {
+      const finalUserId = userId || this.defaultUserId;
+      const modelJson = JSON.stringify(model);
+      const now = Date.now();
+      const stmt = this.db.prepare(`
+        UPDATE conversations SET model = ?, updated_at = ?
+        WHERE user_id = ? AND source = ? AND type = ?
+      `);
+      const result = stmt.run(modelJson, now, finalUserId, source, type);
+      return { success: true, data: result.changes };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 

@@ -859,8 +859,8 @@
       "copyCode": "Copy pairing code",
       "agentDescTelegram": "Used for Telegram conversations",
       "autoFollowCliModel": "Automatically follow the model when CLI is running",
-      "agentSwitched": "Agent switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)",
-      "modelSwitched": "Model switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"
+      "agentSwitched": "Agent switched successfully",
+      "modelSwitched": "Model switched successfully"
     },
     "lark": {
       "appId": "App ID",

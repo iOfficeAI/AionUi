@@ -174,6 +174,21 @@ export class SessionManager {
   }
 
   /**
+   * Clear all sessions from both in-memory cache and database.
+   * Used when channel settings change to force session re-evaluation on next message.
+   */
+  clearAllSessions(): number {
+    const db = getDatabase();
+    let cleared = 0;
+    for (const [key, session] of this.activeSessions.entries()) {
+      db.deleteChannelSession(session.id);
+      this.activeSessions.delete(key);
+      cleared++;
+    }
+    return cleared;
+  }
+
+  /**
    * Clear session by conversation ID
    * Used when a conversation is deleted from AionUI
    */

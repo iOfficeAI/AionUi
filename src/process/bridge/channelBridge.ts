@@ -240,5 +240,24 @@ export function initChannelBridge(): void {
     }
   });
 
+  // ==================== Settings Sync ====================
+
+  /**
+   * Sync channel settings after agent or model change
+   */
+  channel.syncChannelSettings.provider(async ({ platform, agent, model }) => {
+    try {
+      const manager = getChannelManager();
+      const result = await manager.syncChannelSettings(platform, agent, model);
+      if (!result.success) {
+        return { success: false, msg: result.error };
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error('[ChannelBridge] syncChannelSettings error:', error);
+      return { success: false, msg: error.message };
+    }
+  });
+
   console.log('[ChannelBridge] Initialized');
 }

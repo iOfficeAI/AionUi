@@ -6,6 +6,7 @@
 
 import { getDatabase } from '@/process/database';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
+import { getChannelDefaultModel } from '../actions/SystemActions';
 import { ActionExecutor } from '../gateway/ActionExecutor';
 import { PluginManager, registerPlugin } from '../gateway/PluginManager';
 import { PairingService } from '../pairing/PairingService';
@@ -354,6 +355,43 @@ export class ChannelManager {
   private getPluginNameFromId(pluginId: string): string {
     const type = this.getPluginTypeFromId(pluginId);
     return type.charAt(0).toUpperCase() + type.slice(1) + ' Bot';
+  }
+
+  // ==================== Settings Sync ====================
+
+  /**
+   * Sync channel settings after agent or model change in the Settings UI.
+   * Clears all cached sessions so the next incoming message re-evaluates
+   * which conversation to use. For gemini type changes, also updates the
+   * model field on existing conversations.
+   */
+  async syncChannelSettings(platform: 'telegram' | 'lark' | 'dingtalk', agent: { backend: string; customAgentId?: string; name?: string }, model?: { id: string; useModel: string }): Promise<{ success: boolean; error?: string }> {
+    if (!this.initialized || !this.sessionManager) {
+      return { success: false, error: 'Channel manager not initialized' };
+    }
+
+    try {
+      const newType = agent.backend === 'codex' ? 'codex' : agent.backend === 'gemini' ? 'gemini' : 'acp';
+
+      // For gemini + model info: update existing conversations' model field
+      if (newType === 'gemini' && model?.id && model?.useModel) {
+        const fullModel = await getChannelDefaultModel(platform);
+        const db = getDatabase();
+        const result = db.updateChannelConversationModel(platform, 'gemini', fullModel);
+        if (result.success) {
+          console.log(`[ChannelManager] Updated ${result.data} gemini conversation(s) for ${platform}`);
+        }
+      }
+
+      // Clear all sessions to force re-evaluation on next message
+      const cleared = this.sessionManager.clearAllSessions();
+      console.log(`[ChannelManager] syncChannelSettings: platform=${platform}, type=${newType}, cleared=${cleared}`);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error(`[ChannelManager] syncChannelSettings failed:`, error);
+      return { success: false, error: error.message };
+    }
   }
 
   // ==================== Conversation Cleanup ====================
