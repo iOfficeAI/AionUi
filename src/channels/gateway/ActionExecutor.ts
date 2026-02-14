@@ -550,9 +550,15 @@ export class ActionExecutor {
         // Convert message format (based on platform)
         const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
 
-        // 保存最后一条消息内容
-        // Save last message content
-        lastMessageContent = outgoingMessage;
+        // Strip replyMarkup during streaming to prevent premature card finalization.
+        // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
+        // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
+        // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
+        const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
+
+        // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
+        // Save last message content (without replyMarkup, final message adds it separately)
+        lastMessageContent = streamOutgoing;
 
         // IMPORTANT: Always treat first streaming message as update to thinking message
         // This prevents async race condition where first insert's sendMessage takes time
@@ -562,14 +568,14 @@ export class ActionExecutor {
         if (isInsert && sentMessageIds.length === 1) {
           // First streaming message: update thinking message instead of inserting
           // 第一个流式消息：更新thinking消息而不是插入新消息
-          pendingMessage = outgoingMessage;
+          pendingMessage = streamOutgoing;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
             if (pendingUpdateTimer) {
               clearTimeout(pendingUpdateTimer);
               pendingUpdateTimer = null;
             }
-            await doEditMessage(outgoingMessage);
+            await doEditMessage(streamOutgoing);
           } else {
             if (pendingUpdateTimer) {
               clearTimeout(pendingUpdateTimer);
@@ -587,7 +593,7 @@ export class ActionExecutor {
           // 新消息：发送新消息
           // New message: send new message
           try {
-            const newMsgId = await context.sendMessage(outgoingMessage);
+            const newMsgId = await context.sendMessage(streamOutgoing);
             sentMessageIds.push(newMsgId);
           } catch {
             // Ignore send errors
@@ -595,7 +601,7 @@ export class ActionExecutor {
         } else {
           // 更新消息：使用定时器节流，确保最后一条消息能被发送
           // Update message: throttle with timer to ensure last message is sent
-          pendingMessage = outgoingMessage;
+          pendingMessage = streamOutgoing;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
             // 距离上次发送超过节流时间，立即发送
@@ -604,7 +610,7 @@ export class ActionExecutor {
               clearTimeout(pendingUpdateTimer);
               pendingUpdateTimer = null;
             }
-            await doEditMessage(outgoingMessage);
+            await doEditMessage(streamOutgoing);
           } else {
             // 在节流时间内，设置定时器延迟发送
             // Within throttle window, set timer to send later
