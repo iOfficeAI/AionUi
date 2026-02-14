@@ -26,6 +26,10 @@ interface IStreamState {
   buffer: string;
   resolve: (value: string) => void;
   reject: (error: Error) => void;
+  /** Number of 'start' events received (tracks multi-turn tool-call continuations) */
+  turnCount: number;
+  /** Number of 'finish' events received */
+  finishCount: number;
 }
 
 /**
@@ -90,10 +94,22 @@ export class ChannelMessageService {
       return;
     }
 
-    // Detect stream completion: 'finish' event means the agent is done
+    // Track 'start' events to count multi-turn continuations (e.g., tool call → model response).
+    // The Gemini agent emits a new 'start' for each submitQuery turn, including continuations
+    // triggered by onAllToolCallsComplete. We must wait for all turns to finish.
+    if (event.type === 'start') {
+      stream.turnCount++;
+      return;
+    }
+
+    // Detect stream completion: only resolve when all turns have finished.
+    // When turnCount is 0 (no 'start' received, e.g., error-only flows), resolve immediately.
     if (event.type === 'finish') {
-      this.activeStreams.delete(conversationId);
-      stream.resolve(stream.msgId);
+      stream.finishCount++;
+      if (stream.turnCount === 0 || stream.finishCount >= stream.turnCount) {
+        this.activeStreams.delete(conversationId);
+        stream.resolve(stream.msgId);
+      }
       return;
     }
 
@@ -179,6 +195,8 @@ export class ChannelMessageService {
         buffer: '',
         resolve,
         reject,
+        turnCount: 0,
+        finishCount: 0,
       });
 
       // Build payload based on agent type.
@@ -211,9 +229,11 @@ export class ChannelMessageService {
    */
   clearStreamByConversationId(conversationId: string): void {
     const stream = this.activeStreams.get(conversationId);
-    if (stream) {
-      this.activeStreams.delete(conversationId);
-    }
+    if (!stream) return;
+    this.activeStreams.delete(conversationId);
+    // Resolve (not reject) so the caller's post-stream cleanup runs normally
+    // (e.g., ActionExecutor finalizing the card with action buttons).
+    stream.resolve(stream.msgId);
   }
 
   /**
