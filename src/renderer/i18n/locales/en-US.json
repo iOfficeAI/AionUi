@@ -900,7 +900,7 @@
     },
     "dingtalk": {
       "clientId": "Client ID",
-      "devConsoleLink": "DingTalk Open Platform",
+      "devConsoleLink": "Follow the tutorial",
       "clientIdDescSuffix": "to get your Client ID",
       "clientSecret": "Client Secret",
       "clientSecretDescSuffix": "to get Client Secret",
