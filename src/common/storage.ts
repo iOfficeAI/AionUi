@@ -92,6 +92,17 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // DingTalk assistant default model / DingTalk 助手默认模型
+  'assistant.dingtalk.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
+  // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
+  'assistant.dingtalk.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
 }
 
 export interface IEnvStorageRefer {
@@ -105,7 +116,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk';
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -119,6 +130,8 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
+  /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
+  channelChatId?: string;
 }
 
 // Token 使用统计数据类型

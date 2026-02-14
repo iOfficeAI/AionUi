@@ -664,6 +664,8 @@
     "channels.discordDesc": "Chat with AionUi assistant via Discord",
     "channels.larkTitle": "Lark",
     "channels.larkDesc": "Chat with AionUi assistant via Lark",
+    "channels.dingtalkTitle": "DingTalk",
+    "channels.dingtalkDesc": "Chat with AionUi assistant via DingTalk",
     "channels.comingSoon": "Coming Soon",
     "channels.comingSoonDesc": "Support for {{channel}} is coming soon",
     "channels.notConfigured": "Not configured",
@@ -858,8 +860,8 @@
       "copyCode": "Copy pairing code",
       "agentDescTelegram": "Used for Telegram conversations",
       "autoFollowCliModel": "Automatically follow the model when CLI is running",
-      "agentSwitched": "Agent switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)",
-      "modelSwitched": "Model switched. Please delete the Channel's historical conversations before continuing to use, new conversations will use the new configuration. (Next version will support automatic hot update)"
+      "agentSwitched": "Agent switched successfully",
+      "modelSwitched": "Model switched successfully"
     },
     "lark": {
       "appId": "App ID",
@@ -895,6 +897,34 @@
       "agent": "Agent",
       "agentDesc": "Used for Lark conversations",
       "autoFollowCliModel": "Automatically follow the model when CLI is running"
+    },
+    "dingtalk": {
+      "clientId": "Client ID",
+      "devConsoleLink": "DingTalk Open Platform",
+      "clientIdDescSuffix": "to get your Client ID",
+      "clientSecret": "Client Secret",
+      "clientSecretDescSuffix": "to get Client Secret",
+      "credentialsRequired": "Please enter Client ID and Client Secret",
+      "connectionSuccess": "Connected to DingTalk API!",
+      "connectionFailed": "Connection failed",
+      "pluginEnabled": "DingTalk bot enabled",
+      "pluginDisabled": "DingTalk bot disabled",
+      "enableFailed": "Failed to enable DingTalk plugin",
+      "disableFailed": "Failed to disable DingTalk plugin",
+      "testAndConnect": "Test & Connect",
+      "credentialsSaved": "Credentials already configured. Enter new values to update.",
+      "defaultModelDesc": "Model used for DingTalk conversations",
+      "connectionStatus": "Connection Status",
+      "statusConnected": "Connected",
+      "statusError": "Error",
+      "statusConnecting": "Connecting...",
+      "step1": "Open DingTalk and find your bot application",
+      "step2": "Send any message to initiate pairing",
+      "step3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
+      "step4": "Once approved, you can start chatting with the AI assistant through DingTalk!",
+      "waitingConnection": "Connection is being established. Please wait...",
+      "agent": "Agent",
+      "agentDesc": "Used for DingTalk conversations"
     }
   },
   "messages": {

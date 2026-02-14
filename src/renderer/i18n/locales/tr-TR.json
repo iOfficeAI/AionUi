@@ -357,8 +357,8 @@
     "assistant": {
       "agentDescTelegram": "Telegram sohbetleri icin kullanilir",
       "autoFollowCliModel": "CLI calisirken modeli otomatik olarak takip et",
-      "agentSwitched": "Agent degistirildi. Kullanmaya devam etmek icin bu kanalin gecmis sohbetlerini silin, yeni sohbetler yeni yapilandirmayi kullanacaktir. (Sonraki surumde otomatik sicak guncelleme desteklenecektir)",
-      "modelSwitched": "Model degistirildi. Kullanmaya devam etmek icin bu kanalin gecmis sohbetlerini silin, yeni sohbetler yeni yapilandirmayi kullanacaktir. (Sonraki surumde otomatik sicak guncelleme desteklenecektir)"
+      "agentSwitched": "Agent basariyla degistirildi",
+      "modelSwitched": "Model basariyla degistirildi"
     },
     "authMethod": "Kimlik Doğrulama",
     "geminiApiKey": "Gemini API Anahtarı",

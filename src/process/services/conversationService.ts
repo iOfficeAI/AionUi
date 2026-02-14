@@ -32,6 +32,8 @@ export interface ICreateGeminiConversationParams {
   id?: string;
   /** 自定义会话名称 / Custom conversation name */
   name?: string;
+  /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
+  channelChatId?: string;
 }
 
 /**
@@ -41,6 +43,8 @@ export interface ICreateGeminiConversationParams {
 export interface ICreateConversationOptions extends ICreateConversationParams {
   /** 会话来源 / Conversation source */
   source?: ConversationSource;
+  /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
+  channelChatId?: string;
 }
 
 /**
@@ -84,9 +88,12 @@ export class ConversationService {
         conversation.name = params.name;
       }
 
-      // Set source
+      // Set source and channelChatId
       if (params.source) {
         conversation.source = params.source;
+      }
+      if (params.channelChatId) {
+        conversation.channelChatId = params.channelChatId;
       }
 
       // Save to database
@@ -100,7 +107,7 @@ export class ConversationService {
       // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
       WorkerManage.buildConversation(conversation);
 
-      console.log(`[ConversationService] Created conversation ${conversation.id} with source=${params.source || 'aionui'}`);
+      console.log(`[ConversationService] Created conversation ${conversation.id} with source=${params.source || 'aionui'}, chatId=${params.channelChatId || 'none'}`);
       return { success: true, conversation };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -148,7 +155,7 @@ export class ConversationService {
         return { success: false, error: 'Invalid conversation type' };
       }
 
-      // Apply custom ID, name and source
+      // Apply custom ID, name, source, and channelChatId
       if (name) {
         conversation.name = name;
       }
@@ -157,6 +164,9 @@ export class ConversationService {
       }
       if (source) {
         conversation.source = source;
+      }
+      if (params.channelChatId) {
+        conversation.channelChatId = params.channelChatId;
       }
 
       // Save to database
@@ -199,27 +209,20 @@ export class ConversationService {
     const db = getDatabase();
     const source = params.source;
 
-    // Try to find existing conversation for this channel
-    const latestConv = db.getLatestConversationBySource(source);
-    if (latestConv.success && latestConv.data) {
-      const conv = latestConv.data;
-      // Check if the model matches the current config (channel conversations are always gemini type)
-      const existingModel = 'model' in conv ? conv.model : undefined;
-      if (!existingModel) {
-        console.log(`[ConversationService] No model info in existing ${source} conversation ${conv.id}, creating new`);
-      } else if (existingModel.id === params.model.id && existingModel.useModel === params.model.useModel) {
-        console.log(`[ConversationService] Reusing existing ${source} conversation: ${conv.id}`);
-        return { success: true, conversation: conv };
-      } else {
-        console.log(`[ConversationService] Model changed for ${source} conversation (existing: ${existingModel.id}/${existingModel.useModel}, configured: ${params.model.id}/${params.model.useModel}), creating new`);
+    // Per-chat lookup: find existing conversation by source + channelChatId + type, or create new
+    if (params.channelChatId) {
+      const latestConv = db.findChannelConversation(source, params.channelChatId, 'gemini');
+      if (latestConv.success && latestConv.data) {
+        console.log(`[ConversationService] Reusing existing ${source} conversation for chatId=${params.channelChatId}: ${latestConv.data.id}`);
+        return { success: true, conversation: latestConv.data };
       }
     }
 
-    // Create new conversation for this channel
+    // No channelChatId or no existing conversation found — always create new
     return this.createGeminiConversation({
       ...params,
       source,
-      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source) : `${source} Assistant`),
+      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source, 'gemini', undefined, params.channelChatId) : `${source} Assistant`),
     });
   }
 }

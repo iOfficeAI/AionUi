@@ -494,6 +494,9 @@ export const channel = {
   // Session Management (MVP: read-only view)
   getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
 
+  // Settings Sync
+  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: 'telegram' | 'lark' | 'dingtalk'; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
+
   // Events
   pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),
   pluginStatusChanged: bridge.buildEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),

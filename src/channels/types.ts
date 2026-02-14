@@ -9,7 +9,7 @@
 /**
  * Supported platform types for plugins
  */
-export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark';
+export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk';
 
 /**
  * Plugin connection status
@@ -27,6 +27,20 @@ export interface IPluginCredentials {
   appSecret?: string;
   encryptKey?: string;
   verificationToken?: string;
+  // DingTalk
+  clientId?: string;
+  clientSecret?: string;
+}
+
+/**
+ * Check whether a plugin has valid credentials configured.
+ * Centralized so every call-site stays in sync when a new platform is added.
+ */
+export function hasPluginCredentials(type: PluginType, credentials?: IPluginCredentials): boolean {
+  if (!credentials) return false;
+  if (type === 'lark') return !!(credentials.appId && credentials.appSecret);
+  if (type === 'dingtalk') return !!(credentials.clientId && credentials.clientSecret);
+  return !!credentials.token;
 }
 
 /**
@@ -106,7 +120,7 @@ export interface IChannelUserRow {
 /**
  * Agent types supported in assistant sessions
  */
-export type ChannelAgentType = 'gemini' | 'acp' | 'codex';
+export type ChannelAgentType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
 
 /**
  * User session in the assistant system
@@ -117,6 +131,7 @@ export interface IChannelSession {
   agentType: ChannelAgentType;
   conversationId?: string;
   workspace?: string;
+  chatId?: string; // Channel chat isolation ID (e.g. user:xxx, group:xxx)
   createdAt: number;
   lastActivity: number;
 }
@@ -130,6 +145,7 @@ export interface IChannelSessionRow {
   agent_type: string;
   conversation_id: string | null;
   workspace: string | null;
+  chat_id: string | null; // Channel chat isolation ID
   created_at: number;
   last_activity: number;
 }
@@ -383,6 +399,7 @@ export function rowToChannelSession(row: IChannelSessionRow): IChannelSession {
     agentType: row.agent_type as ChannelAgentType,
     conversationId: row.conversation_id ?? undefined,
     workspace: row.workspace ?? undefined,
+    chatId: row.chat_id ?? undefined,
     createdAt: row.created_at,
     lastActivity: row.last_activity,
   };
@@ -398,6 +415,7 @@ export function channelSessionToRow(session: IChannelSession): IChannelSessionRo
     agent_type: session.agentType,
     conversation_id: session.conversationId ?? null,
     workspace: session.workspace ?? null,
+    chat_id: session.chatId ?? null,
     created_at: session.createdAt,
     last_activity: session.lastActivity,
   };
@@ -439,22 +457,39 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
  * Channel platform type for model configuration.
  * Subset of PluginType that currently supports channel conversations.
  */
-export type ChannelPlatform = 'telegram' | 'lark';
+export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk';
 
 /**
  * Type guard to check if a string is a valid ChannelPlatform
  */
 export function isChannelPlatform(value: string): value is ChannelPlatform {
-  return value === 'telegram' || value === 'lark';
+  return value === 'telegram' || value === 'lark' || value === 'dingtalk';
 }
 
 /**
- * Get default conversation name for a channel platform
+ * Resolve a backend string to conversation type and optional backend qualifier.
+ * Centralizes the backend → convType mapping used across channels.
  */
-export function getChannelConversationName(platform: ChannelPlatform): string {
-  const names: Record<ChannelPlatform, string> = {
-    telegram: 'Telegram Assistant',
-    lark: 'Lark Assistant',
-  };
-  return names[platform];
+export function resolveChannelConvType(backend: string): { convType: string; convBackend?: string } {
+  if (backend === 'codex') return { convType: 'codex' };
+  if (backend === 'gemini') return { convType: 'gemini' };
+  if (backend === 'openclaw-gateway') return { convType: 'openclaw-gateway' };
+  return { convType: 'acp', convBackend: backend };
+}
+
+/**
+ * Build a structured conversation name for a channel platform.
+ * Format: {shortPlatform}-{type}-{backend}-{chatIdPrefix}
+ * - platform is shortened: telegram -> tg, dingtalk -> ding, lark -> lark
+ * - backend is only included when type === 'acp'
+ * - chatIdPrefix is the first 8 characters of chatId
+ * - empty segments are omitted
+ */
+export function getChannelConversationName(platform: ChannelPlatform | PluginType, type?: string, backend?: string, chatId?: string): string {
+  const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding' };
+  const parts: string[] = [shortPlatform[platform] ?? platform];
+  if (type) parts.push(type);
+  if (type === 'acp' && backend) parts.push(backend);
+  if (chatId) parts.push(chatId.slice(0, 8));
+  return parts.join('-');
 }

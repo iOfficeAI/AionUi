@@ -50,33 +50,30 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-interface LarkConfigFormProps {
+interface DingTalkConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
   modelSelection: GeminiModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
-const LARK_DEV_DOCS_URL = 'https://open.feishu.cn/document/develop-an-echo-bot/introduction';
+const DINGTALK_DEV_DOCS_URL = 'https://open.dingtalk.com/';
 
-const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
+const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t } = useTranslation();
 
-  // Lark credentials
-  const [appId, setAppId] = useState('');
-  const [appSecret, setAppSecret] = useState('');
-  const [encryptKey, setEncryptKey] = useState('');
-  const [verificationToken, setVerificationToken] = useState('');
+  // DingTalk credentials
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
 
-  const [showOptional, setShowOptional] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
-  const [credentialsTested, setCredentialsTested] = useState(false);
-  const [touched, setTouched] = useState({ appId: false, appSecret: false });
+  const [_credentialsTested, setCredentialsTested] = useState(false);
+  const [touched, setTouched] = useState({ clientId: false, clientSecret: false });
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
-  // Agent selection (used for Lark conversations)
+  // Agent selection
   const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean }>>([]);
   const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>({ backend: 'gemini' });
 
@@ -86,11 +83,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     try {
       const result = await channel.getPendingPairings.invoke();
       if (result.success && result.data) {
-        // Filter for Lark platform only
-        setPendingPairings(result.data.filter((p) => p.platformType === 'lark'));
+        setPendingPairings(result.data.filter((p) => p.platformType === 'dingtalk'));
       }
     } catch (error) {
-      console.error('[LarkConfig] Failed to load pending pairings:', error);
+      console.error('[DingTalkConfig] Failed to load pending pairings:', error);
     } finally {
       setPairingLoading(false);
     }
@@ -102,11 +98,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     try {
       const result = await channel.getAuthorizedUsers.invoke();
       if (result.success && result.data) {
-        // Filter for Lark platform only
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'lark'));
+        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'dingtalk'));
       }
     } catch (error) {
-      console.error('[LarkConfig] Failed to load authorized users:', error);
+      console.error('[DingTalkConfig] Failed to load authorized users:', error);
     } finally {
       setUsersLoading(false);
     }
@@ -122,7 +117,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   useEffect(() => {
     const loadAgentsAndSelection = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.lark.agent')]);
+        const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.dingtalk.agent')]);
 
         if (agentsResp.success && agentsResp.data) {
           const list = agentsResp.data.filter((a) => !a.isPreset).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset }));
@@ -139,7 +134,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           setSelectedAgent({ backend: saved as AcpBackendAll });
         }
       } catch (error) {
-        console.error('[LarkConfig] Failed to load agents:', error);
+        console.error('[DingTalkConfig] Failed to load agents:', error);
       }
     };
 
@@ -148,11 +143,11 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.lark.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'lark', agent }).catch(() => {});
+      await ConfigStorage.set('assistant.dingtalk.agent', agent);
+      await channel.syncChannelSettings.invoke({ platform: 'dingtalk', agent }).catch(() => {});
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
-      console.error('[LarkConfig] Failed to save agent:', error);
+      console.error('[DingTalkConfig] Failed to save agent:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -160,7 +155,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
-      if (request.platformType !== 'lark') return;
+      if (request.platformType !== 'dingtalk') return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;
@@ -173,7 +168,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Listen for user authorization
   useEffect(() => {
     const unsubscribe = channel.userAuthorized.on((user) => {
-      if (user.platformType !== 'lark') return;
+      if (user.platformType !== 'dingtalk') return;
       setAuthorizedUsers((prev) => {
         const exists = prev.some((u) => u.id === user.id);
         if (exists) return prev;
@@ -184,13 +179,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     return () => unsubscribe();
   }, []);
 
-  // Test Lark connection
+  // Test DingTalk connection
   const handleTestConnection = async () => {
-    // Mark fields as touched to show validation errors
-    setTouched({ appId: true, appSecret: true });
+    setTouched({ clientId: true, clientSecret: true });
 
-    if (!appId.trim() || !appSecret.trim()) {
-      Message.warning(t('settings.lark.credentialsRequired', 'Please enter App ID and App Secret'));
+    if (!clientId.trim() || !clientSecret.trim()) {
+      Message.warning(t('settings.dingtalk.credentialsRequired', 'Please enter Client ID and Client Secret'));
       return;
     }
 
@@ -198,27 +192,25 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     setCredentialsTested(false);
     try {
       const result = await channel.testPlugin.invoke({
-        pluginId: 'lark_default',
-        token: '', // Not used for Lark
+        pluginId: 'dingtalk_default',
+        token: '',
         extraConfig: {
-          appId: appId.trim(),
-          appSecret: appSecret.trim(),
+          appId: clientId.trim(),
+          appSecret: clientSecret.trim(),
         },
       });
 
       if (result.success && result.data?.success) {
         setCredentialsTested(true);
-        Message.success(t('settings.lark.connectionSuccess', 'Connected to Lark API!'));
-
-        // Auto-enable bot after successful test
+        Message.success(t('settings.dingtalk.connectionSuccess', 'Connected to DingTalk API!'));
         await handleAutoEnable();
       } else {
         setCredentialsTested(false);
-        Message.error(result.data?.error || t('settings.lark.connectionFailed', 'Connection failed'));
+        Message.error(result.data?.error || t('settings.dingtalk.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
       setCredentialsTested(false);
-      Message.error(error.message || t('settings.lark.connectionFailed', 'Connection failed'));
+      Message.error(error.message || t('settings.dingtalk.connectionFailed', 'Connection failed'));
     } finally {
       setTestLoading(false);
     }
@@ -228,30 +220,27 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const handleAutoEnable = async () => {
     try {
       const result = await channel.enablePlugin.invoke({
-        pluginId: 'lark_default',
+        pluginId: 'dingtalk_default',
         config: {
-          appId: appId.trim(),
-          appSecret: appSecret.trim(),
-          encryptKey: encryptKey.trim() || undefined,
-          verificationToken: verificationToken.trim() || undefined,
+          clientId: clientId.trim(),
+          clientSecret: clientSecret.trim(),
         },
       });
 
       if (result.success) {
-        Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
+        Message.success(t('settings.dingtalk.pluginEnabled', 'DingTalk bot enabled'));
         const statusResult = await channel.getPluginStatus.invoke();
         if (statusResult.success && statusResult.data) {
-          const larkPlugin = statusResult.data.find((p) => p.type === 'lark');
-          onStatusChange(larkPlugin || null);
+          const dingtalkPlugin = statusResult.data.find((p) => p.type === 'dingtalk');
+          onStatusChange(dingtalkPlugin || null);
         }
       } else {
-        // Show error to user when enable fails
-        console.error('[LarkConfig] enablePlugin failed:', result.msg);
-        Message.error(result.msg || t('settings.lark.enableFailed', 'Failed to enable Lark plugin'));
+        console.error('[DingTalkConfig] enablePlugin failed:', result.msg);
+        Message.error(result.msg || t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin'));
       }
     } catch (error: any) {
-      console.error('[LarkConfig] Auto-enable failed:', error);
-      Message.error(error.message || t('settings.lark.enableFailed', 'Failed to enable Lark plugin'));
+      console.error('[DingTalkConfig] Auto-enable failed:', error);
+      Message.error(error.message || t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin'));
     }
   };
 
@@ -329,92 +318,92 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   return (
     <div className='flex flex-col gap-24px'>
-      {/* App ID */}
+      {/* Client ID */}
       <PreferenceRow
-        label={t('settings.lark.appId', 'App ID')}
+        label={t('settings.dingtalk.clientId', 'Client ID')}
         description={
           <span>
             <a
               className='text-primary hover:underline cursor-pointer text-12px'
-              href={LARK_DEV_DOCS_URL}
+              href={DINGTALK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+                shell.openExternal.invoke(DINGTALK_DEV_DOCS_URL).catch(console.error);
               }}
             >
-              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+              {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
             </a>{' '}
-            {t('settings.lark.appIdDescSuffix', 'to get your App ID')}
+            {t('settings.dingtalk.clientIdDescSuffix', 'to get your Client ID')}
           </span>
         }
         required
       >
         {hasExistingUsers ? (
-          <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+          <Tooltip content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying')}>
             <span>
               <Input
-                value={appId}
+                value={clientId}
                 onChange={(value) => {
-                  setAppId(value);
+                  setClientId(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
-                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
+                onBlur={() => setTouched((prev) => ({ ...prev, clientId: true }))}
+                placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'dingxxxxxxxxxx'}
                 style={{ width: 240 }}
-                status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                status={touched.clientId && !clientId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 disabled={hasExistingUsers}
               />
             </span>
           </Tooltip>
         ) : (
           <Input
-            value={appId}
+            value={clientId}
             onChange={(value) => {
-              setAppId(value);
+              setClientId(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
-            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
+            onBlur={() => setTouched((prev) => ({ ...prev, clientId: true }))}
+            placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'dingxxxxxxxxxx'}
             style={{ width: 240 }}
-            status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            status={touched.clientId && !clientId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
-      {/* App Secret */}
+      {/* Client Secret */}
       <PreferenceRow
-        label={t('settings.lark.appSecret', 'App Secret')}
+        label={t('settings.dingtalk.clientSecret', 'Client Secret')}
         description={
           <span>
             <a
               className='text-primary hover:underline cursor-pointer text-12px'
-              href={LARK_DEV_DOCS_URL}
+              href={DINGTALK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+                shell.openExternal.invoke(DINGTALK_DEV_DOCS_URL).catch(console.error);
               }}
             >
-              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+              {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
             </a>{' '}
-            {t('settings.lark.appSecretDescSuffix', 'to get App Secret')}
+            {t('settings.dingtalk.clientSecretDescSuffix', 'to get Client Secret')}
           </span>
         }
         required
       >
         {hasExistingUsers ? (
-          <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+          <Tooltip content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying')}>
             <span>
               <Input.Password
-                value={appSecret}
+                value={clientSecret}
                 onChange={(value) => {
-                  setAppSecret(value);
+                  setClientSecret(value);
                   handleCredentialsChange();
                 }}
-                onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
+                onBlur={() => setTouched((prev) => ({ ...prev, clientSecret: true }))}
                 placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
                 style={{ width: 240 }}
-                status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+                status={touched.clientSecret && !clientSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
                 visibilityToggle
                 disabled={hasExistingUsers}
               />
@@ -422,113 +411,34 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           </Tooltip>
         ) : (
           <Input.Password
-            value={appSecret}
+            value={clientSecret}
             onChange={(value) => {
-              setAppSecret(value);
+              setClientSecret(value);
               handleCredentialsChange();
             }}
-            onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
+            onBlur={() => setTouched((prev) => ({ ...prev, clientSecret: true }))}
             placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
             style={{ width: 240 }}
-            status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
+            status={touched.clientSecret && !clientSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
             visibilityToggle
             disabled={hasExistingUsers}
           />
         )}
       </PreferenceRow>
 
-      {/* Optional fields toggle */}
-      <div className='flex items-center gap-4px text-12px text-t-tertiary cursor-pointer select-none' onClick={() => setShowOptional((prev) => !prev)}>
-        <Down theme='outline' size={12} style={{ transform: showOptional ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-        <span>{showOptional ? t('settings.lark.hideOptionalFields', 'Hide optional settings') : t('settings.lark.showOptionalFields', 'Show optional settings')}</span>
-      </div>
-
-      {showOptional && (
-        <>
-          {/* Encrypt Key (Optional) */}
-          <PreferenceRow label={t('settings.lark.encryptKey', 'Encrypt Key')} description={t('settings.lark.encryptKeyDesc', 'Optional: For event encryption (from Event Subscription settings)')}>
-            {hasExistingUsers ? (
-              <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
-                <span>
-                  <Input.Password
-                    value={encryptKey}
-                    onChange={(value) => {
-                      setEncryptKey(value);
-                      handleCredentialsChange();
-                    }}
-                    placeholder={t('settings.lark.optional', 'Optional')}
-                    style={{ width: 240 }}
-                    visibilityToggle
-                    disabled={hasExistingUsers}
-                  />
-                </span>
-              </Tooltip>
-            ) : (
-              <Input.Password
-                value={encryptKey}
-                onChange={(value) => {
-                  setEncryptKey(value);
-                  handleCredentialsChange();
-                }}
-                placeholder={t('settings.lark.optional', 'Optional')}
-                style={{ width: 240 }}
-                visibilityToggle
-                disabled={hasExistingUsers}
-              />
-            )}
-          </PreferenceRow>
-
-          {/* Verification Token (Optional) */}
-          <PreferenceRow label={t('settings.lark.verificationToken', 'Verification Token')} description={t('settings.lark.verificationTokenDesc', 'Optional: For event verification (from Event Subscription settings)')}>
-            {hasExistingUsers ? (
-              <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
-                <span>
-                  <Input.Password
-                    value={verificationToken}
-                    onChange={(value) => {
-                      setVerificationToken(value);
-                      handleCredentialsChange();
-                    }}
-                    placeholder={t('settings.lark.optional', 'Optional')}
-                    style={{ width: 240 }}
-                    visibilityToggle
-                    disabled={hasExistingUsers}
-                  />
-                </span>
-              </Tooltip>
-            ) : (
-              <Input.Password
-                value={verificationToken}
-                onChange={(value) => {
-                  setVerificationToken(value);
-                  handleCredentialsChange();
-                }}
-                placeholder={t('settings.lark.optional', 'Optional')}
-                style={{ width: 240 }}
-                visibilityToggle
-                disabled={hasExistingUsers}
-              />
-            )}
-          </PreferenceRow>
-        </>
-      )}
-
-      {/* Test Connection Button - only show when not connected or no existing users */}
+      {/* Test Connection Button */}
       {!hasExistingUsers && !pluginStatus?.connected && (
         <div className='flex justify-end'>
-          {pluginStatus?.hasToken && !appId.trim() && !appSecret.trim() ? (
-            // Credentials already saved but not entered in UI - show info message
-            <span className='text-12px text-t-tertiary mr-12px self-center'>{t('settings.lark.credentialsSaved', 'Credentials already configured. Enter new values to update.')}</span>
-          ) : null}
-          <Button type='primary' loading={testLoading} onClick={handleTestConnection} disabled={pluginStatus?.hasToken && !appId.trim() && !appSecret.trim()}>
-            {t('settings.lark.testAndConnect', 'Test & Connect')}
+          {pluginStatus?.hasToken && !clientId.trim() && !clientSecret.trim() ? <span className='text-12px text-t-tertiary mr-12px self-center'>{t('settings.dingtalk.credentialsSaved', 'Credentials already configured. Enter new values to update.')}</span> : null}
+          <Button type='primary' loading={testLoading} onClick={handleTestConnection} disabled={pluginStatus?.hasToken && !clientId.trim() && !clientSecret.trim()}>
+            {t('settings.dingtalk.testAndConnect', 'Test & Connect')}
           </Button>
         </div>
       )}
 
       {/* Agent Selection */}
       <div className='flex flex-col gap-8px'>
-        <PreferenceRow label={t('settings.lark.agent', 'Agent')} description={t('settings.lark.agentDesc', 'Used for Lark conversations')}>
+        <PreferenceRow label={t('settings.dingtalk.agent', 'Agent')} description={t('settings.dingtalk.agentDesc', 'Used for DingTalk conversations')}>
           <Dropdown
             trigger='click'
             position='br'
@@ -565,33 +475,33 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       </div>
 
       {/* Default Model Selection */}
-      <PreferenceRow label={t('settings.assistant.defaultModel', '对话模型')} description={t('settings.lark.defaultModelDesc', '用于Agent对话时调用')}>
-        <GeminiModelSelector selection={isGeminiAgent ? modelSelection : undefined} disabled={!isGeminiAgent} label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined} variant='settings' />
+      <PreferenceRow label={t('settings.assistant.defaultModel', 'Model')} description={t('settings.dingtalk.defaultModelDesc', 'Used for Agent conversations')}>
+        <GeminiModelSelector selection={isGeminiAgent ? modelSelection : undefined} disabled={!isGeminiAgent} label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', 'Auto-follow CLI runtime model') : undefined} variant='settings' />
       </PreferenceRow>
 
-      {/* Connection Status - show when bot is enabled */}
+      {/* Connection Status */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
         <div className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
-          <SectionHeader title={t('settings.lark.connectionStatus', 'Connection Status')} action={<span className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}>{pluginStatus?.connected ? t('settings.lark.statusConnected', 'Connected') : pluginStatus?.error ? t('settings.lark.statusError', 'Error') : t('settings.lark.statusConnecting', 'Connecting...')}</span>} />
+          <SectionHeader title={t('settings.dingtalk.connectionStatus', 'Connection Status')} action={<span className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}>{pluginStatus?.connected ? t('settings.dingtalk.statusConnected', 'Connected') : pluginStatus?.error ? t('settings.dingtalk.statusError', 'Error') : t('settings.dingtalk.statusConnecting', 'Connecting...')}</span>} />
           {pluginStatus?.error && <div className='text-14px text-red-600 dark:text-red-400 mb-12px'>{pluginStatus.error}</div>}
           {pluginStatus?.connected && (
             <div className='text-14px text-t-secondary space-y-8px'>
               <p className='m-0 font-500'>{t('settings.assistant.nextSteps', 'Next Steps')}:</p>
               <p className='m-0'>
-                <strong>1.</strong> {t('settings.lark.step1', 'Open Feishu/Lark and find your bot application')}
+                <strong>1.</strong> {t('settings.dingtalk.step1', 'Open DingTalk and find your bot application')}
               </p>
               <p className='m-0'>
-                <strong>2.</strong> {t('settings.lark.step2', 'Send any message to initiate pairing')}
+                <strong>2.</strong> {t('settings.dingtalk.step2', 'Send any message to initiate pairing')}
               </p>
               <p className='m-0'>
-                <strong>3.</strong> {t('settings.lark.step3', 'A pairing request will appear below. Click "Approve" to authorize the user.')}
+                <strong>3.</strong> {t('settings.dingtalk.step3', 'A pairing request will appear below. Click "Approve" to authorize the user.')}
               </p>
               <p className='m-0'>
-                <strong>4.</strong> {t('settings.lark.step4', 'Once approved, you can start chatting with the AI assistant through Lark!')}
+                <strong>4.</strong> {t('settings.dingtalk.step4', 'Once approved, you can start chatting with the AI assistant through DingTalk!')}
               </p>
             </div>
           )}
-          {!pluginStatus?.connected && !pluginStatus?.error && <div className='text-14px text-t-secondary'>{t('settings.lark.waitingConnection', 'WebSocket connection is being established. Please wait...')}</div>}
+          {!pluginStatus?.connected && !pluginStatus?.error && <div className='text-14px text-t-secondary'>{t('settings.dingtalk.waitingConnection', 'Connection is being established. Please wait...')}</div>}
         </div>
       )}
 
@@ -690,4 +600,4 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   );
 };
 
-export default LarkConfigForm;
+export default DingTalkConfigForm;
