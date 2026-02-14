@@ -797,7 +797,41 @@
     "multiKeyTestResult": "多 Key 測試：{{valid}}/{{total}} 個有效",
     "multiKeyAllValid": "所有 {{total}} 個 Key 均有效",
     "multiKeyPartialValid": "{{valid}} 個有效，{{invalid}} 個無效",
-    "multiKeyAllInvalid": "所有 {{total}} 個 Key 均無效"
+    "multiKeyAllInvalid": "所有 {{total}} 個 Key 均無效",
+    "lark": {
+      "agent": "代理",
+      "agentDesc": "用於 Lark 對話",
+      "defaultModelDesc": "用於 Lark 對話的模型",
+      "autoFollowCliModel": "自動跟隨CLI運行時的模型"
+    },
+    "dingtalk": {
+      "clientId": "Client ID",
+      "devConsoleLink": "跟隨教程",
+      "clientIdDescSuffix": "獲取 Client ID",
+      "clientSecret": "Client Secret",
+      "clientSecretDescSuffix": "獲取 Client Secret",
+      "credentialsRequired": "請輸入 Client ID 和 Client Secret",
+      "connectionSuccess": "已連接到釘釘 API！",
+      "connectionFailed": "連接失敗",
+      "pluginEnabled": "釘釘機器人已啟用",
+      "pluginDisabled": "釘釘機器人已停用",
+      "enableFailed": "啟用釘釘插件失敗",
+      "disableFailed": "停用釘釘插件失敗",
+      "testAndConnect": "測試並連接",
+      "credentialsSaved": "憑證已配置。輸入新值以更新。",
+      "defaultModelDesc": "用於Agent對話時調用",
+      "connectionStatus": "連接狀態",
+      "statusConnected": "已連接",
+      "statusError": "錯誤",
+      "statusConnecting": "連接中...",
+      "step1": "打開釘釘找到你的機器人應用",
+      "step2": "發送任意消息開始配對",
+      "step3": "配對請求會顯示在下方，點擊「批准」授權用戶",
+      "step4": "授權成功後，你可以通過釘釘與 AI 助手聊天！",
+      "waitingConnection": "連接正在建立，請稍候...",
+      "agent": "對話Agent",
+      "agentDesc": "用於與Channel進行對話"
+    }
   },
   "messages": {
     "fileChanges": "檔案變更",

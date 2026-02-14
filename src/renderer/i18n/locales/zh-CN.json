@@ -895,7 +895,7 @@
     },
     "dingtalk": {
       "clientId": "Client ID",
-      "devConsoleLink": "钉钉开放平台",
+      "devConsoleLink": "跟随教程",
       "clientIdDescSuffix": "获取 Client ID",
       "clientSecret": "Client Secret",
       "clientSecretDescSuffix": "获取 Client Secret",
