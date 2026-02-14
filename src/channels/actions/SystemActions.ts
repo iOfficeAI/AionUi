@@ -13,7 +13,7 @@ import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
-import { getChannelConversationName } from '../types';
+import { getChannelConversationName, resolveChannelConvType } from '../types';
 import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMainMenuCard, createPairingGuideCard, createSessionStatusCard, createSettingsCard, createTipsCard } from '../plugins/lark/LarkCards';
 import { createAgentSelectionCard as createDingTalkAgentSelectionCard, createFeaturesCard as createDingTalkFeaturesCard, createHelpCard as createDingTalkHelpCard, createMainMenuCard as createDingTalkMainMenuCard, createPairingGuideCard as createDingTalkPairingGuideCard, createSessionStatusCard as createDingTalkSessionStatusCard, createSettingsCard as createDingTalkSettingsCard, createTipsCard as createDingTalkTipsCard } from '../plugins/dingtalk/DingTalkCards';
 import type { ChannelAgentType, PluginType } from '../types';
@@ -144,8 +144,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   // Always create a NEW conversation for "session.new" (scoped by chatId)
   const channelChatId = context.chatId;
-  const convType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
-  const convBackend = convType === 'acp' ? backend : undefined;
+  const { convType, convBackend } = resolveChannelConvType(backend);
   const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
   const result =
     backend === 'codex'
@@ -164,25 +163,34 @@ export const handleSessionNew: ActionHandler = async (context) => {
             name,
             channelChatId,
           })
-        : await ConversationService.createConversation({
-            type: 'acp',
-            model,
-            source,
-            name,
-            channelChatId,
-            extra: {
-              backend: backend as AcpBackend,
-              customAgentId,
-              agentName,
-            },
-          });
+        : backend === 'openclaw-gateway'
+          ? await ConversationService.createConversation({
+              type: 'openclaw-gateway',
+              model,
+              source,
+              name,
+              channelChatId,
+              extra: {},
+            })
+          : await ConversationService.createConversation({
+              type: 'acp',
+              model,
+              source,
+              name,
+              channelChatId,
+              extra: {
+                backend: backend as AcpBackend,
+                customAgentId,
+                agentName,
+              },
+            });
 
   if (!result.success || !result.conversation) {
     return createErrorResponse(`Failed to create session: ${result.error || 'Unknown error'}`);
   }
 
   // Create session with the new conversation ID (scoped by chatId)
-  const agentType: ChannelAgentType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
+  const agentType = convType as ChannelAgentType;
   const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, agentType, undefined, channelChatId);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : context.platform === 'dingtalk' ? createDingTalkMainMenuCard() : createMainMenuKeyboard();
@@ -498,6 +506,7 @@ function getAgentDisplayName(agentType: ChannelAgentType): string {
     gemini: '🤖 Gemini',
     acp: '🧠 Claude',
     codex: '⚡ Codex',
+    'openclaw-gateway': '🦞 OpenClaw',
   };
   return names[agentType] || agentType;
 }
@@ -511,6 +520,7 @@ function backendToChannelAgentType(backend: string): ChannelAgentType | null {
     gemini: 'gemini',
     claude: 'acp',
     codex: 'codex',
+    'openclaw-gateway': 'openclaw-gateway',
   };
   return mapping[backend] || null;
 }
@@ -523,6 +533,7 @@ function getAgentEmoji(backend: string): string {
     gemini: '🤖',
     claude: '🧠',
     codex: '⚡',
+    'openclaw-gateway': '🦞',
   };
   return emojis[backend] || '🤖';
 }

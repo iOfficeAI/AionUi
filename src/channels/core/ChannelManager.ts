@@ -13,6 +13,7 @@ import { PairingService } from '../pairing/PairingService';
 import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
+import { resolveChannelConvType } from '../types';
 import type { IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
 
@@ -371,7 +372,7 @@ export class ChannelManager {
     }
 
     try {
-      const newType = agent.backend === 'codex' ? 'codex' : agent.backend === 'gemini' ? 'gemini' : 'acp';
+      const { convType: newType } = resolveChannelConvType(agent.backend);
 
       // For gemini + model info: update existing conversations' model field
       if (newType === 'gemini' && model?.id && model?.useModel) {

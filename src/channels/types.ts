@@ -109,7 +109,7 @@ export interface IChannelUserRow {
 /**
  * Agent types supported in assistant sessions
  */
-export type ChannelAgentType = 'gemini' | 'acp' | 'codex';
+export type ChannelAgentType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
 
 /**
  * User session in the assistant system
@@ -453,6 +453,17 @@ export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk';
  */
 export function isChannelPlatform(value: string): value is ChannelPlatform {
   return value === 'telegram' || value === 'lark' || value === 'dingtalk';
+}
+
+/**
+ * Resolve a backend string to conversation type and optional backend qualifier.
+ * Centralizes the backend → convType mapping used across channels.
+ */
+export function resolveChannelConvType(backend: string): { convType: string; convBackend?: string } {
+  if (backend === 'codex') return { convType: 'codex' };
+  if (backend === 'gemini') return { convType: 'gemini' };
+  if (backend === 'openclaw-gateway') return { convType: 'openclaw-gateway' };
+  return { convType: 'acp', convBackend: backend };
 }
 
 /**

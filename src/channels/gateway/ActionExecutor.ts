@@ -16,14 +16,14 @@ import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
 import type { PairingService } from '../pairing/PairingService';
 import type { PluginMessageHandler } from '../plugins/BasePlugin';
-import { getChannelConversationName } from '../types';
+import { getChannelConversationName, resolveChannelConvType } from '../types';
 import { createMainMenuCard, createErrorRecoveryCard, createResponseActionsCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
 import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createResponseActionsKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
-import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
+import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
 import type { AcpBackend } from '@/types/acpTypes';
 
@@ -362,9 +362,7 @@ export class ActionExecutor {
         const model = await getChannelDefaultModel(platform);
 
         // Map backend to conversation type for lookup
-        const convType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
-        // For ACP, pass backend to distinguish claude/iflow/codebuddy etc.
-        const convBackend = convType === 'acp' ? backend : undefined;
+        const { convType, convBackend } = resolveChannelConvType(backend);
         const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
 
         // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
@@ -390,22 +388,31 @@ export class ActionExecutor {
                   source,
                   channelChatId: chatId,
                 })
-              : await ConversationService.createConversation({
-                  type: 'acp',
-                  model,
-                  name: conversationName,
-                  source,
-                  channelChatId: chatId,
-                  extra: {
-                    backend: backend as AcpBackend,
-                    customAgentId,
-                    agentName,
-                  },
-                });
+              : backend === 'openclaw-gateway'
+                ? await ConversationService.createConversation({
+                    type: 'openclaw-gateway',
+                    model,
+                    name: conversationName,
+                    source,
+                    channelChatId: chatId,
+                    extra: {},
+                  })
+                : await ConversationService.createConversation({
+                    type: 'acp',
+                    model,
+                    name: conversationName,
+                    source,
+                    channelChatId: chatId,
+                    extra: {
+                      backend: backend as AcpBackend,
+                      customAgentId,
+                      agentName,
+                    },
+                  });
 
         if (result.success && result.conversation) {
-          const agentType = backend === 'codex' ? 'codex' : backend === 'gemini' ? 'gemini' : 'acp';
-          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType, undefined, chatId);
+          const { convType: agentType } = resolveChannelConvType(backend);
+          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType as ChannelAgentType, undefined, chatId);
         } else {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
