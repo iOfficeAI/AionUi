@@ -255,7 +255,7 @@ A: AionUi는 **최고의 무료 오픈소스 Claude Cowork 대안** - **Multi-AI
 
 <details>
 <summary><strong>Q: AionUi로 무엇을 할 수 있나요?</strong></summary>
-A: **개인 Cowork 작업 공간**이 될 수 있습니다. 폴더 일괄 정리, Excel 깊은 아름답게, 실시간 웹 코드 미리보기를 도와줄 수 있습니다. 오피스 자동화 워크플로우를 탐색하고 Claude Code 또는 Gemini CLI 경험을 향상시키는 최고의 그래픽 선택입니다.
+A: **개인 Cowork 작업 공간** 이 될 수 있습니다. 폴더 일괄 정리, Excel 깊은 아름답게, 실시간 웹 코드 미리보기를 도와줄 수 있습니다. 오피스 자동화 워크플로우를 탐색하고 Claude Code 또는 Gemini CLI 경험을 향상시키는 최고의 그래픽 선택입니다.
 </details>
 
 <details>

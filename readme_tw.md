@@ -299,7 +299,7 @@ AionUi 為這些命令列工具提供統一的 **Cowork 能力**：
 
 <details>
 <summary><strong>Q: 為什麼 AionUi 是 Claude Cowork 不錯的替代選擇？</strong></summary>
-A: AionUi 是**最佳免費開源的 Claude Cowork 替代方案** - 一款 **Multi-AI Agent Desktop**，提供完整的 **Claude Cowork 開源替代**能力。相比於只能在 Mac 上執行且綁定 Claude 的官方 Cowork，AionUi 是它的**全模型、跨平台增強版**，深度覆蓋 **AI 辦公自動化**場景，具備自動化任務執行、檔案系統操作和工作流自動化能力。
+A: AionUi 是 **最佳免費開源的 Claude Cowork 替代方案** - 一款 **Multi-AI Agent Desktop**，提供完整的 **Claude Cowork 開源替代** 能力。相比於只能在 Mac 上執行且綁定 Claude 的官方 Cowork，AionUi 是它的 **全模型、跨平台增強版**，深度覆蓋 **AI 辦公自動化** 場景，具備自動化任務執行、檔案系統操作和工作流自動化能力。
 
 | 維度     | Claude Cowork  | AionUi (本專案)                             |
 | :------- | :------------- | :------------------------------------------ |
@@ -318,7 +318,7 @@ A: AionUi 是**最佳免費開源的 Claude Cowork 替代方案** - 一款 **Mul
 
 <details>
 <summary><strong>Q: 我可以用 AionUi 做什麼？</strong></summary>
-A: 它可以成為您的**私有化 Cowork 工作空間**和**最佳免費 Claude Cowork 替代方案**。您可以讓它幫您批次整理資料夾、深度美化 Excel、即時預覽網頁程式碼。它是您探索辦公自動化流程、自動化任務執行、增強 Claude Code 或 Gemini CLI 體驗的最佳圖形化選擇。作為 **Claude Cowork 開源替代方案**，AionUi 提供自動化工作流、檔案系統操作和多 Agent 協作能力。
+A: 它可以成為您的 **私有化 Cowork 工作空間** 和 **最佳免費 Claude Cowork 替代方案**。您可以讓它幫您批次整理資料夾、深度美化 Excel、即時預覽網頁程式碼。它是您探索辦公自動化流程、自動化任務執行、增強 Claude Code 或 Gemini CLI 體驗的最佳圖形化選擇。作為 **Claude Cowork 開源替代方案**，AionUi 提供自動化工作流、檔案系統操作和多 Agent 協作能力。
 </details>
 
 <details>
