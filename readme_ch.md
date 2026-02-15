@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>🚀 基于 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、OpenClaw、Auggie 等的「Cowork」个人助手</strong><br>
-  <em>用户友好 | 可视化图形界面 | 多模型支持 | 本地数据安全</em>
+  <em>免费开源的 Claude Cowork 替代方案 | 多 Agent 桌面应用 | 自动化任务执行 | 文件系统操作 | 跨平台</em>
 </p>
 
 <p align="center">
@@ -60,86 +60,146 @@
 
 ### 🤖 **多代理模式 - Cowork for 你的命令行 AI 工具，统一图形界面**
 
-AionUi 为你的命令行 AI 工具提供统一图形界面。内置 Gemini CLI，开箱即用。
+AionUi 为你的命令行 AI 工具提供统一图形界面，作为**免费开源的 Claude Cowork 替代方案**，具备自动化任务执行和工作流能力。
 
-**支持的工具：** Gemini CLI（内置） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
+**支持的工具：** Gemini CLI（内置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nano Bot 等
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+<details>
+<summary><strong>🔍 查看核心特性详情 ▶️</strong></summary>
+
+<br>
 
 **核心特性：**
 
 - ✅ **自动检测** - 自动识别并集成本地 CLI 工具
 - ✅ **统一界面** - 一个界面管理所有 AI 工具，告别命令行
 - ✅ **本地保存 + 多会话** - 对话本地保存，支持多会话并行，每个会话独立上下文
+- ✅ **自动化任务执行** - AI Agent 可独立执行任务、运行脚本、读写文件、操作工具，自动完成任务
+- ✅ **工作流自动化** - 完整的工作流自动化能力，类似 Claude Cowork，支持文件系统操作和任务自动完成
+
+> 💡 **正在寻找 Claude Cowork 开源替代方案？** AionUi 是最佳免费替代品，支持多 Agent、自动化工作流和跨平台兼容。
+
+</details>
 
 ---
 
-### 🌐 **随时随地访问你的AionUi**
+### 🌐 **随时随地访问你的 AionUi**
 
-_你的 7×24 小时 AI 助手 - 从任何设备、任何地方访问 AionUi！出差、在家、办公室，随时随地通过 WebUI 或多种聊天平台使用你的 AI 工具_
+_你的 7×24 小时 AI 助手 - 从任何设备、任何地方访问 AionUi！_
 
-AionUi 提供多种远程访问方式：
+**🌐 WebUI 模式** - 通过浏览器从任何设备访问（手机、平板、电脑），支持局域网、跨网络和服务器部署，可通过二维码或账号密码登录。
 
-- **🌐 WebUI 模式**
-
-  通过浏览器从任何设备访问 AionUi - 手机、平板、电脑。支持局域网、跨网络和服务器部署。可以通过扫描二维码或账号密码登录，操作简单方便。
-
-  > 💡 **需要详细配置指南？** 查看 [远程外网连接教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
-
-- **📱 聊天平台集成**
-  - **Telegram** - 在任何设备上与 AI 助手聊天
-  - **Lark (Feishu/飞书)** - 通过飞书机器人进行企业协作
-  - **Slack** 等更多平台正在开发中 🚧
-
-  > 💡 **如何设置：** 前往 AionUi 设置 → WebUI 设置 → Channel，配置对应的 Bot Token 即可开始使用！
+**📱 聊天平台集成** - 支持 Telegram、Lark (飞书)、DingTalk (钉钉) 等平台，在任何设备上与 AI 助手聊天，实现企业协作和实时响应。
 
 <p align="center">
   <img src="./resources/remote-telegram.png" alt="随时随地访问 - WebUI & 聊天平台" width="800">
 </p>
 
+<details>
+<summary><strong>🔍 查看详细配置指南 ▶️</strong></summary>
+
+<br>
+
+**🌐 WebUI 模式**
+
+通过浏览器从任何设备访问 AionUi - 手机、平板、电脑。支持局域网、跨网络和服务器部署。可以通过扫描二维码或账号密码登录，操作简单方便。
+
+> 💡 **需要详细配置指南？** 查看 [远程外网连接教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+
+**📱 聊天平台集成**
+
+- **Telegram** - 在任何设备上与 AI 助手聊天，简单的配对码系统确保安全访问
+- **Lark (飞书)** - 通过飞书机器人进行企业协作，支持交互式卡片
+- **DingTalk (钉钉)** - 企业级集成，支持钉钉机器人，具备 AI Card 流式更新功能，实时响应
+- **Slack** 等更多平台正在开发中 🚧
+
+> 💡 **如何设置：** 前往 AionUi 设置 → WebUI 设置 → Channel，配置对应的 Bot Token 即可开始使用！
+
+</details>
+
 ---
 
-### ⏰ **定时任务 - AionUi帮你自动完成任务**
+### ⏰ **定时任务 - AionUi 帮你自动完成任务**
 
 _设置好定时任务后，AI 助手会按照你设定的时间自动执行，真正实现 7×24 小时无人值守_
-
-- **自由对话** - 用自然语言告诉 AI 要做什么，就像平时聊天一样
-- **灵活设置时间** - 每天、每周、每月都可以
-- **简单易用** - 创建、修改、开启/关闭、删除，随时查看和调整
 
 <p align="center">
   <img src="./resources/alart-task.png" alt="定时任务演示" width="800">
 </p>
 
+<details>
+<summary><strong>🔍 查看定时任务功能详情 ▶️</strong></summary>
+
+<br>
+
+- **自然语言设置** - 用自然语言告诉 AI 要做什么，就像平时聊天一样
+- **灵活调度** - 支持 cron 表达式，可实现复杂的调度规则（每天、每周、每月、自定义间隔）
+- **便捷管理** - 创建、修改、开启/关闭、删除，随时查看和调整定时任务
+- **会话绑定** - 每个定时任务绑定到特定会话，保持上下文和历史记录
+- **自动执行** - 任务在设定时间自动运行，将消息发送到对应会话
+
 > 💡 **使用场景：** 定时汇总数据、定期生成报告、自动整理文件、定时提醒等
+
+</details>
 
 ---
 
-### 📁 **智能文件管理 (AI Cowork)**
+### 📁 **智能文件管理 (AI Cowork) - 自动化文件操作**
 
-_批量重命名、自动整理、智能分类、文件合并_
-
-- **自动整理**：智能识别内容并自动分类，让文件夹保持整洁。
-- **高效批量**：一键重命名、合并文件，彻底告别繁琐手动。
+_批量重命名、自动整理、智能分类、文件合并。作为 **Claude Cowork 开源替代方案**，AionUi 提供自动化文件系统操作和工作流执行能力。_
 
 <p align="center">
   <img src="./resources/aionui%20sort%20file.gif" alt="智能文件管理演示" width="800">
 </p>
 
+<details>
+<summary><strong>🔍 查看文件管理功能详情 ▶️</strong></summary>
+
+<br>
+
+- **自动整理** - 智能识别内容并自动分类，让文件夹保持整洁
+- **高效批量** - 一键重命名、合并文件，彻底告别繁琐手动
+- **自动化执行** - AI Agent 可独立执行文件操作、读写文件、自动完成任务 - 这是真正 Cowork 替代方案的核心能力
+
+</details>
+
 ---
 
 ### 📄 **预览面板 - 快速查看 AI 生成效果**
 
-_支持 9+ 种格式的可视化预览（PDF、Word、Excel、PPT、代码、Markdown、图片、HTML、Diff 等）_
+_全面的文件预览系统，支持 10+ 种格式，具备实时编辑能力_
 
-- ✅ **立即查看效果** - AI 生成文件后，无需切换应用，立即查看预览
-- ✅ **实时追踪 + 可编辑** - 自动追踪文件变更，编辑器与预览智能同步；支持 Markdown、代码、HTML 实时编辑，所见即所得
+**支持的格式类型：** 文档类（PDF、Word、Excel、PPT） • 代码类（30+ 种编程语言） • 标记类（Markdown、HTML） • 图片类（PNG、JPG、SVG 等） • Diff 文件等
 
 <p align="center">
   <img src="./resources/preview.gif" alt="预览面板演示" width="800">
 </p>
+
+<details>
+<summary><strong>🔍 查看完整格式列表和功能详情 ▶️</strong></summary>
+
+<br>
+
+**支持的预览格式：**
+
+- **文档类** - PDF、Word (`.doc`, `.docx`, `.odt`)、Excel (`.xls`, `.xlsx`, `.ods`, `.csv`)、PowerPoint (`.ppt`, `.pptx`, `.odp`)
+- **代码类** - JavaScript、TypeScript、Python、Java、Go、Rust、C/C++、CSS、JSON、XML、YAML、Shell 脚本等 30+ 种编程语言
+- **标记类** - Markdown (`.md`, `.markdown`)、HTML (`.html`, `.htm`)
+- **图片类** - PNG、JPG、JPEG、GIF、SVG、WebP、BMP、ICO、TIFF、AVIF
+- **其他** - Diff 文件 (`.diff`, `.patch`)
+
+**核心功能：**
+
+- ✅ **立即查看效果** - AI 生成文件后，无需切换应用，立即查看预览
+- ✅ **实时追踪 + 可编辑** - 自动追踪文件变更，编辑器与预览智能同步；支持 Markdown、代码、HTML 实时编辑，所见即所得
+- ✅ **多标签页支持** - 同时打开多个文件，每个文件独立标签页，智能标签管理
+- ✅ **版本历史** - 查看和恢复文件的历史版本（基于 Git）
+
+</details>
 
 ---
 
@@ -157,35 +217,61 @@ _智能图像生成、编辑和识别，由 Gemini 驱动_
 
 ### 🤖 **多模型支持**
 
-_支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。AionUi 还支持 [NewAPI](https://github.com/QuantumNous/new-api) 中转服务(这是一个统一的 AI 模型中心，可聚合和分发各种大语言模型)。灵活切换不同模型，满足各种任务需求。_
+_全面支持 20+ 个 AI 平台和模型，包括云服务和本地部署_
+
+**平台类型：** 官方平台（Gemini、Claude、OpenAI） • 云服务商（AWS Bedrock、New API） • 国内平台（通义千问、智谱 AI、Kimi 等） • 国际平台（DeepSeek、MiniMax、OpenRouter 等） • 本地模型（Ollama、LM Studio）等
 
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="多模型支持" width="800">
 </p>
 
----
-
-### 🛠️ **AI 助手与技能生态**
-
-_可扩展的助手系统，内置专业助手，支持自定义技能_
-
 <details>
-<summary><strong>🔍 点击探索 AI 助手与技能 ▶️</strong></summary>
+<summary><strong>🔍 查看完整平台列表 ▶️</strong></summary>
 
 <br>
 
-AionUi 内置 **10+ 个专业助手**，每个助手都具备预定义能力，可通过自定义技能扩展：
+**支持的平台：**
 
-- **🤝 Cowork** - 自主任务执行（文件操作、文档处理、工作流规划）
+- **官方平台** - Gemini、Gemini (Vertex AI)、Anthropic (Claude)、OpenAI
+- **云服务商** - AWS Bedrock、New API（统一 AI 模型网关）
+- **国内平台** - Dashscope (通义千问)、智谱 AI、Moonshot (Kimi)、千帆 (百度)、混元 (腾讯)、零一万物、ModelScope、InfiniAI、天翼云、阶跃星辰
+- **国际平台** - DeepSeek、MiniMax、OpenRouter、SiliconFlow、xAI、火山引擎 Ark、Poe
+- **本地模型** - Ollama、LM Studio（通过自定义平台设置本地 API 端点）
+
+AionUi 还支持 [NewAPI](https://github.com/QuantumNous/new-api) 中转服务 - 这是一个统一的 AI 模型中心，可聚合和分发各种大语言模型。在同一个界面中灵活切换不同模型，满足各种任务需求。
+
+</details>
+
+---
+
+### 🛠️ **AI 助手与技能生态 - 自动化任务执行**
+
+_可扩展的助手系统，内置 11 个专业助手，支持自定义技能。作为 **Claude Cowork 开源替代方案**，AionUi 提供自动化工作流执行、文件系统操作和独立 Agent 任务完成能力。_
+
+**内置助手：** Cowork • PPTX 生成器 • PDF 转 PPT • 3D 游戏生成 • UI/UX 专业设计师 • 文件规划助手 • HUMAN 3.0 教练 • 社交招聘发布助手 • moltbook • Beautiful Mermaid • OpenClaw 设置助手等
+
+<p align="center">
+  <img src="./resources/ai-assistants-experts.png" alt="AI 助手与技能生态界面" width="800">
+</p>
+
+<details>
+<summary><strong>🔍 查看助手详细功能和自定义技能 ▶️</strong></summary>
+
+<br>
+
+AionUi 内置 **11 个专业助手**，每个助手都具备预定义能力，可通过自定义技能扩展。这些助手提供**自动化任务执行**和**工作流自动化** - 这是使 AionUi 成为完整 **Claude Cowork 开源替代方案**的关键特性：
+
+- **🤝 Cowork** - 自主任务执行（文件操作、文档处理、工作流规划）。提供自动化工作流执行和文件系统操作 - Claude Cowork 开源替代方案的核心能力。
 - **📊 PPTX 生成器** - 生成 PPTX 演示文稿
 - **📄 PDF 转 PPT** - PDF 转 PPT 转换
 - **🎮 3D 游戏生成** - 单文件 3D 游戏生成
 - **🎨 UI/UX 专业设计师** - 专业 UI/UX 设计（57 种风格、95 个配色方案）
-- **📋 文件规划助手** - 复杂任务的文件规划
+- **📋 文件规划助手** - 复杂任务的文件规划（Manus 风格持久化 Markdown 规划）
 - **🧭 HUMAN 3.0 教练** - 个人发展教练
 - **📣 社交招聘发布助手** - 招聘信息发布
 - **🦞 moltbook** - 免部署集成，支持自动定时触发、活动汇报推送，无缝接入 AI 代理社交网络
 - **📈 Beautiful Mermaid** - 流程图、时序图等图表生成
+- **🔧 OpenClaw 设置助手** - OpenClaw 集成设置和配置助手
 
 **自定义技能**：在 `skills/` 目录创建技能，为助手启用/禁用技能，扩展 AI 能力。内置技能包括 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
 
@@ -223,7 +309,14 @@ _开多个对话、任务不混乱、记忆独立、效率翻倍_
 
 ## 🤔 为什么选择 AionUi？ | 像 Claudebot 一样好用
 
-**就像 Claude Cowork 让 Claude Code 更易用，AionUi 是你所有命令行 AI 工具的 Cowork 平台**
+**AionUi：最佳免费开源的 Claude Cowork 替代方案**
+
+就像 Claude Cowork 让 Claude Code 更易用，AionUi 是**免费开源的 Cowork 平台**，为你所有命令行 AI 工具提供完整的 **Claude Cowork 开源替代方案**，具备多模型支持、跨平台兼容和自动化任务执行等增强能力。
+
+<details>
+<summary><strong>🔍 查看 AionUi 的核心优势 ▶️</strong></summary>
+
+<br>
 
 Gemini CLI、Claude Code、Codex、Qwen Code 等命令行工具虽然强大，但存在通用痛点：对话无法保存、单会话限制、文件操作繁琐、只能使用单一模型。
 
@@ -234,33 +327,35 @@ AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
 - 🖥️ **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
 - 🌐 **远程访问** - 你的 24/7 AI 助手，随时随地访问，完全免费（Claude Cowork 无远程访问功能）
 - 🔄 **多模型切换** - 在同一个界面中灵活切换不同模型，满足不同任务需求
-- 📄 **实时预览** - 9+ 种格式可视化预览，AI 生成的文件立即查看效果
+- 📄 **实时预览** - 10+ 种格式可视化预览，AI 生成的文件立即查看效果
 - 💾 **本地数据安全** - 所有对话和文件保存在本地，数据不离开你的设备
+
+</details>
 
 ### ❓ 快速问答
 
 <details>
-<summary><strong>Q: 为什么 AionUi是你Claude Cowork不错的替换选择？</strong></summary>
-A: AionUi 是一款**免费开源**的 **Multi-AI Agent Desktop  **。相比于只能在 Mac 上运行且绑死 Claude 的官方 Cowork，AionUi 是它的**全模型、跨平台增强版**，深度覆盖 **AI 办公自动化** 场景。
+<summary><strong>Q: 为什么 AionUi 是你 Claude Cowork 不错的替换选择？</strong></summary>
+A: AionUi 是**最佳免费开源的 Claude Cowork 替代方案** - 一款 **Multi-AI Agent Desktop**，提供完整的 **Claude Cowork 开源替代**能力。相比于只能在 Mac 上运行且绑死 Claude 的官方 Cowork，AionUi 是它的**全模型、跨平台增强版**，深度覆盖 **AI 办公自动化** 场景，具备自动化任务执行、文件系统操作和工作流自动化能力。
 
-| 维度     | Claude Cowork  | AionUi (本项目)                             |
-| :------- | :------------- | :------------------------------------------ |
-| 操作系统 | 仅 macOS       | 🍏 macOS / 🪟 Windows / 🐧 Linux            |
-| 模型支持 | 仅 Claude      | 🤖 Gemini, Claude, DeepSeek, OpenAI, Ollama |
-| 交互形式 | GUI            | 🖥️ 全功能 GUI + WebUI 远程访问              |
-| 费用     | 需订阅 $100/月 | 🆓 完全免费开源                             |
+| 维度     | Claude Cowork  | AionUi (本项目)                                                |
+| :------- | :------------- | :------------------------------------------------------------- |
+| 操作系统 | 仅 macOS       | 🍏 macOS / 🪟 Windows / 🐧 Linux                               |
+| 模型支持 | 仅 Claude      | 🤖 20+ 平台：Gemini、Claude、OpenAI、DeepSeek、Qwen、Ollama 等 |
+| 交互形式 | GUI            | 🖥️ 全功能 GUI + WebUI 远程访问                                 |
+| 费用     | 需订阅 $100/月 | 🆓 完全免费开源                                                |
 
 **深度 AI 办公场景支持：**
 
-- **文件管理**：智能整理本地杂乱文件夹、一键批量重命名。
-- **数据处理**：深度分析并自动美化 Excel 报表。
-- **文档生成**：自动编写并排版 PPT、Word 与 Markdown 文档。
-- **即时预览**：内置 9+ 种格式预览面板，让 AI 办公协作结果即刻可见。
+- **文件管理** - 智能整理本地杂乱文件夹、一键批量重命名
+- **数据处理** - 深度分析并自动美化 Excel 报表
+- **文档生成** - 自动编写并排版 PPT、Word 与 Markdown 文档
+- **即时预览** - 内置 10+ 种格式预览面板，让 AI 办公协作结果即刻可见
 </details>
 
 <details>
 <summary><strong>Q: 我可以用 AionUi 做什么？</strong></summary>
-A: 它可以成为你的**私有化 Cowork 工作空间**。你可以让它帮你批量整理文件夹、深度美化 Excel、实时预览网页代码。它是你探索办公自动化流程、增强 Claude Code 或 Gemini CLI 体验的最佳图形化选择。
+A: 它可以成为你的**私有化 Cowork 工作空间**和**最佳免费 Claude Cowork 替代方案**。你可以让它帮你批量整理文件夹、深度美化 Excel、实时预览网页代码。它是你探索办公自动化流程、自动化任务执行、增强 Claude Code 或 Gemini CLI 体验的最佳图形化选择。作为 **Claude Cowork 开源替代方案**，AionUi 提供自动化工作流、文件系统操作和多 Agent 协作能力。
 </details>
 
 <details>
@@ -275,9 +370,19 @@ A: AionUi 完全免费开源，但使用 AI 模型需要相应的 API Key。
 
 <details>
 <summary><strong>Q: 支持哪些 AI 模型？</strong></summary>
-A: 支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。
+A: AionUi 支持 20+ 个 AI 平台，包括：
 
-还可以同时运行多个 AI Agent（如 Gemini CLI、Claude Code、Qwen Code 等），详见配置指南。
+**官方平台** - Gemini、Gemini (Vertex AI)、Anthropic (Claude)、OpenAI
+
+**云服务商** - AWS Bedrock、New API（统一网关）
+
+**国内平台** - Dashscope (通义千问)、智谱 AI、Moonshot (Kimi)、千帆 (百度)、混元 (腾讯)、零一万物、ModelScope、InfiniAI、天翼云、阶跃星辰
+
+**国际平台** - DeepSeek、MiniMax、OpenRouter、SiliconFlow、xAI、火山引擎 Ark、Poe
+
+**本地模型** - Ollama、LM Studio（通过自定义平台设置本地 API 端点）
+
+还可以同时运行多个 AI Agent（如 Gemini CLI、Claude Code、Qwen Code、OpenClaw 等），详见配置指南。
 
 </details>
 
