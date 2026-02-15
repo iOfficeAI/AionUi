@@ -243,7 +243,7 @@ AionUi, bu komut satırı araçları için birleşik **Ortak Çalışma (Cowork)
 
 <details>
 <summary><strong>S: AionUi neden Claude Cowork için harika bir alternatiftir?</strong></summary>
-C: AionUi **Claude Cowork için en iyi ücretsiz ve açık kaynak alternatiftir** - tam **Claude Cowork açık kaynak alternatifi** yetenekleri sağlayan bir **Çoklu AI Ajan Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'a kilitli olan resmi Cowork ile karşılaştırıldığında, AionUi onun **tam model, çapraz platform geliştirilmiş versiyonudur** ve **AI Ofis Otomasyonu** senaryolarını derinlemesine kapsar, otomatik görev yürütme, dosya sistemi işlemleri ve iş akışı otomasyonu özelliklerine sahiptir.
+C: AionUi Claude Cowork için en iyi ücretsiz ve açık kaynak alternatiftir - tam Claude Cowork açık kaynak alternatifi yetenekleri sağlayan bir Çoklu AI Ajan Masaüstü uygulamasıdır. Sadece macOS'ta çalışan ve Claude'a kilitli olan resmi Cowork ile karşılaştırıldığında, AionUi onun tam model, çapraz platform geliştirilmiş versiyonudur ve AI Ofis Otomasyonu senaryolarını derinlemesine kapsar, otomatik görev yürütme, dosya sistemi işlemleri ve iş akışı otomasyonu özelliklerine sahiptir.
 
 | Boyut         | Claude Cowork    | AionUi (Bu Proje)                           |
 | :------------ | :--------------- | :------------------------------------------ |
@@ -252,17 +252,17 @@ C: AionUi **Claude Cowork için en iyi ücretsiz ve açık kaynak alternatiftir*
 | Etkileşim     | GUI              | 🖥️ Tam GUI + WebUI Uzaktan Erişim           |
 | Maliyet       | Abonelik $100/ay | 🆓 Tamamen Ücretsiz & Açık Kaynak           |
 
-**Derin AI Ofis Senaryosu Desteği:**
+Derin AI Ofis Senaryosu Desteği:
 
-- **Dosya Yönetimi**: Karışık yerel klasörleri akıllıca düzenleyin ve tek tıkla toplu yeniden adlandırın.
-- **Veri İşleme**: Excel raporlarını derinlemesine analiz edin ve otomatik güzelleştirin.
-- **Belge Oluşturma**: PPT, Word ve Markdown belgelerini otomatik yazın ve biçimlendirin.
-- **Anında Önizleme**: Dahili 10+ format önizleme paneli, AI ofis işbirliği sonuçlarını anında görünür kılar.
+- Dosya Yönetimi: Karışık yerel klasörleri akıllıca düzenleyin ve tek tıkla toplu yeniden adlandırın.
+- Veri İşleme: Excel raporlarını derinlemesine analiz edin ve otomatik güzelleştirin.
+- Belge Oluşturma: PPT, Word ve Markdown belgelerini otomatik yazın ve biçimlendirin.
+- Anında Önizleme: Dahili 10+ format önizleme paneli, AI ofis işbirliği sonuçlarını anında görünür kılar.
 </details>
 
 <details>
 <summary><strong>S: AionUi ile neler yapabilirim?</strong></summary>
-C: Kişisel **Cowork çalışma alanınız** olabilir. Klasörleri toplu düzenlemenize yardım etmesini sağlayabilir, Excel'i derinlemesine güzelleştirebilir ve web kodunu gerçek zamanlı önizleyebilirsiniz. Ofis otomasyonu iş akışlarını keşfetmek ve Claude Code veya Gemini CLI deneyiminizi geliştirmek için en iyi grafiksel seçimdir.
+C: Kişisel Cowork çalışma alanınız olabilir. Klasörleri toplu düzenlemenize yardım etmesini sağlayabilir, Excel'i derinlemesine güzelleştirebilir ve web kodunu gerçek zamanlı önizleyebilirsiniz. Ofis otomasyonu iş akışlarını keşfetmek ve Claude Code veya Gemini CLI deneyiminizi geliştirmek için en iyi grafiksel seçimdir.
 </details>
 
 <details>

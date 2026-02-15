@@ -236,7 +236,7 @@ AionUi는 이러한 명령줄 도구에 통합된 **Cowork 기능**을 제공합
 
 <details>
 <summary><strong>Q: AionUi가 Claude Cowork의 좋은 대안인 이유는?</strong></summary>
-A: AionUi는 **최고의 무료 오픈소스 Claude Cowork 대안** - **Multi-AI Agent Desktop**으로 완전한 **Claude Cowork 오픈소스 대안** 기능을 제공합니다. macOS에서만 실행되고 Claude에만 묶여 있는 공식 Cowork와 비교하여, AionUi는 **전체 모델, 크로스 플랫폼 강화 버전**이며, **AI 오피스 자동화** 시나리오를 깊이 다루며 자동화 작업 실행, 파일 시스템 작업, 워크플로우 자동화 기능을 갖추고 있습니다.
+A: AionUi는 최고의 무료 오픈소스 Claude Cowork 대안 - Multi-AI Agent Desktop으로 완전한 Claude Cowork 오픈소스 대안 기능을 제공합니다. macOS에서만 실행되고 Claude에만 묶여 있는 공식 Cowork와 비교하여, AionUi는 전체 모델, 크로스 플랫폼 강화 버전이며, AI 오피스 자동화 시나리오를 깊이 다루며 자동화 작업 실행, 파일 시스템 작업, 워크플로우 자동화 기능을 갖추고 있습니다.
 
 | 차원      | Claude Cowork | AionUi (이 프로젝트)                        |
 | :-------- | :------------ | :------------------------------------------ |
@@ -245,17 +245,17 @@ A: AionUi는 **최고의 무료 오픈소스 Claude Cowork 대안** - **Multi-AI
 | 인터랙션  | GUI           | 🖥️ 전체 GUI + WebUI 원격 접속               |
 | 비용      | 구독 $100/월  | 🆓 완전 무료 오픈소스                       |
 
-**깊은 AI 오피스 시나리오 지원:**
+깊은 AI 오피스 시나리오 지원:
 
-- **파일 관리**: 지저분한 로컬 폴더를 지능적으로 정리하고 원클릭 일괄 이름 변경.
-- **데이터 처리**: Excel 보고서를 깊이 분석하고 자동으로 아름답게.
-- **문서 생성**: PPT, Word, Markdown 문서를 자동으로 작성하고 형식 지정.
-- **즉시 미리보기**: 내장 10+ 형식 미리보기 패널로 AI 오피스 협업 결과를 즉시 확인.
+- 파일 관리: 지저분한 로컬 폴더를 지능적으로 정리하고 원클릭 일괄 이름 변경.
+- 데이터 처리: Excel 보고서를 깊이 분석하고 자동으로 아름답게.
+- 문서 생성: PPT, Word, Markdown 문서를 자동으로 작성하고 형식 지정.
+- 즉시 미리보기: 내장 10+ 형식 미리보기 패널로 AI 오피스 협업 결과를 즉시 확인.
 </details>
 
 <details>
 <summary><strong>Q: AionUi로 무엇을 할 수 있나요?</strong></summary>
-A: **개인 Cowork 작업 공간** 이 될 수 있습니다. 폴더 일괄 정리, Excel 깊은 아름답게, 실시간 웹 코드 미리보기를 도와줄 수 있습니다. 오피스 자동화 워크플로우를 탐색하고 Claude Code 또는 Gemini CLI 경험을 향상시키는 최고의 그래픽 선택입니다.
+A: 개인 Cowork 작업 공간이 될 수 있습니다. 폴더 일괄 정리, Excel 깊은 아름답게, 실시간 웹 코드 미리보기를 도와줄 수 있습니다. 오피스 자동화 워크플로우를 탐색하고 Claude Code 또는 Gemini CLI 경험을 향상시키는 최고의 그래픽 선택입니다.
 </details>
 
 <details>

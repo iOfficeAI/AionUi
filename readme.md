@@ -336,7 +336,7 @@ AionUi provides unified **Cowork capabilities** for these command-line tools:
 
 <details>
 <summary><strong>Q: Why is AionUi a great replacement for Claude Cowork?</strong></summary>
-A: AionUi is the **best free and open-source alternative to Claude Cowork** - a **Multi-AI Agent Desktop** that provides complete **Claude Cowork open source alternative** capabilities. Compared to the official Cowork which only runs on macOS and is locked to Claude, AionUi is its **full-model, cross-platform enhanced version**, deeply covering **AI Office Automation** scenarios with automated task execution, file system operations, and workflow automation.
+A: AionUi is the best free and open-source alternative to Claude Cowork - a Multi-AI Agent Desktop that provides complete Claude Cowork open source alternative capabilities. Compared to the official Cowork which only runs on macOS and is locked to Claude, AionUi is its full-model, cross-platform enhanced version, deeply covering AI Office Automation scenarios with automated task execution, file system operations, and workflow automation.
 
 | Dimension     | Claude Cowork        | AionUi (This Project)                                                      |
 | :------------ | :------------------- | :------------------------------------------------------------------------- |
@@ -345,17 +345,17 @@ A: AionUi is the **best free and open-source alternative to Claude Cowork** - a 
 | Interaction   | GUI                  | 🖥️ Full GUI + WebUI Remote Access                                          |
 | Cost          | Subscription $100/mo | 🆓 Completely Free & Open Source                                           |
 
-**Deep AI Office Scenario Support:**
+Deep AI Office Scenario Support:
 
-- **File Management** - Intelligently organize messy local folders and batch rename with one click
-- **Data Processing** - Deeply analyze and automatically beautify Excel reports
-- **Document Generation** - Automatically write and format PPT, Word, and Markdown documents
-- **Instant Preview** - Built-in 10+ format preview panels, making AI office collaboration results instantly visible
+- File Management - Intelligently organize messy local folders and batch rename with one click
+- Data Processing - Deeply analyze and automatically beautify Excel reports
+- Document Generation - Automatically write and format PPT, Word, and Markdown documents
+- Instant Preview - Built-in 10+ format preview panels, making AI office collaboration results instantly visible
 </details>
 
 <details>
 <summary><strong>Q: What can I do with AionUi?</strong></summary>
-A: It can be your **private Cowork workspace** and the **best free alternative to Claude Cowork**. You can let it help you batch organize folders, deeply beautify Excel, and preview web code in real-time. It's your best graphical choice for exploring office automation workflows, automated task execution, and enhancing your experience with Claude Code or Gemini CLI. As a **Claude Cowork open source alternative**, AionUi provides automated workflows, file system operations, and multi-agent collaboration capabilities.
+A: It can be your private Cowork workspace and the best free alternative to Claude Cowork. You can let it help you batch organize folders, deeply beautify Excel, and preview web code in real-time. It's your best graphical choice for exploring office automation workflows, automated task execution, and enhancing your experience with Claude Code or Gemini CLI. As a Claude Cowork open source alternative, AionUi provides automated workflows, file system operations, and multi-agent collaboration capabilities.
 </details>
 
 <details>
@@ -372,15 +372,15 @@ A: AionUi is completely free and open source, but using AI models requires corre
 <summary><strong>Q: Which AI models are supported?</strong></summary>
 A: AionUi supports 20+ AI platforms including:
 
-**Official Platforms** - Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
+Official Platforms - Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 
-**Cloud Providers** - AWS Bedrock, New API (unified gateway)
+Cloud Providers - AWS Bedrock, New API (unified gateway)
 
-**Chinese Platforms** - Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
+Chinese Platforms - Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
 
-**International Platforms** - DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+International Platforms - DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 
-**Local Models** - Ollama, LM Studio (via Custom platform with local API endpoint)
+Local Models - Ollama, LM Studio (via Custom platform with local API endpoint)
 
 You can also run multiple AI Agents simultaneously (such as Gemini CLI, Claude Code, Qwen Code, OpenClaw, etc.), see the configuration guide for details.
 

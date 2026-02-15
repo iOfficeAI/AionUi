@@ -279,7 +279,7 @@ AionUi ofrece capacidades **Cowork unificadas** para estas herramientas de líne
 
 <details>
 <summary><strong>Q: ¿Por qué AionUi es un gran reemplazo de Claude Cowork?</strong></summary>
-A: AionUi es la **mejor alternativa gratuita y de código abierto a Claude Cowork** - un **Multi-AI Agent Desktop** que proporciona capacidades completas de **alternativa de código abierto a Claude Cowork**. En comparación con el Cowork oficial que solo funciona en macOS y está bloqueado a Claude, AionUi es su **versión mejorada multi-modelo y multiplataforma**, con cobertura profunda de **escenarios de automatización de oficina con IA** con ejecución automatizada de tareas, operaciones del sistema de archivos y automatización de flujos de trabajo.
+A: AionUi es la mejor alternativa gratuita y de código abierto a Claude Cowork - un Multi-AI Agent Desktop que proporciona capacidades completas de alternativa de código abierto a Claude Cowork. En comparación con el Cowork oficial que solo funciona en macOS y está bloqueado a Claude, AionUi es su versión mejorada multi-modelo y multiplataforma, con cobertura profunda de escenarios de automatización de oficina con IA con ejecución automatizada de tareas, operaciones del sistema de archivos y automatización de flujos de trabajo.
 
 | Dimensión   | Claude Cowork        | AionUi (este proyecto)                      |
 | :---------- | :------------------- | :------------------------------------------ |
@@ -288,17 +288,17 @@ A: AionUi es la **mejor alternativa gratuita y de código abierto a Claude Cowor
 | Interacción | GUI                  | 🖥️ GUI completo + acceso remoto WebUI       |
 | Costo       | Suscripción $100/mes | 🆓 Completamente gratis y open source       |
 
-**Soporte profundo para escenarios de oficina con IA:**
+Soporte profundo para escenarios de oficina con IA:
 
-- **Gestión de archivos**: Organiza carpetas locales desordenadas y renombra en lote con un clic.
-- **Procesamiento de datos**: Analiza en profundidad y embellece automáticamente reportes de Excel.
-- **Generación de documentos**: Escribe y da formato automáticamente a PPT, Word y Markdown.
-- **Vista previa instantánea**: Paneles de vista previa integrados para más de 10 formatos, resultados visibles al instante.
+- Gestión de archivos: Organiza carpetas locales desordenadas y renombra en lote con un clic.
+- Procesamiento de datos: Analiza en profundidad y embellece automáticamente reportes de Excel.
+- Generación de documentos: Escribe y da formato automáticamente a PPT, Word y Markdown.
+- Vista previa instantánea: Paneles de vista previa integrados para más de 10 formatos, resultados visibles al instante.
 </details>
 
 <details>
 <summary><strong>Q: ¿Qué puedo hacer con AionUi?</strong></summary>
-A: Puede ser tu **espacio de trabajo Cowork privado**. Te ayuda a organizar carpetas por lotes, embellecer Excel en profundidad y previsualizar código web en tiempo real. Es la mejor opción gráfica para explorar flujos de automatización de oficina y mejorar tu experiencia con Claude Code o Gemini CLI.
+A: Puede ser tu espacio de trabajo Cowork privado. Te ayuda a organizar carpetas por lotes, embellecer Excel en profundidad y previsualizar código web en tiempo real. Es la mejor opción gráfica para explorar flujos de automatización de oficina y mejorar tu experiencia con Claude Code o Gemini CLI.
 </details>
 
 <details>

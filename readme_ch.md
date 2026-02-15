@@ -336,7 +336,7 @@ AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
 
 <details>
 <summary><strong>Q: 为什么 AionUi 是你 Claude Cowork 不错的替换选择？</strong></summary>
-A: AionUi 是 **最佳免费开源的 Claude Cowork 替代方案** - 一款 **Multi-AI Agent Desktop**，提供完整的 **Claude Cowork 开源替代** 能力。相比于只能在 Mac 上运行且绑死 Claude 的官方 Cowork，AionUi 是它的 **全模型、跨平台增强版**，深度覆盖 **AI 办公自动化** 场景，具备自动化任务执行、文件系统操作和工作流自动化能力。
+A: AionUi 是最佳免费开源的 Claude Cowork 替代方案 - 一款 Multi-AI Agent Desktop，提供完整的 Claude Cowork 开源替代能力。相比于只能在 Mac 上运行且绑死 Claude 的官方 Cowork，AionUi 是它的全模型、跨平台增强版，深度覆盖 AI 办公自动化场景，具备自动化任务执行、文件系统操作和工作流自动化能力。
 
 | 维度     | Claude Cowork  | AionUi (本项目)                                                |
 | :------- | :------------- | :------------------------------------------------------------- |
@@ -345,17 +345,17 @@ A: AionUi 是 **最佳免费开源的 Claude Cowork 替代方案** - 一款 **Mu
 | 交互形式 | GUI            | 🖥️ 全功能 GUI + WebUI 远程访问                                 |
 | 费用     | 需订阅 $100/月 | 🆓 完全免费开源                                                |
 
-**深度 AI 办公场景支持：**
+深度 AI 办公场景支持：
 
-- **文件管理** - 智能整理本地杂乱文件夹、一键批量重命名
-- **数据处理** - 深度分析并自动美化 Excel 报表
-- **文档生成** - 自动编写并排版 PPT、Word 与 Markdown 文档
-- **即时预览** - 内置 10+ 种格式预览面板，让 AI 办公协作结果即刻可见
+- 文件管理 - 智能整理本地杂乱文件夹、一键批量重命名
+- 数据处理 - 深度分析并自动美化 Excel 报表
+- 文档生成 - 自动编写并排版 PPT、Word 与 Markdown 文档
+- 即时预览 - 内置 10+ 种格式预览面板，让 AI 办公协作结果即刻可见
 </details>
 
 <details>
 <summary><strong>Q: 我可以用 AionUi 做什么？</strong></summary>
-A: 它可以成为你的 **私有化 Cowork 工作空间** 和 **最佳免费 Claude Cowork 替代方案**。你可以让它帮你批量整理文件夹、深度美化 Excel、实时预览网页代码。它是你探索办公自动化流程、自动化任务执行、增强 Claude Code 或 Gemini CLI 体验的最佳图形化选择。作为 **Claude Cowork 开源替代方案**，AionUi 提供自动化工作流、文件系统操作和多 Agent 协作能力。
+A: 它可以成为你的私有化 Cowork 工作空间和最佳免费 Claude Cowork 替代方案。你可以让它帮你批量整理文件夹、深度美化 Excel、实时预览网页代码。它是你探索办公自动化流程、自动化任务执行、增强 Claude Code 或 Gemini CLI 体验的最佳图形化选择。作为 Claude Cowork 开源替代方案，AionUi 提供自动化工作流、文件系统操作和多 Agent 协作能力。
 </details>
 
 <details>
@@ -372,15 +372,15 @@ A: AionUi 完全免费开源，但使用 AI 模型需要相应的 API Key。
 <summary><strong>Q: 支持哪些 AI 模型？</strong></summary>
 A: AionUi 支持 20+ 个 AI 平台，包括：
 
-**官方平台** - Gemini、Gemini (Vertex AI)、Anthropic (Claude)、OpenAI
+官方平台 - Gemini、Gemini (Vertex AI)、Anthropic (Claude)、OpenAI
 
-**云服务商** - AWS Bedrock、New API（统一网关）
+云服务商 - AWS Bedrock、New API（统一网关）
 
-**国内平台** - Dashscope (通义千问)、智谱 AI、Moonshot (Kimi)、千帆 (百度)、混元 (腾讯)、零一万物、ModelScope、InfiniAI、天翼云、阶跃星辰
+国内平台 - Dashscope (通义千问)、智谱 AI、Moonshot (Kimi)、千帆 (百度)、混元 (腾讯)、零一万物、ModelScope、InfiniAI、天翼云、阶跃星辰
 
-**国际平台** - DeepSeek、MiniMax、OpenRouter、SiliconFlow、xAI、火山引擎 Ark、Poe
+国际平台 - DeepSeek、MiniMax、OpenRouter、SiliconFlow、xAI、火山引擎 Ark、Poe
 
-**本地模型** - Ollama、LM Studio（通过自定义平台设置本地 API 端点）
+本地模型 - Ollama、LM Studio（通过自定义平台设置本地 API 端点）
 
 还可以同时运行多个 AI Agent（如 Gemini CLI、Claude Code、Qwen Code、OpenClaw 等），详见配置指南。
 
