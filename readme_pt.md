@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>🚀 Assistente pessoal 「Cowork」baseado em Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie e mais</strong><br>
-  <em>Fácil de usar | Interface gráfica visual | Suporte multimodelo | Segurança de dados local</em>
+  <em>Alternativa gratuita e de código aberto ao Claude Cowork | Desktop multiagente | Execução automatizada de tarefas | Operações do sistema de arquivos | Multiplataforma</em>
 </p>
 
 <p align="center">
@@ -60,9 +60,11 @@
 
 ### 🤖 **Modo multiagente - Cowork para suas ferramentas de IA em linha de comando, interface gráfica unificada**
 
-AionUi fornece uma interface gráfica unificada para suas ferramentas de IA em linha de comando. Gemini CLI integrado incluído, sem configuração necessária.
+AionUi fornece uma interface gráfica unificada para suas ferramentas de IA em linha de comando, servindo como uma **alternativa gratuita e de código aberto ao Claude Cowork** com capacidades de execução automatizada de tarefas e fluxos de trabalho. Gemini CLI integrado incluído, sem configuração necessária.
 
-**Ferramentas compatíveis：** Gemini CLI (integrado) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
+**Ferramentas compatíveis：** Gemini CLI (integrado) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nano Bot e mais
+
+> 💡 **Procurando uma alternativa de código aberto ao Claude Cowork?** AionUi é a melhor alternativa gratuita com suporte multiagente, fluxos de trabalho automatizados e compatibilidade multiplataforma.
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
@@ -73,6 +75,8 @@ AionUi fornece uma interface gráfica unificada para suas ferramentas de IA em l
 - ✅ **Detecção automática** - Reconhece e integra automaticamente as ferramentas CLI locais
 - ✅ **Interface unificada** - Uma interface para todas as suas ferramentas de IA, adeus à linha de comando
 - ✅ **Armazenamento local + multissessão** - Conversas salvas localmente, várias sessões em paralelo com contexto independente
+- ✅ **Execução automatizada de tarefas** - Agentes de IA podem executar tarefas independentemente, executar scripts, ler/escrever arquivos e operar ferramentas automaticamente
+- ✅ **Automação de fluxos de trabalho** - Capacidades completas de automação de fluxos de trabalho semelhantes ao Claude Cowork, com operações do sistema de arquivos e conclusão automática de tarefas
 
 ---
 
@@ -121,12 +125,13 @@ _Após configurar as tarefas agendadas, o assistente de IA será executado autom
 
 ---
 
-### 📁 **Gerenciamento inteligente de arquivos (AI Cowork)**
+### 📁 **Gerenciamento inteligente de arquivos (AI Cowork) - Operações automatizadas de arquivos**
 
-_Renomeação em lote, organização automática, classificação inteligente, mesclagem de arquivos_
+_Renomeação em lote, organização automática, classificação inteligente, mesclagem de arquivos. Como **alternativa de código aberto ao Claude Cowork**, o AionUi fornece operações automatizadas do sistema de arquivos e capacidades de execução de fluxos de trabalho._
 
 - **Organização automática**: Identifica o conteúdo de forma inteligente e classifica automaticamente, mantendo as pastas organizadas.
 - **Lotes eficientes**: Renomeia e mescla arquivos com um clique, adeus às tarefas manuais tediosas.
+- **Execução automatizada**: Agentes de IA podem executar operações de arquivos independentemente, ler/escrever arquivos e completar tarefas automaticamente - capacidades centrais de uma verdadeira alternativa ao Cowork.
 
 <p align="center">
   <img src="./resources/aionui%20sort%20file.gif" alt="Smart File Management Demo" width="800">
@@ -136,10 +141,20 @@ _Renomeação em lote, organização automática, classificação inteligente, m
 
 ### 📄 **Painel de visualização - Veja rapidamente os resultados gerados por IA**
 
-_Suporta 9+ formatos de visualização (PDF, Word, Excel, PPT, código, Markdown, imagens, HTML, Diff, etc.)_
+_Sistema completo de visualização de arquivos que suporta 10+ formatos com capacidades de edição em tempo real_
+
+**Formatos de visualização suportados:**
+
+- **Documentos**: PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
+- **Código**: JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, scripts Shell e 30+ linguagens de programação
+- **Marcação**: Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
+- **Imagens**: PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
+- **Outros**: Arquivos Diff (`.diff`, `.patch`)
 
 - ✅ **Ver resultados instantaneamente** - Após a IA gerar arquivos, visualize imediatamente sem trocar de aplicativo
 - ✅ **Acompanhamento em tempo real + editável** - Rastreia mudanças automaticamente, editor e visualização sincronizados; suporta edição em tempo real de Markdown, código, HTML, WYSIWYG
+- ✅ **Suporte multi-aba** - Abra múltiplos arquivos simultaneamente, cada arquivo em sua própria aba com gerenciamento inteligente
+- ✅ **Histórico de versões** - Ver e restaurar versões históricas de arquivos (baseado em Git)
 
 <p align="center">
   <img src="./resources/preview.gif" alt="Preview Panel Demo" width="800">
@@ -164,6 +179,43 @@ _Admite modelos principais como Gemini, OpenAI, Claude, Qwen, e modelos locais c
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="Suporte multi-modelo" width="800">
 </p>
+
+---
+
+### 🛠️ **Assistentes de IA e ecossistema de Skills - Execução automatizada de tarefas**
+
+_Sistema de assistentes extensível com 11 assistentes profissionais integrados e suporte para skills personalizados. Como **alternativa de código aberto ao Claude Cowork**, o AionUi fornece execução automatizada de fluxos de trabalho, operações do sistema de arquivos e capacidades de conclusão de tarefas de agentes independentes._
+
+**Assistentes integrados:** Cowork • Gerador PPTX • PDF para PPT • Jogo 3D • UI/UX Pro Max • Planning with Files • HUMAN 3.0 Coach • Social Job Publisher • moltbook • Beautiful Mermaid • OpenClaw Setup e mais
+
+<p align="center">
+  <img src="./resources/ai-assistants-experts.png" alt="AI Assistants & Skills Ecosystem Interface" width="800">
+</p>
+
+<details>
+<summary><strong>🔍 Ver detalhes dos assistentes e skills personalizados ▶️</strong></summary>
+
+<br>
+
+O AionUi inclui **11 assistentes profissionais** com capacidades predefinidas, extensíveis através de skills personalizados. Esses assistentes fornecem **execução automatizada de tarefas** e **automação de fluxos de trabalho** - características-chave que tornam o AionUi uma **alternativa completa de código aberto ao Claude Cowork**:
+
+- **🤝 Cowork** - Execução autônoma de tarefas (operações de arquivos, processamento de documentos, planejamento de fluxos). Fornece execução automatizada de fluxos de trabalho e operações do sistema de arquivos - capacidades centrais de alternativas de código aberto ao Claude Cowork.
+- **📊 Gerador PPTX** - Gerar apresentações PPTX
+- **📄 PDF para PPT** - Converter PDF para PPT
+- **🎮 Jogo 3D** - Geração de jogos 3D em arquivo único
+- **🎨 UI/UX Pro Max** - Design UI/UX profissional (57 estilos, 95 paletas de cores)
+- **📋 Planning with Files** - Planejamento baseado em arquivos para tarefas complexas (planejamento persistente estilo Manus em Markdown)
+- **🧭 HUMAN 3.0 Coach** - Coach de desenvolvimento pessoal
+- **📣 Social Job Publisher** - Publicação e divulgação de ofertas de emprego
+- **🦞 moltbook** - Integração sem implantação com agendamento de heartbeat, relatórios de atividade e redes sociais de agentes IA
+- **📈 Beautiful Mermaid** - Diagramas de fluxo, sequência e mais
+- **🔧 OpenClaw Setup** - Assistente de configuração e integração do OpenClaw
+
+**Skills personalizados:** Crie skills no diretório `skills/`, ative/desative skills para que os assistentes estendam as capacidades de IA. Skills integrados incluem `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, e mais.
+
+> 💡 Cada assistente é definido por um arquivo markdown. Verifique o diretório `assistant/` para exemplos.
+
+</details>
 
 ---
 
@@ -195,7 +247,9 @@ _Abrir várias conversas, tarefas sem se misturar, memória independente, efici�
 
 ## 🤔 Por que escolher o AionUi? | Tão bom quanto o Claudebot
 
-**Assim como o Claude Cowork torna o Claude Code mais fácil de usar, o AionUi é a plataforma Cowork para todas as suas ferramentas de IA em linha de comando**
+**AionUi: A melhor alternativa gratuita e de código aberto ao Claude Cowork**
+
+Assim como o Claude Cowork torna o Claude Code mais fácil de usar, o AionUi é a **plataforma Cowork gratuita e de código aberto** para todas as suas ferramentas de IA em linha de comando. O AionUi fornece uma **alternativa completa de código aberto ao Claude Cowork** com capacidades aprimoradas, incluindo suporte multimodelo, compatibilidade multiplataforma e execução automatizada de tarefas.
 
 Gemini CLI, Claude Code, Codex, Qwen Code são poderosos, mas compartilham dores comuns: conversas não podem ser salvas, limitações de sessão única, operações de arquivo trabalhosas e suporte a apenas um modelo.
 
@@ -206,7 +260,7 @@ O AionUi oferece capacidades **Cowork unificadas** para essas ferramentas de lin
 - 🖥️ **Multiplataforma** - Suporte completo para macOS, Windows e Linux (Claude Cowork somente macOS)
 - 🌐 **Acesso remoto** - Seu assistente remoto 24/7, acesse a qualquer momento e em qualquer lugar, completamente gratuito
 - 🔄 **Troca de modelo** - Troque modelos de forma flexível na mesma interface conforme a tarefa
-- 📄 **Visualização em tempo real** - Visualização de 9+ formatos, resultados imediatos
+- 📄 **Visualização em tempo real** - Visualização de 10+ formatos, resultados imediatos
 - 💾 **Segurança de dados local** - Todas as conversas e arquivos salvos localmente, dados não saem do seu dispositivo
 
 ---
@@ -215,7 +269,7 @@ O AionUi oferece capacidades **Cowork unificadas** para essas ferramentas de lin
 
 <details>
 <summary><strong>Q: Por que o AionUi é um ótimo substituto do Claude Cowork?</strong></summary>
-A: O AionUi é um **Multi-AI Agent Desktop** **gratuito e de código aberto**. Em comparação com o Cowork oficial que só roda no macOS e é preso ao Claude, o AionUi é sua **versão aprimorada multimodelo e multiplataforma**, cobrindo profundamente **cenários de automação de escritório com IA**.
+A: O AionUi é a melhor alternativa gratuita e de código aberto ao Claude Cowork - um Multi-AI Agent Desktop que fornece capacidades completas de alternativa de código aberto ao Claude Cowork. Em comparação com o Cowork oficial que só roda no macOS e é preso ao Claude, o AionUi é sua versão aprimorada multimodelo e multiplataforma, cobrindo profundamente cenários de automação de escritório com IA com execução automatizada de tarefas, operações do sistema de arquivos e automação de fluxos de trabalho.
 
 | Dimensão  | Claude Cowork       | AionUi (este projeto)                       |
 | :-------- | :------------------ | :------------------------------------------ |
@@ -224,17 +278,17 @@ A: O AionUi é um **Multi-AI Agent Desktop** **gratuito e de código aberto**. E
 | Interação | GUI                 | 🖥️ GUI completo + acesso remoto WebUI       |
 | Custo     | Assinatura $100/mês | 🆓 Totalmente gratuito e open source        |
 
-**Suporte profundo para cenários de escritório com IA:**
+Suporte profundo para cenários de escritório com IA:
 
-- **Gerenciamento de arquivos**: Organize pastas locais bagunçadas e renomeie em lote com um clique.
-- **Processamento de dados**: Analise profundamente e embeleze relatórios do Excel automaticamente.
-- **Geração de documentos**: Escreva e formate PPT, Word e Markdown automaticamente.
-- **Visualização instantânea**: Painéis de visualização integrados para mais de 9 formatos, resultados visíveis de imediato.
+- Gerenciamento de arquivos: Organize pastas locais bagunçadas e renomeie em lote com um clique.
+- Processamento de dados: Analise profundamente e embeleze relatórios do Excel automaticamente.
+- Geração de documentos: Escreva e formate PPT, Word e Markdown automaticamente.
+- Visualização instantânea: Painéis de visualização integrados para mais de 10 formatos, resultados visíveis de imediato.
 </details>
 
 <details>
 <summary><strong>Q: O que posso fazer com o AionUi?</strong></summary>
-A: Ele pode ser seu **espaço de trabalho Cowork privado**. Você pode deixar que ele ajude a organizar pastas em lote, embelezar Excel em profundidade e pré-visualizar código web em tempo real. É a melhor opção gráfica para explorar fluxos de automação de escritório e melhorar sua experiência com Claude Code ou Gemini CLI.
+A: Ele pode ser seu espaço de trabalho Cowork privado. Você pode deixar que ele ajude a organizar pastas em lote, embelezar Excel em profundidade e pré-visualizar código web em tempo real. É a melhor opção gráfica para explorar fluxos de automação de escritório e melhorar sua experiência com Claude Code ou Gemini CLI.
 </details>
 
 <details>
@@ -280,6 +334,12 @@ _Assista como os criadores de conteúdo avaliam e usam o AionUi_
 </p>
 
 > 💡 **Você fez um vídeo sobre o AionUi?** [Conte-nos no X](https://x.com/AionUi) e vamos destacá-lo aqui! Valorizamos seu feedback e continuaremos melhorando.
+
+### 📰 Artigos da comunidade
+
+- [🔥 Explosivo! Versão gratuita open source do Cowork, integração completa de modelos + operações autônomas de arquivos, redefinindo o trabalho de escritório com IA.](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Open Source AI Project Landing
+- [Fazendo pessoas comuns usarem Claude Code como um APP, o que é o protocolo ACP](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
+- [5500 Estrelas: Como o open source quebra o monopólio de ferramentas IA da Anthropic](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
 
 ---
 
