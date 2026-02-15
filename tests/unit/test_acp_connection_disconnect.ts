@@ -91,9 +91,7 @@ describe('AcpConnection disconnect', () => {
       const pidFile = join(tempDir, 'cli.pid');
       const cliScriptPath = join(tempDir, 'keepalive.js');
 
-      const cliScript = `const fs=require('fs');fs.writeFileSync(${JSON.stringify(
-        pidFile
-      )},String(process.pid));setInterval(()=>{},1000);`;
+      const cliScript = `const fs=require('fs');fs.writeFileSync(${JSON.stringify(pidFile)},String(process.pid));setInterval(()=>{},1000);`;
       writeFileSync(cliScriptPath, cliScript, 'utf-8');
 
       const shellProcess = spawn(process.execPath, [cliScriptPath], {
