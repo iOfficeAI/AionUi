@@ -583,6 +583,106 @@ interface IBridgeResponse<D = {}> {
   msg?: string;
 }
 
+// ==================== DevTools API ====================
+// Session analysis for Claude Code JSONL logs (inspired by claude-devtools)
+
+export type IDevToolsTokenAttribution = Record<'user' | 'assistant' | 'thinking' | 'tool_input' | 'tool_output' | 'system' | 'claude_md', number>;
+
+export interface IDevToolsCompactionEvent {
+  index: number;
+  timestamp: number;
+  tokensBefore: number;
+  tokensAfter: number;
+  delta: number;
+  text: string;
+}
+
+export interface IDevToolsToolSummary {
+  toolName: string;
+  count: number;
+  totalDurationMs: number;
+  errorCount: number;
+}
+
+export interface IDevToolsSessionMetrics {
+  durationMs: number;
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  messageCount: number;
+  costUsd?: number;
+}
+
+export interface IDevToolsSubagentInfo {
+  agentId: string;
+  description: string;
+  parentToolUseId?: string;
+  metrics: IDevToolsSessionMetrics;
+  messageCount: number;
+  toolNames: string[];
+  startTime: number;
+  endTime: number;
+}
+
+export interface IDevToolsContextInjection {
+  type: string;
+  source: string;
+  tokenEstimate: number;
+  preview: string;
+}
+
+export interface IDevToolsContextBreakdownSummary {
+  byType: Record<string, { count: number; totalTokens: number }>;
+  totalTokens: number;
+  topSources: Array<{ source: string; type: string; totalTokens: number; count: number }>;
+}
+
+export interface IDevToolsSessionAnalysis {
+  sessionId: string;
+  projectPath: string;
+  metrics: IDevToolsSessionMetrics;
+  tokenAttribution: IDevToolsTokenAttribution;
+  compactionEvents: IDevToolsCompactionEvent[];
+  toolExecutionSummary: IDevToolsToolSummary[];
+  subagents: IDevToolsSubagentInfo[];
+  contextBreakdown: IDevToolsContextBreakdownSummary;
+  messageCount: number;
+  model?: string;
+  startTime: number;
+  endTime: number;
+  /** Serialized chunks (kept as JSON to avoid complex cross-process types) */
+  chunks: string;
+  /** Serialized messages (kept as JSON for chat replay) */
+  messages: string;
+  /** Per-message context injection info (serialized as JSON) */
+  contextInfo: string;
+}
+
+export interface IDevToolsSessionListItem {
+  sessionId: string;
+  filePath: string;
+  modifiedAt: number;
+}
+
+export interface IDevToolsProjectInfo {
+  projectPath: string;
+  encodedPath: string;
+  sessionCount: number;
+  latestSessionAt: number;
+  sessions: IDevToolsSessionListItem[];
+}
+
+export const devtools = {
+  /** Analyze a Claude Code session by its session ID */
+  analyzeSession: bridge.buildProvider<IBridgeResponse<IDevToolsSessionAnalysis>, { sessionId: string; workspace?: string }>('devtools.analyze-session'),
+  /** List available session files for a workspace */
+  listSessions: bridge.buildProvider<IBridgeResponse<IDevToolsSessionListItem[]>, { workspace?: string }>('devtools.list-sessions'),
+  /** List all projects with their sessions */
+  listProjects: bridge.buildProvider<IBridgeResponse<IDevToolsProjectInfo[]>, void>('devtools.list-projects'),
+};
+
 // ==================== Channel API ====================
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@/channels/types';

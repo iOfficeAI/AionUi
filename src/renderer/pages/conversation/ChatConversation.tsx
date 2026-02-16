@@ -9,6 +9,7 @@ import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
+import DevToolsButton from './components/DevToolsButton';
 import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/theme/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
@@ -182,7 +183,7 @@ const ChatConversation: React.FC<{
         };
 
   return (
-    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
+    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerExtra={conversation ? <><DevToolsButton conversation={conversation} /><CronJobManager conversationId={conversation.id} /></> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
       {conversationNode}
     </ChatLayout>
   );
