@@ -103,6 +103,7 @@ PNG图片中嵌入了JSON格式的角色数据：
 
    /**
     * Extract character card data from PNG image
+    * Based on SillyTavern's implementation: src/character-card-parser.js
     * @param {string} imagePath - Path to PNG image
     * @returns {string} - Character card JSON string
     */
@@ -114,10 +115,11 @@ PNG图片中嵌入了JSON格式的角色数据：
        const textChunks = chunks.filter((chunk) => chunk.name === 'tEXt').map((chunk) => PNGtext.decode(chunk.data));
 
        if (textChunks.length === 0) {
+         console.error('PNG metadata does not contain any text chunks.');
          throw new Error('PNG metadata does not contain any text chunks.');
        }
 
-       // Try ccv3 first (v3 format)
+       // Try ccv3 first (v3 format) - V3 takes precedence as per SillyTavern
        const ccv3Index = textChunks.findIndex((chunk) => chunk.keyword.toLowerCase() === 'ccv3');
 
        if (ccv3Index > -1) {
@@ -131,8 +133,12 @@ PNG图片中嵌入了JSON格式的角色数据：
          return Buffer.from(textChunks[charaIndex].text, 'base64').toString('utf8');
        }
 
-       throw new Error('PNG metadata does not contain character card data (chara or ccv3).');
+       console.error('PNG metadata does not contain any character card data (chara or ccv3).');
+       throw new Error('PNG metadata does not contain any character card data (chara or ccv3).');
      } catch (error) {
+       if (error.message.includes('PNG metadata')) {
+         throw error; // Re-throw PNG metadata errors as-is
+       }
        throw new Error(`Failed to extract from PNG: ${error.message}`);
      }
    }
@@ -178,11 +184,13 @@ PNG图片中嵌入了JSON格式的角色数据：
      }
 
      const imagePath = args[0];
+     // Important: outputPath must be provided as second argument, not via stdout redirection
      const outputPath = args[1] || imagePath.replace(/\.(png|webp)$/i, '.json');
      const isWorldInfo = args.includes('--world-info');
 
      if (!fs.existsSync(imagePath)) {
        console.error(`Error: Image file not found: ${imagePath}`);
+       console.error('Please check if the file path is correct and the file exists.');
        process.exit(1);
      }
 
@@ -214,14 +222,19 @@ PNG图片中嵌入了JSON格式的角色数据：
        } catch (error) {
          console.error('Error: Extracted data is not valid JSON.');
          console.error('This might not be a valid character card or world info image.');
+         console.error('The image may not contain embedded character data, or the data format is corrupted.');
          process.exit(1);
        }
 
-       // Save to file
+       // Save to file (do not use stdout redirection, use file path argument)
        fs.writeFileSync(outputPath, jsonData, 'utf8');
        console.log(`Successfully extracted data to: ${outputPath}`);
      } catch (error) {
        console.error(`Error: ${error.message}`);
+       if (error.message.includes('PNG metadata')) {
+         console.error('This image may not be a valid SillyTavern character card.');
+         console.error('Please ensure the image was exported from SillyTavern with character data embedded.');
+       }
        process.exit(1);
      }
    }
@@ -239,11 +252,14 @@ PNG图片中嵌入了JSON格式的角色数据：
    - 如果安装失败，提示用户检查网络连接或Node.js环境
 
 5. **执行解析工具**：
+   **重要**：必须提供输出路径作为第二个参数，不要使用stdout重定向（`>`）
    执行命令：
    - 角色卡：`node parse-character-card.js <图片路径> <输出JSON路径>`
    - 世界信息：`node parse-character-card.js <图片路径> <输出JSON路径> --world-info`
    - 例如：`node parse-character-card.js character.png character.json`
-   - 例如：`node parse-character-card.js world-info.png world-info.json --world-info`
+   - 例如：`node parse-character-card.js "薇娜丽丝.png" character.json`（注意：如果文件名包含中文或空格，使用引号）
+   - **错误示例**：`node parse-character-card.js image.png > output.json`（不要使用重定向）
+   - **正确示例**：`node parse-character-card.js image.png output.json`（使用参数）
 
 6. **验证和使用**：
    - 检查输出的JSON文件是否存在且格式正确
