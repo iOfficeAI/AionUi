@@ -104,7 +104,7 @@ AionUi proporciona múltiples métodos de acceso remoto:
   > 💡 **Cómo configurar:** Ve a Configuración de AionUi → Configuración de WebUI → Channel, obtén tu Bot Token de [@BotFather](https://t.me/BotFather) y comienza a chatear!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Acceso desde cualquier lugar - WebUI y plataformas de chat" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="Acceso desde cualquier lugar - WebUI y plataformas de chat" width="800">
 </p>
 
 ---
@@ -134,7 +134,7 @@ _Renombrado por lotes, organización automática, clasificación inteligente, fu
 - **Ejecución automatizada**: Los agentes de IA pueden ejecutar operaciones de archivos de forma independiente, leer/escribir archivos y completar tareas automáticamente - capacidades centrales de una verdadera alternativa a Cowork.
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="Smart File Management Demo" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="Smart File Management Demo" width="800">
 </p>
 
 ---

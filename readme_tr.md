@@ -95,7 +95,7 @@ Yapay zeka asistanınızla doğrudan Telegram üzerinden herhangi bir cihazdan s
 > 💡 **Nasıl kurulur:** Ayarlar → Kanallar → Telegram yolunu izleyin, [@BotFather](https://t.me/BotFather) üzerinden Bot Token'ınızı alın ve sohbete başlayın!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="Her Yerden Erişim - WebUI ve sohbet platformları" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="Her Yerden Erişim - WebUI ve sohbet platformları" width="800">
 </p>
 
 ---
@@ -109,7 +109,7 @@ _Toplu yeniden adlandırma, otomatik düzenleme, akıllı sınıflandırma, dosy
 - **Otomatik Yürütme**: AI ajanları bağımsız olarak dosya işlemlerini yürütebilir, dosyaları okuyup yazabilir ve görevleri otomatik olarak tamamlayabilir - gerçek Cowork alternatifinin temel yetenekleri.
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
 </p>
 
 ---

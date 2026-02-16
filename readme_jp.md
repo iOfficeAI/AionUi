@@ -96,7 +96,7 @@ _あなたの 7×24 時間 AI アシスタント - 任意のデバイス、ど�
 **📱 チャットプラットフォーム統合** - Telegram、Lark (Feishu)、DingTalk (钉钉) などのプラットフォームをサポート。任意のデバイスでAIアシスタントとチャットし、企業コラボレーションとリアルタイム応答を実現。
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="どこからでもアクセス - WebUIとチャットプラットフォーム" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="どこからでもアクセス - WebUIとチャットプラットフォーム" width="800">
 </p>
 
 <details>
@@ -153,7 +153,7 @@ _スケジュールタスクを設定すると、AIアシスタントが設定�
 _一括リネーム、自動整理、スマート分類、ファイルマージ。**Claude Cowork オープンソース代替案**として、AionUi は自動化ファイルシステム操作とワークフロー実行機能を提供します。_
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="スマートファイル管理デモ" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="スマートファイル管理デモ" width="800">
 </p>
 
 <details>

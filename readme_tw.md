@@ -96,7 +96,7 @@ _你的 7×24 小時 AI 助手 - 從任何裝置、任何地方存取 AionUi！_
 **📱 聊天平台整合** - 支援 Telegram、Lark (飛書)、DingTalk (釘釘) 等平台，在任何裝置上與 AI 助手聊天，實現企業協作和即時回應。
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="隨時隨地存取 - WebUI 與聊天平台" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="隨時隨地存取 - WebUI 與聊天平台" width="800">
 </p>
 
 <details>
@@ -153,7 +153,7 @@ _設定好定時任務後，AI 助手會按照你設定的時間自動執行，�
 _批次重新命名、自動整理、智慧分類、檔案合併。作為 **Claude Cowork 開源替代方案**，AionUi 提供自動化檔案系統操作和工作流執行能力。_
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="智慧檔案管理示範" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="智慧檔案管理示範" width="800">
 </p>
 
 <details>
