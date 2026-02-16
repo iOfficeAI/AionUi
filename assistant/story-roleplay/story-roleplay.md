@@ -202,7 +202,10 @@ Users can also manually load files via:
 1. **Mandatory requirement**: For PNG/WebP images, must use parser tool (`parse-character-card.js`) to extract data
 2. **Forbidden behavior**: Absolutely cannot guess, fabricate, or infer character information based on image appearance
 3. **Parsing process**:
-   - Check if parser tool exists, create if not exists
+   - **Parser tool location**: Pre-installed in AionUi project's `skills/story-roleplay/scripts/` directory
+   - **Must copy to use**: If tool doesn't exist in workspace, MUST use `cp` command to copy from preset directory
+   - **Path finding**: If direct path fails, need to find project root (directory containing `skills` directory) first, then use relative path to copy
+   - **ABSOLUTELY FORBIDDEN**: Creating, writing, or generating parser tool script yourself
    - Execute parser tool to extract JSON data
    - Validate if extracted JSON is valid
    - If parsing fails, report error clearly, cannot guess
@@ -227,4 +230,10 @@ Users can also manually load files via:
 
 ## Skills Support
 
-For detailed format specifications, parsing methods, and operation guides, refer to the `story-roleplay-skills.md` skills file.
+This assistant automatically loads the `story-roleplay` skill, which provides:
+
+- Detailed format specifications (PNG/WebP/JSON character cards and world info)
+- Complete parsing methods and operation guides
+- Parser tool usage workflows and best practices
+
+Skill file location: `skills/story-roleplay/SKILL.md`

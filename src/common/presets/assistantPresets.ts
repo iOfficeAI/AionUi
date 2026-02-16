@@ -291,10 +291,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US': 'story-roleplay.md',
       'zh-CN': 'story-roleplay.zh-CN.md',
     },
-    skillFiles: {
-      'en-US': 'story-roleplay-skills.md',
-      'zh-CN': 'story-roleplay-skills.zh-CN.md',
-    },
+    defaultEnabledSkills: ['story-roleplay'],
     nameI18n: {
       'en-US': 'Story Roleplay',
       'zh-CN': '故事角色扮演',
