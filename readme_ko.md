@@ -111,7 +111,7 @@ AionUi는 두 가지 원격 접속 방법을 제공합니다：
   > 💡 **설정 방법：** AionUi 설정 → WebUI 설정 → Channel으로 이동하여 [@BotFather](https://t.me/BotFather)에서 Bot Token을 가져온 후 채팅을 시작하세요!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="어디서나 접속 - WebUI 및 채팅 플랫폼" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="어디서나 접속 - WebUI 및 채팅 플랫폼" width="800">
 </p>
 
 ---
@@ -140,7 +140,7 @@ _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합_
 - **효율적인 일괄 처리**: 원클릭 이름 변경, 파일 병합으로 번거로운 수동 작업과 작별합니다.
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="스마트 파일 관리 데모" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="스마트 파일 관리 데모" width="800">
 </p>
 
 ---

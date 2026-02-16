@@ -96,7 +96,7 @@ _Your 7×24 hour AI assistant - Access AionUi from any device, anywhere!_
 **📱 Chat Platform Integration** - Supports Telegram, Lark (Feishu), DingTalk, and more platforms. Chat with your AI assistant on any device, enabling enterprise collaboration and real-time responses.
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Access Anywhere - WebUI & Chat Platforms" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="Access Anywhere - WebUI & Chat Platforms" width="800">
 </p>
 
 <details>
@@ -153,7 +153,7 @@ _After setting up scheduled tasks, the AI assistant will automatically execute a
 _Batch renaming, automatic organization, smart classification, file merging. As a **Claude Cowork open source alternative**, AionUi provides automated file system operations and workflow execution capabilities._
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Smart File Management Demo" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="Smart File Management Demo" width="800">
 </p>
 
 <details>
