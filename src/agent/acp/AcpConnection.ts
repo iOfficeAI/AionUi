@@ -915,9 +915,11 @@ export class AcpConnection {
           execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], {
             stdio: ['ignore', 'ignore', 'ignore'],
             windowsHide: true,
+            timeout: 2000,
           });
-        } catch {
+        } catch (error) {
           // Fallback if taskkill is unavailable or process already exited.
+          console.warn(`[ACP] taskkill failed for PID ${pid}; falling back to SIGTERM`, error);
           this.child.kill('SIGTERM');
         }
       } else if (this.isDetached && pid) {
