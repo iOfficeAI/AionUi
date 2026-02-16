@@ -297,8 +297,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '故事角色扮演',
     },
     descriptionI18n: {
-      'en-US': 'Immersive story roleplay. Start by: 1) Natural language to create characters, 2) Paste PNG/WebP images, or 3) Open folder with character cards (PNG/WebP/JSON) and world info.',
-      'zh-CN': '沉浸式故事角色扮演。三种开始方式：1) 自然语言直接对话创建角色，2) 直接粘贴PNG/WebP图片，3) 打开包含角色卡（PNG/WebP/JSON）和世界书的文件夹。',
+      'en-US': 'Immersive story roleplay. Start by: 1) Natural language to create characters, 2) Paste PNG images, or 3) Open folder with character cards (PNG/JSON) and world info.',
+      'zh-CN': '沉浸式故事角色扮演。三种开始方式：1) 自然语言直接对话创建角色，2) 直接粘贴PNG图片，3) 打开包含角色卡（PNG/JSON）和世界书的文件夹。',
     },
     promptsI18n: {
       'en-US': ['Start a fantasy adventure', 'Create a character', 'Begin a story'],
