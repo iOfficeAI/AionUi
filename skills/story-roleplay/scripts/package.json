@@ -1,0 +1,13 @@
+{
+  "name": "story-roleplay-parser",
+  "version": "1.0.0",
+  "description": "Parser tools for character cards and world info",
+  "main": "parse-character-card.js",
+  "scripts": {
+    "parse": "node parse-character-card.js"
+  },
+  "dependencies": {
+    "png-chunks-extract": "1.0.0",
+    "png-chunk-text": "1.0.0"
+  }
+}
