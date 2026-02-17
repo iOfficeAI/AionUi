@@ -13,6 +13,7 @@ import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import katex from 'katex';
 // Import KaTeX CSS to make it available in the document
 import 'katex/dist/katex.min.css';
 
@@ -92,6 +93,25 @@ function CodeBlock(props: any) {
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+
+    // Render latex/math code blocks as KaTeX display math
+    // Skip full LaTeX documents (with \documentclass, \begin{document}, etc.) — KaTeX only handles math
+    if (language === 'latex' || language === 'math' || language === 'tex') {
+      const latexSource = String(children).replace(/\n$/, '');
+      const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
+      if (!isFullDocument) {
+        try {
+          const html = katex.renderToString(latexSource, {
+            displayMode: true,
+            throwOnError: false,
+          });
+          return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
+        } catch {
+          // Fall through to render as code block if KaTeX fails
+        }
+      }
+    }
+
     if (!String(children).includes('\n')) {
       return (
         <code
@@ -286,6 +306,19 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     overflow-wrap: anywhere;
     max-width: 100%;
   }
+  /* Allow KaTeX to use its own line-height for proper fraction/superscript rendering */
+  .katex,
+  .katex * {
+    line-height: normal;
+  }
+
+  /* Display math: only scroll horizontally when formula exceeds container width */
+  .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5em 0;
+  }
+
   .loading {
     animation: loading 1s linear infinite;
   }
@@ -503,23 +536,6 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
             rehypePlugins={[rehypeKatex]}
             components={{
               span: ({ node: _node, className, children, ...props }) => {
-                if (className?.includes('katex')) {
-                  return (
-                    <span
-                      {...props}
-                      className={className}
-                      style={{
-                        maxWidth: '100%',
-                        overflowX: 'auto',
-                        display: 'inline-block',
-                        verticalAlign: 'middle',
-                      }}
-                    >
-                      {children}
-                    </span>
-                  );
-                }
-
                 return (
                   <span {...props} className={className}>
                     {children}

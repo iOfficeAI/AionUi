@@ -48,3 +48,9 @@ export const MIME_TO_EXT_MAP: Record<string, string> = {
 
 /** 默认图片文件扩展名 */
 export const DEFAULT_IMAGE_EXTENSION = '.png';
+
+// ===== AI Provider 相关常量 =====
+
+// Stable ID for the Google Auth virtual provider.
+// Shared between frontend (useModelProviderList) and backend (SystemActions).
+export const GOOGLE_AUTH_PROVIDER_ID = 'google-auth-gemini';

@@ -6,12 +6,15 @@
 
 import { getDatabase } from '@/process/database';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
+import { getChannelDefaultModel } from '../actions/SystemActions';
 import { ActionExecutor } from '../gateway/ActionExecutor';
 import { PluginManager, registerPlugin } from '../gateway/PluginManager';
 import { PairingService } from '../pairing/PairingService';
+import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { MezonPlugin } from '../plugins/mezon/MezonPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
+import { resolveChannelConvType } from '../types';
 import type { IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
 
@@ -47,6 +50,7 @@ export class ChannelManager {
     registerPlugin('telegram', TelegramPlugin);
     registerPlugin('lark', LarkPlugin);
     registerPlugin('mezon', MezonPlugin);
+    registerPlugin('dingtalk', DingTalkPlugin);
   }
 
   /**
@@ -65,7 +69,6 @@ export class ChannelManager {
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log('[ChannelManager] Already initialized');
       return;
     }
 
@@ -84,8 +87,6 @@ export class ChannelManager {
       // Set confirm handler for tool confirmations
       // 设置工具确认处理器
       this.pluginManager.setConfirmHandler(async (userId: string, platform: string, callId: string, value: string) => {
-        console.log(`[ChannelManager] Confirm handler called: userId=${userId}, platform=${platform}, callId=${callId}, value=${value}`);
-
         // 查找用户
         // Find user
         const db = getDatabase();
@@ -107,7 +108,6 @@ export class ChannelManager {
         // Call confirm
         try {
           await getChannelMessageService().confirm(session.conversationId, callId, value);
-          console.log(`[ChannelManager] Tool confirmation successful: callId=${callId}`);
         } catch (error) {
           console.error(`[ChannelManager] Tool confirmation failed:`, error);
         }
@@ -178,7 +178,6 @@ export class ChannelManager {
     }
 
     const enabledPlugins = result.data.filter((p) => p.enabled);
-    console.log(`[ChannelManager] Found ${enabledPlugins.length} enabled plugin(s)`);
 
     for (const plugin of enabledPlugins) {
       try {
@@ -195,7 +194,6 @@ export class ChannelManager {
    * Start a specific plugin
    */
   private async startPlugin(config: IChannelPluginConfig): Promise<void> {
-    console.log(`[ChannelManager] Starting plugin: ${config.name} (${config.type}), hasPluginManager=${!!this.pluginManager}, initialized=${this.initialized}`);
     if (!this.pluginManager) {
       throw new Error('PluginManager not initialized');
     }
@@ -240,6 +238,12 @@ export class ChannelManager {
       const botId = config.botId as string | undefined;
       if (token && botId) {
         credentials = { token, botId };
+      }
+    } else if (pluginType === 'dingtalk') {
+      const clientId = config.clientId as string | undefined;
+      const clientSecret = config.clientSecret as string | undefined;
+      if (clientId && clientSecret) {
+        credentials = { clientId, clientSecret };
       }
     }
 
@@ -336,6 +340,18 @@ export class ChannelManager {
         botUsername: result.botInfo?.displayName,
         error: result.error,
       };
+    } else if (pluginType === 'dingtalk') {
+      const clientId = extraConfig?.appId; // Reuse appId field for clientId
+      const clientSecret = extraConfig?.appSecret; // Reuse appSecret field for clientSecret
+      if (!clientId || !clientSecret) {
+        return { success: false, error: 'Client ID and Client Secret are required for DingTalk' };
+      }
+      const result = await DingTalkPlugin.testConnection(clientId, clientSecret);
+      return {
+        success: result.success,
+        botUsername: result.botInfo?.name,
+        error: result.error,
+      };
     }
 
     return { success: false, error: `Unknown plugin type: ${pluginType}` };
@@ -350,6 +366,7 @@ export class ChannelManager {
     if (pluginId.startsWith('discord')) return 'discord';
     if (pluginId.startsWith('lark')) return 'lark';
     if (pluginId.startsWith('mezon')) return 'mezon';
+    if (pluginId.startsWith('dingtalk')) return 'dingtalk';
     return 'telegram'; // Default
   }
 
@@ -359,6 +376,43 @@ export class ChannelManager {
   private getPluginNameFromId(pluginId: string): string {
     const type = this.getPluginTypeFromId(pluginId);
     return type.charAt(0).toUpperCase() + type.slice(1) + ' Bot';
+  }
+
+  // ==================== Settings Sync ====================
+
+  /**
+   * Sync channel settings after agent or model change in the Settings UI.
+   * Clears all cached sessions so the next incoming message re-evaluates
+   * which conversation to use. For gemini type changes, also updates the
+   * model field on existing conversations.
+   */
+  async syncChannelSettings(platform: 'telegram' | 'lark' | 'dingtalk', agent: { backend: string; customAgentId?: string; name?: string }, model?: { id: string; useModel: string }): Promise<{ success: boolean; error?: string }> {
+    if (!this.initialized || !this.sessionManager) {
+      return { success: false, error: 'Channel manager not initialized' };
+    }
+
+    try {
+      const { convType: newType } = resolveChannelConvType(agent.backend);
+
+      // For gemini + model info: update existing conversations' model field
+      if (newType === 'gemini' && model?.id && model?.useModel) {
+        const fullModel = await getChannelDefaultModel(platform);
+        const db = getDatabase();
+        const result = db.updateChannelConversationModel(platform, 'gemini', fullModel);
+        if (result.success) {
+          console.log(`[ChannelManager] Updated ${result.data} gemini conversation(s) for ${platform}`);
+        }
+      }
+
+      // Clear all sessions to force re-evaluation on next message
+      const cleared = this.sessionManager.clearAllSessions();
+      console.log(`[ChannelManager] syncChannelSettings: platform=${platform}, type=${newType}, cleared=${cleared}`);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error(`[ChannelManager] syncChannelSettings failed:`, error);
+      return { success: false, error: error.message };
+    }
   }
 
   // ==================== Conversation Cleanup ====================
@@ -378,21 +432,17 @@ export class ChannelManager {
       return false;
     }
 
-    console.log(`[ChannelManager] Cleaning up conversation: ${conversationId}`);
-
     let cleanedUp = false;
 
     // 1. Clear session associated with this conversation
     const clearedSession = this.sessionManager?.clearSessionByConversationId(conversationId);
     if (clearedSession) {
       cleanedUp = true;
-      console.log(`[ChannelManager] Cleared session ${clearedSession.id} for conversation ${conversationId}`);
 
       // 2. Clear AssistantGeminiService agent cache for this session
       try {
         const geminiService = getChannelMessageService();
         await geminiService.clearContext(clearedSession.id);
-        console.log(`[ChannelManager] Cleared Gemini context for session ${clearedSession.id}`);
       } catch (error) {
         console.warn(`[ChannelManager] Failed to clear Gemini context:`, error);
       }

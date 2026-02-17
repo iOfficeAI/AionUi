@@ -16,8 +16,9 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
+import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import { CLAUDE_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
+import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, IFLOW_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
@@ -222,7 +223,9 @@ export class AcpAgent {
       if (this.extra.yoloMode) {
         const yoloModeMap: Partial<Record<AcpBackend, string>> = {
           claude: CLAUDE_YOLO_SESSION_MODE,
+          codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
+          iflow: IFLOW_YOLO_SESSION_MODE,
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
@@ -258,6 +261,27 @@ export class AcpAgent {
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
+    }
+  }
+
+  /**
+   * Enable yoloMode on a running agent.
+   * If already enabled, this is a no-op. Otherwise, sets the session mode
+   * on the active connection (for backends that support it).
+   */
+  async enableYoloMode(): Promise<void> {
+    if (this.extra.yoloMode) return;
+    this.extra.yoloMode = true;
+
+    if (this.connection.isConnected && this.connection.hasActiveSession) {
+      const yoloModeMap: Partial<Record<AcpBackend, string>> = {
+        claude: CLAUDE_YOLO_SESSION_MODE,
+        qwen: QWEN_YOLO_SESSION_MODE,
+      };
+      const sessionMode = yoloModeMap[this.extra.backend];
+      if (sessionMode) {
+        await this.connection.setSessionMode(sessionMode);
+      }
     }
   }
 
@@ -962,10 +986,9 @@ export class AcpAgent {
           responseMessage.data = message.content;
         }
         break;
+      // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands':
-        responseMessage.type = 'available_commands';
-        responseMessage.data = message.content;
-        break;
+        return;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
@@ -1023,6 +1046,32 @@ export class AcpAgent {
     });
   }
 
+  /**
+   * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
+   * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
+   *
+   * @param mode - The mode ID to set
+   * @returns Promise that resolves when mode is set
+   */
+  async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
+    console.log(`[AcpAgent] setMode called: mode=${mode}, isConnected=${this.connection.isConnected}, hasActiveSession=${this.connection.hasActiveSession}`);
+
+    if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+      console.log('[AcpAgent] No active session, cannot switch mode');
+      return { success: false, error: 'No active session. Please send a message first to establish a session.' };
+    }
+    try {
+      console.log(`[AcpAgent] Calling connection.setSessionMode(${mode})`);
+      const response = await this.connection.setSessionMode(mode);
+      console.log('[AcpAgent] setSessionMode response:', JSON.stringify(response));
+      return { success: true };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[AcpAgent] Failed to set mode:', errorMsg);
+      return { success: false, error: errorMsg };
+    }
+  }
+
   private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {
     try {
       this.emitStatusMessage('connecting');
@@ -1033,14 +1082,14 @@ export class AcpAgent {
       }
 
       // 使用与 AcpConnection 相同的命令解析逻辑
+      const cleanEnv = getEnhancedEnv();
       let command: string;
       let args: string[];
 
       if (this.extra.cliPath.startsWith('npx ')) {
         // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
         const parts = this.extra.cliPath.split(' ');
-        const isWindows = process.platform === 'win32';
-        command = isWindows ? 'npx.cmd' : 'npx';
+        command = resolveNpxPath(cleanEnv);
         args = [...parts.slice(1), loginArg];
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
@@ -1049,8 +1098,9 @@ export class AcpAgent {
       }
 
       const loginProcess = spawn(command, args, {
-        stdio: 'pipe', // 避免干扰用户界面
+        stdio: 'pipe',
         timeout: 70000,
+        env: cleanEnv,
       });
 
       await new Promise<void>((resolve, reject) => {
@@ -1107,6 +1157,7 @@ export class AcpAgent {
       } else if (this.extra.backend === 'claude') {
         await this.ensureClaudeAuth();
       }
+      // Note: CodeBuddy does not have a CLI login command; auth is handled by the CLI itself
 
       // 预热后重试创建session（同时尝试恢复会话）
       // Retry creating/resuming session after warmup

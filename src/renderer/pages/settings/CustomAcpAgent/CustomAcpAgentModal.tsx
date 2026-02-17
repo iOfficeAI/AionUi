@@ -17,6 +17,7 @@ import { acpConversation, toolRegistryBridge } from '@/common/ipcBridge';
 import { CheckSmall } from '@icon-park/react';
 
 // CLI Logo 导入 / CLI Logo imports
+import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
@@ -28,6 +29,7 @@ import QoderLogo from '@/renderer/assets/logos/qoder.png';
  * Backend logo mapping for displaying icons in CLI selection cards
  */
 const BACKEND_LOGO_MAP: Record<string, string> = {
+  codebuddy: CodeBuddyLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,
   kimi: KimiLogo,
@@ -77,10 +79,7 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
   const loadDetectedAgents = useCallback(async () => {
     setLoadingAgents(true);
     try {
-      const [agentsResponse, backendsResponse] = await Promise.all([
-        acpConversation.getAvailableAgents.invoke(),
-        toolRegistryBridge.getAcpBackends.invoke(),
-      ]);
+      const [agentsResponse, backendsResponse] = await Promise.all([acpConversation.getAvailableAgents.invoke(), toolRegistryBridge.getAcpBackends.invoke()]);
       const backends = backendsResponse.success ? backendsResponse.data : {};
       if (agentsResponse.success && agentsResponse.data) {
         // Only show third-party standalone CLIs (goose, auggie, kimi, opencode)

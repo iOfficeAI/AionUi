@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import { AcpAgent } from '@/agent/acp';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -42,6 +43,8 @@ interface AcpAgentManagerData {
   acpSessionUpdatedAt?: number;
   /** Path to assistant hooks directory for onQueueInit and other runtime hooks */
   assistantHooksPath?: string;
+  /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+  sessionMode?: string;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -50,6 +53,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private bootstrap: Promise<AcpAgent> | undefined;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
+  private currentMode: string = 'default';
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -66,6 +70,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
+    this.currentMode = data.sessionMode || 'default';
     this.status = 'pending';
 
     // Initialize message queue with sender wired to sendMessageDirect
@@ -124,7 +129,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
         // yoloMode priority: data.yoloMode (from CronService) > config setting
         // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-        yoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+        const legacyYoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+
+        // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
+        // Maps to each backend's native yolo mode value for correct protocol behavior.
+        // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
+        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+          const yoloModeValues: Record<string, string> = {
+            claude: 'bypassPermissions',
+            qwen: 'yolo',
+            iflow: 'yolo',
+          };
+          this.currentMode = yoloModeValues[data.backend] || 'yolo';
+        }
+
+        // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
+        // on the Guid page, clear the legacy config so it won't re-activate next time.
+        if (legacyYoloMode && data.sessionMode && !this.isYoloMode(data.sessionMode)) {
+          void this.clearLegacyYoloConfig();
+        }
+
+        // Derive effective yoloMode from currentMode so that the agent respects
+        // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
+        yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
 
         // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
         const backendConfig = ACP_BACKENDS_ALL[data.backend];
@@ -229,6 +256,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           ipcBridge.acpConversation.responseStream.emit(filteredMessage);
           const emitDuration = Date.now() - emitStart;
 
+          // Also emit to Channel global event bus (Telegram/Lark streaming)
+          // 同时发送到 Channel 全局事件总线（用于 Telegram/Lark 等外部平台）
+          channelEventBus.emitAgentMessage(this.conversation_id, {
+            ...filteredMessage,
+            conversation_id: this.conversation_id,
+          });
+
           const totalDuration = Date.now() - pipelineStart;
           if (totalDuration > 10) {
             if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`);
@@ -248,6 +282,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
                 label: option.name,
                 value: option,
               })),
+            });
+
+            // Channels (Telegram/Lark) currently don't have interactive permission UX.
+            // Emit a readable error to avoid "silent hang" in external platforms.
+            channelEventBus.emitAgentMessage(this.conversation_id, {
+              type: 'error',
+              conversation_id: this.conversation_id,
+              msg_id: v.msg_id,
+              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
             });
             return;
           }
@@ -296,9 +339,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
+
+          // Forward signals (finish/error/etc.) to Channel global event bus
+          channelEventBus.emitAgentMessage(this.conversation_id, {
+            ...(v as any),
+            conversation_id: this.conversation_id,
+          });
         },
       });
-      return this.agent.start().then(() => this.agent);
+      return this.agent.start().then(async () => {
+        // Re-apply persisted mode after session start/resume
+        // 在会话启动/恢复后重新应用持久化的模式
+        if (this.currentMode && this.currentMode !== 'default') {
+          try {
+            await this.agent.setMode(this.currentMode);
+            console.log(`[AcpAgentManager] Re-applied persisted mode: ${this.currentMode}`);
+          } catch (error) {
+            console.warn(`[AcpAgentManager] Failed to re-apply mode ${this.currentMode}:`, error);
+          }
+        }
+        return this.agent;
+      });
     })();
     return this.bootstrap;
   }
@@ -444,6 +505,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
       // Emit to frontend for UI display only
       ipcBridge.acpConversation.responseStream.emit(message);
+
+      // Emit finish signal so the frontend resets loading state
+      // (mirrors AcpAgent.handleDisconnect pattern)
+      const finishMessage: IResponseMessage = {
+        type: 'finish',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: null,
+      };
+      ipcBridge.acpConversation.responseStream.emit(finishMessage);
+
       return new Promise((_, reject) => {
         nextTickToLocalFinish(() => {
           reject(e);
@@ -549,6 +621,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
+   *    * Ensure yoloMode is enabled for cron job reuse.
+   * If already enabled, returns true immediately.
+   * If not, enables yoloMode on the active ACP session dynamically.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    if (this.options.yoloMode) {
+      return true;
+    }
+    this.options.yoloMode = true;
+    if (this.agent?.isConnected && this.agent?.hasActiveSession) {
+      try {
+        await this.agent.enableYoloMode();
+        return true;
+      } catch (error) {
+        console.error('[AcpAgentManager] Failed to enable yoloMode dynamically:', error);
+        return false;
+      }
+    }
+    // Agent not connected yet - yoloMode will be applied on next start()
+    return true;
+  }
+
+  /**
    * Override stop() because AcpAgentManager doesn't use ForkTask's subprocess architecture.
    * It directly creates AcpAgent in the main process, so we need to call agent.stop() directly.
    * Also clears the message queue to prevent queued messages from being sent.
@@ -559,6 +654,143 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return this.agent.stop();
     }
     return Promise.resolve();
+  }
+
+  /**
+   * Get the current session mode for this agent.
+   * 获取此代理的当前会话模式。
+   *
+   * @returns Object with current mode and whether agent is initialized
+   */
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: !!this.agent };
+  }
+
+  /**
+   * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
+   * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
+   *
+   * Note: Agent must be initialized (user must have sent at least one message)
+   * before mode switching is possible, as we need an active ACP session.
+   *
+   * @param mode - The mode ID to set
+   * @returns Promise that resolves with success status and current mode
+   */
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    // If agent is not initialized, try to initialize it first
+    // 如果 agent 未初始化，先尝试初始化
+    if (!this.agent) {
+      try {
+        await this.initAgent(this.options);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        return { success: false, msg: `Agent initialization failed: ${errorMsg}` };
+      }
+    }
+
+    // Check again after initialization attempt
+    if (!this.agent) {
+      return { success: false, msg: 'Agent not initialized' };
+    }
+
+    const result = await this.agent.setMode(mode);
+    if (result.success) {
+      const prev = this.currentMode;
+      this.currentMode = mode;
+      this.saveSessionMode(mode);
+
+      // Sync legacy yoloMode config: when leaving yolo mode, clear the old
+      // SecurityModalContent setting to prevent it from re-activating on next session.
+      if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
+        void this.clearLegacyYoloConfig();
+      }
+    }
+    return { success: result.success, msg: result.error, data: { mode: this.currentMode } };
+  }
+
+  /** Check if a mode value represents YOLO mode for any backend */
+  private isYoloMode(mode: string): boolean {
+    return mode === 'yolo' || mode === 'bypassPermissions';
+  }
+
+  /**
+   * Clear legacy yoloMode in acp.config for the current backend.
+   * This syncs back to the old SecurityModalContent config key so that
+   * switching away from YOLO mode persists across new sessions.
+   */
+  private async clearLegacyYoloConfig(): Promise<void> {
+    try {
+      const config = await ProcessConfig.get('acp.config');
+      const backendConfig = config?.[this.options.backend];
+      if ((backendConfig as any)?.yoloMode) {
+        await ProcessConfig.set('acp.config', {
+          ...config,
+          [this.options.backend]: { ...backendConfig, yoloMode: false },
+        });
+      }
+    } catch (error) {
+      console.error('[AcpAgentManager] Failed to clear legacy yoloMode config:', error);
+    }
+  }
+
+  /**
+   * Save session mode to database for resume support.
+   * 保存会话模式到数据库以支持恢复。
+   */
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          sessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[AcpAgentManager] Failed to save session mode:', error);
+    }
+  }
+
+  /**
+   * Override kill() to ensure ACP CLI process is terminated.
+   *
+   * Problem: AcpAgentManager spawns CLI agents (claude, codex, etc.) as child
+   * processes via AcpConnection. The default kill() from the base class only
+   * kills the immediate worker, leaving the CLI process running as an orphan.
+   *
+   * Solution: Call agent.stop() first, which triggers AcpConnection.disconnect()
+   * → ChildProcess.kill(). We add a grace period for the process to exit
+   * cleanly before calling super.kill() to tear down the worker.
+   *
+   * A hard timeout ensures we don't hang forever if stop() gets stuck.
+   * An idempotent doKill() guard prevents double super.kill() when the hard
+   * timeout and graceful path race against each other.
+   */
+  kill() {
+    let killed = false;
+    const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
+    const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs
+
+    const doKill = () => {
+      if (killed) return;
+      killed = true;
+      clearTimeout(hardTimer);
+      super.kill();
+    };
+
+    // Hard fallback: force kill after timeout regardless
+    const hardTimer = setTimeout(doKill, HARD_TIMEOUT_MS);
+
+    // Graceful path: stop → grace period → kill
+    void (this.agent?.stop?.() || Promise.resolve())
+      .catch((err) => {
+        console.warn('[AcpAgentManager] agent.stop() failed during kill:', err);
+      })
+      .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
+      .finally(doKill);
   }
 
   /**

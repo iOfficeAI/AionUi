@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>🚀 Yapay Zekanızla Birlikte Çalışın: Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie ve daha fazlası</strong><br>
-  <em>Kullanıcı Dostu | Görsel Grafik Arayüz | Çoklu Model Desteği | Yerel Veri Güvenliği</em>
+  <em>Ücretsiz ve Açık Kaynak Claude Cowork Alternatifi | Çoklu Ajan Masaüstü | Otomatik Görev Yürütme | Dosya Sistemi İşlemleri | Çapraz Platform</em>
 </p>
 
 <p align="center">
@@ -60,9 +60,11 @@
 
 ### 🤖 **Çoklu Ajan Modu - Komut Satırı Yapay Zeka Araçlarınız İçin Ortak Çalışma, Birleşik Grafik Arayüz**
 
-AionUi, komut satırı yapay zeka araçlarınız için birleşik bir grafik arayüz sağlar. Dahili Gemini CLI dahil, kurulum gerekmez.
+AionUi, komut satırı yapay zeka araçlarınız için birleşik bir grafik arayüz sağlar ve otomatik görev yürütme ve iş akışı yetenekleriyle **ücretsiz ve açık kaynak Claude Cowork alternatifi** olarak hizmet eder. Dahili Gemini CLI dahil, kurulum gerekmez.
 
-**Desteklenen araçlar：** Gemini CLI (dahili) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
+**Desteklenen araçlar：** Gemini CLI (dahili) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nano Bot ve daha fazlası
+
+> 💡 **Claude Cowork açık kaynak alternatifi mi arıyorsunuz?** AionUi, çoklu ajan desteği, otomatik iş akışları ve çapraz platform uyumluluğu ile en iyi ücretsiz alternatiftir.
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
@@ -93,30 +95,41 @@ Yapay zeka asistanınızla doğrudan Telegram üzerinden herhangi bir cihazdan s
 > 💡 **Nasıl kurulur:** Ayarlar → Kanallar → Telegram yolunu izleyin, [@BotFather](https://t.me/BotFather) üzerinden Bot Token'ınızı alın ve sohbete başlayın!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="Her Yerden Erişim - WebUI ve sohbet platformları" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="Her Yerden Erişim - WebUI ve sohbet platformları" width="800">
 </p>
 
 ---
 
-### 📁 **Akıllı Dosya Yönetimi (AI Ortak Çalışma)**
+### 📁 **Akıllı Dosya Yönetimi (AI Ortak Çalışma) - Otomatik Dosya İşlemleri**
 
-_Toplu yeniden adlandırma, otomatik düzenleme, akıllı sınıflandırma, dosya birleştirme_
+_Toplu yeniden adlandırma, otomatik düzenleme, akıllı sınıflandırma, dosya birleştirme. **Claude Cowork açık kaynak alternatifi** olarak AionUi, otomatik dosya sistemi işlemleri ve iş akışı yürütme yetenekleri sağlar._
 
 - **Otomatik Düzenleme**: İçeriği akıllıca tanımlar ve otomatik sınıflandırır, klasörleri düzenli tutar.
 - **Verimli Toplu İşlem**: Tek tıkla yeniden adlandırın, dosyaları birleştirin, sıkıcı manuel işlere veda edin.
+- **Otomatik Yürütme**: AI ajanları bağımsız olarak dosya işlemlerini yürütebilir, dosyaları okuyup yazabilir ve görevleri otomatik olarak tamamlayabilir - gerçek Cowork alternatifinin temel yetenekleri.
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
 </p>
 
 ---
 
 ### 📄 **Önizleme Paneli - AI Tarafından Üretilen Sonuçları Hızla Görüntüleyin**
 
-_9'dan fazla formatta görsel önizlemeyi destekler (PDF, Word, Excel, PPT, kod, Markdown, resimler, HTML, Diff vb.)_
+_Kapsamlı dosya önizleme sistemi, 10+ formatı destekler, gerçek zamanlı düzenleme yetenekleriyle_
+
+**Desteklenen önizleme formatları:**
+
+- **Belgeler**: PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
+- **Kod**: JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell betikleri ve 30+ programlama dili
+- **İşaretleme**: Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
+- **Görüntüler**: PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
+- **Diğer**: Diff dosyaları (`.diff`, `.patch`)
 
 - ✅ **Sonuçları Anında Görün** - AI dosyaları oluşturduktan sonra, uygulama değiştirmeden önizlemeyi hemen görüntüleyin
 - ✅ **Gerçek Zamanlı Takip + Düzenlenebilir** - Dosya değişikliklerini otomatik izler, editör ve önizleme akıllıca senkronize olur; Markdown, kod, HTML ve WYSIWYG gerçek zamanlı düzenlemeyi destekler
+- ✅ **Çoklu Sekme Desteği** - Birden fazla dosyayı aynı anda açın, her dosya kendi sekmesinde, akıllı sekme yönetimi
+- ✅ **Sürüm Geçmişi** - Dosyaların geçmiş sürümlerini görüntüleyin ve geri yükleyin (Git tabanlı)
 
 <p align="center">
   <img src="./resources/preview.gif" alt="Önizleme Paneli Demo" width="800">
@@ -143,6 +156,43 @@ _Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="Çoklu Model Desteği" width="800">
 </p>
+
+---
+
+### 🛠️ **AI Asistanları ve Skills Ekosistemi - Otomatik Görev Yürütme**
+
+_Genişletilebilir asistan sistemi, 11 yerleşik profesyonel asistan ve özel skill desteği. **Claude Cowork açık kaynak alternatifi** olarak AionUi, otomatik iş akışı yürütme, dosya sistemi işlemleri ve bağımsız Agent görev tamamlama yetenekleri sağlar._
+
+**Yerleşik asistanlar:** Cowork • PPTX Oluşturucu • PDF'den PPT'ye • 3D Oyun • UI/UX Pro Max • Planning with Files • HUMAN 3.0 Coach • Social Job Publisher • moltbook • Beautiful Mermaid • OpenClaw Setup ve daha fazlası
+
+<p align="center">
+  <img src="./resources/ai-assistants-experts.png" alt="AI Assistants & Skills Ecosystem Interface" width="800">
+</p>
+
+<details>
+<summary><strong>🔍 Asistan detaylarını ve özel skill'leri görüntüle ▶️</strong></summary>
+
+<br>
+
+AionUi **11 profesyonel asistan** içerir, her biri önceden tanımlanmış yeteneklere sahiptir ve özel skill'lerle genişletilebilir. Bu asistanlar **otomatik görev yürütme** ve **iş akışı otomasyonu** sağlar - AionUi'yi tam bir **Claude Cowork açık kaynak alternatifi** yapan temel özellikler:
+
+- **🤝 Cowork** - Bağımsız görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama). Otomatik iş akışı yürütme ve dosya sistemi işlemleri sağlar - Claude Cowork açık kaynak alternatifinin temel yetenekleri.
+- **📊 PPTX Oluşturucu** - PPTX sunumları oluştur
+- **📄 PDF'den PPT'ye** - PDF'yi PPT'ye dönüştür
+- **🎮 3D Oyun** - Tek dosya 3D oyun oluşturma
+- **🎨 UI/UX Pro Max** - Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
+- **📋 Planning with Files** - Karmaşık görevler için dosya tabanlı planlama (Manus tarzı kalıcı Markdown planlama)
+- **🧭 HUMAN 3.0 Coach** - Kişisel gelişim koçu
+- **📣 Social Job Publisher** - İş ilanı yayınlama
+- **🦞 moltbook** - Dağıtım gerektirmeyen entegrasyon, otomatik zamanlanmış tetikleme, aktivite raporlama gönderimi, sorunsuz AI ajan sosyal ağ entegrasyonu
+- **📈 Beautiful Mermaid** - Akış şemaları, sıralı diyagramlar ve daha fazlası
+- **🔧 OpenClaw Setup** - OpenClaw entegrasyonu kurulum ve yapılandırma asistanı
+
+**Özel skill'ler:** `skills/` dizininde skill oluşturun, asistanlar için skill'leri etkinleştirin/devre dışı bırakın, AI yeteneklerini genişletin. Yerleşik skill'ler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
+
+> 💡 Her asistan bir markdown dosyası ile tanımlanır. Örnekler için `assistant/` dizinine bakın.
+
+</details>
 
 ---
 
@@ -174,7 +224,9 @@ _Birden fazla sohbet açın, görevler karışmasın, bağımsız hafıza, iki k
 
 ## 🤔 Neden AionUi'yi Seçmelisiniz? | Claudebot Kadar İyi
 
-**Claude Cowork'ün Claude Code'u kullanımını kolaylaştırması gibi, AionUi de tüm komut satırı yapay zeka araçlarınız için Cowork platformudur**
+**AionUi: Claude Cowork için En İyi Ücretsiz ve Açık Kaynak Alternatif**
+
+Claude Cowork'ün Claude Code'u kullanımını kolaylaştırması gibi, AionUi de tüm komut satırı yapay zeka araçlarınız için **ücretsiz ve açık kaynak Cowork platformudur**. AionUi, çoklu model desteği, çapraz platform uyumluluğu ve otomatik görev yürütme dahil olmak üzere gelişmiş yeteneklerle tam bir **Claude Cowork açık kaynak alternatifi** sağlar.
 
 Gemini CLI, Claude Code, Codex, Qwen Code gibi komut satırı araçları güçlü olsalar da ortak sıkıntıları vardır: konuşmalar kaydedilemez, tek oturum sınırlaması, zahmetli dosya işlemleri ve sadece tek bir modeli desteklemeleri.
 
@@ -184,14 +236,14 @@ AionUi, bu komut satırı araçları için birleşik **Ortak Çalışma (Cowork)
 - 🚀 **Çoklu Araç Desteği** - Sadece Claude Code değil, aynı zamanda Gemini CLI, Codex, Qwen Code ve daha fazlasını destekler
 - 🌐 **Çapraz Platform** - macOS, Windows, Linux için tam destek (Claude Cowork şu anda sadece macOS'ta)
 - 🔄 **Çoklu Model Geçişi** - Aynı arayüzde farklı modeller arasında esnek geçiş, farklı görev ihtiyaçlarını karşılama
-- 📄 **Gerçek Zamanlı Önizleme** - 9+ format için görsel önizleme, AI tarafından oluşturulan dosyaların etkilerini anında görme
+- 📄 **Gerçek Zamanlı Önizleme** - 10+ format için görsel önizleme, AI tarafından oluşturulan dosyaların etkilerini anında görme
 - 💾 **Yerel Veri Güvenliği** - Tüm konuşmalar ve dosyalar yerel olarak kaydedilir, veriler cihazınızdan asla ayrılmaz
 
 ### ❓ Hızlı Soru-Cevap
 
 <details>
 <summary><strong>S: AionUi neden Claude Cowork için harika bir alternatiftir?</strong></summary>
-C: AionUi **ücretsiz ve açık kaynaklı** bir **Çoklu AI Ajan Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'a kilitli olan resmi Cowork ile karşılaştırıldığında, AionUi onun **tam model, çapraz platform geliştirilmiş versiyonudur** ve **AI Ofis Otomasyonu** senaryolarını derinlemesine kapsar.
+C: AionUi Claude Cowork için en iyi ücretsiz ve açık kaynak alternatiftir - tam Claude Cowork açık kaynak alternatifi yetenekleri sağlayan bir Çoklu AI Ajan Masaüstü uygulamasıdır. Sadece macOS'ta çalışan ve Claude'a kilitli olan resmi Cowork ile karşılaştırıldığında, AionUi onun tam model, çapraz platform geliştirilmiş versiyonudur ve AI Ofis Otomasyonu senaryolarını derinlemesine kapsar, otomatik görev yürütme, dosya sistemi işlemleri ve iş akışı otomasyonu özelliklerine sahiptir.
 
 | Boyut         | Claude Cowork    | AionUi (Bu Proje)                           |
 | :------------ | :--------------- | :------------------------------------------ |
@@ -200,17 +252,17 @@ C: AionUi **ücretsiz ve açık kaynaklı** bir **Çoklu AI Ajan Masaüstü** uy
 | Etkileşim     | GUI              | 🖥️ Tam GUI + WebUI Uzaktan Erişim           |
 | Maliyet       | Abonelik $100/ay | 🆓 Tamamen Ücretsiz & Açık Kaynak           |
 
-**Derin AI Ofis Senaryosu Desteği:**
+Derin AI Ofis Senaryosu Desteği:
 
-- **Dosya Yönetimi**: Karışık yerel klasörleri akıllıca düzenleyin ve tek tıkla toplu yeniden adlandırın.
-- **Veri İşleme**: Excel raporlarını derinlemesine analiz edin ve otomatik güzelleştirin.
-- **Belge Oluşturma**: PPT, Word ve Markdown belgelerini otomatik yazın ve biçimlendirin.
-- **Anında Önizleme**: Dahili 9+ format önizleme paneli, AI ofis işbirliği sonuçlarını anında görünür kılar.
+- Dosya Yönetimi: Karışık yerel klasörleri akıllıca düzenleyin ve tek tıkla toplu yeniden adlandırın.
+- Veri İşleme: Excel raporlarını derinlemesine analiz edin ve otomatik güzelleştirin.
+- Belge Oluşturma: PPT, Word ve Markdown belgelerini otomatik yazın ve biçimlendirin.
+- Anında Önizleme: Dahili 10+ format önizleme paneli, AI ofis işbirliği sonuçlarını anında görünür kılar.
 </details>
 
 <details>
 <summary><strong>S: AionUi ile neler yapabilirim?</strong></summary>
-C: Kişisel **Cowork çalışma alanınız** olabilir. Klasörleri toplu düzenlemenize yardım etmesini sağlayabilir, Excel'i derinlemesine güzelleştirebilir ve web kodunu gerçek zamanlı önizleyebilirsiniz. Ofis otomasyonu iş akışlarını keşfetmek ve Claude Code veya Gemini CLI deneyiminizi geliştirmek için en iyi grafiksel seçimdir.
+C: Kişisel Cowork çalışma alanınız olabilir. Klasörleri toplu düzenlemenize yardım etmesini sağlayabilir, Excel'i derinlemesine güzelleştirebilir ve web kodunu gerçek zamanlı önizleyebilirsiniz. Ofis otomasyonu iş akışlarını keşfetmek ve Claude Code veya Gemini CLI deneyiminizi geliştirmek için en iyi grafiksel seçimdir.
 </details>
 
 <details>
@@ -256,6 +308,12 @@ _İçerik üreticilerinin AionUi'yi incelemesini ve gerçek dünya senaryoların
 </p>
 
 > 💡 **AionUi hakkında bir video mu çektiniz?** [X (Twitter) üzerinden bize bildirin](https://x.com/AionUi), burada yayınlayalım! Geri bildirimlerinize değer veriyoruz ve önerilerinize göre geliştirmeye devam edeceğiz.
+
+### 📰 Topluluk makaleleri
+
+- [🔥 Patlayıcı! Cowork'un ücretsiz açık kaynak versiyonu, tam model entegrasyonu + özerk dosya işlemleri, AI ofis çalışmasını yeniden tanımlıyor.](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Open Source AI Project Landing
+- [Sıradan insanların Claude Code'u bir APP gibi kullanmasını sağlamak, ACP protokolü nedir](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
+- [5500 Yıldız: Açık kaynak Anthropic'in AI araç tekelini nasıl kırıyor](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
 
 ---
 

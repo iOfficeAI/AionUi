@@ -15,7 +15,7 @@ import AnthropicLogo from '@/renderer/assets/logos/anthropic.svg';
 import BedrockLogo from '@/renderer/assets/logos/bedrock.svg';
 import DeepSeekLogo from '@/renderer/assets/logos/deepseek.svg';
 import OpenRouterLogo from '@/renderer/assets/logos/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.svg';
+import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import ZhipuLogo from '@/renderer/assets/logos/zhipu.svg';
@@ -44,7 +44,8 @@ const PROVIDER_CONFIGS = [
   { name: 'AWS Bedrock', url: '', logo: BedrockLogo, platform: 'bedrock' },
   { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },
   { name: 'OpenRouter', url: 'https://openrouter.ai/api/v1', logo: OpenRouterLogo },
-  { name: 'SiliconFlow', url: 'https://api.siliconflow.cn/v1', logo: SiliconFlowLogo },
+  { name: 'SiliconFlow-CN', url: 'https://api.siliconflow.cn/v1', logo: SiliconFlowLogo },
+  { name: 'SiliconFlow', url: 'https://api.siliconflow.com/v1', logo: SiliconFlowLogo },
   { name: 'Dashscope', url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', logo: QwenLogo },
   { name: 'Moonshot (China)', url: 'https://api.moonshot.cn/v1', logo: KimiLogo },
   { name: 'Moonshot (Global)', url: 'https://api.moonshot.ai/v1', logo: KimiLogo },

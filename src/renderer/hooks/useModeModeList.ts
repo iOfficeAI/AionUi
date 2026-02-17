@@ -21,27 +21,28 @@ type GeminiModeListOptions = {
 };
 
 const defaultGeminiModeDescriptions: GeminiModeDescriptions = {
-  autoGemini3: 'Let Gemini CLI decide the best model for the task: gemini-3-pro-preview, gemini-2.5-flash',
+  autoGemini3: 'Let Gemini CLI decide the best model for the task: gemini-3-pro-preview, gemini-3-flash-preview',
   autoGemini25: 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash',
   manual: 'Manually select a model',
 };
 
-// 生成 Gemini 模型列表，与终端 CLI 保持一致 / Build Gemini model list matching terminal CLI
-// TODO: 后端 aioncli-core 需要支持 auto-25 值以实现真正的 Gemini 2.5 auto 模式
-// TODO: Backend aioncli-core needs to support auto-25 value for true Gemini 2.5 auto mode
+// Build Gemini model list matching terminal CLI
+// Values align with aioncli-core model aliases:
+// - 'auto' → PREVIEW_GEMINI_MODEL_AUTO ('auto-gemini-3')
+// - 'auto-gemini-2.5' → DEFAULT_GEMINI_MODEL_AUTO (auto-routes gemini-2.5-pro/flash)
 export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOption[] => {
   const descriptions = options?.descriptions || defaultGeminiModeDescriptions;
 
   return [
     {
       label: 'Auto (Gemini 3)',
-      value: 'auto', // 使用 model router 自动选择 gemini-3-pro-preview 或 gemini-2.5-flash
+      value: 'auto', // Maps to PREVIEW_GEMINI_MODEL_AUTO in config.ts
       description: descriptions.autoGemini3,
-      modelHint: 'gemini-3-pro-preview, gemini-2.5-flash',
+      modelHint: 'gemini-3-pro-preview, gemini-3-flash-preview',
     },
     {
       label: 'Auto (Gemini 2.5)',
-      value: 'gemini-2.5-pro', // 显式使用 gemini-2.5-pro，暂不支持 auto-routing
+      value: 'auto-gemini-2.5', // Maps to DEFAULT_GEMINI_MODEL_AUTO in aioncli-core
       description: descriptions.autoGemini25,
       modelHint: 'gemini-2.5-pro, gemini-2.5-flash',
     },
@@ -57,6 +58,7 @@ export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOp
       // DEFAULT_GEMINI_FLASH_LITE_MODEL = 'gemini-2.5-flash-lite'
       subModels: [
         { label: 'gemini-3-pro-preview', value: 'gemini-3-pro-preview' },
+        { label: 'gemini-3-flash-preview', value: 'gemini-3-flash-preview' },
         { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro' },
         { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash' },
         { label: 'gemini-2.5-flash-lite', value: 'gemini-2.5-flash-lite' },

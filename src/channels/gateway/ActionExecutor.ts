@@ -7,24 +7,27 @@
 import type { TMessage } from '@/common/chatLib';
 import type { TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@/process/database';
-import { ProcessConfig, getSystemDir } from '@/process/initStorage';
+import { ProcessConfig } from '@/process/initStorage';
 import { ConversationService } from '@/process/services/conversationService';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
 import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
-import { getChannelConversationName, isChannelPlatform } from '../types';
 import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
 import type { PairingService } from '../pairing/PairingService';
 import type { PluginMessageHandler } from '../plugins/BasePlugin';
-import { createMainMenuCard, createErrorRecoveryCard, createResponseActionsCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
+import { getChannelConversationName, resolveChannelConvType } from '../types';
+import { createMainMenuCard, createErrorRecoveryCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
-import { createMainMenuKeyboard, createResponseActionsKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
+import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
+import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
+import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
-import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
+import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
 import { bridge } from '@office-ai/platform';
+import type { AcpBackend } from '@/types/acpTypes';
 
 // ==================== Platform-specific Helpers ====================
 
@@ -35,6 +38,9 @@ function getMainMenuMarkup(platform: PluginType) {
   if (platform === 'lark') {
     return createMainMenuCard();
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkMainMenuCard();
+  }
   return createMainMenuKeyboard();
 }
 
@@ -42,10 +48,11 @@ function getMainMenuMarkup(platform: PluginType) {
  * Get response actions markup based on platform
  */
 function getResponseActionsMarkup(platform: PluginType, text?: string) {
-  if (platform === 'lark') {
-    return createResponseActionsCard(text || '');
+  if (platform === 'dingtalk') {
+    return createDingTalkResponseActionsCard(text || '');
   }
-  return createResponseActionsKeyboard();
+  // Telegram and Lark: no response action buttons
+  return undefined;
 }
 
 /**
@@ -77,6 +84,9 @@ function getToolConfirmationMarkup(platform: PluginType, callId: string, options
   if (platform === 'lark') {
     return createToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
+  }
   return createToolConfirmationKeyboard(callId, options);
 }
 
@@ -87,6 +97,9 @@ function getErrorRecoveryMarkup(platform: PluginType, errorMessage?: string) {
   if (platform === 'lark') {
     return createErrorRecoveryCard(errorMessage);
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkErrorRecoveryCard(errorMessage);
+  }
   return createMainMenuKeyboard(); // Telegram uses main menu for recovery
 }
 
@@ -96,6 +109,9 @@ function getErrorRecoveryMarkup(platform: PluginType, errorMessage?: string) {
 function formatTextForPlatform(text: string, platform: PluginType): string {
   if (platform === 'lark') {
     return convertHtmlToLarkMarkdown(text);
+  }
+  if (platform === 'dingtalk') {
+    return convertHtmlToDingTalkMarkdown(text);
   }
   return escapeHtml(text);
 }
@@ -227,6 +243,17 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
       };
     }
 
+    case 'acp_permission':
+    case 'codex_permission': {
+      // Channels (Telegram/Lark) use automatic approval via yoloMode.
+      // Show a subtle indicator instead of an error message.
+      return {
+        type: 'text',
+        text: `⏳ ${formatTextForPlatform('Applying automatic approval for permission request...', platform)}`,
+        parseMode: 'HTML',
+      };
+    }
+
     default:
       // 其他类型暂不支持，显示通用消息
       // Other types not supported yet, show generic message
@@ -276,8 +303,6 @@ export class ActionExecutor {
    */
   private async handleIncomingMessage(message: IUnifiedIncomingMessage): Promise<void> {
     const { platform, chatId, user, content, action } = message;
-
-    console.log(`[ActionExecutor] Processing message from ${platform}:${user.id}`, JSON.stringify(message));
 
     // Get plugin for sending responses
     const plugin = this.getPluginForMessage(message);
@@ -380,86 +405,77 @@ export class ActionExecutor {
         });
       }
 
-      // Get or create session
-      // 获取或创建会话，优先复用该平台来源的会话
-      // IMPORTANT: For bot channels (Mezon/Telegram groups), we need per-channel conversations
-      // SessionManager only tracks one session per user, so we bypass it for bot channels
-      let session = this.sessionManager.getSession(channelUser.id);
-      const isBotChannel = message.chatId && message.stableChannelId;
+      // Get or create session (scoped by chatId for per-chat isolation)
+      let session = this.sessionManager.getSession(channelUser.id, chatId);
+      if (!session || !session.conversationId) {
+        const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 
-      if (isBotChannel || !session || !session.conversationId) {
-        // 获取用户选择的模型 / Get user selected model (supports multi-bot)
-        const model = await this.getModelForPlugin(message.pluginId);
-
-        // 使用 ConversationService 获取或创建会话（根据平台）
-        // Use ConversationService to get or create conversation (based on platform)
-        const conversationName = await this.getConversationNameForPlugin(platform, message.pluginId);
-
-        // Bot routing: If message has chatId (externalChannelId), use bot-specific routing
-        // Otherwise fall back to channel routing
-        let result;
-        if (message.chatId) {
-          // Extract botId from pluginId (format: "mezon_{botId}" or "telegram_{botId}")
-          const botId = message.pluginId.includes('_') ? message.pluginId.split('_')[1] : message.pluginId;
-
-          // Use stableChannelId for conversation lookup (baseKey without timestamp)
-          // Falls back to chatId if stableChannelId is not provided (backward compatibility)
-          const channelIdForLookup = message.stableChannelId || message.chatId;
-
-          console.log(`[ActionExecutor] Using bot conversation routing (channel: ${channelIdForLookup.slice(0, 12)}..., bot: ${botId})`);
-
-          // For Mezon bots, default to ACP (Claude) if no model configured
-          const conversationType = model.platform ? detectConversationType(model) : 'acp';
-
-          // ConversationService will automatically inject assistantId from bot config
-          result = await ConversationService.getOrCreateBotConversation(channelIdForLookup, botId, {
-            type: conversationType,
-            model,
-            name: conversationName,
-            extra: {
-              workspace: '', // Empty string to create unique temp workspace (claude-temp-timestamp)
-              defaultFiles: [],
-              backend: conversationType === 'acp' ? 'claude' : undefined,
-              cliPath: conversationType === 'acp' ? 'claude' : undefined,
-              agentName: conversationType === 'acp' ? 'Claude Code' : undefined,
-              customWorkspace: false,
-            },
-          });
-        } else {
-          // Channel routing (uses upstream's unified channel conversation API)
-          const channelPlatform = isChannelPlatform(platform) ? platform : 'telegram';
-          result = await ConversationService.getOrCreateChannelConversation({
-            model,
-            name: conversationName,
-            source: channelPlatform,
-          });
+        // Read selected agent for this platform (defaults to Gemini)
+        let savedAgent: unknown = undefined;
+        try {
+          savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : platform === 'dingtalk' ? ProcessConfig.get('assistant.dingtalk.agent') : ProcessConfig.get('assistant.telegram.agent'));
+        } catch {
+          // ignore
         }
+        const backend = (savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string' ? (savedAgent as any).backend : 'gemini') as string;
+        const customAgentId = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).customAgentId as string | undefined) : undefined;
+        const agentName = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
+
+        // Always resolve a provider model (required by ICreateConversationParams typing; ignored by ACP/Codex)
+        const model = await getChannelDefaultModel(platform);
+
+        // Map backend to conversation type for lookup
+        const { convType, convBackend } = resolveChannelConvType(backend);
+        const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
+
+        // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
+        const db2 = getDatabase();
+        const latest = db2.findChannelConversation(source, chatId, convType, convBackend);
+        const existing = latest.success ? latest.data : null;
+
+        const result = existing
+          ? { success: true as const, conversation: existing }
+          : backend === 'codex'
+            ? await ConversationService.createConversation({
+                type: 'codex',
+                model,
+                name: conversationName,
+                source,
+                channelChatId: chatId,
+                extra: {},
+              })
+            : backend === 'gemini'
+              ? await ConversationService.createGeminiConversation({
+                  model,
+                  name: conversationName,
+                  source,
+                  channelChatId: chatId,
+                })
+              : backend === 'openclaw-gateway'
+                ? await ConversationService.createConversation({
+                    type: 'openclaw-gateway',
+                    model,
+                    name: conversationName,
+                    source,
+                    channelChatId: chatId,
+                    extra: {},
+                  })
+                : await ConversationService.createConversation({
+                    type: 'acp',
+                    model,
+                    name: conversationName,
+                    source,
+                    channelChatId: chatId,
+                    extra: {
+                      backend: backend as AcpBackend,
+                      customAgentId,
+                      agentName,
+                    },
+                  });
 
         if (result.success && result.conversation) {
-          // For bot channels, don't create SessionManager session (bypass single-session-per-user limitation)
-          // Instead, create a minimal session object for this request only
-          if (isBotChannel) {
-            session = {
-              id: `temp_${Date.now()}`,
-              userId: channelUser.id,
-              agentType: 'gemini',
-              conversationId: result.conversation.id,
-              createdAt: Date.now(),
-              lastActivity: Date.now(),
-            };
-            console.log(`[ActionExecutor] Using bot channel conversation (bypassing SessionManager): ${result.conversation.id}`);
-
-            // Emit chat.history.refresh event to update WebUI conversation list
-            try {
-              bridge.emit('chat.history.refresh', {});
-              console.log(`[ActionExecutor] Emitted chat.history.refresh for bot conversation: ${result.conversation.id}`);
-            } catch (error) {
-              console.warn('[ActionExecutor] Failed to emit chat.history.refresh:', error);
-            }
-          } else {
-            session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id);
-            console.log(`[ActionExecutor] Using conversation via ConversationService: ${result.conversation.id}`);
-          }
+          const { convType: agentType } = resolveChannelConvType(backend);
+          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType as ChannelAgentType, undefined, chatId);
         } else {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
@@ -474,10 +490,8 @@ export class ActionExecutor {
       context.conversationId = session.conversationId;
 
       // Route based on action or content
-      console.log(`[ActionExecutor] Routing - action:`, action, `content.type:`, content.type);
       if (action) {
         // Explicit action from button press
-        console.log(`[ActionExecutor] Executing action: ${action.name} with params:`, action.params);
         await this.executeAction(context, action.name, action.params);
       } else if (content.type === 'action') {
         // Action encoded in content
@@ -521,8 +535,6 @@ export class ActionExecutor {
       return;
     }
 
-    console.log(`[ActionExecutor] Executing action: ${actionName}`);
-
     try {
       const result = await action.handler(context, params);
 
@@ -545,7 +557,7 @@ export class ActionExecutor {
   private async handleChatMessage(context: IActionContext, text: string, existingThinkingMsgId?: string): Promise<void> {
     // Update session activity
     if (context.channelUser) {
-      this.sessionManager.updateSessionActivity(context.channelUser.id);
+      this.sessionManager.updateSessionActivity(context.channelUser.id, context.chatId);
     }
 
     // Use existing thinking message if provided (sent early), otherwise send now
@@ -590,10 +602,8 @@ export class ActionExecutor {
         const targetMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
         try {
           await context.editMessage(targetMsgId, msg);
-        } catch (editError) {
-          // 忽略编辑错误（消息未修改等）
+        } catch {
           // Ignore edit errors (message not modified, etc.)
-          console.debug('[ActionExecutor] Edit error (ignored):', editError);
         }
       };
 
@@ -606,11 +616,15 @@ export class ActionExecutor {
         // Convert message format (based on platform)
         const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
 
-        // 保存最后一条消息内容
-        // Save last message content
-        lastMessageContent = outgoingMessage;
+        // Strip replyMarkup during streaming to prevent premature card finalization.
+        // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
+        // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
+        // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
+        const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
 
-        console.log(`[ActionExecutor] Stream callback - isInsert: ${isInsert}, msg_id: ${message.msg_id}, type: ${message.type}, sentMessageIds count: ${sentMessageIds.length}`);
+        // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
+        // Save last message content (without replyMarkup, final message adds it separately)
+        lastMessageContent = streamOutgoing;
 
         // IMPORTANT: Always treat first streaming message as update to thinking message
         // This prevents async race condition where first insert's sendMessage takes time
@@ -620,17 +634,14 @@ export class ActionExecutor {
         if (isInsert && sentMessageIds.length === 1) {
           // First streaming message: update thinking message instead of inserting
           // 第一个流式消息：更新thinking消息而不是插入新消息
-          console.log(`[ActionExecutor] First streaming message, updating thinking message instead of inserting`);
-          const targetMsgId = sentMessageIds[0] || thinkingMsgId;
-          console.log(`[ActionExecutor] Updating message, targetMsgId: ${targetMsgId}, content preview: ${outgoingMessage.text?.slice(0, 50)}`);
-          pendingMessage = outgoingMessage;
+          pendingMessage = streamOutgoing;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
             if (pendingUpdateTimer) {
               clearTimeout(pendingUpdateTimer);
               pendingUpdateTimer = null;
             }
-            await doEditMessage(outgoingMessage);
+            await doEditMessage(streamOutgoing);
           } else {
             if (pendingUpdateTimer) {
               clearTimeout(pendingUpdateTimer);
@@ -648,18 +659,15 @@ export class ActionExecutor {
           // 新消息：发送新消息
           // New message: send new message
           try {
-            const newMsgId = await context.sendMessage(outgoingMessage);
+            const newMsgId = await context.sendMessage(streamOutgoing);
             sentMessageIds.push(newMsgId);
-            console.log(`[ActionExecutor] Inserted new message, newMsgId: ${newMsgId}, total messages: ${sentMessageIds.length}`);
-          } catch (sendError) {
-            console.debug('[ActionExecutor] Send error (ignored):', sendError);
+          } catch {
+            // Ignore send errors
           }
         } else {
           // 更新消息：使用定时器节流，确保最后一条消息能被发送
           // Update message: throttle with timer to ensure last message is sent
-          const targetMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
-          console.log(`[ActionExecutor] Updating message, targetMsgId: ${targetMsgId}, content preview: ${outgoingMessage.text?.slice(0, 50)}`);
-          pendingMessage = outgoingMessage;
+          pendingMessage = streamOutgoing;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
             // 距离上次发送超过节流时间，立即发送
@@ -668,7 +676,7 @@ export class ActionExecutor {
               clearTimeout(pendingUpdateTimer);
               pendingUpdateTimer = null;
             }
-            await doEditMessage(outgoingMessage);
+            await doEditMessage(streamOutgoing);
           } else {
             // 在节流时间内，设置定时器延迟发送
             // Within throttle window, set timer to send later
@@ -698,8 +706,8 @@ export class ActionExecutor {
       if (pendingMessage) {
         try {
           await doEditMessage(pendingMessage);
-        } catch (error) {
-          console.debug('[ActionExecutor] Final pending message edit error (ignored):', error);
+        } catch {
+          // Ignore final edit error
         }
         pendingMessage = null;
       }
@@ -846,7 +854,5 @@ export class ActionExecutor {
     for (const action of platformActions) {
       this.actionRegistry.set(action.name, action);
     }
-
-    console.log(`[ActionExecutor] Registered ${this.actionRegistry.size} actions`);
   }
 }

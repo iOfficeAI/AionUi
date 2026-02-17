@@ -22,6 +22,7 @@ import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -182,6 +183,13 @@ const useAcpMessage = (conversation_id: string) => {
               setRunning(false);
               runningRef.current = false;
             }
+            // Reset all loading states on error or disconnect so UI doesn't stay stuck
+            if (['error', 'disconnected'].includes(agentData.status)) {
+              setRunning(false);
+              runningRef.current = false;
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
+            }
           }
           addOrUpdateMessage(transformedMessage);
           break;
@@ -220,7 +228,9 @@ const useAcpMessage = (conversation_id: string) => {
           break;
         }
         case 'error':
-          // Stop AI processing state when error occurs
+          // Stop all loading states when error occurs
+          setRunning(false);
+          runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
           addOrUpdateMessage(transformedMessage);
@@ -574,8 +584,10 @@ const AcpSendBox: React.FC<{
         className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
         tools={
-          <>
+          <div className='flex items-center gap-4px'>
             <Button
               type='secondary'
               shape='circle'
@@ -589,7 +601,8 @@ const AcpSendBox: React.FC<{
               }}
             />
             <SkillsWidget conversationId={conversation_id} />
-          </>
+            <AgentModeSelector backend={backend} conversationId={conversation_id} compact />
+          </div>
         }
         prefix={
           <>

@@ -12,6 +12,7 @@ import { resolveLocaleKey, uuid } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
@@ -19,11 +20,14 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import MistralLogo from '@/renderer/assets/logos/mistral.svg';
 import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import { supportsModeSwitch } from '@/renderer/constants/agentModes';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
@@ -32,7 +36,7 @@ import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthM
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
-import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { allSupportedExts, getCleanFileNames, type FileMetadata } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
@@ -176,6 +180,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
+  codebuddy: CodeBuddyLogo,
   droid: DroidLogo,
   iflow: IflowLogo,
   goose: GooseLogo,
@@ -184,6 +189,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
   qoder: QoderLogo,
+  vibe: MistralLogo,
   'openclaw-gateway': OpenClawLogo,
   nanobot: NanobotLogo,
 };
@@ -284,6 +290,15 @@ const Guid: React.FC = () => {
     }>
   >();
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
+  const availableCustomAgentIds = useMemo(() => {
+    const ids = new Set<string>();
+    (availableAgents || []).forEach((agent) => {
+      if (agent.backend === 'custom' && agent.customAgentId) {
+        ids.add(agent.customAgentId);
+      }
+    });
+    return ids;
+  }, [availableAgents]);
 
   /**
    * 获取代理的唯一选择键
@@ -328,6 +343,7 @@ const Guid: React.FC = () => {
   const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
   const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
+  const [selectedMode, setSelectedMode] = useState<string>('default');
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
@@ -553,17 +569,6 @@ const Guid: React.FC = () => {
           _setSelectedAgentKey(savedAgentKey);
           return;
         }
-
-        // 2. For custom agents, check storage
-        if (savedAgentKey.startsWith('custom:')) {
-          const customId = savedAgentKey.slice(7);
-          const agents = await ConfigStorage.get('acp.customAgents');
-          if (cancelled) return;
-
-          if (agents?.some((a: AcpBackendConfig) => a.id === customId)) {
-            _setSelectedAgentKey(savedAgentKey);
-          }
-        }
       } catch (error) {
         console.error('Failed to load last selected agent:', error);
       }
@@ -581,7 +586,8 @@ const Guid: React.FC = () => {
     ConfigStorage.get('acp.customAgents')
       .then((agents) => {
         if (!isActive) return;
-        setCustomAgents(agents || []);
+        const list = (agents || []).filter((agent: AcpBackendConfig) => availableCustomAgentIds.has(agent.id));
+        setCustomAgents(list);
       })
       .catch((error) => {
         console.error('Failed to load custom agents:', error);
@@ -589,7 +595,7 @@ const Guid: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [availableAgentsData]);
+  }, [availableCustomAgentIds]);
 
   useEffect(() => {
     if (mentionOpen) {
@@ -610,6 +616,44 @@ const Guid: React.FC = () => {
     if (!target) return;
     target.scrollIntoView({ block: 'nearest' });
   }, [mentionActiveIndex, mentionOpen, mentionSelectorOpen]);
+
+  // Read legacy yoloMode config (from old SecurityModalContent settings).
+  // If yoloMode was enabled for the selected agent, pre-select YOLO mode.
+  // If false, keep default — no action needed.
+  useEffect(() => {
+    setSelectedMode('default'); // Reset on agent change
+    if (!selectedAgent) return;
+
+    const readLegacyYoloMode = async () => {
+      try {
+        let yoloMode = false;
+        if (selectedAgent === 'gemini') {
+          const config = await ConfigStorage.get('gemini.config');
+          yoloMode = config?.yoloMode ?? false;
+        } else if (selectedAgent === 'codex') {
+          const config = await ConfigStorage.get('codex.config');
+          yoloMode = config?.yoloMode ?? false;
+        } else if (selectedAgent !== 'custom' && selectedAgent !== 'openclaw-gateway' && selectedAgent !== 'nanobot') {
+          const config = await ConfigStorage.get('acp.config');
+          yoloMode = (config?.[selectedAgent as AcpBackend] as any)?.yoloMode ?? false;
+        }
+        if (yoloMode) {
+          // Map to the correct yolo mode value for this backend
+          const yoloValues: Record<string, string> = {
+            claude: 'bypassPermissions',
+            gemini: 'yolo',
+            codex: 'yolo',
+            iflow: 'yolo',
+            qwen: 'yolo',
+          };
+          setSelectedMode(yoloValues[selectedAgent] || 'yolo');
+        }
+      } catch {
+        /* silent */
+      }
+    };
+    void readLegacyYoloMode();
+  }, [selectedAgent]);
 
   const { compositionHandlers, isComposing } = useCompositionInput();
 
@@ -753,7 +797,7 @@ const Guid: React.FC = () => {
    * Priority: gemini > claude > codex > opencode
    */
   const getAvailableFallbackAgent = useCallback((): PresetAgentType | null => {
-    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'opencode'];
+    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'codebuddy', 'opencode'];
     for (const agentType of fallbackOrder) {
       if (isMainAgentAvailable(agentType)) {
         return agentType;
@@ -936,6 +980,10 @@ const Guid: React.FC = () => {
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: presetAssistantIdToPass,
+            // Initial session mode from Guid page mode selector.
+            // Always pass the value (including 'default') so the agent manager can
+            // distinguish "user explicitly chose default" from "no selection made".
+            sessionMode: selectedMode,
           },
         });
 
@@ -994,6 +1042,8 @@ const Guid: React.FC = () => {
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
+            // Initial session mode from Guid page mode selector
+            sessionMode: selectedMode,
           },
         });
 
@@ -1042,6 +1092,17 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
+            backend: openclawAgentInfo?.backend,
+            cliPath: openclawAgentInfo?.cliPath,
+            agentName: openclawAgentInfo?.name,
+            runtimeValidation: {
+              expectedWorkspace: finalWorkspace,
+              expectedBackend: openclawAgentInfo?.backend,
+              expectedAgentName: openclawAgentInfo?.name,
+              expectedCliPath: openclawAgentInfo?.cliPath,
+              expectedModel: currentModel?.useModel,
+              switchedAt: Date.now(),
+            },
             // Gateway configuration is handled by OpenClawAgentManager
             // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
             enabledSkills: isPreset ? enabledSkills : undefined,
@@ -1174,6 +1235,8 @@ const Guid: React.FC = () => {
             // 使用原始 agentInfo 的 ID，确保 agent 类型切换后仍保留预设助手信息
             // Use original agentInfo's ID to preserve preset assistant info after agent type fallback
             presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
+            // Initial session mode from Guid page mode selector
+            sessionMode: selectedMode,
           },
         });
 
@@ -1564,7 +1627,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
+                {(selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable) ? (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1673,7 +1736,15 @@ const Guid: React.FC = () => {
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
+                ) : (
+                  <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+                    <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
+                      {t('conversation.welcome.useCliModel')}
+                    </Button>
+                  </Tooltip>
                 )}
+
+                {supportsModeSwitch(selectedAgent) && <AgentModeSelector backend={selectedAgent} compact initialMode={selectedMode} onModeSelect={(mode) => setSelectedMode(mode)} />}
 
                 {isPresetAgent && selectedAgentInfo && (
                   <div

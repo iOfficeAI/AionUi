@@ -11,7 +11,7 @@ if (extraArgs.length > 0) {
   args.push('--', ...extraArgs);
 }
 
-const result = spawnSync('electron-forge', args, {
+const result = spawnSync('pnpm', ['exec', 'electron-forge', ...args], {
   stdio: 'inherit',
   shell: true,
   env,

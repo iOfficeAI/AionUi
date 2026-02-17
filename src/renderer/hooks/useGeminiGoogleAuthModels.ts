@@ -6,10 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { getGeminiModeList, type GeminiModeOption } from './useModeModeList';
-import useSWR from 'swr';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
+import { getGeminiModeList, type GeminiModeOption } from './useModeModeList';
 
 export interface GeminiGoogleAuthModelResult {
   geminiModeOptions: GeminiModeOption[];
@@ -44,7 +44,7 @@ export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
   // 生成与终端 CLI 一致的模型列表 / Generate model list matching terminal CLI
   const descriptions = useMemo(
     () => ({
-      autoGemini3: t('gemini.mode.autoGemini3Desc', 'Let Gemini CLI decide the best model for the task: gemini-3-pro, gemini-3-flash'),
+      autoGemini3: t('gemini.mode.autoGemini3Desc', 'Let Gemini CLI decide the best model for the task: gemini-3-pro-preview, gemini-3-flash-preview'),
       autoGemini25: t('gemini.mode.autoGemini25Desc', 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash'),
       manual: t('gemini.mode.manualDesc', 'Manually select a model'),
     }),

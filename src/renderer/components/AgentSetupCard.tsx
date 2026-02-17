@@ -20,6 +20,7 @@ import type { AgentCheckResult } from '@/renderer/hooks/useAgentReadinessCheck';
 
 // Agent logos
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
@@ -32,6 +33,7 @@ import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 
 const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
   claude: ClaudeLogo,
+  codebuddy: CodeBuddyLogo,
   codex: CodexLogo,
   opencode: OpenCodeLogo,
   gemini: GeminiLogo,

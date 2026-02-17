@@ -5,8 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import { getDatabase } from '@process/database';
+import { addMessage } from '@process/message';
+import { powerSaveBlocker } from 'electron';
 import { Cron } from 'croner';
 import WorkerManage from '../../WorkerManage';
 import { copyFilesToDirectory } from '../../utils';
@@ -37,6 +40,7 @@ class CronService {
   private timers: Map<string, Cron | NodeJS.Timeout> = new Map();
   private retryTimers: Map<string, NodeJS.Timeout> = new Map();
   private initialized = false;
+  private powerSaveBlockerId: number | null = null;
 
   /**
    * Initialize the cron service
@@ -55,6 +59,7 @@ class CronService {
       }
 
       this.initialized = true;
+      this.updatePowerBlocker();
     } catch (error) {
       console.error('[CronService] Initialization failed:', error);
       throw error;
@@ -115,6 +120,7 @@ class CronService {
 
     // Start timer
     this.startTimer(job);
+    this.updatePowerBlocker();
 
     return job;
   }
@@ -148,6 +154,7 @@ class CronService {
       this.startTimer(updated);
     }
 
+    this.updatePowerBlocker();
     return updated;
   }
 
@@ -160,6 +167,7 @@ class CronService {
 
     // Delete from database
     cronStore.delete(jobId);
+    this.updatePowerBlocker();
   }
 
   /**
@@ -321,22 +329,30 @@ class CronService {
 
       // Get or build task from WorkerManage
       // For cron jobs, we need yoloMode=true (auto-approve)
-      // If task already exists, kill it and create new one with yoloMode=true
+      // Reuse existing task if possible to avoid unnecessary reconnection
       // 对于定时任务，需要 yoloMode=true（自动批准）
-      // 如果任务实例已存在，先 kill 它，再创建新的 yoloMode=true 实例
+      // 尽量复用已有任务实例，避免不必要的重连
       let task;
       try {
-        // Check if task already exists in memory
         const existingTask = WorkerManage.getTaskById(conversationId);
         if (existingTask) {
-          // Kill existing task to ensure we get a fresh instance with yoloMode=true
-          WorkerManage.kill(conversationId);
+          // Try to enable yoloMode on existing task without killing it
+          const yoloEnabled = await existingTask.ensureYoloMode();
+          if (yoloEnabled) {
+            task = existingTask;
+          } else {
+            // Cannot enable yoloMode dynamically, fall back to kill and recreate
+            WorkerManage.kill(conversationId);
+            task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
+              yoloMode: true,
+            });
+          }
+        } else {
+          // No existing task, create new one with yoloMode=true
+          task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
+            yoloMode: true,
+          });
         }
-
-        // Now create new task with yoloMode=true
-        task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
-          yoloMode: true,
-        });
       } catch (err) {
         job.state.lastStatus = 'error';
         job.state.lastError = err instanceof Error ? err.message : 'Conversation not found';
@@ -436,7 +452,106 @@ class CronService {
   }
 
   /**
-   * Cleanup - stop all timers
+   * Handle system resume from sleep/hibernate.
+   * Detects missed jobs, inserts notification messages into their conversations,
+   * and restarts all timers with fresh schedules.
+   */
+  async handleSystemResume(): Promise<void> {
+    if (!this.initialized) return;
+
+    console.log('[CronService] System resumed, checking for missed jobs...');
+    const now = Date.now();
+    const jobs = cronStore.listEnabled();
+
+    for (const job of jobs) {
+      // Stop stale timer (it was paused during sleep and may be in invalid state)
+      this.stopTimer(job.id);
+
+      // Check if job was missed during sleep
+      const nextRunAt = job.state.nextRunAtMs;
+      if (nextRunAt && nextRunAt <= now) {
+        console.log(`[CronService] Missed job "${job.name}" (was due at ${new Date(nextRunAt).toISOString()})`);
+
+        // Update job state to reflect missed execution
+        job.state.lastStatus = 'missed';
+        job.state.lastError = `Task missed during system sleep (scheduled at ${new Date(nextRunAt).toLocaleString()})`;
+        this.updateNextRunTime(job);
+        cronStore.update(job.id, { state: job.state });
+        ipcBridge.cron.onJobUpdated.emit(job);
+
+        // Insert a notification message into the conversation
+        this.insertMissedJobMessage(job, nextRunAt);
+      }
+
+      // Restart timer with fresh schedule
+      const latestJob = cronStore.getById(job.id);
+      if (latestJob && latestJob.enabled) {
+        this.startTimer(latestJob);
+      }
+    }
+  }
+
+  /**
+   * Insert a notification message into the conversation to inform the user
+   * about a missed scheduled task execution.
+   */
+  private insertMissedJobMessage(job: CronJob, scheduledAtMs: number): void {
+    const { conversationId } = job.metadata;
+    const scheduledTime = new Date(scheduledAtMs).toLocaleString();
+    const msgId = uuid();
+
+    const content = `⏰ Scheduled task "${job.name}" was not executed during system sleep.\nScheduled time: ${scheduledTime}\nThe timer has been restarted and will run at the next scheduled time.`;
+
+    // Persist message to database
+    const message: TMessage = {
+      id: msgId,
+      msg_id: msgId,
+      type: 'tips',
+      position: 'center',
+      conversation_id: conversationId,
+      content: { content, type: 'warning' as const },
+      createdAt: Date.now(),
+      status: 'finish',
+    };
+    addMessage(conversationId, message);
+
+    // Emit to frontend so it shows immediately if conversation is open
+    ipcBridge.conversation.responseStream.emit({
+      type: 'tips',
+      conversation_id: conversationId,
+      msg_id: msgId,
+      data: { content, type: 'warning' },
+    });
+  }
+
+  /**
+   * Manage powerSaveBlocker to keep the app alive while cron jobs are active.
+   * Uses 'prevent-app-suspension' mode which prevents the app from being suspended
+   * but does not prevent the display from sleeping.
+   */
+  private updatePowerBlocker(): void {
+    const hasEnabledJobs = cronStore.listEnabled().length > 0;
+
+    if (hasEnabledJobs && this.powerSaveBlockerId === null) {
+      try {
+        this.powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+        console.log('[CronService] PowerSaveBlocker started (prevent-app-suspension)');
+      } catch (error) {
+        console.warn('[CronService] Failed to start powerSaveBlocker:', error);
+      }
+    } else if (!hasEnabledJobs && this.powerSaveBlockerId !== null) {
+      try {
+        powerSaveBlocker.stop(this.powerSaveBlockerId);
+        console.log('[CronService] PowerSaveBlocker stopped (no active jobs)');
+      } catch (error) {
+        console.warn('[CronService] Failed to stop powerSaveBlocker:', error);
+      }
+      this.powerSaveBlockerId = null;
+    }
+  }
+
+  /**
+   * Cleanup - stop all timers and release power blocker
    */
   cleanup(): void {
     for (const jobId of this.timers.keys()) {
@@ -445,6 +560,16 @@ class CronService {
     this.timers.clear();
     this.retryTimers.clear();
     this.initialized = false;
+
+    // Release power save blocker
+    if (this.powerSaveBlockerId !== null) {
+      try {
+        powerSaveBlocker.stop(this.powerSaveBlockerId);
+      } catch {
+        // Ignore errors during cleanup
+      }
+      this.powerSaveBlockerId = null;
+    }
   }
 }
 

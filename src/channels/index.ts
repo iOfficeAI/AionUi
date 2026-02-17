@@ -26,6 +26,7 @@ export { PluginManager, registerPlugin } from './gateway/PluginManager';
 export { BasePlugin } from './plugins/BasePlugin';
 export type { PluginMessageHandler } from './plugins/BasePlugin';
 export { TelegramPlugin } from './plugins/telegram/TelegramPlugin';
+export { DingTalkPlugin } from './plugins/dingtalk/DingTalkPlugin';
 
 // Pairing exports
 export { getPairingService, PairingService } from './pairing/PairingService';

@@ -1,19 +1,57 @@
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-// 统一的模型下拉，供会话头部使用
-// Unified model dropdown rendered in the chat header
-const GeminiModelSelector: React.FC<{ selection: GeminiModelSelection }> = ({ selection }) => {
+// Unified model dropdown for chat header, send box, and channel settings
+const GeminiModelSelector: React.FC<{
+  selection?: GeminiModelSelection;
+  disabled?: boolean;
+  label?: string;
+  variant?: 'header' | 'settings';
+}> = ({ selection, disabled = false, label: customLabel, variant = 'header' }) => {
   const { t } = useTranslation();
+
+  // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
+  if (disabled || !selection) {
+    const displayLabel = customLabel || t('conversation.welcome.useCliModel');
+
+    if (variant === 'settings') {
+      return <div className='text-14px text-t-secondary min-w-160px'>{displayLabel}</div>;
+    }
+
+    return (
+      <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+        <Button className='sendbox-model-btn header-model-btn' shape='round' size='small' style={{ cursor: 'default' }}>
+          {displayLabel}
+        </Button>
+      </Tooltip>
+    );
+  }
+
   const { currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
 
-  const label = currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel');
+  // formatModelLabel returns the friendly label for known modes (e.g. 'Auto (Gemini 3)')
+  // and falls back to the raw model name for manual sub-model selections.
+  const label = customLabel || (currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel'));
+
+  const triggerButton =
+    variant === 'settings' ? (
+      <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
+        <span className='truncate'>{label}</span>
+        <Down theme='outline' size={14} />
+      </Button>
+    ) : (
+      <Button className='sendbox-model-btn header-model-btn' shape='round' size='small'>
+        {label}
+      </Button>
+    );
 
   return (
     <Dropdown
       trigger='click'
+      position={variant === 'settings' ? 'br' : undefined}
       droplist={
         <Menu>
           {providers.map((provider) => {
@@ -25,7 +63,6 @@ const GeminiModelSelector: React.FC<{ selection: GeminiModelSelection }> = ({ se
                   const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
                   const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
 
-                  // Manual 模式：显示带子菜单的选项
                   // Manual mode: show submenu with specific models
                   if (option?.subModels && option.subModels.length > 0) {
                     return (
@@ -46,7 +83,6 @@ const GeminiModelSelector: React.FC<{ selection: GeminiModelSelection }> = ({ se
                     );
                   }
 
-                  // 普通模式：显示单个选项
                   // Normal mode: show single item
                   return (
                     <Menu.Item key={`${provider.id}-${modelName}`} onClick={() => void handleSelectModel(provider, modelName)}>
@@ -80,9 +116,7 @@ const GeminiModelSelector: React.FC<{ selection: GeminiModelSelection }> = ({ se
         </Menu>
       }
     >
-      <Button className='sendbox-model-btn header-model-btn' shape='round' size='small'>
-        {label}
-      </Button>
+      {triggerButton}
     </Dropdown>
   );
 };

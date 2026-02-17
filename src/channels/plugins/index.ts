@@ -14,3 +14,5 @@ export * from './telegram/TelegramKeyboards';
 
 // Mezon plugin
 export { MezonPlugin } from './mezon/MezonPlugin';
+// DingTalk plugin
+export { DingTalkPlugin } from './dingtalk/DingTalkPlugin';

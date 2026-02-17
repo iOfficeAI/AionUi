@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TChatConversation } from '@/common/storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
@@ -14,7 +14,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo'
 import { iconColors } from '@/renderer/theme/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -97,9 +97,18 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 
 const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({ conversation, sliderTitle }) => {
-  // 共享模型选择状态供头部和发送框复用
+  // Save model selection to conversation via IPC
+  const onSelectModel = useCallback(
+    async (_provider: IProvider, modelName: string) => {
+      const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      return Boolean(ok);
+    },
+    [conversation.id]
+  );
+
   // Share model selection state between header and send box
-  const modelSelection = useGeminiModelSelection(conversation.id, conversation.model);
+  const modelSelection = useGeminiModelSelection({ initialModel: conversation.model, onSelectModel });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
 
   // 使用统一的 Hook 获取预设助手信息 / Use unified hook for preset assistant info
@@ -112,6 +121,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
     headerExtra: <CronJobManager conversationId={conversation.id} />,
     workspaceEnabled,
+    backend: 'gemini' as const,
     // 传递预设助手信息 / Pass preset assistant info
     agentName: presetAssistantInfo?.name,
     agentLogo: presetAssistantInfo?.logo,
@@ -119,7 +129,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps}>
+    <ChatLayout {...chatLayoutProps} conversationId={conversation.id}>
       <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} modelSelection={modelSelection} />
     </ChatLayout>
   );
@@ -182,8 +192,28 @@ const ChatConversation: React.FC<{
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
+  // 对于非 Gemini 对话，也显示模型选择器（禁用状态）
+  // For non-Gemini conversations, also show model selector (disabled state)
+  const modelSelector = conversation ? <GeminiModelSelector disabled={true} /> : undefined;
+
   return (
-    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerExtra={conversation ? <><DevToolsButton conversation={conversation} /><CronJobManager conversationId={conversation.id} /></> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
+    <ChatLayout
+      title={conversation?.name}
+      {...chatLayoutProps}
+      headerLeft={modelSelector}
+      headerExtra={
+        conversation ? (
+          <>
+            <DevToolsButton conversation={conversation} />
+            <CronJobManager conversationId={conversation.id} />
+          </>
+        ) : undefined
+      }
+      siderTitle={sliderTitle}
+      sider={<ChatSider conversation={conversation} />}
+      workspaceEnabled={workspaceEnabled}
+      conversationId={conversation?.id}
+    >
       {conversationNode}
     </ChatLayout>
   );

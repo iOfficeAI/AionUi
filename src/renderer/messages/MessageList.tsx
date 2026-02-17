@@ -10,7 +10,6 @@ import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
-import MessageAvailableCommands from '@renderer/messages/acp/MessageAvailableCommands';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
 import React, { createContext, useMemo } from 'react';
@@ -84,7 +83,7 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'available_commands':
-        return <MessageAvailableCommands message={message}></MessageAvailableCommands>;
+        return null;
       default:
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }
@@ -119,6 +118,8 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
+      // Skip available_commands messages
+      if (message.type === 'available_commands') continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
         pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff));
         continue;

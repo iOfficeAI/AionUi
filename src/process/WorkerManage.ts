@@ -59,6 +59,8 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
           enabledSkills: conversation.extra.enabledSkills,
           // Runtime options / 运行时选项
           yoloMode: options?.yoloMode,
+          // Persisted session mode for resume / 持久化的会话模式用于恢复
+          sessionMode: conversation.extra.sessionMode,
         },
         conversation.model
       );
@@ -86,6 +88,8 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
         yoloMode: options?.yoloMode,
+        // Persisted session mode for resume / 持久化的会话模式用于恢复
+        sessionMode: conversation.extra.sessionMode,
       });
       if (!options?.skipCache) {
         taskList.push({ id: conversation.id, task });

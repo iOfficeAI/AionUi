@@ -21,6 +21,7 @@ import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -409,8 +410,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         onStop={handleStop}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
         tools={
-          <>
+          <div className='flex items-center gap-4px'>
             <Button
               type='secondary'
               shape='circle'
@@ -424,7 +427,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
               }}
             />
             <SkillsWidget conversationId={conversation_id} />
-          </>
+            <AgentModeSelector backend='codex' conversationId={conversation_id} compact />
+          </div>
         }
         prefix={
           <>
