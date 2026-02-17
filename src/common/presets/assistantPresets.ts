@@ -305,4 +305,26 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': ['开始一个奇幻冒险', '创建一个角色', '开始一个故事'],
     },
   },
+  {
+    id: 'ralph',
+    avatar: '🔄',
+    presetAgentType: 'claude',
+    resourceDir: 'assistant/ralph',
+    ruleFiles: {
+      'en-US': 'ralph.en-US.md',
+      'zh-CN': 'ralph.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Ralph',
+      'zh-CN': 'Ralph 自主代码助手',
+    },
+    descriptionI18n: {
+      'en-US': 'Autonomous agent loop that implements features from a structured PRD, one user story at a time with fresh context per iteration.',
+      'zh-CN': '自主代理循环，从结构化 PRD 中逐个实现用户故事，每次迭代使用新上下文。',
+    },
+    promptsI18n: {
+      'en-US': ['Read prd.json and implement the next user story', 'Generate a PRD for: add user authentication with OAuth', 'Check progress and continue with the next task', 'Verify all stories are complete and run final checks'],
+      'zh-CN': ['读取 prd.json 并实现下一个用户故事', '为以下功能生成 PRD：添加 OAuth 用户认证', '检查进度并继续下一个任务', '验证所有故事已完成并运行最终检查'],
+    },
+  },
 ];
