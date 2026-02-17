@@ -1,0 +1,58 @@
+{
+  "project": "my-app",
+  "branchName": "ralph/add-user-auth",
+  "description": "Add user authentication with email/password login and registration",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "User model and database migration",
+      "description": "As a developer, I want a User model with email and password fields so that I can store user credentials",
+      "acceptanceCriteria": [
+        "User model has email (unique, required) and passwordHash fields",
+        "Database migration creates users table",
+        "Model validates email format"
+      ],
+      "priority": 1,
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Registration endpoint",
+      "description": "As a new user, I want to register with email and password so that I can create an account",
+      "acceptanceCriteria": [
+        "POST /api/register accepts email and password",
+        "Password is hashed before storage",
+        "Returns 409 if email already exists",
+        "Returns 201 with user ID on success"
+      ],
+      "priority": 2,
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Login endpoint",
+      "description": "As an existing user, I want to log in with my credentials so that I can access protected resources",
+      "acceptanceCriteria": [
+        "POST /api/login accepts email and password",
+        "Returns JWT token on successful authentication",
+        "Returns 401 for invalid credentials",
+        "Token expires after 24 hours"
+      ],
+      "priority": 3,
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Auth middleware",
+      "description": "As a developer, I want authentication middleware so that I can protect routes",
+      "acceptanceCriteria": [
+        "Middleware validates JWT from Authorization header",
+        "Sets req.user with decoded token payload",
+        "Returns 401 for missing or invalid tokens",
+        "Works with existing route handlers"
+      ],
+      "priority": 4,
+      "passes": false
+    }
+  ]
+}
