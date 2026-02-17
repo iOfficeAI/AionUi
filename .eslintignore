@@ -17,3 +17,5 @@ docs/
 config/webpack/
 scripts/
 src/agent/gemini/cli/
+*.md
+assistant/
