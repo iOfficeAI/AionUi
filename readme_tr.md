@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat-group-3.png" target="_blank">WeChat (Çince Grup)</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat-group-3.png" target="_blank">WeChat (Çince Grup)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
