@@ -581,3 +581,9 @@ body,
   stroke-width: 5 !important;
   filter: drop-shadow(0 0 0.5px currentColor);
 }
+
+/* Input placeholder color */
+/* 输入框占位符颜色 */
+::placeholder {
+  color: #a1a2aa !important;
+}

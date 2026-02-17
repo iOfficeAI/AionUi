@@ -36,8 +36,8 @@
 }
 
 .lightPlaceholder::placeholder {
-  color: var(--color-text-3);
-  opacity: 0.6;
+  color: #a1a2aa;
+  opacity: 1;
 }
 
 .plusButtonRotate {
@@ -106,7 +106,7 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: var(--text-disabled) !important;
+  color: #a1a2aa !important;
   opacity: 1 !important;
 }
 
