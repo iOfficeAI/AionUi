@@ -1447,6 +1447,14 @@ const Guid: React.FC = () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [t]);
+
+  // Calculate button disabled state
+  const isButtonDisabled =
+    !input.trim() ||
+    // For Gemini mode: disable only when logged in but no model selected
+    // When not logged in, allow click to trigger Google login flow
+    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && !currentModel && isGoogleAuth);
+
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
@@ -1780,13 +1788,13 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={
-                    !input.trim() ||
-                    // For Gemini mode: disable only when logged in but no model selected
-                    // When not logged in, allow click to trigger Google login flow
-                    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && !currentModel && isGoogleAuth)
-                  }
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  disabled={isButtonDisabled}
+                  className='send-button-custom'
+                  style={{
+                    backgroundColor: isButtonDisabled ? undefined : '#000000',
+                    borderColor: isButtonDisabled ? undefined : '#000000',
+                  }}
+                  icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
                   onClick={() => {
                     handleSend().catch((error) => {
                       console.error('Failed to send message:', error);

@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <strong>한국어</strong> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">공식 웹사이트</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <strong>한국어</strong> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">공식 웹사이트</a>
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
