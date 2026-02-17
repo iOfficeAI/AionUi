@@ -56,7 +56,7 @@ export function buildToolExecutions(messages: ParsedMessage[]): ToolExecution[] 
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
-    for (const call of msg.toolCalls) {
+    for (const call of msg.toolCalls ?? []) {
       callMap.set(call.id, { call, startTime: msg.timestamp, messageIndex: i });
     }
   }
@@ -66,7 +66,7 @@ export function buildToolExecutions(messages: ParsedMessage[]): ToolExecution[] 
   const executions: ToolExecution[] = [];
 
   for (const msg of messages) {
-    for (const result of msg.toolResults) {
+    for (const result of msg.toolResults ?? []) {
       const callInfo = callMap.get(result.toolUseId);
       if (callInfo) {
         matchedIds.add(result.toolUseId);

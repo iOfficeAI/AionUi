@@ -52,11 +52,12 @@ function extractToolCalls(content: string | ContentBlock[]): ToolCall[] {
 function extractToolResults(entry: ChatHistoryEntry): ToolResult[] {
   const results: ToolResult[] = [];
 
-  // From toolUseResult field
-  if (entry.toolUseResult) {
+  // From toolUseResult field (only when it's an actual tool result with a toolUseId)
+  if (entry.toolUseResult && entry.toolUseResult.toolUseId) {
+    const rawContent = entry.toolUseResult.content as string | Array<{ type: string; text?: string }> | undefined;
     results.push({
       toolUseId: entry.toolUseResult.toolUseId,
-      content: entry.toolUseResult.content,
+      content: typeof rawContent === 'string' ? rawContent : Array.isArray(rawContent) ? rawContent.map((b) => b.text ?? '').join('') : String(rawContent ?? ''),
       isError: entry.toolUseResult.isError ?? false,
     });
   }
@@ -108,6 +109,23 @@ export async function parseJsonlFile(filePath: string): Promise<ParsedMessage[]>
   for await (const line of rl) {
     const entry = parseJsonlLine(line);
     if (!entry) continue;
+
+    // Handle queue-operation entries with content (hook-queued messages written by AionUi)
+    if (entry.type === 'queue-operation' && entry.operation === 'enqueue' && typeof entry.content === 'string' && entry.content && !entry.content.startsWith('<task-notification>')) {
+      const timestamp = entry.timestamp ? new Date(entry.timestamp).getTime() : Date.now();
+      const parsed: ParsedMessage = {
+        uuid: `queue-op-${lineIndex}`,
+        type: 'user',
+        role: 'user',
+        content: entry.content,
+        timestamp,
+        toolCalls: [],
+        toolResults: [],
+      };
+      messages.push(parsed);
+      lineIndex++;
+      continue;
+    }
 
     // Skip non-conversational entries (e.g., file history snapshots, queue operations)
     if (!entry.type || !entry.message) continue;

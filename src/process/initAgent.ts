@@ -68,6 +68,7 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   // Initialize workspace via on-conversation-init hook if presetAssistantId is provided
   // Skip if workspace was loaded from assistant (already has the template)
   let defaultAgent: string | undefined;
+  let assistantHooksPath: string | undefined;
   if (presetAssistantId) {
     try {
       // Reuse customAgents loaded earlier (no second ConfigStorage call)
@@ -92,6 +93,11 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
           .access(hooksPath)
           .then(() => true)
           .catch(() => false);
+
+        // Track hooks path for runtime hook execution (e.g., onQueueInit)
+        if (hasHooks) {
+          assistantHooksPath = hooksPath;
+        }
 
         if (hasWorkspaceTemplate || hasHooks) {
           console.log(`[AionUi] Detected workspace features for ${presetAssistantId}: workspace=${hasWorkspaceTemplate}, hooks=${hasHooks}`);
@@ -176,7 +182,7 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   // that may have hooks already in place.
   await runHooks('onConversationInit', { workspace });
 
-  return { workspace, customWorkspace, defaultAgent };
+  return { workspace, customWorkspace, defaultAgent, assistantHooksPath };
 };
 
 export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string): Promise<TChatConversation> => {
@@ -212,7 +218,7 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   // Use presetAssistantId as workspace template source (resolves automatically)
-  const { workspace, customWorkspace, defaultAgent } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId);
+  const { workspace, customWorkspace, defaultAgent, assistantHooksPath } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId);
 
   // Build extra object, only including defined fields to prevent undefined values from being JSON.stringify'd
   const conversationExtra: any = {
@@ -231,6 +237,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   if (extra.botId !== undefined) conversationExtra.botId = extra.botId;
   if (extra.externalChannelId !== undefined) conversationExtra.externalChannelId = extra.externalChannelId;
   if (defaultAgent !== undefined) conversationExtra.defaultAgent = defaultAgent;
+  if (assistantHooksPath !== undefined) conversationExtra.assistantHooksPath = assistantHooksPath;
 
   return {
     type: 'acp' as const,

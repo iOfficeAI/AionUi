@@ -34,10 +34,13 @@ export async function executeHooks(event: HookEvent, context: HookContext, hooks
       );
 
       if (output) {
+        // Merge queueMessages from all hooks (accumulate, don't replace)
+        const mergedQueueMessages = [...(result.queueMessages || []), ...(output.queueMessages || [])];
         result = {
           content: output.content ?? result.content,
           blocked: output.blocked ?? result.blocked,
           blockReason: output.blockReason ?? result.blockReason,
+          queueMessages: mergedQueueMessages.length > 0 ? mergedQueueMessages : undefined,
         };
       }
     } catch (error) {

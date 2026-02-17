@@ -148,25 +148,25 @@ const MetricsOverview: React.FC<{ analysis: IDevToolsSessionAnalysis }> = ({ ana
   return (
     <div className='grid grid-cols-2 md:grid-cols-4 gap-12px mb-20px'>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Total Tokens' value={metrics.totalTokens} groupSeparator=',' suffix={<span className='text-12px text-t-tertiary ml-4px'>({formatTokens(metrics.totalTokens)})</span>} />
+        <Statistic title='Total Tokens' value={metrics.totalTokens} suffix={<span className='text-12px text-t-tertiary ml-4px'>({formatTokens(metrics.totalTokens)})</span>} />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Duration' value={formatDuration(metrics.durationMs)} groupSeparator='' />
+        <Statistic title='Duration' value={formatDuration(metrics.durationMs)} />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Messages' value={messageCount} groupSeparator=',' />
+        <Statistic title='Messages' value={messageCount} />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Model' value={model || 'Unknown'} groupSeparator='' valueStyle={{ fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} />
+        <Statistic title='Model' value={model || 'Unknown'} />
       </div>
       {metrics.cacheReadTokens > 0 && (
         <div className='p-12px bg-bg-2 rd-8px'>
-          <Statistic title='Cache Read' value={metrics.cacheReadTokens} groupSeparator=',' suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
+          <Statistic title='Cache Read' value={metrics.cacheReadTokens} suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
         </div>
       )}
       {metrics.cacheCreationTokens > 0 && (
         <div className='p-12px bg-bg-2 rd-8px'>
-          <Statistic title='Cache Create' value={metrics.cacheCreationTokens} groupSeparator=',' suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
+          <Statistic title='Cache Create' value={metrics.cacheCreationTokens} suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
         </div>
       )}
     </div>
@@ -521,10 +521,10 @@ const OverviewTab: React.FC<{ analysis: IDevToolsSessionAnalysis }> = ({ analysi
     <div className='h-full overflow-auto p-20px'>
       <div className='max-w-800px mx-auto'>
         <MetricsOverview analysis={analysis} />
-        <TokenAttribution attribution={analysis.tokenAttribution} />
+        {analysis.tokenAttribution && <TokenAttribution attribution={analysis.tokenAttribution} />}
         <EventTimeline chunksJson={analysis.chunks} />
-        <ToolUsageSummary tools={analysis.toolExecutionSummary} />
-        <CompactionSummary events={analysis.compactionEvents} />
+        <ToolUsageSummary tools={analysis.toolExecutionSummary ?? []} />
+        <CompactionSummary events={analysis.compactionEvents ?? []} />
         <SessionTiming analysis={analysis} />
       </div>
     </div>

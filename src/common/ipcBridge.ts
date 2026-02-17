@@ -211,6 +211,34 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
+  /** Enqueue messages into the agent's message queue for sequential auto-prompting */
+  enqueueMessages: bridge.buildProvider<
+    IBridgeResponse<{ messageIds: string[] }>,
+    {
+      conversation_id: string;
+      messages: Array<{
+        content: string;
+        files?: string[];
+        priority?: 'normal' | 'high';
+        source?: 'user' | 'hook' | 'cron' | 'system';
+      }>;
+    }
+  >('acp.queue.enqueue'),
+  /** Get current message queue status */
+  getQueueStatus: bridge.buildProvider<
+    IBridgeResponse<{
+      status: 'idle' | 'processing' | 'paused';
+      queueLength: number;
+      messages: Array<{ id: string; content: string; source: string; priority: string; enqueuedAt: number }>;
+    }>,
+    { conversation_id: string }
+  >('acp.queue.status'),
+  /** Pause queue processing */
+  pauseQueue: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('acp.queue.pause'),
+  /** Resume queue processing */
+  resumeQueue: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('acp.queue.resume'),
+  /** Clear all pending messages from the queue */
+  clearQueue: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('acp.queue.clear'),
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<
     IBridgeResponse<

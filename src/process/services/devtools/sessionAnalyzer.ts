@@ -145,7 +145,7 @@ function extractSubagents(allMessages: ParsedMessage[], mainMessages: ParsedMess
   // Match subagent IDs to their Task tool call descriptions
   const taskDescriptions = new Map<string, string>();
   for (const msg of mainMessages) {
-    for (const call of msg.toolCalls) {
+    for (const call of msg.toolCalls ?? []) {
       if (call.isTask) {
         taskDescriptions.set(call.id, call.taskDescription || 'Subagent task');
       }
@@ -156,7 +156,7 @@ function extractSubagents(allMessages: ParsedMessage[], mainMessages: ParsedMess
 
   for (const [agentId, msgs] of agentMap) {
     const metrics = calculateMetrics(msgs);
-    const toolNames = [...new Set(msgs.flatMap((m) => m.toolCalls.map((c) => c.name)))];
+    const toolNames = [...new Set(msgs.flatMap((m) => (m.toolCalls ?? []).map((c) => c.name)))];
     const timestamps = msgs.map((m) => m.timestamp).filter((t) => t > 0);
 
     // Try to find the description from the Task call that spawned this agent

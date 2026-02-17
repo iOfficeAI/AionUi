@@ -1,3 +1,4 @@
+import { promises as fs } from 'fs';
 import { AcpAgent } from '@/agent/acp';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
@@ -12,7 +13,9 @@ import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
+import { findSessionFile } from '@process/services/devtools/sessionDiscovery';
+import { prepareFirstMessageWithSkillsIndex, runQueueInitHooks } from './agentUtils';
+import { AcpMessageQueue, type QueuedMessageSource, type QueuedMessagePriority, type QueueEvent } from './AcpMessageQueue';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
@@ -37,6 +40,8 @@ interface AcpAgentManagerData {
   acpSessionId?: string;
   /** Last update time of ACP session / ACP session 最后更新时间 */
   acpSessionUpdatedAt?: number;
+  /** Path to assistant hooks directory for onQueueInit and other runtime hooks */
+  assistantHooksPath?: string;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -48,6 +53,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+  // Track the ACP session ID in memory so we can write JSONL entries for devtools
+  private currentAcpSessionId: string | null = null;
+  // Pending hook messages to write to JSONL once the session ID is known
+  private pendingQueueOpsToWrite: Array<{ content: string }> | null = null;
+
+  /** Message queue for sequential auto-prompting */
+  readonly messageQueue: AcpMessageQueue;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
@@ -55,6 +67,25 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.workspace = data.workspace;
     this.options = data;
     this.status = 'pending';
+
+    // Initialize message queue with sender wired to sendMessageDirect
+    this.messageQueue = new AcpMessageQueue();
+    this.messageQueue.setSender((msg) => this.sendMessageDirect(msg));
+
+    // Forward queue events to frontend
+    this.messageQueue.on((event: QueueEvent) => {
+      ipcBridge.acpConversation.responseStream.emit({
+        type: 'queue_status',
+        conversation_id: this.conversation_id,
+        msg_id: uuid(),
+        data: {
+          eventType: event.type,
+          queueLength: event.queueLength,
+          message: event.message ? { id: event.message.id, source: event.message.source, content: event.message.content.substring(0, 100) } : undefined,
+          error: event.error,
+        },
+      });
+    });
   }
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -133,7 +164,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         onSessionIdUpdate: (sessionId: string) => {
           // Save ACP session ID to database for resume support
           // 保存 ACP session ID 到数据库以支持会话恢复
+          this.currentAcpSessionId = sessionId; // Track in memory for JSONL writes
           this.saveAcpSessionId(sessionId);
+          // Flush any hook messages that were enqueued before the session ID was known
+          if (this.pendingQueueOpsToWrite) {
+            const pending = this.pendingQueueOpsToWrite;
+            this.pendingQueueOpsToWrite = null;
+            void this.writeQueueOperationsToSession(pending);
+          }
         },
         onStreamEvent: (message) => {
           const pipelineStart = Date.now();
@@ -214,9 +252,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return;
           }
 
-          // Clear busy guard when turn ends
+          // Clear busy guard when turn ends and notify message queue
           if (v.type === 'finish') {
             cronBusyGuard.setProcessing(this.conversation_id, false);
+            // Notify message queue so it can process the next queued message
+            this.messageQueue.onAgentFinished();
           }
 
           // Process cron commands when turn ends (finish signal)
@@ -263,7 +303,61 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
+  /**
+   * Public sendMessage - routes through the message queue for sequential processing.
+   * If the agent is currently busy, the message is queued and sent automatically
+   * when the current turn finishes.
+   */
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{
+    success: boolean;
+    msg?: string;
+    message?: string;
+  }> {
+    // If queue is idle and not processing, send directly for zero-overhead on the normal path
+    const queueStatus = this.messageQueue.getStatus();
+    if (queueStatus.status === 'idle' && queueStatus.queueLength === 0) {
+      return this.sendMessageDirect(data);
+    }
+
+    // Queue the message for sequential processing
+    this.messageQueue.enqueue({
+      content: data.content,
+      files: data.files,
+      msg_id: data.msg_id,
+      priority: 'normal',
+      source: 'user',
+    });
+
+    return { success: true, msg: 'Message queued' };
+  }
+
+  /**
+   * Enqueue messages from hooks or external sources.
+   * Messages are sent sequentially after the current agent turn finishes.
+   */
+  enqueueMessages(
+    messages: Array<{
+      content: string;
+      files?: string[];
+      priority?: QueuedMessagePriority;
+      source?: QueuedMessageSource;
+    }>
+  ): string[] {
+    return this.messageQueue.enqueueAll(
+      messages.map((msg) => ({
+        content: msg.content,
+        files: msg.files,
+        priority: msg.priority || 'normal',
+        source: msg.source || 'hook',
+      }))
+    );
+  }
+
+  /**
+   * Internal direct send - bypasses the queue and sends immediately.
+   * This is the actual message sending implementation.
+   */
+  private async sendMessageDirect(data: { content: string; files?: string[]; msg_id?: string }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -319,6 +413,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // 首条消息发送后标记，无论是否有 presetContext
         if (this.isFirstMessage) {
           this.isFirstMessage = false;
+          // Run onQueueInit hooks to populate the message queue
+          // Messages will be sent after the agent finishes this turn
+          void this.runQueueInitHooks();
         }
         // Note: cronBusyGuard.setProcessing(false) is not called here
         // because the response streaming is still in progress.
@@ -395,10 +492,69 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
+   * Run onQueueInit hooks to collect and enqueue messages from hook modules.
+   * Called once after the first message is sent.
+   */
+  private async runQueueInitHooks(): Promise<void> {
+    try {
+      const messages = await runQueueInitHooks({
+        workspace: this.workspace,
+        backend: this.options.backend,
+        conversationId: this.conversation_id,
+        enabledSkills: this.options.enabledSkills,
+        presetContext: this.options.presetContext,
+        assistantHooksPath: this.options.assistantHooksPath,
+      });
+      if (messages.length > 0) {
+        console.log(`[AcpAgentManager] onQueueInit hook returned ${messages.length} messages to enqueue`);
+        this.enqueueMessages(messages);
+        void this.writeQueueOperationsToSession(messages); // Write to JSONL for devtools
+      }
+    } catch (error) {
+      console.warn('[AcpAgentManager] onQueueInit hooks failed:', error);
+    }
+  }
+
+  /**
+   * Write queue-operation JSONL entries for hook-queued messages so the devtools
+   * session analyzer can surface them as user messages.
+   * If the session ID isn't known yet, stores the messages to be flushed when it arrives.
+   */
+  private async writeQueueOperationsToSession(messages: Array<{ content: string }>): Promise<void> {
+    if (!this.currentAcpSessionId) {
+      // Session ID not yet known — store for later flush in onSessionIdUpdate
+      this.pendingQueueOpsToWrite = messages;
+      return;
+    }
+    const sessionFile = findSessionFile(this.currentAcpSessionId, this.workspace);
+    if (!sessionFile) return;
+
+    const ts = new Date().toISOString();
+    const entries = messages.map((msg) =>
+      JSON.stringify({
+        type: 'queue-operation',
+        operation: 'enqueue',
+        timestamp: ts,
+        sessionId: this.currentAcpSessionId,
+        content: msg.content,
+        source: 'hook',
+      })
+    );
+
+    try {
+      await fs.appendFile(sessionFile, entries.join('\n') + '\n', 'utf-8');
+    } catch (error) {
+      console.warn('[AcpAgentManager] Failed to write queue-operation entries to JSONL:', error);
+    }
+  }
+
+  /**
    * Override stop() because AcpAgentManager doesn't use ForkTask's subprocess architecture.
    * It directly creates AcpAgent in the main process, so we need to call agent.stop() directly.
+   * Also clears the message queue to prevent queued messages from being sent.
    */
   async stop() {
+    this.messageQueue.clear();
     if (this.agent) {
       return this.agent.stop();
     }

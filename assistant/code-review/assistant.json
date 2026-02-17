@@ -1,0 +1,25 @@
+{
+  "id": "code-review",
+  "name": "Code Review Assistant",
+  "version": "1.0.0",
+  "description": "Demonstrates the message queue feature by running a multi-step automated code review. After you describe your project, it queues a series of review passes (security, performance, code quality, testing) and runs them sequentially.",
+  "author": "AionUi",
+  "tags": ["code-review", "automation", "queue-demo", "multi-step"],
+  "presetAgentType": "claude",
+  "avatar": "🔍",
+  "ruleFiles": {
+    "en-US": "code-review.md"
+  },
+  "nameI18n": {
+    "en-US": "Code Review",
+    "zh-CN": "代码审查"
+  },
+  "descriptionI18n": {
+    "en-US": "Multi-step automated code review using message queue. Queues security, performance, quality, and test review passes automatically.",
+    "zh-CN": "使用消息队列进行多步骤自动代码审查。自动排队安全、性能、质量和测试审查。"
+  },
+  "promptsI18n": {
+    "en-US": ["Review the codebase in this workspace", "Run a full code review on src/", "Audit this project for production readiness"],
+    "zh-CN": ["审查此工作区中的代码", "对 src/ 进行完整的代码审查", "审计此项目的生产就绪状态"]
+  }
+}

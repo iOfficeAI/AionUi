@@ -318,6 +318,16 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     case 'content':
     case 'user_content': {
+      const rawData = message.data;
+      const contentString =
+        typeof rawData === 'string'
+          ? rawData
+          : Array.isArray(rawData)
+            ? (rawData as Array<{ type?: string; text?: string }>)
+                .filter((b) => b?.type === 'text')
+                .map((b) => b.text ?? '')
+                .join('')
+            : String(rawData ?? '');
       return {
         id: uuid(),
         type: 'text',
@@ -325,7 +335,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
         content: {
-          content: message.data as string,
+          content: contentString,
         },
         createdAt: message.timestamp || Date.now(),
       };

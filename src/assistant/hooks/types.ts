@@ -28,7 +28,7 @@ export const HOOK_PRIORITY = {
 /**
  * Hook events (extensible)
  */
-export type HookEvent = 'onWorkspaceInit' | 'onConversationInit' | 'onSendMessage' | 'onFirstMessage' | 'onBuildSystemInstructions' | 'onError';
+export type HookEvent = 'onWorkspaceInit' | 'onConversationInit' | 'onSendMessage' | 'onFirstMessage' | 'onBuildSystemInstructions' | 'onError' | 'onQueueInit';
 
 /**
  * Hook context (same for all hooks)
@@ -53,6 +53,13 @@ export type HookResult = {
   content?: string;
   blocked?: boolean;
   blockReason?: string;
+  /** Messages to enqueue into the agent's message queue (used by onQueueInit) */
+  queueMessages?: Array<{
+    content: string;
+    files?: string[];
+    priority?: 'normal' | 'high';
+    source?: 'hook' | 'cron' | 'system';
+  }>;
 };
 
 /**
@@ -79,6 +86,8 @@ export type HookModule = {
   onFirstMessage?: HookConfig | HookHandler;
   onBuildSystemInstructions?: HookConfig | HookHandler;
   onError?: HookConfig | HookHandler;
+  /** Hook to populate the message queue when a conversation starts */
+  onQueueInit?: HookConfig | HookHandler;
   [key: string]: HookConfig | HookHandler | undefined;
 };
 

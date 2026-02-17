@@ -45,8 +45,8 @@ export type UsageMetadata = {
 };
 
 export type ChatHistoryEntry = {
-  type: 'user' | 'assistant' | 'system' | 'summary';
-  message: {
+  type: 'user' | 'assistant' | 'system' | 'summary' | 'queue-operation';
+  message?: {
     role: string;
     content: string | ContentBlock[];
     model?: string;
@@ -57,8 +57,13 @@ export type ChatHistoryEntry = {
   parentUuid?: string;
   isMeta?: boolean;
   agentId?: string;
-  toolUseResult?: { toolUseId: string; content: string; isError?: boolean };
+  toolUseResult?: { toolUseId?: string; content?: unknown; isError?: boolean; [key: string]: unknown };
   sourceToolUseID?: string;
+  // For queue-operation entries written by AionUi hook system
+  operation?: 'enqueue' | 'dequeue';
+  content?: string;
+  sessionId?: string;
+  source?: string;
 };
 
 // ==================== Parsed Message ====================

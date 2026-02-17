@@ -137,7 +137,7 @@ function extractSemanticSteps(responses: ParsedMessage[]): SemanticStep[] {
     }
 
     // Detect Task (subagent) calls
-    for (const call of msg.toolCalls) {
+    for (const call of msg.toolCalls ?? []) {
       if (call.isTask) {
         steps.push({
           id: `step-${++stepIndex}`,
@@ -182,7 +182,7 @@ function buildAIChunk(responses: ParsedMessage[]): AIChunk {
   // Collect subagent IDs from Task tool calls
   const subagentIds: string[] = [];
   for (const r of responses) {
-    for (const c of r.toolCalls) {
+    for (const c of r.toolCalls ?? []) {
       if (c.isTask) subagentIds.push(c.id);
     }
   }

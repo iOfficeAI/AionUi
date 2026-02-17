@@ -54,10 +54,19 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
     const rawContent = message.content.content;
-    if (typeof rawContent === 'string' && hasThinkTags(rawContent)) {
-      return stripThinkTags(rawContent);
+    // Normalize to string — content can arrive as an array of {type, text} blocks
+    const str = Array.isArray(rawContent)
+      ? (rawContent as Array<{ type?: string; text?: string }>)
+          .filter((b) => b?.type === 'text')
+          .map((b) => b.text ?? '')
+          .join('')
+      : typeof rawContent === 'string'
+        ? rawContent
+        : String(rawContent ?? '');
+    if (hasThinkTags(str)) {
+      return stripThinkTags(str);
     }
-    return rawContent;
+    return str;
   }, [message.content.content]);
 
   const { text, files } = parseFileMarker(contentToRender);

@@ -15,6 +15,8 @@ import type { AcpBackendAll } from '@/types/acpTypes';
 import { toolRegistry } from '../services/toolRegistry';
 import { ipcBridge } from '../../common';
 import * as os from 'os';
+import WorkerManage from '../WorkerManage';
+import type AcpAgentManager from '../task/AcpAgentManager';
 
 export function initAcpConversationBridge(): void {
   // Debug provider to check environment variables
@@ -347,5 +349,70 @@ export function initAcpConversationBridge(): void {
         data: { output: errorMsg },
       };
     }
+  });
+
+  // --- Message Queue Operations ---
+
+  // Enqueue messages into the agent's message queue
+  ipcBridge.acpConversation.enqueueMessages.provider(async ({ conversation_id, messages }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+    if (!task || task.type !== 'acp') {
+      return { success: false, msg: 'ACP conversation not found' };
+    }
+    const messageIds = task.enqueueMessages(messages);
+    return { success: true, data: { messageIds } };
+  });
+
+  // Get current message queue status
+  ipcBridge.acpConversation.getQueueStatus.provider(async ({ conversation_id }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+    if (!task || task.type !== 'acp') {
+      return { success: false, msg: 'ACP conversation not found' };
+    }
+    const status = task.messageQueue.getStatus();
+    return {
+      success: true,
+      data: {
+        status: status.status,
+        queueLength: status.queueLength,
+        messages: status.messages.map((m) => ({
+          id: m.id,
+          content: m.content.substring(0, 200),
+          source: m.source,
+          priority: m.priority,
+          enqueuedAt: m.enqueuedAt,
+        })),
+      },
+    };
+  });
+
+  // Pause queue processing
+  ipcBridge.acpConversation.pauseQueue.provider(async ({ conversation_id }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+    if (!task || task.type !== 'acp') {
+      return { success: false, msg: 'ACP conversation not found' };
+    }
+    task.messageQueue.pause();
+    return { success: true };
+  });
+
+  // Resume queue processing
+  ipcBridge.acpConversation.resumeQueue.provider(async ({ conversation_id }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+    if (!task || task.type !== 'acp') {
+      return { success: false, msg: 'ACP conversation not found' };
+    }
+    task.messageQueue.resume();
+    return { success: true };
+  });
+
+  // Clear all pending messages from the queue
+  ipcBridge.acpConversation.clearQueue.provider(async ({ conversation_id }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+    if (!task || task.type !== 'acp') {
+      return { success: false, msg: 'ACP conversation not found' };
+    }
+    task.messageQueue.clear();
+    return { success: true };
   });
 }
