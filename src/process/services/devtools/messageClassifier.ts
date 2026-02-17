@@ -27,15 +27,7 @@ export type ClassifiedMessage = {
 };
 
 // Patterns that indicate hard noise (system metadata to filter out)
-const HARD_NOISE_PATTERNS = [
-  /^<system-reminder>/,
-  /^<user-prompt-submit-hook>/,
-  /^<important-instruction>/,
-  /^<caveat>/,
-  /^<local-research-only>/,
-  /^<context-window-full>/,
-  /^<repository-description>/,
-];
+const HARD_NOISE_PATTERNS = [/^<system-reminder>/, /^<user-prompt-submit-hook>/, /^<important-instruction>/, /^<caveat>/, /^<local-research-only>/, /^<context-window-full>/, /^<repository-description>/];
 
 // Pattern for system command output
 const SYSTEM_OUTPUT_PATTERN = /<local-command-stdout>/;

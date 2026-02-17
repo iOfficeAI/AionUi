@@ -187,12 +187,7 @@ describe('toolAnalysis', () => {
   // ==================== buildToolExecutionSummary ====================
   describe('buildToolExecutionSummary', () => {
     it('should aggregate tool usage', () => {
-      const executions: ToolExecution[] = [
-        createExecution({ toolName: 'Read', durationMs: 100 }),
-        createExecution({ toolName: 'Read', durationMs: 200 }),
-        createExecution({ toolName: 'Edit', durationMs: 50 }),
-        createExecution({ toolName: 'Read', durationMs: 150, isError: true }),
-      ];
+      const executions: ToolExecution[] = [createExecution({ toolName: 'Read', durationMs: 100 }), createExecution({ toolName: 'Read', durationMs: 200 }), createExecution({ toolName: 'Edit', durationMs: 50 }), createExecution({ toolName: 'Read', durationMs: 150, isError: true })];
 
       const summary = buildToolExecutionSummary(executions);
       expect(summary).toHaveLength(2);
@@ -210,13 +205,7 @@ describe('toolAnalysis', () => {
     });
 
     it('should sort by count descending', () => {
-      const executions: ToolExecution[] = [
-        createExecution({ toolName: 'Bash' }),
-        createExecution({ toolName: 'Read' }),
-        createExecution({ toolName: 'Read' }),
-        createExecution({ toolName: 'Read' }),
-        createExecution({ toolName: 'Bash' }),
-      ];
+      const executions: ToolExecution[] = [createExecution({ toolName: 'Bash' }), createExecution({ toolName: 'Read' }), createExecution({ toolName: 'Read' }), createExecution({ toolName: 'Read' }), createExecution({ toolName: 'Bash' })];
 
       const summary = buildToolExecutionSummary(executions);
       expect(summary[0].toolName).toBe('Read');

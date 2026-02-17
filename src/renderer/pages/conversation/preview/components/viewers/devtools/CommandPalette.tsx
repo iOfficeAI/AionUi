@@ -120,9 +120,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ messagesJson, chunksJso
   const results = useMemo(() => {
     if (!query.trim()) return searchIndex.slice(0, 20);
     const lowerQuery = query.toLowerCase();
-    return searchIndex
-      .filter((item) => item.preview.toLowerCase().includes(lowerQuery) || item.title.toLowerCase().includes(lowerQuery))
-      .slice(0, 50);
+    return searchIndex.filter((item) => item.preview.toLowerCase().includes(lowerQuery) || item.title.toLowerCase().includes(lowerQuery)).slice(0, 50);
   }, [searchIndex, query]);
 
   // Focus input on mount
@@ -167,27 +165,15 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ messagesJson, chunksJso
         return;
       }
     },
-    [results, selectedIndex, onClose, onSelectMessage],
+    [results, selectedIndex, onClose, onSelectMessage]
   );
 
   return (
     <div className='fixed inset-0 z-1000 flex items-start justify-center pt-80px' onClick={onClose}>
-      <div
-        className='w-600px max-h-500px bg-bg-1 rd-12px shadow-lg border-1px border-solid border-border-2 flex flex-col overflow-hidden'
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
-      >
+      <div className='w-600px max-h-500px bg-bg-1 rd-12px shadow-lg border-1px border-solid border-border-2 flex flex-col overflow-hidden' onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>
         {/* Search input */}
         <div className='px-12px py-8px border-b-1px border-b-solid border-b-border-2'>
-          <Input
-            ref={inputRef as any}
-            placeholder='Search messages, tools, thinking...'
-            size='large'
-            value={query}
-            onChange={setQuery}
-            allowClear
-            prefix={<span className='text-t-quaternary'>Search</span>}
-          />
+          <Input ref={inputRef as any} placeholder='Search messages, tools, thinking...' size='large' value={query} onChange={setQuery} allowClear prefix={<span className='text-t-quaternary'>Search</span>} />
         </div>
 
         {/* Results */}
@@ -229,9 +215,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ messagesJson, chunksJso
         <div className='px-12px py-6px border-t-1px border-t-solid border-t-border-2 flex items-center gap-12px text-11px text-t-quaternary'>
           <span>{results.length} results</span>
           <span className='ml-auto'>
-            <kbd className='px-4px py-1px bg-bg-3 rd-2px'>↑↓</kbd> Navigate{' '}
-            <kbd className='px-4px py-1px bg-bg-3 rd-2px'>Enter</kbd> Select{' '}
-            <kbd className='px-4px py-1px bg-bg-3 rd-2px'>Esc</kbd> Close
+            <kbd className='px-4px py-1px bg-bg-3 rd-2px'>↑↓</kbd> Navigate <kbd className='px-4px py-1px bg-bg-3 rd-2px'>Enter</kbd> Select <kbd className='px-4px py-1px bg-bg-3 rd-2px'>Esc</kbd> Close
           </span>
         </div>
       </div>

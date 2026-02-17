@@ -158,13 +158,7 @@ const ToolExecutionCard: React.FC<{ exec: ToolExecution }> = ({ exec }) => {
   const description = (exec.input.description as string) || '';
 
   // Build subtitle
-  const subtitle = filePath
-    ? shortenPath(filePath)
-    : command
-      ? truncate(description || command, 80)
-      : pattern
-        ? `"${pattern}"`
-        : exec.summary;
+  const subtitle = filePath ? shortenPath(filePath) : command ? truncate(description || command, 80) : pattern ? `"${pattern}"` : exec.summary;
 
   return (
     <Collapse.Item
@@ -177,9 +171,7 @@ const ToolExecutionCard: React.FC<{ exec: ToolExecution }> = ({ exec }) => {
           <span className='text-12px text-t-secondary font-mono truncate flex-1' title={subtitle}>
             {subtitle}
           </span>
-          {exec.durationMs != null && exec.durationMs > 0 && (
-            <span className='text-11px text-t-quaternary flex-shrink-0'>{formatDuration(exec.durationMs)}</span>
-          )}
+          {exec.durationMs != null && exec.durationMs > 0 && <span className='text-11px text-t-quaternary flex-shrink-0'>{formatDuration(exec.durationMs)}</span>}
           {exec.isError && (
             <Tag size='small' color='red' className='flex-shrink-0'>
               Error
@@ -192,28 +184,14 @@ const ToolExecutionCard: React.FC<{ exec: ToolExecution }> = ({ exec }) => {
         {/* Input section */}
         <div>
           <div className='text-11px text-t-quaternary mb-4px font-600'>Input</div>
-          {displayMode === 'diff' ? (
-            <DiffDisplay input={exec.input} />
-          ) : (
-            <CodeDisplay code={JSON.stringify(exec.input, null, 2)} language='json' maxHeight={250} />
-          )}
+          {displayMode === 'diff' ? <DiffDisplay input={exec.input} /> : <CodeDisplay code={JSON.stringify(exec.input, null, 2)} language='json' maxHeight={250} />}
         </div>
 
         {/* Result section */}
         {exec.result != null && (
           <div>
             <div className='text-11px text-t-quaternary mb-4px font-600'>Result</div>
-            {displayMode === 'terminal' ? (
-              <TerminalDisplay output={exec.result} />
-            ) : displayMode === 'code' ? (
-              <CodeDisplay code={exec.result} language={language} />
-            ) : displayMode === 'diff' ? (
-              <CodeDisplay code={exec.result} language='diff' />
-            ) : (
-              <pre className='text-12px text-t-secondary font-mono bg-bg-3 p-8px rd-4px overflow-auto max-h-400px whitespace-pre-wrap break-all'>
-                {exec.result}
-              </pre>
-            )}
+            {displayMode === 'terminal' ? <TerminalDisplay output={exec.result} /> : displayMode === 'code' ? <CodeDisplay code={exec.result} language={language} /> : displayMode === 'diff' ? <CodeDisplay code={exec.result} language='diff' /> : <pre className='text-12px text-t-secondary font-mono bg-bg-3 p-8px rd-4px overflow-auto max-h-400px whitespace-pre-wrap break-all'>{exec.result}</pre>}
           </div>
         )}
       </div>
@@ -259,12 +237,7 @@ const ToolInspector: React.FC<ToolInspectorProps> = ({ chunksJson }) => {
     if (filter.trim()) {
       const lowerFilter = filter.toLowerCase();
       result = result.filter((e) => {
-        return (
-          e.toolName.toLowerCase().includes(lowerFilter) ||
-          e.summary.toLowerCase().includes(lowerFilter) ||
-          JSON.stringify(e.input).toLowerCase().includes(lowerFilter) ||
-          (e.result || '').toLowerCase().includes(lowerFilter)
-        );
+        return e.toolName.toLowerCase().includes(lowerFilter) || e.summary.toLowerCase().includes(lowerFilter) || JSON.stringify(e.input).toLowerCase().includes(lowerFilter) || (e.result || '').toLowerCase().includes(lowerFilter);
       });
     }
     return result;
@@ -280,23 +253,10 @@ const ToolInspector: React.FC<ToolInspectorProps> = ({ chunksJson }) => {
     <div className='h-full flex flex-col'>
       {/* Filters */}
       <div className='flex items-center gap-8px px-12px py-8px border-b-1px border-b-solid border-b-border-2 flex-shrink-0 flex-wrap'>
-        <Input.Search
-          placeholder='Search tools...'
-          size='small'
-          style={{ width: 200 }}
-          value={filter}
-          onChange={setFilter}
-          allowClear
-        />
+        <Input.Search placeholder='Search tools...' size='small' style={{ width: 200 }} value={filter} onChange={setFilter} allowClear />
         <div className='flex gap-4px flex-wrap'>
           {toolNames.map(([name, count]) => (
-            <Tag
-              key={name}
-              size='small'
-              color={toolFilter === name ? 'purple' : undefined}
-              className='cursor-pointer'
-              onClick={() => setToolFilter((prev) => (prev === name ? null : name))}
-            >
+            <Tag key={name} size='small' color={toolFilter === name ? 'purple' : undefined} className='cursor-pointer' onClick={() => setToolFilter((prev) => (prev === name ? null : name))}>
               {name} ({count})
             </Tag>
           ))}

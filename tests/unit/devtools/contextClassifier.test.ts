@@ -153,10 +153,7 @@ describe('contextClassifier', () => {
     });
 
     it('should handle multiple messages', () => {
-      const messages = [
-        makeMessage({ uuid: 'u1', content: 'Hello' }),
-        makeMessage({ uuid: 'a1', type: 'assistant', role: 'assistant', content: 'Hi there!' }),
-      ];
+      const messages = [makeMessage({ uuid: 'u1', content: 'Hello' }), makeMessage({ uuid: 'a1', type: 'assistant', role: 'assistant', content: 'Hi there!' })];
       const result = classifyContextInjections(messages);
 
       expect(result).toHaveLength(2);

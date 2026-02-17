@@ -49,7 +49,9 @@ const AgentNode: React.FC<{ node: TreeNode; totalTokens: number }> = ({ node, to
       <div className='border-1px border-solid border-border-2 rd-8px overflow-hidden'>
         {/* Agent header */}
         <div className='flex items-center gap-8px px-12px py-8px bg-bg-2'>
-          <Tag size='small' color='blue'>Agent</Tag>
+          <Tag size='small' color='blue'>
+            Agent
+          </Tag>
           <span className='text-13px text-t-primary font-600 flex-1 truncate' title={agent.description}>
             {agent.description}
           </span>
@@ -106,10 +108,7 @@ const AgentNode: React.FC<{ node: TreeNode; totalTokens: number }> = ({ node, to
 };
 
 /** Summary stats for all subagents */
-const SubagentSummary: React.FC<{ subagents: IDevToolsSubagentInfo[]; totalMetrics: { totalTokens: number; durationMs: number } }> = ({
-  subagents,
-  totalMetrics,
-}) => {
+const SubagentSummary: React.FC<{ subagents: IDevToolsSubagentInfo[]; totalMetrics: { totalTokens: number; durationMs: number } }> = ({ subagents, totalMetrics }) => {
   const totalSubagentTokens = subagents.reduce((sum, a) => sum + a.metrics.totalTokens, 0);
   const totalSubagentMessages = subagents.reduce((sum, a) => sum + a.messageCount, 0);
   const allTools = [...new Set(subagents.flatMap((a) => a.toolNames))];

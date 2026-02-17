@@ -12,7 +12,8 @@
  * cron jobs, channels) continue running while the UI is hidden.
  */
 
-import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron';
+import type { BrowserWindow } from 'electron';
+import { app, Menu, nativeImage, Tray } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -51,9 +52,7 @@ function createTrayIcon(): Electron.NativeImage {
 
   // Fallback to app.png if primary icon not found
   if (icon.isEmpty()) {
-    const fallbackPath = app.isPackaged
-      ? path.join(path.dirname(app.getPath('exe')), process.platform === 'darwin' ? path.join('..', 'Resources', 'app.png') : path.join('resources', 'app.png'))
-      : path.join(process.cwd(), 'resources', 'app.png');
+    const fallbackPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), process.platform === 'darwin' ? path.join('..', 'Resources', 'app.png') : path.join('resources', 'app.png')) : path.join(process.cwd(), 'resources', 'app.png');
 
     if (fs.existsSync(fallbackPath)) {
       icon = nativeImage.createFromPath(fallbackPath);

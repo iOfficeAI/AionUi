@@ -245,9 +245,7 @@ describe('sessionAnalyzer', () => {
           type: 'assistant',
           message: {
             role: 'assistant',
-            content: [
-              { type: 'tool_use', id: 'task-1', name: 'Task', input: { description: 'Search codebase', prompt: 'Find files', subagent_type: 'Explore' } },
-            ],
+            content: [{ type: 'tool_use', id: 'task-1', name: 'Task', input: { description: 'Search codebase', prompt: 'Find files', subagent_type: 'Explore' } }],
             usage: { input_tokens: 200, output_tokens: 50 },
           },
           uuid: 'sa1',

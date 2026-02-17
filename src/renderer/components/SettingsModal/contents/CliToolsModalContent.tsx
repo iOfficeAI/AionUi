@@ -231,13 +231,7 @@ export const CliToolsSection: React.FC<{ isPageMode?: boolean }> = ({ isPageMode
               return (
                 <div key={tool.backend} className='flex items-center justify-between py-12px gap-16px'>
                   <div className='flex items-center gap-12px min-w-0 flex-1'>
-                    {isPending ? (
-                      <Spin size={18} className='flex-shrink-0' />
-                    ) : tool.installed ? (
-                      <CheckOne theme='filled' size='18' fill='rgb(var(--green-6))' className='flex-shrink-0' />
-                    ) : (
-                      <CloseOne theme='filled' size='18' fill='rgb(var(--gray-5))' className='flex-shrink-0' />
-                    )}
+                    {isPending ? <Spin size={18} className='flex-shrink-0' /> : tool.installed ? <CheckOne theme='filled' size='18' fill='rgb(var(--green-6))' className='flex-shrink-0' /> : <CloseOne theme='filled' size='18' fill='rgb(var(--gray-5))' className='flex-shrink-0' />}
                     <div className='min-w-0'>
                       <div className='text-14px text-t-primary font-medium'>{tool.name}</div>
                       {tool.cliCommand && <div className='text-12px text-t-secondary font-mono'>{tool.cliCommand}</div>}

@@ -11,9 +11,7 @@ import type { AIChunk, CompactChunk, ParsedMessage, SystemChunk, UserChunk } fro
 describe('chunkBuilder', () => {
   describe('buildChunks', () => {
     it('should build a UserChunk from a real user message', () => {
-      const messages: ParsedMessage[] = [
-        createMessage({ type: 'user', content: 'Hello Claude', timestamp: 1000 }),
-      ];
+      const messages: ParsedMessage[] = [createMessage({ type: 'user', content: 'Hello Claude', timestamp: 1000 })];
 
       const chunks = buildChunks(messages);
       expect(chunks).toHaveLength(1);
@@ -71,11 +69,7 @@ describe('chunkBuilder', () => {
     });
 
     it('should flush AI buffer when a user message arrives', () => {
-      const messages: ParsedMessage[] = [
-        createMessage({ type: 'assistant', content: 'Response 1', timestamp: 1000 }),
-        createMessage({ type: 'user', content: 'User question', timestamp: 2000 }),
-        createMessage({ type: 'assistant', content: 'Response 2', timestamp: 3000 }),
-      ];
+      const messages: ParsedMessage[] = [createMessage({ type: 'assistant', content: 'Response 1', timestamp: 1000 }), createMessage({ type: 'user', content: 'User question', timestamp: 2000 }), createMessage({ type: 'assistant', content: 'Response 2', timestamp: 3000 })];
 
       const chunks = buildChunks(messages);
       expect(chunks).toHaveLength(3);
@@ -119,10 +113,7 @@ describe('chunkBuilder', () => {
     });
 
     it('should filter out hardNoise messages entirely', () => {
-      const messages: ParsedMessage[] = [
-        createMessage({ type: 'user', content: '<system-reminder>Important reminder</system-reminder>', timestamp: 500 }),
-        createMessage({ type: 'user', content: 'Real user input', timestamp: 1000 }),
-      ];
+      const messages: ParsedMessage[] = [createMessage({ type: 'user', content: '<system-reminder>Important reminder</system-reminder>', timestamp: 500 }), createMessage({ type: 'user', content: 'Real user input', timestamp: 1000 })];
 
       const chunks = buildChunks(messages);
       expect(chunks).toHaveLength(1);
@@ -131,11 +122,7 @@ describe('chunkBuilder', () => {
     });
 
     it('should filter out subagent messages (with agentId)', () => {
-      const messages: ParsedMessage[] = [
-        createMessage({ type: 'user', content: 'Main thread message', timestamp: 1000 }),
-        createMessage({ type: 'assistant', content: 'Subagent response', timestamp: 1500, agentId: 'agent-123' }),
-        createMessage({ type: 'assistant', content: 'Main thread response', timestamp: 2000 }),
-      ];
+      const messages: ParsedMessage[] = [createMessage({ type: 'user', content: 'Main thread message', timestamp: 1000 }), createMessage({ type: 'assistant', content: 'Subagent response', timestamp: 1500, agentId: 'agent-123' }), createMessage({ type: 'assistant', content: 'Main thread response', timestamp: 2000 })];
 
       const chunks = buildChunks(messages);
       // Subagent message should be filtered out
@@ -172,9 +159,7 @@ describe('chunkBuilder', () => {
       const messages: ParsedMessage[] = [
         createMessage({
           type: 'assistant',
-          content: [
-            { type: 'tool_use', id: 'task-1', name: 'Task', input: { description: 'Search files' } },
-          ] as any,
+          content: [{ type: 'tool_use', id: 'task-1', name: 'Task', input: { description: 'Search files' } }] as any,
           timestamp: 1000,
           toolCalls: [{ id: 'task-1', name: 'Task', input: { description: 'Search files' }, isTask: true, taskDescription: 'Search files' }],
         }),

@@ -625,7 +625,7 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
         }
       }
     },
-    [params?.sessionId, params?.workspace],
+    [params?.sessionId, params?.workspace]
   );
 
   // Initial load
@@ -673,36 +673,33 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleOpenSession = useCallback(
-    (sessionId: string, workspace?: string) => {
-      // Re-analyze with new session — reset tabs and re-enable live mode
-      setActiveTab('overview');
-      setLiveMode(true);
+  const handleOpenSession = useCallback((sessionId: string, workspace?: string) => {
+    // Re-analyze with new session — reset tabs and re-enable live mode
+    setActiveTab('overview');
+    setLiveMode(true);
 
-      // Update params won't help here since content is a prop, so do a direct fetch
-      setLoading(true);
-      setError(null);
+    // Update params won't help here since content is a prop, so do a direct fetch
+    setLoading(true);
+    setError(null);
 
-      const load = async () => {
-        try {
-          const result = await ipcBridge.devtools.analyzeSession.invoke({ sessionId, workspace });
-          if (result.success && result.data) {
-            setAnalysis(result.data);
-            setLastRefreshedAt(Date.now());
-          } else {
-            setError(result.msg || 'Failed to analyze session');
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Unexpected error');
-        } finally {
-          setLoading(false);
+    const load = async () => {
+      try {
+        const result = await ipcBridge.devtools.analyzeSession.invoke({ sessionId, workspace });
+        if (result.success && result.data) {
+          setAnalysis(result.data);
+          setLastRefreshedAt(Date.now());
+        } else {
+          setError(result.msg || 'Failed to analyze session');
         }
-      };
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unexpected error');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      void load();
-    },
-    [],
-  );
+    void load();
+  }, []);
 
   if (loading) {
     return (
@@ -739,16 +736,9 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
           </Tag>
         </Typography.Title>
         <div className='ml-auto flex items-center gap-8px'>
-          {lastRefreshedAt && (
-            <span className='text-10px text-t-quaternary'>
-              {new Date(lastRefreshedAt).toLocaleTimeString()}
-            </span>
-          )}
+          {lastRefreshedAt && <span className='text-10px text-t-quaternary'>{new Date(lastRefreshedAt).toLocaleTimeString()}</span>}
           <Tooltip content={liveMode ? 'Auto-refresh ON (click to pause)' : 'Auto-refresh OFF (click to resume)'}>
-            <div
-              className='flex items-center gap-4px px-6px py-2px rd-4px cursor-pointer select-none transition-colors hover:bg-bg-3'
-              onClick={() => setLiveMode((prev) => !prev)}
-            >
+            <div className='flex items-center gap-4px px-6px py-2px rd-4px cursor-pointer select-none transition-colors hover:bg-bg-3' onClick={() => setLiveMode((prev) => !prev)}>
               <span
                 className='inline-block w-6px h-6px rd-full'
                 style={{
@@ -756,9 +746,7 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
                   boxShadow: liveMode ? '0 0 4px #00B42A' : 'none',
                 }}
               />
-              <span className={`text-11px ${liveMode ? 'text-green-6' : 'text-t-quaternary'}`}>
-                {liveMode ? 'Live' : 'Paused'}
-              </span>
+              <span className={`text-11px ${liveMode ? 'text-green-6' : 'text-t-quaternary'}`}>{liveMode ? 'Live' : 'Paused'}</span>
             </div>
           </Tooltip>
           <span className='text-11px text-t-quaternary font-mono'>{analysis.sessionId}</span>

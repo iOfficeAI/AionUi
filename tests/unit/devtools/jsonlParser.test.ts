@@ -72,10 +72,7 @@ describe('jsonlParser', () => {
     });
 
     it('should aggregate usage from messages', () => {
-      const messages: ParsedMessage[] = [
-        createMessage({ timestamp: 1000, usage: { input_tokens: 100, output_tokens: 50 } }),
-        createMessage({ timestamp: 2000, usage: { input_tokens: 200, output_tokens: 75, cache_read_input_tokens: 30 } }),
-      ];
+      const messages: ParsedMessage[] = [createMessage({ timestamp: 1000, usage: { input_tokens: 100, output_tokens: 50 } }), createMessage({ timestamp: 2000, usage: { input_tokens: 200, output_tokens: 75, cache_read_input_tokens: 30 } })];
 
       const metrics = calculateMetrics(messages);
       expect(metrics.inputTokens).toBe(300);
@@ -87,10 +84,7 @@ describe('jsonlParser', () => {
     });
 
     it('should handle messages without usage', () => {
-      const messages: ParsedMessage[] = [
-        createMessage({ timestamp: 1000 }),
-        createMessage({ timestamp: 5000 }),
-      ];
+      const messages: ParsedMessage[] = [createMessage({ timestamp: 1000 }), createMessage({ timestamp: 5000 })];
 
       const metrics = calculateMetrics(messages);
       expect(metrics.totalTokens).toBe(0);
@@ -208,9 +202,7 @@ describe('jsonlParser', () => {
           type: 'assistant',
           message: {
             role: 'assistant',
-            content: [
-              { type: 'tool_use', id: 'tu-task', name: 'Task', input: { description: 'Search for files' } },
-            ],
+            content: [{ type: 'tool_use', id: 'tu-task', name: 'Task', input: { description: 'Search for files' } }],
           },
           uuid: 'msg-5',
           timestamp: '2025-01-01T00:00:04Z',

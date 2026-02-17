@@ -8,13 +8,7 @@ import { describe, expect, it, beforeAll, afterAll } from '@jest/globals';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import {
-  encodePath,
-  findSessionFile,
-  listSessionFiles,
-  findSubagentFiles,
-  _setClaudeBasePathForTest,
-} from '@/process/services/devtools/sessionDiscovery';
+import { encodePath, findSessionFile, listSessionFiles, findSubagentFiles, _setClaudeBasePathForTest } from '@/process/services/devtools/sessionDiscovery';
 
 describe('sessionDiscovery', () => {
   // ==================== encodePath ====================

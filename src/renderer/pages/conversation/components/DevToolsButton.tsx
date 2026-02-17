@@ -41,11 +41,7 @@ const DevToolsButton: React.FC<DevToolsButtonProps> = ({ conversation }) => {
 
     if (acpSessionId) {
       // Open devtools panel with the known session ID
-      openPreview(
-        JSON.stringify({ sessionId: acpSessionId, workspace }),
-        'devtools',
-        { title: 'Session Insights' }
-      );
+      openPreview(JSON.stringify({ sessionId: acpSessionId, workspace }), 'devtools', { title: 'Session Insights' });
     } else if (workspace) {
       // No session ID yet — try to find the latest session for this workspace
       try {
@@ -53,26 +49,14 @@ const DevToolsButton: React.FC<DevToolsButtonProps> = ({ conversation }) => {
         if (result.success && result.data && result.data.length > 0) {
           // Open the most recent session
           const latest = result.data[0];
-          openPreview(
-            JSON.stringify({ sessionId: latest.sessionId, workspace }),
-            'devtools',
-            { title: 'Session Insights' }
-          );
+          openPreview(JSON.stringify({ sessionId: latest.sessionId, workspace }), 'devtools', { title: 'Session Insights' });
         } else {
           // No sessions found — open with workspace-only params
-          openPreview(
-            JSON.stringify({ sessionId: '', workspace }),
-            'devtools',
-            { title: 'Session Insights' }
-          );
+          openPreview(JSON.stringify({ sessionId: '', workspace }), 'devtools', { title: 'Session Insights' });
         }
       } catch {
         // Fallback: open with empty state
-        openPreview(
-          JSON.stringify({ sessionId: '', workspace }),
-          'devtools',
-          { title: 'Session Insights' }
-        );
+        openPreview(JSON.stringify({ sessionId: '', workspace }), 'devtools', { title: 'Session Insights' });
       }
     }
   }, [conversation.extra, openPreview]);

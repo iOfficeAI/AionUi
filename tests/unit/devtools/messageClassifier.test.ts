@@ -54,22 +54,13 @@ describe('messageClassifier', () => {
     });
 
     it('should classify system-reminder messages as "hardNoise"', () => {
-      const messages = [
-        createMessage({ type: 'user', content: '<system-reminder>You must follow instructions</system-reminder>' }),
-      ];
+      const messages = [createMessage({ type: 'user', content: '<system-reminder>You must follow instructions</system-reminder>' })];
       const classified = classifyMessages(messages);
       expect(classified[0].category).toBe('hardNoise');
     });
 
     it('should classify other hard noise patterns correctly', () => {
-      const patterns = [
-        '<user-prompt-submit-hook>some data</user-prompt-submit-hook>',
-        '<important-instruction>do not ignore</important-instruction>',
-        '<caveat>be careful</caveat>',
-        '<local-research-only>research data</local-research-only>',
-        '<context-window-full>window is full</context-window-full>',
-        '<repository-description>repo info</repository-description>',
-      ];
+      const patterns = ['<user-prompt-submit-hook>some data</user-prompt-submit-hook>', '<important-instruction>do not ignore</important-instruction>', '<caveat>be careful</caveat>', '<local-research-only>research data</local-research-only>', '<context-window-full>window is full</context-window-full>', '<repository-description>repo info</repository-description>'];
 
       for (const pattern of patterns) {
         const messages = [createMessage({ type: 'user', content: pattern })];
@@ -79,9 +70,7 @@ describe('messageClassifier', () => {
     });
 
     it('should classify <local-command-stdout> messages as "system"', () => {
-      const messages = [
-        createMessage({ type: 'user', content: '<local-command-stdout>ls output here</local-command-stdout>' }),
-      ];
+      const messages = [createMessage({ type: 'user', content: '<local-command-stdout>ls output here</local-command-stdout>' })];
       const classified = classifyMessages(messages);
       expect(classified[0].category).toBe('system');
     });
@@ -93,17 +82,13 @@ describe('messageClassifier', () => {
     });
 
     it('should classify messages containing compaction text as "compact"', () => {
-      const messages = [
-        createMessage({ type: 'user', content: 'Here is a summary of the conversation so far: ...' }),
-      ];
+      const messages = [createMessage({ type: 'user', content: 'Here is a summary of the conversation so far: ...' })];
       const classified = classifyMessages(messages);
       expect(classified[0].category).toBe('compact');
     });
 
     it('should classify <summary> tag messages as "compact"', () => {
-      const messages = [
-        createMessage({ type: 'user', content: '<summary>Conversation summary</summary>' }),
-      ];
+      const messages = [createMessage({ type: 'user', content: '<summary>Conversation summary</summary>' })];
       const classified = classifyMessages(messages);
       expect(classified[0].category).toBe('compact');
     });
@@ -119,12 +104,7 @@ describe('messageClassifier', () => {
     });
 
     it('should handle multiple messages with different categories', () => {
-      const messages = [
-        createMessage({ type: 'user', content: 'User question' }),
-        createMessage({ type: 'assistant', content: 'Assistant answer' }),
-        createMessage({ type: 'user', content: '<system-reminder>noise</system-reminder>' }),
-        createMessage({ type: 'summary', content: 'Summary' }),
-      ];
+      const messages = [createMessage({ type: 'user', content: 'User question' }), createMessage({ type: 'assistant', content: 'Assistant answer' }), createMessage({ type: 'user', content: '<system-reminder>noise</system-reminder>' }), createMessage({ type: 'summary', content: 'Summary' })];
 
       const classified = classifyMessages(messages);
       expect(classified.map((c) => c.category)).toEqual(['user', 'ai', 'hardNoise', 'compact']);

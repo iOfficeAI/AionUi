@@ -22,16 +22,11 @@ type ProjectDashboardProps = {
 /** Single session row */
 const SessionRow: React.FC<{ session: IDevToolsSessionListItem; projectPath: string; onOpen: () => void }> = ({ session, projectPath, onOpen }) => {
   return (
-    <div
-      className='flex items-center gap-8px px-12px py-6px hover:bg-bg-3 cursor-pointer rd-4px transition-colors'
-      onClick={onOpen}
-    >
+    <div className='flex items-center gap-8px px-12px py-6px hover:bg-bg-3 cursor-pointer rd-4px transition-colors' onClick={onOpen}>
       <span className='text-12px text-t-secondary font-mono truncate flex-1' title={session.sessionId}>
         {session.sessionId}
       </span>
-      <span className='text-11px text-t-quaternary flex-shrink-0'>
-        {formatRelativeTime(session.modifiedAt)}
-      </span>
+      <span className='text-11px text-t-quaternary flex-shrink-0'>{formatRelativeTime(session.modifiedAt)}</span>
     </div>
   );
 };
@@ -47,10 +42,7 @@ const ProjectCard: React.FC<{
 
   return (
     <div className='border-1px border-solid border-border-2 rd-8px overflow-hidden mb-8px'>
-      <div
-        className='flex items-center gap-8px px-12px py-10px bg-bg-2 cursor-pointer hover:bg-bg-3 transition-colors'
-        onClick={onToggle}
-      >
+      <div className='flex items-center gap-8px px-12px py-10px bg-bg-2 cursor-pointer hover:bg-bg-3 transition-colors' onClick={onToggle}>
         <span className='text-12px text-t-quaternary select-none'>{expanded ? '\u25BC' : '\u25B6'}</span>
         <span className='text-13px text-t-primary font-mono font-600 truncate flex-1' title={project.projectPath}>
           {displayPath}
@@ -58,26 +50,15 @@ const ProjectCard: React.FC<{
         <Tag size='small' color='arcoblue'>
           {project.sessionCount} session{project.sessionCount !== 1 ? 's' : ''}
         </Tag>
-        <span className='text-11px text-t-quaternary'>
-          {formatRelativeTime(project.latestSessionAt)}
-        </span>
+        <span className='text-11px text-t-quaternary'>{formatRelativeTime(project.latestSessionAt)}</span>
       </div>
 
       {expanded && (
         <div className='py-4px'>
           {project.sessions.slice(0, 50).map((session) => (
-            <SessionRow
-              key={session.sessionId}
-              session={session}
-              projectPath={project.projectPath}
-              onOpen={() => onOpenSession(session.sessionId, project.projectPath)}
-            />
+            <SessionRow key={session.sessionId} session={session} projectPath={project.projectPath} onOpen={() => onOpenSession(session.sessionId, project.projectPath)} />
           ))}
-          {project.sessions.length > 50 && (
-            <div className='text-11px text-t-quaternary px-12px py-4px'>
-              ... and {project.sessions.length - 50} more sessions
-            </div>
-          )}
+          {project.sessions.length > 50 && <div className='text-11px text-t-quaternary px-12px py-4px'>... and {project.sessions.length - 50} more sessions</div>}
         </div>
       )}
     </div>
@@ -119,17 +100,15 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ onOpenSession }) =>
     };
 
     void loadProjects();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredProjects = useMemo(() => {
     if (!filter.trim()) return projects;
     const lowerFilter = filter.toLowerCase();
-    return projects.filter(
-      (p) =>
-        p.projectPath.toLowerCase().includes(lowerFilter) ||
-        p.sessions.some((s) => s.sessionId.toLowerCase().includes(lowerFilter)),
-    );
+    return projects.filter((p) => p.projectPath.toLowerCase().includes(lowerFilter) || p.sessions.some((s) => s.sessionId.toLowerCase().includes(lowerFilter)));
   }, [projects, filter]);
 
   const handleToggle = useCallback((encodedPath: string) => {
@@ -170,35 +149,16 @@ const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ onOpenSession }) =>
           Projects
         </Typography.Title>
         <Tag size='small'>{projects.length} projects</Tag>
-        <Tag size='small' color='arcoblue'>{totalSessions} sessions</Tag>
+        <Tag size='small' color='arcoblue'>
+          {totalSessions} sessions
+        </Tag>
         <div className='ml-auto'>
-          <Input.Search
-            placeholder='Search projects...'
-            size='small'
-            style={{ width: 200 }}
-            value={filter}
-            onChange={setFilter}
-            allowClear
-          />
+          <Input.Search placeholder='Search projects...' size='small' style={{ width: 200 }} value={filter} onChange={setFilter} allowClear />
         </div>
       </div>
 
       {/* Project list */}
-      <div className='flex-1 overflow-auto p-12px'>
-        {filteredProjects.length === 0 ? (
-          <Empty description='No projects found' />
-        ) : (
-          filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.encodedPath}
-              project={project}
-              expanded={expandedProjects.has(project.encodedPath)}
-              onToggle={() => handleToggle(project.encodedPath)}
-              onOpenSession={(sessionId, workspace) => onOpenSession(sessionId, workspace)}
-            />
-          ))
-        )}
-      </div>
+      <div className='flex-1 overflow-auto p-12px'>{filteredProjects.length === 0 ? <Empty description='No projects found' /> : filteredProjects.map((project) => <ProjectCard key={project.encodedPath} project={project} expanded={expandedProjects.has(project.encodedPath)} onToggle={() => handleToggle(project.encodedPath)} onOpenSession={(sessionId, workspace) => onOpenSession(sessionId, workspace)} />)}</div>
     </div>
   );
 };
