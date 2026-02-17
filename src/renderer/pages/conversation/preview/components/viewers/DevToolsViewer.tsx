@@ -14,7 +14,7 @@
 import { ipcBridge } from '@/common';
 import type { IDevToolsSessionAnalysis, IDevToolsCompactionEvent, IDevToolsToolSummary } from '@/common/ipcBridge';
 import { Collapse, Empty, Progress, Spin, Statistic, Tag, Tooltip, Typography } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // Sub-components
@@ -565,6 +565,9 @@ const TabBar: React.FC<{
 
 // ==================== Main Component ====================
 
+/** Auto-refresh polling interval in milliseconds */
+const POLL_INTERVAL_MS = 5_000;
+
 const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
   const { t } = useTranslation();
   const [analysis, setAnalysis] = useState<IDevToolsSessionAnalysis | null>(null);
@@ -572,6 +575,10 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showSearch, setShowSearch] = useState(false);
+  const [liveMode, setLiveMode] = useState(true);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isFetchingRef = useRef(false);
 
   // Parse the content to get sessionId and workspace
   const params = useMemo(() => {
@@ -582,6 +589,46 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
     }
   }, [content]);
 
+  // Core fetch function — used for both initial load and polling refreshes
+  const fetchAnalysis = useCallback(
+    async (opts: { silent?: boolean } = {}) => {
+      if (!params?.sessionId) return;
+      if (isFetchingRef.current) return;
+
+      isFetchingRef.current = true;
+      if (!opts.silent) {
+        setLoading(true);
+        setError(null);
+      }
+
+      try {
+        const result = await ipcBridge.devtools.analyzeSession.invoke({
+          sessionId: params.sessionId,
+          workspace: params.workspace,
+        });
+
+        if (result.success && result.data) {
+          setAnalysis(result.data);
+          setLastRefreshedAt(Date.now());
+          if (!opts.silent) setError(null);
+        } else if (!opts.silent) {
+          setError(result.msg || 'Failed to analyze session');
+        }
+      } catch (err) {
+        if (!opts.silent) {
+          setError(err instanceof Error ? err.message : 'Unexpected error');
+        }
+      } finally {
+        isFetchingRef.current = false;
+        if (!opts.silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [params?.sessionId, params?.workspace],
+  );
+
+  // Initial load
   useEffect(() => {
     if (!params?.sessionId) {
       setError('No session ID provided');
@@ -589,41 +636,30 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
       return;
     }
 
-    let cancelled = false;
+    void fetchAnalysis();
+  }, [params?.sessionId, params?.workspace, fetchAnalysis]);
 
-    const loadAnalysis = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await ipcBridge.devtools.analyzeSession.invoke({
-          sessionId: params.sessionId,
-          workspace: params.workspace,
-        });
-
-        if (cancelled) return;
-
-        if (result.success && result.data) {
-          setAnalysis(result.data);
-        } else {
-          setError(result.msg || 'Failed to analyze session');
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unexpected error');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+  // Polling for realtime updates
+  useEffect(() => {
+    if (!params?.sessionId || !liveMode) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
-    };
+      return;
+    }
 
-    void loadAnalysis();
+    pollingRef.current = setInterval(() => {
+      void fetchAnalysis({ silent: true });
+    }, POLL_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
     };
-  }, [params?.sessionId, params?.workspace]);
+  }, [params?.sessionId, liveMode, fetchAnalysis]);
 
   // Keyboard shortcut for Cmd+K search
   useEffect(() => {
@@ -637,29 +673,36 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleOpenSession = useCallback((sessionId: string, workspace?: string) => {
-    // Re-analyze with new session
-    setLoading(true);
-    setError(null);
-    setActiveTab('overview');
+  const handleOpenSession = useCallback(
+    (sessionId: string, workspace?: string) => {
+      // Re-analyze with new session — reset tabs and re-enable live mode
+      setActiveTab('overview');
+      setLiveMode(true);
 
-    const load = async () => {
-      try {
-        const result = await ipcBridge.devtools.analyzeSession.invoke({ sessionId, workspace });
-        if (result.success && result.data) {
-          setAnalysis(result.data);
-        } else {
-          setError(result.msg || 'Failed to analyze session');
+      // Update params won't help here since content is a prop, so do a direct fetch
+      setLoading(true);
+      setError(null);
+
+      const load = async () => {
+        try {
+          const result = await ipcBridge.devtools.analyzeSession.invoke({ sessionId, workspace });
+          if (result.success && result.data) {
+            setAnalysis(result.data);
+            setLastRefreshedAt(Date.now());
+          } else {
+            setError(result.msg || 'Failed to analyze session');
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Unexpected error');
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unexpected error');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    void load();
-  }, []);
+      void load();
+    },
+    [],
+  );
 
   if (loading) {
     return (
@@ -695,7 +738,31 @@ const DevToolsViewer: React.FC<DevToolsViewerProps> = ({ content }) => {
             claude-devtools
           </Tag>
         </Typography.Title>
-        <span className='text-11px text-t-quaternary font-mono ml-auto'>{analysis.sessionId}</span>
+        <div className='ml-auto flex items-center gap-8px'>
+          {lastRefreshedAt && (
+            <span className='text-10px text-t-quaternary'>
+              {new Date(lastRefreshedAt).toLocaleTimeString()}
+            </span>
+          )}
+          <Tooltip content={liveMode ? 'Auto-refresh ON (click to pause)' : 'Auto-refresh OFF (click to resume)'}>
+            <div
+              className='flex items-center gap-4px px-6px py-2px rd-4px cursor-pointer select-none transition-colors hover:bg-bg-3'
+              onClick={() => setLiveMode((prev) => !prev)}
+            >
+              <span
+                className='inline-block w-6px h-6px rd-full'
+                style={{
+                  backgroundColor: liveMode ? '#00B42A' : '#86909C',
+                  boxShadow: liveMode ? '0 0 4px #00B42A' : 'none',
+                }}
+              />
+              <span className={`text-11px ${liveMode ? 'text-green-6' : 'text-t-quaternary'}`}>
+                {liveMode ? 'Live' : 'Paused'}
+              </span>
+            </div>
+          </Tooltip>
+          <span className='text-11px text-t-quaternary font-mono'>{analysis.sessionId}</span>
+        </div>
       </div>
 
       {/* Tab bar */}
