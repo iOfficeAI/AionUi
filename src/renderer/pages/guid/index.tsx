@@ -1896,7 +1896,7 @@ const Guid: React.FC = () => {
                       return (
                         <div
                           key={assistant.id}
-                          className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid border-arco-2 hover:bg-fill-0 select-none'
+                          className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid border-arco-2 bg-fill-0 hover:bg-fill-1 select-none'
                           onClick={() => {
                             setSelectedAgentKey(`custom:${assistant.id}`);
                             setMentionOpen(false);
@@ -1906,13 +1906,13 @@ const Guid: React.FC = () => {
                           }}
                         >
                           {avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 16, lineHeight: '18px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />}
-                          <span className='text-14px text-4 hover:text-2'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
+                          <span className='text-14px text-2 hover:text-1'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
                         </div>
                       );
                     })}
-                  <div className='h-28px flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all text-t-secondary hover:text-t-primary hover:bg-fill-2 b-1 b-dashed b-aou-2 select-none' onClick={() => navigate('/settings/agent')}>
+                  <div className='h-28px flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all hover:bg-fill-2 b-1 b-dashed b-aou-2 select-none' onClick={() => navigate('/settings/agent')}>
                     <Plus theme='outline' size={14} className='line-height-0' />
-                    <span className='text-13px'>{t('settings.createAssistant', { defaultValue: 'Create' })}</span>
+                    <span className='text-14px text-2 hover:text-1'>{t('settings.addAssistant', { defaultValue: 'Add Assistant' })}</span>
                   </div>
                 </div>
               )}

@@ -12,7 +12,7 @@ import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { getActivityTime, getTimelineLabel } from '@/renderer/utils/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspaceHistory';
-import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
+import { Empty, Popconfirm, Input, Tooltip, Dropdown, Menu, Modal, Message } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -162,8 +162,10 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
     }
     return [];
   });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState<string>('');
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [renameModalName, setRenameModalName] = useState<string>('');
+  const [renameModalId, setRenameModalId] = useState<string | null>(null);
+  const [renameLoading, setRenameLoading] = useState(false);
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -282,75 +284,86 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
     });
   }, []);
 
-  const handleRemoveConversation = useCallback(
+  const handleDeleteClick = useCallback(
     (convId: string) => {
-      void ipcBridge.conversation.remove
-        .invoke({ id: convId })
-        .then((success) => {
-          if (success) {
-            // 触发会话删除事件，用于关闭对应的 tab
-            // Trigger conversation deletion event to close corresponding tab
-            emitter.emit('conversation.deleted', convId);
-            // 刷新会话列表
-            emitter.emit('chat.history.refresh');
-            if (id === convId) {
-              void navigate('/');
+      Modal.confirm({
+        title: t('conversation.history.deleteTitle'),
+        content: t('conversation.history.deleteConfirm'),
+        okText: t('conversation.history.confirmDelete'),
+        cancelText: t('conversation.history.cancelDelete'),
+        okButtonProps: { status: 'danger' },
+        onOk: async () => {
+          try {
+            const success = await ipcBridge.conversation.remove.invoke({ id: convId });
+            if (success) {
+              // 触发会话删除事件，用于关闭对应的 tab
+              // Trigger conversation deletion event to close corresponding tab
+              emitter.emit('conversation.deleted', convId);
+              // 刷新会话列表
+              emitter.emit('chat.history.refresh');
+              if (id === convId) {
+                void navigate('/');
+              }
+              Message.success(t('conversation.history.deleteSuccess'));
+            } else {
+              Message.error(t('conversation.history.deleteFailed'));
             }
+          } catch (error) {
+            console.error('Failed to remove conversation:', error);
+            Message.error(t('conversation.history.deleteFailed'));
           }
-        })
-        .catch((error) => {
-          console.error('Failed to remove conversation:', error);
-        });
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
     },
-    [id, navigate]
+    [id, navigate, t]
   );
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
-    setEditingId(conversation.id);
-    setEditingName(conversation.name);
+    setRenameModalId(conversation.id);
+    setRenameModalName(conversation.name);
+    setRenameModalVisible(true);
   }, []);
 
-  const handleEditSave = useCallback(async () => {
-    if (!editingId || !editingName.trim()) return;
+  const handleRenameConfirm = useCallback(async () => {
+    if (!renameModalId || !renameModalName.trim()) return;
 
+    setRenameLoading(true);
     try {
       const success = await ipcBridge.conversation.update.invoke({
-        id: editingId,
-        updates: { name: editingName.trim() },
+        id: renameModalId,
+        updates: { name: renameModalName.trim() },
       });
 
       if (success) {
-        updateTabName(editingId, editingName.trim());
+        updateTabName(renameModalId, renameModalName.trim());
         emitter.emit('chat.history.refresh');
+        setRenameModalVisible(false);
+        setRenameModalId(null);
+        setRenameModalName('');
+        Message.success(t('conversation.history.renameSuccess'));
+      } else {
+        Message.error(t('conversation.history.renameFailed'));
       }
     } catch (error) {
       console.error('Failed to update conversation name:', error);
+      Message.error(t('conversation.history.renameFailed'));
     } finally {
-      setEditingId(null);
-      setEditingName('');
+      setRenameLoading(false);
     }
-  }, [editingId, editingName, updateTabName]);
+  }, [renameModalId, renameModalName, updateTabName, t]);
 
-  const handleEditCancel = useCallback(() => {
-    setEditingId(null);
-    setEditingName('');
+  const handleRenameCancel = useCallback(() => {
+    setRenameModalVisible(false);
+    setRenameModalId(null);
+    setRenameModalName('');
   }, []);
-
-  const handleEditKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        void handleEditSave();
-      } else if (e.key === 'Escape') {
-        handleEditCancel();
-      }
-    },
-    [handleEditSave, handleEditCancel]
-  );
 
   const renderConversation = useCallback(
     (conversation: TChatConversation) => {
       const isSelected = id === conversation.id;
-      const isEditing = editingId === conversation.id;
       const cronStatus = getJobStatus(conversation.id);
 
       return (
@@ -363,55 +376,72 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
             onClick={() => handleConversationClick(conversation)}
           >
             {cronStatus !== 'none' ? <CronJobIndicator status={cronStatus} size={20} className='flex-shrink-0' /> : <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />}
-            <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>{conversation.name}</div>}</FlexFullContainer>
-            {!isEditing && (
-              <div
-                className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}
-                style={{
-                  backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--aou-2) 50%)` : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
+            <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>
+              <div className='chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0'>{conversation.name}</div>
+            </FlexFullContainer>
+            <div
+              className={classNames('absolute right-0px top-0px h-full items-center justify-end hidden group-hover:flex !collapsed-hidden pr-8px')}
+              style={{
+                backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--aou-2) 50%)` : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <Dropdown
+                droplist={
+                  <Menu>
+                    <Menu.Item
+                      key='rename'
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleEditStart(conversation);
+                      }}
+                    >
+                      <div className='flex items-center gap-8px'>
+                        <EditOne theme='outline' size='14' />
+                        <span>{t('conversation.history.rename')}</span>
+                      </div>
+                    </Menu.Item>
+                    <Menu.Item
+                      key='delete'
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleDeleteClick(conversation.id);
+                      }}
+                    >
+                      <div className='flex items-center gap-8px text-[rgb(var(--danger-6))]'>
+                        <DeleteOne theme='outline' size='14' />
+                        <span>{t('conversation.history.deleteTitle')}</span>
+                      </div>
+                    </Menu.Item>
+                  </Menu>
+                }
+                trigger='click'
+                position='br'
+                getPopupContainer={() => document.body}
+                unmountOnExit={false}
               >
                 <span
-                  className='flex-center mr-8px'
+                  className='flex-center cursor-pointer hover:bg-fill-2 rd-4px p-4px transition-colors relative text-t-primary'
                   onClick={(event) => {
                     event.stopPropagation();
-                    handleEditStart(conversation);
                   }}
                 >
-                  <EditOne theme='outline' size='20' className='flex' />
+                  {/* 竖着的三个点 */}
+                  <div className='flex flex-col gap-2px items-center justify-center' style={{ width: '16px', height: '16px' }}>
+                    <div className='w-2px h-2px rounded-full bg-current'></div>
+                    <div className='w-2px h-2px rounded-full bg-current'></div>
+                    <div className='w-2px h-2px rounded-full bg-current'></div>
+                  </div>
                 </span>
-                <Popconfirm
-                  title={t('conversation.history.deleteTitle')}
-                  content={t('conversation.history.deleteConfirm')}
-                  okText={t('conversation.history.confirmDelete')}
-                  cancelText={t('conversation.history.cancelDelete')}
-                  onOk={(event) => {
-                    event.stopPropagation();
-                    handleRemoveConversation(conversation.id);
-                  }}
-                  onCancel={(event) => {
-                    event.stopPropagation();
-                  }}
-                >
-                  <span
-                    className='flex-center'
-                    onClick={(event) => {
-                      event.stopPropagation();
-                    }}
-                  >
-                    <DeleteOne theme='outline' size='20' className='flex' />
-                  </span>
-                </Popconfirm>
-              </div>
-            )}
+              </Dropdown>
+            </div>
           </div>
         </Tooltip>
       );
     },
-    [id, collapsed, editingId, editingName, t, handleConversationClick, handleEditStart, handleEditKeyDown, handleEditSave, handleRemoveConversation, getJobStatus]
+    [id, collapsed, t, handleConversationClick, handleEditStart, handleDeleteClick, getJobStatus]
   );
 
   // 如果没有任何会话，显示空状态
@@ -427,6 +457,10 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
 
   return (
     <FlexFullContainer>
+      {/* 重命名弹窗 */}
+      <Modal title={t('conversation.history.renameTitle')} visible={renameModalVisible} onOk={handleRenameConfirm} onCancel={handleRenameCancel} okText={t('conversation.history.saveName')} cancelText={t('conversation.history.cancelEdit')} confirmLoading={renameLoading} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
+        <Input autoFocus value={renameModalName} onChange={setRenameModalName} onPressEnter={handleRenameConfirm} placeholder={t('conversation.history.renamePlaceholder')} />
+      </Modal>
       <div className='size-full overflow-y-auto overflow-x-hidden'>
         {timelineSections.map((section) => (
           <div key={section.timeline} className='mb-8px min-w-0'>

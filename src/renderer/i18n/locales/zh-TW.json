@@ -335,17 +335,24 @@
     },
     "history": {
       "cancelDelete": "取消",
-      "confirmDelete": "確定",
+      "confirmDelete": "刪除",
       "deleteConfirm": "確定要刪除此對話嗎？",
-      "deleteTitle": "刪除對話",
+      "deleteTitle": "刪除",
       "earlier": "更早",
       "noHistory": "暫無對話記錄",
       "recent7Days": "近7天",
       "today": "今天",
       "yesterday": "昨天",
       "editName": "編輯名稱",
-      "saveName": "儲存名稱",
-      "cancelEdit": "取消編輯"
+      "saveName": "儲存",
+      "cancelEdit": "取消",
+      "rename": "重新命名",
+      "renameTitle": "重新命名對話",
+      "renamePlaceholder": "請輸入新名稱",
+      "renameSuccess": "重新命名成功",
+      "renameFailed": "重新命名失敗",
+      "deleteSuccess": "刪除成功",
+      "deleteFailed": "刪除失敗"
     },
     "tabs": {
       "closeAll": "全部關閉",

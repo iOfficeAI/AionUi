@@ -310,6 +310,13 @@ body,
   transform-origin: left center;
 }
 
+.chat-history__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .settings-sider__item-label {
   display: block;
 }
