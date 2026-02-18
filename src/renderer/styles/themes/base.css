@@ -310,6 +310,13 @@ body,
   transform-origin: left center;
 }
 
+.chat-history__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .settings-sider__item-label {
   display: block;
 }
@@ -557,4 +564,26 @@ body,
 .arco-input,
 .arco-input-inner-wrapper {
   background-color: var(--fill-0) !important;
+}
+
+/* Send button disabled state - override Arco Design default disabled styles */
+/* 发送按钮禁用状态 - 覆盖 Arco Design 默认的禁用样式 */
+/* Note: Active state is handled via style prop in component */
+.send-button-custom:disabled {
+  background-color: #d3d4d9 !important;
+  border-color: #d3d4d9 !important;
+  opacity: 1 !important;
+}
+
+/* Make arrow icon thicker */
+/* 加粗箭头图标 */
+.send-button-custom .arco-icon > svg {
+  stroke-width: 5 !important;
+  filter: drop-shadow(0 0 0.5px currentColor);
+}
+
+/* Input placeholder color */
+/* 输入框占位符颜色 */
+::placeholder {
+  color: #a1a2aa !important;
 }

@@ -363,18 +363,25 @@
       "quickActionStar": "気に入った？スターをください！"
     },
     "history": {
-      "cancelDelete": "いいえ",
-      "confirmDelete": "はい",
+      "cancelDelete": "キャンセル",
+      "confirmDelete": "削除",
       "deleteConfirm": "このチャットを削除してもよろしいですか？",
-      "deleteTitle": "チャットを削除",
+      "deleteTitle": "削除",
       "earlier": "それ以前",
       "noHistory": "チャット履歴はありません",
       "recent7Days": "過去7日間",
       "today": "今日",
       "yesterday": "昨日",
       "editName": "名前を編集",
-      "saveName": "名前を保存",
-      "cancelEdit": "編集をキャンセル"
+      "saveName": "保存",
+      "cancelEdit": "キャンセル",
+      "rename": "名前を変更",
+      "renameTitle": "チャット名を変更",
+      "renamePlaceholder": "新しい名前を入力してください",
+      "renameSuccess": "名前を変更しました",
+      "renameFailed": "名前の変更に失敗しました",
+      "deleteSuccess": "削除しました",
+      "deleteFailed": "削除に失敗しました"
     },
     "tabs": {
       "closeAll": "すべて閉じる",

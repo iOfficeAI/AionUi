@@ -42,8 +42,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': 'OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
     },
     promptsI18n: {
-      'en-US': ['Help me install OpenClaw', "My OpenClaw isn't working", 'Configure Telegram channel for OpenClaw'],
-      'zh-CN': ['帮我安装 OpenClaw', '我的 OpenClaw 出问题了', '为 OpenClaw 配置 Telegram 渠道'],
+      'en-US': ['Help me install OpenClaw step by step', "My OpenClaw isn't working, please diagnose the issue", 'Configure Telegram channel for OpenClaw integration'],
+      'zh-CN': ['帮我一步步安装 OpenClaw', '我的 OpenClaw 出问题了，请帮我诊断', '为 OpenClaw 配置 Telegram 渠道'],
     },
   },
   {
@@ -69,8 +69,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。',
     },
     promptsI18n: {
-      'en-US': ['Analyze the project structure', 'Automate the build process'],
-      'zh-CN': ['分析项目结构', '自动化构建流程'],
+      'en-US': ['Analyze the current project structure and suggest improvements', 'Automate the build and deployment process', 'Extract and summarize key information from all PDF files'],
+      'zh-CN': ['分析当前项目结构并建议改进方案', '自动化构建和部署流程', '提取并总结所有 PDF 文件的关键信息'],
     },
   },
   {
@@ -91,8 +91,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '生成本地 PPTX 资产与结构（pptxgenjs）。',
     },
     promptsI18n: {
-      'en-US': ['Create a slide deck about AI trends', 'Generate a PPT for quarterly report'],
-      'zh-CN': ['创建一个关于AI趋势的幻灯片', '生成季度报告PPT'],
+      'en-US': ['Create a professional slide deck about AI trends with 10 slides', 'Generate a quarterly business report presentation', 'Make a product launch presentation with visual elements'],
+      'zh-CN': ['创建一个包含 10 页的专业 AI 趋势幻灯片', '生成季度业务报告演示文稿', '制作包含视觉元素的产品发布演示'],
     },
   },
   {
@@ -113,8 +113,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': 'PDF 转 PPT 并去除水印规则',
     },
     promptsI18n: {
-      'en-US': ['Convert report.pdf to slides', 'Extract charts from whitepaper.pdf'],
-      'zh-CN': ['将 report.pdf 转换为幻灯片', '从白皮书提取图表'],
+      'en-US': ['Convert report.pdf to a PowerPoint presentation', 'Extract all charts and diagrams from whitepaper.pdf', 'Transform this PDF document into slides with proper formatting'],
+      'zh-CN': ['将 report.pdf 转换为 PowerPoint 演示文稿', '从白皮书提取所有图表和示意图', '将此 PDF 文档转换为格式正确的幻灯片'],
     },
   },
   {
@@ -135,8 +135,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '用单个 HTML 文件生成完整的 3D 平台收集游戏。',
     },
     promptsI18n: {
-      'en-US': ['Create a 3D platformer game', 'Make a coin collection game'],
-      'zh-CN': ['创建一个3D平台游戏', '制作一个金币收集游戏'],
+      'en-US': ['Create a 3D platformer game with jumping mechanics', 'Make a coin collection game with obstacles', 'Build a 3D maze exploration game'],
+      'zh-CN': ['创建一个带跳跃机制的 3D 平台游戏', '制作一个带障碍物的金币收集游戏', '构建一个 3D 迷宫探索游戏'],
     },
   },
   {
@@ -157,8 +157,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '专业 UI/UX 设计智能助手，包含 57 种风格、95 个配色方案、56 个字体配对及技术栈最佳实践。',
     },
     promptsI18n: {
-      'en-US': ['Design a login page for a fintech app', 'Create a color palette for a nature theme'],
-      'zh-CN': ['为金融科技应用设计登录页', '创建一个自然主题的配色方案'],
+      'en-US': ['Design a modern login page for a fintech mobile app', 'Create a color palette for a nature-themed website', 'Design a dashboard interface for a SaaS product'],
+      'zh-CN': ['为金融科技移动应用设计现代登录页', '创建自然主题网站的配色方案', '为 SaaS 产品设计仪表板界面'],
     },
   },
   {
@@ -179,8 +179,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': 'Manus 风格的文件规划，用于复杂任务。使用 task_plan.md、findings.md 和 progress.md 维护持久化上下文。',
     },
     promptsI18n: {
-      'en-US': ['Plan a refactoring task', 'Break down the feature implementation'],
-      'zh-CN': ['规划一个重构任务', '拆分功能实现步骤'],
+      'en-US': ['Plan a comprehensive refactoring task with milestones', 'Break down the feature implementation into actionable steps', 'Create a project plan for migrating to a new framework'],
+      'zh-CN': ['规划一个包含里程碑的全面重构任务', '将功能实现拆分为可执行的步骤', '创建迁移到新框架的项目计划'],
     },
   },
   {
@@ -201,8 +201,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '基于 HUMAN 3.0 框架的个人发展教练：4 象限（思维/身体/精神/职业）、3 层次、3 成长阶段。',
     },
     promptsI18n: {
-      'en-US': ['Help me set quarterly goals', 'Reflect on my career progress'],
-      'zh-CN': ['帮我设定季度目标', '反思我的职业发展进度'],
+      'en-US': ['Help me set quarterly goals across all life quadrants', 'Reflect on my career progress and plan next steps', 'Create a personal development plan for the next 3 months'],
+      'zh-CN': ['帮我设定涵盖所有生活象限的季度目标', '反思我的职业发展进度并规划下一步', '为未来 3 个月创建个人发展计划'],
     },
   },
   {
@@ -228,8 +228,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '扩写招聘需求为完整 JD 与图片，并通过 connector 发布到社交平台。',
     },
     promptsI18n: {
-      'en-US': ['Create a job post for Senior Engineer', 'Draft a hiring tweet'],
-      'zh-CN': ['创建一个高级工程师的招聘启事', '起草一条招聘推文'],
+      'en-US': ['Create a comprehensive job post for Senior Full-Stack Engineer', 'Draft an engaging hiring tweet for social media', 'Create a multi-platform job posting (LinkedIn, X, Redbook)'],
+      'zh-CN': ['创建一份高级全栈工程师的完整招聘启事', '起草一条适合社交媒体的招聘推文', '创建多平台职位发布（LinkedIn、X、小红书）'],
     },
   },
   {
@@ -255,8 +255,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': 'AI 代理的社交网络。发帖、评论、投票、创建社区。',
     },
     promptsI18n: {
-      'en-US': ['Check my moltbook feed', 'Post something to moltbook', 'Check for new DMs'],
-      'zh-CN': ['查看我的 moltbook 动态', '发布内容到 moltbook', '检查新私信'],
+      'en-US': ['Check my moltbook feed for latest updates', 'Post an interesting update to moltbook', 'Check for new direct messages'],
+      'zh-CN': ['查看我的 moltbook 最新动态', '在 moltbook 发布一条有趣的动态', '检查是否有新私信'],
     },
   },
   {
@@ -278,8 +278,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '创建流程图、时序图、状态图、类图和 ER 图，支持多种精美主题。',
     },
     promptsI18n: {
-      'en-US': ['Draw a user login flowchart', 'Create an API sequence diagram', 'Draw a TCP state diagram'],
-      'zh-CN': ['画一个用户登录流程图', '创建一个 API 时序图', '画一个 TCP 状态图'],
+      'en-US': ['Draw a detailed user login authentication flowchart', 'Create an API sequence diagram for payment processing', 'Create a system architecture diagram'],
+      'zh-CN': ['绘制详细的用户登录认证流程图', '创建支付处理的 API 时序图', '创建系统架构图'],
     },
   },
   {
@@ -301,8 +301,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '沉浸式故事角色扮演。三种开始方式：1) 自然语言直接对话创建角色，2) 直接粘贴PNG图片，3) 打开包含角色卡（PNG/JSON）和世界书的文件夹。',
     },
     promptsI18n: {
-      'en-US': ['Start a fantasy adventure', 'Create a character', 'Begin a story'],
-      'zh-CN': ['开始一个奇幻冒险', '创建一个角色', '开始一个故事'],
+      'en-US': ['Start an epic fantasy adventure with a brave warrior', 'Create a detailed character with backstory and personality', 'Begin an interactive story in a sci-fi setting'],
+      'zh-CN': ['开始一个勇敢战士的史诗奇幻冒险', '创建一个有背景故事和个性的详细角色', '在科幻设定中开始一个互动故事'],
     },
   },
 ];

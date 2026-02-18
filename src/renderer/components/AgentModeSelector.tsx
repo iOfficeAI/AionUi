@@ -8,9 +8,10 @@ import { ipcBridge } from '@/common';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
 import { iconColors } from '@/renderer/theme/colors';
 import type { AcpBackend } from '@/types/acpTypes';
-import { Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Agent Logo imports (same as ChatLayout)
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
@@ -68,6 +69,7 @@ export interface AgentModeSelectorProps {
  * 显示代理 logo 和名称，通过下拉菜单选择模式
  */
 const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentName, agentLogo, agentLogoIsEmoji, conversationId, compact, initialMode, onModeSelect }) => {
+  const { t } = useTranslation();
   const modes = getAgentModes(backend);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
@@ -175,7 +177,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   // Dropdown menu (shared between compact and full mode)
   const dropdownMenu = (
     <Menu onClickMenuItem={(key) => void handleModeChange(key)}>
-      <Menu.ItemGroup title='Switch Mode'>
+      <Menu.ItemGroup title={t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
         {modes.map((mode: AgentModeOption) => (
           <Menu.Item key={mode.value} className={currentMode === mode.value ? '!bg-2' : ''}>
             <div className='flex items-center gap-8px'>
@@ -193,10 +195,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
     if (!canSwitchMode) return null;
 
     const compactContent = (
-      <div className='flex items-center gap-4px cursor-pointer rounded-full px-[6px] py-[2px] hover:bg-3' style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
-        <span className='text-xs text-t-secondary'>{getCurrentModeLabel()}</span>
-        <Down size={10} className='text-t-tertiary' />
-      </div>
+      <Button className='sendbox-model-btn' shape='round' style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+        <span>{getCurrentModeLabel()}</span>
+      </Button>
     );
 
     return (

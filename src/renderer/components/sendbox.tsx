@@ -234,6 +234,28 @@ const SendBox: React.FC<{
     }
   };
 
+  // Calculate button disabled state and style
+  const isButtonDisabled = disabled || (!input.trim() && domSnippets.length === 0);
+  const buttonStyle = {
+    backgroundColor: isButtonDisabled ? undefined : '#000000',
+    borderColor: isButtonDisabled ? undefined : '#000000',
+  };
+
+  // Reusable send button component
+  const sendButton = (
+    <Button
+      shape='circle'
+      type='primary'
+      disabled={isButtonDisabled}
+      className='send-button-custom'
+      style={buttonStyle}
+      icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+      onClick={() => {
+        sendMessageHandler();
+      }}
+    />
+  );
+
   return (
     <div className={className}>
       <div
@@ -307,18 +329,7 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
-                <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button>
-              ) : (
-                <Button
-                  shape='circle'
-                  type='primary'
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
-                  onClick={() => {
-                    sendMessageHandler();
-                  }}
-                />
-              )}
+              {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
             </div>
           )}
         </div>
@@ -327,18 +338,7 @@ const SendBox: React.FC<{
             <div className='sendbox-tools'>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? (
-                <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button>
-              ) : (
-                <Button
-                  shape='circle'
-                  type='primary'
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
-                  onClick={() => {
-                    sendMessageHandler();
-                  }}
-                />
-              )}
+              {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
             </div>
           </div>
         )}

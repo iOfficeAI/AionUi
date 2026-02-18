@@ -573,7 +573,7 @@ brew install aionui
 - [Report Issues](https://github.com/iOfficeAI/AionUi/issues) — bugs and feature requests
 - [Release Updates](https://github.com/iOfficeAI/AionUi/releases) — get the latest version
 - [Discord Community](https://discord.gg/2QAwJn7Egx) — English community
-- [WeChat Group](./resources/wechat-group-3.png) — Chinese community
+- [WeChat Group](./resources/wechat_group.png) — Chinese community
 
 ### Contributing
 
