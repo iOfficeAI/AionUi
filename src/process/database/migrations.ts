@@ -750,6 +750,12 @@ const migration_v14: IMigration = {
       CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC);
     `);
 
+    // Safety fallback: ensure channel_chat_id exists even if table recreation was a no-op
+    const convTableInfo = db.prepare('PRAGMA table_info(conversations)').all() as Array<{ name: string }>;
+    if (!convTableInfo.some((col) => col.name === 'channel_chat_id')) {
+      db.exec(`ALTER TABLE conversations ADD COLUMN channel_chat_id TEXT;`);
+    }
+
     // 3. Add chat_id to assistant_sessions for per-chat session isolation
     const sessTableInfo = db.prepare('PRAGMA table_info(assistant_sessions)').all() as Array<{ name: string }>;
     if (!sessTableInfo.some((col) => col.name === 'chat_id')) {

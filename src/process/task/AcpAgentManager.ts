@@ -15,7 +15,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../messag
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { findSessionFile } from '@process/services/devtools/sessionDiscovery';
-import { prepareFirstMessageWithSkillsIndex, runQueueInitHooks } from './agentUtils';
+import { prepareFirstMessageWithSkillsIndex, runAgentResponseHooks, runQueueInitHooks } from './agentUtils';
 import { AcpMessageQueue, type QueuedMessageSource, type QueuedMessagePriority, type QueueEvent } from './AcpMessageQueue';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -300,6 +300,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             cronBusyGuard.setProcessing(this.conversation_id, false);
             // Notify message queue so it can process the next queued message
             this.messageQueue.onAgentFinished();
+            void this.runAgentResponseHooks();
           }
 
           // Process cron commands when turn ends (finish signal)
@@ -584,6 +585,30 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
     } catch (error) {
       console.warn('[AcpAgentManager] onQueueInit hooks failed:', error);
+    }
+  }
+
+  /**
+   * Run onAgentResponse hooks to collect and enqueue messages after each agent turn finishes.
+   * Called after every agent turn, allowing hooks to dynamically queue follow-up messages.
+   */
+  private async runAgentResponseHooks(): Promise<void> {
+    try {
+      const messages = await runAgentResponseHooks({
+        workspace: this.workspace,
+        backend: this.options.backend,
+        conversationId: this.conversation_id,
+        enabledSkills: this.options.enabledSkills,
+        presetContext: this.options.presetContext,
+        assistantHooksPath: this.options.assistantHooksPath,
+        content: this.currentMsgContent,
+      });
+      if (messages.length > 0) {
+        this.enqueueMessages(messages);
+        void this.writeQueueOperationsToSession(messages);
+      }
+    } catch (error) {
+      console.warn('[AcpAgentManager] onAgentResponse hooks failed:', error);
     }
   }
 

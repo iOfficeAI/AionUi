@@ -169,7 +169,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ messagesJson, chunksJso
   );
 
   return (
-    <div className='fixed inset-0 z-1000 flex items-start justify-center pt-80px' onClick={onClose}>
+    <div className='fixed inset-0 z-1000 flex items-start justify-center pt-80px bg-black/40' onClick={onClose}>
       <div className='w-600px max-h-500px bg-bg-1 rd-12px shadow-lg border-1px border-solid border-border-2 flex flex-col overflow-hidden' onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>
         {/* Search input */}
         <div className='px-12px py-8px border-b-1px border-b-solid border-b-border-2'>
