@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>A free, open-source, Cowork app with AI Agents</strong><br>
-  <em>Built-in Agent | Zero Setup | Any API Key | Multi-Agent | Remote Access | Cross-Platform | 7×24</em>
+  <em>Built-in Agent | Zero Setup | Any API Key | Multi-Agent | Remote Access | Cross-Platform | 24/7</em>
 </p>
 
 <p align="center">
