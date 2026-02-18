@@ -61,7 +61,7 @@
 | AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access** |
 | AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**        |
 | Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk**         |
-| Scheduled automation            | No                          | **Cron — 7×24 unattended**                     |
+| Scheduled automation            | No                          | **Cron — 24/7 unattended**                     |
 | Multiple AI Agents at once      | No                          | **Claude Code + Gemini + Codex + ...**         |
 | Price                           | Free / Paid                 | **Free & Open Source**                         |
 
@@ -181,7 +181,7 @@ AionUi includes **12 professional assistants** with predefined capabilities, ext
 
 ## Cowork from Anywhere
 
-_Your 7×24 hour AI assistant — access AionUi from any device, anywhere._
+_Your 24/7 AI assistant — access AionUi from any device, anywhere._
 
 - **WebUI Mode** — access via browser from phone, tablet, or any computer. Supports LAN, cross-network, and server deployment. QR code or password login.
 
@@ -209,7 +209,7 @@ _Your 7×24 hour AI assistant — access AionUi from any device, anywhere._
 
 ### **Scheduled Tasks — Cowork on Autopilot**
 
-_Set it up once, the AI agent runs automatically on schedule — truly 7×24 unattended operation._
+_Set it up once, the AI agent runs automatically on schedule — truly 24/7 unattended operation._
 
 - **Natural Language** — tell the agent what to do, just like chatting
 - **Flexible Scheduling** — daily, weekly, monthly, or custom cron expressions
@@ -418,7 +418,7 @@ AionUi is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude 
 | OS            | macOS Only    | macOS / Windows / Linux                          |
 | Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...    |
 | Interaction   | Desktop GUI   | Desktop GUI + WebUI + Telegram / Lark / DingTalk |
-| Automation    | Manual only   | Cron scheduled tasks — 7×24 unattended           |
+| Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended           |
 | Cost          | $100/month    | Free & Open Source                               |
 
 **Deep AI Office Scenario Support:**
