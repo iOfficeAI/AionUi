@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>A free, open-source, Cowork app with AI Agents</strong><br>
-  <em>Built-in Agent | Zero Setup | Any API Key | Multi-Agent | Remote Access | Cross-Platform | 24/7</em>
+  <em>Built-in Agent | Zero Setup | Any API Key | 16+ CLI Agents | Remote Access | Cross-Platform | 24/7</em>
 </p>
 
 <p align="center">
@@ -56,14 +56,16 @@
 
 **AionUi is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
 
-|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                            |
-| :------------------------------ | :-------------------------- | :--------------------------------------------- |
-| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access** |
-| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**        |
-| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk**         |
-| Scheduled automation            | No                          | **Cron — 24/7 unattended**                     |
-| Multiple AI Agents at once      | No                          | **Claude Code + Gemini + Codex + ...**         |
-| Price                           | Free / Paid                 | **Free & Open Source**                         |
+**Multi-Agent Support:** Works with 16+ CLI agents (command-line tools) including Built-in Agent, Claude Code, Codex, Qwen Code, Goose AI, OpenClaw, Augment Code, iFlow CLI, CodeBuddy, Kimi CLI, OpenCode, Factory Droid, GitHub Copilot, Qoder CLI, Mistral Vibe, Nano Bot and more. Auto-detects installed CLI tools and provides a unified interface.
+
+|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                          |
+| :------------------------------ | :-------------------------- | :------------------------------------------------------------------------------------------- |
+| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                               |
+| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                      |
+| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk**                                                       |
+| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                   |
+| Multiple AI Agents at once      | No                          | **Claude Code, Codex, OpenClaw, Qwen Code, and 16+ more — auto-detected, unified interface** |
+| Price                           | Free / Paid                 | **Free & Open Source**                                                                       |
 
 <p align="center">
   <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
