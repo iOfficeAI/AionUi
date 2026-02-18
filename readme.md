@@ -19,8 +19,8 @@
 ---
 
 <p align="center">
-  <strong>Cowork with AI Agents — Install and start working. Built-in agent included, zero setup required.</strong><br>
-  <em>Built-in AI Agent | Any API Key | Multi-Agent Support | Remote Access | Free & Open Source</em>
+  <strong>A free, open-source, Cowork app with AI Agents</strong><br>
+  <em>Built-in Agent | Zero Setup | Any API Key | Multi-Agent | Remote Access | Cross-Platform | 7×24</em>
 </p>
 
 <p align="center">
