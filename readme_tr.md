@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat-group-3.png" target="_blank">WeChat (Çince Grup)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (İngilizce)</a> | <a href="./resources/wechat_group.png" target="_blank">WeChat (Çince Grup)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
