@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>A free, open-source, Cowork app with AI Agents</strong><br>
-  <em>Built-in Agent | Zero Setup | Any API Key | 16+ Agents | Remote Access | Cross-Platform | 24/7</em>
+  <em>Built-in Agent | Zero Setup | Any API Key | 16+ CLI Agents Supported | Remote Access | Cross-Platform | 24/7 Automation</em>
 </p>
 
 <p align="center">
@@ -64,7 +64,7 @@
 | AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                      |
 | Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk**                                                       |
 | Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                   |
-| Multiple AI Agents at once      | No                          | **Claude Code, Codex, OpenClaw, Qwen Code, and 16+ more — auto-detected, unified interface** |
+| Multiple AI Agents at once      | No                          | **Claude Code, Codex, OpenClaw, Qwen Code, and 12+ more — auto-detected, unified interface** |
 | Price                           | Free / Paid                 | **Free & Open Source**                                                                       |
 
 <p align="center">
