@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>A free, open-source, Cowork app with AI Agents</strong><br>
-  <em>Built-in Agent | Zero Setup | Any API Key | 16+ CLI Agents Supported | Remote Access | Cross-Platform | 24/7 Automation</em>
+  <em>Built-in Agent | Zero Setup | Any API Key | Multi-Agents | Remote Access | Cross-Platform | 24/7 Automation</em>
 </p>
 
 <p align="center">
@@ -90,7 +90,7 @@ AionUi ships with a complete AI agent engine. Unlike tools that require you to i
 
 If you already use Claude Code, Codex, or Qwen Code, AionUi auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
 
-**Supported Agents:** Built-in Agent (zero setup) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nano Bot and more
+**Supported Agents:** Built-in Agent (zero setup) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot and more
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
