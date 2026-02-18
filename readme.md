@@ -199,8 +199,6 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
 
 > [Remote Internet Access Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-</details>
-
 ## ✨ Cowork in Action
 
 ### **Scheduled Tasks — Cowork on Autopilot**
@@ -230,28 +228,6 @@ _Set it up once, the AI agent runs automatically on schedule — truly 24/7 unat
 - Weekly sales data aggregation
 - Monthly backup file organization
 - Custom reminder notifications
-
-</details>
-
-<details>
-<summary><strong>🔍 View Complete Format List and Features Details ▶️</strong></summary>
-
-<br>
-
-**Supported Preview Formats:**
-
-- **Documents** - PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
-- **Code** - JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell scripts, and 30+ programming languages
-- **Markup** - Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
-- **Images** - PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
-- **Other** - Diff files (`.diff`, `.patch`)
-
-**Core Features:**
-
-- ✅ **View Results Instantly** - After AI generates files, view preview immediately without switching apps
-- ✅ **Real-time Tracking + Editable** - Automatically tracks file changes, editor and preview sync intelligently; supports real-time editing of Markdown, code, HTML, WYSIWYG
-- ✅ **Multi-Tab Support** - Open multiple files simultaneously, each in its own tab with smart tab management
-- ✅ **Version History** - View and restore historical versions of files (Git-based)
 
 </details>
 
@@ -292,7 +268,7 @@ _10+ formats: PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff — view
 _Batch renaming, automatic organization, smart classification, file merging — the Cowork agent handles it for you._
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Smart File Management" width="800">
+  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
