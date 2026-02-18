@@ -80,8 +80,6 @@ export class PairingService {
     // Emit event for Settings UI
     channelBridge.pairingRequested.emit(request);
 
-    console.log(`[PairingService] Generated code ${code} for ${platformType}:${platformUserId}`);
-
     return { code, expiresAt };
   }
 
@@ -188,7 +186,6 @@ export class PairingService {
     // Emit user authorized event
     channelBridge.userAuthorized.emit(user);
 
-    console.log(`[PairingService] Approved pairing for ${request.platformType}:${request.platformUserId}`);
     return { success: true, user };
   }
 
@@ -207,7 +204,6 @@ export class PairingService {
     // Update status
     db.updatePairingRequestStatus(code, 'rejected');
 
-    console.log(`[PairingService] Rejected pairing code ${code}`);
     return { success: true };
   }
 

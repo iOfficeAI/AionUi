@@ -33,6 +33,11 @@ export class CodexEventHandler {
   private processCodexEvent(msg: CodexEventMsg) {
     const type = msg.type;
 
+    // Debug: log all event types except high-frequency deltas
+    if (type !== 'agent_message_delta' && type !== 'agent_reasoning_delta' && type !== 'agent_reasoning') {
+      console.log(`[CodexEventHandler] event: ${type}`);
+    }
+
     //agent_reasoning 因为有 agent_reasoning_delta，所以忽略
     if (type === 'agent_reasoning') {
       return;
@@ -176,18 +181,19 @@ export class CodexEventHandler {
 
     // Check ApprovalStore for cached rejection first
     if (this.messageEmitter.checkExecRejection?.(command, cwd)) {
-      // Auto-reject without showing dialog
+      console.log(`[CodexEventHandler] exec auto-rejected by ApprovalStore: ${unifiedRequestId}`);
       this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
       return;
     }
 
     // Check ApprovalStore for cached approval
     if (this.messageEmitter.checkExecApproval?.(command, cwd)) {
-      // Auto-confirm without showing dialog
+      console.log(`[CodexEventHandler] exec auto-approved by ApprovalStore: ${unifiedRequestId}`);
       this.messageEmitter.autoConfirm?.(unifiedRequestId, 'allow_always');
       return;
     }
 
+    console.log(`[CodexEventHandler] exec needs confirmation: ${unifiedRequestId}, command=${Array.isArray(command) ? command.join(' ') : command}`);
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
     const description = msg.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(msg.command) ? msg.command.join(' ') : msg.command}`;
@@ -248,18 +254,19 @@ export class CodexEventHandler {
 
     // Check ApprovalStore for cached rejection first
     if (files.length > 0 && this.messageEmitter.checkPatchRejection?.(files)) {
-      // Auto-reject without showing dialog
+      console.log(`[CodexEventHandler] patch auto-rejected by ApprovalStore: ${unifiedRequestId}, files=${files.join(', ')}`);
       this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
       return;
     }
 
     // Check ApprovalStore for cached approval
     if (files.length > 0 && this.messageEmitter.checkPatchApproval?.(files)) {
-      // Auto-confirm without showing dialog
+      console.log(`[CodexEventHandler] patch auto-approved by ApprovalStore: ${unifiedRequestId}, files=${files.join(', ')}`);
       this.messageEmitter.autoConfirm?.(unifiedRequestId, 'allow_always');
       return;
     }
 
+    console.log(`[CodexEventHandler] patch needs confirmation: ${unifiedRequestId}, files=${files.join(', ')}`);
     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
     const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
     const description = msg.message || `${displayInfo.icon} Codex wants to apply proposed code changes`;

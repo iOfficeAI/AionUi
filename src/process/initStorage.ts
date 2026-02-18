@@ -13,7 +13,7 @@ import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { copyDirectoryRecursively, ensureDirectory, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
 // Platform and architecture types (moved from deleted updateConfig)
@@ -523,7 +523,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
-    const enabledByDefault = preset.id === 'cowork';
+    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -584,12 +584,9 @@ const initStorage = async () => {
   await migrateLegacyData();
 
   // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
-  if (!existsSync(getHomePage())) {
-    mkdirSync(getHomePage());
-  }
-  if (!existsSync(getDataPath())) {
-    mkdirSync(getDataPath());
-  }
+  // Use ensureDirectory to handle cases where a regular file blocks the path (#841)
+  ensureDirectory(getHomePage());
+  ensureDirectory(getDataPath());
 
   // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);

@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a>
 </p>
 
 <p align="center">
-  <strong>Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">WeChat (Chinese)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -193,17 +193,13 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
 
 > **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
 
-- **Free Conversation** - Tell AI what to do using natural language, just like chatting normally
-- **Flexible Time Setting** - Daily, weekly, monthly are all possible
-- **Simple and Easy** - Create, modify, enable/disable, delete, view and adjust anytime
-
 <p align="center">
   <img src="./resources/remote-telegram.png" alt="Cowork from Anywhere" width="800">
 </p>
 
 > [Remote Internet Access Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
----
+</details>
 
 ## ✨ Cowork in Action
 
@@ -234,6 +230,28 @@ _Set it up once, the AI agent runs automatically on schedule — truly 24/7 unat
 - Weekly sales data aggregation
 - Monthly backup file organization
 - Custom reminder notifications
+
+</details>
+
+<details>
+<summary><strong>🔍 View Complete Format List and Features Details ▶️</strong></summary>
+
+<br>
+
+**Supported Preview Formats:**
+
+- **Documents** - PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
+- **Code** - JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell scripts, and 30+ programming languages
+- **Markup** - Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
+- **Images** - PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
+- **Other** - Diff files (`.diff`, `.patch`)
+
+**Core Features:**
+
+- ✅ **View Results Instantly** - After AI generates files, view preview immediately without switching apps
+- ✅ **Real-time Tracking + Editable** - Automatically tracks file changes, editor and preview sync intelligently; supports real-time editing of Markdown, code, HTML, WYSIWYG
+- ✅ **Multi-Tab Support** - Open multiple files simultaneously, each in its own tab with smart tab management
+- ✅ **Version History** - View and restore historical versions of files (Git-based)
 
 </details>
 
@@ -421,7 +439,7 @@ AionUi is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude 
 | Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended           |
 | Cost          | $100/month    | Free & Open Source                               |
 
-**Deep AI Office Scenario Support:**
+Deep AI Office Scenario Support:
 
 - **File Management**: Intelligently organize local folders and batch rename with one click.
 - **Data Processing**: Deeply analyze and automatically beautify Excel reports.

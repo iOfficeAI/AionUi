@@ -5,30 +5,15 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { channel } from '@/common/ipcBridge';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
+import { acpConversation, channel } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
+import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
+import type { AcpBackendAll } from '@/types/acpTypes';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-/**
- * Get available primary models for a provider (supports function calling)
- */
-const getAvailableModels = (provider: IProvider): string[] => {
-  const result: string[] = [];
-  for (const modelName of provider.model || []) {
-    const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
-    const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
-
-    if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
-      result.push(modelName);
-    }
-  }
-  return result;
-};
 
 /**
  * Preference row component
@@ -61,34 +46,13 @@ const SectionHeader: React.FC<{ title: string; action?: React.ReactNode }> = ({ 
   </div>
 );
 
-/**
- * Status badge component
- */
-const StatusBadge: React.FC<{ status: 'running' | 'stopped' | 'error' | string; text?: string }> = ({ status, text }) => {
-  const colors = {
-    running: 'bg-green-500/20 text-green-600',
-    stopped: 'bg-gray-500/20 text-gray-500',
-    error: 'bg-red-500/20 text-red-600',
-  };
-
-  const defaultTexts = {
-    running: 'Running',
-    stopped: 'Stopped',
-    error: 'Error',
-  };
-
-  return <span className={`px-8px py-2px rd-4px text-12px ${colors[status as keyof typeof colors] || colors.stopped}`}>{text || defaultTexts[status as keyof typeof defaultTexts] || status}</span>;
-};
-
 interface TelegramConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
-  modelList: IProvider[];
-  selectedModel: TProviderWithModel | null;
+  modelSelection: GeminiModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
-  onModelChange: (model: TProviderWithModel | null) => void;
 }
 
-const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelList, selectedModel, onStatusChange, onModelChange }) => {
+const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t } = useTranslation();
 
   const [telegramToken, setTelegramToken] = useState('');
@@ -99,6 +63,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
+
+  // Agent selection (used for Telegram conversations)
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean }>>([]);
+  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>({ backend: 'gemini' });
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -135,6 +103,45 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     void loadPendingPairings();
     void loadAuthorizedUsers();
   }, [loadPendingPairings, loadAuthorizedUsers]);
+
+  // Load available agents + saved selection
+  useEffect(() => {
+    const loadAgentsAndSelection = async () => {
+      try {
+        const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.telegram.agent')]);
+
+        if (agentsResp.success && agentsResp.data) {
+          const list = agentsResp.data.filter((a) => !a.isPreset).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset }));
+          setAvailableAgents(list);
+        }
+
+        if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
+          setSelectedAgent({
+            backend: (saved as any).backend as AcpBackendAll,
+            customAgentId: (saved as any).customAgentId,
+            name: (saved as any).name,
+          });
+        } else if (typeof saved === 'string') {
+          setSelectedAgent({ backend: saved as AcpBackendAll });
+        }
+      } catch (error) {
+        console.error('[TelegramConfig] Failed to load agents:', error);
+      }
+    };
+
+    void loadAgentsAndSelection();
+  }, []);
+
+  const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
+    try {
+      await ConfigStorage.set('assistant.telegram.agent', agent);
+      await channel.syncChannelSettings.invoke({ platform: 'telegram', agent }).catch(() => {});
+      Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
+    } catch (error) {
+      console.error('[TelegramConfig] Failed to save agent:', error);
+      Message.error(t('common.saveFailed', 'Failed to save'));
+    }
+  };
 
   // Listen for pairing requests
   useEffect(() => {
@@ -224,22 +231,6 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     setTestedBotUsername(null);
   };
 
-  // Save model selection
-  const handleModelSelect = async (provider: IProvider, modelName: string) => {
-    const newModel: TProviderWithModel = { ...provider, useModel: modelName };
-    onModelChange(newModel);
-    try {
-      await ConfigStorage.set('assistant.telegram.defaultModel', {
-        id: provider.id,
-        useModel: modelName,
-      });
-      Message.success(t('settings.assistant.modelSaved', 'Model saved'));
-    } catch (error) {
-      console.error('[ChannelSettings] Failed to save model:', error);
-      Message.error(t('settings.assistant.modelSaveFailed', 'Failed to save model'));
-    }
-  };
-
   // Approve pairing
   const handleApprovePairing = async (code: string) => {
     try {
@@ -303,58 +294,79 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     return `${remaining} min`;
   };
 
+  const isGeminiAgent = selectedAgent.backend === 'gemini';
+  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+
   return (
     <div className='flex flex-col gap-24px'>
       <PreferenceRow label={t('settings.assistant.botToken', 'Bot Token')} description={t('settings.assistant.botTokenDesc', 'Open Telegram, find @BotFather and send /newbot to get your Bot Token.')}>
         <div className='flex items-center gap-8px'>
-          <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
-          <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
-            {t('settings.assistant.testConnection', 'Test')}
-          </Button>
+          {authorizedUsers.length > 0 ? (
+            <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+              <span>
+                <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
+              </span>
+            </Tooltip>
+          ) : (
+            <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
+          )}
+          {authorizedUsers.length > 0 ? (
+            <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+              <span>
+                <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
+                  {t('settings.assistant.testConnection', 'Test')}
+                </Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
+              {t('settings.assistant.testConnection', 'Test')}
+            </Button>
+          )}
         </div>
       </PreferenceRow>
 
-      <PreferenceRow label={t('settings.assistant.defaultModel', 'Default Model')} description={t('settings.assistant.defaultModelDesc', 'Model used for Telegram conversations')}>
-        <Dropdown
-          trigger='click'
-          position='br'
-          droplist={
-            <Menu selectedKeys={selectedModel ? [selectedModel.id + selectedModel.useModel] : []}>
-              {!modelList || modelList.length === 0 ? (
-                <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center' disabled>
-                  {t('settings.assistant.noAvailableModels', 'No Gemini models configured')}
-                </Menu.Item>
-              ) : (
-                modelList.map((provider) => {
-                  const availableModels = getAvailableModels(provider);
-                  if (availableModels.length === 0) return null;
+      {/* Agent Selection */}
+      <div className='flex flex-col gap-8px'>
+        <PreferenceRow label={t('settings.agent', 'Agent')} description={t('settings.assistant.agentDescTelegram', 'Used for Telegram conversations')}>
+          <Dropdown
+            trigger='click'
+            position='br'
+            droplist={
+              <Menu selectedKeys={[selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend]}>
+                {agentOptions.map((a) => {
+                  const key = a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend;
                   return (
-                    <Menu.ItemGroup title={provider.name} key={provider.id}>
-                      {availableModels.map((modelName) => (
-                        <Menu.Item
-                          key={provider.id + modelName}
-                          className={selectedModel?.id + selectedModel?.useModel === provider.id + modelName ? '!bg-fill-2' : ''}
-                          onClick={() => {
-                            handleModelSelect(provider, modelName).catch((error) => {
-                              console.error('Failed to select model:', error);
-                            });
-                          }}
-                        >
-                          {modelName}
-                        </Menu.Item>
-                      ))}
-                    </Menu.ItemGroup>
+                    <Menu.Item
+                      key={key}
+                      onClick={() => {
+                        const currentKey = selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend;
+                        if (key === currentKey) {
+                          return;
+                        }
+                        const next = { backend: a.backend, customAgentId: a.customAgentId, name: a.name };
+                        setSelectedAgent(next);
+                        void persistSelectedAgent(next);
+                      }}
+                    >
+                      {a.name}
+                    </Menu.Item>
                   );
-                })
-              )}
-            </Menu>
-          }
-        >
-          <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-            <span className='truncate'>{selectedModel?.useModel || t('settings.assistant.selectModel', 'Select Model')}</span>
-            <Down theme='outline' size={14} />
-          </Button>
-        </Dropdown>
+                })}
+              </Menu>
+            }
+          >
+            <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
+              <span className='truncate'>{selectedAgent.name || availableAgents.find((a) => (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) === (selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend))?.name || selectedAgent.backend}</span>
+              <Down theme='outline' size={14} />
+            </Button>
+          </Dropdown>
+        </PreferenceRow>
+      </div>
+
+      {/* Default Model Selection */}
+      <PreferenceRow label={t('settings.assistant.defaultModel', '对话模型')} description={t('settings.assistant.defaultModelDesc', '用于Agent对话时调用')}>
+        <GeminiModelSelector selection={isGeminiAgent ? modelSelection : undefined} disabled={!isGeminiAgent} label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined} variant='settings' />
       </PreferenceRow>
 
       {/* Next Steps Guide - show when bot is enabled and no authorized users yet */}

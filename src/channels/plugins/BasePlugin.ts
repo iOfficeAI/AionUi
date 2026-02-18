@@ -162,7 +162,6 @@ export abstract class BasePlugin {
    */
   onMessage(handler: PluginMessageHandler): void {
     this.messageHandler = handler;
-    console.log(`[${this.type}Plugin] Message handler registered`);
   }
 
   /**
@@ -172,7 +171,6 @@ export abstract class BasePlugin {
    */
   onConfirm(handler: PluginConfirmHandler): void {
     this.confirmHandler = handler;
-    console.log(`[${this.type}Plugin] Confirm handler registered`);
   }
 
   /**

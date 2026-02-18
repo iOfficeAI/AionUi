@@ -164,11 +164,14 @@ export class CodexAgent {
     let lastError: Error | null = null;
 
     // Prepare arguments based on version
+    // Note: Don't send sandbox parameter - let CLI use its own config/default
+    // Sending sandbox: 'workspace-write' causes CLI to auto-approve within workspace,
+    // preventing approval requests needed for mode switching (default/autoEdit)
     const args: Record<string, unknown> = {
       prompt: initialPrompt || '',
       cwd: cwd || this.workingDir,
-      sandbox: this.sandboxMode, // 强制指定沙盒模式
     };
+    console.log(`[CodexAgent] newSession: yoloMode=${this.yoloMode}, cwd=${cwd || this.workingDir}`);
 
     // Restore web_search_request for older versions (< 0.40.0)
     // Codex CLI 0.40.0+ (mcp-server) handles web_search configuration internally and errors on duplicate field

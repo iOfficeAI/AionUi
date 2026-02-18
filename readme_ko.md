@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>🚀 Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie 등을 기반으로 한 「Cowork」개인 어시스턴트</strong><br>
-  <em>사용자 친화적 | 시각적 그래픽 인터페이스 | 다중 모델 지원 | 로컬 데이터 보안</em>
+  <em>무료 오픈소스 Claude Cowork 대안 | 멀티 에이전트 데스크톱 | 자동화 작업 실행 | 파일 시스템 작업 | 크로스 플랫폼</em>
 </p>
 
 <p align="center">
@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <strong>한국어</strong> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">공식 웹사이트</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <strong>한국어</strong> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">공식 웹사이트</a>
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -60,19 +60,30 @@
 
 ### 🤖 **멀티 에이전트 모드 - 명령줄 AI 도구를 위한 통합 그래픽 인터페이스**
 
-AionUi는 명령줄 AI 도구에 통합 그래픽 인터페이스를 제공합니다. 내장 Gemini CLI 포함, 설정 불필요.
+AionUi는 명령줄 AI 도구에 통합 그래픽 인터페이스를 제공하며, **무료 오픈소스 Claude Cowork 대안**으로 자동화 작업 실행 및 워크플로우 기능을 갖추고 있습니다.
 
-**지원 도구：** Gemini CLI（내장） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
+**지원 도구：** Gemini CLI（내장） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nano Bot 등
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+<details>
+<summary><strong>🔍 핵심 기능 상세 보기 ▶️</strong></summary>
+
+<br>
 
 **주요 기능：**
 
 - ✅ **자동 감지** - 로컬 CLI 도구를 자동으로 인식하고 통합
 - ✅ **통합 인터페이스** - 모든 AI 도구를 하나의 인터페이스로 관리, 명령줄과 작별
 - ✅ **로컬 저장 + 다중 세션** - 대화가 로컬에 저장되고 독립적인 컨텍스트를 가진 다중 병렬 세션 지원
+- ✅ **자동화 작업 실행** - AI 에이전트가 독립적으로 작업을 실행하고, 스크립트를 실행하며, 파일을 읽고 쓰고, 도구를 조작하여 자동으로 작업 완료
+- ✅ **워크플로우 자동화** - Claude Cowork와 유사한 완전한 워크플로우 자동화 기능, 파일 시스템 작업 및 작업 자동 완료 지원
+
+> 💡 **Claude Cowork 오픈소스 대안을 찾고 계신가요?** AionUi는 멀티 에이전트 지원, 자동화 워크플로우, 크로스 플랫폼 호환성을 갖춘 최고의 무료 대안입니다。
+
+</details>
 
 ---
 
@@ -100,7 +111,7 @@ AionUi는 두 가지 원격 접속 방법을 제공합니다：
   > 💡 **설정 방법：** AionUi 설정 → WebUI 설정 → Channel으로 이동하여 [@BotFather](https://t.me/BotFather)에서 Bot Token을 가져온 후 채팅을 시작하세요!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="어디서나 접속 - WebUI 및 채팅 플랫폼" width="800">
+  <img src="./resources/remote-telegram%20copy.png" alt="어디서나 접속 - WebUI 및 채팅 플랫폼" width="800">
 </p>
 
 ---
@@ -129,17 +140,27 @@ _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합_
 - **효율적인 일괄 처리**: 원클릭 이름 변경, 파일 병합으로 번거로운 수동 작업과 작별합니다.
 
 <p align="center">
-  <img src="./resources/aionui%20sort%20file.gif" alt="스마트 파일 관리 데모" width="800">
+  <img src="./resources/aionui%20sort%20file%202.gif" alt="스마트 파일 관리 데모" width="800">
 </p>
 
 ---
 
 ### 📄 **미리보기 패널 - AI 생성 결과 빠르게 확인**
 
-_9가지 이상의 형식을 시각적으로 미리보기 지원 (PDF, Word, Excel, PPT, 코드, Markdown, 이미지, HTML, Diff 등)_
+_포괄적인 파일 미리보기 시스템, 10+ 형식 지원, 실시간 편집 기능 제공_
+
+**지원되는 미리보기 형식:**
+
+- **문서류**: PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
+- **코드류**: JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell 스크립트 등 30+ 프로그래밍 언어
+- **마크업류**: Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
+- **이미지류**: PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
+- **기타**: Diff 파일 (`.diff`, `.patch`)
 
 - ✅ **즉시 결과 확인** - AI가 파일을 생성하면 앱을 전환하지 않고 바로 미리보기
 - ✅ **실시간 추적 + 편집 가능** - 파일 변경 자동 추적, 편집기와 미리보기 스마트 동기화; Markdown, 코드, HTML 실시간 편집 지원
+- ✅ **다중 탭 지원** - 여러 파일을 동시에 열기, 각 파일이 독립적인 탭, 스마트 탭 관리
+- ✅ **버전 기록** - 파일의 이전 버전 보기 및 복원 (Git 기반)
 
 <p align="center">
   <img src="./resources/preview.gif" alt="미리보기 패널 데모" width="800">
@@ -206,7 +227,7 @@ AionUi는 이러한 명령줄 도구에 통합된 **Cowork 기능**을 제공합
 - 🖥️ **크로스 플랫폼** - macOS, Windows, Linux 전체 플랫폼 지원 (Claude Cowork는 현재 macOS만 지원)
 - 🌐 **원격 접속** - 당신의 원격 24/7 어시스턴트, 언제 어디서나 접속 가능하며 완전 무료
 - 🔄 **다중 모델 전환** - 같은 인터페이스에서 다른 모델로 유연하게 전환, 다양한 작업 요구 충족
-- 📄 **실시간 미리보기** - 9가지 이상의 형식 시각적 미리보기, AI가 생성한 파일 즉시 확인
+- 📄 **실시간 미리보기** - 10+ 형식 시각적 미리보기, AI가 생성한 파일 즉시 확인
 - 💾 **로컬 데이터 보안** - 모든 대화와 파일이 로컬에 저장, 데이터가 기기를 떠나지 않음
 
 ---
@@ -215,7 +236,7 @@ AionUi는 이러한 명령줄 도구에 통합된 **Cowork 기능**을 제공합
 
 <details>
 <summary><strong>Q: AionUi가 Claude Cowork의 좋은 대안인 이유는?</strong></summary>
-A: AionUi는 **무료 오픈소스** **Multi-AI Agent Desktop**입니다. macOS에서만 실행되고 Claude에만 묶여 있는 공식 Cowork와 비교하여, AionUi는 **전체 모델, 크로스 플랫폼 강화 버전**이며, **AI 오피스 자동화** 시나리오를 깊이 다룹니다.
+A: AionUi는 최고의 무료 오픈소스 Claude Cowork 대안 - Multi-AI Agent Desktop으로 완전한 Claude Cowork 오픈소스 대안 기능을 제공합니다. macOS에서만 실행되고 Claude에만 묶여 있는 공식 Cowork와 비교하여, AionUi는 전체 모델, 크로스 플랫폼 강화 버전이며, AI 오피스 자동화 시나리오를 깊이 다루며 자동화 작업 실행, 파일 시스템 작업, 워크플로우 자동화 기능을 갖추고 있습니다.
 
 | 차원      | Claude Cowork | AionUi (이 프로젝트)                        |
 | :-------- | :------------ | :------------------------------------------ |
@@ -224,17 +245,17 @@ A: AionUi는 **무료 오픈소스** **Multi-AI Agent Desktop**입니다. macOS�
 | 인터랙션  | GUI           | 🖥️ 전체 GUI + WebUI 원격 접속               |
 | 비용      | 구독 $100/월  | 🆓 완전 무료 오픈소스                       |
 
-**깊은 AI 오피스 시나리오 지원:**
+깊은 AI 오피스 시나리오 지원:
 
-- **파일 관리**: 지저분한 로컬 폴더를 지능적으로 정리하고 원클릭 일괄 이름 변경.
-- **데이터 처리**: Excel 보고서를 깊이 분석하고 자동으로 아름답게.
-- **문서 생성**: PPT, Word, Markdown 문서를 자동으로 작성하고 형식 지정.
-- **즉시 미리보기**: 내장 9가지 이상의 형식 미리보기 패널로 AI 오피스 협업 결과를 즉시 확인.
+- 파일 관리: 지저분한 로컬 폴더를 지능적으로 정리하고 원클릭 일괄 이름 변경.
+- 데이터 처리: Excel 보고서를 깊이 분석하고 자동으로 아름답게.
+- 문서 생성: PPT, Word, Markdown 문서를 자동으로 작성하고 형식 지정.
+- 즉시 미리보기: 내장 10+ 형식 미리보기 패널로 AI 오피스 협업 결과를 즉시 확인.
 </details>
 
 <details>
 <summary><strong>Q: AionUi로 무엇을 할 수 있나요?</strong></summary>
-A: **개인 Cowork 작업 공간**이 될 수 있습니다. 폴더 일괄 정리, Excel 깊은 아름답게, 실시간 웹 코드 미리보기를 도와줄 수 있습니다. 오피스 자동화 워크플로우를 탐색하고 Claude Code 또는 Gemini CLI 경험을 향상시키는 최고의 그래픽 선택입니다.
+A: 개인 Cowork 작업 공간이 될 수 있습니다. 폴더 일괄 정리, Excel 깊은 아름답게, 실시간 웹 코드 미리보기를 도와줄 수 있습니다. 오피스 자동화 워크플로우를 탐색하고 Claude Code 또는 Gemini CLI 경험을 향상시키는 최고의 그래픽 선택입니다.
 </details>
 
 <details>
@@ -280,6 +301,12 @@ _크리에이터들이 AionUi를 리뷰하고 사용하는 모습을 시청하�
 </p>
 
 > 💡 **AionUi에 대한 영상을 만드셨나요?** [X에서 알려주세요](https://x.com/AionUi), 여기에 소개해 드립니다! 여러분의 피드백을 반영하여 지속적으로 개선하겠습니다.
+
+### 📰 커뮤니티 기사
+
+- [🔥 폭발적! 오픈소스 무료 버전 Cowork, 전체 모델 통합 + 파일 자율 작업, AI 오피스워크 재정의.](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — 오픈소스 AI 프로젝트 착지
+- [일반인도 APP처럼 Claude Code를 사용할 수 있게 하기, ACP 프로토콜이란 무엇인가](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — 게으른 고양이는 물고기를 좋아함
+- [5500 스타: 오픈소스가 Anthropic의 AI 도구 호를 어떻게 움직이는가](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI 실리콘 순간
 
 ---
 
@@ -365,7 +392,7 @@ brew install aionui
 - [🐛 문제 보고](https://github.com/iOfficeAI/AionUi/issues) - 버그 또는 기능 요청 보고
 - [📦 릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) - 최신 버전 받기
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Discord에서 영어 커뮤니티에 가입하세요**
-- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **QR 코드 보기**
+- [💬 微信 (中文群)](./resources/wechat_group.png) - **QR 코드 보기**
 
 ### 🤝 기여하기
 

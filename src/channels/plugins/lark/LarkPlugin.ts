@@ -47,8 +47,6 @@ export class LarkPlugin extends BasePlugin {
     const appId = config.credentials?.appId;
     const appSecret = config.credentials?.appSecret;
 
-    console.log(`[LarkPlugin] onInitialize called, hasAppId=${!!appId}, hasAppSecret=${!!appSecret}, pluginId=${config.id}`);
-
     if (!appId || !appSecret) {
       throw new Error('Lark App ID and App Secret are required');
     }
@@ -62,7 +60,6 @@ export class LarkPlugin extends BasePlugin {
     });
 
     this.botInfo = { appId };
-    console.log(`[LarkPlugin] Client instance created for app ${appId}`);
   }
 
   /**
@@ -87,8 +84,6 @@ export class LarkPlugin extends BasePlugin {
       // Get bot info
       // Note: Lark doesn't have a direct "getMe" API like Telegram
       // Bot info is configured in the app settings
-      console.log(`[LarkPlugin] Starting bot for app ${appId}`);
-
       // Get optional security config
       const encryptKey = this.config?.credentials?.encryptKey;
       const verificationToken = this.config?.credentials?.verificationToken;
@@ -108,21 +103,13 @@ export class LarkPlugin extends BasePlugin {
         appId,
         appSecret,
         domain: lark.Domain.Feishu,
-        loggerLevel: lark.LoggerLevel.debug, // Enable debug logging
+        loggerLevel: lark.LoggerLevel.info,
       });
 
-      console.log(`[LarkPlugin] WSClient created with debug logging enabled`);
-
       // Start WebSocket connection with event dispatcher
-      // Note: wsClient.start() may not resolve immediately, the 'client ready' log from SDK indicates success
-      console.log(`[LarkPlugin] Starting WebSocket connection for app ${appId}...`);
-
       this.wsClient
         .start({
           eventDispatcher: this.eventDispatcher,
-        })
-        .then(() => {
-          console.log(`[LarkPlugin] WebSocket start() promise resolved`);
         })
         .catch((err: unknown) => {
           console.error(`[LarkPlugin] WebSocket start() error:`, err);
@@ -133,7 +120,7 @@ export class LarkPlugin extends BasePlugin {
       // Start event cache cleanup timer
       this.startEventCleanup();
 
-      console.log(`[LarkPlugin] WebSocket connection initiated for app ${appId}`);
+      console.log(`[LarkPlugin] Started for app ${appId}`);
     } catch (error) {
       console.error('[LarkPlugin] Failed to start:', error);
       throw error;
@@ -210,8 +197,6 @@ export class LarkPlugin extends BasePlugin {
     const { contentType, content, rawText } = toLarkSendParams(message);
     const receiveIdType = this.getReceiveIdType(chatId);
 
-    console.log(`[LarkPlugin] sendMessage: contentType=${contentType}, chatId=${chatId}, receiveIdType=${receiveIdType}`);
-
     // Handle text messages - send as card for streaming support
     // Lark only allows editing card messages, not text messages
     if (contentType === 'text' && rawText !== undefined) {
@@ -230,9 +215,7 @@ export class LarkPlugin extends BasePlugin {
           },
         });
 
-        const messageId = response.data?.message_id || '';
-        console.log(`[LarkPlugin] Sent card message (for text), messageId=${messageId}`);
-        return messageId;
+        return response.data?.message_id || '';
       } catch (error) {
         console.error('[LarkPlugin] Failed to send card message:', error);
         throw error;
@@ -252,9 +235,7 @@ export class LarkPlugin extends BasePlugin {
         },
       });
 
-      const messageId = response.data?.message_id || '';
-      console.log(`[LarkPlugin] Sent ${contentType} message, messageId=${messageId}`);
-      return messageId;
+      return response.data?.message_id || '';
     } catch (error) {
       console.error('[LarkPlugin] Failed to send message:', error);
       throw error;
@@ -292,8 +273,6 @@ export class LarkPlugin extends BasePlugin {
 
     const { contentType, content, rawText } = toLarkSendParams(message);
 
-    console.log(`[LarkPlugin] editMessage: contentType=${contentType}, messageId=${messageId}`);
-
     try {
       let cardContent: Record<string, unknown>;
 
@@ -318,8 +297,6 @@ export class LarkPlugin extends BasePlugin {
           content: JSON.stringify(cardContent),
         },
       });
-
-      console.log(`[LarkPlugin] Message edited successfully: ${messageId}`);
     } catch (error: any) {
       // Ignore common errors
       const errorCode = error?.response?.data?.code || error?.code;
@@ -327,7 +304,6 @@ export class LarkPlugin extends BasePlugin {
 
       // Ignore "message not changed" or "not modified" errors
       if (errorCode === 230002 || errorMsg.includes('not modified')) {
-        console.log(`[LarkPlugin] Message not modified (same content): ${messageId}`);
         return;
       }
 
@@ -348,20 +324,16 @@ export class LarkPlugin extends BasePlugin {
   private setupEventHandlers(): void {
     if (!this.eventDispatcher) return;
 
-    console.log(`[LarkPlugin] Setting up event handlers...`);
-
     // Register event handlers on the EventDispatcher
     this.eventDispatcher.register({
       // Handle incoming messages
       'im.message.receive_v1': async (data: Record<string, unknown>) => {
-        console.log(`[LarkPlugin] Received im.message.receive_v1 event:`, JSON.stringify(data, null, 2));
         await this.handleMessageEvent({ event: data });
       },
 
       // Handle card action callbacks (button clicks)
       // Event name: card.action.trigger
       'card.action.trigger': async (data: Record<string, unknown>) => {
-        console.log(`[LarkPlugin] Received card.action.trigger event:`, JSON.stringify(data, null, 2));
         // Don't await - process in background to avoid 200340 timeout
         // Lark requires immediate response within 3 seconds
         void this.handleCardAction({ event: data });
@@ -372,12 +344,9 @@ export class LarkPlugin extends BasePlugin {
       // Handle bot menu clicks (custom menu in chat)
       // Event name: application.bot.menu_v6
       'application.bot.menu_v6': async (data: Record<string, unknown>) => {
-        console.log(`[LarkPlugin] Received application.bot.menu_v6 event:`, JSON.stringify(data, null, 2));
         await this.handleBotMenuEvent({ event: data });
       },
     });
-
-    console.log(`[LarkPlugin] Event handlers registered`);
   }
 
   /**
@@ -396,7 +365,6 @@ export class LarkPlugin extends BasePlugin {
       // Event deduplication - use message_id as unique identifier
       const eventId = message.message_id;
       if (eventId && this.isEventProcessed(eventId)) {
-        console.log(`[LarkPlugin] Duplicate message event ignored: ${eventId}`);
         return;
       }
       if (eventId) {
@@ -423,14 +391,11 @@ export class LarkPlugin extends BasePlugin {
               type: buttonAction.type as 'system' | 'platform' | 'chat',
               name: buttonAction.action,
             };
-            console.log(`[LarkPlugin] Menu button command detected: ${buttonAction.action}`);
           }
         }
 
         // Process in background to avoid blocking
-        void this.messageHandler(unifiedMessage)
-          .then(() => console.log(`[LarkPlugin] Message handled successfully`))
-          .catch((error) => console.error(`[LarkPlugin] Error handling message:`, error));
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling message:`, error));
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing message event:', error);
@@ -463,8 +428,6 @@ export class LarkPlugin extends BasePlugin {
       const eventKey = event?.event?.event_key;
       const timestamp = event?.event?.timestamp;
 
-      console.log(`[LarkPlugin] Bot menu event: eventKey=${eventKey}, operator=`, operator);
-
       if (!operator || !eventKey) {
         console.warn('[LarkPlugin] Invalid bot menu event:', event);
         return;
@@ -473,7 +436,6 @@ export class LarkPlugin extends BasePlugin {
       // Event deduplication - use timestamp + eventKey as unique identifier
       const eventId = `menu_${eventKey}_${timestamp}`;
       if (this.isEventProcessed(eventId)) {
-        console.log(`[LarkPlugin] Duplicate bot menu event ignored: ${eventId}`);
         return;
       }
       this.markEventProcessed(eventId);
@@ -497,8 +459,6 @@ export class LarkPlugin extends BasePlugin {
         return;
       }
 
-      console.log(`[LarkPlugin] Bot menu action detected: ${buttonAction.action}`);
-
       // Build unified message for action
       const unifiedMessage = {
         id: eventId,
@@ -521,9 +481,7 @@ export class LarkPlugin extends BasePlugin {
       };
 
       if (this.messageHandler) {
-        void this.messageHandler(unifiedMessage)
-          .then(() => console.log(`[LarkPlugin] Bot menu action handled: ${buttonAction.action}`))
-          .catch((error) => console.error(`[LarkPlugin] Error handling bot menu action:`, error));
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling bot menu action:`, error));
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing bot menu event:', error);
@@ -546,7 +504,6 @@ export class LarkPlugin extends BasePlugin {
 
       // Event deduplication - use event token as unique identifier
       if (eventToken && this.isEventProcessed(eventToken)) {
-        console.log(`[LarkPlugin] Duplicate card action event ignored: ${eventToken}`);
         return;
       }
       if (eventToken) {
@@ -566,9 +523,7 @@ export class LarkPlugin extends BasePlugin {
       // Convert to unified message with action
       const unifiedMessage = toUnifiedIncomingMessage(event, actionInfo);
       if (unifiedMessage && this.messageHandler) {
-        void this.messageHandler(unifiedMessage)
-          .then(() => console.log(`[LarkPlugin] Card action handled: ${actionInfo.name}`))
-          .catch((error) => console.error(`[LarkPlugin] Error handling card action:`, error));
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling card action:`, error));
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing card action:', error);
@@ -586,8 +541,6 @@ export class LarkPlugin extends BasePlugin {
 
     try {
       // The SDK handles token refresh internally
-      // We just need to make sure it's initialized
-      console.log('[LarkPlugin] Access token refreshed');
     } catch (error) {
       console.error('[LarkPlugin] Failed to refresh access token:', error);
       throw error;
@@ -647,17 +600,11 @@ export class LarkPlugin extends BasePlugin {
    */
   private cleanupOldEvents(): void {
     const now = Date.now();
-    let cleaned = 0;
 
     for (const [eventId, timestamp] of this.processedEvents.entries()) {
       if (now - timestamp > EVENT_CACHE_TTL) {
         this.processedEvents.delete(eventId);
-        cleaned++;
       }
-    }
-
-    if (cleaned > 0) {
-      console.log(`[LarkPlugin] Cleaned up ${cleaned} old event entries, remaining: ${this.processedEvents.size}`);
     }
   }
 

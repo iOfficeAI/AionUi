@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/types/acpTypes';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -75,10 +75,33 @@ export interface IConfigStorageRefer {
     id: string;
     useModel: string;
   };
+  // Telegram assistant agent selection / Telegram 助手所使用的 Agent
+  'assistant.telegram.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
   // Lark assistant default model / Lark 助手默认模型
   'assistant.lark.defaultModel'?: {
     id: string;
     useModel: string;
+  };
+  // Lark assistant agent selection / Lark 助手所使用的 Agent
+  'assistant.lark.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
+  // DingTalk assistant default model / DingTalk 助手默认模型
+  'assistant.dingtalk.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
+  // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
+  'assistant.dingtalk.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
   };
 }
 
@@ -93,7 +116,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk';
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -107,6 +130,8 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
+  /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
+  channelChatId?: string;
 }
 
 // Token 使用统计数据类型
@@ -130,6 +155,8 @@ export type TChatConversation =
         enabledSkills?: string[];
         /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
         presetAssistantId?: string;
+        /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+        sessionMode?: string;
       }
     >
   | Omit<
@@ -151,6 +178,8 @@ export type TChatConversation =
           acpSessionId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
+          /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+          sessionMode?: string;
         }
       >,
       'model'
@@ -168,6 +197,8 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
+          /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+          sessionMode?: string;
         }
       >,
       'model'
@@ -177,6 +208,8 @@ export type TChatConversation =
         'openclaw-gateway',
         {
           workspace?: string;
+          backend?: AcpBackendAll;
+          agentName?: string;
           customWorkspace?: boolean;
           /** Gateway configuration */
           gateway?: {
@@ -189,6 +222,16 @@ export type TChatConversation =
           };
           /** Session key for resume */
           sessionKey?: string;
+          /** Runtime validation snapshot used for post-switch strong checks */
+          runtimeValidation?: {
+            expectedWorkspace?: string;
+            expectedBackend?: string;
+            expectedAgentName?: string;
+            expectedCliPath?: string;
+            expectedModel?: string;
+            expectedIdentityHash?: string | null;
+            switchedAt?: number;
+          };
           /** 启用的 skills 列表 / Enabled skills list */
           enabledSkills?: string[];
           /** 预设助手 ID / Preset assistant ID */

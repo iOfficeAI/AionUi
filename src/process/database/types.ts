@@ -74,7 +74,8 @@ export interface IConversationRow {
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
-  source?: 'aionui' | 'telegram' | 'lark'; // 会话来源 / Conversation source
+  source?: 'aionui' | 'telegram' | 'lark' | 'dingtalk'; // 会话来源 / Conversation source
+  channel_chat_id?: string; // Channel chat isolation ID (e.g. user:xxx or group:xxx)
   created_at: number;
   updated_at: number;
 }
@@ -121,6 +122,7 @@ export function conversationToRow(conversation: TChatConversation, userId: strin
     model: 'model' in conversation ? JSON.stringify(conversation.model) : undefined,
     status: conversation.status,
     source: conversation.source,
+    channel_chat_id: conversation.channelChatId,
     created_at: conversation.createTime,
     updated_at: conversation.modifyTime,
   };
@@ -138,6 +140,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     modifyTime: row.updated_at,
     status: row.status,
     source: row.source,
+    channelChatId: row.channel_chat_id,
   };
 
   // Gemini type has model field

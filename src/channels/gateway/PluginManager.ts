@@ -8,6 +8,7 @@ import { channel as channelBridge } from '@/common/ipcBridge';
 import { getDatabase } from '@/process/database';
 import type { SessionManager } from '../core/SessionManager';
 import type { BasePlugin, PluginMessageHandler, PluginConfirmHandler } from '../plugins/BasePlugin';
+import { hasPluginCredentials } from '../types';
 import type { IChannelPluginConfig, IChannelPluginStatus, IUnifiedIncomingMessage, PluginType } from '../types';
 
 // Plugin registry - maps plugin types to their constructors
@@ -21,7 +22,6 @@ const pluginRegistry: Map<PluginType, PluginConstructor> = new Map();
  */
 export function registerPlugin(type: PluginType, constructor: PluginConstructor): void {
   pluginRegistry.set(type, constructor);
-  console.log(`[PluginManager] Registered plugin type: ${type}`);
 }
 
 /**
@@ -124,7 +124,6 @@ export class PluginManager {
 
     // Check if plugin is already running
     if (this.plugins.has(id)) {
-      console.log(`[PluginManager] Plugin ${id} is already running`);
       return;
     }
 
@@ -199,8 +198,6 @@ export class PluginManager {
 
     // Emit status change event
     this.emitStatusChange(id, plugin);
-
-    console.log(`[PluginManager] Plugin ${id} started successfully`);
   }
 
   /**
@@ -209,7 +206,6 @@ export class PluginManager {
   async stopPlugin(pluginId: string): Promise<void> {
     const plugin = this.plugins.get(pluginId);
     if (!plugin) {
-      console.log(`[PluginManager] Plugin ${pluginId} is not running`);
       return;
     }
 
@@ -225,8 +221,6 @@ export class PluginManager {
 
     // Emit status change event
     this.emitStatusChange(pluginId, plugin);
-
-    console.log(`[PluginManager] Plugin ${pluginId} stopped`);
   }
 
   /**
@@ -263,14 +257,6 @@ export class PluginManager {
     // 从插件实例或错误缓存中获取错误
     const errorMessage = plugin?.error ?? this.pluginErrors.get(config.id);
 
-    // Check credentials based on plugin type
-    let hasToken = false;
-    if (config.type === 'lark') {
-      hasToken = !!(config.credentials?.appId && config.credentials?.appSecret);
-    } else {
-      hasToken = !!config.credentials?.token;
-    }
-
     return {
       id: config.id,
       type: config.type,
@@ -282,14 +268,14 @@ export class PluginManager {
       error: errorMessage,
       activeUsers: plugin?.getActiveUserCount() ?? 0,
       botUsername: botInfo?.username,
-      hasToken,
+      hasToken: hasPluginCredentials(config.type, config.credentials),
     };
   }
 
   /**
    * Emit status change event to renderer
    */
-  private emitStatusChange(pluginId: string, plugin: BasePlugin): void {
+  private emitStatusChange(pluginId: string, _plugin: BasePlugin): void {
     const db = getDatabase();
     const configResult = db.getChannelPlugin(pluginId);
 
@@ -315,7 +301,7 @@ export class PluginManager {
       error: errorMessage,
       activeUsers: 0,
       botUsername: undefined,
-      hasToken: !!config.credentials?.token,
+      hasToken: hasPluginCredentials(config.type, config.credentials),
     };
     channelBridge.pluginStatusChanged.emit({ pluginId, status });
   }
@@ -325,8 +311,6 @@ export class PluginManager {
    * Routes to the appropriate action handler
    */
   private async handleIncomingMessage(message: IUnifiedIncomingMessage): Promise<void> {
-    console.log(`[PluginManager] Received message from ${message.platform}: ${message.content.type}`);
-
     // Update user activity
     this.sessionManager.updateSessionActivity(message.user.id);
 

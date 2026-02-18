@@ -24,6 +24,29 @@ export type AssistantPreset = {
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
+    id: 'openclaw-setup',
+    avatar: '🦞',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/openclaw-setup',
+    ruleFiles: {
+      'en-US': 'openclaw-setup.md',
+      'zh-CN': 'openclaw-setup.zh-CN.md',
+    },
+    defaultEnabledSkills: ['openclaw-setup', 'aionui-webui-setup'],
+    nameI18n: {
+      'en-US': 'OpenClaw Setup Expert',
+      'zh-CN': 'OpenClaw 部署专家',
+    },
+    descriptionI18n: {
+      'en-US': 'Expert guide for installing, deploying, configuring, and troubleshooting OpenClaw. Proactively helps with setup, diagnoses issues, and provides security best practices.',
+      'zh-CN': 'OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。',
+    },
+    promptsI18n: {
+      'en-US': ['Help me install OpenClaw', "My OpenClaw isn't working", 'Configure Telegram channel for OpenClaw'],
+      'zh-CN': ['帮我安装 OpenClaw', '我的 OpenClaw 出问题了', '为 OpenClaw 配置 Telegram 渠道'],
+    },
+  },
+  {
     id: 'cowork',
     avatar: 'cowork.svg',
     presetAgentType: 'gemini',
@@ -257,6 +280,29 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     promptsI18n: {
       'en-US': ['Draw a user login flowchart', 'Create an API sequence diagram', 'Draw a TCP state diagram'],
       'zh-CN': ['画一个用户登录流程图', '创建一个 API 时序图', '画一个 TCP 状态图'],
+    },
+  },
+  {
+    id: 'story-roleplay',
+    avatar: '📖',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/story-roleplay',
+    ruleFiles: {
+      'en-US': 'story-roleplay.md',
+      'zh-CN': 'story-roleplay.zh-CN.md',
+    },
+    defaultEnabledSkills: ['story-roleplay'],
+    nameI18n: {
+      'en-US': 'Story Roleplay',
+      'zh-CN': '故事角色扮演',
+    },
+    descriptionI18n: {
+      'en-US': 'Immersive story roleplay. Start by: 1) Natural language to create characters, 2) Paste PNG images, or 3) Open folder with character cards (PNG/JSON) and world info.',
+      'zh-CN': '沉浸式故事角色扮演。三种开始方式：1) 自然语言直接对话创建角色，2) 直接粘贴PNG图片，3) 打开包含角色卡（PNG/JSON）和世界书的文件夹。',
+    },
+    promptsI18n: {
+      'en-US': ['Start a fantasy adventure', 'Create a character', 'Begin a story'],
+      'zh-CN': ['开始一个奇幻冒险', '创建一个角色', '开始一个故事'],
     },
   },
 ];
