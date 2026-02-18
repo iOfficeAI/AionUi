@@ -20,7 +20,7 @@
 
 <p align="center">
   <strong>A free, open-source, Cowork app with AI Agents</strong><br>
-  <em>Built-in Agent | Zero Setup | Any API Key | 16+ CLI Agents | Remote Access | Cross-Platform | 24/7</em>
+  <em>Built-in Agent | Zero Setup | Any API Key | 16+ Agents | Remote Access | Cross-Platform | 24/7</em>
 </p>
 
 <p align="center">
@@ -56,7 +56,7 @@
 
 **AionUi is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
 
-**Multi-Agent Support:** Works with 16+ CLI agents (command-line tools) including Built-in Agent, Claude Code, Codex, Qwen Code, Goose AI, OpenClaw, Augment Code, iFlow CLI, CodeBuddy, Kimi CLI, OpenCode, Factory Droid, GitHub Copilot, Qoder CLI, Mistral Vibe, Nano Bot and more. Auto-detects installed CLI tools and provides a unified interface.
+**Multi-Agent Support:** Works with 16+ CLI agents including Built-in Agent, Claude Code, Codex, Qwen Code, Goose AI, OpenClaw, Augment Code, iFlow CLI, CodeBuddy, Kimi CLI, OpenCode, Factory Droid, GitHub Copilot, Qoder CLI, Mistral Vibe, Nano Bot and more. Auto-detects installed agents and provides a unified interface.
 
 |                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                          |
 | :------------------------------ | :-------------------------- | :------------------------------------------------------------------------------------------- |
