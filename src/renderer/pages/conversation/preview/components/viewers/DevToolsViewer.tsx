@@ -148,25 +148,25 @@ const MetricsOverview: React.FC<{ analysis: IDevToolsSessionAnalysis }> = ({ ana
   return (
     <div className='grid grid-cols-2 md:grid-cols-4 gap-12px mb-20px'>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Total Tokens' value={metrics.totalTokens} suffix={<span className='text-12px text-t-tertiary ml-4px'>({formatTokens(metrics.totalTokens)})</span>} />
+        <Statistic title='Total Tokens' value={metrics.totalTokens} groupSeparator suffix={<span className='text-12px text-t-tertiary ml-4px'>({formatTokens(metrics.totalTokens)})</span>} />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
         <Statistic title='Duration' value={formatDuration(metrics.durationMs)} />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Messages' value={messageCount} />
+        <Statistic title='Messages' value={messageCount} groupSeparator />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Model' value={model || 'Unknown'} />
+        <Statistic title='Model' value={model || 'Unknown'} valueStyle={{ fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} />
       </div>
       {metrics.cacheReadTokens > 0 && (
         <div className='p-12px bg-bg-2 rd-8px'>
-          <Statistic title='Cache Read' value={metrics.cacheReadTokens} suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
+          <Statistic title='Cache Read' value={metrics.cacheReadTokens} groupSeparator suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
         </div>
       )}
       {metrics.cacheCreationTokens > 0 && (
         <div className='p-12px bg-bg-2 rd-8px'>
-          <Statistic title='Cache Create' value={metrics.cacheCreationTokens} suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
+          <Statistic title='Cache Create' value={metrics.cacheCreationTokens} groupSeparator suffix={<span className='text-12px text-t-tertiary ml-4px'>tokens</span>} />
         </div>
       )}
     </div>
