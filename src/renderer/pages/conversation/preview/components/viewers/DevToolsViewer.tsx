@@ -157,7 +157,7 @@ const MetricsOverview: React.FC<{ analysis: IDevToolsSessionAnalysis }> = ({ ana
         <Statistic title='Messages' value={messageCount} groupSeparator />
       </div>
       <div className='p-12px bg-bg-2 rd-8px'>
-        <Statistic title='Model' value={model || 'Unknown'} valueStyle={{ fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} />
+        <Statistic title='Model' value={model || 'Unknown'} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} />
       </div>
       {metrics.cacheReadTokens > 0 && (
         <div className='p-12px bg-bg-2 rd-8px'>

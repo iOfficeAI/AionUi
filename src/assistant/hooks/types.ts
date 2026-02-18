@@ -28,7 +28,7 @@ export const HOOK_PRIORITY = {
 /**
  * Hook events (extensible)
  */
-export type HookEvent = 'onWorkspaceInit' | 'onConversationInit' | 'onSendMessage' | 'onFirstMessage' | 'onBuildSystemInstructions' | 'onError' | 'onQueueInit';
+export type HookEvent = 'onWorkspaceInit' | 'onConversationInit' | 'onSendMessage' | 'onFirstMessage' | 'onBuildSystemInstructions' | 'onError' | 'onQueueInit' | 'onAgentResponse';
 
 /**
  * Hook context (same for all hooks)
@@ -88,6 +88,8 @@ export type HookModule = {
   onError?: HookConfig | HookHandler;
   /** Hook to populate the message queue when a conversation starts */
   onQueueInit?: HookConfig | HookHandler;
+  /** Hook fired after each agent turn finishes, allowing dynamic follow-up message queuing */
+  onAgentResponse?: HookConfig | HookHandler;
   [key: string]: HookConfig | HookHandler | undefined;
 };
 
