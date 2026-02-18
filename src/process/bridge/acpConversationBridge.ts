@@ -19,8 +19,6 @@ import CodexAgentManager from '@/process/task/CodexAgentManager';
 import { GeminiAgentManager } from '@/process/task/GeminiAgentManager';
 import { ipcBridge } from '../../common';
 import * as os from 'os';
-import WorkerManage from '../WorkerManage';
-import AcpAgentManager from '../task/AcpAgentManager';
 
 export function initAcpConversationBridge(): void {
   // Debug provider to check environment variables

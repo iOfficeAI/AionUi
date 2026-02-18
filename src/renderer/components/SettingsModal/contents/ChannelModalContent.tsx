@@ -137,7 +137,7 @@ const ChannelModalContent: React.FC = () => {
   });
 
   // Model selection state
-  const { modelList } = useChannelModelList();
+  const { providers: modelList } = useModelProviderList();
   const [selectedModel, setSelectedModel] = useState<TProviderWithModel | null>(null);
   const [larkSelectedModel, setLarkSelectedModel] = useState<TProviderWithModel | null>(null);
   const [mezonSelectedModel, setMezonSelectedModel] = useState<TProviderWithModel | null>(null);
@@ -179,7 +179,7 @@ const ChannelModalContent: React.FC = () => {
         // Load Mezon model
         const savedMezonModel = await ConfigStorage.get('assistant.mezon.defaultModel');
         if (savedMezonModel && savedMezonModel.id && savedMezonModel.useModel) {
-          const provider = modelList.find((p) => p.id === savedMezonModel.id);
+          const provider = modelList.find((p: IProvider) => p.id === savedMezonModel.id);
           if (provider && provider.model?.includes(savedMezonModel.useModel)) {
             setMezonSelectedModel({ ...provider, useModel: savedMezonModel.useModel });
           }
