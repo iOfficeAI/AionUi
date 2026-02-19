@@ -907,7 +907,22 @@ export class AcpConnection {
   disconnect(): void {
     if (this.child) {
       const pid = this.child.pid;
-      if (this.isDetached && pid) {
+      if (process.platform === 'win32' && pid) {
+        // When shell:true is used on Windows, this.child usually points to
+        // cmd.exe while the actual ACP CLI runs as a descendant process.
+        // taskkill /T ensures the full process tree is terminated.
+        try {
+          execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], {
+            stdio: ['ignore', 'ignore', 'ignore'],
+            windowsHide: true,
+            timeout: 2000,
+          });
+        } catch (error) {
+          // Fallback if taskkill is unavailable or process already exited.
+          console.warn(`[ACP] taskkill failed for PID ${pid}; falling back to SIGTERM`, error);
+          this.child.kill('SIGTERM');
+        }
+      } else if (this.isDetached && pid) {
         // For detached processes (CodeBuddy on non-Windows), kill the entire
         // process group so npx's child CLI also terminates.
         // Negative PID = process group kill (POSIX setsid).
