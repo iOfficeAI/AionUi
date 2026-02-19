@@ -168,6 +168,15 @@ export class McpService {
   }
 
   /**
+   * Get supported transport types for a given agent config.
+   * Fork Gemini (backend='gemini', no cliPath) uses AionuiMcpAgent.
+   */
+  getSupportedTransportsForAgent(agent: { backend: string; cliPath?: string }): string[] {
+    const agentInstance = this.getAgentForConfig(agent as { backend: AcpBackend; cliPath?: string });
+    return agentInstance ? agentInstance.getSupportedTransports() : [];
+  }
+
+  /**
    * 测试MCP服务器连接
    */
   async testMcpConnection(server: IMcpServer): Promise<McpConnectionTestResult> {

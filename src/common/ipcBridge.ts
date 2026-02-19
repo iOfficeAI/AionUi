@@ -179,6 +179,7 @@ export const acpConversation = {
         context?: string;
         avatar?: string;
         presetAgentType?: PresetAgentType;
+        supportedTransports?: string[];
       }>
     >,
     void
