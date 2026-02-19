@@ -150,7 +150,7 @@ export function initAcpConversationBridge(): void {
       const latency = Date.now() - startTime;
 
       // Clean up
-      connection.disconnect();
+      await connection.disconnect();
 
       return {
         success: true,
@@ -159,7 +159,7 @@ export function initAcpConversationBridge(): void {
     } catch (error) {
       // Clean up on error
       try {
-        connection.disconnect();
+        await connection.disconnect();
       } catch {
         // Ignore disconnect errors
       }
