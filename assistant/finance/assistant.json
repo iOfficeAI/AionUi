@@ -1,0 +1,30 @@
+{
+  "id": "finance",
+  "presetAgentType": "claude",
+  "workspacePath": "./workspace",
+  "avatar": "📊",
+  "version": "1.0.0",
+  "tags": ["finance", "quant", "equity", "macro", "factor-investing", "portfolio"],
+  "defaultEnabledSkills": [],
+  "nameI18n": {
+    "en-US": "Finance Research",
+    "zh-CN": "金融研究",
+    "zh-TW": "金融研究",
+    "ja-JP": "ファイナンス・リサーチ",
+    "ko-KR": "금융 리서치"
+  },
+  "descriptionI18n": {
+    "en-US": "Institutional-grade quantitative research assistant covering macroeconomics, fundamental analysis, technical analysis, and factor investing. Features 12 investor personas (Buffett, Graham, Wood, Druckenmiller...) and live market data via Financial Datasets API.",
+    "zh-CN": "机构级量化研究助手，涵盖宏观经济学、基本面分析、技术分析和因子投资。内置12个投资者视角（巴菲特、格雷厄姆、伍德、德拉肯米勒等）并通过金融数据集API获取实时市场数据。",
+    "zh-TW": "機構級量化研究助手，涵蓋宏觀經濟學、基本面分析、技術分析和因子投資。內建12個投資者視角（巴菲特、葛拉漢、伍德、德拉肯米勒等）並透過金融資料集API獲取即時市場資料。",
+    "ja-JP": "マクロ経済学、ファンダメンタル分析、テクニカル分析、ファクター投資をカバーする機関グレードの定量的リサーチアシスタント。12の投資家ペルソナ（バフェット、グレアム、ウッド、ドラッケンミラーなど）と金融データセットAPIによるライブ市場データを搭載。",
+    "ko-KR": "거시경제학, 기본 분석, 기술적 분석, 팩터 투자를 포괄하는 기관급 정량적 리서치 어시스턴트. 12명의 투자자 페르소나(버핏, 그레이엄, 우드, 드러켄밀러 등)와 Financial Datasets API를 통한 실시간 시장 데이터 제공."
+  },
+  "promptsI18n": {
+    "en-US": ["/trading-ideas NVDA — institutional equity research with buy/sell/hold recommendation", "/analyze NVDA — run all investor personas + fundamental/technical analysis", "/macro — global macro outlook: Fed policy, inflation, GDP, credit spreads", "/compare MSFT GOOGL — side-by-side fundamental and technical comparison", "/screen sector:tech pe:<20 momentum:high — screen stocks by factor criteria", "/portfolio — analyze holdings for risk, correlation, and diversification"],
+    "zh-CN": ["/trading-ideas NVDA — 机构级股票研究，包含买入/卖出/持有建议", "/analyze NVDA — 运行所有投资者视角 + 基本面/技术分析", "/macro — 全球宏观展望：美联储政策、通胀、GDP、信用利差", "/compare MSFT GOOGL — 基本面和技术面并排对比", "/screen sector:tech pe:<20 momentum:high — 按因子条件筛选股票", "/portfolio — 分析持仓的风险、相关性和多样化"],
+    "zh-TW": ["/trading-ideas NVDA — 機構級股票研究，含買入/賣出/持有建議", "/analyze NVDA — 運行所有投資者視角 + 基本面/技術分析", "/macro — 全球宏觀展望：聯準會政策、通膨、GDP、信用利差", "/compare MSFT GOOGL — 基本面和技術面並排對比", "/screen sector:tech pe:<20 momentum:high — 按因子條件篩選股票", "/portfolio — 分析持倉的風險、相關性和多元化"],
+    "ja-JP": ["/trading-ideas NVDA — 買い/売り/保有推奨を含む機関グレードの株式調査", "/analyze NVDA — 全投資家ペルソナ + ファンダメンタル/テクニカル分析を実行", "/macro — グローバルマクロ展望：FED政策、インフレ、GDP、クレジットスプレッド", "/compare MSFT GOOGL — ファンダメンタルとテクニカルの並列比較", "/screen sector:tech pe:<20 momentum:high — ファクター基準で株式をスクリーニング", "/portfolio — リスク、相関、分散のポートフォリオ分析"],
+    "ko-KR": ["/trading-ideas NVDA — 매수/매도/보유 추천을 포함한 기관급 주식 리서치", "/analyze NVDA — 모든 투자자 페르소나 + 기본/기술적 분석 실행", "/macro — 글로벌 거시 전망: Fed 정책, 인플레이션, GDP, 신용 스프레드", "/compare MSFT GOOGL — 기본 및 기술적 분석 나란히 비교", "/screen sector:tech pe:<20 momentum:high — 팩터 기준으로 주식 스크리닝", "/portfolio — 리스크, 상관관계, 분산화 포트폴리오 분석"]
+  }
+}

@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.env
+
+# Analysis runs — real outputs not committed (only samples are committed)
+analyses/*/
+!analyses/samples/
+!analyses/.gitkeep

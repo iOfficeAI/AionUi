@@ -1,0 +1,42 @@
+[project]
+name = "ai-sub-invest"
+license = "MIT"
+version = "1.0.0"
+description = "ConsensusAI - Multi-analyst investment analysis using Claude Code Skills"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "claude-agent-sdk>=0.0.25",
+    "pandas>=2.1.0",
+    "numpy>=1.24.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.4.2",
+    "httpx>=0.27.0",
+    "requests>=2.32.5",
+    "plotly>=5.0.0",
+    "kaleido>=0.2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.black]
+line-length = 420
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+force_alphabetical_sort_within_sections = true
