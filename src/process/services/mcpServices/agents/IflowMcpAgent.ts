@@ -17,7 +17,7 @@ const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '' } });
 
 /**
  * iFlow CLI MCP代理实现
- * 注意：iFlow CLI 支持 stdio、SSE、HTTP 传输类型，支持 headers，不支持 streamable_http
+ * iFlow CLI 支持 stdio、SSE、HTTP 传输类型，支持 headers
  */
 export class IflowMcpAgent extends AbstractMcpAgent {
   constructor() {
@@ -25,7 +25,8 @@ export class IflowMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    return ['stdio', 'sse', 'http'];
+    // iFlow CLI 支持 stdio, sse, http 传输类型 (streamable_http maps to http)
+    return ['stdio', 'sse', 'http', 'streamable_http'];
   }
 
   /**
@@ -163,11 +164,6 @@ export class IflowMcpAgent extends AbstractMcpAgent {
             continue;
           }
 
-          if (server.transport.type === 'streamable_http') {
-            console.warn(`Skipping ${server.name}: iFlow CLI does not support streamable_http transport type`);
-            continue;
-          }
-
           try {
             let addCommand = `iflow mcp add "${server.name}"`;
 
@@ -182,12 +178,15 @@ export class IflowMcpAgent extends AbstractMcpAgent {
               // 添加环境变量 (仅stdio支持)
               if (server.transport.env) {
                 for (const [key, value] of Object.entries(server.transport.env)) {
-                  addCommand += ` --env ${key}="${value}"`;
+                  // Quote env values to protect special characters
+                  addCommand += ` --env "${key}=${value}"`;
                 }
               }
-            } else if ((server.transport.type === 'sse' || server.transport.type === 'http') && 'url' in server.transport) {
+            } else if ((server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') && 'url' in server.transport) {
+              // iFlow CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
+              const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
               addCommand += ` "${server.transport.url}"`;
-              addCommand += ` --transport ${server.transport.type}`;
+              addCommand += ` --transport ${transportFlag}`;
 
               // 添加headers支持
               if (server.transport.headers) {

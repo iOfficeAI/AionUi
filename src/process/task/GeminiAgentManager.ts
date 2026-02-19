@@ -28,9 +28,12 @@ import { stripThinkTags } from './ThinkTagDetector';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
-  command: string;
-  args: string[];
-  env: Record<string, string>;
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  url?: string;
+  type?: 'sse' | 'http';
+  headers?: Record<string, string>;
   description?: string;
 };
 
@@ -205,16 +208,25 @@ export class GeminiAgentManager extends BaseAgentManager<
       }
 
       // 转换为 aioncli-core 期望的格式
+      // MCPServerConfig supports: stdio (command/args/env), sse/http (url/type/headers)
       const mcpConfig: Record<string, UiMcpServerConfig> = {};
       mcpServers
         .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
         .forEach((server: IMcpServer) => {
-          // 只处理 stdio 类型的传输方式，因为 aioncli-core 只支持这种类型
           if (server.transport.type === 'stdio') {
             mcpConfig[server.name] = {
               command: server.transport.command,
               args: server.transport.args || [],
               env: server.transport.env || {},
+              description: server.description,
+            };
+          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+            // aioncli-core MCPServerConfig.type only accepts "sse" | "http"
+            const type = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
+            mcpConfig[server.name] = {
+              url: server.transport.url,
+              type,
+              headers: server.transport.headers || {},
               description: server.description,
             };
           }
