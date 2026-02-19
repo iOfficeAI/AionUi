@@ -45,7 +45,13 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
           method: 'GET',
           credentials: 'include',
         });
+        if (!response.ok) {
+          return;
+        }
         const data = await response.json();
+        if (!data || !Array.isArray(data.items)) {
+          return;
+        }
         setDirectoryData(data);
         setCurrentPath(path);
       } catch (error) {
