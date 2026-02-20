@@ -1010,17 +1010,22 @@ const initStorage = async () => {
     // 移除完全相同ID的重复项（保留第一次出现的）
     const seenIds = new Set<string>();
     const deduplicatedAgents: AcpBackendConfig[] = [];
+    const duplicateIds: string[] = [];
     for (const agent of updatedAgents) {
       if (!seenIds.has(agent.id)) {
         seenIds.add(agent.id);
         deduplicatedAgents.push(agent);
+      } else {
+        duplicateIds.push(agent.id);
       }
     }
     if (deduplicatedAgents.length !== updatedAgents.length) {
-      console.log(`[AionUi] Removed ${updatedAgents.length - deduplicatedAgents.length} exact duplicate assistant(s)`);
+      console.log(`[AionUi] Removed ${updatedAgents.length - deduplicatedAgents.length} exact duplicate assistant(s):`, duplicateIds.slice(0, 5));
       updatedAgents.length = 0;
       updatedAgents.push(...deduplicatedAgents);
       hasChanges = true;
+    } else {
+      console.log(`[AionUi] No duplicate assistants found during initialization (${updatedAgents.length} unique assistants)`);
     }
 
     if (hasChanges) {
