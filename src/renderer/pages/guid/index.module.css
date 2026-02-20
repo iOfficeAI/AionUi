@@ -53,23 +53,6 @@
   }
 }
 
-/* Agent 选中时：先放大再回落至略大 */
-@keyframes agentSelectPop {
-  0% {
-    transform: scale(1);
-  }
-  35% {
-    transform: scale(1.12);
-  }
-  100% {
-    transform: scale(1.02);
-  }
-}
-
-.agentItemSelected {
-  animation: agentSelectPop 0.4s ease-out forwards;
-}
-
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
