@@ -171,6 +171,17 @@ const ChatConversation: React.FC<{
     );
   }, [t]);
 
+  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
+  // For other non-Gemini conversations, show disabled GeminiModelSelector.
+  // NOTE: This must be placed before the Gemini early return to maintain consistent hook order.
+  const modelSelector = useMemo(() => {
+    if (!conversation || isGeminiConversation) return undefined;
+    if (conversation.type === 'acp' || conversation.type === 'codex') {
+      return <AcpModelSelector conversationId={conversation.id} />;
+    }
+    return <GeminiModelSelector disabled={true} />;
+  }, [conversation, isGeminiConversation]);
+
   if (conversation && conversation.type === 'gemini') {
     // Gemini 会话独立渲染，带右上角模型选择
     // Render Gemini layout with dedicated top-right model selector
@@ -191,16 +202,6 @@ const ChatConversation: React.FC<{
           backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : conversation?.type === 'nanobot' ? 'nanobot' : undefined,
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
-
-  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
-  // For other non-Gemini conversations, show disabled GeminiModelSelector.
-  const modelSelector = useMemo(() => {
-    if (!conversation) return undefined;
-    if (conversation.type === 'acp' || conversation.type === 'codex') {
-      return <AcpModelSelector conversationId={conversation.id} />;
-    }
-    return <GeminiModelSelector disabled={true} />;
-  }, [conversation]);
 
   return (
     <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>
