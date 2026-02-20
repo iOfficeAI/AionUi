@@ -1,5 +1,9 @@
 """notebookmd — Python-first notebook-like report generator for agent-readable Markdown.
 
+Provides a Streamlit-compatible API that renders to markdown, making it easy
+to create rich data reports with metrics, charts, tables, status messages,
+collapsible sections, and more.
+
 Usage::
 
     from notebookmd import nb
@@ -11,12 +15,24 @@ Usage::
         N.note(f"Rows: {len(df):,}")
         N.table(df.head(), name="Preview")
 
+    # Streamlit-style widgets
+    N.metric("Revenue", "$1.2M", delta="+12%")
+    N.metric_row([
+        {"label": "Users", "value": "3,400", "delta": "+200"},
+        {"label": "Churn", "value": "2.1%", "delta": "-0.3%"},
+    ])
+    N.line_chart(df, x="date", y="close", title="Price Trend")
+    N.success("Analysis complete!")
+
+    with N.expander("Raw Data"):
+        N.dataframe(df)
+
     N.save()
 """
 
 from .core import Notebook, NotebookConfig
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = ["nb", "Notebook", "NotebookConfig"]
 
 
