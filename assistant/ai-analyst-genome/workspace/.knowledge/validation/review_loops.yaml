@@ -1,0 +1,33 @@
+# Review Loop History — Append-Only Log
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+#
+# Tracks all APPROVE_WITH_CHANGES and REJECT outcomes
+# and their resolution paths.
+
+entries: []
+# Example entry:
+# - analysis_id: 'q_20260221_143500'
+#   timestamp: '2026-02-21T14:35:10+07:00'
+#   initial_outcome: 'APPROVE_WITH_CHANGES'
+#   initial_confidence: 68
+#   initial_grade: 'D'
+#   issues:
+#     - layer: 2
+#       check: 'confidence_intervals'
+#       severity: 'RED'
+#       description: 'Missing CIs on 3 key findings'
+#     - layer: 3
+#       check: 'causality_overreach'
+#       severity: 'RED'
+#       description: 'Causal language detected'
+#   revisions:
+#     - revision: 1
+#       fixes_applied:
+#         - 'Added 95% CIs to ROE comparison, sector P/E, volume analysis'
+#         - 'Replaced "caused" with "associated with" in 2 locations'
+#       new_confidence: 82
+#       new_grade: 'B'
+#       new_outcome: 'APPROVE'
+#   final_outcome: 'APPROVE'
+#   total_revisions: 1

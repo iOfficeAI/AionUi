@@ -1,0 +1,66 @@
+# Dataset Manifest — vnstock_default
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+dataset_id: "vnstock_default"
+dataset_name: "Vietnamese Stock Market (vnstock)"
+data_platform: "vnstock"
+version: ">=3.4.2"
+created_at: "2026-02-21"
+
+# Connection details
+connection:
+  library: "vnstock"
+  sources: ["KBS", "VCI", "TCBS"]
+  default_source: "KBS"
+  credential_management: "library_managed"
+
+# Data coverage
+coverage:
+  total_symbols: 1700
+  exchanges: ["HOSE", "HNX", "UPCOM"]
+  index_groups: ["VN30", "VN100", "HNX30"]
+  history_start: "2010-01-01"
+  history_end: "present"
+  data_types:
+    ohlcv:
+      description: "Daily OHLCV price data"
+      columns: ["time", "open", "high", "low", "close", "volume"]
+      frequency: "daily"
+      start: "2010-01-01"
+    financials:
+      description: "Financial statements (balance sheet, income, cash flow)"
+      columns: ["item", "item_id", "period_columns"]
+      frequency: "quarterly/annual"
+      start: "2012-Q1"
+    ratios:
+      description: "Financial ratios (P/E, P/B, ROE, ROA, etc.)"
+      columns: ["item", "item_id", "period_columns"]
+      frequency: "quarterly/annual"
+      start: "2012-Q1"
+    price_board:
+      description: "Real-time bid/ask/last prices"
+      columns: ["symbol", "various_price_fields"]
+      frequency: "real-time"
+      delay: "<5 minutes"
+    listings:
+      description: "Symbol listings by exchange, industry, group"
+      columns: ["ticker", "metadata"]
+      frequency: "static (rebalanced quarterly)"
+
+# Summary statistics (as of last profiling)
+summary_stats:
+  total_symbols: 1700
+  hose_symbols: 400
+  hnx_symbols: 350
+  upcom_symbols: 950
+  vn30_symbols: 30
+  sectors: 20
+  last_profiling_date: "2026-02-21"
+
+# Quality metadata
+quality:
+  known_quirks_file: "quirks.md"
+  access_notes_file: "access_notes.md"
+  schema_file: "schema.md"
+  metrics_dir: "metrics/"

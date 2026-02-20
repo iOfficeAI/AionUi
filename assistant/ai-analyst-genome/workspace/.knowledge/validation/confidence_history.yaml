@@ -1,0 +1,18 @@
+# Confidence History — Append-Only Log
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+#
+# Each validation run appends an entry here.
+# Used by /history and /quality skills.
+
+entries: []
+# Example entry:
+# - analysis_id: 'q_20260221_143500'
+#   timestamp: '2026-02-21T14:35:10+07:00'
+#   complexity: 'L3'
+#   score: 84
+#   grade: 'B'
+#   outcome: 'APPROVE'
+#   layers: { l1: 90, l2: 85, l3: 80, l4: 80 }
+#   simpsons_paradox: false
+#   revision_count: 0

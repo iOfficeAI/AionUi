@@ -1,0 +1,104 @@
+# Metric Definition: Return on Equity (ROE)
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+metric_id: "roe"
+name: "Return on Equity"
+name_vi: "Ty suat loi nhuan tren von chu so huu"
+abbreviation: "ROE"
+category: "profitability"
+
+# Formula
+formula: "Net Income / Average Shareholders' Equity * 100"
+formula_latex: "\\frac{\\text{Net Income}}{\\text{Avg Equity}} \\times 100"
+
+# Data source
+data_source:
+  function: "vnstock_lib.fetch_ratios"
+  item_name: "ROE"
+  alternative_names: ["Return on Equity", "Lợi nhuận trên vốn chủ", "Tỷ suất ROE"]
+  period: "quarterly"
+  fallback: "Calculate from net_income / avg_equity using income statement + balance sheet"
+
+# Typical ranges for Vietnamese market
+typical_range:
+  all_stocks:
+    min: -50
+    max: 100
+    median: 12
+    unit: "%"
+  blue_chips:
+    min: 10
+    max: 30
+    median: 18
+    unit: "%"
+  banking:
+    min: 12
+    max: 30
+    median: 20
+    unit: "%"
+  real_estate:
+    min: 5
+    max: 25
+    median: 12
+    unit: "%"
+  technology:
+    min: 8
+    max: 35
+    median: 15
+    unit: "%"
+
+# Validation rules
+validation:
+  out_of_range_threshold: 100  # Flag if ROE > 100% (likely calculation error)
+  negative_roe_note: "Negative ROE indicates net loss or negative equity. Distinguish between the two."
+  extremely_high_note: "ROE > 40% is unusual in Vietnamese market. Verify data or check for special items."
+  volatility_note: "Single-quarter ROE can be volatile. Prefer TTM (trailing twelve months) for comparison."
+
+# Interpretation guide
+interpretation:
+  poor: "ROE < 5%: Below cost of equity, destroying value"
+  below_average: "ROE 5-10%: Below average for Vietnamese market"
+  average: "ROE 10-15%: Average profitability"
+  good: "ROE 15-20%: Good profitability, competitive advantage"
+  excellent: "ROE 20-30%: Excellent, sustainable competitive advantage"
+  exceptional: "ROE > 30%: Exceptional but verify sustainability"
+
+# DuPont decomposition (for deeper analysis)
+dupont:
+  components:
+    - name: "Net Margin"
+      formula: "Net Income / Revenue"
+      typical_range: "5-20%"
+    - name: "Asset Turnover"
+      formula: "Revenue / Total Assets"
+      typical_range: "0.1-1.5x"
+    - name: "Equity Multiplier"
+      formula: "Total Assets / Equity"
+      typical_range: "1.5-10x (banks higher)"
+  note: "ROE = Net Margin * Asset Turnover * Equity Multiplier"
+
+# Comparison context
+benchmark:
+  vn_index_roe: 14  # Approximate as of 2025
+  regional_average: 12  # ASEAN average
+  banking_average: 20   # Vietnamese banking sector
+  note: "Vietnamese banks consistently deliver 15-25% ROE due to high leverage"
+
+# Display formatting
+display:
+  format: "{value:.1f}%"
+  significant_figures: 1
+  unit: "%"
+  color_coding:
+    poor: "#DC2626"       # Red
+    below_average: "#D97706"  # Amber
+    average: "#6B7280"    # Gray
+    good: "#059669"       # Green
+    excellent: "#059669"  # Green (bold)
+    exceptional: "#059669" # Green (verify)
+
+# Update frequency
+update_frequency: "quarterly"
+staleness_threshold_hours: 24
+last_updated: "2026-02-21"

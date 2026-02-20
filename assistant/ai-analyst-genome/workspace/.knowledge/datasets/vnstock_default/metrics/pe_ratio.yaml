@@ -1,0 +1,79 @@
+# Metric Definition: P/E Ratio
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+metric_id: "pe_ratio"
+name: "Price-to-Earnings Ratio"
+name_vi: "He so gia tren thu nhap"
+abbreviation: "P/E"
+category: "valuation"
+
+# Formula
+formula: "Market Price per Share / Earnings per Share (EPS)"
+formula_latex: "\\frac{P}{EPS}"
+
+# Data source
+data_source:
+  function: "vnstock_lib.fetch_ratios"
+  item_name: "P/E"
+  alternative_names: ["PE", "Price/Earnings", "Hệ số P/E"]
+  period: "quarterly"
+  fallback: "Calculate from price / EPS if ratio unavailable"
+
+# Typical ranges for Vietnamese market
+typical_range:
+  all_stocks:
+    min: -100  # Negative earnings
+    max: 1000  # Micro-caps with minimal earnings
+    median: 12
+  blue_chips:
+    min: 8
+    max: 25
+    median: 14
+  banking:
+    min: 6
+    max: 20
+    median: 12
+  real_estate:
+    min: 5
+    max: 30
+    median: 10
+  technology:
+    min: 10
+    max: 50
+    median: 18
+
+# Validation rules
+validation:
+  out_of_range_threshold: 200  # Flag if P/E > 200x (likely data error or micro-cap)
+  negative_pe_note: "Negative P/E indicates net loss. Display as 'N/A (loss)' in comparisons."
+  zero_pe_note: "P/E of 0 likely indicates missing data. Flag as data quality issue."
+
+# Interpretation guide
+interpretation:
+  low: "P/E < 10: Potentially undervalued or low growth expectations"
+  fair: "P/E 10-18: Fair value range for Vietnamese stocks"
+  high: "P/E > 18: Premium valuation, high growth expected"
+  negative: "Negative P/E: Company reporting losses"
+
+# Comparison context
+benchmark:
+  vn_index_pe: 14.5  # Approximate as of 2025
+  regional_average: 15  # ASEAN average
+  note: "Vietnamese market historically trades at discount to regional peers"
+
+# Display formatting
+display:
+  format: "{value:.1f}x"
+  significant_figures: 1
+  unit: "x"
+  color_coding:
+    low: "#059669"    # Green (potentially attractive)
+    fair: "#6B7280"   # Gray (neutral)
+    high: "#D97706"   # Amber (premium)
+    negative: "#DC2626" # Red (losses)
+
+# Update frequency
+update_frequency: "quarterly"
+staleness_threshold_hours: 24
+last_updated: "2026-02-21"

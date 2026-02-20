@@ -1,0 +1,4 @@
+exchange,ticker_count_approx,description,description_vi,price_limit,trading_hours,index
+HOSE,400,Ho Chi Minh Stock Exchange,So Giao dich Chung khoan TP.HCM,7%,09:00-11:30 / 13:00-14:30 ICT,VN-Index
+HNX,350,Hanoi Stock Exchange,So Giao dich Chung khoan Ha Noi,10%,09:00-11:30 / 13:00-14:30 ICT,HNX-Index
+UPCOM,950,Unlisted Public Company Market,Thi truong Cong ty Dai chung Chua Niem yet,15%,09:00-11:30 / 13:00-14:30 ICT,UPCOM-Index

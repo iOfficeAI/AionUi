@@ -1,0 +1,19 @@
+# Analysis Archive Index
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+#
+# Fast lookup index for all archived analyses.
+# Managed by /archive skill.
+
+entries: []
+# Example entry:
+# - archive_id: 'arch_20260221_143500'
+#   analysis_id: 'q_20260221_143500'
+#   archived_at: '2026-02-21T15:00:00+07:00'
+#   question: 'Which stocks have P/E<15 and ROE>20%?'
+#   complexity: 'L3'
+#   confidence: 84
+#   grade: 'B'
+#   tags: ['banking', 'value_screening', 'pe_ratio', 'roe']
+#   symbols: ['TCB', 'MBB', 'ACB']
+#   path: '.knowledge/analyses/20260221_143500/'

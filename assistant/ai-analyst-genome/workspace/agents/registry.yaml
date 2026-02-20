@@ -10,6 +10,11 @@ metadata:
   pipeline_agents: 17
   standalone_agents: 2
   last_updated: "2026-02-21"
+  wave_1_completed: true
+  wave_2_completed: true
+  wave_3_completed: true
+  wave_4_completed: true
+  build_status: "COMPLETE"
 
 # Pipeline Agents (17) - Ordered by execution sequence
 pipeline:
@@ -25,7 +30,7 @@ pipeline:
     blocks: ["hypothesis", "data-explorer"]
     time_estimate: "<5s"
     wave: 1
-    status: "not_started"
+    status: "created"
 
   - id: "hypothesis"
     step: 3
@@ -39,7 +44,7 @@ pipeline:
     blocks: ["data-explorer"]
     time_estimate: "5-10s"
     wave: 2
-    status: "not_started"
+    status: "created"
 
   - id: "data-explorer"
     step: 4
@@ -54,7 +59,7 @@ pipeline:
     time_estimate: "5-15s"
     special_features: ["real_time_l1"]
     wave: 1
-    status: "not_started"
+    status: "created"
 
   - id: "source-tieout"
     step: 4.5
@@ -68,7 +73,7 @@ pipeline:
     blocks: ["descriptive-analytics", "overtime-trend", "cohort-analysis"]
     time_estimate: "5-10s"
     wave: 1
-    status: "not_started"
+    status: "created"
 
   - id: "descriptive-analytics"
     step: 5
@@ -82,7 +87,7 @@ pipeline:
     blocks: ["root-cause-investigator", "validation"]
     time_estimate: "15-30s"
     wave: 2
-    status: "not_started"
+    status: "created"
 
   - id: "overtime-trend"
     step: 5
@@ -96,7 +101,7 @@ pipeline:
     blocks: ["validation"]
     time_estimate: "15-30s"
     wave: 2
-    status: "not_started"
+    status: "created"
 
   - id: "cohort-analysis"
     step: 5
@@ -110,7 +115,7 @@ pipeline:
     blocks: ["validation"]
     time_estimate: "15-30s"
     wave: 2
-    status: "not_started"
+    status: "created"
 
   - id: "root-cause-investigator"
     step: 6
@@ -124,7 +129,7 @@ pipeline:
     blocks: ["validation"]
     time_estimate: "20-40s"
     wave: 2
-    status: "not_started"
+    status: "created"
 
   - id: "validation"
     step: 7
@@ -139,7 +144,9 @@ pipeline:
     time_estimate: "10-20s"
     layers: [1, 2, 3, 4]
     wave: 2
-    status: "not_started"
+    status: "created"
+    version: "2.0.0"
+    note: "Wave 1: Layer 1 + staleness. Wave 2: All 4 layers fully implemented."
 
   - id: "opportunity-sizer"
     step: 8
@@ -152,8 +159,8 @@ pipeline:
     depends_on: ["validation"]
     blocks: ["story-architect"]
     time_estimate: "10-20s"
-    wave: 3
-    status: "not_started"
+    wave: 2
+    status: "created"
 
   - id: "story-architect"
     step: 9
@@ -167,92 +174,92 @@ pipeline:
     blocks: ["narrative-coherence-reviewer"]
     time_estimate: "20-40s"
     wave: 3
-    status: "not_started"
+    status: "created"
 
   - id: "narrative-coherence-reviewer"
     step: 10
     name: "Narrative Coherence Reviewer Agent"
     user_visible_name: "Reviewing narrative..."
     file: "agents/narrative-coherence-reviewer.md"
-    purpose: "Story flow review (Layer 3 checks)"
-    inputs: ["_working/storyboard.md"]
+    purpose: "Story flow review (Layer 3 checks, CTR validation)"
+    inputs: ["_working/storyboard.md", "_working/analysis_report.md", "_working/validation_report.md"]
     outputs: ["_working/coherence_review.md"]
     depends_on: ["story-architect"]
     blocks: ["chart-maker"]
     time_estimate: "10-15s"
     review_outcomes: ["APPROVE", "CHANGES", "REJECT"]
     wave: 3
-    status: "not_started"
+    status: "created"
 
   - id: "chart-maker"
     step: 12
     name: "Chart Maker Agent"
     user_visible_name: "Generating charts..."
     file: "agents/chart-maker.md"
-    purpose: "Visualizations (matplotlib + SWD patterns)"
-    inputs: ["data", "storyboard", "theme"]
-    outputs: ["_working/charts/*.png"]
+    purpose: "Visualizations (matplotlib + SWD patterns + brand tokens + attribution)"
+    inputs: ["_working/storyboard.md", "_working/coherence_review.md", "genome_config.yaml"]
+    outputs: ["_working/charts/*.png", "_working/charts/manifest.yaml"]
     depends_on: ["narrative-coherence-reviewer"]
     blocks: ["visual-design-critic"]
     time_estimate: "10-15s"
     wave: 3
-    status: "not_started"
+    status: "created"
 
   - id: "visual-design-critic"
     step: 13
     name: "Visual Design Critic Agent"
     user_visible_name: "Reviewing charts..."
     file: "agents/visual-design-critic.md"
-    purpose: "Chart review (Layer 4 validation)"
-    inputs: ["_working/charts/*.png"]
+    purpose: "Chart review (SWD checklist + Layer 4 validation + chart-data match)"
+    inputs: ["_working/charts/*.png", "_working/charts/manifest.yaml", "_working/storyboard.md", "_working/analysis_report.md"]
     outputs: ["_working/design_review.md"]
     depends_on: ["chart-maker"]
     blocks: ["storytelling"]
     time_estimate: "5-10s"
     wave: 3
-    status: "not_started"
+    status: "created"
 
   - id: "storytelling"
     step: 15
     name: "Storytelling Agent"
     user_visible_name: "Writing narrative..."
     file: "agents/storytelling.md"
-    purpose: "Prose narrative (audience-adapted)"
-    inputs: ["results", "storyboard", "audience"]
-    outputs: ["_working/narrative.md"]
+    purpose: "Prose narrative (audience-adapted, CTR arc, speaker notes)"
+    inputs: ["_working/storyboard.md", "_working/design_review.md", "_working/charts/*.png", "_working/analysis_report.md", "_working/sizing_report.md"]
+    outputs: ["_working/narrative.md", "outputs/analysis_summary.md"]
     depends_on: ["visual-design-critic"]
     blocks: ["deck-creator"]
     time_estimate: "15-25s"
     wave: 3
-    status: "not_started"
+    status: "created"
 
   - id: "deck-creator"
     step: 16
     name: "Deck Creator Agent"
     user_visible_name: "Building presentation..."
     file: "agents/deck-creator.md"
-    purpose: "Marp slide assembly"
-    inputs: ["narrative.md", "charts/", "theme"]
+    purpose: "Marp slide assembly (PDF/HTML/PPTX export-ready)"
+    inputs: ["_working/narrative.md", "_working/charts/*.png", "_working/storyboard.md", "templates/deck_skeleton.marp.md", "themes/analytics.css"]
     outputs: ["outputs/deck.marp.md"]
     depends_on: ["storytelling"]
     blocks: ["close-the-loop"]
     time_estimate: "10-15s"
     wave: 3
-    status: "not_started"
+    status: "created"
 
   - id: "close-the-loop"
     step: 18
     name: "Close the Loop Agent"
     user_visible_name: "Tracking follow-ups..."
     file: "agents/close-the-loop.md"
-    purpose: "Follow-up tracking + action items"
-    inputs: ["results", "recommendations"]
+    purpose: "Follow-up tracking (owners, metrics, dates, monitoring plan)"
+    inputs: ["_working/narrative.md", "_working/sizing_report.md", "_working/storyboard.md", "_working/validation_report.md"]
     outputs: ["_working/close_the_loop.md"]
     depends_on: ["deck-creator"]
     blocks: []
     time_estimate: "5-10s"
     wave: 3
-    status: "not_started"
+    status: "created"
 
 # Standalone Agents (2)
 standalone:
@@ -268,28 +275,28 @@ standalone:
     time_estimate: "30-60s"
     invoked_by: "/backtest command"
     wave: 4
-    status: "not_started"
+    status: "created"
 
   - id: "connector-inspector"
     name: "Connector Inspector Agent"
     user_visible_name: "(Setup only)"
-    file: "(internal)"
-    purpose: "Inspect existing vnstock_lib.py connector"
+    file: "agents/connector-inspector.md"
+    purpose: "Inspect existing connectors, generate adapters"
     inputs: ["connector path"]
     outputs: ["helpers/vnstock_adapter.py"]
     depends_on: []
     blocks: []
     time_estimate: "N/A"
     invoked_by: "setup wizard"
-    wave: 0
-    status: "completed"  # vnstock_lib.py copied in W0.0
+    wave: 2
+    status: "created"
 
 # DAG Validation
 dag_validation:
   cycles_detected: false
   entry_points: ["question-framing"]
   exit_points: ["close-the-loop", "experiment-designer"]
-  critical_path: ["question-framing", "hypothesis", "data-explorer", "source-tieout", "descriptive-analytics", "validation", "opportunity-sizer", "story-architect", "narrative-coherence-reviewer", "chart-maker", "visual-design-critic", "storytelling", "deck-creator", "close-the-loop"]
+  critical_path: ["question-framing", "hypothesis", "data-explorer", "source-tieout", "descriptive-analytics", "root-cause-investigator", "validation", "opportunity-sizer", "story-architect", "narrative-coherence-reviewer", "chart-maker", "visual-design-critic", "storytelling", "deck-creator", "close-the-loop"]
   critical_path_time: "1-3 min (L4 query)"
 
 # Quality Checkpoints (Validation runs at 3 points)
@@ -341,14 +348,238 @@ routing:
     time: "3-10 min"
     example: "Build optimal portfolio for 2026"
 
+# Skills Registry (Wave 2)
+skills:
+  wave_2:
+    - id: "triangulation"
+      file: ".claude/skills/triangulation/skill.md"
+      trigger: "auto (L3+ analysis)"
+      purpose: "Cross-validate findings from multiple angles"
+
+    - id: "guardrails"
+      file: ".claude/skills/guardrails/skill.md"
+      trigger: "auto (all analyses)"
+      purpose: "Check trade-offs and guardrail metrics"
+
+    - id: "simpsons-paradox"
+      file: ".claude/skills/simpsons-paradox/skill.md"
+      trigger: "auto (L2+ aggregate conclusions)"
+      purpose: "Segment-first aggregation paradox check"
+
+    - id: "analysis-design-spec"
+      file: ".claude/skills/analysis-design-spec/skill.md"
+      trigger: "auto (L4-L5 queries)"
+      purpose: "Confirm question/decision/data/dimensions before running"
+
+    - id: "data-profiling"
+      file: ".claude/skills/data-profiling/skill.md"
+      trigger: "/profile command"
+      purpose: "Deep-profile schema, distributions, anomalies"
+
+    - id: "tracking-gaps"
+      file: ".claude/skills/tracking-gaps/skill.md"
+      trigger: "auto (L3+ after hypothesis)"
+      purpose: "Identify tracking/data gaps"
+
+    - id: "metric-spec"
+      file: ".claude/skills/metric-spec/skill.md"
+      trigger: "/metric-spec command"
+      purpose: "Metric specification template"
+
+    - id: "explore"
+      file: ".claude/skills/explore/skill.md"
+      trigger: "/explore command"
+      purpose: "Quick interactive data exploration"
+
+    - id: "history"
+      file: ".claude/skills/history/skill.md"
+      trigger: "/history command"
+      purpose: "View past analyses"
+
+    - id: "archive-analysis"
+      file: ".claude/skills/archive-analysis/skill.md"
+      trigger: "/archive command"
+      purpose: "Archive results to .knowledge/"
+
+    - id: "patterns"
+      file: ".claude/skills/patterns/skill.md"
+      trigger: "/patterns command"
+      purpose: "Cross-analysis pattern detection"
+
+    - id: "semantic-validation"
+      file: ".claude/skills/semantic-validation/skill.md"
+      trigger: "auto (Layer 3 validation)"
+      purpose: "Semantic cross-checks for business plausibility"
+
+    - id: "quality"
+      file: ".claude/skills/quality/skill.md"
+      trigger: "/quality command"
+      purpose: "Show confidence breakdown and validation history"
+
+# Skills Registry (Wave 3)
+  wave_3:
+    - id: "visualization-patterns"
+      file: ".claude/skills/visualization-patterns/skill.md"
+      trigger: "auto (chart generation)"
+      purpose: "SWD chart patterns and rules"
+
+    - id: "presentation-themes"
+      file: ".claude/skills/presentation-themes/skill.md"
+      trigger: "/theme command"
+      purpose: "Theme selection and application rules"
+
+    - id: "stakeholder-communication"
+      file: ".claude/skills/stakeholder-communication/skill.md"
+      trigger: "auto (narrative generation)"
+      purpose: "Audience-adapted communication style"
+
+    - id: "export"
+      file: ".claude/skills/export/skill.md"
+      trigger: "/export command"
+      purpose: "Export as slides, email, brief, CSV, JSON"
+
+    - id: "run-pipeline"
+      file: ".claude/skills/run-pipeline/skill.md"
+      trigger: "/run-pipeline command"
+      purpose: "End-to-end DAG-based pipeline execution"
+
+    - id: "resume-pipeline"
+      file: ".claude/skills/resume-pipeline/skill.md"
+      trigger: "/resume-pipeline command"
+      purpose: "Resume from last completed step"
+
+    - id: "close-the-loop"
+      file: ".claude/skills/close-the-loop/skill.md"
+      trigger: "auto (L3+ with recommendations)"
+      purpose: "Ensure follow-up tracking for recommendations"
+
+    - id: "forecast"
+      file: ".claude/skills/forecast/skill.md"
+      trigger: "/forecast command"
+      purpose: "Simple time-series forecasting (no ML)"
+
+    - id: "role"
+      file: ".claude/skills/role/skill.md"
+      trigger: "/role command"
+      purpose: "Switch user role mid-session"
+
+# Skills Registry (Wave 4)
+  wave_4:
+    - id: "help"
+      file: ".claude/skills/help/skill.md"
+      trigger: "/help command"
+      purpose: "Comprehensive command reference"
+
+    - id: "datasets"
+      file: ".claude/skills/datasets/skill.md"
+      trigger: "/datasets command"
+      purpose: "Data source and coverage information"
+
+    - id: "backtest"
+      file: ".claude/skills/backtest/skill.md"
+      trigger: "/backtest command"
+      purpose: "Historical strategy testing interface"
+
+    - id: "screen"
+      file: ".claude/skills/screen/skill.md"
+      trigger: "/screen command"
+      purpose: "Multi-stock screening"
+
+    - id: "portfolio"
+      file: ".claude/skills/portfolio/skill.md"
+      trigger: "/portfolio command"
+      purpose: "Portfolio analysis and optimization"
+
+    - id: "chart"
+      file: ".claude/skills/chart/skill.md"
+      trigger: "/chart command"
+      purpose: "Direct chart generation without pipeline"
+
+# Skills Registry (Foundation - always present)
+  foundation:
+    - id: "data-sources"
+      file: ".claude/skills/data-sources/skill.md"
+      trigger: "/data-sources command"
+      purpose: "Browse datasets, check coverage"
+
+    - id: "vnstock-data"
+      file: ".claude/skills/vnstock-data/skill.md"
+      trigger: "auto (data access)"
+      purpose: "Connect to vnstock API"
+
+    - id: "connect-data"
+      file: ".claude/skills/connect-data/skill.md"
+      trigger: "/connect-data command"
+      purpose: "Add new dataset connection"
+
+    - id: "switch-dataset"
+      file: ".claude/skills/switch-dataset/skill.md"
+      trigger: "/switch-dataset command"
+      purpose: "Change active dataset"
+
+    - id: "data-inspect"
+      file: ".claude/skills/data-inspect/skill.md"
+      trigger: "/data-inspect command"
+      purpose: "Show active schema"
+
+    - id: "data-quality-check"
+      file: ".claude/skills/data-quality-check/skill.md"
+      trigger: "auto (every query)"
+      purpose: "Pre-analysis data quality scan"
+
+    - id: "knowledge-bootstrap"
+      file: ".claude/skills/knowledge-bootstrap/skill.md"
+      trigger: "auto (startup)"
+      purpose: "Load dataset context at session start"
+
+    - id: "cache"
+      file: ".claude/skills/cache/skill.md"
+      trigger: "/cache command"
+      purpose: "Cache management"
+
+    - id: "locale-adapter"
+      file: ".claude/skills/locale-adapter/skill.md"
+      trigger: "auto (all outputs)"
+      purpose: "VND formatting, bilingual labels, ICT timezone"
+
+    - id: "question-framing"
+      file: ".claude/skills/question-framing/skill.md"
+      trigger: "auto (all queries)"
+      purpose: "L0-L5 classification"
+
+    - id: "question-router"
+      file: ".claude/skills/question-router/skill.md"
+      trigger: "auto (all queries)"
+      purpose: "Route to appropriate agents"
+
+    - id: "first-run-welcome"
+      file: ".claude/skills/first-run-welcome/skill.md"
+      trigger: "auto (first run)"
+      purpose: "Onboarding + AI Analyst Lab intro"
+
+    - id: "health"
+      file: ".claude/skills/health/skill.md"
+      trigger: "/health command"
+      purpose: "System health check"
+
+    - id: "glossary"
+      file: ".claude/skills/glossary/skill.md"
+      trigger: "/glossary command"
+      purpose: "Vietnamese market glossary"
+
 # Build Status
 build:
-  wave_0_agents_created: 0
-  wave_1_agents_created: 0
-  wave_2_agents_created: 0
-  wave_3_agents_created: 0
-  wave_4_agents_created: 0
-  total_agents_created: 0
+  wave_0_agents_created: 1   # connector-inspector (internal)
+  wave_1_agents_created: 4   # question-framing, data-explorer, source-tieout, validation (partial)
+  wave_2_agents_created: 7   # hypothesis, descriptive-analytics, overtime-trend, cohort-analysis, root-cause-investigator, opportunity-sizer, connector-inspector
+  wave_2_validation_upgrade: 1  # validation v1.0 -> v2.0 (all 4 layers)
+  wave_2_skills_created: 13  # triangulation, guardrails, simpsons-paradox, analysis-design-spec, data-profiling, tracking-gaps, metric-spec, explore, history, archive-analysis, patterns, semantic-validation, quality
+  wave_3_agents_created: 7   # story-architect, narrative-coherence-reviewer, chart-maker, visual-design-critic, storytelling, deck-creator, close-the-loop
+  wave_3_skills_created: 9   # visualization-patterns, presentation-themes, stakeholder-communication, export, run-pipeline, resume-pipeline, close-the-loop, forecast, role
+  wave_4_agents_created: 1   # experiment-designer
+  wave_4_skills_created: 6   # help, datasets, backtest, screen, portfolio, chart
+  total_agents_created: 19
+  total_skills_created: 42   # 14 foundation + 13 wave_2 + 9 wave_3 + 6 wave_4
 
-  next_wave: 1
-  next_agents: ["question-framing", "data-explorer", "source-tieout"]
+  status: "COMPLETE"
+  completed_at: "2026-02-21"

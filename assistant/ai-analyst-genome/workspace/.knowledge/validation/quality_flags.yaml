@@ -1,0 +1,16 @@
+# Quality Flags Log — Append-Only
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+#
+# Logs all RED and YELLOW flags for trend analysis.
+# Used by /quality flags and /patterns quality.
+
+entries: []
+# Example entry:
+# - timestamp: '2026-02-21T14:35:10+07:00'
+#   analysis_id: 'q_20260221_143500'
+#   layer: 2
+#   check: 'sample_size'
+#   severity: 'YELLOW'
+#   description: 'Tech sector n=12, below 30 threshold'
+#   resolution: 'Proceeded with wider CIs, noted in report'

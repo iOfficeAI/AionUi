@@ -1,0 +1,81 @@
+# Metric Definition: P/B Ratio
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+metric_id: "pb_ratio"
+name: "Price-to-Book Ratio"
+name_vi: "He so gia tren gia tri so sach"
+abbreviation: "P/B"
+category: "valuation"
+
+# Formula
+formula: "Market Price per Share / Book Value per Share"
+formula_latex: "\\frac{P}{BVPS}"
+
+# Data source
+data_source:
+  function: "vnstock_lib.fetch_ratios"
+  item_name: "P/B"
+  alternative_names: ["PB", "Price/Book", "Hệ số P/B"]
+  period: "quarterly"
+  fallback: "Calculate from market_cap / total_equity if ratio unavailable"
+
+# Typical ranges for Vietnamese market
+typical_range:
+  all_stocks:
+    min: 0.1
+    max: 20
+    median: 1.5
+  blue_chips:
+    min: 1.0
+    max: 4.0
+    median: 2.0
+  banking:
+    min: 0.8
+    max: 3.5
+    median: 1.8
+  real_estate:
+    min: 0.3
+    max: 3.0
+    median: 1.0
+  technology:
+    min: 1.0
+    max: 8.0
+    median: 2.5
+
+# Validation rules
+validation:
+  out_of_range_threshold: 20  # Flag if P/B > 20x
+  negative_pb_note: "Negative P/B indicates negative equity (liabilities > assets). Extremely rare, flag as risk."
+  below_one_note: "P/B < 1.0 means stock trades below book value. Common in Vietnamese market during downturns."
+
+# Interpretation guide
+interpretation:
+  deep_value: "P/B < 0.8: Deep value territory, check for distress"
+  value: "P/B 0.8-1.2: Value range, potentially undervalued"
+  fair: "P/B 1.2-2.5: Fair value for Vietnamese stocks"
+  growth: "P/B 2.5-5.0: Growth premium"
+  expensive: "P/B > 5.0: Very high premium, requires strong growth"
+
+# Comparison context
+benchmark:
+  vn_index_pb: 1.8  # Approximate as of 2025
+  regional_average: 1.6  # ASEAN average
+  note: "Vietnamese banking stocks typically trade at 1.5-2.5x P/B"
+
+# Display formatting
+display:
+  format: "{value:.2f}x"
+  significant_figures: 2
+  unit: "x"
+  color_coding:
+    deep_value: "#059669"  # Green
+    value: "#059669"       # Green
+    fair: "#6B7280"        # Gray
+    growth: "#D97706"      # Amber
+    expensive: "#DC2626"   # Red
+
+# Update frequency
+update_frequency: "quarterly"
+staleness_threshold_hours: 24
+last_updated: "2026-02-21"

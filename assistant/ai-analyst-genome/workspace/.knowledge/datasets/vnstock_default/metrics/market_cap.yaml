@@ -1,0 +1,98 @@
+# Metric Definition: Market Capitalization
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+metric_id: "market_cap"
+name: "Market Capitalization"
+name_vi: "Von hoa thi truong"
+abbreviation: "Market Cap"
+category: "size"
+
+# Formula
+formula: "Current Price * Total Outstanding Shares"
+formula_latex: "P \\times \\text{Shares Outstanding}"
+
+# Data source
+data_source:
+  function: "Derived from price and shares outstanding"
+  primary: "vnstock_lib.fetch_price_board (for current price)"
+  secondary: "vnstock_lib.fetch_balance_sheet (for shares outstanding)"
+  alternative_names: ["Vốn hóa", "Vốn hóa thị trường", "Cap", "MCap"]
+  period: "real-time"
+  fallback: "Use last closing price if real-time unavailable"
+
+# Typical ranges for Vietnamese market (in VND billions)
+typical_range:
+  all_stocks:
+    min: 10           # Micro-caps (10 billion VND ~ $400K)
+    max: 500000       # Largest (500 trillion VND ~ $20B)
+    median: 1500      # 1,500 billion VND ~ $60M
+    unit: "billion VND"
+  mega_cap:
+    min: 100000       # > 100 trillion VND
+    examples: ["VCB", "VHM", "VIC", "BID", "GAS"]
+  large_cap:
+    min: 20000        # 20-100 trillion VND
+    max: 100000
+    examples: ["TCB", "MBB", "FPT", "HPG", "MSN"]
+  mid_cap:
+    min: 5000         # 5-20 trillion VND
+    max: 20000
+    examples: ["REE", "DGC", "PNJ", "KDH"]
+  small_cap:
+    min: 1000         # 1-5 trillion VND
+    max: 5000
+  micro_cap:
+    min: 0
+    max: 1000         # < 1 trillion VND
+
+# Size classification thresholds (Vietnamese market specific)
+classification:
+  mega_cap: 100000    # > 100,000 billion VND (100 trillion)
+  large_cap: 20000    # 20,000 - 100,000 billion VND
+  mid_cap: 5000       # 5,000 - 20,000 billion VND
+  small_cap: 1000     # 1,000 - 5,000 billion VND
+  micro_cap: 0        # < 1,000 billion VND
+  unit: "billion VND"
+  note: "Thresholds are Vietnamese market specific; much smaller than US/EU definitions"
+
+# Validation rules
+validation:
+  out_of_range_threshold: 1000000  # Flag if > 1 quadrillion VND (likely error)
+  zero_note: "Market cap of 0 indicates suspended/delisted stock or missing data"
+  negative_note: "Negative market cap is impossible. Flag as data error."
+  sudden_change_threshold: 0.20  # Flag if market cap changes >20% in one day (excluding corporate actions)
+
+# Interpretation guide
+interpretation:
+  mega_cap: "Market leader, high liquidity, institutional ownership. VCB, VHM."
+  large_cap: "Major player, good liquidity. Suitable for most portfolios."
+  mid_cap: "Growth potential, moderate liquidity. Higher volatility."
+  small_cap: "Higher risk/reward, lower liquidity. Wide bid-ask spreads."
+  micro_cap: "Speculative, very low liquidity. UPCOM-heavy."
+
+# VN30 context
+vn30:
+  description: "30 largest and most liquid stocks on HOSE"
+  typical_market_cap_min: 15000  # billion VND
+  total_market_share: "~70% of HOSE market cap"
+  rebalance: "Semi-annual (January, July)"
+
+# Display formatting
+display:
+  format_small: "{value:,.0f} billion VND"  # For values < 1,000 billion
+  format_large: "{value:,.1f} trillion VND"  # For values >= 1,000 billion
+  threshold_trillion: 1000  # Switch to trillion display at 1,000 billion
+  significant_figures: 0
+  unit: "billion VND"
+  color_coding:
+    mega_cap: "#1a1a2e"   # Primary (dark)
+    large_cap: "#D97706"  # Amber
+    mid_cap: "#059669"    # Green
+    small_cap: "#6B7280"  # Gray
+    micro_cap: "#DC2626"  # Red (risk)
+
+# Update frequency
+update_frequency: "real-time"
+staleness_threshold_hours: 1  # Market cap changes with price
+last_updated: "2026-02-21"

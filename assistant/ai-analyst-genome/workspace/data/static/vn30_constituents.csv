@@ -1,0 +1,31 @@
+ticker,company_name,company_name_vi,sector,exchange,weight_approx
+ACB,Asia Commercial Bank,Ngan hang A Chau,Banking,HOSE,3.2
+BCM,Becamex IDC,Becamex IDC,Real Estate,HOSE,1.8
+BID,BIDV,Ngan hang Dau tu va Phat trien,Banking,HOSE,5.5
+BVH,Bao Viet Holdings,Tap doan Bao Viet,Insurance,HOSE,1.5
+CTG,VietinBank,Ngan hang Cong thuong,Banking,HOSE,4.8
+FPT,FPT Corporation,Cong ty Co phan FPT,Technology,HOSE,5.2
+GAS,PetroVietnam Gas,Tong Cong ty Khi Viet Nam,Oil & Gas,HOSE,3.8
+GVR,Vietnam Rubber Group,Tap doan Cong nghiep Cao su,Materials,HOSE,1.6
+HDB,HDBank,Ngan hang Phat trien TP.HCM,Banking,HOSE,2.5
+HPG,Hoa Phat Group,Tap doan Hoa Phat,Steel,HOSE,4.5
+KDH,Khang Dien House,Nha Khang Dien,Real Estate,HOSE,1.2
+LPB,LienVietPostBank,Ngan hang Buu dien Lien Viet,Banking,HOSE,1.8
+MBB,Military Bank,Ngan hang Quan doi,Banking,HOSE,3.5
+MSN,Masan Group,Tap doan Masan,Consumer,HOSE,3.0
+MWG,Mobile World Group,The Gioi Di Dong,Retail,HOSE,2.8
+PLX,Petrolimex,Tap doan Xang dau Viet Nam,Oil & Gas,HOSE,1.5
+POW,PetroVietnam Power,Tong Cong ty Dien luc Dau khi,Utilities,HOSE,1.2
+SAB,Sabeco,Tong Cong ty Bia Ruou NGK Sai Gon,Consumer,HOSE,2.0
+SHB,SHB Bank,Ngan hang Sai Gon - Ha Noi,Banking,HOSE,1.5
+SSB,SeABank,Ngan hang TMCP Dong Nam A,Banking,HOSE,1.3
+SSI,SSI Securities,Cong ty Chung khoan SSI,Securities,HOSE,2.5
+STB,Sacombank,Ngan hang Sai Gon Thuong Tin,Banking,HOSE,2.2
+TCB,Techcombank,Ngan hang Ky thuong,Banking,HOSE,4.0
+TPB,TPBank,Ngan hang Tien Phong,Banking,HOSE,1.8
+VCB,Vietcombank,Ngan hang Ngoai thuong,Banking,HOSE,10.5
+VHM,Vinhomes,Cong ty Co phan Vinhomes,Real Estate,HOSE,6.0
+VIB,VIB Bank,Ngan hang Quoc te,Banking,HOSE,1.5
+VIC,Vingroup,Tap doan Vingroup,Real Estate,HOSE,5.8
+VJC,VietJet Air,Hang khong VietJet,Airlines,HOSE,2.5
+VNM,Vinamilk,Cong ty Sua Viet Nam,Consumer,HOSE,4.5
