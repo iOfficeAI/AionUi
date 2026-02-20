@@ -43,10 +43,10 @@
 
 <p align="center">
 
-[✨ Cowork 실연](#cowork--ai-agents가-함께-작업합니다) ·
-[🤔 왜 AionUi를 선택해야 하나요?](#왜-aionui를-claude-cowork보다-선택해야-하나요) ·
-[🚀 빠른 시작](#빠른-시작) ·
-[💬 커뮤니티](#커뮤니티--지원)
+[✨ Cowork 실연](#-cowork-실연) ·
+[🤔 왜 AionUi를 선택해야 하나요?](#-왜-aionui를-claude-cowork보다-선택해야-하나요) ·
+[🚀 빠른 시작](#-빠른-시작) ·
+[💬 커뮤니티](#-커뮤니티-및-지원)
 
 </p>
 
