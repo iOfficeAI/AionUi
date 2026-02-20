@@ -21,8 +21,9 @@ echo "Using Python: $($PYTHON --version)"
 
 # Install dependencies
 $PYTHON -m pip install -q --upgrade pip
-$PYTHON -m pip install -q pydantic requests pandas numpy python-dotenv httpx plotly kaleido
+$PYTHON -m pip install -q pydantic requests pandas numpy python-dotenv httpx plotly kaleido dash
 
 echo "Dependencies installed."
 touch "$MARKER"
 echo "Environment ready. You can now run finance research commands."
+echo "To launch the dashboard: python app.py"

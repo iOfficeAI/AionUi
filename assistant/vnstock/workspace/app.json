@@ -1,0 +1,7 @@
+{
+  "name": "Finance Dashboard",
+  "url": "http://localhost:8050",
+  "type": "dash",
+  "description": "Interactive financial analysis dashboard",
+  "icon": "chart-line"
+}

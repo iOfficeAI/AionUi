@@ -1,0 +1,2 @@
+vnstock>=3.4.2
+pandas>=2.0.0

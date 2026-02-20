@@ -10,6 +10,26 @@ const { execSync } = require('child_process');
 
 function runPostInstall() {
   try {
+    // Install vnstock Python dependencies
+    console.log('Checking vnstock installation...');
+    try {
+      const { execSync: execSyncLocal } = require('child_process');
+      const path = require('path');
+      const installScript = path.join(__dirname, '..', 'assistant', 'vnstock', 'workspace', 'setup.sh');
+
+      // Check if Python is available
+      try {
+        execSyncLocal('python3 --version', { stdio: 'pipe' });
+        console.log('Python 3 detected, installing vnstock...');
+        execSyncLocal(`bash "${installScript}"`, { stdio: 'inherit' });
+      } catch (pythonError) {
+        console.warn('Python 3 not found. vnstock features will not be available.');
+        console.warn('Install Python 3.10+ to enable Vietnamese stock market analysis.');
+      }
+    } catch (vnstockError) {
+      console.warn('vnstock installation failed:', vnstockError.message);
+      console.warn('You can manually install vnstock later with: bash scripts/install-vnstock.sh');
+    }
 
     // Check if we're in a CI environment
     const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';

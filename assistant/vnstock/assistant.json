@@ -1,0 +1,31 @@
+{
+  "id": "vnstock",
+  "presetAgentType": "claude",
+  "workspacePath": "./workspace",
+  "avatar": "🇻🇳",
+  "version": "2.0.0",
+  "tags": ["vietnam", "stock-market", "vnstock", "equity-analysis", "vn30", "hose", "hnx"],
+  "defaultEnabledSkills": ["vnstock-data"],
+  "nameI18n": {
+    "en-US": "Vietnamese Stock Market (vnstock)",
+    "zh-CN": "越南股市分析 (vnstock)",
+    "zh-TW": "越南股市分析 (vnstock)",
+    "ja-JP": "ベトナム株式市場 (vnstock)",
+    "ko-KR": "베트남 주식 시장 (vnstock)"
+  },
+  "descriptionI18n": {
+    "en-US": "Specialized assistant for Vietnamese stock market analysis powered by vnstock library. Access real-time quotes, financial statements, market listings, and trading data for HOSE, HNX, and UPCOM exchanges. Supports VN30, VNMidCap indices and comprehensive Vietnamese equity research.",
+    "zh-CN": "基于 vnstock 库的越南股市分析专业助手。获取 HOSE、HNX 和 UPCOM 交易所的实时行情、财务报表、市场列表和交易数据。支持 VN30、VNMidCap 指数和全面的越南股票研究。",
+    "zh-TW": "基於 vnstock 函式庫的越南股市分析專業助手。取得 HOSE、HNX 和 UPCOM 交易所的即時報價、財務報表、市場清單和交易資料。支援 VN30、VNMidCap 指數和全面的越南股票研究。",
+    "ja-JP": "vnstock ライブラリを利用したベトナム株式市場分析の専門アシスタント。HOSE、HNX、UPCOM 取引所のリアルタイム株価、財務諸表、市場リスト、取引データにアクセス。VN30、VNMidCap インデックスと包括的なベトナム株式調査をサポート。",
+    "ko-KR": "vnstock 라이브러리 기반 베트남 주식 시장 분석 전문 어시스턴트. HOSE, HNX, UPCOM 거래소의 실시간 시세, 재무제표, 시장 목록, 거래 데이터에 접근. VN30, VNMidCap 지수 및 포괄적인 베트남 주식 연구 지원."
+  },
+  "promptsI18n": {
+    "en-US": ["Get historical price data for VCB from 2024-01-01 to today", "Show me the balance sheet for ACB (Asia Commercial Bank)", "List all stocks on the HOSE exchange", "Get the price board for VN30 stocks", "Compare financial ratios for VCB, ACB, and TCB", "What are the top performing stocks in the banking sector?"],
+    "zh-CN": ["获取 VCB 从 2024-01-01 至今的历史价格数据", "显示 ACB（亚洲商业银行）的资产负债表", "列出 HOSE 交易所的所有股票", "获取 VN30 股票的报价板", "比较 VCB、ACB 和 TCB 的财务比率", "银行业表现最好的股票有哪些？"],
+    "zh-TW": ["取得 VCB 從 2024-01-01 至今的歷史價格資料", "顯示 ACB（亞洲商業銀行）的資產負債表", "列出 HOSE 交易所的所有股票", "取得 VN30 股票的報價板", "比較 VCB、ACB 和 TCB 的財務比率", "銀行業表現最好的股票有哪些？"],
+    "ja-JP": ["2024-01-01 から今日までの VCB の履歴価格データを取得", "ACB（アジア商業銀行）のバランスシートを表示", "HOSE 取引所の全株式をリスト表示", "VN30 株式の価格ボードを取得", "VCB、ACB、TCB の財務比率を比較", "銀行セクターで最もパフォーマンスの高い株式は？"],
+    "ko-KR": ["2024-01-01부터 오늘까지 VCB의 과거 가격 데이터 가져오기", "ACB(아시아 상업 은행)의 대차대조표 표시", "HOSE 거래소의 모든 주식 나열", "VN30 주식의 가격 보드 가져오기", "VCB, ACB, TCB의 재무 비율 비교", "은행 부문에서 최고 성과 주식은?"]
+  },
+  "isBuiltin": true
+}

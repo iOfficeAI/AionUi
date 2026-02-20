@@ -37,7 +37,7 @@ export FINANCIAL_DATASETS_API_KEY=your_key_here
 ## Dependencies
 
 ```bash
-pip install requests pandas pydantic numpy python-dotenv
+pip install requests pandas pydantic numpy python-dotenv dash
 ```
 
 Or with pyproject.toml (Python 3.11+):
@@ -45,6 +45,25 @@ Or with pyproject.toml (Python 3.11+):
 ```bash
 pip install -e .
 ```
+
+## Interactive Dashboard
+
+The workspace includes a Dash-based interactive dashboard at `app.py`.
+Use the **Preview App** button in the workspace panel to open it, or launch manually:
+
+```bash
+python app.py
+```
+
+The dashboard runs at `http://localhost:8050` and provides:
+
+- Live price charts with EMA overlays
+- Financial metrics cards (market cap, P/E, margins, EPS)
+- Revenue growth and margin trend charts
+- Valuation multiples comparison
+- Recent news feed
+
+Enter any supported ticker and click **Analyze** to fetch live data.
 
 ## Report Workflow
 
