@@ -194,7 +194,7 @@ _你的 24/7 AI 助手 — 手机、平板、电脑，随时随地都能用。_
 > **设置：** AionUi 设置 → WebUI 设置 → Channel，配置 Bot Token。
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Cowork from Anywhere" width="800">
+  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
 </p>
 
 > [远程互联网访问教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
