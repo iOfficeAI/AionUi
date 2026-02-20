@@ -1,0 +1,117 @@
+# Data Sources Configuration
+# Vietnamese Stock Market Analyst
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+data_platform: "vnstock"
+version: ">=3.4.2"
+
+# Data sources
+sources:
+  - id: "KBS"
+    name: "KBS Securities"
+    type: "primary"
+    status: "active"
+    coverage:
+      - "OHLCV historical prices (2010-present)"
+      - "Real-time price boards"
+      - "Symbol listings (HOSE, HNX, UPCOM)"
+    api_limits:
+      rate_limit: "100 requests/minute"
+      daily_limit: "10,000 requests/day"
+    notes: "Primary source for real-time data"
+
+  - id: "VCI"
+    name: "VCI Securities"
+    type: "secondary"
+    status: "active"
+    coverage:
+      - "Financial statements (balance sheet, income, cash flow)"
+      - "Financial ratios"
+      - "Historical prices (cross-validation)"
+    api_limits:
+      rate_limit: "50 requests/minute"
+      daily_limit: "5,000 requests/day"
+    notes: "Used for triangulation and financial data"
+
+  - id: "TCBS"
+    name: "TCBS Securities"
+    type: "tertiary"
+    status: "active"
+    coverage:
+      - "Financial statements (alternative source)"
+      - "Company fundamentals"
+      - "Historical prices (cross-validation)"
+    api_limits:
+      rate_limit: "50 requests/minute"
+      daily_limit: "5,000 requests/day"
+    notes: "Backup source for cross-validation"
+
+# Default configuration
+default_source: "KBS"
+fallback_order: ["KBS", "VCI", "TCBS"]
+
+# Cache settings
+cache:
+  enabled: true
+  storage_path: "data/cache/"
+  ttl:
+    real_time: 5  # minutes
+    prices: 60    # minutes
+    financials: 1440  # minutes (24 hours)
+  max_size_mb: 500
+
+# Data quality thresholds (Vietnamese market specific)
+quality_thresholds:
+  price_limit_hose_hnx: 0.07  # ±7% daily price limit
+  price_limit_upcom: 0.15     # ±15% daily price limit
+  financial_lag_days: 45      # Vietnamese financials often delayed 30-45 days
+  source_variance_threshold: 0.02  # Flag if sources differ by >2%
+  volume_spike_threshold: 10  # Flag if volume >10x average
+
+# Known quirks
+quirks:
+  - "Financial data has 30-45 day lag from reporting date"
+  - "Source variance ±1-2% is normal due to different data feeds"
+  - "Delisted stocks may have incomplete historical data"
+  - "Ratio calculations may differ slightly across sources"
+  - "Real-time data requires <5 min staleness for L1 queries"
+
+# Connection details
+connection:
+  library: "vnstock"
+  import_path: ".claude.skills.vnstock_data.vnstock_lib"
+  credential_management: "library_managed"  # vnstock handles auth internally
+  retry_policy:
+    max_retries: 3
+    backoff_seconds: [5, 10, 20]  # exponential backoff
+    cache_fallback: true
+
+# Locale settings
+locale:
+  timezone: "Asia/Ho_Chi_Minh"  # ICT (UTC+7)
+  currency: "VND"
+  number_format:
+    decimal_separator: "."
+    thousands_separator: ","
+  date_format: "YYYY-MM-DD"
+  datetime_format: "YYYY-MM-DD HH:mm ICT"
+
+# Data coverage
+coverage:
+  symbols: "~1,700 stocks (HOSE, HNX, UPCOM)"
+  history_start: "2010-01-01"
+  exchanges:
+    - "HOSE (Ho Chi Minh Stock Exchange)"
+    - "HNX (Hanoi Stock Exchange)"
+    - "UPCOM (Unlisted Public Company Market)"
+  indices:
+    - "VN30 (30 largest stocks)"
+    - "VN-Index (HOSE index)"
+    - "HNX-Index (HNX index)"
+    - "UPCOM-Index (UPCOM index)"
+
+# Attribution
+attribution:
+  data_provider: "vnstock (KBS/VCI/TCBS)"
+  license: "Check vnstock library license"
+  citation: "Data provided by vnstock library (https://github.com/thinh-vu/vnstock)"

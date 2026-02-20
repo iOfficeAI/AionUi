@@ -1,0 +1,354 @@
+# Agent Registry — Vietnamese Stock Market Analyst
+# Machine-readable DAG for 19-agent pipeline
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+metadata:
+  project: "Vietnamese Stock Market Analyst"
+  genome_version: "1.0"
+  capability_tier: "full"
+  total_agents: 19
+  pipeline_agents: 17
+  standalone_agents: 2
+  last_updated: "2026-02-21"
+
+# Pipeline Agents (17) - Ordered by execution sequence
+pipeline:
+  - id: "question-framing"
+    step: 1
+    name: "Question Framing Agent"
+    user_visible_name: "Understanding your question..."
+    file: "agents/question-framing.md"
+    purpose: "L0-L5 classification via Question Ladder"
+    inputs: ["user_question", ".knowledge/active.yaml"]
+    outputs: ["_working/question_brief.md"]
+    depends_on: []
+    blocks: ["hypothesis", "data-explorer"]
+    time_estimate: "<5s"
+    wave: 1
+    status: "not_started"
+
+  - id: "hypothesis"
+    step: 3
+    name: "Hypothesis Agent"
+    user_visible_name: "Generating hypotheses..."
+    file: "agents/hypothesis.md"
+    purpose: "Generate testable hypotheses (4 categories)"
+    inputs: ["_working/question_brief.md"]
+    outputs: ["_working/hypothesis_doc.md"]
+    depends_on: ["question-framing"]
+    blocks: ["data-explorer"]
+    time_estimate: "5-10s"
+    wave: 2
+    status: "not_started"
+
+  - id: "data-explorer"
+    step: 4
+    name: "Data Explorer Agent"
+    user_visible_name: "Finding relevant data..."
+    file: "agents/data-explorer.md"
+    purpose: "Dataset discovery + real-time L1 support"
+    inputs: ["_working/question_brief.md", "_working/hypothesis_doc.md"]
+    outputs: ["_working/data_inventory.md"]
+    depends_on: ["question-framing"]
+    blocks: ["source-tieout"]
+    time_estimate: "5-15s"
+    special_features: ["real_time_l1"]
+    wave: 1
+    status: "not_started"
+
+  - id: "source-tieout"
+    step: 4.5
+    name: "Source Tie-Out Agent"
+    user_visible_name: "Verifying data integrity..."
+    file: "agents/source-tieout.md"
+    purpose: "Data integrity check (dual-path validation)"
+    inputs: ["_working/data_inventory.md"]
+    outputs: ["_working/tieout_report.md"]
+    depends_on: ["data-explorer"]
+    blocks: ["descriptive-analytics", "overtime-trend", "cohort-analysis"]
+    time_estimate: "5-10s"
+    wave: 1
+    status: "not_started"
+
+  - id: "descriptive-analytics"
+    step: 5
+    name: "Descriptive Analytics Agent"
+    user_visible_name: "Analyzing patterns..."
+    file: "agents/descriptive-analytics.md"
+    purpose: "Segmentation, funnels, effect sizes"
+    inputs: ["_working/tieout_report.md", "dataset"]
+    outputs: ["_working/analysis_report.md", "_working/charts/"]
+    depends_on: ["source-tieout"]
+    blocks: ["root-cause-investigator", "validation"]
+    time_estimate: "15-30s"
+    wave: 2
+    status: "not_started"
+
+  - id: "overtime-trend"
+    step: 5
+    name: "Over-Time Trend Agent"
+    user_visible_name: "Analyzing trends..."
+    file: "agents/overtime-trend.md"
+    purpose: "Time-series analysis, anomalies"
+    inputs: ["_working/tieout_report.md", "dataset"]
+    outputs: ["_working/trend_report.md", "_working/charts/"]
+    depends_on: ["source-tieout"]
+    blocks: ["validation"]
+    time_estimate: "15-30s"
+    wave: 2
+    status: "not_started"
+
+  - id: "cohort-analysis"
+    step: 5
+    name: "Cohort Analysis Agent"
+    user_visible_name: "Analyzing cohorts..."
+    file: "agents/cohort-analysis.md"
+    purpose: "Retention curves, relative performance"
+    inputs: ["_working/tieout_report.md", "dataset"]
+    outputs: ["_working/cohort_report.md", "_working/charts/"]
+    depends_on: ["source-tieout"]
+    blocks: ["validation"]
+    time_estimate: "15-30s"
+    wave: 2
+    status: "not_started"
+
+  - id: "root-cause-investigator"
+    step: 6
+    name: "Root Cause Investigator Agent"
+    user_visible_name: "Investigating root causes..."
+    file: "agents/root-cause-investigator.md"
+    purpose: "Iterative drill-down (8-step protocol)"
+    inputs: ["_working/analysis_report.md", "metric", "observation"]
+    outputs: ["_working/investigation.md"]
+    depends_on: ["descriptive-analytics"]
+    blocks: ["validation"]
+    time_estimate: "20-40s"
+    wave: 2
+    status: "not_started"
+
+  - id: "validation"
+    step: 7
+    name: "Validation Agent"
+    user_visible_name: "Checking quality..."
+    file: "agents/validation.md"
+    purpose: "4-layer validation + confidence scoring"
+    inputs: ["all _working/*.md files"]
+    outputs: ["_working/validation_report.md", "_working/confidence_scores.yaml"]
+    depends_on: ["descriptive-analytics", "overtime-trend", "cohort-analysis", "root-cause-investigator"]
+    blocks: ["opportunity-sizer"]
+    time_estimate: "10-20s"
+    layers: [1, 2, 3, 4]
+    wave: 2
+    status: "not_started"
+
+  - id: "opportunity-sizer"
+    step: 8
+    name: "Opportunity Sizer Agent"
+    user_visible_name: "Quantifying impact..."
+    file: "agents/opportunity-sizer.md"
+    purpose: "Business impact quantification"
+    inputs: ["opportunity", "results"]
+    outputs: ["_working/sizing_report.md"]
+    depends_on: ["validation"]
+    blocks: ["story-architect"]
+    time_estimate: "10-20s"
+    wave: 3
+    status: "not_started"
+
+  - id: "story-architect"
+    step: 9
+    name: "Story Architect Agent"
+    user_visible_name: "Crafting narrative..."
+    file: "agents/story-architect.md"
+    purpose: "Narrative design (CTR structure)"
+    inputs: ["all results", "audience"]
+    outputs: ["_working/storyboard.md"]
+    depends_on: ["opportunity-sizer"]
+    blocks: ["narrative-coherence-reviewer"]
+    time_estimate: "20-40s"
+    wave: 3
+    status: "not_started"
+
+  - id: "narrative-coherence-reviewer"
+    step: 10
+    name: "Narrative Coherence Reviewer Agent"
+    user_visible_name: "Reviewing narrative..."
+    file: "agents/narrative-coherence-reviewer.md"
+    purpose: "Story flow review (Layer 3 checks)"
+    inputs: ["_working/storyboard.md"]
+    outputs: ["_working/coherence_review.md"]
+    depends_on: ["story-architect"]
+    blocks: ["chart-maker"]
+    time_estimate: "10-15s"
+    review_outcomes: ["APPROVE", "CHANGES", "REJECT"]
+    wave: 3
+    status: "not_started"
+
+  - id: "chart-maker"
+    step: 12
+    name: "Chart Maker Agent"
+    user_visible_name: "Generating charts..."
+    file: "agents/chart-maker.md"
+    purpose: "Visualizations (matplotlib + SWD patterns)"
+    inputs: ["data", "storyboard", "theme"]
+    outputs: ["_working/charts/*.png"]
+    depends_on: ["narrative-coherence-reviewer"]
+    blocks: ["visual-design-critic"]
+    time_estimate: "10-15s"
+    wave: 3
+    status: "not_started"
+
+  - id: "visual-design-critic"
+    step: 13
+    name: "Visual Design Critic Agent"
+    user_visible_name: "Reviewing charts..."
+    file: "agents/visual-design-critic.md"
+    purpose: "Chart review (Layer 4 validation)"
+    inputs: ["_working/charts/*.png"]
+    outputs: ["_working/design_review.md"]
+    depends_on: ["chart-maker"]
+    blocks: ["storytelling"]
+    time_estimate: "5-10s"
+    wave: 3
+    status: "not_started"
+
+  - id: "storytelling"
+    step: 15
+    name: "Storytelling Agent"
+    user_visible_name: "Writing narrative..."
+    file: "agents/storytelling.md"
+    purpose: "Prose narrative (audience-adapted)"
+    inputs: ["results", "storyboard", "audience"]
+    outputs: ["_working/narrative.md"]
+    depends_on: ["visual-design-critic"]
+    blocks: ["deck-creator"]
+    time_estimate: "15-25s"
+    wave: 3
+    status: "not_started"
+
+  - id: "deck-creator"
+    step: 16
+    name: "Deck Creator Agent"
+    user_visible_name: "Building presentation..."
+    file: "agents/deck-creator.md"
+    purpose: "Marp slide assembly"
+    inputs: ["narrative.md", "charts/", "theme"]
+    outputs: ["outputs/deck.marp.md"]
+    depends_on: ["storytelling"]
+    blocks: ["close-the-loop"]
+    time_estimate: "10-15s"
+    wave: 3
+    status: "not_started"
+
+  - id: "close-the-loop"
+    step: 18
+    name: "Close the Loop Agent"
+    user_visible_name: "Tracking follow-ups..."
+    file: "agents/close-the-loop.md"
+    purpose: "Follow-up tracking + action items"
+    inputs: ["results", "recommendations"]
+    outputs: ["_working/close_the_loop.md"]
+    depends_on: ["deck-creator"]
+    blocks: []
+    time_estimate: "5-10s"
+    wave: 3
+    status: "not_started"
+
+# Standalone Agents (2)
+standalone:
+  - id: "experiment-designer"
+    name: "Experiment Designer Agent"
+    user_visible_name: "Designing experiment..."
+    file: "agents/experiment-designer.md"
+    purpose: "A/B test design, backtesting"
+    inputs: ["hypothesis (causal)", "metric", "dataset"]
+    outputs: ["outputs/experiment_brief.md"]
+    depends_on: []
+    blocks: []
+    time_estimate: "30-60s"
+    invoked_by: "/backtest command"
+    wave: 4
+    status: "not_started"
+
+  - id: "connector-inspector"
+    name: "Connector Inspector Agent"
+    user_visible_name: "(Setup only)"
+    file: "(internal)"
+    purpose: "Inspect existing vnstock_lib.py connector"
+    inputs: ["connector path"]
+    outputs: ["helpers/vnstock_adapter.py"]
+    depends_on: []
+    blocks: []
+    time_estimate: "N/A"
+    invoked_by: "setup wizard"
+    wave: 0
+    status: "completed"  # vnstock_lib.py copied in W0.0
+
+# DAG Validation
+dag_validation:
+  cycles_detected: false
+  entry_points: ["question-framing"]
+  exit_points: ["close-the-loop", "experiment-designer"]
+  critical_path: ["question-framing", "hypothesis", "data-explorer", "source-tieout", "descriptive-analytics", "validation", "opportunity-sizer", "story-architect", "narrative-coherence-reviewer", "chart-maker", "visual-design-critic", "storytelling", "deck-creator", "close-the-loop"]
+  critical_path_time: "1-3 min (L4 query)"
+
+# Quality Checkpoints (Validation runs at 3 points)
+quality_checkpoints:
+  - step: 4.5
+    agent: "source-tieout"
+    layer: 1
+    purpose: "Data quality pre-analysis"
+
+  - step: 7
+    agent: "validation"
+    layers: [1, 2, 3]
+    purpose: "Statistical rigor + logical coherence"
+
+  - step: 13
+    agent: "visual-design-critic"
+    layer: 4
+    purpose: "Presentation accuracy"
+
+# L0-L5 Routing (from question-framing agent)
+routing:
+  L0_meta:
+    agents: ["question-framing"]
+    time: "<5s"
+    example: "What can you do?"
+
+  L1_simple_lookup:
+    agents: ["question-framing", "data-explorer (real-time mode)"]
+    time: "<10s"
+    example: "What's VNM's price?"
+
+  L2_comparison:
+    agents: ["question-framing", "data-explorer", "source-tieout", "descriptive-analytics", "validation"]
+    time: "10-30s"
+    example: "Compare VNM and FPT P/E ratios"
+
+  L3_investigation:
+    agents: ["question-framing", "hypothesis", "data-explorer", "source-tieout", "descriptive-analytics", "overtime-trend", "validation"]
+    time: "30-90s"
+    example: "Which stocks have P/E <15 and ROE >20%?"
+
+  L4_deep_dive:
+    agents: "full pipeline (17 agents)"
+    time: "1-3 min"
+    example: "Find undervalued stocks with strong fundamentals and momentum"
+
+  L5_strategic:
+    agents: "full pipeline + experiment-designer"
+    time: "3-10 min"
+    example: "Build optimal portfolio for 2026"
+
+# Build Status
+build:
+  wave_0_agents_created: 0
+  wave_1_agents_created: 0
+  wave_2_agents_created: 0
+  wave_3_agents_created: 0
+  wave_4_agents_created: 0
+  total_agents_created: 0
+
+  next_wave: 1
+  next_agents: ["question-framing", "data-explorer", "source-tieout"]

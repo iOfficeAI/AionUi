@@ -1,0 +1,12 @@
+# Active Dataset Configuration
+# Points to the currently active dataset for analysis
+
+active_dataset: "vnstock_default"
+activated_at: "2026-02-21"
+activated_by: "setup_wizard"
+
+dataset_info:
+  name: "Vietnamese Stock Market (vnstock)"
+  platform: "vnstock"
+  path: ".knowledge/datasets/vnstock_default/"
+  connection_status: "pending_validation"  # Will be updated on first connect

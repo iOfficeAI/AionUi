@@ -1,0 +1,179 @@
+# Setup Wizard Context
+# Captured from genome_config.yaml during Wave 0 build
+# Powered by AI Analyst Lab | aianalystlab.ai
+
+setup_date: "2026-02-21"
+genome_version: "1.0"
+build_phase: "wave_0"
+
+# Q1: Project Name
+project_name: "Vietnamese Stock Market Analyst"
+
+# Q2: Data Platform
+data_platform:
+  type: "vnstock"
+  library: "vnstock>=3.4.2"
+  sources: ["KBS", "VCI", "TCBS"]
+  default_source: "KBS"
+  connection_type: "library_managed"
+  existing_connector: true
+  connector_path: "assistant/vnstock/workspace/.claude/skills/vnstock-data/vnstock_lib.py"
+
+# Q3: Dataset Description
+dataset_description: "Vietnamese stocks data"
+
+# Q4: Primary Use Case
+primary_use_case: "Quant researchers use to research the market, find edges - fundamentals, factors, technicals, portfolio management"
+
+# Q5: Audience
+audience:
+  primary: "Quant researchers"
+  secondary: ["normal users", "stock investors", "traders"]
+  user_roles:
+    - "quant_researcher"
+    - "retail_investor"
+    - "trader"
+    - "portfolio_manager"
+
+# Q6: Capability Tier
+capability_tier: "full"
+agents_count: 19
+agents:
+  pipeline:
+    - "question-framing"
+    - "hypothesis"
+    - "data-explorer"
+    - "source-tieout"
+    - "descriptive-analytics"
+    - "overtime-trend"
+    - "cohort-analysis"
+    - "root-cause-investigator"
+    - "validation"
+    - "opportunity-sizer"
+    - "story-architect"
+    - "narrative-coherence-reviewer"
+    - "chart-maker"
+    - "visual-design-critic"
+    - "storytelling"
+    - "deck-creator"
+    - "close-the-loop"
+  standalone:
+    - "experiment-designer"
+    - "connector-inspector"
+
+# Q7: Locale/Special Requirements
+locale:
+  language: "vi-VN"  # Vietnamese (with English fallback)
+  timezone: "Asia/Ho_Chi_Minh"  # ICT (UTC+7)
+  currency: "VND"
+  number_format:
+    decimal_separator: "."
+    thousands_separator: ","
+  date_format: "YYYY-MM-DD"
+  bilingual_labels: true  # English + Vietnamese
+  market_specifics:
+    - "±7% daily price limits (HOSE/HNX)"
+    - "±15% daily price limits (UPCOM)"
+    - "30-45 day financial reporting lag"
+    - "VND large number formatting (billions)"
+
+# Brand Tokens (from genome_config.yaml)
+brand:
+  company: "AI Analyst Lab"
+  url: "https://aianalystlab.ai"
+  creators: ["Shane Butler", "Sravya Madipalli", "Hai Guan"]
+  tagline: "Built with AI Analyst Lab"
+  footer_text: "Powered by AI Analyst Lab | aianalystlab.ai"
+  show_attribution: true
+
+  colors:
+    primary: "#1a1a2e"
+    secondary: "#D97706"
+    accent: "#D97706"
+    accent_light: "#F0A060"
+    bg_dark: "#1A1A17"
+    bg_light: "#F7F6F2"
+    positive: "#059669"
+    negative: "#DC2626"
+    text_dark_primary: "#F5F5F0"
+    text_dark_secondary: "#A8A090"
+    text_light_primary: "#1F2937"
+    text_light_secondary: "#4B5563"
+    border_dark: "#363532"
+    border_light: "#E5E7EB"
+    chart_bg: "#F7F6F2"
+
+  chart_palette: ["#D97706", "#DC2626", "#059669", "#6B7280", "#4cc9f0", "#7209b7"]
+
+  typography:
+    font_heading: "Inter"
+    font_body: "Inter"
+
+# Build Configuration
+build:
+  waves_total: 4
+  current_wave: 0
+  wave_0_tasks: 15
+  estimated_hours_wave_0: 20.25
+  master_plan: "_build/BUILD_PLAN.md"
+  status_file: "_build/BUILD_STATUS.yaml"
+
+# Quality System Configuration
+quality:
+  validation_layers: 4
+  confidence_scoring: true
+  confidence_formula: "25% data + 40% stats + 20% logic + 15% presentation"
+  review_loop: true
+  max_revisions: 2
+  statistical_ceiling: ["t-test", "chi-square", "confidence intervals", "effect sizes"]
+  statistical_forbidden: ["regression", "ANOVA", "ML"]
+
+# Skills Configuration
+skills_total: 37
+skills_auto_apply:
+  - "vnstock-data"
+  - "data-profiling"
+  - "knowledge-bootstrap"
+  - "data-quality-check"
+  - "question-framing"
+  - "tracking-gaps"
+  - "triangulation"
+  - "guardrails"
+  - "simpsons-paradox"
+  - "analysis-design-spec"
+  - "close-the-loop"
+  - "semantic-validation"
+  - "visualization-patterns"
+  - "stakeholder-communication"
+  - "locale-adapter"
+
+# Data Coverage
+data_coverage:
+  symbols_count: "~1,700"
+  exchanges: ["HOSE", "HNX", "UPCOM"]
+  indices: ["VN30", "VN-Index", "HNX-Index", "UPCOM-Index"]
+  history_start: "2010-01-01"
+  data_types:
+    - "OHLCV historical prices"
+    - "Financial statements (balance sheet, income, cash flow)"
+    - "Financial ratios"
+    - "Real-time price boards"
+    - "Symbol listings"
+
+# Notes
+notes:
+  - "Wave 0 builds foundation: directories, configs, brand tokens"
+  - "Wave 1 enables L1-L2 queries (simple lookups, comparisons)"
+  - "Wave 2 enables L3-L4 queries (investigations, deep dives)"
+  - "Wave 3 enables narrative & presentation (charts, decks)"
+  - "Wave 4 enables L5 strategic queries (portfolio optimization)"
+  - "Vietnamese market specializations integrated throughout"
+  - "Full attribution to AI Analyst Lab maintained"
+
+# Next Steps
+next_steps:
+  - "Complete Wave 0 tasks (W0.0 through W0.14)"
+  - "Update BUILD_STATUS.yaml after each task"
+  - "Verify acceptance criteria"
+  - "Write wave0_complete.md session summary"
+  - "Proceed to Wave 1 (Data Pipeline)"

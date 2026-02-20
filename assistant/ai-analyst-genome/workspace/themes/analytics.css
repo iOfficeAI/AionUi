@@ -1,0 +1,254 @@
+/* Marp Theme: Analytics (Light)
+ * Vietnamese Stock Market Analyst
+ * Powered by AI Analyst Lab | aianalystlab.ai
+ */
+
+/* @theme analytics */
+
+@import 'default';
+
+:root {
+  /* Brand Colors from genome_config.yaml */
+  --color-primary: #1a1a2e;
+  --color-secondary: #d97706;
+  --color-accent: #d97706;
+  --color-accent-light: #f0a060;
+  --color-bg: #f7f6f2;
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #4b5563;
+  --color-positive: #059669;
+  --color-negative: #dc2626;
+  --color-border: #e5e7eb;
+
+  /* Typography */
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Monaco', 'Courier New', monospace;
+}
+
+/* Base Styles */
+section {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 28px;
+  line-height: 1.6;
+  padding: 60px 80px;
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0 0 0.5em 0;
+}
+
+h1 {
+  font-size: 56px;
+  border-bottom: 4px solid var(--color-accent);
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 44px;
+  color: var(--color-secondary);
+}
+
+h3 {
+  font-size: 36px;
+}
+
+/* Text Elements */
+p {
+  margin: 0 0 1em 0;
+}
+
+strong {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+em {
+  color: var(--color-secondary);
+  font-style: italic;
+}
+
+/* Lists */
+ul,
+ol {
+  margin: 0 0 1em 1.5em;
+}
+
+li {
+  margin: 0.5em 0;
+}
+
+ul li::marker {
+  color: var(--color-accent);
+}
+
+/* Code */
+code {
+  font-family: var(--font-mono);
+  background-color: #e5e7eb;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+pre {
+  background-color: var(--color-primary);
+  color: #f7f6f2;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.9em;
+}
+
+th {
+  background-color: var(--color-primary);
+  color: #f7f6f2;
+  padding: 0.75em 1em;
+  text-align: left;
+  font-weight: 600;
+}
+
+td {
+  padding: 0.75em 1em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+tr:hover {
+  background-color: #e5e7eb;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--color-accent);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Links */
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+a:hover {
+  border-bottom-color: var(--color-accent);
+}
+
+/* Header (Title Slide) */
+section.lead {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+section.lead h1 {
+  font-size: 72px;
+  border-bottom: none;
+  margin-bottom: 0.2em;
+}
+
+section.lead p {
+  font-size: 32px;
+  color: var(--color-text-secondary);
+}
+
+/* Footer (Attribution) */
+section::after {
+  content: 'Powered by AI Analyst Lab | aianalystlab.ai';
+  position: absolute;
+  bottom: 30px;
+  right: 40px;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-body);
+}
+
+/* Page Number */
+section::before {
+  position: absolute;
+  bottom: 30px;
+  left: 40px;
+  font-size: 20px;
+  color: var(--color-text-secondary);
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Highlight Boxes */
+.highlight {
+  background-color: #fef3c7;
+  border-left: 4px solid var(--color-accent);
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 4px;
+}
+
+.success {
+  background-color: #d1fae5;
+  border-left: 4px solid var(--color-positive);
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 4px;
+}
+
+.warning {
+  background-color: #fee2e2;
+  border-left: 4px solid var(--color-negative);
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 4px;
+}
+
+/* Two-Column Layout */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2em;
+}
+
+.columns > div {
+  padding: 0;
+}
+
+/* Chart Containers */
+.chart-container {
+  background-color: white;
+  padding: 1em;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}

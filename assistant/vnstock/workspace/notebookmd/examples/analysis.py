@@ -1,5 +1,8 @@
 """Example analysis script demonstrating notebookmd usage.
 
+This pattern is used by the vnstock multi-agent research system.
+See: ../../analyses/samples/VCB_notebookmd_example/
+
 Run from the notebookmd package root:
     python examples/analysis.py
 """
@@ -34,7 +37,7 @@ except ImportError:
 
 
 def main():
-    cfg = NotebookConfig(max_table_rows=20, echo_to_console=True, include_code_default=True)
+    cfg = NotebookConfig(max_table_rows=20, echo_to_console=True, include_code_default=False)
     N = nb("dist/notebook.md", title="Sample Financial Analysis", cfg=cfg)
 
     # ── Cell 1: Setup ──
@@ -50,7 +53,7 @@ def main():
 
     if HAS_PANDAS:
         # ── Cell 2: Load data ──
-        with N.cell("Load sample data", code=True):
+        with N.cell("Load sample data"):
             df = pd.DataFrame(
                 {
                     "date": pd.date_range("2026-01-01", periods=30, freq="D"),
@@ -67,7 +70,7 @@ def main():
             N.summary(df, title="VCB Price Data Summary")
 
         # ── Cell 4: Aggregate ──
-        with N.cell("Weekly aggregation", code=True):
+        with N.cell("Weekly aggregation"):
             weekly = df.set_index("date").resample("W")["close"].agg(["mean", "min", "max"]).reset_index()
             weekly.columns = ["week", "avg_close", "min_close", "max_close"]
             N.table(weekly, name="Weekly price stats")
@@ -82,7 +85,7 @@ def main():
 
         # ── Cell 5: Plot ──
         if HAS_MPL:
-            with N.cell("Price chart", code=True):
+            with N.cell("Price chart"):
                 fig, ax = plt.subplots(figsize=(10, 4))
                 ax.plot(df["date"], df["close"], linewidth=1.5, color="#2563eb")
                 ax.set_title("VCB Daily Close Price")

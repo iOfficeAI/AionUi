@@ -7,9 +7,9 @@ This workspace generates **markdown research reports** via multi-agent delegatio
 **Core workflow**:
 
 1. Main agent delegates to specialist sub-agents
-2. Sub-agents write draft markdown to `drafts/{agent}/insights.md`
-3. Main agent aggregates drafts into final markdown report
-4. Use tables, charts (mermaid diagrams) for data visualization
+2. Sub-agents **investigate** using notebookmd to capture their research process
+3. Main agent **synthesizes discoveries** from all investigations
+4. notebookmd captures artifacts (tables, charts) automatically during research
 
 **Data access**:
 
@@ -22,6 +22,38 @@ ratios = fetch_ratios('VCB', period='annual')
 ```
 
 See `.claude/skills/vnstock-data/SKILL.md` for full API reference.
+
+**notebookmd: Automate Report Formatting**
+
+```python
+# notebookmd captures your investigation process
+from notebookmd import nb, NotebookConfig
+
+cfg = NotebookConfig(
+    max_table_rows=30,           # Show enough data for pattern recognition
+    echo_to_console=True,        # Live investigation feedback
+    include_code_default=True    # Show HOW you discovered insights
+)
+N = nb("analyses/VCB_2026-02-20/drafts/fundamentals/insights.md",
+       title="Fundamental Investigation: VCB", cfg=cfg)
+
+# Cells capture your investigation workflow
+with N.cell("Hypothesis: VCB has exceptional ROE"):
+    ratios = fetch_ratios('VCB')
+    roe = ratios['roe'].values[0]
+    N.kv({"ROE": f"{roe:.1f}%"})  # Auto-formatted key-value table
+
+with N.cell("Question: Is high ROE from leverage or genuine profitability?"):
+    # Investigate with ROIC calculation
+    roic = calculate_roic(fetch_financials('VCB'))
+    N.kv({
+        "ROE": f"{roe:.1f}%",
+        "ROIC": f"{roic:.1f}%",
+        "Finding": "High ROIC confirms genuine profitability, not leverage"
+    })
+
+N.save()  # Auto-generates markdown with asset management
+```
 
 **First-time setup**:
 
@@ -70,7 +102,8 @@ See `vnstock.en-US.md` for full table. Quick reference:
 SYMBOL=VCB
 TODAY=$(date +%Y-%m-%d)
 ANALYSIS_DIR="analyses/${SYMBOL}_multiagent_${TODAY}"
-mkdir -p "$ANALYSIS_DIR/drafts"/{macro,fundamentals,factors,technicals,valuation,sentiment}/{data,charts}
+# notebookmd auto-creates asset directories, just create draft directories
+mkdir -p "$ANALYSIS_DIR/drafts"/{macro,fundamentals,factors,technicals,valuation,sentiment}
 ```
 
 **Step 2: Spawn Agents in Parallel**
@@ -80,84 +113,143 @@ Use Task tool with `run_in_background=true`. **Critical**: All spawns in SINGLE 
 Example prompt for each agent:
 
 ````
-You are the [Fundamental] Analyst for Vietnamese equities.
+You are the [Fundamental] Analyst for Vietnamese equities. Your job is **discovery**, not report writing.
 
-**Agent Mindset**: Plan your investigation, don't just execute scripts.
+**Investigation approach**:
+1. Form hypothesis (e.g., "VCB has high ROE - is it quality or leverage?")
+2. Gather data to test hypothesis
+3. Discover what the data reveals (surprises? contradictions?)
+4. Iterate: Ask follow-up questions based on findings
+5. Capture your investigation using notebookmd (it handles formatting)
 
-Workflow:
-1. Form hypothesis about {symbol}
-2. Gather core data using vnstock_lib.py
-3. Decide what additional context you need (peer comparison? trend analysis?)
-4. Iterate: Run multiple analyses to validate/refute hypothesis
-5. Synthesize: Write insights explaining WHY findings matter
-
-Use vnstock_lib.py directly:
+Example investigation workflow:
 ```python
-from vnstock_lib import fetch_ratios, fetch_financial_data
-ratios = fetch_ratios('{symbol}', period='annual')
-````
+from notebookmd import nb, NotebookConfig
+from vnstock_lib import fetch_ratios, fetch_financials
 
-Write narrative insights to: analyses/{SYMBOL}_multiagent_{DATE}/drafts/fundamentals/insights.md
+cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=True)
+N = nb("drafts/fundamentals/insights.md", title="Fundamental Investigation: {symbol}", cfg=cfg)
 
+with N.cell("Hypothesis: {symbol} has exceptional ROE"):
+    ratios = fetch_ratios('{symbol}')
+    roe = ratios['roe'].values[0]
+    N.kv({"ROE": f"{roe:.1f}%"})
+    print(f"Confirmed: ROE is {roe:.1f}%")
+
+with N.cell("Question: Is high ROE from leverage or genuine profitability?"):
+    # Calculate ROIC vs ROE spread
+    financials = fetch_financials('{symbol}')
+    roic = calculate_roic(financials)
+    leverage = ratios['debt_to_equity'].values[0]
+    N.kv({
+        "ROE": f"{roe:.1f}%",
+        "ROIC": f"{roic:.1f}%",
+        "Leverage": f"{leverage:.1f}x",
+        "Finding": "High ROIC confirms genuine profitability, not leverage game"
+    })
+
+with N.cell("Peer validation: Is {symbol} best-in-class?"):
+    peers = fetch_ratios(['VCB', 'TCB', 'VPB', 'ACB'])
+    N.table(peers[['ticker', 'roe', 'roa', 'npm']], name="Peer comparison")
+    # Discovery: {symbol} is #1 by significant margin
+
+with N.cell("Deep dive: Why is {symbol}'s ROE superior?"):
+    # DuPont analysis: margin × turnover × leverage
+    # Discover root causes (e.g., superior NIM, lower cost/income)
+    pass
+
+N.save()
+```
+
+**Focus**: Spend time on **analysis depth**, not markdown formatting. notebookmd handles the formatting.
 ````
 
 **Step 3: Monitor Completion**
+
 ```bash
 ls -la analyses/VCB_multiagent_2026-02-20/drafts/*/insights.md
+```
+
+**Step 4: Synthesize Investigations into Final Report**
+
+Use notebookmd to synthesize discoveries from sub-agent investigations:
+
+````python
+from notebookmd import nb, NotebookConfig
+from pathlib import Path
+
+cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=True)
+N = nb("final_report.md", title="Investment Analysis: {symbol}", cfg=cfg)
+
+with N.cell("Gather sub-agent discoveries"):
+    # Read investigation notebooks
+    macro_md = Path('drafts/macro/insights.md').read_text()
+    fund_md = Path('drafts/fundamentals/insights.md').read_text()
+    factor_md = Path('drafts/factors/insights.md').read_text()
+    # Extract key discoveries (not just summaries)
+
+with N.cell("Executive Summary"):
+    N.md("**Macro**: Expansion regime favors banks...")
+    N.kv({
+        "Recommendation": "STRONG BUY",
+        "Entry": "98k VND",
+        "Target": "110k (+12%)",
+        "Stop": "92k (-6%)"
+    })
+
+with N.cell("Triangulate: What do these discoveries reveal together?"):
+    # Find non-obvious edges by combining insights
+    # Example: Quality improvement underpriced + macro tailwind
+    N.md("""
+    **Synthesis**: Market sees VCB as expensive quality bank.
+    **Reality**: Quality improved faster than price + macro tailwind just starting.
+    **Edge**: Quality re-rating opportunity in favorable macro regime.
+    """)
+
+with N.cell("Investment Thesis"):
+    # Use mermaid for thesis flow (N.md supports mermaid)
+    N.md("""
+```mermaid
+graph LR
+    A[Macro: Expansion] --> D[Edge: Quality Mispriced]
+    B[Fund: ROE 22.5%] --> D
+    C[Factor: Quality-Value] --> D
+    D --> E[STRONG BUY]
 ````
 
-**Step 4: Aggregate Drafts into Final Markdown**
+    """)
 
-Read all `drafts/*/insights.md` files and create final report:
+N.save()
 
-```bash
-# Example aggregation script
-python scripts/aggregate_insights.py \
-  --drafts analyses/VCB_multiagent_2026-02-20/drafts \
-  --output analyses/VCB_multiagent_2026-02-20/final_report.md \
-  --symbol VCB
-```
+````
 
-Or manually aggregate by:
+**Step 5: notebookmd API Reference**
 
-1. Read all drafts/\*/insights.md files
-2. Extract key findings from each agent
-3. Synthesize into final markdown with sections:
-   - Executive Summary
-   - Macro Context
-   - Fundamental Analysis
-   - Factor Analysis
-   - Technical Analysis
-   - Valuation
-   - Sentiment
-   - Investment Thesis (synthesized edge)
-   - Risk Management
+Key emitters for data visualization:
 
-**Step 5: Add Data Visualization**
+```python
+# Tables (auto-formatted DataFrames)
+N.table(df, name="Peer comparison", max_rows=30)
 
-Use markdown tables and mermaid diagrams for insights:
+# Key-value metrics (cleaner than manual markdown)
+N.kv({"ROE": "22.5%", "P/B": "2.3x"}, title="Metrics")
 
-**Tables for comparative data**:
+# Figures (matplotlib/plotly with auto-save)
+N.figure(fig, "chart.png", caption="Price trend")
 
-```markdown
-| Metric  | VCB  | TCB  | VPB  | ACB  | Sector Avg |
-| ------- | ---- | ---- | ---- | ---- | ---------- |
-| ROE (%) | 22.5 | 18.0 | 16.0 | 14.5 | 16.0       |
-| P/B (x) | 2.3  | 2.1  | 1.9  | 1.8  | 2.0        |
-| NPL (%) | 0.8  | 1.2  | 1.8  | 2.2  | 1.7        |
-```
-
-**Mermaid for relationships**:
-
-````markdown
+# Raw markdown (for mermaid diagrams)
+N.md("""
 ```mermaid
 graph TD
-    A[Macro: EXPANSION] --> B[Banks Favored]
-    B --> C[Credit Growth 14.5%]
-    C --> D[VCB: ROE 22.5%]
-    D --> E[P/B 2.3x = UNDERVALUED]
-    E --> F[BUY Signal]
-```
+    A --> B
+````
+
+""")
+
+# CSV exports (data downloads)
+
+N.export_csv(df, "data.csv", name="Full dataset")
+
 ````
 
 ## Agent Synthesis: Finding Market Edges
@@ -215,7 +307,7 @@ All 4 agents align (macro, factor, fundamental, valuation point to BUY).
 
 BUY VCB at 98k, target 110k (+12%), stop 92k (-6%)
 Risk/reward: 2:1
-```
+````
 
 **This is synthesis**: Finding edges by triangulating independent viewpoints.
 
@@ -293,16 +385,15 @@ graph TD
 ```
 ````
 
-### Final Report Structure
+### Final Report Structure (Cell-Based Approach)
 
-Every final markdown report should have:
+Use notebookmd cells to capture the synthesis workflow:
 
-1. **Executive Summary** - 3-5 bullet points (what, why, action)
-2. **Macro Context** - Economic regime, sector implications
-3. **Fundamental Analysis** - Financial health, peer comparison (with tables)
-4. **Factor Analysis** - Quantitative scores (with tables)
-5. **Technical Analysis** - Price action, support/resistance
-6. **Valuation** - Fair value estimate, upside/downside
-7. **Sentiment** - News, insider activity
-8. **Investment Thesis** - Synthesized edge (with mermaid diagram)
-9. **Risk Management** - Stop loss, position size, regime risks
+1. **Gather sub-agent discoveries** - Read investigation notebooks, extract key findings
+2. **Executive Summary** - Use N.kv() for recommendation, entry, target, stop
+3. **Triangulate insights** - Find non-obvious edges from combined discoveries
+4. **Investment Thesis** - Use N.md() with mermaid diagram for thesis flow
+5. **Conviction drivers** - Use N.kv() for conviction scores across agents
+6. **Risk Management** - Stop loss logic, position sizing, monitoring plan
+
+**Cell structure reflects your synthesis process**, not a rigid template. Focus on discovering edges by triangulating independent agent discoveries.

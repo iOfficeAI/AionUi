@@ -1,0 +1,36 @@
+# Intermediate artifacts
+_working/
+_build/working/
+
+# User data (private)
+.knowledge/user/
+
+# Cache data
+data/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Outputs (keep structure, ignore generated files)
+outputs/*.pdf
+outputs/*.png
+outputs/quick_answers/*.md

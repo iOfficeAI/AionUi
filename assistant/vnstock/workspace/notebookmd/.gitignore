@@ -4,3 +4,11 @@ __pycache__/
 *.egg-info/
 .eggs/
 build/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+tests/dist/
+tests/*/dist/
+tests/**/assets/

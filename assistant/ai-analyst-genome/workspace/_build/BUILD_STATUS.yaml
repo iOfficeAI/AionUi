@@ -1,0 +1,1801 @@
+project: "Vietnamese Stock Market Analyst"
+genome_version: "1.0"
+master_plan: "_build/BUILD_PLAN.md"
+started: "2026-02-21"
+last_updated: "2026-02-21"
+capability_tier: "full"
+
+# Build progress
+waves_completed: 0
+waves_total: 4
+tasks_completed: 9
+tasks_total: 108
+estimated_hours_remaining: 276
+
+# Current wave
+current_wave:
+  id: "wave_0"
+  name: "Foundation"
+  status: "in_progress"
+  tasks_total: 14
+  tasks_completed: 9
+  estimated_hours: 20
+  estimated_hours_remaining: 11
+
+# Session log (Phase 0 complete)
+session_log:
+  - date: "2026-02-21"
+    phase: "phase_0"
+    activity: "Architecture debate completed"
+    participants: ["Product Architect", "Quality Systems Designer", "DevEx Designer", "Build Arbiter"]
+    outputs: ["BUILD_PLAN.md", "DECISION_LOG.md", "BUILD_STATUS.yaml"]
+    conflicts_resolved: 5
+    status: "complete"
+
+# Tasks (all pre-populated as not_started)
+tasks:
+  # WAVE 0: Foundation (14 tasks, ~20 hours)
+  - id: "W0.1"
+    wave: 0
+    description: "Create directory structure"
+    file_path: "/"
+    file_type: "dir"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "All directories from BUILD_PLAN exist"
+      - ".gitignore configured to exclude _working/, _build/working/, .knowledge/user/"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.2"
+    wave: 0
+    description: "Write CLAUDE.md (AI Data Analyst persona)"
+    file_path: "CLAUDE.md"
+    file_type: "doc"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "≤350 lines total"
+      - "Contains: identity, quick start, capabilities, rules, error recovery"
+      - "References agents/AGENT_INDEX.md and .claude/skills/SKILL_INDEX.md for details"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.3"
+    wave: 0
+    description: "Write README.md (Product documentation)"
+    file_path: "README.md"
+    file_type: "doc"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Product overview: Vietnamese Stock Market Analyst purpose"
+      - "Setup instructions: genome wizard, vnstock connection"
+      - "Quality commitments section (4-layer validation, confidence scoring)"
+      - "AI Analyst Lab attribution"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.4"
+    wave: 0
+    description: "Populate genome_config.yaml"
+    file_path: "genome_config.yaml"
+    file_type: "config"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "All setup wizard fields populated: data_platform: 'vnstock', locale: 'vi-VN', brand_tokens"
+      - "Validated against genome config schema"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.5"
+    wave: 0
+    description: "Create data_sources.yaml"
+    file_path: "data_sources.yaml"
+    file_type: "config"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "30m"
+    acceptance_criteria:
+      - "vnstock connection details: sources (KBS, VCI, TCBS), primary: KBS"
+      - "API endpoints, rate limits documented"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.6"
+    wave: 0
+    description: "Create agents/registry.yaml"
+    file_path: "agents/registry.yaml"
+    file_type: "config"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "All 19 agents listed with IDs matching filenames"
+      - "DAG relationships (depends_on, blocks) defined"
+      - "Capability tier: full (19 agents) validated"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.7"
+    wave: 0
+    description: "Implement helpers/error_helpers.py"
+    file_path: "helpers/error_helpers.py"
+    file_type: "code"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "User-friendly error messages for all error types (data, query, technical, user input)"
+      - "Recovery paths offered for each error ('→ Try: ...' suggestions)"
+      - "Error codes for logging (E001, E002, etc.)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.8"
+    wave: 0
+    description: "Implement helpers/sql_helpers.py (minimal stub)"
+    file_path: "helpers/sql_helpers.py"
+    file_type: "code"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "30m"
+    acceptance_criteria:
+      - "Functions: execute_query(), build_select_query() with NotImplementedError"
+      - "Docstring: 'UNUSED for vnstock, provided for future SQL warehouse compatibility'"
+      - "CONTRACT-compliant stub"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.9"
+    wave: 0
+    description: "Create .knowledge/ directory structure"
+    file_path: ".knowledge/"
+    file_type: "dir"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "30m"
+    acceptance_criteria:
+      - "Subdirectories: datasets/, analyses/, validation/, user/, global/"
+      - "datasets/vnstock_default/ subdirectories created"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.10"
+    wave: 0
+    description: "Create .knowledge/datasets/vnstock_default/quirks.md"
+    file_path: ".knowledge/datasets/vnstock_default/quirks.md"
+    file_type: "doc"
+    depends_on: ["W0.9"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Known quirks documented: 45-day financial lag, source variance ±1-2%, missing historical data, delisted stocks, ratio calculation differences"
+      - "Vietnamese-specific: currency (VND), large numbers (billions), ICT timezone"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.11"
+    wave: 0
+    description: "Implement .claude/skills/health/skill.md"
+    file_path: ".claude/skills/health/skill.md"
+    file_type: "skill"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "/health command shows: agents (19/19 ready), data platform (connected), cache (hit rate), last analysis status"
+      - "/health check runs diagnostics"
+      - "/health agents shows agent registry health"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.12"
+    wave: 0
+    description: "Implement .claude/skills/glossary/skill.md"
+    file_path: ".claude/skills/glossary/skill.md"
+    file_type: "skill"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "/glossary [term] shows Vietnamese market definitions"
+      - "Terms covered: HOSE, HNX, UPCOM, VN30, VN-Index, P/E, P/B, ROE, etc."
+      - "Bilingual labels (English + Vietnamese)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.13"
+    wave: 0
+    description: "Create _build/QUALITY_LOG.md template"
+    file_path: "_build/QUALITY_LOG.md"
+    file_type: "doc"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "30m"
+    acceptance_criteria:
+      - "Template for logging validation events (Layers 1-4)"
+      - "Fields: timestamp, agent, layer, status (PASS/WARN/FAIL), details"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W0.14"
+    wave: 0
+    description: "Create themes/ (Marp CSS)"
+    file_path: "themes/analytics.css, themes/analytics-dark.css"
+    file_type: "code"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Light theme (analytics.css) + dark theme (analytics-dark.css)"
+      - "Brand tokens from genome_config.yaml applied"
+      - "AI Analyst Lab attribution in footer"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  # WAVE 1: Data Pipeline (28 tasks, ~73 hours)
+  - id: "W1.1"
+    wave: 1
+    description: "Write agents/question-framing.md"
+    file_path: "agents/question-framing.md"
+    file_type: "agent"
+    depends_on: ["W0.6"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present with all required fields"
+      - "L0-L5 routing logic documented"
+      - "Outputs _working/question_brief.md with YAML frontmatter (goal, decision, metrics, initial_hypotheses)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.2"
+    wave: 1
+    description: "Write agents/data-explorer.md"
+    file_path: "agents/data-explorer.md"
+    file_type: "agent"
+    depends_on: ["W0.6"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Real-time L1 support via vnstock fetch_price_board()"
+      - "Outputs _working/data_inventory.md with symbol list, date ranges, data quality flags"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.3"
+    wave: 1
+    description: "Write agents/source-tieout.md"
+    file_path: "agents/source-tieout.md"
+    file_type: "agent"
+    depends_on: ["W0.6"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Dual-path validation (API vs cache) documented"
+      - "Outputs _working/tieout_report.md with status='PASS' or 'FAIL'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.4"
+    wave: 1
+    description: "Implement .claude/skills/question-router/skill.md"
+    file_path: ".claude/skills/question-router/skill.md"
+    file_type: "skill"
+    depends_on: ["W1.1"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "L0-L5 classification logic (L0: meta, L1: lookup, L2: comparison, L3: investigation, L4: deep dive, L5: strategic)"
+      - "Routing heuristics: num_tickers, num_criteria, has_optimization, complexity_score"
+      - "Time estimates per level (L1: <10s, L2: 10-30s, L3: 30-90s, L4: 1-3min, L5: 3-10min)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.5"
+    wave: 1
+    description: "Implement .claude/skills/data-sources/skill.md"
+    file_path: ".claude/skills/data-sources/skill.md"
+    file_type: "skill"
+    depends_on: ["W1.2"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Merged /data + /datasets functionality"
+      - "Browse datasets: list all tickers, show coverage (OHLCV, financials, ratios)"
+      - "View sources: KBS (primary), VCI, TCBS, connection status"
+      - "Switch source: /data-sources switch VCI"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.6"
+    wave: 1
+    description: "Implement .claude/skills/data-quality-check/skill.md"
+    file_path: ".claude/skills/data-quality-check/skill.md"
+    file_type: "skill"
+    depends_on: ["W1.3"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Layer 1 validation: nulls, duplicates, out-of-range, temporal consistency, schema"
+      - "Auto-fixes: forward-fill nulls (max 3 days), remove exact duplicates"
+      - "User notifications: '✓ Data quality passed' or '⚠️ Auto-fixed X issues'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.7"
+    wave: 1
+    description: "Implement .claude/skills/cache/skill.md"
+    file_path: ".claude/skills/cache/skill.md"
+    file_type: "skill"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "/cache status shows: size, hit rate, staleness"
+      - "/cache clear clears all cached data"
+      - "/cache refresh forces refresh from API"
+      - "/cache [symbol] shows cached data for specific symbol"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.8"
+    wave: 1
+    description: "Implement .claude/skills/locale-adapter/skill.md"
+    file_path: ".claude/skills/locale-adapter/skill.md"
+    file_type: "skill"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "VND currency formatting: 82,500 VND (thousands separator: comma)"
+      - "Vietnamese date formatting: 2026-02-21 14:35 ICT"
+      - "Bilingual labels: 'VN30 (Rổ chỉ số 30 cổ phiếu)', 'HOSE (Sở Giao dịch Chứng khoán TP.HCM)'"
+      - "Greetings: 'Xin chào! Welcome to...'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.9"
+    wave: 1
+    description: "Implement helpers/vnstock_helpers.py"
+    file_path: "helpers/vnstock_helpers.py"
+    file_type: "code"
+    depends_on: ["W1.2"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Wrapper functions: fetch_quote(), fetch_ratios(), fetch_balance_sheet(), fetch_income_statement(), fetch_cash_flow(), list_symbols()"
+      - "Reuses vnstock_lib.py from assistant/vnstock/"
+      - "Returns pandas DataFrames with schema validation"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.10"
+    wave: 1
+    description: "Implement helpers/data_helpers.py"
+    file_path: "helpers/data_helpers.py"
+    file_type: "code"
+    depends_on: ["W1.9"]
+    status: "not_started"
+    estimated_scope: "5h"
+    acceptance_criteria:
+      - "DataFrame profiling: check_nulls(), check_duplicates(), check_schema()"
+      - "Returns detailed reports: null %, duplicate count, affected row indices"
+      - "Integrates with vnstock_helpers for data access"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.11"
+    wave: 1
+    description: "Implement helpers/cache_helpers.py"
+    file_path: "helpers/cache_helpers.py"
+    file_type: "code"
+    depends_on: ["W1.9"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "cached_query(query_spec, ttl_hours) with cache key generation"
+      - "get_cached(key) returns DataFrame or None"
+      - "Cache storage: data/cache/*.parquet"
+      - "TTL logic: real-time <5min, prices <1h, financials <24h"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.12"
+    wave: 1
+    description: "Create .claude/skills/vnstock-data/vnstock_adapter.py"
+    file_path: ".claude/skills/vnstock-data/vnstock_adapter.py"
+    file_type: "code"
+    depends_on: ["W1.9"]
+    status: "not_started"
+    estimated_scope: "5h"
+    acceptance_criteria:
+      - "VnstockConnectionManager class implements ConnectionManager interface"
+      - "Methods: connect(), query(query_spec), close()"
+      - "query() accepts dict with query_type, symbol, date range, returns DataFrame"
+      - "Integration test with vnstock_lib.py passes"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.13"
+    wave: 1
+    description: "Implement .claude/skills/first-run-welcome/skill.md"
+    file_path: ".claude/skills/first-run-welcome/skill.md"
+    file_type: "skill"
+    depends_on: ["W1.8"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Bilingual onboarding: 'Xin chào! Welcome to...'"
+      - "AI Analyst Lab attribution: 'Built using AI Analyst Genome by AI Analyst Lab (aianalystlab.ai)'"
+      - "Role setup: quant researcher, retail investor, trader, portfolio manager"
+      - "Language preference: EN, VI"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.14"
+    wave: 1
+    description: "Create templates/deck_skeleton.marp.md"
+    file_path: "templates/deck_skeleton.marp.md"
+    file_type: "template"
+    depends_on: ["W0.14"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Marp slide template with title slide, content slides, closing slide"
+      - "Brand tokens from genome_config.yaml applied (colors, fonts)"
+      - "AI Analyst Lab attribution in footer"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.15"
+    wave: 1
+    description: "Create templates/marp_components.md"
+    file_path: "templates/marp_components.md"
+    file_type: "template"
+    depends_on: ["W0.14"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "HTML snippet library: callout boxes, two-column layout, image grid, code blocks"
+      - "Reusable components for deck-creator agent"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.16"
+    wave: 1
+    description: "Implement Layer 1 validation rules"
+    file_path: "agents/validation.md (partial)"
+    file_type: "agent"
+    depends_on: ["W1.6"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Checks: nulls (>5% flagged), duplicates (auto-remove), out-of-range (price >0, volume ≥0), temporal consistency (gaps >30 days), schema validation"
+      - "Vietnamese-specific: ±7% price limits, financial lag <30 days"
+      - "Outputs data_quality_report.json with pass/fail per check"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.17"
+    wave: 1
+    description: "Implement timestamp staleness validation"
+    file_path: "agents/validation.md (partial)"
+    file_type: "agent"
+    depends_on: ["W1.2"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Real-time prices: <5 min old (else WARN)"
+      - "Cached prices: <1 hour old (else STALE flag)"
+      - "Financials: <24 hours old (else INFO)"
+      - "User notification: 'Real-time price (updated 14:35 ICT)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.18"
+    wave: 1
+    description: "Create .knowledge/datasets/vnstock_default/manifest.yaml"
+    file_path: ".knowledge/datasets/vnstock_default/manifest.yaml"
+    file_type: "config"
+    depends_on: ["W0.9"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Connection details: data_platform: vnstock, sources: [KBS, VCI, TCBS]"
+      - "Summary stats: total symbols, earliest date, latest date"
+      - "Last profiling date: timestamp"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.19"
+    wave: 1
+    description: "Create .knowledge/datasets/vnstock_default/schema.md"
+    file_path: ".knowledge/datasets/vnstock_default/schema.md"
+    file_type: "doc"
+    depends_on: ["W1.2"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Table/column documentation for: quotes (OHLCV), financials (balance sheet, income, cash flow), ratios"
+      - "Data types: time (datetime), open/high/low/close/volume (float/int)"
+      - "Expected ranges: price >0, volume ≥0, P/E typical 5-30 for Vietnamese stocks"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.20"
+    wave: 1
+    description: "Create data/static/vn30_constituents.csv"
+    file_path: "data/static/vn30_constituents.csv"
+    file_type: "data"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Static fallback for VN30 list: ticker, company name, sector, exchange"
+      - "Updated with current VN30 constituents (as of 2026-02)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.21"
+    wave: 1
+    description: "Create data/static/exchange_listings.csv"
+    file_path: "data/static/exchange_listings.csv"
+    file_type: "data"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Static fallback for all HOSE/HNX/UPCOM symbols"
+      - "Columns: ticker, exchange, industry, listing_date"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.22"
+    wave: 1
+    description: "Test L1 simple lookup"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W1.1", "W1.2", "W1.4", "W1.6", "W1.8", "W1.9", "W1.10", "W1.11", "W1.12", "W1.13", "W1.16", "W1.17"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Query: 'What's VNM's price?' returns real-time quote with timestamp"
+      - "Confidence score displayed (≥90 for fresh data)"
+      - "Vietnamese formatting: 82,500 VND"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.23"
+    wave: 1
+    description: "Test L2 comparison"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W1.1", "W1.2", "W1.4", "W1.6", "W1.8", "W1.9", "W1.10", "W1.11", "W1.12", "W1.13", "W1.16", "W1.17"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Query: 'Compare VNM and FPT P/E' returns table with 2 rows"
+      - "Confidence score displayed (≥85)"
+      - "Bilingual labels: 'P/E (Hệ số giá trên thu nhập)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.24"
+    wave: 1
+    description: "Test data quality auto-fixes"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W1.6"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Inject nulls: verify forward-fill applied (max 3 days)"
+      - "Inject duplicates: verify removed"
+      - "User notification: '✓ Auto-fixed: Forward-filled 3 missing price values (0.1% of data)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.25"
+    wave: 1
+    description: "Test cache fallback"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W1.11"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Simulate API failure: verify cache serves data"
+      - "User notification: '⚠️ Using cached data (updated 2h ago)'"
+      - "If cache empty: verify static fallback with '⚠️ Using static fallback (last updated 2026-02-15)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.26"
+    wave: 1
+    description: "Test Vietnamese i18n"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W1.8"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "VND formatting: 82,500 VND (thousands separator: comma)"
+      - "Bilingual labels display: 'VN30 (Rổ chỉ số 30 cổ phiếu)'"
+      - "Greeting: 'Xin chào! Welcome to...'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.27"
+    wave: 1
+    description: "Populate .knowledge/datasets/vnstock_default/metrics/"
+    file_path: ".knowledge/datasets/vnstock_default/metrics/*.yaml"
+    file_type: "config"
+    depends_on: ["W1.19"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Metric definitions created: pe_ratio.yaml, pb_ratio.yaml, roe.yaml, market_cap.yaml"
+      - "Each metric has: name, formula, typical_range, data_source, update_frequency"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W1.28"
+    wave: 1
+    description: "Create .knowledge/user/profile.yaml template"
+    file_path: ".knowledge/user/profile.yaml"
+    file_type: "config"
+    depends_on: ["W1.13"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "User role: quant_researcher|retail_investor|trader|portfolio_manager"
+      - "Language preference: en-US|vi-VN"
+      - "Onboarding completed: true/false"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  # WAVE 2: Analysis Core (35 tasks, ~102 hours)
+  - id: "W2.1"
+    wave: 2
+    description: "Write agents/hypothesis.md"
+    file_path: "agents/hypothesis.md"
+    file_type: "agent"
+    depends_on: ["W1.1"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "4 hypothesis categories: Product Changes, Technical Issues, External Factors, Mix Shift"
+      - "Outputs _working/hypothesis_doc.md with ranked hypotheses, testability scores"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.2"
+    wave: 2
+    description: "Write agents/descriptive-analytics.md"
+    file_path: "agents/descriptive-analytics.md"
+    file_type: "agent"
+    depends_on: ["W1.3"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block with STATISTICAL_CEILING (t-test, chi-square, NO regression)"
+      - "Segmentation by sector, market cap, liquidity"
+      - "Effect sizes reported (Cohen's d)"
+      - "Outputs _working/analysis_report.md, _working/charts/"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.3"
+    wave: 2
+    description: "Write agents/overtime-trend.md"
+    file_path: "agents/overtime-trend.md"
+    file_type: "agent"
+    depends_on: ["W1.3"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Time-series analysis: anomalies, seasonality, moving averages"
+      - "Outputs _working/trend_report.md, _working/charts/"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.4"
+    wave: 2
+    description: "Write agents/cohort-analysis.md"
+    file_path: "agents/cohort-analysis.md"
+    file_type: "agent"
+    depends_on: ["W1.3"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Cohort retention curves, relative performance"
+      - "Outputs _working/cohort_report.md, _working/charts/"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.5"
+    wave: 2
+    description: "Write agents/root-cause-investigator.md"
+    file_path: "agents/root-cause-investigator.md"
+    file_type: "agent"
+    depends_on: ["W2.2"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "8-step drill-down protocol documented"
+      - "Outputs _working/investigation.md with decomposition tree, isolated root cause"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.6"
+    wave: 2
+    description: "Write agents/validation.md (complete)"
+    file_path: "agents/validation.md"
+    file_type: "agent"
+    depends_on: ["W1.16", "W1.17"]
+    status: "not_started"
+    estimated_scope: "6h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "4-layer validation: Data Quality, Statistical Rigor, Logical Coherence, Presentation Accuracy"
+      - "Confidence scoring: 25% data, 40% stats, 20% logic, 15% presentation"
+      - "Outputs _working/validation_report.md, _working/confidence_scores.yaml"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.7"
+    wave: 2
+    description: "Implement .claude/skills/triangulation/skill.md"
+    file_path: ".claude/skills/triangulation/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.2", "W2.3", "W2.4"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Cross-validate findings across 2+ data sources (KBS vs VCI)"
+      - "Flag if variance >2%"
+      - "Log triangulation results to _working/triangulation_log.yaml"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.8"
+    wave: 2
+    description: "Implement .claude/skills/simpsons-paradox/skill.md"
+    file_path: ".claude/skills/simpsons-paradox/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.2"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Segment-first aggregation check"
+      - "Detect if aggregate trend reverses in majority of subgroups"
+      - "REJECT if Simpson's Paradox detected, escalate to user"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.9"
+    wave: 2
+    description: "Implement .claude/skills/semantic-validation/skill.md"
+    file_path: ".claude/skills/semantic-validation/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.6"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Business plausibility checks: P/E 5-30 typical, volume >0"
+      - "Contradiction detection: 'undervalued' + 'negative cash flow'"
+      - "Causality overreach: flag 'X caused Y', allow 'X correlates with Y'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.10"
+    wave: 2
+    description: "Implement .claude/skills/quality/skill.md"
+    file_path: ".claude/skills/quality/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.6"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "/quality shows confidence breakdown (4 layers + total)"
+      - "/quality breakdown shows detailed per-layer scores"
+      - "/quality history shows past confidence scores"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.11"
+    wave: 2
+    description: "Implement helpers/stats_helpers.py"
+    file_path: "helpers/stats_helpers.py"
+    file_type: "code"
+    depends_on: ["W2.2", "W2.3", "W2.4"]
+    status: "not_started"
+    estimated_scope: "6h"
+    acceptance_criteria:
+      - "Functions: t_test(), chi_square_test(), confidence_interval(), cohens_d(), cramers_v(), check_simpson_paradox()"
+      - "All functions return dict with p_value, ci, effect_size, interpretation"
+      - "NO regression, ANOVA, or ML (STATISTICAL_CEILING enforcement)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.12"
+    wave: 2
+    description: "Implement Layer 2 validation (Statistical Rigor)"
+    file_path: "agents/validation.md (partial)"
+    file_type: "agent"
+    depends_on: ["W2.11"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Checks: test selection, CIs (95% required), effect sizes, sample size (n≥30), multiple comparisons (>3 flagged)"
+      - "Simpson's Paradox check (MANDATORY before concluding any trend)"
+      - "Outputs statistical_audit_log.json"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.13"
+    wave: 2
+    description: "Implement Layer 3 validation (Logical Coherence)"
+    file_path: "agents/validation.md (partial)"
+    file_type: "agent"
+    depends_on: ["W2.9"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Checks: domain sanity, contradictions, causality overreach, missing context, confidence alignment"
+      - "Vietnamese-specific: P/E 5-30 typical, financial lag <30 days, delisted stocks"
+      - "Outputs logic_review_report.md"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.14"
+    wave: 2
+    description: "Implement confidence scoring system"
+    file_path: "agents/validation.md (partial)"
+    file_type: "agent"
+    depends_on: ["W2.12", "W2.13"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Formula: 25% data + 40% stats + 20% logic + 15% presentation"
+      - "Letter grades: A (90-100), B (80-89), C (70-79), D (60-69), F (0-59)"
+      - "Presentation thresholds: >2% mismatch caps at B, >5% caps at D + escalate"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.15"
+    wave: 2
+    description: "Implement review loop protocol"
+    file_path: "agents/validation.md (partial)"
+    file_type: "agent"
+    depends_on: ["W2.14"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Outcomes: APPROVE (≥80), APPROVE WITH CHANGES (70-79, max 2 revisions), REJECT (<70, escalate)"
+      - "Escalation triggers: 2 changes exhausted, 1 reject + rework fails, Simpson's Paradox, data corruption"
+      - "User escalation message template: issue, confidence, options (proceed/refine/abort)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.16"
+    wave: 2
+    description: "Test L3 investigation"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.1", "W2.2", "W2.3", "W2.4", "W2.5", "W2.6", "W2.7", "W2.8", "W2.9", "W2.10", "W2.11", "W2.12", "W2.13", "W2.14", "W2.15"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Query: 'Which stocks have P/E <15 and ROE >20%?' returns filtered list"
+      - "Progress indicators show: '✓ Applied P/E filter → 245 stocks', '✓ Applied ROE filter → 67 stocks'"
+      - "Confidence score ≥80 (B or better)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.17"
+    wave: 2
+    description: "Test L4 deep dive"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.1", "W2.2", "W2.3", "W2.4", "W2.5", "W2.6", "W2.7", "W2.8", "W2.9", "W2.10", "W2.11", "W2.12", "W2.13", "W2.14", "W2.15"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Query: 'Find undervalued stocks with strong fundamentals and momentum' runs full pipeline"
+      - "Progress bar: '[████████████████████░░░░] 80% complete (Step 9/18)'"
+      - "Triangulation check passed: '✓ Cross-validated with KBS, VCI sources'"
+      - "Completion time: <3 minutes"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.18"
+    wave: 2
+    description: "Test Simpson's Paradox detection"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.8"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Inject paradox data: aggregate trend up 10%, but 8/10 sectors down"
+      - "Verify RED flag: '⚠️ Simpson's Paradox detected - trend reverses in subgroups'"
+      - "Verify REJECT outcome: confidence capped at F, escalated to user"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.19"
+    wave: 2
+    description: "Test triangulation"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.7"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Simulate KBS vs VCI variance >2%: verify flagged"
+      - "User notification: 'ℹ️ Data sources differ by 2.5%, using KBS as primary'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.20"
+    wave: 2
+    description: "Test confidence scoring"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.14"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Manually verify 10 analyses have correct A-F grades"
+      - "Check formula: 25% data + 40% stats + 20% logic + 15% presentation"
+      - "Verify presentation threshold: >5% chart mismatch caps at D"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.21"
+    wave: 2
+    description: "Test review loop (APPROVE)"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.15"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Clean analysis passes in 1 iteration"
+      - "User notification: '✓ Quality check passed (Confidence: A)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.22"
+    wave: 2
+    description: "Test review loop (APPROVE WITH CHANGES)"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.15"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Analysis with YELLOW flags revised, max 2 cycles"
+      - "User notification: '⟳ Refining analysis (attempt 1/2)...' then '✓ Approved after 1 revision (confidence improved from B to A)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.23"
+    wave: 2
+    description: "Test review loop (REJECT)"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.15"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Analysis with RED flags rejected"
+      - "Escalation message: '⚠️ QUALITY ESCALATION: Analysis has issues, confidence D, options: proceed/refine/abort'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.24"
+    wave: 2
+    description: "Create .knowledge/validation/confidence_history.yaml"
+    file_path: ".knowledge/validation/confidence_history.yaml"
+    file_type: "config"
+    depends_on: ["W2.14"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Log historical confidence scores: timestamp, analysis_id, score, grade"
+      - "Used by /quality history command"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.25"
+    wave: 2
+    description: "Create .knowledge/validation/review_loops.yaml"
+    file_path: ".knowledge/validation/review_loops.yaml"
+    file_type: "config"
+    depends_on: ["W2.15"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Log review loop outcomes: timestamp, analysis_id, outcome (APPROVE/CHANGES/REJECT), iterations"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.26"
+    wave: 2
+    description: "Create .knowledge/validation/quality_flags.yaml"
+    file_path: ".knowledge/validation/quality_flags.yaml"
+    file_type: "config"
+    depends_on: ["W2.13"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "Log data quality issues: timestamp, symbol, issue_type (null/duplicate/out-of-range), severity (RED/YELLOW)"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.27"
+    wave: 2
+    description: "Update _build/QUALITY_LOG.md"
+    file_path: "_build/QUALITY_LOG.md"
+    file_type: "doc"
+    depends_on: ["W2.6"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Log all validation events (Layers 1-4): timestamp, agent, layer, status, details"
+      - "Append-only log for audit trail"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.28"
+    wave: 2
+    description: "Implement CONTRACT blocks (all agents Wave 0-2)"
+    file_path: "agents/*.md"
+    file_type: "agent"
+    depends_on: ["W2.6"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "All agents have CONTRACT with required fields: agent_id, INPUT_REQUIREMENTS, OUTPUT_GUARANTEES, HANDOFF_ARTIFACTS, STATISTICAL_CEILING, DATA_PLATFORM_AGNOSTIC, FAILURE_MODE, DEPENDENCIES, REVIEW_ELIGIBLE, MAX_REVISIONS"
+      - "STATISTICAL_CEILING enforced: allowed=[t-test, chi-square, CIs, effect sizes], forbidden=[regression, ANOVA, ML]"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.29"
+    wave: 2
+    description: "Test multi-symbol analysis (30 stocks)"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W2.2", "W2.3", "W2.4"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Query: 'Analyze all VN30 stocks' processes 30 symbols"
+      - "Progress indicator: '[████████████████████░░░░] 80% complete (24/30 stocks)'"
+      - "Completion time: <3 minutes"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.30"
+    wave: 2
+    description: "Test API rate limit handling"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W1.11"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Simulate rate limit: verify exponential backoff (retry in 5s, 10s, 20s)"
+      - "User notification: '⏱️ Data source is busy, retrying in 5 seconds... → Use cached data instead? (yes/no)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.31"
+    wave: 2
+    description: "Implement .claude/skills/metric-spec/skill.md"
+    file_path: ".claude/skills/metric-spec/skill.md"
+    file_type: "skill"
+    depends_on: ["W1.27"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Metric specification template: name, formula, typical_range, data_source, update_frequency"
+      - "Register custom metrics to .knowledge/datasets/vnstock_default/metrics/"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.32"
+    wave: 2
+    description: "Implement .claude/skills/tracking-gaps/skill.md"
+    file_path: ".claude/skills/tracking-gaps/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.1"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Identify missing data for hypothesis testing"
+      - "Flag: 'Hypothesis requires quarterly earnings data, only annual available'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.33"
+    wave: 2
+    description: "Implement .claude/skills/guardrails/skill.md"
+    file_path: ".claude/skills/guardrails/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.13"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Check for trade-offs: if reporting positive metric, check for negative counterpart"
+      - "Flag: 'Revenue up 20% but profit margin down 5% - check trade-off'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.34"
+    wave: 2
+    description: "Implement .claude/skills/analysis-design-spec/skill.md"
+    file_path: ".claude/skills/analysis-design-spec/skill.md"
+    file_type: "skill"
+    depends_on: ["W1.1"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Confirm analysis scope with user before running L4-L5 queries"
+      - "Show: estimated time, data sources, analysis methods, expected outputs"
+      - "User prompt: 'Proceed with this analysis? (yes/no)'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W2.35"
+    wave: 2
+    description: "Create .knowledge/global/frameworks.md"
+    file_path: ".knowledge/global/frameworks.md"
+    file_type: "doc"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Analytical framework reference: Question Ladder (goal → decision → metric → hypothesis)"
+      - "Context-Tension-Resolution narrative structure"
+      - "4-layer validation framework"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  # WAVE 3: Narrative & Presentation (25 tasks, ~70 hours)
+  - id: "W3.1"
+    wave: 3
+    description: "Write agents/opportunity-sizer.md"
+    file_path: "agents/opportunity-sizer.md"
+    file_type: "agent"
+    depends_on: ["W2.6"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Sensitivity analysis: base case, best/worst scenarios"
+      - "Outputs _working/sizing_report.md"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.2"
+    wave: 3
+    description: "Write agents/story-architect.md"
+    file_path: "agents/story-architect.md"
+    file_type: "agent"
+    depends_on: ["W3.1"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Context-Tension-Resolution narrative structure"
+      - "Outputs _working/storyboard.md with slide-by-slide plan, chart specs"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.3"
+    wave: 3
+    description: "Write agents/narrative-coherence-reviewer.md"
+    file_path: "agents/narrative-coherence-reviewer.md"
+    file_type: "agent"
+    depends_on: ["W3.2"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Layer 3 logical coherence checks"
+      - "Outputs _working/coherence_review.md with APPROVE/CHANGES/REJECT"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.4"
+    wave: 3
+    description: "Write agents/chart-maker.md"
+    file_path: "agents/chart-maker.md"
+    file_type: "agent"
+    depends_on: ["W3.3"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Matplotlib + SWD patterns (declutter, emphasize, annotate)"
+      - "Outputs _working/charts/*.png with brand tokens, attribution"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.5"
+    wave: 3
+    description: "Write agents/visual-design-critic.md"
+    file_path: "agents/visual-design-critic.md"
+    file_type: "agent"
+    depends_on: ["W3.4"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Layer 4 presentation accuracy checks: chart-data match <2%, label accuracy, color coding"
+      - "Outputs _working/design_review.md with chart-by-chart feedback"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.6"
+    wave: 3
+    description: "Write agents/storytelling.md"
+    file_path: "agents/storytelling.md"
+    file_type: "agent"
+    depends_on: ["W3.5"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Prose narrative adapted for audience (quant/retail/trader/PM)"
+      - "Outputs _working/narrative.md with slide speaker notes"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.7"
+    wave: 3
+    description: "Write agents/deck-creator.md"
+    file_path: "agents/deck-creator.md"
+    file_type: "agent"
+    depends_on: ["W3.6"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Marp slide assembly: narrative + charts + themes"
+      - "Outputs outputs/deck.marp.md with AI Analyst Lab attribution"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.8"
+    wave: 3
+    description: "Write agents/close-the-loop.md"
+    file_path: "agents/close-the-loop.md"
+    file_type: "agent"
+    depends_on: ["W3.7"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "Action items with owners, tracking metrics, follow-up dates"
+      - "Outputs _working/close_the_loop.md"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.9"
+    wave: 3
+    description: "Implement .claude/skills/visualization-patterns/skill.md"
+    file_path: ".claude/skills/visualization-patterns/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.4"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "SWD patterns: declutter (remove chart junk), emphasize (highlight key points), annotate (add context)"
+      - "Chart type selection guidance: bar vs line vs scatter"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.10"
+    wave: 3
+    description: "Implement .claude/skills/presentation-themes/skill.md"
+    file_path: ".claude/skills/presentation-themes/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.7"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Theme selection: analytics (light), analytics-dark (dark)"
+      - "/theme [name] switches Marp CSS theme"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.11"
+    wave: 3
+    description: "Implement .claude/skills/stakeholder-communication/skill.md"
+    file_path: ".claude/skills/stakeholder-communication/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.6"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Audience adaptation: quant (p-values, code), retail (plain language), trader (entry/exit), PM (risk/return)"
+      - "Vocabulary table: concept → role-specific terms"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.12"
+    wave: 3
+    description: "Implement .claude/skills/export/skill.md"
+    file_path: ".claude/skills/export/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.7"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "/export csv, json, excel, png, pdf"
+      - "Quality metadata in all exports: confidence score, data sources, timestamp"
+      - "File naming: [analysis]_[date].csv"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.13"
+    wave: 3
+    description: "Implement helpers/chart_helpers.py"
+    file_path: "helpers/chart_helpers.py"
+    file_type: "code"
+    depends_on: ["W3.4"]
+    status: "not_started"
+    estimated_scope: "5h"
+    acceptance_criteria:
+      - "Functions: swd_style(), highlight_bar(), format_vnd(), format_vietnamese_date()"
+      - "Matplotlib wrappers for common chart types: bar, line, scatter, candlestick"
+      - "Brand tokens from genome_config.yaml applied"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.14"
+    wave: 3
+    description: "Create helpers/analytics_chart_style.mplstyle"
+    file_path: "helpers/analytics_chart_style.mplstyle"
+    file_type: "config"
+    depends_on: ["W3.13"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Matplotlib style file with SWD patterns: decluttered axes, muted gridlines, emphasis colors"
+      - "Font family, sizes, color palette from genome_config"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.15"
+    wave: 3
+    description: "Implement Layer 4 validation (Presentation Accuracy)"
+    file_path: "agents/validation.md (complete)"
+    file_type: "agent"
+    depends_on: ["W3.5"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Checks: chart-data match <2%, label accuracy, significant figures, color coding, attribution"
+      - "Presentation thresholds: >2% mismatch = YELLOW + cap at B, >5% = RED + cap at D + escalate"
+      - "Outputs presentation_checklist.json"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.16"
+    wave: 3
+    description: "Test chart generation"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.4", "W3.13"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Charts match storyboard specs: correct chart type, data series, labels"
+      - "SWD patterns applied: decluttered, emphasized, annotated"
+      - "Brand tokens: colors, fonts from genome_config"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.17"
+    wave: 3
+    description: "Test chart-data validation"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.15"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Re-compute chart values from raw data, verify <2% deviation"
+      - "Inject 6% deviation: verify RED flag, confidence capped at D, escalated"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.18"
+    wave: 3
+    description: "Test narrative coherence review"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.3"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Inject contradiction: 'undervalued' + 'negative cash flow', verify detected"
+      - "Max 2 revision cycles before escalation"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.19"
+    wave: 3
+    description: "Test Marp deck assembly"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.7"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "deck.marp.md parseable by Marp CLI"
+      - "Exports to PDF successfully: marp deck.marp.md -o deck.pdf"
+      - "AI Analyst Lab attribution in footer"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.20"
+    wave: 3
+    description: "Test export formats"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.12"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "CSV: data table with confidence header"
+      - "JSON: structured data with metadata"
+      - "Excel: formatted tables + Quality sheet with breakdown"
+      - "PNG: chart images"
+      - "PDF: full report with AI Analyst Lab attribution"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.21"
+    wave: 3
+    description: "Test audience adaptation"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.11"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "Quant mode: shows p-values, CIs, code snippets"
+      - "Retail mode: plain language, 'good investment' vs 'positive alpha'"
+      - "/role [mode] switches mid-session"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.22"
+    wave: 3
+    description: "Test AI Analyst Lab attribution"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.7"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "All outputs have 'Powered by AI Analyst Lab | aianalystlab.ai' footer"
+      - "Charts have watermark"
+      - "PDF reports have attribution page"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.23"
+    wave: 3
+    description: "Create outputs/quick_answers/ directory"
+    file_path: "outputs/quick_answers/"
+    file_type: "dir"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "10m"
+    acceptance_criteria:
+      - "Directory created for L1/L2 simple query results"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.24"
+    wave: 3
+    description: "Test quick_answers storage"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W3.23"]
+    status: "not_started"
+    estimated_scope: "1h"
+    acceptance_criteria:
+      - "L1 query: result saved to outputs/quick_answers/vnm_price_20260221.md"
+      - "L2 query: result saved to outputs/quick_answers/vnm_fpt_comparison_20260221.md"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W3.25"
+    wave: 3
+    description: "Implement .claude/skills/role/skill.md"
+    file_path: ".claude/skills/role/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.11"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "/role quant|retail|trader|pm switches user role mid-session"
+      - "Confirmation message: 'Switched to Retail Investor mode. I'll now use simpler language...'"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  # WAVE 4: Strategic & Optimization (6 tasks, ~20 hours)
+  - id: "W4.1"
+    wave: 4
+    description: "Write agents/experiment-designer.md"
+    file_path: "agents/experiment-designer.md"
+    file_type: "agent"
+    depends_on: []
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "CONTRACT block present"
+      - "A/B test design: power analysis, sample size, success criteria"
+      - "Outputs outputs/experiment_brief.md"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W4.2"
+    wave: 4
+    description: "Implement .claude/skills/forecast/skill.md"
+    file_path: ".claude/skills/forecast/skill.md"
+    file_type: "skill"
+    depends_on: ["W2.3"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Time-series projection: trend extrapolation (NO ML, linear/exponential only)"
+      - "Confidence intervals on forecast"
+      - "/forecast [symbol] [horizon] generates projection"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W4.3"
+    wave: 4
+    description: "Implement .claude/skills/patterns/skill.md"
+    file_path: ".claude/skills/patterns/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.1"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "Cross-analysis pattern detection: 'You've analyzed 5 banking stocks this month, all show ROE improvement'"
+      - "Reads from .knowledge/analyses/"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W4.4"
+    wave: 4
+    description: "Implement .claude/skills/archive-analysis/skill.md"
+    file_path: ".claude/skills/archive-analysis/skill.md"
+    file_type: "skill"
+    depends_on: ["W3.7"]
+    status: "not_started"
+    estimated_scope: "2h"
+    acceptance_criteria:
+      - "/archive saves current analysis to .knowledge/analyses/[id].yaml"
+      - "Includes: timestamp, question, results, confidence score, artifacts"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W4.5"
+    wave: 4
+    description: "Test L5 strategic query"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W4.1", "W4.2", "W4.3", "W4.4"]
+    status: "not_started"
+    estimated_scope: "4h"
+    acceptance_criteria:
+      - "Query: 'Build optimal portfolio for 2026 balancing growth and dividends' runs 6-phase pipeline"
+      - "Completion time: <10 minutes"
+      - "Outputs: portfolio allocation, expected performance, sensitivity analysis"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+  - id: "W4.6"
+    wave: 4
+    description: "Test backtesting workflow"
+    file_path: "(test)"
+    file_type: "test"
+    depends_on: ["W4.1"]
+    status: "not_started"
+    estimated_scope: "3h"
+    acceptance_criteria:
+      - "/backtest generates experiment_brief.md with power analysis, sample size, success criteria"
+      - "Backtests trading strategy on historical data"
+      - "Outputs: CAGR, Sharpe ratio, max drawdown, win rate"
+    assigned_to: null
+    started_at: null
+    completed_at: null
+
+# Build metadata
+build_metadata:
+  total_tasks: 108
+  waves: 4
+  estimated_hours:
+    wave_0: 20
+    wave_1: 73
+    wave_2: 102
+    wave_3: 70
+    wave_4: 20
+    total: 285
+
+  task_types:
+    agent: 19
+    skill: 37
+    code: 9
+    config: 14
+    doc: 7
+    template: 2
+    test: 20
+    dir: 2
+
+  dependencies:
+    wave_0_to_wave_1: ["W0.6", "W0.9"]
+    wave_1_to_wave_2: ["W1.1", "W1.2", "W1.3", "W1.16", "W1.17"]
+    wave_2_to_wave_3: ["W2.6"]
+    wave_3_to_wave_4: ["W3.1", "W3.7"]
+
+# Quality gates
+quality_gates:
+  wave_0:
+    - condition: "/health shows all agents loaded"
+    - condition: "vnstock connection validated"
+
+  wave_1:
+    - condition: "L1 query returns real-time price with confidence score"
+    - condition: "Vietnamese i18n displays correctly"
+
+  wave_2:
+    - condition: "L3 query passes all 4 validation layers with confidence ≥C"
+    - condition: "Simpson's Paradox detection working"
+
+  wave_3:
+    - condition: "Marp deck exports to PDF successfully"
+    - condition: "Charts pass Layer 4 validation (<2% deviation)"
+
+  wave_4:
+    - condition: "L5 query completes in <10 min"
+    - condition: "Confidence score ≥C for strategic analyses"
+
+# Next steps
+next_steps:
+  - "Review and approve BUILD_PLAN.md"
+  - "Begin Wave 0 (Foundation) - 14 tasks, ~20 hours"
+  - "Update BUILD_STATUS.yaml daily with task progress"
+  - "Weekly review: Check QUALITY_LOG.md for validation trends"
