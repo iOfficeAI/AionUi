@@ -11,6 +11,7 @@ import os from 'os';
 import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
+import JSZip from 'jszip';
 import { ipcBridge } from '../../common';
 import { getSystemDir, getAssistantsDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
@@ -184,6 +185,8 @@ const ruleFilePattern = (id: string, loc: string) => `${id}.${loc}.md`;
 const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
 
 export function initFsBridge(): void {
+  const canceledZipRequests = new Set<string>();
+
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
     const tree = await readDirectoryRecursive(dir);
     return tree ? [tree] : [];
@@ -414,6 +417,129 @@ export function initFsBridge(): void {
     } catch (error) {
       console.error('Failed to write file:', error);
       return false;
+    }
+  });
+
+  ipcBridge.fs.cancelZip.provider(async ({ requestId }) => {
+    if (!requestId) return false;
+    canceledZipRequests.add(requestId);
+    return true;
+  });
+
+  ipcBridge.fs.createZip.provider(async ({ path: filePath, files, requestId }) => {
+    const isCanceled = () => Boolean(requestId && canceledZipRequests.has(requestId));
+    try {
+      const zip = new JSZip();
+
+      for (const file of files) {
+        if (isCanceled()) {
+          throw new Error('Zip export canceled');
+        }
+
+        if (!file?.name) {
+          continue;
+        }
+
+        if (typeof file.sourcePath === 'string' && file.sourcePath) {
+          try {
+            const entryStat = await fs.lstat(file.sourcePath);
+            let isRegularFile = entryStat.isFile();
+
+            // Follow symlink target only when needed and keep non-regular files out
+            if (!isRegularFile && entryStat.isSymbolicLink()) {
+              try {
+                const targetStat = await fs.stat(file.sourcePath);
+                isRegularFile = targetStat.isFile();
+              } catch {
+                isRegularFile = false;
+              }
+            }
+
+            if (!isRegularFile) {
+              continue;
+            }
+
+            // Guard against hanging reads on unusual filesystems / special files
+            const abortController = new AbortController();
+            const timeoutId = setTimeout(() => {
+              abortController.abort();
+            }, 10000);
+
+            try {
+              if (isCanceled()) {
+                abortController.abort();
+              }
+              const fileBuffer = await fs.readFile(file.sourcePath, { signal: abortController.signal });
+              if (isCanceled()) {
+                throw new Error('Zip export canceled');
+              }
+              zip.file(file.name, fileBuffer);
+            } finally {
+              clearTimeout(timeoutId);
+            }
+          } catch (error) {
+            console.warn('[fsBridge] Skip source file while creating zip:', file.sourcePath, error);
+          }
+          continue;
+        }
+
+        if (typeof file.content === 'string') {
+          zip.file(file.name, file.content);
+          continue;
+        }
+
+        if (file.content instanceof Uint8Array) {
+          zip.file(file.name, Buffer.from(file.content));
+          continue;
+        }
+
+        // Handle serialized Uint8Array from IPC payload
+        if (file.content && typeof file.content === 'object') {
+          const objectLike = file.content as Record<string, unknown>;
+          const keys = Object.keys(objectLike);
+          const isTypedArrayLike = keys.length > 0 && keys.every((key) => /^\d+$/.test(key));
+          if (isTypedArrayLike) {
+            const values = keys
+              .sort((a, b) => Number(a) - Number(b))
+              .map((key) => {
+                const value = objectLike[key];
+                return typeof value === 'number' ? value : Number(value ?? 0);
+              });
+            zip.file(file.name, Buffer.from(values));
+            continue;
+          }
+        }
+      }
+
+      const zipBuffer = await zip.generateAsync(
+        {
+          type: 'nodebuffer',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 9 },
+        },
+        () => {
+          if (isCanceled()) {
+            throw new Error('Zip export canceled');
+          }
+        }
+      );
+
+      if (isCanceled()) {
+        throw new Error('Zip export canceled');
+      }
+      await fs.writeFile(filePath, zipBuffer);
+      return true;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('canceled')) {
+        console.log('[fsBridge] Zip export canceled:', requestId || '(no requestId)');
+      } else {
+        console.error('Failed to create zip file:', error);
+      }
+      return false;
+    } finally {
+      if (requestId) {
+        canceledZipRequests.delete(requestId);
+      }
     }
   });
 
