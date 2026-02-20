@@ -387,11 +387,11 @@ export class AionUIDatabase {
       const row = conversationToRow(conversation, userId || this.defaultUserId);
 
       const stmt = this.db.prepare(`
-        INSERT INTO conversations (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO conversations (id, user_id, name, type, extra, model, status, source, channel_chat_id, conversation_mode, parent_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(row.id, row.user_id, row.name, row.type, row.extra, row.model, row.status, row.source, row.channel_chat_id ?? null, row.created_at, row.updated_at);
+      stmt.run(row.id, row.user_id, row.name, row.type, row.extra, row.model, row.status, row.source, row.channel_chat_id ?? null, row.conversation_mode ?? 'direct', row.parent_id ?? null, row.created_at, row.updated_at);
 
       return {
         success: true,
@@ -549,7 +549,8 @@ export class AionUIDatabase {
     try {
       const finalUserId = userId || this.defaultUserId;
 
-      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM conversations WHERE user_id = ?').get(finalUserId) as {
+      // Exclude child conversations (those with parent_id) from the main list
+      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND parent_id IS NULL').get(finalUserId) as {
         count: number;
       };
 
@@ -558,7 +559,7 @@ export class AionUIDatabase {
           `
             SELECT *
             FROM conversations
-            WHERE user_id = ?
+            WHERE user_id = ? AND parent_id IS NULL
             ORDER BY updated_at DESC LIMIT ?
             OFFSET ?
           `
@@ -603,19 +604,41 @@ export class AionUIDatabase {
 
       const stmt = this.db.prepare(`
         UPDATE conversations
-        SET name       = ?,
-            extra      = ?,
-            model      = ?,
-            status     = ?,
-            updated_at = ?
+        SET name              = ?,
+            extra             = ?,
+            model             = ?,
+            status            = ?,
+            conversation_mode = ?,
+            parent_id         = ?,
+            updated_at        = ?
         WHERE id = ?
       `);
 
-      stmt.run(row.name, row.extra, row.model, row.status, row.updated_at, conversationId);
+      stmt.run(row.name, row.extra, row.model, row.status, row.conversation_mode ?? 'direct', row.parent_id ?? null, row.updated_at, conversationId);
 
       return {
         success: true,
         data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Get child conversations by parent group conversation ID
+   * Used for swarm/group conversations to find agent sub-conversations
+   */
+  getChildConversations(parentId: string): IQueryResult<TChatConversation[]> {
+    try {
+      const rows = this.db.prepare('SELECT * FROM conversations WHERE parent_id = ? ORDER BY created_at ASC').all(parentId) as IConversationRow[];
+
+      return {
+        success: true,
+        data: rows.map(rowToConversation),
       };
     } catch (error: any) {
       return {

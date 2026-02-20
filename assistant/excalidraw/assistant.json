@@ -23,5 +23,6 @@
     "en-US": ["Create a 3-tier web architecture diagram", "Design a microservices architecture diagram", "Build a flowchart for user authentication process", "Create a data pipeline architecture diagram", "Design a deployment diagram with CI/CD pipeline", "Create a diagram with custom server and database icons"],
     "zh-CN": ["创建一个三层 Web 架构图", "设计一个微服务架构图", "构建用户身份验证流程的流程图", "创建一个数据管道架构图", "设计一个包含 CI/CD 流水线的部署图", "创建一个带有自定义服务器和数据库图标的架构图"]
   },
-  "defaultEnabledSkills": ["excalidraw", "svg-generator"]
+  "defaultEnabledSkills": ["excalidraw", "svg-generator"],
+  "isBuiltin": true
 }

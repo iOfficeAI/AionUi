@@ -33,6 +33,7 @@
     "test:coverage": "jest --coverage",
     "test:contract": "jest tests/contract",
     "test:integration": "jest tests/integration",
+    "sync-assistants": "node scripts/sync-assistants.js",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js"
   },

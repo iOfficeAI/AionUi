@@ -81,8 +81,8 @@ async function migrateBuiltinAssistant(assistantId: string, sourcePath: string, 
   try {
     console.log(`[Migration] Migrating built-in assistant: ${assistantId}`);
 
-    // Use builtin- prefix for directory name to match ID
-    const targetPath = path.join(targetDir, `builtin-${assistantId}`);
+    // Copy as-is without adding prefix
+    const targetPath = path.join(targetDir, assistantId);
 
     // Skip if already exists
     if (fs.existsSync(targetPath)) {
@@ -90,61 +90,23 @@ async function migrateBuiltinAssistant(assistantId: string, sourcePath: string, 
       return true;
     }
 
-    // Copy assistant directory
+    // Copy assistant directory completely as-is
     await copyDirectoryRecursively(sourcePath, targetPath, { overwrite: false });
     console.log(`[Migration] Copied to: ${targetPath}`);
 
-    // Update or create assistant.json with locked flag (prevent editing system assistants)
+    // Ensure assistant.json has isBuiltin flag
     const configPath = path.join(targetPath, 'assistant.json');
-    let config: any;
-
     if (fs.existsSync(configPath)) {
-      // Load existing config
       const configContent = await fs.promises.readFile(configPath, 'utf-8');
-      config = JSON.parse(configContent);
+      const config = JSON.parse(configContent);
 
-      // IMPORTANT: Ensure ID matches directory name (source of truth)
-      // Update ID to include builtin- prefix if it doesn't have it
-      const expectedId = `builtin-${assistantId}`;
-      if (config.id !== expectedId) {
-        console.log(`[Migration] Updating ID from "${config.id}" to "${expectedId}"`);
-        config.id = expectedId;
-      }
-    } else {
-      // Create config from ASSISTANT_PRESETS if not exists
-      const preset = ASSISTANT_PRESETS.find((p) => p.id === assistantId);
-      if (preset) {
-        config = {
-          id: `builtin-${assistantId}`, // Add builtin- prefix for consistency with existing system
-          name: preset.nameI18n['en-US'],
-          nameI18n: preset.nameI18n,
-          description: preset.descriptionI18n['en-US'],
-          descriptionI18n: preset.descriptionI18n,
-          avatar: preset.avatar,
-          presetAgentType: preset.presetAgentType || 'gemini',
-          enabledSkills: preset.defaultEnabledSkills || [],
-          enabled: preset.id === 'cowork', // Cowork enabled by default
-        };
-        console.log(`[Migration] Created assistant.json from preset for: ${assistantId}`);
-      } else {
-        // Fallback if no preset found
-        config = {
-          id: `builtin-${assistantId}`,
-          name: assistantId,
-          description: '',
-          avatar: '🤖',
-          enabled: false,
-        };
-        console.warn(`[Migration] No preset found for ${assistantId}, using fallback config`);
+      // Ensure isBuiltin flag is set
+      if (!config.isBuiltin) {
+        config.isBuiltin = true;
+        await fs.promises.writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+        console.log(`[Migration] Added isBuiltin flag to: ${assistantId}`);
       }
     }
-
-    // Mark as builtin
-    config.isBuiltin = true;
-    config.isPreset = true; // Mark as preset
-
-    await fs.promises.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
-    console.log(`[Migration] Marked as built-in: ${assistantId}`);
 
     return true;
   } catch (error) {
@@ -590,6 +552,183 @@ async function runAssistantFlagsFixMigration(): Promise<boolean> {
 }
 
 /**
+ * Check if builtin-prefix removal migration is needed (v5)
+ */
+async function needsBuiltinPrefixRemoval(): Promise<boolean> {
+  const MIGRATION_KEY = 'migration.removeBuiltinPrefix_v1' as any;
+  const migrationDone = await ProcessConfig.get(MIGRATION_KEY).catch(() => false);
+  return !migrationDone;
+}
+
+/**
+ * Mark builtin-prefix removal migration as completed
+ */
+async function markBuiltinPrefixRemovalComplete(): Promise<void> {
+  const MIGRATION_KEY = 'migration.removeBuiltinPrefix_v1' as any;
+  await ProcessConfig.set(MIGRATION_KEY, true);
+}
+
+/**
+ * Run builtin-prefix removal migration (v5)
+ *
+ * This migration removes the builtin- prefix from all assistant directories
+ * and updates assistant.json IDs to match. This simplifies the system by
+ * using the isBuiltin flag instead of directory naming convention.
+ *
+ * @returns true if migration succeeded or was not needed
+ */
+async function removeBuiltinPrefixMigration(): Promise<boolean> {
+  try {
+    const needed = await needsBuiltinPrefixRemoval();
+    if (!needed) {
+      console.log('[Migration] Builtin-prefix removal migration already completed, skipping');
+      return true;
+    }
+
+    console.log('[Migration] Starting builtin-prefix removal migration...');
+
+    const assistantsDir = getAssistantsDir();
+    if (!fs.existsSync(assistantsDir)) {
+      console.warn('[Migration] Assistants directory does not exist, skipping');
+      await markBuiltinPrefixRemovalComplete();
+      return true;
+    }
+
+    const entries = fs.readdirSync(assistantsDir, { withFileTypes: true });
+    let renamed = 0;
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (!entry.name.startsWith('builtin-')) continue;
+
+      const oldName = entry.name;
+      const newName = oldName.replace('builtin-', '');
+      const oldPath = path.join(assistantsDir, oldName);
+      const newPath = path.join(assistantsDir, newName);
+
+      // Skip if target already exists
+      if (fs.existsSync(newPath)) {
+        console.log(`[Migration] Target already exists, skipping: ${oldName} -> ${newName}`);
+        continue;
+      }
+
+      try {
+        // Rename directory
+        fs.renameSync(oldPath, newPath);
+        console.log(`[Migration] Renamed: ${oldName} -> ${newName}`);
+
+        // Update assistant.json ID to match
+        const configPath = path.join(newPath, 'assistant.json');
+        if (fs.existsSync(configPath)) {
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+          if (config.id !== newName) {
+            config.id = newName;
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+            console.log(`[Migration] Updated ID in ${newName}/assistant.json`);
+          }
+        }
+
+        renamed++;
+      } catch (error) {
+        console.error(`[Migration] Failed to rename ${oldName}:`, error);
+      }
+    }
+
+    console.log(`[Migration] Renamed ${renamed} assistant directories`);
+
+    await markBuiltinPrefixRemovalComplete();
+    console.log('[Migration] Builtin-prefix removal migration completed');
+
+    return true;
+  } catch (error) {
+    console.error('[Migration] Builtin-prefix removal migration failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if conversation presetAssistantId update is needed (v6)
+ */
+async function needsConversationPresetIdUpdate(): Promise<boolean> {
+  const MIGRATION_KEY = 'migration.updateConversationPresetId_v1' as any;
+  const migrationDone = await ProcessConfig.get(MIGRATION_KEY).catch(() => false);
+  return !migrationDone;
+}
+
+/**
+ * Mark conversation presetAssistantId update as completed
+ */
+async function markConversationPresetIdUpdateComplete(): Promise<void> {
+  const MIGRATION_KEY = 'migration.updateConversationPresetId_v1' as any;
+  await ProcessConfig.set(MIGRATION_KEY, true);
+}
+
+/**
+ * Run conversation presetAssistantId update migration (v6)
+ *
+ * This migration updates all conversations that have builtin- prefix in their
+ * presetAssistantId or customAgentId fields to remove the prefix.
+ *
+ * @returns true if migration succeeded or was not needed
+ */
+async function updateConversationPresetIdMigration(): Promise<boolean> {
+  try {
+    const needed = await needsConversationPresetIdUpdate();
+    if (!needed) {
+      console.log('[Migration] Conversation presetAssistantId update already completed, skipping');
+      return true;
+    }
+
+    console.log('[Migration] Starting conversation presetAssistantId update...');
+
+    const { getDatabase } = await import('@/process/database');
+    const db = getDatabase();
+
+    // Get all conversations for the default user
+    const result = db.getUserConversations(undefined, 0, 1000);
+    const conversations = result.data;
+    let updated = 0;
+
+    for (const conv of conversations) {
+      try {
+        const extra = typeof conv.extra === 'string' ? JSON.parse(conv.extra) : conv.extra;
+        let needsUpdate = false;
+
+        // Check presetAssistantId
+        if (extra.presetAssistantId && typeof extra.presetAssistantId === 'string' && extra.presetAssistantId.startsWith('builtin-')) {
+          extra.presetAssistantId = extra.presetAssistantId.replace('builtin-', '');
+          needsUpdate = true;
+        }
+
+        // Check customAgentId (for backward compatibility)
+        if (extra.customAgentId && typeof extra.customAgentId === 'string' && extra.customAgentId.startsWith('builtin-')) {
+          extra.customAgentId = extra.customAgentId.replace('builtin-', '');
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          db.updateConversation(conv.id, { extra });
+          console.log(`[Migration] Updated conversation ${conv.id}: removed builtin- prefix`);
+          updated++;
+        }
+      } catch (error) {
+        console.error(`[Migration] Failed to update conversation ${conv.id}:`, error);
+      }
+    }
+
+    console.log(`[Migration] Updated ${updated} conversation(s)`);
+
+    await markConversationPresetIdUpdateComplete();
+    console.log('[Migration] Conversation presetAssistantId update completed');
+
+    return true;
+  } catch (error) {
+    console.error('[Migration] Conversation presetAssistantId update failed:', error);
+    return false;
+  }
+}
+
+/**
  * Run all assistant migrations in sequence
  *
  * This is the main entry point called from src/process/index.ts
@@ -599,6 +738,8 @@ async function runAssistantFlagsFixMigration(): Promise<boolean> {
  * 2. v2: Restructure to nested file structure
  * 3. v3: Fix assistant.json IDs to match directory names
  * 4. v4: Fix isPreset and isBuiltin flags
+ * 5. v5: Remove builtin- prefix from directories and IDs
+ * 6. v6: Update conversation presetAssistantId to remove builtin- prefix
  *
  * @returns true if all migrations succeeded
  */
@@ -629,6 +770,20 @@ export async function runAssistantMigration(): Promise<boolean> {
     const v4Success = await runAssistantFlagsFixMigration();
     if (!v4Success) {
       console.error('[Migration] Assistant flags fix migration (v4) failed');
+      return false;
+    }
+
+    // Run v5 migration: Remove builtin- prefix
+    const v5Success = await removeBuiltinPrefixMigration();
+    if (!v5Success) {
+      console.error('[Migration] Builtin-prefix removal migration (v5) failed');
+      return false;
+    }
+
+    // Run v6 migration: Update conversation presetAssistantId
+    const v6Success = await updateConversationPresetIdMigration();
+    if (!v6Success) {
+      console.error('[Migration] Conversation presetAssistantId update (v6) failed');
       return false;
     }
 

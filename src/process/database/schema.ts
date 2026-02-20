@@ -44,19 +44,26 @@ export function initSchema(db: Database.Database): void {
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway', 'nanobot')),
+      type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway', 'nanobot', 'swarm')),
       extra TEXT NOT NULL,
       model TEXT,
       status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+      source TEXT CHECK(source IN ('aionui', 'telegram', 'lark', 'dingtalk')),
+      channel_chat_id TEXT,
+      conversation_mode TEXT NOT NULL DEFAULT 'direct' CHECK(conversation_mode IN ('direct', 'group')),
+      parent_id TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES conversations(id) ON DELETE CASCADE
     );
 
     CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
     CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
     CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
     CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_conversations_parent_id ON conversations(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_conversations_mode ON conversations(conversation_mode);
   `);
 
   // Messages table (消息表 - 存储TMessage)
@@ -108,4 +115,4 @@ export function setDatabaseVersion(db: Database.Database, version: number): void
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 15;
+export const CURRENT_DB_VERSION = 18;

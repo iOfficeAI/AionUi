@@ -17,7 +17,7 @@ import { getContentTypeByExtension } from '../../preview/utils/fileUtils';
 
 interface UseWorkspaceFileOpsOptions {
   workspace: string;
-  eventPrefix: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
+  eventPrefix: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'swarm';
   messageApi: MessageApi;
   t: (key: string) => string;
 

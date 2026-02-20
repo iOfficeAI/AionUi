@@ -1,0 +1,10 @@
+{
+  "role": "driver",
+  "name": "Driver",
+  "avatar": "🧭",
+  "description": "Technical lead who plans the approach, breaks down tasks, and directs the Navigator.",
+  "nameI18n": {
+    "en-US": "Driver",
+    "zh-CN": "驱动者"
+  }
+}

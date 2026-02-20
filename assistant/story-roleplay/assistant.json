@@ -1,0 +1,16 @@
+{
+  "id": "story-roleplay",
+  "name": "Story Roleplay",
+  "avatar": "📖",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "defaultEnabledSkills": ["story-roleplay"],
+  "nameI18n": {
+    "en-US": "Story Roleplay",
+    "zh-CN": "故事角色扮演"
+  },
+  "descriptionI18n": {
+    "en-US": "Interactive storytelling and roleplay with immersive narratives.",
+    "zh-CN": "沉浸式叙事的互动故事和角色扮演。"
+  }
+}

@@ -7,5 +7,6 @@
   "workspacePath": "./workspace",
   "tags": ["3d", "game-development", "threejs", "babylonjs", "webgl", "graphics"],
   "presetAgentType": "claude",
-  "defaultAgent": "game-developer"
+  "defaultAgent": "game-developer",
+  "isBuiltin": true
 }

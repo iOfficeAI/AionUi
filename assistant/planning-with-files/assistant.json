@@ -1,0 +1,15 @@
+{
+  "id": "planning-with-files",
+  "name": "Planning with Files",
+  "avatar": "📋",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "nameI18n": {
+    "en-US": "Planning with Files",
+    "zh-CN": "文件规划助手"
+  },
+  "descriptionI18n": {
+    "en-US": "Manus-style file-based planning for complex tasks. Uses task_plan.md, findings.md, and progress.md to maintain persistent context.",
+    "zh-CN": "Manus 风格的文件规划，用于复杂任务。使用 task_plan.md、findings.md 和 progress.md 维护持久化上下文。"
+  }
+}

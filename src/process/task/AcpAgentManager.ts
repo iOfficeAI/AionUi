@@ -62,6 +62,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   // Pending hook messages to write to JSONL once the session ID is known
   private pendingQueueOpsToWrite: Array<{ content: string }> | null = null;
 
+  /** External stream listeners (e.g., SwarmSessionManager forwarding to group chat) */
+  private streamListeners: Array<(message: IResponseMessage) => void> = [];
+  /** External finish listeners (e.g., SwarmSessionManager turn handoff) */
+  private finishListeners: Array<(output: string) => void> = [];
+
   /** Message queue for sequential auto-prompting */
   readonly messageQueue: AcpMessageQueue;
 
@@ -91,6 +96,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         },
       });
     });
+  }
+
+  /** Register an external stream listener (e.g., for swarm group chat forwarding) */
+  onStream(listener: (message: IResponseMessage) => void): void {
+    this.streamListeners.push(listener);
+  }
+
+  /** Register an external finish listener (e.g., for swarm turn handoff) */
+  onFinish(listener: (output: string) => void): void {
+    this.finishListeners.push(listener);
   }
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -263,6 +278,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             conversation_id: this.conversation_id,
           });
 
+          // Notify external stream listeners (e.g., swarm group chat forwarding)
+          for (const listener of this.streamListeners) {
+            try {
+              listener(filteredMessage);
+            } catch (err) {
+              console.warn('[AcpAgentManager] Stream listener error:', err);
+            }
+          }
+
           const totalDuration = Date.now() - pipelineStart;
           if (totalDuration > 10) {
             if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`);
@@ -301,6 +325,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             // Notify message queue so it can process the next queued message
             this.messageQueue.onAgentFinished();
             void this.runAgentResponseHooks();
+
+            // Notify external finish listeners (e.g., swarm turn handoff)
+            const output = this.currentMsgContent || '';
+            for (const listener of this.finishListeners) {
+              try {
+                listener(output);
+              } catch (err) {
+                console.warn('[AcpAgentManager] Finish listener error:', err);
+              }
+            }
           }
 
           // Process cron commands when turn ends (finish signal)
@@ -443,10 +477,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // 首条消息时注入预设规则和 skills 索引（来自智能助手配置）
         // Inject preset context and skills INDEX on first message (from smart assistant config)
         if (this.isFirstMessage) {
+          console.log('[AcpAgentManager] First message - presetContext length:', this.options.presetContext?.length || 0);
           contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
             presetContext: this.options.presetContext,
             enabledSkills: this.options.enabledSkills,
           });
+          console.log('[AcpAgentManager] After prepareFirstMessage - content length:', contentToSend.length);
         }
 
         const userMessage: TMessage = {

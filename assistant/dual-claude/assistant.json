@@ -1,0 +1,47 @@
+{
+  "id": "dual-claude",
+  "name": "Dual Claude — Driver & Navigator",
+  "version": "1.0.0",
+  "description": "Two Claude Code agents collaborating: the Driver plans and directs, the Navigator implements and reports.",
+  "author": "AionUi",
+  "presetAgentType": "claude",
+  "avatar": "🤝",
+  "workspacePath": "./workspace",
+  "tags": ["autonomous", "multi-agent", "swarm", "pair-programming", "claude-code"],
+  "mode": "swarm",
+  "swarm": {
+    "feedPath": ".swarm/feed.jsonl",
+    "agents": ["driver", "navigator"],
+    "maxTurns": 30,
+    "turnStrategy": "round-robin"
+  },
+  "defaultEnabledSkills": [],
+  "nameI18n": {
+    "en-US": "Dual Claude",
+    "zh-CN": "双 Claude 协作"
+  },
+  "descriptionI18n": {
+    "en-US": "Two Claude Code agents collaborating: the Driver plans and directs, the Navigator implements and reports.",
+    "zh-CN": "两个 Claude Code 智能体协作：驱动者（规划与指导），执行者（实现与报告）。"
+  },
+  "promptsI18n": {
+    "en-US": ["Build a REST API with user authentication", "Refactor the database layer to use connection pooling", "Add comprehensive test coverage to src/"],
+    "zh-CN": ["构建一个带用户认证的 REST API", "重构数据库层以使用连接池", "为 src/ 添加全面的测试覆盖"]
+  },
+  "queuedMessages": {
+    "description": "Swarm: onSwarmInit seeds both agents, onSwarmTurnEnd routes via feed",
+    "phases": [
+      {
+        "trigger": "onSwarmInit",
+        "messages": 2,
+        "purpose": "Seed driver and navigator with initial context"
+      },
+      {
+        "trigger": "onSwarmTurnEnd",
+        "messages": "N (feed-driven)",
+        "purpose": "Route agent outputs through feed to the other agent"
+      }
+    ]
+  },
+  "isBuiltin": true
+}

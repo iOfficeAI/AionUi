@@ -1,0 +1,16 @@
+{
+  "id": "openclaw-setup",
+  "name": "OpenClaw Setup Expert",
+  "avatar": "🦞",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "defaultEnabledSkills": ["openclaw-setup", "aionui-webui-setup"],
+  "nameI18n": {
+    "en-US": "OpenClaw Setup Expert",
+    "zh-CN": "OpenClaw 部署专家"
+  },
+  "descriptionI18n": {
+    "en-US": "Expert guide for installing, deploying, configuring, and troubleshooting OpenClaw. Proactively helps with setup, diagnoses issues, and provides security best practices.",
+    "zh-CN": "OpenClaw 安装、部署、配置和故障排查专家。主动协助设置、诊断问题并提供安全最佳实践。"
+  }
+}

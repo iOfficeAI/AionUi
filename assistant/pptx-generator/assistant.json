@@ -1,0 +1,15 @@
+{
+  "id": "pptx-generator",
+  "name": "PPTX Generator",
+  "avatar": "📊",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "nameI18n": {
+    "en-US": "PPTX Generator",
+    "zh-CN": "PPTX 生成器"
+  },
+  "descriptionI18n": {
+    "en-US": "Generate local PPTX assets and structure for pptxgenjs.",
+    "zh-CN": "生成本地 PPTX 资产与结构（pptxgenjs）。"
+  }
+}

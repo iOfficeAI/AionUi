@@ -262,6 +262,10 @@
       "closeRight": "关闭右侧",
       "closeOthers": "关闭其他"
     },
+    "swarm": {
+      "groupChat": "群聊",
+      "directiveFrom": "来自 {{name}} 的指令"
+    },
     "workspace": {
       "title": "工作空间",
       "pasteConfirm_title": "粘贴文件",

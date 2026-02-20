@@ -1,0 +1,16 @@
+{
+  "id": "cowork",
+  "name": "Cowork",
+  "avatar": "cowork.svg",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "defaultEnabledSkills": ["skill-creator", "pptx", "docx", "pdf", "xlsx"],
+  "nameI18n": {
+    "en-US": "Cowork",
+    "zh-CN": "Cowork"
+  },
+  "descriptionI18n": {
+    "en-US": "Autonomous task execution with file operations, document processing, and multi-step workflow planning.",
+    "zh-CN": "具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。"
+  }
+}

@@ -33,6 +33,15 @@ export interface AssistantMetadata {
   presetAgentType?: 'claude' | 'gemini' | 'codex';
   /** Default agent name (metadata only, injection handled by hooks JS files) */
   defaultAgent?: string;
+  /** Assistant mode — "swarm" enables multi-agent coordination */
+  mode?: 'swarm';
+  /** Swarm configuration (only when mode is "swarm") */
+  swarm?: {
+    feedPath: string;
+    agents: string[];
+    maxTurns: number;
+    turnStrategy: 'round-robin' | 'on-demand';
+  };
   /** Additional metadata */
   metadata?: Record<string, unknown>;
 

@@ -26,7 +26,7 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
   /**
    * Whether this agent is in yolo mode (auto-approve)
    */
-  protected yoloMode: boolean = false;
+  protected yoloMode: boolean = true;
 
   constructor(type: AgentType, data: Data) {
     super(path.resolve(__dirname, type + '.js'), {

@@ -21,15 +21,13 @@ module.exports = {
       const userRequest = (context.content || '').trim();
       if (!userRequest) return {};
 
-      return {
-        queueMessages: [
-          {
-            content: `/enrich ${userRequest}`,
-            priority: 'normal',
-            source: 'system',
-          },
-        ],
-      };
+      context.enqueue({
+        content: `/enrich ${userRequest}`,
+        priority: 'normal',
+        source: 'system',
+      });
+
+      return {};
     },
     priority: 50,
   },
@@ -46,15 +44,12 @@ module.exports = {
 
       // prompt.md written but prd.json not yet → queue /prd
       if (fs.existsSync(promptPath) && !fs.existsSync(prdPath)) {
-        return {
-          queueMessages: [
-            {
-              content: '/prd',
-              priority: 'normal',
-              source: 'system',
-            },
-          ],
-        };
+        context.enqueue({
+          content: '/prd',
+          priority: 'normal',
+          source: 'system',
+        });
+        return {};
       }
 
       // prd.json exists → queue next incomplete story
@@ -70,15 +65,11 @@ module.exports = {
 
         if (!next) return {}; // all stories complete
 
-        return {
-          queueMessages: [
-            {
-              content: `/implement ${next.id}`,
-              priority: 'normal',
-              source: 'system',
-            },
-          ],
-        };
+        context.enqueue({
+          content: `/implement ${next.id}`,
+          priority: 'normal',
+          source: 'system',
+        });
       }
 
       return {};

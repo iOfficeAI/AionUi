@@ -7,35 +7,34 @@
   "workspacePath": "./workspace",
   "tags": ["autonomous", "self-feeding", "loop", "adaptive", "agent"],
   "presetAgentType": "claude",
-  "avatar": "\uD83D\uDC0D",
+  "avatar": "🐍",
   "nameI18n": {
     "en-US": "Ouroboros",
-    "zh-CN": "Ouroboros \u81EA\u9988\u5FAA\u73AF\u667A\u80FD\u4F53"
+    "zh-CN": "Ouroboros 自馈循环智能体"
   },
   "descriptionI18n": {
     "en-US": "Self-feeding agent loop. The agent generates its own follow-up prompts and feeds them back as queue messages, autonomously iterating until the task is complete.",
-    "zh-CN": "\u81EA\u9988\u5FAA\u73AF\u667A\u80FD\u4F53\u3002\u667A\u80FD\u4F53\u81EA\u884C\u751F\u6210\u540E\u7EED\u63D0\u793A\u5E76\u4F5C\u4E3A\u961F\u5217\u6D88\u606F\u56DE\u9988\u7ED9\u81EA\u5DF1\uFF0C\u81EA\u4E3B\u8FED\u4EE3\u76F4\u81F3\u4EFB\u52A1\u5B8C\u6210\u3002"
+    "zh-CN": "自馈循环智能体。智能体自行生成后续提示并作为队列消息回馈给自己，自主迭代直至任务完成。"
   },
   "promptsI18n": {
-    "en-US": [
-      "Build a REST API with authentication and CRUD endpoints",
-      "Refactor this codebase to use the repository pattern",
-      "Create a CLI tool that processes CSV files and outputs reports",
-      "Set up a CI/CD pipeline with testing and deployment stages"
-    ],
-    "zh-CN": [
-      "\u6784\u5EFA\u4E00\u4E2A\u5E26\u8BA4\u8BC1\u548C CRUD \u7AEF\u70B9\u7684 REST API",
-      "\u5C06\u6B64\u4EE3\u7801\u5E93\u91CD\u6784\u4E3A\u4ED3\u50A8\u6A21\u5F0F",
-      "\u521B\u5EFA\u4E00\u4E2A\u5904\u7406 CSV \u6587\u4EF6\u5E76\u8F93\u51FA\u62A5\u544A\u7684 CLI \u5DE5\u5177",
-      "\u8BBE\u7F6E\u5305\u542B\u6D4B\u8BD5\u548C\u90E8\u7F72\u9636\u6BB5\u7684 CI/CD \u6D41\u6C34\u7EBF"
-    ]
+    "en-US": ["Build a REST API with authentication and CRUD endpoints", "Refactor this codebase to use the repository pattern", "Create a CLI tool that processes CSV files and outputs reports", "Set up a CI/CD pipeline with testing and deployment stages"],
+    "zh-CN": ["构建一个带认证和 CRUD 端点的 REST API", "将此代码库重构为仓储模式", "创建一个处理 CSV 文件并输出报告的 CLI 工具", "设置包含测试和部署阶段的 CI/CD 流水线"]
   },
   "defaultEnabledSkills": [],
   "queuedMessages": {
     "description": "Self-feeding loop: onQueueInit seeds the first analysis turn, onAgentResponse reads .ouroboros/state.json and feeds the agent's own nextPrompt back as the next queue message until status is 'done'",
     "phases": [
-      { "trigger": "onQueueInit", "messages": 1, "purpose": "Seed initial analysis and planning turn" },
-      { "trigger": "onAgentResponse", "messages": "N (agent-determined, up to maxIterations)", "purpose": "Feed agent's self-generated follow-up prompt back as next turn" }
+      {
+        "trigger": "onQueueInit",
+        "messages": 1,
+        "purpose": "Seed initial analysis and planning turn"
+      },
+      {
+        "trigger": "onAgentResponse",
+        "messages": "N (agent-determined, up to maxIterations)",
+        "purpose": "Feed agent's self-generated follow-up prompt back as next turn"
+      }
     ]
-  }
+  },
+  "isBuiltin": true
 }

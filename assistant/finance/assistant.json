@@ -26,5 +26,6 @@
     "zh-TW": ["/trading-ideas NVDA — 機構級股票研究，含買入/賣出/持有建議", "/analyze NVDA — 運行所有投資者視角 + 基本面/技術分析", "/macro — 全球宏觀展望：聯準會政策、通膨、GDP、信用利差", "/compare MSFT GOOGL — 基本面和技術面並排對比", "/screen sector:tech pe:<20 momentum:high — 按因子條件篩選股票", "/portfolio — 分析持倉的風險、相關性和多元化"],
     "ja-JP": ["/trading-ideas NVDA — 買い/売り/保有推奨を含む機関グレードの株式調査", "/analyze NVDA — 全投資家ペルソナ + ファンダメンタル/テクニカル分析を実行", "/macro — グローバルマクロ展望：FED政策、インフレ、GDP、クレジットスプレッド", "/compare MSFT GOOGL — ファンダメンタルとテクニカルの並列比較", "/screen sector:tech pe:<20 momentum:high — ファクター基準で株式をスクリーニング", "/portfolio — リスク、相関、分散のポートフォリオ分析"],
     "ko-KR": ["/trading-ideas NVDA — 매수/매도/보유 추천을 포함한 기관급 주식 리서치", "/analyze NVDA — 모든 투자자 페르소나 + 기본/기술적 분석 실행", "/macro — 글로벌 거시 전망: Fed 정책, 인플레이션, GDP, 신용 스프레드", "/compare MSFT GOOGL — 기본 및 기술적 분석 나란히 비교", "/screen sector:tech pe:<20 momentum:high — 팩터 기준으로 주식 스크리닝", "/portfolio — 리스크, 상관관계, 분산화 포트폴리오 분석"]
-  }
+  },
+  "isBuiltin": true
 }

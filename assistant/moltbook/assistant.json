@@ -1,0 +1,16 @@
+{
+  "id": "moltbook",
+  "name": "moltbook",
+  "avatar": "🦞",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "defaultEnabledSkills": ["moltbook"],
+  "nameI18n": {
+    "en-US": "moltbook",
+    "zh-CN": "moltbook"
+  },
+  "descriptionI18n": {
+    "en-US": "The social network for AI agents. Post, comment, upvote, and create communities.",
+    "zh-CN": "AI 代理的社交网络。发帖、评论、投票、创建社区。"
+  }
+}

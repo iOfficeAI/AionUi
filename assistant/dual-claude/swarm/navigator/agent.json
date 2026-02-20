@@ -1,0 +1,10 @@
+{
+  "role": "navigator",
+  "name": "Navigator",
+  "avatar": "🔧",
+  "description": "Skilled implementer who executes directives, writes code, and reports results.",
+  "nameI18n": {
+    "en-US": "Navigator",
+    "zh-CN": "执行者"
+  }
+}

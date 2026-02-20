@@ -246,15 +246,13 @@ module.exports = {
         'You are the serpent and the tail. Begin.',
       ].join('\n');
 
-      return {
-        queueMessages: [
-          {
-            content: seedPrompt,
-            priority: 'normal',
-            source: 'system',
-          },
-        ],
-      };
+      context.enqueue({
+        content: seedPrompt,
+        priority: 'normal',
+        source: 'system',
+      });
+
+      return {};
     },
     priority: 50,
   },
@@ -329,26 +327,23 @@ module.exports = {
 
       // Safety valve — max iterations reached
       if (currentIter >= maxIter) {
-        return {
-          queueMessages: [
-            {
-              content: [
-                '## Ouroboros — Maximum Iterations Reached',
-                '',
-                `You have reached the iteration limit (${maxIter}).`,
-                'Please wrap up your current work:',
-                '',
-                '1. Re-read `.ouroboros/prompt.md` — verify how close we are to the original intent',
-                '2. Commit any pending changes',
-                '3. Update `.ouroboros/state.json` with `status: "done"`',
-                '4. Write a final summary: what was accomplished vs. the original intent',
-                '5. Output `<done/>`',
-              ].join('\n'),
-              priority: 'normal',
-              source: 'system',
-            },
-          ],
-        };
+        context.enqueue({
+          content: [
+            '## Ouroboros — Maximum Iterations Reached',
+            '',
+            `You have reached the iteration limit (${maxIter}).`,
+            'Please wrap up your current work:',
+            '',
+            '1. Re-read `.ouroboros/prompt.md` — verify how close we are to the original intent',
+            '2. Commit any pending changes',
+            '3. Update `.ouroboros/state.json` with `status: "done"`',
+            '4. Write a final summary: what was accomplished vs. the original intent',
+            '5. Output `<done/>`',
+          ].join('\n'),
+          priority: 'normal',
+          source: 'system',
+        });
+        return {};
       }
 
       // ── Self-feeding: parse next prompt ──
@@ -383,15 +378,13 @@ module.exports = {
         .filter(Boolean)
         .join('\n');
 
-      return {
-        queueMessages: [
-          {
-            content: wrappedPrompt,
-            priority: 'normal',
-            source: 'system',
-          },
-        ],
-      };
+      context.enqueue({
+        content: wrappedPrompt,
+        priority: 'normal',
+        source: 'system',
+      });
+
+      return {};
     },
     priority: 50,
   },

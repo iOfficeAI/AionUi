@@ -15,6 +15,9 @@ import { ConfigStorage } from '@/common/storage';
 import { getAssistantsDir } from './migrations/assistantMigration';
 import { copyDirectoryRecursively } from './utils';
 import { computeOpenClawIdentityHash } from './utils/openclawUtils';
+import { SwarmSessionManager } from '@/agent/swarm/SwarmSessionManager';
+import WorkerManage from './WorkerManage';
+import { getDatabase } from './database/export';
 
 // Regex to match AionUI timestamp suffix pattern
 const AIONUI_TIMESTAMP_REGEX = /^(.+?)_aionui_\d+(\.[^.]+)$/;
@@ -28,7 +31,7 @@ const AIONUI_TIMESTAMP_REGEX = /^(.+?)_aionui_\d+(\.[^.]+)$/;
  * Note: File copying is handled by copyFilesToDirectory in sendMessage
  * This avoids files being copied twice
  */
-const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[], providedCustomWorkspace?: boolean, presetAssistantId?: string) => {
+const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[], providedCustomWorkspace?: boolean, presetAssistantId?: string, assistantConfig?: import('@/assistant/types').AssistantMetadata | null) => {
   // 使用前端提供的customWorkspace标志，如果没有则根据workspace参数判断
   const customWorkspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
 
@@ -125,14 +128,9 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
           console.log(`[AionUi] Workspace initialized via hook: ${workspace}`);
         }
 
-        // Read assistant.json to get defaultAgent
-        const configPath = path.join(assistantPath, 'assistant.json');
-        try {
-          const configContent = await fs.readFile(configPath, 'utf-8');
-          const config = JSON.parse(configContent);
-          defaultAgent = config.defaultAgent;
-        } catch (error) {
-          console.warn(`[AionUi] Failed to read assistant.json for defaultAgent:`, error);
+        // Get defaultAgent from pre-loaded config
+        if (assistantConfig) {
+          defaultAgent = assistantConfig.defaultAgent;
         }
       } else {
         console.log(`[AionUi] Using existing workspace, skipping initialization`);
@@ -218,10 +216,10 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
   };
 };
 
-export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+export const createAcpAgent = async (options: ICreateConversationParams, assistantConfig?: import('@/assistant/types').AssistantMetadata | null): Promise<TChatConversation> => {
   const { extra } = options;
   // Use presetAssistantId as workspace template source (resolves automatically)
-  const { workspace, customWorkspace, defaultAgent, assistantHooksPath } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId);
+  const { workspace, customWorkspace, defaultAgent, assistantHooksPath } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId, assistantConfig);
 
   // Build extra object, only including defined fields to prevent undefined values from being JSON.stringify'd
   const conversationExtra: any = {
@@ -252,10 +250,10 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   };
 };
 
-export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+export const createCodexAgent = async (options: ICreateConversationParams, assistantConfig?: import('@/assistant/types').AssistantMetadata | null): Promise<TChatConversation> => {
   const { extra } = options;
   // Use presetAssistantId as workspace template source (resolves automatically)
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId, assistantConfig);
   return {
     type: 'codex',
     extra: {
@@ -331,4 +329,61 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     name: workspace,
     id: uuid(),
   };
+};
+
+/**
+ * Create a swarm conversation (mode: "swarm").
+ * Creates a parent group conversation, then spawns child agent conversations
+ * linked to it via parent_id. The SwarmSessionManager orchestrates the agents
+ * and forwards their responses to the group chat.
+ */
+export const createSwarmConversation = async (options: ICreateConversationParams, assistantConfig: import('@/assistant/types').AssistantMetadata): Promise<TChatConversation> => {
+  const { extra } = options;
+
+  // Validate swarm config
+  if (assistantConfig.mode !== 'swarm' || !assistantConfig.swarm) {
+    throw new Error(`Assistant ${assistantConfig.id} is not configured as a swarm`);
+  }
+
+  // Build workspace (reusing existing infrastructure)
+  const { workspace, customWorkspace, defaultAgent, assistantHooksPath } = await buildWorkspaceWidthFiles(
+    `swarm-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace,
+    extra.presetAssistantId,
+    assistantConfig // Pass pre-loaded config
+  );
+
+  const { getAssistantDir } = await import('@/assistant/loadAssistantConfig');
+  const assistantDir = getAssistantDir(assistantConfig.id);
+
+  // Create parent swarm conversation with type='swarm' and group mode
+  const parentConversation: TChatConversation = {
+    type: 'swarm',
+    conversationMode: 'group',
+    extra: {
+      workspace,
+      customWorkspace,
+      presetAssistantId: assistantConfig.id,
+      assistantDir,
+      defaultAgent,
+      assistantHooksPath,
+      swarmConfig: assistantConfig.swarm,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+
+  // Create SwarmSessionManager
+  const swarmManager = new SwarmSessionManager(assistantConfig.swarm, parentConversation.id, workspace, assistantConfig.presetAgentType || 'claude', assistantConfig.id, assistantDir);
+
+  // Register swarm manager
+  WorkerManage.registerSwarm(parentConversation.id, swarmManager);
+
+  console.log(`[AionUi] Created swarm conversation ${parentConversation.id} for assistant ${assistantConfig.id}`);
+
+  return parentConversation;
 };

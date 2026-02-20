@@ -12,7 +12,7 @@ import type { ContextMenuState } from '../types';
 
 interface UseWorkspaceEventsOptions {
   conversation_id: string;
-  eventPrefix: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
+  eventPrefix: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'swarm';
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;

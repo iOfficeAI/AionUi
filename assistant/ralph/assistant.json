@@ -24,8 +24,17 @@
   "queuedMessages": {
     "description": "Two-phase auto-queue: onQueueInit queues PRD creation, onAgentResponse queues per-story implementation after prd.json is created",
     "phases": [
-      { "trigger": "onQueueInit", "messages": 1, "purpose": "Create prd.json from user's first message" },
-      { "trigger": "onAgentResponse", "messages": "N (one per user story in prd.json)", "purpose": "Implement each story sequentially" }
+      {
+        "trigger": "onQueueInit",
+        "messages": 1,
+        "purpose": "Create prd.json from user's first message"
+      },
+      {
+        "trigger": "onAgentResponse",
+        "messages": "N (one per user story in prd.json)",
+        "purpose": "Implement each story sequentially"
+      }
     ]
-  }
+  },
+  "isBuiltin": true
 }

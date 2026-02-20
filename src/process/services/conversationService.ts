@@ -9,7 +9,7 @@ import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import path from 'path';
-import { createAcpAgent, createCodexAgent, createGeminiAgent, createNanobotAgent, createOpenClawAgent } from '../initAgent';
+import { createAcpAgent, createCodexAgent, createGeminiAgent, createNanobotAgent, createOpenClawAgent, createSwarmConversation } from '../initAgent';
 import WorkerManage from '../WorkerManage';
 
 /**
@@ -124,6 +124,13 @@ export class ConversationService {
     const { type, extra, name, model, id, source } = params;
 
     try {
+      // Load assistant config early if presetAssistantId is provided
+      let assistantConfig: import('@/assistant/types').AssistantMetadata | null = null;
+      if (extra.presetAssistantId) {
+        const { loadAssistantConfig } = await import('@/assistant/loadAssistantConfig');
+        assistantConfig = await loadAssistantConfig(extra.presetAssistantId);
+      }
+
       let conversation: TChatConversation;
 
       if (type === 'gemini') {
@@ -144,9 +151,17 @@ export class ConversationService {
 
         conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode);
       } else if (type === 'acp') {
-        conversation = await createAcpAgent(params);
+        // Check if this is a swarm assistant
+        const isSwarmAssistant = assistantConfig?.mode === 'swarm' && !!assistantConfig?.swarm;
+
+        if (isSwarmAssistant) {
+          console.log(`[ConversationService] Creating swarm conversation for ${extra.presetAssistantId}`);
+          conversation = await createSwarmConversation(params, assistantConfig!);
+        } else {
+          conversation = await createAcpAgent(params, assistantConfig);
+        }
       } else if (type === 'codex') {
-        conversation = await createCodexAgent(params);
+        conversation = await createCodexAgent(params, assistantConfig);
       } else if (type === 'openclaw-gateway') {
         conversation = await createOpenClawAgent(params);
       } else if (type === 'nanobot') {
@@ -179,9 +194,15 @@ export class ConversationService {
 
       // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
       // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called.
-      WorkerManage.buildConversation(conversation);
+      // For swarm conversations, skip building task manager (swarm registers its own manager)
+      if (conversation.type !== 'swarm') {
+        console.log(`[ConversationService] Building conversation ${conversation.id} of type ${conversation.type}`);
+        WorkerManage.buildConversation(conversation);
+      } else {
+        console.log(`[ConversationService] Skipping build for swarm conversation ${conversation.id}`);
+      }
 
-      console.log(`[ConversationService] Created ${type} conversation ${conversation.id} with source=${source || 'aionui'}`);
+      console.log(`[ConversationService] Created ${conversation.type} conversation ${conversation.id} with source=${source || 'aionui'}`);
       return { success: true, conversation };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

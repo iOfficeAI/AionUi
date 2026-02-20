@@ -37,15 +37,13 @@ function resolvePresetId(conversation: TChatConversation): string | null {
   // 1. 优先使用 presetAssistantId（新会话）
   // Priority: use presetAssistantId (new conversations)
   if (extra?.presetAssistantId && extra.presetAssistantId.trim()) {
-    const resolved = extra.presetAssistantId.replace('builtin-', '');
-    return resolved;
+    return extra.presetAssistantId;
   }
 
   // 2. 向后兼容：customAgentId（ACP/Codex 旧会话）
   // Backward compatible: customAgentId (ACP/Codex old conversations)
   if (extra?.customAgentId && extra.customAgentId.trim()) {
-    const resolved = extra.customAgentId.replace('builtin-', '');
-    return resolved;
+    return extra.customAgentId;
   }
 
   // 3. 向后兼容：enabledSkills 存在说明是 Cowork 会话（Gemini 旧会话）
@@ -119,7 +117,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 
     // If not found in built-in presets, try to find in custom agents
     if (customAgents && Array.isArray(customAgents)) {
-      const customAgent = customAgents.find((agent) => agent.id === presetId || agent.id === `builtin-${presetId}`);
+      const customAgent = customAgents.find((agent) => agent.id === presetId);
       if (customAgent) {
         const locale = i18n.language || 'en-US';
         const resolveLocaleKey = (lang: string) => {

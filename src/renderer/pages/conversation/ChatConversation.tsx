@@ -25,9 +25,11 @@ import ChatSider from './ChatSider';
 import CodexChat from './codex/CodexChat';
 import NanobotChat from './nanobot/NanobotChat';
 import OpenClawChat from './openclaw/OpenClawChat';
+import SwarmChat from './swarm/SwarmChat';
 import GeminiChat from './gemini/GeminiChat';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
+import SwarmGroupChat from './swarm/SwarmGroupChat';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -143,8 +145,16 @@ const ChatConversation: React.FC<{
 
   const isGeminiConversation = conversation?.type === 'gemini';
 
+  const isGroupConversation = conversation?.conversationMode === 'group';
+
   const conversationNode = useMemo(() => {
     if (!conversation || isGeminiConversation) return null;
+
+    // Group conversations use the SwarmGroupChat component
+    if (isGroupConversation) {
+      return <SwarmGroupChat key={conversation.id} conversation={conversation} />;
+    }
+
     switch (conversation.type) {
       case 'acp':
         return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'}></AcpChat>;
@@ -154,10 +164,12 @@ const ChatConversation: React.FC<{
         return <OpenClawChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       case 'nanobot':
         return <NanobotChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
+      case 'swarm':
+        return <SwarmChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       default:
         return null;
     }
-  }, [conversation, isGeminiConversation]);
+  }, [conversation, isGeminiConversation, isGroupConversation]);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)

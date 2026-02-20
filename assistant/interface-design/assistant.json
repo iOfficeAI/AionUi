@@ -17,18 +17,9 @@
     "zh-CN": "设计工程助手，用于构建一致的 UI 界面，支持设计记忆与规范执行。"
   },
   "promptsI18n": {
-    "en-US": [
-      "Initialize a design system for my project",
-      "Audit my components for design consistency",
-      "Extract design patterns from existing code",
-      "Critique my UI build for craft"
-    ],
-    "zh-CN": [
-      "为我的项目初始化设计系统",
-      "审查组件的设计一致性",
-      "从现有代码提取设计模式",
-      "评审我的 UI 构建的工艺质量"
-    ]
+    "en-US": ["Initialize a design system for my project", "Audit my components for design consistency", "Extract design patterns from existing code", "Critique my UI build for craft"],
+    "zh-CN": ["为我的项目初始化设计系统", "审查组件的设计一致性", "从现有代码提取设计模式", "评审我的 UI 构建的工艺质量"]
   },
-  "defaultEnabledSkills": ["interface-design"]
+  "defaultEnabledSkills": ["interface-design"],
+  "isBuiltin": true
 }

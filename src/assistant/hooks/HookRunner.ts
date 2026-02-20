@@ -10,7 +10,8 @@ import { copyDirectoryRecursively } from '@/process/utils';
 import { getSkillsDir } from '@/process/initStorage';
 import { loadHookModules } from './ModuleLoader';
 import { executeHooks } from './HookExecutor';
-import type { HookEvent, HookContext, HookResult, HookUtils } from './types';
+import type { ExecuteHooksResult } from './HookExecutor';
+import type { HookEvent, HookContext, HookUtils } from './types';
 
 /**
  * Create utility functions for hooks
@@ -102,18 +103,19 @@ export function createHookUtils(): HookUtils {
  *
  * @param event - The hook event (e.g., 'onSendMessage')
  * @param context - Hook context object
- * @returns HookResult with transformed content
+ * @returns ExecuteHooksResult with transformed content and accumulated queueMessages
  */
-export async function runHooks(event: HookEvent, context: Partial<HookContext>): Promise<HookResult> {
+export async function runHooks(event: HookEvent, context: Partial<HookContext>): Promise<ExecuteHooksResult> {
+  const noop = () => {};
   const hooksDir = context.assistantPath ? path.join(context.assistantPath, 'hooks') : context.workspace ? path.join(context.workspace, 'hooks') : undefined;
 
   if (!hooksDir || !fs.existsSync(hooksDir)) {
-    return { content: context.content };
+    return { content: context.content, queueMessages: [] };
   }
 
   const hookModules = loadHookModules(hooksDir);
   if (hookModules.length === 0) {
-    return { content: context.content };
+    return { content: context.content, queueMessages: [] };
   }
 
   const fullContext: HookContext = {
@@ -122,6 +124,7 @@ export async function runHooks(event: HookEvent, context: Partial<HookContext>):
     utils: createHookUtils(),
     enabledSkills: [],
     skillsSourceDir: getSkillsDir(),
+    enqueue: noop,
     ...context,
   };
 

@@ -6,6 +6,7 @@
 
 import { runAgentHooks } from '@/assistant/hooks';
 import { runHooks } from '@/assistant/hooks/HookRunner';
+import type { QueueMessage } from '@/assistant/hooks/types';
 
 /**
  * Prepare the first message by injecting preset context and skills index.
@@ -40,7 +41,7 @@ export async function prepareFirstMessageWithSkillsIndex(
  * Run onQueueInit hooks to collect messages that should be auto-queued.
  * Returns an array of messages to enqueue into the agent's message queue.
  */
-export async function runQueueInitHooks(options: { workspace?: string; backend?: string; conversationId?: string; enabledSkills?: string[]; presetContext?: string; assistantHooksPath?: string }): Promise<Array<{ content: string; files?: string[]; priority?: 'normal' | 'high'; source?: 'hook' | 'cron' | 'system' }>> {
+export async function runQueueInitHooks(options: { workspace?: string; backend?: string; conversationId?: string; enabledSkills?: string[]; presetContext?: string; assistantHooksPath?: string }): Promise<QueueMessage[]> {
   // Run built-in agent-level hooks (src/agent/acp/hooks/)
   const agentResult = await runAgentHooks('onQueueInit', {
     agentType: 'acp',
@@ -61,16 +62,16 @@ export async function runQueueInitHooks(options: { workspace?: string; backend?:
         conversationId: options.conversationId,
         presetContext: options.presetContext,
       })
-    : { queueMessages: [] };
+    : { queueMessages: [] as QueueMessage[] };
 
-  return [...(agentResult.queueMessages || []), ...(assistantResult.queueMessages || [])];
+  return [...agentResult.queueMessages, ...assistantResult.queueMessages];
 }
 
 /**
  * Run onAgentResponse hooks to collect messages that should be queued after each agent turn.
  * Returns an array of messages to enqueue into the agent's message queue.
  */
-export async function runAgentResponseHooks(options: { workspace?: string; backend?: string; conversationId?: string; enabledSkills?: string[]; presetContext?: string; assistantHooksPath?: string; content?: string }): Promise<Array<{ content: string; files?: string[]; priority?: 'normal' | 'high'; source?: 'hook' | 'cron' | 'system' }>> {
+export async function runAgentResponseHooks(options: { workspace?: string; backend?: string; conversationId?: string; enabledSkills?: string[]; presetContext?: string; assistantHooksPath?: string; content?: string }): Promise<QueueMessage[]> {
   // Run built-in agent-level hooks (src/agent/acp/hooks/)
   const agentResult = await runAgentHooks('onAgentResponse', {
     agentType: 'acp',
@@ -93,7 +94,7 @@ export async function runAgentResponseHooks(options: { workspace?: string; backe
         presetContext: options.presetContext,
         content: options.content,
       })
-    : { queueMessages: [] };
+    : { queueMessages: [] as QueueMessage[] };
 
-  return [...(agentResult.queueMessages || []), ...(assistantResult.queueMessages || [])];
+  return [...agentResult.queueMessages, ...assistantResult.queueMessages];
 }

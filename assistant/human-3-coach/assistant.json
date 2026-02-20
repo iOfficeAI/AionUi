@@ -1,0 +1,15 @@
+{
+  "id": "human-3-coach",
+  "name": "HUMAN 3.0 Coach",
+  "avatar": "🧭",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "nameI18n": {
+    "en-US": "HUMAN 3.0 Coach",
+    "zh-CN": "HUMAN 3.0 教练"
+  },
+  "descriptionI18n": {
+    "en-US": "Personal development coach based on HUMAN 3.0 framework: 4 Quadrants (Mind/Body/Spirit/Vocation), 3 Levels, 3 Growth Phases.",
+    "zh-CN": "基于 HUMAN 3.0 框架的个人发展教练：4 象限（思维/身体/精神/职业）、3 层次、3 成长阶段。"
+  }
+}

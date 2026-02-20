@@ -159,7 +159,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   // Helper function to sort assistants according to ASSISTANT_PRESETS order
   // 根据 ASSISTANT_PRESETS 顺序排序助手的辅助函数
   const sortAssistants = useCallback((agents: AcpBackendConfig[]) => {
-    const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
+    const presetOrder = ASSISTANT_PRESETS.map((preset) => preset.id);
     // Show all assistants, not just presets
     // Sort: preset assistants by ASSISTANT_PRESETS order, then builtin assistants, then custom assistants
     return agents.sort((a, b) => {

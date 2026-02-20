@@ -54,7 +54,7 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call' | 'plan' | 'available_commands';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call' | 'plan' | 'available_commands' | 'swarm_directive';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -88,6 +88,14 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
    * 消息状态
    */
   status?: 'finish' | 'pending' | 'error' | 'work';
+  /**
+   * Agent identity metadata for swarm/multi-agent conversations
+   */
+  agentMeta?: {
+    role: string;
+    name: string;
+    avatar: string;
+  };
 }
 
 export type IMessageText = IMessage<'text', { content: string }>;
@@ -275,8 +283,11 @@ export type IMessageAvailableCommands = IMessage<
   }
 >;
 
+/** Swarm directive message shown as a turn separator in individual agent views */
+export type IMessageSwarmDirective = IMessage<'swarm_directive', { from: string; fromName: string; fromAvatar: string; summary: string }>;
+
 // eslint-disable-next-line max-len
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall | IMessagePlan | IMessageAvailableCommands;
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall | IMessagePlan | IMessageAvailableCommands | IMessageSwarmDirective;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -338,6 +349,8 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
           content: contentString,
         },
         createdAt: message.timestamp || Date.now(),
+        // Carry through agentMeta for swarm group chat messages
+        agentMeta: message.agentMeta,
       };
     }
     case 'tool_call': {
@@ -435,6 +448,18 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'thought':
     case 'system': // Cron system responses, ignored
       break;
+    case 'swarm_directive': {
+      const data = message.data as { from: string; fromName: string; fromAvatar: string; summary: string };
+      return {
+        id: uuid(),
+        type: 'swarm_directive',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: data,
+        createdAt: message.timestamp || Date.now(),
+      } as any;
+    }
     default: {
       throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
     }

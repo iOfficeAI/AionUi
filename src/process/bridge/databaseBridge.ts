@@ -64,4 +64,16 @@ export function initDatabaseBridge(): void {
       return [];
     }
   });
+
+  // Get child conversations by parent group conversation ID
+  ipcBridge.database.getChildConversations.provider(async ({ parent_id }) => {
+    try {
+      const db = getDatabase();
+      const result = db.getChildConversations(parent_id);
+      return result.data || [];
+    } catch (error) {
+      console.error('[DatabaseBridge] Error getting child conversations:', error);
+      return [];
+    }
+  });
 }

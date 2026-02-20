@@ -17,15 +17,12 @@ module.exports = {
 
       const marker = path.join(context.workspace, '.initialized');
       if (!fs.existsSync(marker)) {
-        return {
-          queueMessages: [
-            {
-              content: ['The Finance Research workspace needs a one-time Python setup before any analysis can run.', 'Please run the following command now:', '', '```bash', 'bash setup.sh', '```', '', 'Wait for the "Environment ready" confirmation, then proceed with the user\'s request.'].join('\n'),
-              priority: 'normal',
-              source: 'system',
-            },
-          ],
-        };
+        context.enqueue({
+          content: ['The Finance Research workspace needs a one-time Python setup before any analysis can run.', 'Please run the following command now:', '', '```bash', 'bash setup.sh', '```', '', 'Wait for the "Environment ready" confirmation, then proceed with the user\'s request.'].join('\n'),
+          priority: 'normal',
+          source: 'system',
+        });
+        return {};
       }
 
       return {};

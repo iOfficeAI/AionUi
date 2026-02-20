@@ -9,8 +9,9 @@ import * as path from 'path';
 import { getSkillsDir } from '@/process/initStorage';
 import { loadHookModules } from '@/assistant/hooks/ModuleLoader';
 import { executeHooks } from '@/assistant/hooks/HookExecutor';
+import type { ExecuteHooksResult } from '@/assistant/hooks/HookExecutor';
 import { createHookUtils } from '@/assistant/hooks/HookRunner';
-import type { HookEvent, HookContext, HookResult } from '@/assistant/hooks/types';
+import type { HookEvent, HookContext } from '@/assistant/hooks/types';
 
 /**
  * Supported agent types for hook loading
@@ -30,7 +31,7 @@ export type AgentType = 'acp' | 'codex' | 'gemini' | 'openclaw';
  *
  * @param event - The hook event (e.g., 'onWorkspaceInit', 'onFirstMessage')
  * @param context - Hook context object
- * @returns HookResult with transformed content
+ * @returns ExecuteHooksResult with transformed content and accumulated queueMessages
  */
 export async function runAgentHooks(
   event: HookEvent,
@@ -43,17 +44,17 @@ export async function runAgentHooks(
     conversationId?: string;
     presetContext?: string;
   }
-): Promise<HookResult> {
+): Promise<ExecuteHooksResult> {
   const agentType = context.agentType || 'acp';
   const hooksDir = path.join(__dirname, 'agent', agentType, 'hooks');
 
   if (!fs.existsSync(hooksDir)) {
-    return { content: context.content };
+    return { content: context.content, queueMessages: [] };
   }
 
   const hookModules = loadHookModules(hooksDir);
   if (hookModules.length === 0) {
-    return { content: context.content };
+    return { content: context.content, queueMessages: [] };
   }
 
   const fullContext: HookContext = {
@@ -66,6 +67,7 @@ export async function runAgentHooks(
     skillsSourceDir: getSkillsDir(),
     presetContext: context.presetContext,
     utils: createHookUtils(),
+    enqueue: () => {},
   };
 
   return await executeHooks(event, fullContext, hookModules);

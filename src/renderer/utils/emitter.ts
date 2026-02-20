@@ -31,6 +31,10 @@ interface EventTypes {
   'nanobot.selected.file.append': [Array<string | FileOrFolderItem>];
   'nanobot.selected.file.clear': void;
   'nanobot.workspace.refresh': void;
+  'swarm.selected.file': [Array<string | FileOrFolderItem>];
+  'swarm.selected.file.append': [Array<string | FileOrFolderItem>];
+  'swarm.selected.file.clear': void;
+  'swarm.workspace.refresh': void;
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversationId

@@ -70,12 +70,14 @@ export interface IConversationRow {
   id: string;
   user_id: string;
   name: string;
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'swarm';
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
   source?: 'aionui' | 'telegram' | 'lark' | 'dingtalk'; // 会话来源 / Conversation source
   channel_chat_id?: string; // Channel chat isolation ID (e.g. user:xxx or group:xxx)
+  conversation_mode?: 'direct' | 'group'; // Conversation mode: 'direct' (default) or 'group' (swarm group chat)
+  parent_id?: string; // Parent group conversation ID for child agent conversations
   created_at: number;
   updated_at: number;
 }
@@ -91,6 +93,7 @@ export interface IMessageRow {
   content: string; // JSON string of message content
   position?: 'left' | 'right' | 'center' | 'pop';
   status?: 'finish' | 'pending' | 'error' | 'work';
+  agent_meta?: string; // JSON string of SwarmAgentMeta { role, name, avatar }
   created_at: number;
 }
 
@@ -123,6 +126,8 @@ export function conversationToRow(conversation: TChatConversation, userId: strin
     status: conversation.status,
     source: conversation.source,
     channel_chat_id: conversation.channelChatId,
+    conversation_mode: conversation.conversationMode,
+    parent_id: conversation.parentId,
     created_at: conversation.createTime,
     updated_at: conversation.modifyTime,
   };
@@ -141,6 +146,8 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     status: row.status,
     source: row.source,
     channelChatId: row.channel_chat_id,
+    conversationMode: row.conversation_mode as 'direct' | 'group' | undefined,
+    parentId: row.parent_id,
   };
 
   // Gemini type has model field
@@ -189,6 +196,15 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     } as TChatConversation;
   }
 
+  // Swarm type
+  if (row.type === 'swarm') {
+    return {
+      ...base,
+      type: 'swarm' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
   // Unknown type - should never happen with valid data
   throw new Error(`Unknown conversation type: ${row.type}`);
 }
@@ -205,6 +221,7 @@ export function messageToRow(message: TMessage): IMessageRow {
     content: JSON.stringify(message.content),
     position: message.position,
     status: message.status,
+    agent_meta: message.agentMeta ? JSON.stringify(message.agentMeta) : undefined,
     created_at: message.createdAt || Date.now(),
   };
 }
@@ -221,6 +238,7 @@ export function rowToMessage(row: IMessageRow): TMessage {
     content: JSON.parse(row.content),
     position: row.position,
     status: row.status,
+    agentMeta: row.agent_meta ? JSON.parse(row.agent_meta) : undefined,
     createdAt: row.created_at,
   } as TMessage;
 }

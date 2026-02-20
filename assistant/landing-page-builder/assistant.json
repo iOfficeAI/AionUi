@@ -17,18 +17,9 @@
     "zh-CN": "设计工程助手，用于构建高转化率落地页，支持视觉叙事、滚动节奏与转化架构。"
   },
   "promptsI18n": {
-    "en-US": [
-      "Build a landing page for my SaaS product",
-      "Design a hero section with strong visual hierarchy",
-      "Create a pricing page with social proof",
-      "Critique my landing page for conversion craft"
-    ],
-    "zh-CN": [
-      "为我的 SaaS 产品构建落地页",
-      "设计一个视觉层次分明的英雄区块",
-      "创建一个包含社会证明的定价页面",
-      "评审我的落地页转化工艺"
-    ]
+    "en-US": ["Build a landing page for my SaaS product", "Design a hero section with strong visual hierarchy", "Create a pricing page with social proof", "Critique my landing page for conversion craft"],
+    "zh-CN": ["为我的 SaaS 产品构建落地页", "设计一个视觉层次分明的英雄区块", "创建一个包含社会证明的定价页面", "评审我的落地页转化工艺"]
   },
-  "defaultEnabledSkills": ["landing-page-builder"]
+  "defaultEnabledSkills": ["landing-page-builder"],
+  "isBuiltin": true
 }

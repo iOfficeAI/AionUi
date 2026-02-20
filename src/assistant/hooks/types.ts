@@ -28,7 +28,17 @@ export const HOOK_PRIORITY = {
 /**
  * Hook events (extensible)
  */
-export type HookEvent = 'onWorkspaceInit' | 'onConversationInit' | 'onSendMessage' | 'onFirstMessage' | 'onBuildSystemInstructions' | 'onError' | 'onQueueInit' | 'onAgentResponse';
+export type HookEvent = 'onWorkspaceInit' | 'onConversationInit' | 'onSendMessage' | 'onFirstMessage' | 'onBuildSystemInstructions' | 'onError' | 'onQueueInit' | 'onAgentResponse' | 'onSwarmInit' | 'onSwarmTurnStart' | 'onSwarmTurnEnd' | 'onSwarmFeedMessage';
+
+/**
+ * Message shape for enqueue()
+ */
+export type QueueMessage = {
+  content: string;
+  files?: string[];
+  priority?: 'normal' | 'high';
+  source?: 'hook' | 'cron' | 'system';
+};
 
 /**
  * Hook context (same for all hooks)
@@ -44,6 +54,8 @@ export type HookContext = {
   skillsSourceDir?: string;
   presetContext?: string;
   utils: HookUtils;
+  /** Enqueue a message into the agent's message queue */
+  enqueue: (message: QueueMessage) => void;
 };
 
 /**
@@ -53,13 +65,6 @@ export type HookResult = {
   content?: string;
   blocked?: boolean;
   blockReason?: string;
-  /** Messages to enqueue into the agent's message queue (used by onQueueInit) */
-  queueMessages?: Array<{
-    content: string;
-    files?: string[];
-    priority?: 'normal' | 'high';
-    source?: 'hook' | 'cron' | 'system';
-  }>;
 };
 
 /**
@@ -90,6 +95,14 @@ export type HookModule = {
   onQueueInit?: HookConfig | HookHandler;
   /** Hook fired after each agent turn finishes, allowing dynamic follow-up message queuing */
   onAgentResponse?: HookConfig | HookHandler;
+  /** Swarm: fired once when swarm starts, per agent */
+  onSwarmInit?: HookConfig | HookHandler;
+  /** Swarm: fired before an agent's turn begins */
+  onSwarmTurnStart?: HookConfig | HookHandler;
+  /** Swarm: fired after an agent finishes its turn */
+  onSwarmTurnEnd?: HookConfig | HookHandler;
+  /** Swarm: fired when a new feed entry targets this agent */
+  onSwarmFeedMessage?: HookConfig | HookHandler;
   [key: string]: HookConfig | HookHandler | undefined;
 };
 

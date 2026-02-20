@@ -14,10 +14,16 @@ import { ProcessChat } from './initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';
 import { getDatabase } from './database/export';
+import type { SwarmSessionManager } from '@/agent/swarm/SwarmSessionManager';
 
 const taskList: {
   id: string;
   task: AgentBaseTask<unknown>;
+}[] = [];
+
+const swarmList: {
+  id: string;
+  swarm: SwarmSessionManager;
 }[] = [];
 
 /**
@@ -25,7 +31,7 @@ const taskList: {
  * Used by cron jobs to force yoloMode
  */
 export interface BuildConversationOptions {
-  /** Force yolo mode (auto-approve all tool calls) */
+  /** Force yolo mode (auto-approve all tool calls). Defaults to true if not specified. */
   yoloMode?: boolean;
   /** Skip task cache - create a new isolated instance */
   skipCache?: boolean;
@@ -36,10 +42,16 @@ const getTaskById = (id: string) => {
 };
 
 const buildConversation = (conversation: TChatConversation, options?: BuildConversationOptions) => {
+  console.log(`[WorkerManage] buildConversation called: id=${conversation.id}, type=${conversation.type}`);
+
+  // Default yoloMode to true if not explicitly specified
+  const yoloMode = options?.yoloMode ?? true;
+
   // If not skipping cache, check for existing task
   if (!options?.skipCache) {
     const task = getTaskById(conversation.id);
     if (task) {
+      console.log(`[WorkerManage] Found cached task for ${conversation.id}`);
       return task;
     }
   }
@@ -58,7 +70,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
           // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
           enabledSkills: conversation.extra.enabledSkills,
           // Runtime options / 运行时选项
-          yoloMode: options?.yoloMode,
+          yoloMode,
           // Persisted session mode for resume / 持久化的会话模式用于恢复
           sessionMode: conversation.extra.sessionMode,
         },
@@ -71,14 +83,16 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
       return task;
     }
     case 'acp': {
+      console.log(`[WorkerManage] Creating AcpAgentManager for ${conversation.id}`);
       const task = new AcpAgentManager({
         ...conversation.extra,
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
-        yoloMode: options?.yoloMode,
+        yoloMode,
       });
       if (!options?.skipCache) {
         taskList.push({ id: conversation.id, task });
+        console.log(`[WorkerManage] Added ACP task to taskList, total tasks: ${taskList.length}`);
       }
       return task;
     }
@@ -87,7 +101,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
         ...conversation.extra,
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
-        yoloMode: options?.yoloMode,
+        yoloMode,
         // Persisted session mode for resume / 持久化的会话模式用于恢复
         sessionMode: conversation.extra.sessionMode,
       });
@@ -101,7 +115,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
         ...conversation.extra,
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
-        yoloMode: options?.yoloMode,
+        yoloMode,
       });
       if (!options?.skipCache) {
         taskList.push({ id: conversation.id, task });
@@ -112,12 +126,18 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
       const task = new NanoBotAgentManager({
         ...conversation.extra,
         conversation_id: conversation.id,
-        yoloMode: options?.yoloMode,
+        yoloMode,
       });
       if (!options?.skipCache) {
         taskList.push({ id: conversation.id, task });
       }
       return task;
+    }
+    case 'swarm': {
+      // Swarm conversations don't have tasks - they have SwarmSessionManager
+      // which is registered separately via registerSwarm()
+      console.log(`[WorkerManage] Skipping task build for swarm conversation ${conversation.id}`);
+      return null;
     }
     default: {
       return null;
@@ -189,6 +209,19 @@ const listTasks = () => {
   return taskList.map((t) => ({ id: t.id, type: t.task.type }));
 };
 
+const registerSwarm = (parentConversationId: string, swarm: SwarmSessionManager) => {
+  const existing = swarmList.find((item) => item.id === parentConversationId);
+  if (existing) {
+    existing.swarm = swarm;
+  } else {
+    swarmList.push({ id: parentConversationId, swarm });
+  }
+};
+
+const getSwarmById = (parentConversationId: string): SwarmSessionManager | undefined => {
+  return swarmList.find((item) => item.id === parentConversationId)?.swarm;
+};
+
 const WorkerManage = {
   buildConversation,
   getTaskById,
@@ -197,6 +230,8 @@ const WorkerManage = {
   listTasks,
   kill,
   clear,
+  registerSwarm,
+  getSwarmById,
 };
 
 export default WorkerManage;

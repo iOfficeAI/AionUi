@@ -39,6 +39,12 @@ type Draft =
       content: string;
       atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
+    }
+  | {
+      _type: 'swarm';
+      content: string;
+      atPath: Array<string | FileOrFolderItem>;
+      uploadFile: string[];
     };
 
 /**
@@ -54,6 +60,7 @@ const store: SendBoxDraftStore = {
   codex: new Map(),
   'openclaw-gateway': new Map(),
   nanobot: new Map(),
+  swarm: new Map(),
 };
 
 const setDraft = <K extends TChatConversation['type']>(type: K, conversation_id: string, draft: Extract<Draft, { _type: K }> | undefined) => {

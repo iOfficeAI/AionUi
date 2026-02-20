@@ -23,6 +23,8 @@ const ChatSider: React.FC<{
     workspaceNode = <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='codex' messageApi={messageApi}></ChatWorkspace>;
   } else if (conversation?.type === 'openclaw-gateway' && conversation.extra?.workspace) {
     workspaceNode = <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='openclaw-gateway' messageApi={messageApi}></ChatWorkspace>;
+  } else if (conversation?.type === 'swarm' && conversation.extra?.workspace) {
+    workspaceNode = <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='swarm' messageApi={messageApi}></ChatWorkspace>;
   }
 
   if (!workspaceNode) {

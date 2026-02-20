@@ -265,6 +265,10 @@
       "closeRight": "Close to the Right",
       "closeOthers": "Close Others"
     },
+    "swarm": {
+      "groupChat": "Group Chat",
+      "directiveFrom": "Directive from {{name}}"
+    },
     "workspace": {
       "title": "Workspace",
       "pasteConfirm_title": "Paste files",

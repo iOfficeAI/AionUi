@@ -21,5 +21,6 @@
   "promptsI18n": {
     "en-US": ["Review the codebase in this workspace", "Run a full code review on src/", "Audit this project for production readiness"],
     "zh-CN": ["审查此工作区中的代码", "对 src/ 进行完整的代码审查", "审计此项目的生产就绪状态"]
-  }
+  },
+  "isBuiltin": true
 }

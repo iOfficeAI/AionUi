@@ -4,12 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { HookEvent, HookContext, HookResult, NormalizedHook } from './types';
+import type { HookEvent, HookContext, HookResult, NormalizedHook, QueueMessage } from './types';
 
 /**
- * Execute all hooks for a specific event in priority order
+ * Result from executeHooks including accumulated queue messages
  */
-export async function executeHooks(event: HookEvent, context: HookContext, hooks: NormalizedHook[]): Promise<HookResult> {
+export type ExecuteHooksResult = HookResult & {
+  queueMessages: QueueMessage[];
+};
+
+/**
+ * Execute all hooks for a specific event in priority order.
+ *
+ * Hooks call ctx.enqueue(msg) to queue messages instead of returning them.
+ * All queued messages are collected and returned in the result.
+ */
+export async function executeHooks(event: HookEvent, context: HookContext, hooks: NormalizedHook[]): Promise<ExecuteHooksResult> {
   // Filter hooks for this event
   const applicable = hooks
     .filter((h) => h.event === event && h.enabled)
@@ -17,6 +27,12 @@ export async function executeHooks(event: HookEvent, context: HookContext, hooks
       if (a.priority !== b.priority) return a.priority - b.priority;
       return a.moduleName.localeCompare(b.moduleName);
     });
+
+  // Collector for queued messages
+  const queueMessages: QueueMessage[] = [];
+  const enqueue = (msg: QueueMessage) => {
+    queueMessages.push(msg);
+  };
 
   // Execute pipeline
   let result: HookResult = { content: context.content };
@@ -30,17 +46,15 @@ export async function executeHooks(event: HookEvent, context: HookContext, hooks
           ...context,
           event,
           content: result.content ?? context.content,
+          enqueue,
         })
       );
 
       if (output) {
-        // Merge queueMessages from all hooks (accumulate, don't replace)
-        const mergedQueueMessages = [...(result.queueMessages || []), ...(output.queueMessages || [])];
         result = {
           content: output.content ?? result.content,
           blocked: output.blocked ?? result.blocked,
           blockReason: output.blockReason ?? result.blockReason,
-          queueMessages: mergedQueueMessages.length > 0 ? mergedQueueMessages : undefined,
         };
       }
     } catch (error) {
@@ -48,5 +62,5 @@ export async function executeHooks(event: HookEvent, context: HookContext, hooks
     }
   }
 
-  return result;
+  return { ...result, queueMessages };
 }

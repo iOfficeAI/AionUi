@@ -1,0 +1,15 @@
+{
+  "id": "pdf-to-ppt",
+  "name": "PDF to PPT",
+  "avatar": "📄",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "nameI18n": {
+    "en-US": "PDF to PPT",
+    "zh-CN": "PDF 转 PPT"
+  },
+  "descriptionI18n": {
+    "en-US": "Convert PDF to PPT with watermark removal rules.",
+    "zh-CN": "PDF 转 PPT 并去除水印规则"
+  }
+}

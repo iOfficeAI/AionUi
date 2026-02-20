@@ -428,6 +428,7 @@ export const openclawConversation = {
 export const database = {
   getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number; order?: 'ASC' | 'DESC' }>('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { page?: number; pageSize?: number }>('database.get-user-conversations'),
+  getChildConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { parent_id: string }>('database.get-child-conversations'),
 };
 
 export const previewHistory = {
@@ -568,7 +569,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'swarm';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -647,6 +648,8 @@ export interface IResponseMessage {
   msg_id: string;
   conversation_id: string;
   timestamp?: number; // Message creation timestamp for ordering
+  /** Agent identity metadata for swarm/multi-agent group chat forwarding */
+  agentMeta?: { role: string; name: string; avatar: string };
 }
 
 interface IBridgeResponse<D = {}> {

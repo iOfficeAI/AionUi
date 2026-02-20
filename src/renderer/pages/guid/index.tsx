@@ -618,38 +618,55 @@ const Guid: React.FC = () => {
   }, [mentionActiveIndex, mentionOpen, mentionSelectorOpen]);
 
   // Read legacy yoloMode config (from old SecurityModalContent settings).
-  // If yoloMode was enabled for the selected agent, pre-select YOLO mode.
-  // If false, keep default — no action needed.
+  // Default to YOLO mode, but allow legacy config to override if explicitly disabled.
   useEffect(() => {
-    setSelectedMode('default'); // Reset on agent change
     if (!selectedAgent) return;
 
     const readLegacyYoloMode = async () => {
       try {
-        let yoloMode = false;
+        // Map backend to its corresponding yolo mode value
+        const yoloValues: Record<string, string> = {
+          claude: 'bypassPermissions',
+          gemini: 'yolo',
+          codex: 'yolo',
+          iflow: 'yolo',
+          qwen: 'yolo',
+          openclaw: 'yolo',
+          nanobot: 'yolo',
+        };
+
+        // Default to YOLO mode for this backend
+        let defaultMode = yoloValues[selectedAgent] || 'default';
+
+        // Check if legacy config explicitly disabled yoloMode
+        let legacyYoloMode: boolean | undefined;
         if (selectedAgent === 'gemini') {
           const config = await ConfigStorage.get('gemini.config');
-          yoloMode = config?.yoloMode ?? false;
+          legacyYoloMode = config?.yoloMode;
         } else if (selectedAgent === 'codex') {
           const config = await ConfigStorage.get('codex.config');
-          yoloMode = config?.yoloMode ?? false;
+          legacyYoloMode = config?.yoloMode;
         } else if (selectedAgent !== 'custom' && selectedAgent !== 'openclaw-gateway' && selectedAgent !== 'nanobot') {
           const config = await ConfigStorage.get('acp.config');
-          yoloMode = (config?.[selectedAgent as AcpBackend] as any)?.yoloMode ?? false;
+          legacyYoloMode = (config?.[selectedAgent as AcpBackend] as any)?.yoloMode;
         }
-        if (yoloMode) {
-          // Map to the correct yolo mode value for this backend
-          const yoloValues: Record<string, string> = {
-            claude: 'bypassPermissions',
-            gemini: 'yolo',
-            codex: 'yolo',
-            iflow: 'yolo',
-            qwen: 'yolo',
-          };
-          setSelectedMode(yoloValues[selectedAgent] || 'yolo');
+
+        // If legacy config explicitly set yoloMode to false, respect it
+        if (legacyYoloMode === false) {
+          defaultMode = 'default';
         }
+
+        setSelectedMode(defaultMode);
       } catch {
-        /* silent */
+        // On error, default to YOLO mode
+        const yoloValues: Record<string, string> = {
+          claude: 'bypassPermissions',
+          gemini: 'yolo',
+          codex: 'yolo',
+          iflow: 'yolo',
+          qwen: 'yolo',
+        };
+        setSelectedMode(yoloValues[selectedAgent] || 'default');
       }
     };
     void readLegacyYoloMode();
@@ -697,33 +714,30 @@ const Guid: React.FC = () => {
         // skills 可能不存在，这是正常的 / skills may not exist, this is normal
       }
 
-      // 3. Fallback: 如果是内置助手且文件为空，从内置资源加载
-      // Fallback: If builtin assistant and files are empty, load from builtin resources
-      if (customAgentId.startsWith('builtin-')) {
-        const presetId = customAgentId.replace('builtin-', '');
-        const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-        if (preset) {
-          // Fallback for rules
-          if (!rules && preset.ruleFiles) {
-            try {
-              const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
-              if (ruleFile) {
-                rules = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
-              }
-            } catch (e) {
-              console.warn(`Failed to load builtin rules for ${customAgentId}:`, e);
+      // 3. Fallback: If assistant files are empty, try loading from ASSISTANT_PRESETS
+      // This is for backward compatibility - will be removed after migration completes
+      const preset = ASSISTANT_PRESETS.find((p) => p.id === customAgentId);
+      if (preset) {
+        // Fallback for rules
+        if (!rules && preset.ruleFiles) {
+          try {
+            const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
+            if (ruleFile) {
+              rules = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
             }
+          } catch (e) {
+            console.warn(`Failed to load builtin rules for ${customAgentId}:`, e);
           }
-          // Fallback for skills
-          if (!skills && preset.skillFiles) {
-            try {
-              const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
-              if (skillFile) {
-                skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
-              }
-            } catch (e) {
-              // skills fallback failure is ok
+        }
+        // Fallback for skills
+        if (!skills && preset.skillFiles) {
+          try {
+            const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
+            if (skillFile) {
+              skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
             }
+          } catch (e) {
+            // skills fallback failure is ok
           }
         }
       }

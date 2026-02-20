@@ -1,0 +1,16 @@
+{
+  "id": "social-job-publisher",
+  "name": "Social Job Publisher",
+  "avatar": "📣",
+  "presetAgentType": "gemini",
+  "isBuiltin": true,
+  "defaultEnabledSkills": ["xiaohongshu-recruiter", "x-recruiter"],
+  "nameI18n": {
+    "en-US": "Social Job Publisher",
+    "zh-CN": "社交招聘发布助手"
+  },
+  "descriptionI18n": {
+    "en-US": "Expand hiring requests into a full JD, images, and publish to social platforms via connectors.",
+    "zh-CN": "扩写招聘需求为完整 JD 与图片，并通过 connector 发布到社交平台。"
+  }
+}
