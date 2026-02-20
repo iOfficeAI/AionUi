@@ -30,12 +30,20 @@ const CronJobIndicator: React.FC<CronJobIndicatorProps> = ({ status, size = 14, 
   }
 
   const getIcon = () => {
+    const iconProps = {
+      theme: 'outline' as const,
+      size,
+      strokeWidth: 3,
+      fill: '#000000',
+      className: 'flex items-center',
+    };
+
     switch (status) {
       case 'unread':
         // Show alarm clock with red dot overlay for unread executions
         return (
           <span className='relative inline-flex'>
-            <AlarmClock theme='outline' size={size} className='flex items-center' />
+            <AlarmClock {...iconProps} />
             <span
               className='absolute rounded-full bg-red-500'
               style={{
@@ -48,13 +56,13 @@ const CronJobIndicator: React.FC<CronJobIndicatorProps> = ({ status, size = 14, 
           </span>
         );
       case 'active':
-        return <AlarmClock theme='outline' size={size} className='flex items-center' />;
+        return <AlarmClock {...iconProps} />;
       case 'paused':
-        return <PauseOne theme='outline' size={size} className='flex items-center' />;
+        return <PauseOne {...iconProps} />;
       case 'error':
-        return <Attention theme='outline' size={size} className='flex items-center' />;
+        return <Attention {...iconProps} />;
       case 'unconfigured':
-        return <AlarmClock theme='outline' size={size} className='flex items-center' />;
+        return <AlarmClock {...iconProps} />;
       default:
         return null;
     }
