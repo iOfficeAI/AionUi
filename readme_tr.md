@@ -43,10 +43,10 @@
 
 <p align="center">
 
-[✨ Cowork Eylemde](#✨-cowork-eylemde) ·
-[🤔 Neden AionUi'yi Seçmelisiniz?](#🤔-neden-aionui-claude-cowork-yerine) ·
-[🚀 Hızlı Başlangıç](#🚀-hızlı-başlangıç) ·
-[💬 Topluluk](#💬-topluluk-ve-destek)
+[✨ Cowork Eylemde](#cowork-eylemde) ·
+[🤔 Neden AionUi'yi Seçmelisiniz?](#neden-aionui-claude-cowork-yerine) ·
+[🚀 Hızlı Başlangıç](#hızlı-başlangıç) ·
+[💬 Topluluk](#topluluk-ve-destek)
 
 </p>
 

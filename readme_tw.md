@@ -43,10 +43,10 @@
 
 <p align="center">
 
-[✨ Cowork 演示](#✨-cowork-演示) ·
-[🤔 為什麼選擇 AionUi？](#🤔-為什麼選擇-aionui-而非-claude-cowork) ·
-[🚀 快速開始](#🚀-快速開始) ·
-[💬 社群](#💬-社群與支援)
+[✨ Cowork 演示](#cowork-演示) ·
+[🤔 為什麼選擇 AionUi？](#為什麼選擇-aionui-而非-claude-cowork) ·
+[🚀 快速開始](#快速開始) ·
+[💬 社群](#社群與支援)
 
 </p>
 
