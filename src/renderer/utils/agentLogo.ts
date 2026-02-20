@@ -34,7 +34,7 @@ import QwenLogo from '@/renderer/assets/logos/qwen.svg';
  * 注意：key 使用小写，支持多种变体（如 openclaw-gateway 和 openclaw）
  * Note: keys are lowercase, supports multiple variants (e.g., openclaw-gateway and openclaw)
  */
-export const AGENT_LOGO_MAP: Record<string, string> = {
+const AGENT_LOGO_MAP = {
   claude: ClaudeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,
@@ -52,7 +52,7 @@ export const AGENT_LOGO_MAP: Record<string, string> = {
   vibe: MistralLogo,
   nanobot: NanobotLogo,
   qoder: QoderLogo,
-};
+} as const satisfies Record<string, string>;
 
 /**
  * 根据 agent 名称获取对应的 logo
@@ -63,7 +63,8 @@ export const AGENT_LOGO_MAP: Record<string, string> = {
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
   if (!agent) return null;
-  return AGENT_LOGO_MAP[agent.toLowerCase()] || null;
+  const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_MAP;
+  return AGENT_LOGO_MAP[key] || null;
 }
 
 /**

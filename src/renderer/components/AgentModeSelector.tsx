@@ -51,7 +51,6 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const canSwitchMode = supportsModeSwitch(backend) && (conversationId || onModeSelect);
-  console.log(`[AgentModeSelector] render: backend=${backend}, conversationId=${conversationId}, canSwitchMode=${canSwitchMode}, modes=${modes.length}, currentMode=${currentMode}`);
 
   // When initialMode prop changes (e.g. agent switch on Guid page), update local state.
   // Validate against available modes to handle backends with non-standard default
