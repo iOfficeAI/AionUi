@@ -44,9 +44,9 @@
 <p align="center">
 
 [✨ Cowork in Action](#cowork-in-action) ·
-[🤔 Why Choose AionUi?](#why-choose-aionui-over-claude-cowork) ·
+[🤔 Why Choose AionUi Over Claude Cowork?](#why-choose-aionui-over-claude-cowork) ·
 [🚀 Quick Start](#quick-start) ·
-[💬 Community](#community--support)
+[💬 Community & Support](#community--support)
 
 </p>
 
