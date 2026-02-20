@@ -1,0 +1,17 @@
+{
+  "type": "utility",
+  "id": "gogcli",
+  "name": "Google Suite CLI",
+  "description": "CLI for Google Suite — Gmail, Calendar, Drive, Docs, Sheets, Slides, Tasks, Contacts, Chat, Classroom, Forms, and more",
+  "cliCommand": "gog",
+  "installCommand": {
+    "darwin": "brew install steipete/tap/gogcli",
+    "linux": "yay -S gogcli",
+    "win32": "go install github.com/steipete/gogcli@latest"
+  },
+  "versionCommand": "gog --version",
+  "loginCommand": "gog auth add",
+  "loginStatusCommand": "gog auth status",
+  "installUrl": "https://github.com/steipete/gogcli",
+  "skills": ["gogcli"]
+}

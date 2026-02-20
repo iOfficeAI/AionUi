@@ -1,0 +1,17 @@
+{
+  "type": "utility",
+  "id": "notebooklm-cli",
+  "name": "NotebookLM CLI",
+  "description": "CLI for Google NotebookLM — manage notebooks, sources, and generate content (podcasts, reports, quizzes, mind maps, slides, etc.)",
+  "cliCommand": "nlm",
+  "installCommand": {
+    "darwin": "pip install notebooklm-cli",
+    "linux": "pip install notebooklm-cli",
+    "win32": "pip install notebooklm-cli"
+  },
+  "versionCommand": "nlm --version",
+  "loginCommand": "nlm login",
+  "loginStatusCommand": "nlm auth status",
+  "installUrl": "https://github.com/jacob-bd/notebooklm-cli",
+  "skills": ["notebooklm-cli"]
+}
