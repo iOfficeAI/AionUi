@@ -817,6 +817,24 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     }
 
     console.log(`[AionUi] Loaded ${assistants.length} assistants from filesystem`);
+
+    // Deduplicate by ID (shouldn't happen, but safety check)
+    // 按 ID 去重（理论上不应该发生，但作为安全检查）
+    const seenIds = new Set<string>();
+    const deduplicated: AcpBackendConfig[] = [];
+    for (const assistant of assistants) {
+      if (!seenIds.has(assistant.id)) {
+        seenIds.add(assistant.id);
+        deduplicated.push(assistant);
+      } else {
+        console.warn(`[AionUi] Duplicate assistant ID detected during filesystem scan: ${assistant.id}`);
+      }
+    }
+
+    if (deduplicated.length < assistants.length) {
+      console.log(`[AionUi] Removed ${assistants.length - deduplicated.length} duplicate(s) from getBuiltinAssistants()`);
+      return deduplicated;
+    }
   } catch (error) {
     console.error('[AionUi] Failed to scan assistants directory:', error);
   }
