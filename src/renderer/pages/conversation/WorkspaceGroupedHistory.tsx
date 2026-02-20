@@ -8,11 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { TChatConversation } from '@/common/storage';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
-import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
+import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
@@ -350,21 +346,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       return <img src={assistantInfo.logo} alt={assistantInfo.name} className='w-20px h-20px rounded-50% flex-shrink-0' />;
     }
 
-    const backendKey = (getBackendKeyFromConversation(conversation) || '').toLowerCase();
-    if (backendKey === 'gemini') {
-      return <img src={GeminiLogo} alt='Gemini' className='w-20px h-20px rounded-50% flex-shrink-0' />;
-    }
-    if (backendKey === 'claude') {
-      return <img src={ClaudeLogo} alt='Claude' className='w-20px h-20px rounded-50% flex-shrink-0' />;
-    }
-    if (backendKey === 'codex') {
-      return <img src={CodexLogo} alt='Codex' className='w-20px h-20px rounded-50% flex-shrink-0' />;
-    }
-    if (backendKey === 'openclaw-gateway' || backendKey === 'openclaw') {
-      return <img src={OpenClawLogo} alt='OpenClaw' className='w-20px h-20px rounded-50% flex-shrink-0' />;
-    }
-    if (backendKey === 'nanobot') {
-      return <img src={NanobotLogo} alt='NanoBot' className='w-20px h-20px rounded-50% flex-shrink-0' />;
+    const backendKey = getBackendKeyFromConversation(conversation);
+    const logo = getAgentLogo(backendKey);
+    if (logo) {
+      return <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-20px h-20px rounded-50% flex-shrink-0' />;
     }
 
     return <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />;

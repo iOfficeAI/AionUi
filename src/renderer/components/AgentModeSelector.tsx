@@ -7,40 +7,11 @@
 import { ipcBridge } from '@/common';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
 import { iconColors } from '@/renderer/theme/colors';
-import type { AcpBackend } from '@/types/acpTypes';
+import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-// Agent Logo imports (same as ChatLayout)
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import GitHubLogo from '@/renderer/assets/logos/github.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
-import QoderLogo from '@/renderer/assets/logos/qoder.png';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
-
-const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
-  claude: ClaudeLogo,
-  gemini: GeminiLogo,
-  qwen: QwenLogo,
-  codex: CodexLogo,
-  iflow: IflowLogo,
-  goose: GooseLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  opencode: OpenCodeLogo,
-  copilot: GitHubLogo,
-  qoder: QoderLogo,
-  nanobot: NanobotLogo,
-};
 
 export interface AgentModeSelectorProps {
   /** Agent backend type / 代理后端类型 */
@@ -162,8 +133,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
       }
       return <img src={agentLogo} alt={`${agentName || 'agent'} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />;
     }
-    if (backend && AGENT_LOGO_MAP[backend as AcpBackend]) {
-      return <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />;
+    const logo = getAgentLogo(backend);
+    if (logo) {
+      return <img src={logo} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />;
     }
     return <Robot theme='outline' size={16} fill={iconColors.primary} />;
   };

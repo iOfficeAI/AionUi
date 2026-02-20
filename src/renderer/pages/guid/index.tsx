@@ -10,22 +10,7 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { resolveLocaleKey, uuid } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import DroidLogo from '@/renderer/assets/logos/droid.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import GitHubLogo from '@/renderer/assets/logos/github.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import MistralLogo from '@/renderer/assets/logos/mistral.svg';
-import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
-import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
-import QoderLogo from '@/renderer/assets/logos/qoder.png';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import { supportsModeSwitch } from '@/renderer/constants/agentModes';
 import FilePreview from '@/renderer/components/FilePreview';
@@ -175,25 +160,8 @@ const useModelList = () => {
   return { modelList, isGoogleAuth, geminiModeOptions };
 };
 
-// Agent Logo 映射 (custom uses Robot icon from @icon-park/react)
-const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
-  claude: ClaudeLogo,
-  gemini: GeminiLogo,
-  qwen: QwenLogo,
-  codex: CodexLogo,
-  codebuddy: CodeBuddyLogo,
-  droid: DroidLogo,
-  iflow: IflowLogo,
-  goose: GooseLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  opencode: OpenCodeLogo,
-  copilot: GitHubLogo,
-  qoder: QoderLogo,
-  vibe: MistralLogo,
-  'openclaw-gateway': OpenClawLogo,
-  nanobot: NanobotLogo,
-};
+// Agent Logo 现在统一从 @/renderer/utils/agentLogo 获取
+// Agent Logo is now unified from @/renderer/utils/agentLogo
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
   '🛠️': coworkSvg,
@@ -472,7 +440,7 @@ const Guid: React.FC = () => {
         tokens,
         avatar,
         avatarImage: avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined,
-        logo: AGENT_LOGO_MAP[agent.backend],
+        logo: getAgentLogo(agent.backend) || undefined,
       };
     });
   }, [availableAgents, customAgentAvatarMap]);
@@ -1485,7 +1453,7 @@ const Guid: React.FC = () => {
                   .filter((agent) => agent.backend !== 'custom')
                   .map((agent, index) => {
                     const isSelected = selectedAgentKey === getAgentKey(agent);
-                    const logoSrc = AGENT_LOGO_MAP[agent.backend];
+                    const logoSrc = getAgentLogo(agent.backend);
 
                     return (
                       <React.Fragment key={getAgentKey(agent)}>
