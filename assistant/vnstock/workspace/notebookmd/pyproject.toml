@@ -1,0 +1,28 @@
+[project]
+name = "notebookmd"
+version = "0.1.0"
+description = "Python-first notebook-like report generator that outputs agent-readable Markdown"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+pandas = ["pandas>=2.1.0", "tabulate>=0.9.0"]
+plotting = ["matplotlib>=3.8.0"]
+all = ["pandas>=2.1.0", "tabulate>=0.9.0", "matplotlib>=3.8.0"]
+dev = ["pytest>=7.4.0", "pandas>=2.1.0", "tabulate>=0.9.0", "matplotlib>=3.8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["notebookmd"]
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
