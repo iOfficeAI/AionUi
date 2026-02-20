@@ -118,6 +118,9 @@ export class AcpConnection {
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
+    // Remove CLAUDECODE env var to prevent claude-agent-sdk from detecting
+    // a nested session when AionUi itself is launched from Claude Code.
+    delete cleanEnv.CLAUDECODE;
     // Strip npm lifecycle vars inherited from parent `npm start` process.
     // These (npm_config_*, npm_lifecycle_*, npm_package_*) can cause npx to
     // behave as if running inside an npm script, interfering with package
@@ -252,7 +255,7 @@ export class AcpConnection {
     // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-code-acp'];
+    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -826,7 +829,7 @@ export class AcpConnection {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
     // Build _meta for Claude/CodeBuddy ACP resume support
-    // claude-code-acp and codebuddy use _meta.claudeCode.options.resume for session resume
+    // claude-agent-acp and codebuddy use _meta.claudeCode.options.resume for session resume
     const useMetaResume = (this.backend === 'claude' || this.backend === 'codebuddy') && options?.resumeSessionId;
     const meta = useMetaResume
       ? {

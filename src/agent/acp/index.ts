@@ -109,7 +109,7 @@ export class AcpAgent {
   private pendingNavigationTools = new Set<string>();
 
   // ApprovalStore for session-level "always allow" caching
-  // Workaround for claude-code-acp bug: it doesn't check suggestions to auto-approve
+  // Workaround for claude-agent-acp bug: it doesn't check suggestions to auto-approve
   private approvalStore = new AcpApprovalStore();
 
   // Store permission request metadata for later use in confirmMessage
@@ -651,7 +651,7 @@ export class AcpAgent {
         this.pendingPermissions.delete(data.callId);
 
         // Store "allow_always" decision to ApprovalStore for future auto-approval
-        // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+        // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
         if (data.confirmKey === 'allow_always') {
           const meta = this.permissionRequestMeta.get(data.callId);
           if (meta) {
@@ -759,7 +759,7 @@ export class AcpAgent {
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
       // Check ApprovalStore for cached "always allow" decision
-      // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+      // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
       const approvalKey = createAcpApprovalKey(data.toolCall);
       if (this.approvalStore.isApprovedForSession(approvalKey)) {
         // Auto-approve without showing dialog - no metadata storage needed
