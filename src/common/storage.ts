@@ -182,6 +182,8 @@ export type TChatConversation =
           acpSessionUpdatedAt?: number;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
           sessionMode?: string;
+          /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
+          currentModelId?: string;
         }
       >,
       'model'
@@ -201,6 +203,8 @@ export type TChatConversation =
           presetAssistantId?: string;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
           sessionMode?: string;
+          /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
+          codexModel?: string;
         }
       >,
       'model'

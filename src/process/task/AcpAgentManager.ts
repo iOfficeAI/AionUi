@@ -6,7 +6,7 @@ import { transformMessage } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
-import type { AcpBackend, AcpPermissionOption, AcpPermissionRequest } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionOption, AcpPermissionRequest } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import { getDatabase } from '@process/database';
 import { ProcessConfig } from '../initStorage';
@@ -40,6 +40,8 @@ interface AcpAgentManagerData {
   acpSessionUpdatedAt?: number;
   /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
   sessionMode?: string;
+  /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
+  currentModelId?: string;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -49,6 +51,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
   private currentMode: string = 'default';
+  private persistedModelId: string | null = null;
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
@@ -59,6 +62,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.workspace = data.workspace;
     this.options = data;
     this.currentMode = data.sessionMode || 'default';
+    this.persistedModelId = data.currentModelId || null;
     this.status = 'pending';
   }
 
@@ -178,7 +182,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             this.status = 'finished';
           }
 
-          if (message.type !== 'thought') {
+          if (message.type !== 'thought' && message.type !== 'acp_model_info') {
             const transformStart = Date.now();
             const tMessage = transformMessage(message as IResponseMessage);
             const transformDuration = Date.now() - transformStart;
@@ -316,6 +320,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             console.log(`[AcpAgentManager] Re-applied persisted mode: ${this.currentMode}`);
           } catch (error) {
             console.warn(`[AcpAgentManager] Failed to re-apply mode ${this.currentMode}:`, error);
+          }
+        }
+        // Re-apply persisted model if current model differs from persisted one
+        // 如果当前模型与持久化模型不同，重新应用持久化的模型
+        if (this.persistedModelId) {
+          try {
+            const currentInfo = this.agent.getModelInfo();
+            if (!currentInfo || currentInfo.currentModelId !== this.persistedModelId) {
+              await this.agent.setModelByConfigOption(this.persistedModelId);
+            }
+          } catch (error) {
+            console.warn(`[AcpAgentManager] Failed to re-apply model ${this.persistedModelId}:`, error);
           }
         }
         return this.agent;
@@ -511,6 +527,48 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   /**
+   * Get model info from the underlying ACP agent.
+   * If agent is not initialized but a model ID was persisted, return read-only info.
+   */
+  getModelInfo(): AcpModelInfo | null {
+    if (!this.agent) {
+      // Return persisted model info when agent is not yet initialized
+      if (this.persistedModelId) {
+        return {
+          source: 'models',
+          currentModelId: this.persistedModelId,
+          currentModelLabel: this.persistedModelId,
+          canSwitch: false,
+          availableModels: [],
+        };
+      }
+      return null;
+    }
+    return this.agent.getModelInfo();
+  }
+
+  /**
+   * Switch model for the underlying ACP agent.
+   * Persists the model ID to database for resume support.
+   */
+  async setModel(modelId: string): Promise<AcpModelInfo | null> {
+    if (!this.agent) {
+      try {
+        await this.initAgent(this.options);
+      } catch {
+        return null;
+      }
+    }
+    if (!this.agent) return null;
+    const result = await this.agent.setModelByConfigOption(modelId);
+    if (result) {
+      this.persistedModelId = result.currentModelId;
+      this.saveModelId(result.currentModelId);
+    }
+    return result;
+  }
+
+  /**
    * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
    * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
    *
@@ -574,6 +632,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
     } catch (error) {
       console.error('[AcpAgentManager] Failed to clear legacy yoloMode config:', error);
+    }
+  }
+
+  /**
+   * Save model ID to database for resume support.
+   * 保存模型 ID 到数据库以支持恢复。
+   */
+  private saveModelId(modelId: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          currentModelId: modelId,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.warn('[AcpAgentManager] Failed to save model ID:', error);
     }
   }
 

@@ -414,6 +414,8 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'finish':
     case 'thought':
     case 'system': // Cron system responses, ignored
+    case 'acp_model_info': // Model info updates, handled by AcpModelSelector
+    case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
       break;
     default: {
       throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
