@@ -1,0 +1,46 @@
+{
+  "macro": {
+    "insights": {
+      "regime": "EXPANSION",
+      "confidence": "100",
+      "gdp_growth": "7.2",
+      "credit_growth": "14.5",
+      "inflation": "4.2"
+    },
+    "data": {
+      "regime": {
+        "regime": "EXPANSION",
+        "confidence": 1.0,
+        "indicators": {
+          "gdp_growth": 7.2,
+          "credit_growth": 14.5,
+          "inflation": 4.2
+        },
+        "favored_sectors": ["BANKS", "REAL_ESTATE", "INDUSTRIALS", "CONSUMER_DISCRETIONARY"],
+        "favored_factors": ["MOMENTUM", "GROWTH", "BETA"],
+        "timestamp": "2026-02-20T14:21:38.380789Z"
+      }
+    }
+  },
+  "fundamentals": {
+    "insights": {
+      "health_score": "STRONG",
+      "roe": "22.5",
+      "roa": "1.2",
+      "net_margin": null,
+      "revenue_cagr": null,
+      "debt_equity": null
+    },
+    "data": {}
+  },
+  "factors": {
+    "insights": {
+      "composite_score": null,
+      "percentile_rank": "64",
+      "value_zscore": null,
+      "momentum_zscore": null,
+      "quality_zscore": null
+    },
+    "data": {}
+  }
+}
