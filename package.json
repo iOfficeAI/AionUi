@@ -142,6 +142,7 @@
     "i18next-browser-languagedetector": "^7.2.0",
     "jsonrepair": "^3.13.0",
     "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
     "katex": "^0.16.22",
     "mammoth": "^1.11.0",
     "officeparser": "^5.2.2",
