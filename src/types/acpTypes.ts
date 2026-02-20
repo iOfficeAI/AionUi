@@ -649,8 +649,71 @@ export interface UserMessageChunkUpdate extends BaseSessionUpdate {
   };
 }
 
+// ===== ACP ConfigOption types (stable API) =====
+
+/** A single select option within a config option */
+export interface AcpConfigSelectOption {
+  value: string;
+  name?: string;
+  label?: string; // Some agents may use label instead of name
+}
+
+/** A configuration option returned by session/new */
+export interface AcpSessionConfigOption {
+  id: string;
+  name?: string;
+  label?: string; // Some agents may use label instead of name
+  description?: string;
+  category?: string;
+  type: 'select' | 'boolean' | 'string';
+  currentValue?: string;
+  selectedValue?: string; // Some agents may use selectedValue instead of currentValue
+  options?: AcpConfigSelectOption[];
+}
+
+/** Config options update notification (within session/update) */
+export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'config_options_update';
+    configOptions: AcpSessionConfigOption[];
+  };
+}
+
+// ===== ACP Models types (unstable API) =====
+
+/** An available model returned by session/new (unstable API) */
+export interface AcpAvailableModel {
+  id?: string;
+  modelId?: string; // OpenCode uses modelId instead of id
+  name?: string;
+}
+
+/** Models info returned by session/new (unstable API) */
+export interface AcpSessionModels {
+  currentModelId?: string;
+  availableModels?: AcpAvailableModel[];
+}
+
+// ===== Unified model info for UI =====
+
+/** Unified model info that abstracts over both stable and unstable APIs */
+export interface AcpModelInfo {
+  /** Currently active model ID */
+  currentModelId: string | null;
+  /** Display label for the current model */
+  currentModelLabel: string | null;
+  /** Available models for switching */
+  availableModels: Array<{ id: string; label: string }>;
+  /** Whether the user can switch models */
+  canSwitch: boolean;
+  /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
+  source: 'configOption' | 'models';
+  /** Config option ID (only when source is 'configOption') */
+  configOptionId?: string;
+}
+
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate;
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
@@ -730,6 +793,7 @@ export const ACP_METHODS = {
   REQUEST_PERMISSION: 'session/request_permission',
   READ_TEXT_FILE: 'fs/read_text_file',
   WRITE_TEXT_FILE: 'fs/write_text_file',
+  SET_CONFIG_OPTION: 'session/set_config_option',
 } as const;
 
 export type AcpMethod = (typeof ACP_METHODS)[keyof typeof ACP_METHODS];

@@ -25,6 +25,7 @@ import CodexChat from './codex/CodexChat';
 import NanobotChat from './nanobot/NanobotChat';
 import OpenClawChat from './openclaw/OpenClawChat';
 import GeminiChat from './gemini/GeminiChat';
+import AcpModelSelector from '@/renderer/components/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
@@ -191,9 +192,15 @@ const ChatConversation: React.FC<{
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
-  // 对于非 Gemini 对话，也显示模型选择器（禁用状态）
-  // For non-Gemini conversations, also show model selector (disabled state)
-  const modelSelector = conversation ? <GeminiModelSelector disabled={true} /> : undefined;
+  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
+  // For other non-Gemini conversations, show disabled GeminiModelSelector.
+  const modelSelector = useMemo(() => {
+    if (!conversation) return undefined;
+    if (conversation.type === 'acp' || conversation.type === 'codex') {
+      return <AcpModelSelector conversationId={conversation.id} />;
+    }
+    return <GeminiModelSelector disabled={true} />;
+  }, [conversation]);
 
   return (
     <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>

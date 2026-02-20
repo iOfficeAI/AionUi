@@ -196,6 +196,9 @@ const useAcpMessage = (conversation_id: string) => {
           }
           addOrUpdateMessage(transformedMessage);
           break;
+        case 'acp_model_info':
+          // Model info updates are handled by AcpModelSelector, no action needed here
+          break;
         case 'error':
           // Stop all loading states when error occurs
           setRunning(false);

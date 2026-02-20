@@ -10,7 +10,7 @@ import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -255,6 +255,9 @@ export class AcpAgent {
         }
       }
 
+      // Emit initial model info after session setup completes
+      this.emitModelInfo();
+
       this.emitStatusMessage('session_active');
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
     } catch (error) {
@@ -282,6 +285,81 @@ export class AcpAgent {
       if (sessionMode) {
         await this.connection.setSessionMode(sessionMode);
       }
+    }
+  }
+
+  /**
+   * Get unified model info from ACP connection.
+   * Prefers stable configOptions API, falls back to unstable models API.
+   */
+  getModelInfo(): AcpModelInfo | null {
+    // Try stable API first: configOptions with category 'model'
+    const configOptions = this.connection.getConfigOptions();
+    if (configOptions) {
+      const modelOption = configOptions.find((opt) => opt.category === 'model');
+      if (modelOption && modelOption.type === 'select' && modelOption.options) {
+        // Support both currentValue (ACP spec) and selectedValue (some agents)
+        const activeValue = modelOption.currentValue || modelOption.selectedValue || null;
+        return {
+          currentModelId: activeValue,
+          currentModelLabel: modelOption.options.find((o) => o.value === activeValue)?.name || modelOption.options.find((o) => o.value === activeValue)?.label || activeValue,
+          availableModels: modelOption.options.map((o) => ({ id: o.value, label: o.name || o.label || o.value })),
+          canSwitch: modelOption.options.length > 1,
+          source: 'configOption',
+          configOptionId: modelOption.id,
+        };
+      }
+    }
+
+    // Fallback to unstable models API
+    const models = this.connection.getModels();
+    if (models) {
+      const available = models.availableModels || [];
+      // Support both 'id' (spec) and 'modelId' (OpenCode) field names
+      const getModelId = (m: (typeof available)[0]) => m.id || m.modelId || '';
+      return {
+        currentModelId: models.currentModelId || null,
+        currentModelLabel: available.find((m) => getModelId(m) === models.currentModelId)?.name || models.currentModelId || null,
+        availableModels: available.map((m) => ({ id: getModelId(m), label: m.name || getModelId(m) })),
+        canSwitch: available.length > 1,
+        source: 'models',
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Switch model using the appropriate API based on model info source.
+   */
+  async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    const modelInfo = this.getModelInfo();
+    if (!modelInfo) {
+      throw new Error('No model info available');
+    }
+
+    if (modelInfo.source === 'configOption' && modelInfo.configOptionId) {
+      await this.connection.setConfigOption(modelInfo.configOptionId, modelId);
+    } else {
+      await this.connection.setModel(modelId);
+    }
+
+    // Return updated model info after switch
+    return this.getModelInfo();
+  }
+
+  /**
+   * Emit current model info to the stream event handler.
+   */
+  private emitModelInfo(): void {
+    const modelInfo = this.getModelInfo();
+    if (modelInfo) {
+      this.onStreamEvent({
+        type: 'acp_model_info',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: modelInfo,
+      });
     }
   }
 
@@ -652,6 +730,11 @@ export class AcpAgent {
           // 清理跟踪
           this.pendingNavigationTools.delete(toolCallId);
         }
+      }
+
+      // Emit updated model info when config_options_update arrives
+      if (data.update?.sessionUpdate === 'config_options_update') {
+        this.emitModelInfo();
       }
 
       const messages = this.adapter.convertSessionUpdate(data);
@@ -1041,16 +1124,11 @@ export class AcpAgent {
    * @returns Promise that resolves when mode is set
    */
   async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
-    console.log(`[AcpAgent] setMode called: mode=${mode}, isConnected=${this.connection.isConnected}, hasActiveSession=${this.connection.hasActiveSession}`);
-
     if (!this.connection.isConnected || !this.connection.hasActiveSession) {
-      console.log('[AcpAgent] No active session, cannot switch mode');
       return { success: false, error: 'No active session. Please send a message first to establish a session.' };
     }
     try {
-      console.log(`[AcpAgent] Calling connection.setSessionMode(${mode})`);
-      const response = await this.connection.setSessionMode(mode);
-      console.log('[AcpAgent] setSessionMode response:', JSON.stringify(response));
+      await this.connection.setSessionMode(mode);
       return { success: true };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);

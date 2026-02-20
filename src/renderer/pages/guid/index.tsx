@@ -42,6 +42,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
+import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
 import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
@@ -344,6 +345,7 @@ const Guid: React.FC = () => {
   const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
   const [selectedMode, setSelectedMode] = useState<string>('default');
+  const [selectedCodexModel, setSelectedCodexModel] = useState<string>(DEFAULT_CODEX_MODEL_ID);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
@@ -1044,6 +1046,8 @@ const Guid: React.FC = () => {
             presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
             // Initial session mode from Guid page mode selector
             sessionMode: selectedMode,
+            // User-selected Codex model from Guid page
+            codexModel: selectedCodexModel,
           },
         });
 
@@ -1742,6 +1746,25 @@ const Guid: React.FC = () => {
                   >
                     <Button className={'sendbox-model-btn'} shape='round'>
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
+                    </Button>
+                  </Dropdown>
+                ) : (selectedAgent === 'codex' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'codex') ? (
+                  <Dropdown
+                    trigger='click'
+                    droplist={
+                      <Menu selectedKeys={[selectedCodexModel]}>
+                        {DEFAULT_CODEX_MODELS.map((model) => (
+                          <Menu.Item key={model.id} className={model.id === selectedCodexModel ? '!bg-2' : ''} onClick={() => setSelectedCodexModel(model.id)}>
+                            <Tooltip position='right' trigger='hover' content={<div className='max-w-240px text-12px text-t-secondary leading-5'>{model.description}</div>}>
+                              <span>{model.label}</span>
+                            </Tooltip>
+                          </Menu.Item>
+                        ))}
+                      </Menu>
+                    }
+                  >
+                    <Button className={'sendbox-model-btn'} shape='round'>
+                      {DEFAULT_CODEX_MODELS.find((m) => m.id === selectedCodexModel)?.label || selectedCodexModel}
                     </Button>
                   </Dropdown>
                 ) : (

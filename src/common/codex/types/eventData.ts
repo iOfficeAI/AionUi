@@ -328,6 +328,8 @@ export interface CodexAgentManagerData {
   yoloMode?: boolean;
   /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
   sessionMode?: string;
+  /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
+  codexModel?: string;
 }
 
 export interface ElicitationCreateData {

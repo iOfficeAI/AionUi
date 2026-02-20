@@ -174,6 +174,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
           break;
+        case 'codex_model_info':
+          // Handled by AcpModelSelector, ignore here
+          break;
         case 'finish':
           // Only reset when current turn has content output
           // Tool-only turns (no content) should not reset aiProcessing
