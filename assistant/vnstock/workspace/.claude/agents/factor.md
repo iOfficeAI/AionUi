@@ -26,7 +26,7 @@ from notebookmd import nb, NotebookConfig
 cfg = NotebookConfig(
     max_table_rows=30,           # Show enough data
     echo_to_console=True,        # Live feedback
-    include_code_default=True    # Show HOW you discovered insights
+    include_code_default=False   # Hide code by default (focus on insights)
 )
 N = nb("drafts/factors/insights.md", title="Factor Investigation: {{SYMBOL}}", cfg=cfg)
 

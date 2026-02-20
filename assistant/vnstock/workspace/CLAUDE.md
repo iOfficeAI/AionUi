@@ -32,7 +32,7 @@ from notebookmd import nb, NotebookConfig
 cfg = NotebookConfig(
     max_table_rows=30,           # Show enough data for pattern recognition
     echo_to_console=True,        # Live investigation feedback
-    include_code_default=True    # Show HOW you discovered insights
+    include_code_default=False   # Hide code by default (focus on insights)
 )
 N = nb("analyses/VCB_2026-02-20/drafts/fundamentals/insights.md",
        title="Fundamental Investigation: VCB", cfg=cfg)

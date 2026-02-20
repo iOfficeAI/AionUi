@@ -13,7 +13,7 @@ sys.path.insert(0, '../../..')
 from notebookmd import nb, NotebookConfig
 
 # Initialize notebookmd
-cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=True)
+cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=False)
 
 # Save to the example directory root
 script_dir = Path(__file__).parent

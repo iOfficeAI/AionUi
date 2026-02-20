@@ -18,7 +18,7 @@ Use **notebookmd** to capture investigation:
 
 ```python
 from notebookmd import nb, NotebookConfig
-cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=True)
+cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=False)
 N = nb("drafts/valuation/insights.md", title="Valuation Investigation: {{SYMBOL}}", cfg=cfg)
 
 with N.cell("Base case DCF: What's the fair value?"):

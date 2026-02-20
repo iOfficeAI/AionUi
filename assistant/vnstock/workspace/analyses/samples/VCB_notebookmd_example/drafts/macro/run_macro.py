@@ -16,7 +16,7 @@ from notebookmd import nb, NotebookConfig
 cfg = NotebookConfig(
     max_table_rows=30,           # Show enough data for pattern recognition
     echo_to_console=True,        # Live investigation feedback
-    include_code_default=True    # Show HOW insights were discovered
+    include_code_default=False   # Hide code by default (focus on insights)
 )
 
 # Save to the macro subfolder
