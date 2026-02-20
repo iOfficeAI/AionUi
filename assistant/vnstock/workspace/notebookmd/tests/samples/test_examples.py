@@ -31,7 +31,7 @@ def test_analysis_example_runs(tmp_path, monkeypatch):
 
 
 def test_analysis_output_valid(tmp_path, monkeypatch):
-    """Test generated markdown has expected structure (all cells present)."""
+    """Test generated markdown has expected structure (sections present)."""
     monkeypatch.chdir(tmp_path)
 
     example_src = Path(__file__).parent.parent.parent / "examples" / "analysis.py"
@@ -55,13 +55,12 @@ def test_analysis_output_valid(tmp_path, monkeypatch):
     # Check for output file
     notebook_path = tmp_path / "dist" / "notebook.md"
     if not notebook_path.exists():
-        pytest.skip("Output notebook not created")
+        pytest.skip("Output report not created")
 
     content = notebook_path.read_text()
 
     # Verify basic structure
     assert "# Sample Financial Analysis" in content or "# " in content
-    assert "## Cell" in content
     assert "## Artifacts" in content
 
 
@@ -151,7 +150,7 @@ def test_analysis_with_matplotlib(tmp_path, monkeypatch):
 
 
 def test_analysis_without_matplotlib(tmp_path, monkeypatch):
-    """Test example without matplotlib: figure cell skipped."""
+    """Test example without matplotlib: figure section skipped."""
     monkeypatch.chdir(tmp_path)
 
     monkeypatch.setitem(sys.modules, 'matplotlib', None)

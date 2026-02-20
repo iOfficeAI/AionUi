@@ -1,6 +1,5 @@
 """Unit tests for notebookmd.core module."""
 
-import sys
 import pytest
 from pathlib import Path
 from datetime import datetime
@@ -13,8 +12,6 @@ def test_config_defaults():
     cfg = NotebookConfig()
 
     assert cfg.max_table_rows == 30
-    assert cfg.echo_to_console is True
-    assert cfg.include_code_default is False
     assert cfg.float_format == "{:.4f}"
 
 
@@ -22,14 +19,10 @@ def test_config_custom():
     """Test override defaults correctly."""
     cfg = NotebookConfig(
         max_table_rows=50,
-        echo_to_console=False,
-        include_code_default=True,
         float_format="{:.2f}",
     )
 
     assert cfg.max_table_rows == 50
-    assert cfg.echo_to_console is False
-    assert cfg.include_code_default is True
     assert cfg.float_format == "{:.2f}"
 
 
@@ -37,13 +30,12 @@ def test_config_custom():
 def test_notebook_init_basic(tmp_path):
     """Test out_path, title, cfg set correctly."""
     out_path = tmp_path / "test.md"
-    cfg = NotebookConfig(echo_to_console=False)
+    cfg = NotebookConfig()
 
-    N = Notebook(out_md=str(out_path), title="Test Notebook", cfg=cfg)
+    N = Notebook(out_md=str(out_path), title="Test Report", cfg=cfg)
 
     assert N.out_path == out_path
-    assert N.title == "Test Notebook"
-    assert N.cfg.echo_to_console is False
+    assert N._title == "Test Report"
 
 
 def test_notebook_init_custom_assets_dir(tmp_path):
@@ -169,115 +161,142 @@ def test_kv_emission(tmp_path):
     assert "Alice" in md
 
 
-# cell() context manager tests
-def test_cell_basic_execution(tmp_path):
-    """Test cell heading rendered, no code capture."""
-    cfg = NotebookConfig(echo_to_console=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
+# section() tests
+def test_section_basic(tmp_path):
+    """Test section() renders heading."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
 
-    with N.cell("Test Cell"):
-        N.note("Hello")
+    N.section("Key Metrics")
+    N.note("Hello")
 
     md = N.to_markdown()
 
-    assert "## Cell 1 — Test Cell" in md
+    assert "## Key Metrics" in md
     assert "Hello" in md
 
 
-def test_cell_with_code_capture(tmp_path):
-    """Test cell with code=True captures AST source."""
-    cfg = NotebookConfig(echo_to_console=False, include_code_default=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
+def test_section_with_description(tmp_path):
+    """Test section() with description renders caption."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
 
-    # Note: Code capture requires the cell to be in a file for AST parsing
-    # For this test, we'll verify the cell executes even if code capture fails
-    with N.cell("Code Cell", code=True):
-        N.note("Inside cell")
+    N.section("Data Loading", "Fetch and validate input data")
 
     md = N.to_markdown()
 
-    assert "## Cell 1 — Code Cell" in md
-    assert "Inside cell" in md
+    assert "## Data Loading" in md
+    assert "_Fetch and validate input data_" in md
 
 
-def test_cell_stdout_capture(tmp_path):
-    """Test captures print statements as stdout block."""
-    cfg = NotebookConfig(echo_to_console=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
+def test_section_context_manager(tmp_path):
+    """Test section() works as a context manager."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
 
-    with N.cell("Print Test"):
-        print("Hello stdout")
-
-    md = N.to_markdown()
-
-    assert "## Cell 1 — Print Test" in md
-    assert "Hello stdout" in md
-
-
-def test_cell_stderr_capture(tmp_path):
-    """Test captures stderr as stderr block."""
-    cfg = NotebookConfig(echo_to_console=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
-
-    with N.cell("Stderr Test"):
-        sys.stderr.write("Hello stderr\n")
+    with N.section("Analysis"):
+        N.note("Inside section")
 
     md = N.to_markdown()
 
-    assert "## Cell 1 — Stderr Test" in md
-    assert "Hello stderr" in md
+    assert "## Analysis" in md
+    assert "Inside section" in md
+    assert "---" in md  # Divider emitted on exit
 
 
-def test_cell_exception_handling(tmp_path):
-    """Test exception rendered then re-raised."""
-    cfg = NotebookConfig(echo_to_console=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
+def test_section_context_manager_with_description(tmp_path):
+    """Test section() context manager with description."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
 
-    with pytest.raises(ValueError, match="Test error"):
-        with N.cell("Error Test"):
-            raise ValueError("Test error")
-
-    md = N.to_markdown()
-
-    assert "## Cell 1 — Error Test" in md
-    assert "ValueError" in md
-    assert "Test error" in md
-
-
-def test_cell_numbering(tmp_path):
-    """Test multiple cells increment index (Cell 1, 2, 3)."""
-    cfg = NotebookConfig(echo_to_console=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
-
-    with N.cell("First"):
-        N.note("One")
-
-    with N.cell("Second"):
-        N.note("Two")
-
-    with N.cell("Third"):
-        N.note("Three")
+    with N.section("Setup", "Initialize environment"):
+        N.write("Setting up...")
 
     md = N.to_markdown()
 
-    assert "## Cell 1 — First" in md
-    assert "## Cell 2 — Second" in md
-    assert "## Cell 3 — Third" in md
+    assert "## Setup" in md
+    assert "_Initialize environment_" in md
+    assert "Setting up..." in md
 
 
-def test_cell_code_capture_fallback(tmp_path):
-    """Test AST parsing failure graceful (no crash)."""
-    cfg = NotebookConfig(echo_to_console=False)
-    N = Notebook(out_md=str(tmp_path / "test.md"), cfg=cfg)
+def test_multiple_sections(tmp_path):
+    """Test multiple sections render sequentially."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
 
-    # This should not crash even if code capture fails
-    with N.cell("Fallback Test", code=True):
-        N.note("This works")
+    N.section("First")
+    N.note("One")
+
+    N.section("Second")
+    N.note("Two")
+
+    N.section("Third")
+    N.note("Three")
 
     md = N.to_markdown()
 
-    assert "## Cell 1 — Fallback Test" in md
-    assert "This works" in md
+    assert "## First" in md
+    assert "## Second" in md
+    assert "## Third" in md
+
+
+def test_mixed_section_styles(tmp_path):
+    """Test mixing plain calls and context managers."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
+
+    N.section("Plain Section")
+    N.note("Plain content")
+
+    with N.section("Context Section"):
+        N.note("Context content")
+
+    N.section("Another Plain")
+    N.note("More content")
+
+    md = N.to_markdown()
+
+    assert "## Plain Section" in md
+    assert "## Context Section" in md
+    assert "## Another Plain" in md
+    assert "Plain content" in md
+    assert "Context content" in md
+    assert "More content" in md
+
+
+# Text element tests (renamed from st_ prefix)
+def test_title_method(tmp_path):
+    """Test title() renders # heading."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
+
+    N.title("Dashboard Title")
+    md = N.to_markdown()
+
+    assert "# Dashboard Title" in md
+
+
+def test_header_method(tmp_path):
+    """Test header() renders ## heading."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
+
+    N.header("Section Header")
+    md = N.to_markdown()
+
+    assert "## Section Header" in md
+
+
+def test_subheader_method(tmp_path):
+    """Test subheader() renders ### heading."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
+
+    N.subheader("Subsection")
+    md = N.to_markdown()
+
+    assert "### Subsection" in md
+
+
+def test_caption_method(tmp_path):
+    """Test caption() renders italic text."""
+    N = Notebook(out_md=str(tmp_path / "test.md"))
+
+    N.caption("Small text")
+    md = N.to_markdown()
+
+    assert "_Small text_" in md
 
 
 # save() and to_markdown() tests
@@ -286,8 +305,8 @@ def test_save_creates_file(tmp_path):
     out_path = tmp_path / "output.md"
     N = Notebook(out_md=str(out_path), title="Save Test")
 
-    with N.cell("Test"):
-        N.note("Hello")
+    N.section("Test")
+    N.note("Hello")
 
     result_path = N.save()
 
@@ -315,8 +334,8 @@ def test_to_markdown_no_file(tmp_path):
     out_path = tmp_path / "nofile.md"
     N = Notebook(out_md=str(out_path), title="No File")
 
-    with N.cell("Test"):
-        N.note("Content")
+    N.section("Test")
+    N.note("Content")
 
     md = N.to_markdown()
 

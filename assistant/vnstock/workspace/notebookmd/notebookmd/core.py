@@ -1,18 +1,14 @@
-"""Core Notebook and Cell implementation."""
+"""Core Notebook (Streamlit-like report builder) implementation."""
 
 from __future__ import annotations
 
-import ast
-import inspect
-import textwrap
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Generator, Literal, Optional, Sequence
+from typing import Any, Generator, Literal, Sequence
 
 from .assets import AssetManager
-from .capture import CapturedOutput, capture_streams, render_exception, render_stderr, render_stdout
 from .emitters import render_code, render_figure, render_kv, render_md, render_note, render_summary, render_table
 from .widgets import (
     render_altair_chart,
@@ -68,44 +64,49 @@ from .widgets import (
 
 @dataclass
 class NotebookConfig:
-    """Configuration for notebook rendering behavior."""
+    """Configuration for report rendering behavior."""
 
     max_table_rows: int = 30
-    echo_to_console: bool = True
-    include_code_default: bool = False
     float_format: str = "{:.4f}"
 
 
 class Notebook:
-    """A notebook-like markdown report builder.
+    """Streamlit-like report builder that renders to markdown.
+
+    Designed for AI agents to generate data analysis reports with a familiar
+    ``st.*``-style API.  Just call methods sequentially — no cells, no
+    execution contexts, no stdout capture.
 
     Usage::
 
-        N = Notebook("dist/notebook.md", title="My Analysis")
+        st = Notebook("dist/report.md", title="My Analysis")
 
-        with N.cell("Load data", code=True):
-            df = pd.read_csv("data.csv")
-            N.note(f"Rows: {len(df):,}")
-            N.table(df.head(), name="Preview")
+        st.header("Key Metrics")
+        st.metric("Revenue", "$1.2M", delta="+12%")
+        st.table(df.head(), name="Preview")
 
-        N.save()
+        st.header("Charts")
+        st.line_chart(df, x="date", y="close", title="Price Trend")
+
+        st.success("Analysis complete!")
+        st.save()
     """
 
     def __init__(
         self,
         out_md: str,
-        title: str = "Notebook",
+        title: str = "Report",
         assets_dir: str | None = None,
         cfg: NotebookConfig | None = None,
     ):
         self.out_path = Path(out_md)
         self.assets_path = Path(assets_dir) if assets_dir else self.out_path.parent / "assets"
-        self.title = title
+        self._title = title
         self.cfg = cfg or NotebookConfig()
 
         self._asset_mgr = AssetManager(self.assets_path, self.out_path.parent)
         self._started = False
-        self._cell_index = 0
+        self._counter = 0  # General-purpose counter for unique filenames
         self._chunks: list[str] = []
 
     def _w(self, s: str) -> None:
@@ -113,7 +114,7 @@ class Notebook:
         self._chunks.append(s)
 
     def _ensure_started(self) -> None:
-        """Lazily initialize the notebook header on first use."""
+        """Lazily initialize the report header on first use."""
         if self._started:
             return
         self.out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -121,11 +122,85 @@ class Notebook:
         self._started = True
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self._w(f"# {self.title}\n\n_Generated: {now}_\n\n")
+        self._w(f"# {self._title}\n\n_Generated: {now}_\n\n")
         self._w("## Artifacts\n\n")
         self._w("{{ARTIFACTS_PLACEHOLDER}}\n\n---\n\n")
 
-    # ── Emitters (delegate to emitters module) ──
+    def _next_id(self) -> int:
+        """Return an auto-incrementing counter for unique asset filenames."""
+        self._counter += 1
+        return self._counter
+
+    # ── Sections ──
+
+    def section(self, title: str, description: str = "") -> _SectionContext:
+        """Start a new semantic section with a heading and optional description.
+
+        Works both as a plain call and as a context manager::
+
+            # Plain call — just emits the heading, content follows below
+            st.section("Key Metrics", "Fundamental indicators for VCB")
+            st.metric("ROE", "22.5%")
+            st.kv({"P/E": "15.2x", "P/B": "2.3x"})
+
+            # Context manager — heading emitted on enter, divider on exit
+            with st.section("Price Trend"):
+                st.line_chart(df, x="date", y="close")
+
+        Args:
+            title: Section heading text.
+            description: Optional short description rendered as a caption.
+
+        Returns:
+            A context manager (also usable as a plain call).
+        """
+        self._ensure_started()
+        self._w(f"## {title}\n\n")
+        if description:
+            self._w(f"_{description}_\n\n")
+        return _SectionContext(self)
+
+    # ── Text Elements ──
+
+    def title(self, text: str, anchor: str | None = None) -> None:
+        """Emit a title heading (like st.title).
+
+        Args:
+            text: Title text.
+            anchor: Optional HTML anchor ID.
+        """
+        self._ensure_started()
+        self._w(render_title(text, anchor=anchor))
+
+    def header(self, text: str, anchor: str | None = None, divider: bool = False) -> None:
+        """Emit a section header (like st.header).
+
+        Args:
+            text: Header text.
+            anchor: Optional HTML anchor ID.
+            divider: If True, add a horizontal rule below.
+        """
+        self._ensure_started()
+        self._w(render_header(text, anchor=anchor, divider=divider))
+
+    def subheader(self, text: str, anchor: str | None = None, divider: bool = False) -> None:
+        """Emit a subheader (like st.subheader).
+
+        Args:
+            text: Subheader text.
+            anchor: Optional HTML anchor ID.
+            divider: If True, add a horizontal rule below.
+        """
+        self._ensure_started()
+        self._w(render_subheader(text, anchor=anchor, divider=divider))
+
+    def caption(self, text: str) -> None:
+        """Emit small caption text (like st.caption).
+
+        Args:
+            text: Caption text.
+        """
+        self._w(render_caption(text))
 
     def md(self, text: str) -> None:
         """Emit raw markdown text."""
@@ -139,41 +214,44 @@ class Notebook:
         """Emit a fenced code block."""
         self._w(render_code(source, lang))
 
+    def text(self, body: str) -> None:
+        """Emit fixed-width preformatted text (like st.text).
+
+        Args:
+            body: Plain text to render in monospace.
+        """
+        self._w(render_text(body))
+
+    def latex(self, body: str) -> None:
+        """Emit a LaTeX math expression (like st.latex).
+
+        Args:
+            body: LaTeX expression string.
+        """
+        self._w(render_latex(body))
+
+    def divider(self) -> None:
+        """Emit a horizontal divider (like st.divider)."""
+        self._w(render_divider())
+
+    # ── Data Display ──
+
     def table(self, df_obj: Any, name: str = "Table", max_rows: int | None = None) -> None:
         """Emit a DataFrame as a markdown table with truncation."""
         n = max_rows if max_rows is not None else self.cfg.max_table_rows
         self._w(render_table(df_obj, name=name, max_rows=n))
 
-    def figure(self, fig: Any, filename: str, caption: str = "", dpi: int = 160) -> str:
-        """Save a matplotlib figure and emit its markdown link.
+    def dataframe(self, df_obj: Any, name: str = "", max_rows: int | None = None, use_container_width: bool = False) -> None:
+        """Display a DataFrame (like st.dataframe).
 
-        Returns:
-            Relative path to the saved figure.
+        Args:
+            df_obj: A pandas DataFrame.
+            name: Optional heading for the table.
+            max_rows: Maximum rows to display.
+            use_container_width: Ignored (API compat with Streamlit).
         """
-        rel = self._asset_mgr.save_figure(fig, filename, dpi=dpi)
-        self._w(render_figure(rel, caption=caption, filename=filename))
-        return rel
-
-    def kv(self, data: dict[str, Any], title: str = "Metrics") -> None:
-        """Emit a key-value metrics table."""
-        self._w(render_kv(data, title))
-
-    def summary(self, df_obj: Any, title: str = "Data Summary") -> None:
-        """Emit an auto-generated DataFrame summary (shape, nulls, stats)."""
-        self._w(render_summary(df_obj, title))
-
-    def export_csv(self, df: Any, filename: str, name: str | None = None) -> str:
-        """Save a DataFrame as CSV and link it in the artifacts.
-
-        Returns:
-            Relative path to the saved CSV.
-        """
-        rel = self._asset_mgr.save_csv(df, filename)
-        display_name = name or filename
-        self._w(f"**Exported:** [{display_name}]({rel})\n\n")
-        return rel
-
-    # ── Streamlit-style Data Display ──
+        n = max_rows if max_rows is not None else self.cfg.max_table_rows
+        self._w(render_dataframe(df_obj, name=name, max_rows=n, use_container_width=use_container_width))
 
     def metric(
         self,
@@ -182,7 +260,7 @@ class Notebook:
         delta: Any | None = None,
         delta_color: Literal["normal", "inverse", "off"] = "normal",
     ) -> None:
-        """Display a metric card with optional delta indicator (à la st.metric).
+        """Display a metric card with optional delta indicator (like st.metric).
 
         Args:
             label: Short description of the metric.
@@ -200,16 +278,15 @@ class Notebook:
 
         Example::
 
-            N.metric_row([
+            st.metric_row([
                 {"label": "Revenue", "value": "$1.2M", "delta": "+12%"},
                 {"label": "Users", "value": "3,400", "delta": "+200"},
-                {"label": "Churn", "value": "2.1%", "delta": "-0.3%", "delta_color": "inverse"},
             ])
         """
         self._w(render_metric_row(metrics))
 
     def json(self, data: Any, expanded: bool = True) -> None:
-        """Display data as formatted JSON (à la st.json).
+        """Display data as formatted JSON (like st.json).
 
         Args:
             data: Any JSON-serializable object.
@@ -217,19 +294,15 @@ class Notebook:
         """
         self._w(render_json(data, expanded=expanded))
 
-    def dataframe(self, df_obj: Any, name: str = "", max_rows: int | None = None, use_container_width: bool = False) -> None:
-        """Display a DataFrame (à la st.dataframe).
+    def kv(self, data: dict[str, Any], title: str = "Metrics") -> None:
+        """Emit a key-value metrics table."""
+        self._w(render_kv(data, title))
 
-        Args:
-            df_obj: A pandas DataFrame.
-            name: Optional heading for the table.
-            max_rows: Maximum rows to display.
-            use_container_width: Ignored (API compat with Streamlit).
-        """
-        n = max_rows if max_rows is not None else self.cfg.max_table_rows
-        self._w(render_dataframe(df_obj, name=name, max_rows=n, use_container_width=use_container_width))
+    def summary(self, df_obj: Any, title: str = "Data Summary") -> None:
+        """Emit an auto-generated DataFrame summary (shape, nulls, stats)."""
+        self._w(render_summary(df_obj, title))
 
-    # ── Streamlit-style Chart Widgets ──
+    # ── Chart Widgets ──
 
     def line_chart(
         self,
@@ -241,7 +314,7 @@ class Notebook:
         y_label: str = "",
         filename: str | None = None,
     ) -> str | None:
-        """Display a line chart (à la st.line_chart).
+        """Display a line chart (like st.line_chart).
 
         If matplotlib is available and data is a DataFrame, generates and saves
         an actual chart image. Otherwise, emits chart metadata as markdown.
@@ -275,16 +348,7 @@ class Notebook:
         y_label: str = "",
         filename: str | None = None,
     ) -> str | None:
-        """Display an area chart (à la st.area_chart).
-
-        Args:
-            data: DataFrame or dict-like data.
-            x: Column name for x-axis.
-            y: Column name(s) for y-axis.
-            title: Chart title.
-            x_label: X-axis label.
-            y_label: Y-axis label.
-            filename: Output filename for the chart image.
+        """Display an area chart (like st.area_chart).
 
         Returns:
             Relative path to saved chart image, or None.
@@ -307,17 +371,7 @@ class Notebook:
         horizontal: bool = False,
         filename: str | None = None,
     ) -> str | None:
-        """Display a bar chart (à la st.bar_chart).
-
-        Args:
-            data: DataFrame or dict-like data.
-            x: Column name for x-axis.
-            y: Column name(s) for y-axis.
-            title: Chart title.
-            x_label: X-axis label.
-            y_label: Y-axis label.
-            horizontal: If True, render horizontal bars.
-            filename: Output filename for the chart image.
+        """Display a bar chart (like st.bar_chart).
 
         Returns:
             Relative path to saved chart image, or None.
@@ -331,6 +385,16 @@ class Notebook:
         self._w(render_bar_chart(data, x=x, y=y, title=title, x_label=x_label, y_label=y_label, horizontal=horizontal))
         return None
 
+    def figure(self, fig: Any, filename: str, caption: str = "", dpi: int = 160) -> str:
+        """Save a matplotlib figure and emit its markdown link.
+
+        Returns:
+            Relative path to the saved figure.
+        """
+        rel = self._asset_mgr.save_figure(fig, filename, dpi=dpi)
+        self._w(render_figure(rel, caption=caption, filename=filename))
+        return rel
+
     def plotly_chart(
         self,
         fig: Any,
@@ -338,18 +402,12 @@ class Notebook:
         caption: str = "",
         use_container_width: bool = True,
     ) -> str:
-        """Save and display a Plotly figure (à la st.plotly_chart).
-
-        Args:
-            fig: A plotly Figure object.
-            filename: Output filename (defaults to plotly_N.png).
-            caption: Optional caption.
-            use_container_width: Ignored (API compat with Streamlit).
+        """Save and display a Plotly figure (like st.plotly_chart).
 
         Returns:
             Relative path to the saved chart image.
         """
-        fname = filename or f"plotly_{self._cell_index}_{id(fig) % 10000}.png"
+        fname = filename or f"plotly_{self._next_id()}.png"
         rel = self._asset_mgr.save_plotly(fig, fname)
         self._w(render_plotly_chart(rel, caption=caption, use_container_width=use_container_width))
         return rel
@@ -361,121 +419,36 @@ class Notebook:
         caption: str = "",
         use_container_width: bool = True,
     ) -> str:
-        """Save and display an Altair/Vega-Lite chart (à la st.altair_chart).
-
-        Args:
-            chart: An altair Chart object.
-            filename: Output filename (defaults to altair_N.png).
-            caption: Optional caption.
-            use_container_width: Ignored (API compat with Streamlit).
+        """Save and display an Altair/Vega-Lite chart (like st.altair_chart).
 
         Returns:
             Relative path to the saved chart image.
         """
-        fname = filename or f"altair_{self._cell_index}_{id(chart) % 10000}.png"
+        fname = filename or f"altair_{self._next_id()}.png"
         rel = self._asset_mgr.save_altair(chart, fname)
         self._w(render_altair_chart(rel, caption=caption, use_container_width=use_container_width))
         return rel
 
-    # ── Streamlit-style Text Elements ──
-
-    def st_title(self, text: str, anchor: str | None = None) -> None:
-        """Emit a title heading (à la st.title).
-
-        Args:
-            text: Title text.
-            anchor: Optional HTML anchor ID.
-        """
-        self._w(render_title(text, anchor=anchor))
-
-    def st_header(self, text: str, anchor: str | None = None, divider: bool = False) -> None:
-        """Emit a header (à la st.header).
-
-        Args:
-            text: Header text.
-            anchor: Optional HTML anchor ID.
-            divider: If True, add a horizontal rule below.
-        """
-        self._w(render_header(text, anchor=anchor, divider=divider))
-
-    def st_subheader(self, text: str, anchor: str | None = None, divider: bool = False) -> None:
-        """Emit a subheader (à la st.subheader).
-
-        Args:
-            text: Subheader text.
-            anchor: Optional HTML anchor ID.
-            divider: If True, add a horizontal rule below.
-        """
-        self._w(render_subheader(text, anchor=anchor, divider=divider))
-
-    def st_caption(self, text: str) -> None:
-        """Emit small caption text (à la st.caption).
-
-        Args:
-            text: Caption text.
-        """
-        self._w(render_caption(text))
-
-    def latex(self, body: str) -> None:
-        """Emit a LaTeX math expression (à la st.latex).
-
-        Args:
-            body: LaTeX expression string.
-        """
-        self._w(render_latex(body))
-
-    def text(self, body: str) -> None:
-        """Emit fixed-width preformatted text (à la st.text).
-
-        Args:
-            body: Plain text to render in monospace.
-        """
-        self._w(render_text(body))
-
-    def divider(self) -> None:
-        """Emit a horizontal divider (à la st.divider)."""
-        self._w(render_divider())
-
-    # ── Streamlit-style Status Elements ──
+    # ── Status Elements ──
 
     def success(self, body: str, icon: str = "✅") -> None:
-        """Emit a success message (à la st.success).
-
-        Args:
-            body: Message text.
-            icon: Icon prefix.
-        """
+        """Emit a success message (like st.success)."""
         self._w(render_success(body, icon=icon))
 
     def error(self, body: str, icon: str = "❌") -> None:
-        """Emit an error message (à la st.error).
-
-        Args:
-            body: Message text.
-            icon: Icon prefix.
-        """
+        """Emit an error message (like st.error)."""
         self._w(render_error(body, icon=icon))
 
     def warning(self, body: str, icon: str = "⚠️") -> None:
-        """Emit a warning message (à la st.warning).
-
-        Args:
-            body: Message text.
-            icon: Icon prefix.
-        """
+        """Emit a warning message (like st.warning)."""
         self._w(render_warning(body, icon=icon))
 
     def info(self, body: str, icon: str = "ℹ️") -> None:
-        """Emit an info message (à la st.info).
-
-        Args:
-            body: Message text.
-            icon: Icon prefix.
-        """
+        """Emit an info message (like st.info)."""
         self._w(render_info(body, icon=icon))
 
-    def st_exception(self, exc: Exception) -> None:
-        """Display an exception (à la st.exception).
+    def exception(self, exc: Exception) -> None:
+        """Display an exception (like st.exception).
 
         Args:
             exc: The exception to display.
@@ -483,7 +456,7 @@ class Notebook:
         self._w(render_widget_exception(exc))
 
     def progress(self, value: float, text: str = "") -> None:
-        """Emit a progress bar (à la st.progress).
+        """Emit a progress bar (like st.progress).
 
         Args:
             value: Progress from 0.0 to 1.0.
@@ -492,27 +465,22 @@ class Notebook:
         self._w(render_progress(value, text=text))
 
     def toast(self, body: str, icon: str = "🔔") -> None:
-        """Emit a toast notification (à la st.toast).
-
-        Args:
-            body: Toast message.
-            icon: Icon prefix.
-        """
+        """Emit a toast notification (like st.toast)."""
         self._w(render_toast(body, icon=icon))
 
     def balloons(self) -> None:
-        """Emit a balloons celebration marker (à la st.balloons)."""
+        """Emit a balloons celebration marker (like st.balloons)."""
         self._w(render_balloons())
 
     def snow(self) -> None:
-        """Emit a snow celebration marker (à la st.snow)."""
+        """Emit a snow celebration marker (like st.snow)."""
         self._w(render_snow())
 
-    # ── Streamlit-style Layout Elements ──
+    # ── Layout Elements ──
 
     @contextmanager
     def expander(self, label: str, expanded: bool = False) -> Generator[None, None, None]:
-        """Create a collapsible section (à la st.expander).
+        """Create a collapsible section (like st.expander).
 
         Args:
             label: The expander heading.
@@ -520,9 +488,9 @@ class Notebook:
 
         Usage::
 
-            with N.expander("Show details"):
-                N.md("Hidden content here")
-                N.table(df)
+            with st.expander("Show details"):
+                st.md("Hidden content here")
+                st.table(df)
         """
         self._w(render_expander_start(label, expanded=expanded))
         yield
@@ -530,22 +498,22 @@ class Notebook:
 
     @contextmanager
     def container(self, border: bool = False) -> Generator[None, None, None]:
-        """Create a visual container (à la st.container).
+        """Create a visual container (like st.container).
 
         Args:
             border: If True, add a border (rendered as blockquote).
 
         Usage::
 
-            with N.container(border=True):
-                N.md("Contained content")
+            with st.container(border=True):
+                st.md("Contained content")
         """
         self._w(render_container_start(border=border))
         yield
         self._w(render_container_end(border=border))
 
     def tabs(self, labels: Sequence[str]) -> _TabGroup:
-        """Create a tab group (à la st.tabs).
+        """Create a tab group (like st.tabs).
 
         Returns a _TabGroup that yields tab context managers.
 
@@ -554,17 +522,17 @@ class Notebook:
 
         Usage::
 
-            tabs = N.tabs(["Overview", "Details", "Raw Data"])
+            tabs = st.tabs(["Overview", "Details", "Raw Data"])
             with tabs.tab("Overview"):
-                N.metric("Revenue", "$1.2M")
+                st.metric("Revenue", "$1.2M")
             with tabs.tab("Details"):
-                N.table(df)
+                st.table(df)
         """
         self._w(render_tabs_header(labels))
         return _TabGroup(self, labels)
 
     def columns(self, spec: int | Sequence[float] = 2) -> _ColumnGroup:
-        """Create a column layout (à la st.columns).
+        """Create a column layout (like st.columns).
 
         Since markdown doesn't support true columns, content is rendered
         sequentially with visual separators.
@@ -574,17 +542,17 @@ class Notebook:
 
         Usage::
 
-            cols = N.columns(3)
+            cols = st.columns(3)
             with cols.col(0):
-                N.metric("A", "100")
+                st.metric("A", "100")
             with cols.col(1):
-                N.metric("B", "200")
+                st.metric("B", "200")
         """
         self._w(render_columns_start(spec))
         n = spec if isinstance(spec, int) else len(spec)
         return _ColumnGroup(self, n)
 
-    # ── Streamlit-style Media Elements ──
+    # ── Media Elements ──
 
     def image(
         self,
@@ -593,7 +561,7 @@ class Notebook:
         width: int | None = None,
         filename: str | None = None,
     ) -> str:
-        """Display an image (à la st.image).
+        """Display an image (like st.image).
 
         Supports file paths, URLs, or raw image data (PIL/numpy).
 
@@ -606,39 +574,46 @@ class Notebook:
         Returns:
             Path or URL to the image.
         """
-        # If it's a string (path or URL), render directly
         if isinstance(source, str):
             self._w(render_image(source, caption=caption, width=width))
             return source
 
-        # If it's a PIL Image or numpy array, save it
-        fname = filename or f"image_{self._cell_index}_{id(source) % 10000}.png"
+        fname = filename or f"image_{self._next_id()}.png"
         rel = self._asset_mgr.save_image(source, fname)
         self._w(render_image(rel, caption=caption, width=width))
         return rel
 
     def audio(self, source: str, caption: str = "") -> None:
-        """Display an audio player link (à la st.audio).
-
-        Args:
-            source: Path or URL to the audio file.
-            caption: Optional caption.
-        """
+        """Display an audio player link (like st.audio)."""
         self._w(render_audio(source, caption=caption))
 
     def video(self, source: str, caption: str = "") -> None:
-        """Display a video link (à la st.video).
-
-        Args:
-            source: Path or URL to the video file.
-            caption: Optional caption.
-        """
+        """Display a video link (like st.video)."""
         self._w(render_video(source, caption=caption))
 
-    # ── Streamlit-style Utility ──
+    # ── Smart Write / Utility ──
+
+    def write(self, *args: Any) -> None:
+        """Auto-format and display any combination of values (like st.write).
+
+        Type dispatch:
+        - str        -> markdown text
+        - dict       -> JSON code block
+        - DataFrame  -> markdown table
+        - int/float  -> bold number
+        - list/tuple -> bullet list
+        - Exception  -> error callout
+        - None       -> ``None``
+        - other      -> ``str(obj)``
+
+        Example::
+
+            st.write("Hello", {"key": "value"}, df, 42)
+        """
+        self._w(render_write(*args))
 
     def echo(self, source: str, output: str = "") -> None:
-        """Display code and its output together (à la st.echo).
+        """Display code and its output together (like st.echo).
 
         Args:
             source: The source code.
@@ -647,7 +622,7 @@ class Notebook:
         self._w(render_echo(source, output=output))
 
     def empty(self) -> None:
-        """Emit an empty placeholder (à la st.empty)."""
+        """Emit an empty placeholder (like st.empty)."""
         self._w(render_empty())
 
     def connection_status(
@@ -665,26 +640,18 @@ class Notebook:
         """
         self._w(render_connection_status(name, status=status, details=details))
 
-    # ── Smart Write / Templating ──
+    def export_csv(self, df: Any, filename: str, name: str | None = None) -> str:
+        """Save a DataFrame as CSV and link it in the artifacts.
 
-    def write(self, *args: Any) -> None:
-        """Auto-format and display any combination of values (à la st.write).
-
-        Type dispatch:
-        - str        → markdown text
-        - dict       → JSON code block
-        - DataFrame  → markdown table
-        - int/float  → bold number
-        - list/tuple → bullet list
-        - Exception  → error callout
-        - None       → ``None``
-        - other      → ``str(obj)``
-
-        Example::
-
-            N.write("Hello", {"key": "value"}, df, 42)
+        Returns:
+            Relative path to the saved CSV.
         """
-        self._w(render_write(*args))
+        rel = self._asset_mgr.save_csv(df, filename)
+        display_name = name or filename
+        self._w(f"**Exported:** [{display_name}]({rel})\n\n")
+        return rel
+
+    # ── Analytics-oriented helpers ──
 
     def stat(
         self,
@@ -695,20 +662,11 @@ class Notebook:
     ) -> None:
         """Display a single-line statistic with bold value and optional context.
 
-        The go-to method for inline data callouts like:
-            "Quality z-score: **+1.5** (93rd percentile, top 7%)"
-
-        Args:
-            label: Stat name.
-            value: The value (auto-formatted if numeric + fmt given).
-            description: Optional parenthetical context.
-            fmt: Python format spec (e.g. "+.1f", ".2%", ",.0f").
-
         Examples::
 
-            N.stat("Quality z-score", 1.5, "93rd percentile, top 7%", fmt="+.1f")
-            N.stat("P/E Ratio", 15.2)
-            N.stat("Return", 0.123, "annualized", fmt=".1%")
+            st.stat("Quality z-score", 1.5, "93rd percentile, top 7%", fmt="+.1f")
+            st.stat("P/E Ratio", 15.2)
+            st.stat("Return", 0.123, "annualized", fmt=".1%")
         """
         self._w(render_stat(label, value, description=description, fmt=fmt))
 
@@ -725,12 +683,11 @@ class Notebook:
 
         Example::
 
-            N.stats([
+            st.stats([
                 {"label": "P/E", "value": 15.2, "fmt": ".1f"},
                 {"label": "P/B", "value": 2.8, "fmt": ".1f"},
                 {"label": "ROE", "value": 0.221, "fmt": ".1%"},
             ])
-            # → "P/E: **15.2** · P/B: **2.8** · ROE: **22.1%**"
         """
         self._w(render_stats(stats, separator=separator))
 
@@ -740,11 +697,6 @@ class Notebook:
         Args:
             text: Badge text (e.g. "BULLISH", "HOLD", "BUY").
             style: One of "default", "success", "warning", "error", "info".
-
-        Example::
-
-            N.badge("BULLISH", "success")
-            N.badge("OVERVALUED", "warning")
         """
         self._w(render_badge(text, style=style))
 
@@ -759,21 +711,10 @@ class Notebook:
     ) -> None:
         """Display a value with absolute and percentage change.
 
-        Args:
-            label: Metric name.
-            current: Current value.
-            previous: Previous/baseline value.
-            fmt: Format spec for the values.
-            pct: Show percentage change.
-            invert: If True, a decrease is positive (e.g. error rate, churn).
-
         Example::
 
-            N.change("Revenue", 1_200_000, 1_000_000, fmt=",.0f")
-            # → "Revenue: **1,200,000** (▲ +200,000, +20.0%)"
-
-            N.change("Churn Rate", 0.021, 0.024, fmt=".1%", invert=True)
-            # → "Churn Rate: **2.1%** (▲ -0.3%, -12.5%)"
+            st.change("Revenue", 1_200_000, 1_000_000, fmt=",.0f")
+            # -> "Revenue: **1,200,000** (^ +200,000, +20.0%)"
         """
         self._w(render_change(label, current, previous, fmt=fmt, pct=pct, invert=invert))
 
@@ -788,21 +729,10 @@ class Notebook:
     ) -> None:
         """Display a value with rank/percentile context.
 
-        Args:
-            label: Metric name.
-            value: The metric value.
-            rank: Position in ranking (1-based).
-            total: Total items in ranking.
-            percentile: Percentile (0-100).
-            fmt: Format spec for the value.
-
         Examples::
 
-            N.ranking("Quality z-score", 1.5, percentile=93, fmt="+.1f")
-            # → "Quality z-score: **+1.5** (93rd percentile, top 7%)"
-
-            N.ranking("Market Cap", 12_500, rank=3, total=50, fmt=",.0f")
-            # → "Market Cap: **12,500** (#3 of 50)"
+            st.ranking("Quality z-score", 1.5, percentile=93, fmt="+.1f")
+            st.ranking("Market Cap", 12_500, rank=3, total=50, fmt=",.0f")
         """
         self._w(render_ranking(label, value, rank=rank, total=total, percentile=percentile, fmt=fmt))
 
@@ -868,105 +798,14 @@ class Notebook:
         ax.grid(True, alpha=0.3)
         fig.tight_layout()
 
-        fname = filename or f"{chart_type}_{self._cell_index}_{id(data) % 10000}.png"
+        fname = filename or f"{chart_type}_{self._next_id()}.png"
         rel = self._asset_mgr.save_figure(fig, fname, dpi=160)
         return rel
-
-    # ── Cell context manager ──
-
-    @contextmanager
-    def cell(self, title: str, code: bool | None = None) -> Generator[None, None, None]:
-        """Create a notebook cell with optional code capture and stdout/stderr capture.
-
-        Args:
-            title: Cell heading text.
-            code: If True, attempt to capture and display the source code of the cell body.
-                  If None, uses cfg.include_code_default.
-
-        Yields:
-            Nothing — cell body executes inside the context.
-        """
-        self._ensure_started()
-        self._cell_index += 1
-        include_code = self.cfg.include_code_default if code is None else code
-
-        self._w(f"## Cell {self._cell_index} — {title}\n\n")
-
-        # Attempt AST-based code capture for the cell body
-        if include_code:
-            self._capture_cell_source()
-
-        with capture_streams(echo=self.cfg.echo_to_console) as captured:
-            yield
-
-        # Render captured output
-        if captured.has_stdout:
-            self._w(render_stdout(captured.stdout))
-        if captured.has_stderr:
-            self._w(render_stderr(captured.stderr))
-        if captured.has_error:
-            self._w(render_exception(captured.exception, captured.traceback_str))
-            self._w("---\n\n")
-            raise captured.exception
-        self._w("---\n\n")
-
-    def _capture_cell_source(self) -> None:
-        """Best-effort capture of the `with N.cell(...)` block source via AST parsing."""
-        try:
-            # Walk up the call stack to find the caller's frame
-            frame = inspect.currentframe()
-            # self.cell -> contextmanager wrapper -> caller
-            caller = frame.f_back.f_back.f_back
-            filename = caller.f_code.co_filename
-            lineno = caller.f_lineno  # line of the `with` statement
-
-            source = Path(filename).read_text(encoding="utf-8")
-            tree = ast.parse(source, filename)
-
-            # Find the `with` statement at the caller's line
-            for node in ast.walk(tree):
-                if isinstance(node, ast.With) and node.lineno == lineno:
-                    body_lines = source.splitlines()
-                    # Extract just the body (everything inside the with block)
-                    start = node.body[0].lineno - 1
-                    end = node.body[-1].end_lineno
-                    snippet = "\n".join(body_lines[start:end])
-                    snippet = textwrap.dedent(snippet).rstrip()
-                    self._w("**Code**\n\n")
-                    self._w(render_code(snippet, "python"))
-                    return
-
-            # Fallback: grab a few lines around the call site
-            self._capture_cell_source_fallback(filename, lineno)
-        except Exception:
-            # Silently skip code capture if it fails
-            pass
-
-    def _capture_cell_source_fallback(self, filename: str, lineno: int) -> None:
-        """Fallback code capture: grab lines around the with statement."""
-        try:
-            lines = Path(filename).read_text(encoding="utf-8").splitlines()
-            # Find the end of the with block by looking for dedent
-            start = lineno  # line after the `with`
-            indent = len(lines[start]) - len(lines[start].lstrip()) if start < len(lines) else 0
-            end = start + 1
-            while end < len(lines) and lines[end].strip():
-                line_indent = len(lines[end]) - len(lines[end].lstrip())
-                if line_indent <= indent and lines[end].strip() and not lines[end].strip().startswith("#"):
-                    break
-                end += 1
-            snippet = "\n".join(lines[start:end])
-            snippet = textwrap.dedent(snippet).rstrip()
-            if snippet:
-                self._w("**Code**\n\n")
-                self._w(render_code(snippet, "python"))
-        except Exception:
-            pass
 
     # ── Save / render ──
 
     def save(self) -> Path:
-        """Write the notebook markdown to disk.
+        """Write the report markdown to disk.
 
         Returns:
             Path to the saved markdown file.
@@ -983,23 +822,48 @@ class Notebook:
         return self.out_path
 
     def to_markdown(self) -> str:
-        """Return the notebook content as a markdown string without saving."""
+        """Return the report content as a markdown string without saving."""
         self._ensure_started()
         content = "".join(self._chunks)
         artifact_index = self._asset_mgr.render_index()
         return content.replace("{{ARTIFACTS_PLACEHOLDER}}", artifact_index)
 
 
+class _SectionContext:
+    """Returned by ``Notebook.section()`` to allow optional context-manager use.
+
+    When used as a plain call the heading is already emitted and this object is
+    simply discarded.  When used with ``with``, it emits a divider on exit to
+    visually close the section::
+
+        # Both styles are valid:
+        st.section("Setup")           # plain call
+        with st.section("Analysis"):  # context manager
+            st.write("...")
+    """
+
+    def __init__(self, notebook: Notebook):
+        self._notebook = notebook
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        # Add a divider to visually close the section
+        self._notebook._w("\n---\n\n")
+        return None
+
+
 class _TabGroup:
-    """Helper for creating tab sections within a notebook.
+    """Helper for creating tab sections within a report.
 
     Usage::
 
-        tabs = N.tabs(["Overview", "Details"])
+        tabs = st.tabs(["Overview", "Details"])
         with tabs.tab("Overview"):
-            N.md("Overview content")
+            st.md("Overview content")
         with tabs.tab("Details"):
-            N.table(df)
+            st.table(df)
     """
 
     def __init__(self, notebook: Notebook, labels: Sequence[str]):
@@ -1011,7 +875,7 @@ class _TabGroup:
         """Open a tab section by label.
 
         Args:
-            label: Must match one of the labels passed to N.tabs().
+            label: Must match one of the labels passed to st.tabs().
         """
         self._notebook._w(render_tab_start(label))
         yield
@@ -1019,15 +883,15 @@ class _TabGroup:
 
 
 class _ColumnGroup:
-    """Helper for column layout within a notebook.
+    """Helper for column layout within a report.
 
     Usage::
 
-        cols = N.columns(3)
+        cols = st.columns(3)
         with cols.col(0):
-            N.metric("A", "100")
+            st.metric("A", "100")
         with cols.col(1):
-            N.metric("B", "200")
+            st.metric("B", "200")
     """
 
     def __init__(self, notebook: Notebook, n: int):
