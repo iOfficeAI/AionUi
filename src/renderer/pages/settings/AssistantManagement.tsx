@@ -192,6 +192,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       // 通过 ID 去重（保留第一次出现的）
       const uniqueAgents = allAgents.filter((agent, index, self) => index === self.findIndex((a) => a.id === agent.id));
 
+      // If duplicates were found, save the cleaned list back to storage
+      // 如果发现重复项，将清理后的列表保存回存储
+      if (uniqueAgents.length < allAgents.length) {
+        console.log(`[AssistantManagement] Removed ${allAgents.length - uniqueAgents.length} duplicate assistant(s) from storage`);
+        await ConfigStorage.set('acp.customAgents', uniqueAgents);
+      }
+
       const sortedAssistants = sortAssistants(uniqueAgents);
 
       setAssistants(sortedAssistants);
@@ -204,28 +211,6 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   useEffect(() => {
     void loadAssistants();
   }, [loadAssistants]);
-
-  // Cleanup duplicate assistants in storage on mount
-  // 在组件挂载时清理存储中的重复助手
-  useEffect(() => {
-    const cleanupDuplicates = async () => {
-      try {
-        const allAgents: AcpBackendConfig[] = (await ConfigStorage.get('acp.customAgents')) || [];
-        const uniqueAgents = allAgents.filter((agent, index, self) => index === self.findIndex((a) => a.id === agent.id));
-
-        // Only update if there were duplicates
-        // 仅当存在重复项时才更新
-        if (uniqueAgents.length < allAgents.length) {
-          console.log(`[AssistantManagement] Removed ${allAgents.length - uniqueAgents.length} duplicate assistants`);
-          await ConfigStorage.set('acp.customAgents', uniqueAgents);
-        }
-      } catch (error) {
-        console.error('Failed to cleanup duplicate assistants:', error);
-      }
-    };
-
-    void cleanupDuplicates();
-  }, []);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
 
