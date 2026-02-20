@@ -1,6 +1,6 @@
 # Factor Investigation: VCB
 
-_Generated: 2026-02-21 01:37:29_
+_Generated: 2026-02-21 06:46:21_
 
 ## Artifacts
 
@@ -8,7 +8,7 @@ _No artifacts generated._
 
 ---
 
-## Cell 1 — Setup: Calculate factor z-scores
+## Setup: Calculate Factor Z-Scores
 
 #### Factor Z-Scores
 
@@ -20,27 +20,21 @@ _No artifacts generated._
 | Growth     | 0.6   |
 | Volatility | 0.9   |
 
-**Output (stdout)**
+## Observation: Quality + Value Combination (Unusual)
 
-```text
-✓ Factor scores calculated
-```
+## The Puzzle
 
----
+**Normal market pattern**:
 
-## Cell 2 — Observation: Quality + Value combination (unusual)
+- High quality stocks -> Trade at premium (P/B > 2.5x) -> Negative value score
+- Cheap stocks -> Lower quality (ROE < 15%) -> Positive value score
 
-    ## The Puzzle
+**VCB pattern (ANOMALY)**:
 
-    **Normal market pattern**:
-    - High quality stocks → Trade at premium (P/B > 2.5x) → Negative value score
-    - Cheap stocks → Lower quality (ROE < 15%) → Positive value score
+- Quality z-score: **+1.5** (93rd percentile, top 7%)
+- Value z-score: **+0.8** (76th percentile, cheaper than 76%)
 
-    **VCB pattern (ANOMALY)**:
-    - Quality z-score: **+1.5** (93rd percentile, top 7%)
-    - Value z-score: **+0.8** (76th percentile, cheaper than 76%)
-
-    **Question**: Is this mispricing or hidden risk?
+**Question**: Is this mispricing or hidden risk?
 
 #### Profile Summary
 
@@ -51,18 +45,16 @@ _No artifacts generated._
 | Percentile      | 82nd                             |
 | Quartile        | Q1                               |
 
----
+## Investigation: Why Does High-Quality Stock Trade Cheap?
 
-## Cell 3 — Investigation: Why does high-quality stock trade cheap?
+**Possible explanations**:
 
-    **Possible explanations**:
+1. **Market hasn't recognized quality improvement yet** <- INVESTIGATE
+2. Hidden risk (regulatory, management, NPL) <- CHECK
+3. Sector out of favor (all banks cheap) <- CROSS-VALIDATE
+4. Liquidity discount (low float) <- VERIFY
 
-    1. **Market hasn't recognized quality improvement yet** ← INVESTIGATE
-    2. Hidden risk (regulatory, management, NPL) ← CHECK
-    3. Sector out of favor (all banks cheap) ← CROSS-VALIDATE
-    4. Liquidity discount (low float) ← VERIFY
-
-    **Testing hypothesis #1**: Quality improvement not priced in
+**Testing hypothesis #1**: Quality improvement not priced in
 
 #### Quality vs Valuation Trend
 
@@ -76,22 +68,14 @@ _shape: 3 rows × 3 cols_
 
 #### Quality Improvement vs Price
 
-| Key        | Value                                                  |
-| ---------- | ------------------------------------------------------ |
-| ROE Change | +25% (18.0% → 22.5%)                                   |
-| P/B Change | +15% (2.0x → 2.3x)                                     |
-| Lag        | 10%pts                                                 |
-| Finding    | Quality improved +25% but price only +15% → MISPRICING |
+| Key        | Value                                                   |
+| ---------- | ------------------------------------------------------- |
+| ROE Change | +25% (18.0% -> 22.5%)                                   |
+| P/B Change | +15% (2.0x -> 2.3x)                                     |
+| Lag        | 10%pts                                                  |
+| Finding    | Quality improved +25% but price only +15% -> MISPRICING |
 
-**Output (stdout)**
-
-```text
-✓ DISCOVERY: Quality improved faster than price - market lag
-```
-
----
-
-## Cell 4 — Cross-sectional validation: Is VCB unique?
+## Cross-Sectional Validation: Is VCB Unique?
 
 #### Peer Factor Comparison
 
@@ -105,69 +89,60 @@ _shape: 3 rows × 3 cols_
 
 _shape: 5 rows × 3 cols_
 
-    **Cross-sectional analysis**:
+**Cross-sectional analysis**:
 
-    - **VCB**: Quality 1.5, Value 0.8 → ANOMALY (high + cheap)
-    - **TCB**: Quality 0.9, Value -0.2 → Normal (high quality = expensive)
-    - **VPB**: Quality 0.6, Value 1.2 → Normal (cheap = lower quality)
-    - **ACB**: Quality 0.3, Value 0.9 → Normal (cheap = low quality)
+- **VCB**: Quality 1.5, Value 0.8 -> ANOMALY (high + cheap)
+- **TCB**: Quality 0.9, Value -0.2 -> Normal (high quality = expensive)
+- **VPB**: Quality 0.6, Value 1.2 -> Normal (cheap = lower quality)
+- **ACB**: Quality 0.3, Value 0.9 -> Normal (cheap = low quality)
 
-    **Finding**: VCB is UNIQUE outlier
-    - Only bank with high quality + cheap valuation
-    - Not a sector-wide pattern → VCB-specific mispricing
+**Finding**: VCB is UNIQUE outlier
 
-**Output (stdout)**
+- Only bank with high quality + cheap valuation
+- Not a sector-wide pattern -> VCB-specific mispricing
 
-```text
-✓ DISCOVERY: VCB is unique outlier - not sector-wide pattern
-```
+## Macro Alignment Check: Does Weak Momentum Matter?
 
----
+**Regime-factor alignment**:
 
-## Cell 5 — Macro alignment check: Does weak momentum matter?
+**Current regime**: EXPANSION (favors Momentum, Growth)
+**VCB profile**: Quality + Value (weak momentum -0.3)
 
-    **Regime-factor alignment**:
+**Conflict**: Weak momentum contradicts expansion regime
 
-    **Current regime**: EXPANSION (favors Momentum, Growth)
-    **VCB profile**: Quality + Value (weak momentum -0.3)
+**Why weak momentum?**
 
-    **Conflict**: Weak momentum contradicts expansion regime
+- Price up +15% (not bad in absolute terms)
+- But quality up +25% -> Price LAGGED quality improvement
+- Market recognition lag -> Weak momentum
 
-    **Why weak momentum?**
-    - Price up +15% (not bad in absolute terms)
-    - But quality up +25% → Price LAGGED quality improvement
-    - Market recognition lag → Weak momentum
+**Expected**: When market recognizes quality improvement
 
-    **Expected**: When market recognizes quality improvement
-    - Momentum should flip positive
-    - Price catches up to fundamentals
-    - Quality-value mispricing corrects
+- Momentum should flip positive
+- Price catches up to fundamentals
+- Quality-value mispricing corrects
 
----
+## Catalyst Timeline: When Will Mispricing Correct?
 
-## Cell 6 — Catalyst timeline: When will mispricing correct?
+**Potential catalysts**:
 
-    **Potential catalysts**:
+1. **Q1 2026 earnings** (Feb 2026)
+   - ROE confirmation at 22%+ level
+   - NIM stability demonstrated
+   - Market realizes "this is not temporary"
 
-    1. **Q1 2026 earnings** (Feb 2026)
-       - ROE confirmation at 22%+ level
-       - NIM stability demonstrated
-       - Market realizes "this is not temporary"
+2. **Analyst upgrades** (post-earnings)
+   - Consensus ROE estimates raised from 20% -> 22%
+   - Target P/B multiples raised from 2.5x -> 2.7x
 
-    2. **Analyst upgrades** (post-earnings)
-       - Consensus ROE estimates raised from 20% → 22%
-       - Target P/B multiples raised from 2.5x → 2.7x
+3. **Macro momentum** (expansion regime)
+   - Banks outperform in mid-expansion
+   - Sector rotation into banks -> VCB benefits
 
-    3. **Macro momentum** (expansion regime)
-       - Banks outperform in mid-expansion
-       - Sector rotation into banks → VCB benefits
+**Timeline**: 3-6 months for mispricing to correct
+**Expected price move**: +12-15% (quality re-rating)
 
-    **Timeline**: 3-6 months for mispricing to correct
-    **Expected price move**: +12-15% (quality re-rating)
-
----
-
-## Cell 7 — Bottom line: Factor-based investment thesis
+## Bottom Line: Factor-Based Investment Thesis
 
 #### Factor-Based Thesis
 
@@ -182,24 +157,26 @@ _shape: 5 rows × 3 cols_
 | Rating     | STRONG BUY                                       |
 | Conviction | HIGH (statistical anomaly + fundamental support) |
 
-    ## Summary
+## Summary
 
-    **Discovery**: VCB is a **quality-value anomaly**
-    - High quality (z=1.5) trading cheap (z=0.8)
-    - Rare combination - most high-quality stocks are expensive
+**Discovery**: VCB is a **quality-value anomaly**
 
-    **Why mispriced**:
-    - Quality improved +25% (ROE 18% → 22.5%)
-    - But price only +15% (P/B 2.0x → 2.3x)
-    - Market hasn't fully recognized quality improvement
+- High quality (z=1.5) trading cheap (z=0.8)
+- Rare combination - most high-quality stocks are expensive
 
-    **Edge**: Statistical anomaly + fundamental catalyst
-    - Weak momentum is a FEATURE not a BUG
-    - Indicates market lag → Opportunity to buy before re-rating
+**Why mispriced**:
 
-    **Action**: STRONG BUY before market recognizes quality improvement
-    - Entry: 98k VND
-    - Target: 110k (+12% from quality re-rating)
-    - Stop: 92k (-6%)
+- Quality improved +25% (ROE 18% -> 22.5%)
+- But price only +15% (P/B 2.0x -> 2.3x)
+- Market hasn't fully recognized quality improvement
 
----
+**Edge**: Statistical anomaly + fundamental catalyst
+
+- Weak momentum is a FEATURE not a BUG
+- Indicates market lag -> Opportunity to buy before re-rating
+
+**Action**: STRONG BUY before market recognizes quality improvement
+
+- Entry: 98k VND
+- Target: 110k (+12% from quality re-rating)
+- Stop: 92k (-6%)

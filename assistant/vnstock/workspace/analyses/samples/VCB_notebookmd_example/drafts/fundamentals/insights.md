@@ -1,6 +1,6 @@
 # Fundamental Investigation: VCB
 
-_Generated: 2026-02-21 01:37:29_
+_Generated: 2026-02-21 06:46:21_
 
 ## Artifacts
 
@@ -8,7 +8,7 @@ _No artifacts generated._
 
 ---
 
-## Cell 1 — Initial observation: VCB has ROE 22.5%
+## Initial Observation: VCB Has ROE 22.5%
 
 #### Initial Metrics
 
@@ -18,19 +18,11 @@ _No artifacts generated._
 | ROA      | 2.8%                                |
 | Question | Why is ROE high? Is it sustainable? |
 
-**Output (stdout)**
+## Question: Is High ROE From Profitability or Leverage?
 
-```text
-✓ Gathered initial profitability metrics
-```
-
----
-
-## Cell 2 — Question: Is high ROE from profitability or leverage?
-
-    **DuPont Analysis**:
-    ROE = Net Margin × Asset Turnover × Leverage
-    22.5% = 25.0% × 0.08 × 11.25
+**DuPont Analysis**:
+ROE = Net Margin x Asset Turnover x Leverage
+22.5% = 25.0% x 0.08 x 11.25
 
 #### DuPont Breakdown
 
@@ -41,29 +33,23 @@ _No artifacts generated._
 | Equity Multiplier | 11.25x                                            |
 | Finding           | High ROE driven by SUPERIOR MARGINS, not leverage |
 
-**Output (stdout)**
+## Deep Dive: WHY Is Net Margin Superior?
 
-```text
-  DuPont ROE: 22.5%
-```
+**Root Cause Analysis**: Why NPM 25% vs sector 20%?
 
----
+**Driver 1: Net Interest Margin (NIM)**
 
-## Cell 3 — Deep dive: WHY is net margin superior?
+- VCB NIM: 3.8%
+- Sector NIM: 3.2%
+- Spread: +60bp advantage
+- Why: Higher retail deposit mix (70% vs 60%) -> lower funding costs
 
-    **Root Cause Analysis**: Why NPM 25% vs sector 20%?
+**Driver 2: Operating Efficiency**
 
-    **Driver 1: Net Interest Margin (NIM)**
-    - VCB NIM: 3.8%
-    - Sector NIM: 3.2%
-    - Spread: +60bp advantage
-    - Why: Higher retail deposit mix (70% vs 60%) → lower funding costs
-
-    **Driver 2: Operating Efficiency**
-    - VCB cost/income: 35%
-    - Sector cost/income: 42%
-    - Spread: 700bp advantage
-    - Why: Digital banking adoption (70% vs peers 45%) → lower branch costs
+- VCB cost/income: 35%
+- Sector cost/income: 42%
+- Spread: 700bp advantage
+- Why: Digital banking adoption (70% vs peers 45%) -> lower branch costs
 
 #### Margin Deep-Dive
 
@@ -73,15 +59,7 @@ _No artifacts generated._
 | Cost Efficiency | 7bp advantage (digital banking)           |
 | Result          | Structural margin advantage, not cyclical |
 
-**Output (stdout)**
-
-```text
-✓ DISCOVERY: Margin advantage from digital banking (structural, not cyclical)
-```
-
----
-
-## Cell 4 — Question: Is this SUSTAINABLE or will margins compress?
+## Question: Is This SUSTAINABLE or Will Margins Compress?
 
 #### NIM Trend (3Y)
 
@@ -91,22 +69,20 @@ _No artifacts generated._
 
 _shape: 1 rows × 3 cols_
 
-    **Sustainability Check**:
+**Sustainability Check**:
 
-    ✓ **NIM EXPANDING** (3.5% → 3.8% over 3Y)
-    - Why expanding? Retail deposit mix growing 60% → 70%
-    - Runway: Can reach 75% (still below best-in-class Thai banks 80%)
+- **NIM EXPANDING** (3.5% -> 3.8% over 3Y)
+  - Why expanding? Retail deposit mix growing 60% -> 70%
+  - Runway: Can reach 75% (still below best-in-class Thai banks 80%)
 
-    ✓ **Cost efficiency WIDENING** (digital adoption 45% → 70%)
-    - Competitors: Still at 45-50% digital adoption
-    - VCB lead: 2-3 years ahead on digital transformation
-    - Moat: Network effects (more users → better UX → more users)
+- **Cost efficiency WIDENING** (digital adoption 45% -> 70%)
+  - Competitors: Still at 45-50% digital adoption
+  - VCB lead: 2-3 years ahead on digital transformation
+  - Moat: Network effects (more users -> better UX -> more users)
 
-    **Conclusion**: Margin advantage is STRUCTURAL and WIDENING, not temporary
+**Conclusion**: Margin advantage is STRUCTURAL and WIDENING, not temporary
 
----
-
-## Cell 5 — Peer validation: Is VCB an outlier or #1 by small margin?
+## Peer Validation: Is VCB an Outlier or #1 by Small Margin?
 
 #### Peer Comparison
 
@@ -129,15 +105,7 @@ _shape: 5 rows × 5 cols_
 | Premium        | +5.2%pts (30% higher)                           |
 | Finding        | VCB is #1 by SIGNIFICANT MARGIN, not close race |
 
-**Output (stdout)**
-
-```text
-✓ DISCOVERY: VCB is 30% better than sector avg - clear leader
-```
-
----
-
-## Cell 6 — Investment implication: Is quality premium justified?
+## Investment Implication: Is Quality Premium Justified?
 
 #### Quality-Adjusted Valuation
 
@@ -149,25 +117,26 @@ _shape: 5 rows × 5 cols_
 | Sector P/B per ROE point | 0.116                                                  |
 | Finding                  | VCB CHEAPER on quality-adjusted basis (0.102 vs 0.116) |
 
-    ## NON-OBVIOUS DISCOVERY
+## NON-OBVIOUS DISCOVERY
 
-    **What market sees**:
-    - VCB P/B 2.3x vs sector 2.0x → "15% premium, fairly valued"
+**What market sees**:
 
-    **What market MISSES**:
-    - VCB ROE 22.5% vs sector 17.3% → 41% ROE premium
-    - Quality-adjusted: VCB P/B-per-ROE 0.102 < sector 0.116
+- VCB P/B 2.3x vs sector 2.0x -> "15% premium, fairly valued"
 
-    **EDGE**: Market underprices quality improvement
-    - ROE improved +25% (18% → 22.5%) over 3Y
-    - But price only up +15%
-    - Quality improvement NOT FULLY PRICED IN
+**What market MISSES**:
 
-    **Action**: STRONG BUY - Sustainable quality at reasonable price
+- VCB ROE 22.5% vs sector 17.3% -> 41% ROE premium
+- Quality-adjusted: VCB P/B-per-ROE 0.102 < sector 0.116
 
----
+**EDGE**: Market underprices quality improvement
 
-## Cell 7 — Bottom line: Investment recommendation
+- ROE improved +25% (18% -> 22.5%) over 3Y
+- But price only up +15%
+- Quality improvement NOT FULLY PRICED IN
+
+**Action**: STRONG BUY - Sustainable quality at reasonable price
+
+## Bottom Line: Investment Recommendation
 
 #### Final Assessment
 
@@ -181,16 +150,15 @@ _shape: 5 rows × 5 cols_
 | Rating           | STRONG BUY                                  |
 | Conviction       | HIGH                                        |
 
-    **Summary**:
-    VCB demonstrates STRONG fundamentals with best-in-class ROE (22.5% vs sector 16.5%),
-    driven by structural cost advantage from digital banking (cost/income 35% vs 42%).
-    Margins expanding (NIM 3.5% → 3.8%), not compressing - sustainable quality.
+**Summary**:
+VCB demonstrates STRONG fundamentals with best-in-class ROE (22.5% vs sector 16.5%),
+driven by structural cost advantage from digital banking (cost/income 35% vs 42%).
+Margins expanding (NIM 3.5% -> 3.8%), not compressing - sustainable quality.
 
-    **Edge**: Quality improved +25% but price only +15% → mispriced quality improvement.
+**Edge**: Quality improved +25% but price only +15% -> mispriced quality improvement.
 
-    **Action**: STRONG BUY
-    - Entry: 98k VND
-    - Target: 110k (+12%)
-    - Stop: 92k (-6%)
+**Action**: STRONG BUY
 
----
+- Entry: 98k VND
+- Target: 110k (+12%)
+- Stop: 92k (-6%)

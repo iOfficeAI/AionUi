@@ -80,6 +80,132 @@ class AssetManager:
         self.register(rel)
         return rel
 
+    def save_plotly(self, fig: Any, filename: str) -> str:
+        """Save a Plotly figure to the assets directory.
+
+        Tries to save as a static image (PNG). Falls back to HTML if kaleido
+        is not installed.
+
+        Args:
+            fig: A plotly Figure object.
+            filename: Output filename (e.g. "chart.png" or "chart.html").
+
+        Returns:
+            Relative path to the saved figure.
+        """
+        self.ensure_dir()
+        out_file = self.assets_dir / filename
+
+        try:
+            # Try static image export (requires kaleido)
+            if filename.endswith(".html"):
+                fig.write_html(str(out_file))
+            else:
+                fig.write_image(str(out_file), scale=2)
+        except Exception:
+            # Fallback to HTML
+            html_name = Path(filename).stem + ".html"
+            out_file = self.assets_dir / html_name
+            fig.write_html(str(out_file))
+
+        rel = self.rel_path(out_file)
+        self.register(rel)
+        return rel
+
+    def save_altair(self, chart: Any, filename: str) -> str:
+        """Save an Altair chart to the assets directory.
+
+        Tries to save as a static image (PNG). Falls back to HTML if
+        altair_saver / vl-convert is not installed.
+
+        Args:
+            chart: An altair Chart object.
+            filename: Output filename (e.g. "chart.png" or "chart.html").
+
+        Returns:
+            Relative path to the saved chart.
+        """
+        self.ensure_dir()
+        out_file = self.assets_dir / filename
+
+        try:
+            if filename.endswith(".html"):
+                chart.save(str(out_file), format="html")
+            else:
+                chart.save(str(out_file))
+        except Exception:
+            # Fallback: save as HTML
+            html_name = Path(filename).stem + ".html"
+            out_file = self.assets_dir / html_name
+            try:
+                chart.save(str(out_file), format="html")
+            except Exception:
+                # Last resort: save the Vega-Lite JSON spec
+                import json
+                json_name = Path(filename).stem + ".json"
+                out_file = self.assets_dir / json_name
+                spec = chart.to_dict()
+                out_file.write_text(json.dumps(spec, indent=2))
+
+        rel = self.rel_path(out_file)
+        self.register(rel)
+        return rel
+
+    def save_image(self, source: Any, filename: str) -> str:
+        """Save a PIL Image or numpy array to the assets directory.
+
+        Args:
+            source: A PIL Image object or numpy array.
+            filename: Output filename (e.g. "image.png").
+
+        Returns:
+            Relative path to the saved image.
+        """
+        self.ensure_dir()
+        out_file = self.assets_dir / filename
+
+        try:
+            # Try PIL Image
+            source.save(str(out_file))
+        except AttributeError:
+            # Try numpy array via PIL
+            try:
+                from PIL import Image
+                img = Image.fromarray(source)
+                img.save(str(out_file))
+            except ImportError:
+                # Fallback via matplotlib
+                import matplotlib.pyplot as plt
+                fig, ax = plt.subplots()
+                ax.imshow(source)
+                ax.axis("off")
+                fig.savefig(str(out_file), bbox_inches="tight", pad_inches=0)
+                plt.close(fig)
+
+        rel = self.rel_path(out_file)
+        self.register(rel)
+        return rel
+
+    def save_json(self, data: Any, filename: str) -> str:
+        """Save data as a JSON file to the assets directory.
+
+        Args:
+            data: Any JSON-serializable object.
+            filename: Output filename (e.g. "data.json").
+
+        Returns:
+            Relative path to the saved JSON file.
+        """
+        import json
+
+        self.ensure_dir()
+        out_file = self.assets_dir / filename
+        out_file.write_text(json.dumps(data, indent=2, ensure_ascii=False, default=str))
+
+        rel = self.rel_path(out_file)
+        self.register(rel)
+        return rel
+
     def render_index(self) -> str:
         """Render the artifacts index as a markdown section."""
         if not self._artifacts:

@@ -1,7 +1,7 @@
 [project]
 name = "notebookmd"
-version = "0.1.0"
-description = "Python-first notebook-like report generator that outputs agent-readable Markdown"
+version = "0.2.0"
+description = "Python-first notebook-like report generator with Streamlit-compatible API that outputs agent-readable Markdown"
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -10,8 +10,25 @@ dependencies = []
 [project.optional-dependencies]
 pandas = ["pandas>=2.1.0", "tabulate>=0.9.0"]
 plotting = ["matplotlib>=3.8.0"]
-all = ["pandas>=2.1.0", "tabulate>=0.9.0", "matplotlib>=3.8.0"]
-dev = ["pytest>=7.4.0", "pandas>=2.1.0", "tabulate>=0.9.0", "matplotlib>=3.8.0"]
+plotly = ["plotly>=5.18.0", "kaleido>=0.2.1"]
+altair = ["altair>=5.2.0", "vl-convert-python>=1.1.0"]
+pillow = ["Pillow>=10.0.0"]
+all = [
+    "pandas>=2.1.0",
+    "tabulate>=0.9.0",
+    "matplotlib>=3.8.0",
+    "plotly>=5.18.0",
+    "kaleido>=0.2.1",
+    "altair>=5.2.0",
+    "Pillow>=10.0.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pandas>=2.1.0",
+    "tabulate>=0.9.0",
+    "matplotlib>=3.8.0",
+    "plotly>=5.18.0",
+]
 
 [build-system]
 requires = ["hatchling"]
