@@ -158,3 +158,6 @@ ${env.ELECTRON_CACHE}/
 # Agent Kit
 .agent
 wiki/
+
+# Local design docs and screenshots
+desdoc/
