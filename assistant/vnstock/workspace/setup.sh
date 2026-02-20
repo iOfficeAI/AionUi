@@ -25,8 +25,12 @@ $PYTHON -m pip install -q --upgrade pip
 $PYTHON -m pip install -q pydantic requests pandas numpy python-dotenv httpx plotly kaleido dash
 # Add vnstock for Vietnamese stock data
 $PYTHON -m pip install -q vnstock>=3.4.2
+# Technical analysis library
+$PYTHON -m pip install -q pandas-ta
+# Enhanced charting
+$PYTHON -m pip install -q plotly-resampler
 
-echo "Dependencies installed (including vnstock for Vietnamese market data)."
+echo "Dependencies installed (including vnstock, pandas-ta, and plotly-resampler)."
 touch "$MARKER"
 echo "Environment ready. You can now run finance research commands."
 echo "To launch the dashboard: python app.py"

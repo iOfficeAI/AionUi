@@ -2,24 +2,39 @@
 
 Calculate quantitative investment factors and cross-sectional rankings for Vietnamese stocks.
 
-## Commands
+## Python Library (Recommended)
 
-### Calculate Factors
+Import and use as functions:
 
-```bash
-python scripts/calculate_factors.py --symbol VCB --output factors.json
+```python
+import sys
+sys.path.insert(0, '.')
+
+from factor_analyst.calculate import calculate_factor_scores, rank_universe
+from factor_analyst.correlation import calculate_factor_correlation
+
+# Calculate factor scores for a stock
+factor_scores = calculate_factor_scores(symbol='VCB')
+
+# Rank stock against universe
+rankings = rank_universe(universe='VN30', date='2026-02-20')
+
+# Calculate factor correlation
+correlation = calculate_factor_correlation(symbols=['VCB', 'ACB', 'TCB', 'VPB'])
+
+print(f"Value z-score: {factor_scores['value']['z_score']:.2f}")
+print(f"Quality z-score: {factor_scores['quality']['z_score']:.2f}")
+print(f"Rank in VN30: #{rankings['rank']} of {rankings['total']}")
 ```
 
-### Rank Universe
+## CLI (Legacy)
+
+For backward compatibility:
 
 ```bash
-python scripts/rank_universe.py --universe VN30 --output rankings.json
-```
-
-### Factor Correlation
-
-```bash
-python scripts/factor_correlation.py --symbols "VCB,ACB,TCB,VPB" --output correlation.json
+python scripts/calculate_factors.py --symbol VCB
+python scripts/rank_universe.py --universe VN30
+python scripts/factor_correlation.py --symbols "VCB,ACB,TCB,VPB"
 ```
 
 ## Factors
@@ -56,43 +71,58 @@ python scripts/factor_correlation.py --symbols "VCB,ACB,TCB,VPB" --output correl
 
 ## Output Format
 
-```json
+Returns a Python dict:
+
+```python
 {
-  "symbol": "VCB",
-  "timestamp": "2026-02-20T10:30:00Z",
-  "factors": {
-    "value": {
-      "pe_ratio": 12.5,
-      "pb_ratio": 2.3,
-      "ev_ebitda": 8.5,
-      "z_score": 0.8
+    "symbol": "VCB",
+    "timestamp": "2026-02-20T10:30:00Z",
+    "factors": {
+        "value": {
+            "pe_ratio": 12.5,
+            "pb_ratio": 2.3,
+            "ev_ebitda": 8.5,
+            "z_score": 0.8
+        },
+        "momentum": {
+            "return_12m": 25.5,
+            "return_6m": 15.2,
+            "rsi": 62.0,
+            "z_score": 1.2
+        },
+        "quality": {
+            "roe": 18.5,
+            "roa": 1.2,
+            "debt_equity": 6.5,
+            "z_score": 1.5
+        },
+        "growth": {
+            "revenue_cagr": 12.0,
+            "eps_cagr": 15.0,
+            "sales_growth_yoy": 14.0,
+            "z_score": 0.9
+        },
+        "volatility": {
+            "std_dev": 18.5,
+            "beta": 0.9,
+            "max_drawdown": -15.0,
+            "z_score": -0.5
+        }
     },
-    "momentum": {
-      "return_12m": 25.5,
-      "return_6m": 15.2,
-      "rsi": 62.0,
-      "z_score": 1.2
-    },
-    "quality": {
-      "roe": 18.5,
-      "roa": 1.2,
-      "debt_equity": 6.5,
-      "z_score": 1.5
-    },
-    "growth": {
-      "revenue_cagr": 12.0,
-      "eps_cagr": 15.0,
-      "sales_growth_yoy": 14.0,
-      "z_score": 0.9
-    },
-    "volatility": {
-      "std_dev": 18.5,
-      "beta": 0.9,
-      "max_drawdown": -15.0,
-      "z_score": -0.5
-    }
-  },
-  "composite_score": 4.9,
-  "percentile_rank": 78
+    "composite_score": 4.9,
+    "percentile_rank": 78
 }
+```
+
+### Save to CSV (Optional)
+
+```python
+import pandas as pd
+
+# Save factor scores
+pd.DataFrame([factor_scores]).to_csv('drafts/factors/data/factor_scores.csv', index=False)
+
+# Flatten nested structure for CSV
+flattened = pd.json_normalize(factor_scores)
+flattened.to_csv('drafts/factors/data/factors_detailed.csv', index=False)
 ```

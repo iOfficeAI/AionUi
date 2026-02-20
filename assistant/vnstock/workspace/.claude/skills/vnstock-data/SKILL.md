@@ -2,16 +2,16 @@
 
 Vietnamese stock market data access via vnstock library.
 
-## Python Library (Recommended)
+## Python Library
 
-Direct Python imports for zero-overhead data access. Use this instead of CLI for agent scripts.
+Direct Python imports for zero-overhead data access.
 
 ### Import
 
 ```python
 import sys
 sys.path.insert(0, '.')
-from .claude.skills.vnstock_data.vnstock_lib import (
+from vnstock_lib import (
     fetch_quote,
     fetch_balance_sheet,
     fetch_income_statement,
@@ -120,32 +120,36 @@ returns = calculate_returns('VCB', '2025-02-20', '2026-02-20', ['1M', '3M', '12M
 return_12m = returns.loc[returns['period'] == '12M', 'return'].values[0]
 ```
 
----
+## Best Practices
 
-## CLI Interface (Legacy - Deprecated)
+1. **Always use direct imports**: Import from `vnstock_lib` instead of CLI wrappers
+2. **CSV for persistence**: Save DataFrames as CSV for spreadsheet compatibility
+3. **Type safety**: Work with pandas DataFrames and Python dicts
+4. **Error handling**: Use try/except for data fetching operations
 
-CLI wrapper for vnstock. **Prefer Python library above for better performance.**
+### Example Usage
 
-### Get Quote
+```python
+import sys
+sys.path.insert(0, '.')
+from vnstock_lib import fetch_quote, fetch_ratios
+import pandas as pd
 
-```bash
-python scripts/vnstock_cli.py quote --params '{"symbol":"VCB","start":"2024-01-01","end":"2025-02-20"}'
-```
+# Fetch price data
+prices = fetch_quote('VCB', start='2025-01-01', end='2026-02-20')
 
-### Get Financials
+# Calculate returns
+returns = prices['close'].pct_change()
+total_return = (prices['close'].iloc[-1] / prices['close'].iloc[0]) - 1
 
-```bash
-python scripts/vnstock_cli.py finance --params '{"symbol":"VCB","statement_type":"balance_sheet"}'
-```
+# Fetch fundamentals
+ratios = fetch_ratios('VCB', period='annual')
+roe = ratios.loc[ratios['Metric'] == 'ROE', 'Value'].values[0]
 
-### List Symbols
+# Save to CSV (optional)
+prices.to_csv('data/vcb_prices.csv', index=False)
+ratios.to_csv('data/vcb_ratios.csv', index=False)
 
-```bash
-python scripts/vnstock_cli.py listing --params '{"category":"all"}'
-```
-
-### Get Price Board
-
-```bash
-python scripts/vnstock_cli.py trading --params '{"symbols_list":"VCB,ACB,TCB"}'
+print(f"Total return: {total_return:.1%}")
+print(f"ROE: {roe:.1f}%")
 ```
