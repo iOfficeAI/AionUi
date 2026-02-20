@@ -104,6 +104,36 @@ def get_favored_factors(regime: Regime) -> list[str]:
     return factor_map.get(regime, [])
 
 
+def classify_regime_dict(gdp_growth: float, credit_growth: float, inflation: float) -> dict:
+    """
+    Main function for regime classification - can be imported by other modules.
+
+    Args:
+        gdp_growth: GDP growth rate (%)
+        credit_growth: Credit growth rate (%)
+        inflation: Inflation rate (%)
+
+    Returns:
+        Dict with regime classification and metadata
+    """
+    regime, confidence = classify_regime(gdp_growth, credit_growth, inflation)
+
+    result = {
+        "regime": regime,
+        "confidence": round(confidence * 100),  # Convert to percentage
+        "indicators": {
+            "gdp_growth": gdp_growth,
+            "credit_growth": credit_growth,
+            "inflation": inflation
+        },
+        "favored_sectors": get_favored_sectors(regime),
+        "favored_factors": get_favored_factors(regime),
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Classify Vietnam's macroeconomic regime"
