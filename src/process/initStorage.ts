@@ -988,6 +988,23 @@ const initStorage = async () => {
       hasChanges = true;
     }
 
+    // Remove exact ID duplicates (keep the first occurrence)
+    // 移除完全相同ID的重复项（保留第一次出现的）
+    const seenIds = new Set<string>();
+    const deduplicatedAgents: AcpBackendConfig[] = [];
+    for (const agent of updatedAgents) {
+      if (!seenIds.has(agent.id)) {
+        seenIds.add(agent.id);
+        deduplicatedAgents.push(agent);
+      }
+    }
+    if (deduplicatedAgents.length !== updatedAgents.length) {
+      console.log(`[AionUi] Removed ${updatedAgents.length - deduplicatedAgents.length} exact duplicate assistant(s)`);
+      updatedAgents.length = 0;
+      updatedAgents.push(...deduplicatedAgents);
+      hasChanges = true;
+    }
+
     if (hasChanges) {
       await configFile.set('acp.customAgents', updatedAgents);
     }
