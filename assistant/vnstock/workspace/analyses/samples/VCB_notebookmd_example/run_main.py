@@ -7,14 +7,17 @@ Focus: Finding edges by triangulating independent discoveries
 """
 
 import sys
+from pathlib import Path
 sys.path.insert(0, '../../..')
 
 from notebookmd import nb, NotebookConfig
-from pathlib import Path
 
 # Initialize notebookmd
 cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=True)
-N = nb('final_report.md', title='Investment Analysis: VCB - Finding the Edge', cfg=cfg)
+
+# Save to the example directory root
+script_dir = Path(__file__).parent
+N = nb(script_dir / 'final_report.md', title='Investment Analysis: VCB - Finding the Edge', cfg=cfg)
 
 print("=" * 70)
 print("MAIN AGENT: Synthesizing sub-agent discoveries")

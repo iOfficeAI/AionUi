@@ -7,6 +7,7 @@ Focus: WHY is ROE high? WHY is it sustainable? Not just "ROE is 22.5%"
 """
 
 import sys
+from pathlib import Path
 sys.path.insert(0, '../../../..')
 
 from notebookmd import nb, NotebookConfig
@@ -14,7 +15,10 @@ import pandas as pd
 
 # Initialize notebookmd
 cfg = NotebookConfig(max_table_rows=30, echo_to_console=True, include_code_default=True)
-N = nb('insights.md', title='Fundamental Investigation: VCB', cfg=cfg)
+
+# Save to the fundamentals subfolder
+script_dir = Path(__file__).parent
+N = nb(script_dir / 'insights.md', title='Fundamental Investigation: VCB', cfg=cfg)
 
 # ============================================================================
 # Investigation: Not a checklist, but a series of "why?" questions

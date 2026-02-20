@@ -7,6 +7,7 @@ Focus: Finding non-obvious sector rotation insights, not just "expansion = bulli
 """
 
 import sys
+from pathlib import Path
 sys.path.insert(0, '../../../..')  # Access vnstock workspace root
 
 from notebookmd import nb, NotebookConfig
@@ -17,7 +18,10 @@ cfg = NotebookConfig(
     echo_to_console=True,        # Live investigation feedback
     include_code_default=True    # Show HOW insights were discovered
 )
-N = nb('insights.md', title='Macro Regime Investigation: Vietnam', cfg=cfg)
+
+# Save to the macro subfolder
+script_dir = Path(__file__).parent
+N = nb(script_dir / 'insights.md', title='Macro Regime Investigation: Vietnam', cfg=cfg)
 
 # ============================================================================
 # Investigation Workflow: Not a checklist, but a series of questions
