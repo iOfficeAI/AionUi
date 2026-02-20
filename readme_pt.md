@@ -43,10 +43,10 @@
 
 <p align="center">
 
-[✨ Cowork em ação](#cowork--ai-agents-que-trabalham-com-você) ·
-[🤔 Por que escolher AionUi?](#por-que-escolher-aionui-sobre-claude-cowork) ·
-[🚀 Início rápido](#início-rápido) ·
-[💬 Comunidade](#comunidade--suporte)
+[✨ Cowork em ação](#✨-cowork-em-ação) ·
+[🤔 Por que escolher AionUi?](#🤔-por-que-escolher-aionui-sobre-claude-cowork) ·
+[🚀 Início rápido](#🚀-início-rápido) ·
+[💬 Comunidade](#💬-comunidade-e-suporte)
 
 </p>
 

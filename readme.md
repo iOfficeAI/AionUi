@@ -43,10 +43,10 @@
 
 <p align="center">
 
-[✨ Cowork in Action](#cowork-in-action) ·
-[🤔 Why Choose AionUi?](#why-choose-aionui-over-claude-cowork) ·
-[🚀 Quick Start](#quick-start) ·
-[💬 Community](#community--support)
+[✨ Cowork in Action](#✨-cowork-in-action) ·
+[🤔 Why Choose AionUi?](#🤔-why-choose-aionui-over-claude-cowork) ·
+[🚀 Quick Start](#🚀-quick-start) ·
+[💬 Community](#💬-community--support)
 
 </p>
 
