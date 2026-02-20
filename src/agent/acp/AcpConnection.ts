@@ -255,7 +255,7 @@ export class AcpConnection {
     // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp'];
+    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp@0.18.0'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -854,7 +854,7 @@ export class AcpConnection {
     this.sessionId = response.sessionId;
 
     // Parse configOptions and models from session/new response
-    const result = response as Record<string, unknown>;
+    const result = response as unknown as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
     }
@@ -927,7 +927,7 @@ export class AcpConnection {
       throw new Error('No active ACP session');
     }
 
-    const response = await this.sendRequest('session/set_model', {
+    const response = await this.sendRequest<AcpResponse>('session/set_model', {
       sessionId: this.sessionId,
       modelId,
     });
@@ -945,14 +945,14 @@ export class AcpConnection {
       throw new Error('No active ACP session');
     }
 
-    const response = await this.sendRequest(ACP_METHODS.SET_CONFIG_OPTION, {
+    const response = await this.sendRequest<AcpResponse>(ACP_METHODS.SET_CONFIG_OPTION, {
       sessionId: this.sessionId,
       configId,
       value,
     });
 
     // The response may contain the updated configOptions
-    const result = response as Record<string, unknown>;
+    const result = response as unknown as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
     }
