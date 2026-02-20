@@ -194,7 +194,7 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
 > **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Cowork from Anywhere" width="800">
+  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
 </p>
 
 > [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
