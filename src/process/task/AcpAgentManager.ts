@@ -334,6 +334,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             console.warn(`[AcpAgentManager] Failed to re-apply model ${this.persistedModelId}:`, error);
           }
         }
+        // Cache model list for Guid page pre-selection after agent starts
+        const modelInfo = this.agent.getModelInfo();
+        if (modelInfo && modelInfo.availableModels.length > 0) {
+          void this.cacheModelList(modelInfo);
+        }
         return this.agent;
       });
     })();
@@ -714,6 +719,20 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       })
       .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
       .finally(doKill);
+  }
+
+  /**
+   * Cache model list to storage for Guid page pre-selection.
+   * Keyed by backend name (e.g., 'claude', 'qwen').
+   */
+  private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
+    try {
+      const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+      cached[this.options.backend] = modelInfo;
+      await ProcessConfig.set('acp.cachedModels', cached);
+    } catch (error) {
+      console.warn('[AcpAgentManager] Failed to cache model list:', error);
+    }
   }
 
   /**

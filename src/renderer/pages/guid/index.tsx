@@ -28,7 +28,7 @@ import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
-import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type PresetAgentType } from '@/types/acpTypes';
+import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type AcpModelInfo, type PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
@@ -314,6 +314,8 @@ const Guid: React.FC = () => {
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
   const [selectedMode, setSelectedMode] = useState<string>('default');
   const [selectedCodexModel, setSelectedCodexModel] = useState<string>(DEFAULT_CODEX_MODEL_ID);
+  const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
+  const [selectedAcpModel, setSelectedAcpModel] = useState<string | null>(null);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
@@ -567,6 +569,33 @@ const Guid: React.FC = () => {
     };
   }, [availableCustomAgentIds]);
 
+  // Load cached ACP model lists for Guid page pre-selection
+  useEffect(() => {
+    let isActive = true;
+    ConfigStorage.get('acp.cachedModels')
+      .then((cached) => {
+        if (!isActive) return;
+        setAcpCachedModels(cached || {});
+      })
+      .catch((error) => {
+        console.error('Failed to load cached ACP models:', error);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  // Reset selected ACP model when agent changes
+  useEffect(() => {
+    const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
+    const cachedInfo = acpCachedModels[backend];
+    if (cachedInfo?.currentModelId) {
+      setSelectedAcpModel(cachedInfo.currentModelId);
+    } else {
+      setSelectedAcpModel(null);
+    }
+  }, [selectedAgentKey, acpCachedModels]);
+
   useEffect(() => {
     if (mentionOpen) {
       setMentionActiveIndex(0);
@@ -818,6 +847,12 @@ const Guid: React.FC = () => {
     }
     return getEffectiveAgentType(selectedAgentInfo);
   }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
+
+  // Cached model info for the currently selected ACP backend (for Guid page model selector)
+  const currentAcpCachedModelInfo = useMemo(() => {
+    const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
+    return acpCachedModels[backend] || null;
+  }, [selectedAgentKey, acpCachedModels]);
 
   /**
    * 自动切换仅适用于 Gemini agent（可以同步检查可用性）
@@ -1209,6 +1244,8 @@ const Guid: React.FC = () => {
             presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
             // Initial session mode from Guid page mode selector
             sessionMode: selectedMode,
+            // Pre-selected model from Guid page (cached model list)
+            currentModelId: selectedAcpModel || undefined,
           },
         });
 
@@ -1735,6 +1772,31 @@ const Guid: React.FC = () => {
                       {DEFAULT_CODEX_MODELS.find((m) => m.id === selectedCodexModel)?.label || selectedCodexModel}
                     </Button>
                   </Dropdown>
+                ) : currentAcpCachedModelInfo && currentAcpCachedModelInfo.availableModels.length > 0 ? (
+                  currentAcpCachedModelInfo.canSwitch ? (
+                    <Dropdown
+                      trigger='click'
+                      droplist={
+                        <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
+                          {currentAcpCachedModelInfo.availableModels.map((model) => (
+                            <Menu.Item key={model.id} className={model.id === selectedAcpModel ? '!bg-2' : ''} onClick={() => setSelectedAcpModel(model.id)}>
+                              <span>{model.label}</span>
+                            </Menu.Item>
+                          ))}
+                        </Menu>
+                      }
+                    >
+                      <Button className={'sendbox-model-btn'} shape='round'>
+                        {currentAcpCachedModelInfo.availableModels.find((m) => m.id === selectedAcpModel)?.label || selectedAcpModel || t('conversation.welcome.useCliModel')}
+                      </Button>
+                    </Dropdown>
+                  ) : (
+                    <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
+                      <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
+                        {currentAcpCachedModelInfo.currentModelLabel || currentAcpCachedModelInfo.currentModelId || t('conversation.welcome.useCliModel')}
+                      </Button>
+                    </Tooltip>
+                  )
                 ) : (
                   <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
                     <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>

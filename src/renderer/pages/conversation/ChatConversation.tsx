@@ -176,7 +176,11 @@ const ChatConversation: React.FC<{
   // NOTE: This must be placed before the Gemini early return to maintain consistent hook order.
   const modelSelector = useMemo(() => {
     if (!conversation || isGeminiConversation) return undefined;
-    if (conversation.type === 'acp' || conversation.type === 'codex') {
+    if (conversation.type === 'acp') {
+      const extra = conversation.extra as { backend?: string; currentModelId?: string };
+      return <AcpModelSelector conversationId={conversation.id} backend={extra.backend} initialModelId={extra.currentModelId} />;
+    }
+    if (conversation.type === 'codex') {
       return <AcpModelSelector conversationId={conversation.id} />;
     }
     return <GeminiModelSelector disabled={true} />;
