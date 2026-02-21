@@ -255,7 +255,7 @@ export class AcpConnection {
     // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['@zed-industries/claude-agent-acp@0.18.0'];
+    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp@0.18.0'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
