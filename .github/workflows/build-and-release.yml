@@ -4,6 +4,7 @@ permissions:
   contents: write
   issues: read
   pull-requests: read
+  actions: write
 
 on:
   push:
@@ -101,9 +102,14 @@ jobs:
 
       - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
         if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: |
-          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          retry_wait_seconds: 60
+          shell: pwsh
+          command: |
+            choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
 
       - name: Setup Windows build environment (for Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -499,29 +505,26 @@ jobs:
       - name: Log retry information
         run: |
           echo "=========================================="
-          echo "🔄 自动重试触发（首次失败）"
+          echo "🔄 Auto retry triggered (first failure)"
           echo "=========================================="
-          echo "构建首次失败，准备自动重试..."
-          echo "当前尝试次数: ${{ github.run_attempt }}"
-          echo "等待策略: 1 小时后重试（给 Apple 公证服务处理时间）"
-          echo ""
-          echo "根据 Apple 官方说明，首次公证可能需要数小时甚至数天"
-          echo "参考: https://developer.apple.com/forums/thread/756867"
+          echo "Build failed on first attempt, preparing auto retry..."
+          echo "Current attempt: ${{ github.run_attempt }}"
+          echo "Wait strategy: 5 minutes cooldown before retry"
           echo "=========================================="
 
-      - name: Wait before retry (1 hour for Apple notarization)
+      - name: Wait before retry (5 min cooldown)
         run: |
-          echo "⏳ 等待 1 小时后重试，给 Apple 公证服务处理时间..."
-          echo "开始时间: $(date)"
-          sleep 3600
-          echo "等待结束: $(date)"
-          echo "准备触发重试..."
+          echo "⏳ Waiting 5 minutes before retry..."
+          echo "Start: $(date)"
+          sleep 300
+          echo "End: $(date)"
+          echo "Triggering retry..."
 
       - name: Trigger workflow rerun
         run: |
-          echo "🔄 触发 workflow 完整重新运行（第 2 次尝试）..."
+          echo "🔄 Triggering full workflow rerun (attempt 2)..."
 
-          # 使用 re-run API（不是 rerun-failed-jobs，避免循环）
+          # Use re-run API (not rerun-failed-jobs, to avoid loops)
           response=$(curl -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
@@ -532,13 +535,13 @@ jobs:
 
           if [ "$http_code" = "201" ]; then
             echo ""
-            echo "✅ 重试已成功触发"
-            echo "这将是第 2 次尝试"
-            echo "查看详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "✅ Retry triggered successfully"
+            echo "This will be attempt 2"
+            echo "Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           else
             echo ""
-            echo "❌ 重试触发失败，HTTP 状态码: $http_code"
-            echo "响应内容:"
+            echo "❌ Retry trigger failed, HTTP status: $http_code"
+            echo "Response:"
             echo "$response" | head -n-1
             exit 1
           fi
