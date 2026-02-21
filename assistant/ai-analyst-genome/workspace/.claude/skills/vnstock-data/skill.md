@@ -10,6 +10,25 @@ Connect to the Vietnamese stock market data platform via the vnstock library. Pr
 - Used by data-explorer agent for all data retrieval
 - Used by cache skill for refresh operations
 
+## Runtime Setup (IMPORTANT)
+
+**Always use the Python environment wrapper:**
+
+```bash
+# In workspace root:
+source ./python_env.sh
+
+# Then run Python with $PYTHON variable:
+$PYTHON -c "from vnstock_lib import fetch_price_board; print(fetch_price_board(['VCB']))"
+```
+
+**DO NOT use bare `python3`** - it may point to incompatible Python 3.9.
+
+The `python_env.sh` wrapper ensures:
+
+- Correct Python version (3.10+) from `.python_bin`
+- vnstock-data skill is in Python path (no need for sys.path hacks)
+
 ## INSTRUCTIONS
 
 ### Data Access Functions

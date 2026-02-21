@@ -39,28 +39,27 @@ module.exports = {
         if (await utils.exists(setupPath)) {
           const { execSync } = require('child_process');
           try {
-            execSync(`bash "${setupPath}"`, {
+            const output = execSync(`bash "${setupPath}"`, {
               cwd: workspace,
               stdio: 'pipe',
-              timeout: 120000, // 2 minute timeout for pip installs
+              timeout: 180000, // 3 minute timeout (increased from 2 min)
               env: { ...process.env, HOME: process.env.HOME || '/root' },
-            });
+            }).toString();
+
+            // Log setup output for debugging
+            console.log('[ai-analyst-genome] setup.sh completed:', output);
           } catch (setupError) {
-            // Non-fatal — log warning but don't block workspace creation
-            console.warn(
-              '[ai-analyst-genome] setup.sh warning:',
-              setupError.message
-            );
+            // Log full error including stderr
+            console.error('[ai-analyst-genome] setup.sh FAILED:', setupError.message, '\nStderr:', setupError.stderr?.toString());
+            // Don't write .initialized marker if setup failed
+            throw setupError;
           }
         }
 
         // Write marker file
         await utils.writeFile(markerPath, new Date().toISOString());
       } catch (error) {
-        console.warn(
-          '[ai-analyst-genome] Workspace init warning:',
-          error.message
-        );
+        console.warn('[ai-analyst-genome] Workspace init warning:', error.message);
       }
     },
     priority: 10, // HIGH — run before other hooks
@@ -84,19 +83,12 @@ module.exports = {
         const hasConfig = await utils.exists(configPath);
 
         if (isInitialized && hasConfig) {
-          const prefix =
-            '[AI Analyst Environment Ready]\n' +
-            'Workspace is initialized with vnstock data platform. ' +
-            'Configuration: genome_config.yaml, data_sources.yaml. ' +
-            'Helpers, agents, skills, and templates are available.\n\n';
+          const prefix = '[AI Analyst Environment Ready]\n' + 'Workspace is initialized with vnstock data platform. ' + 'Configuration: genome_config.yaml, data_sources.yaml. ' + 'Helpers, agents, skills, and templates are available.\n\n';
           return { content: prefix + content };
         }
 
         if (!isInitialized) {
-          const prefix =
-            '[AI Analyst Environment: Setup Pending]\n' +
-            'The Python environment may not be fully initialized. ' +
-            'Run `bash setup.sh` if dependencies are missing.\n\n';
+          const prefix = '[AI Analyst Environment: Setup Pending]\n' + 'The Python environment may not be fully initialized. ' + 'Run `bash setup.sh` if dependencies are missing.\n\n';
           return { content: prefix + content };
         }
       } catch {
