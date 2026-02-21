@@ -14,7 +14,7 @@ import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
+import type { CodexAgentManagerData } from '@/common/codex/types';
 import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
 import type { AcpModelInfo } from '@/types/acpTypes';
 import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
@@ -432,30 +432,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     if (patchChanges) {
       const files = Object.keys(patchChanges);
       this.agent.storePatchApproval(files, decision);
-    }
-  }
-
-  private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
-    try {
-      // 使用文件操作处理器来应用更改 - 参考 ACP 的批量操作
-      await this.agent.getFileOperationHandler().applyBatchChanges(changes);
-
-      // 发送成功事件
-      this.agent.getSessionManager().emitSessionEvent('patch_applied', {
-        callId,
-        changeCount: Object.keys(changes).length,
-        files: Object.keys(changes),
-      });
-
-      // Patch changes applied successfully
-    } catch (error) {
-      // 发送失败事件
-      this.agent.getSessionManager().emitSessionEvent('patch_failed', {
-        callId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      throw error;
     }
   }
 
