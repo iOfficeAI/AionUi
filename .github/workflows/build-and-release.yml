@@ -104,7 +104,7 @@ jobs:
         if: matrix.platform == 'windows-arm64'
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 15
+          timeout_minutes: 20
           max_attempts: 3
           retry_wait_seconds: 60
           shell: pwsh
