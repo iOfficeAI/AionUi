@@ -56,6 +56,12 @@ export type HookContext = {
   utils: HookUtils;
   /** Enqueue a message into the agent's message queue */
   enqueue: (message: QueueMessage) => void;
+  /** Emit a message directly to the conversation UI (for progress/status updates) */
+  emitMessage: (message: {
+    content: string;
+    type?: 'info' | 'warning' | 'error' | 'success';
+    category?: string; // e.g., 'setup_progress', 'setup_complete', 'setup_error'
+  }) => void;
 };
 
 /**

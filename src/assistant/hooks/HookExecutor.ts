@@ -47,6 +47,7 @@ export async function executeHooks(event: HookEvent, context: HookContext, hooks
           event,
           content: result.content ?? context.content,
           enqueue,
+          // emitMessage is already in context, just pass it through
         })
       );
 
@@ -59,6 +60,15 @@ export async function executeHooks(event: HookEvent, context: HookContext, hooks
       }
     } catch (error) {
       console.warn(`[Hooks] ${hook.moduleName}.${hook.event} failed:`, error);
+
+      // Emit error message if emitMessage is available
+      if (context.emitMessage && context.conversationId) {
+        context.emitMessage({
+          content: `⚠️ Hook ${hook.moduleName}.${hook.event} failed: ${error.message}`,
+          type: 'warning',
+          category: 'hook_error',
+        });
+      }
     }
   }
 

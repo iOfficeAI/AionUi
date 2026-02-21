@@ -12,6 +12,8 @@ import { executeHooks } from '@/assistant/hooks/HookExecutor';
 import type { ExecuteHooksResult } from '@/assistant/hooks/HookExecutor';
 import { createHookUtils } from '@/assistant/hooks/HookRunner';
 import type { HookEvent, HookContext } from '@/assistant/hooks/types';
+import { conversation } from '@/common/ipcBridge';
+import { uuid } from '@/common/utils';
 
 /**
  * Supported agent types for hook loading
@@ -68,6 +70,24 @@ export async function runAgentHooks(
     presetContext: context.presetContext,
     utils: createHookUtils(),
     enqueue: () => {},
+    emitMessage: (message) => {
+      if (!context.conversationId) {
+        console.log(`[Agent Hook Message] ${message.content}`);
+        return;
+      }
+
+      conversation.responseStream.emit({
+        type: 'system_message',
+        conversation_id: context.conversationId,
+        msg_id: uuid(),
+        data: {
+          content: message.content,
+          messageType: message.type || 'info',
+          category: message.category || 'hook',
+        },
+        timestamp: Date.now(),
+      });
+    },
   };
 
   return await executeHooks(event, fullContext, hookModules);

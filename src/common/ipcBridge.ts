@@ -815,3 +815,14 @@ export const channel = {
   pluginStatusChanged: bridge.buildEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
 };
+
+// VNStock - Vietnamese stock market data
+export const vnstock = {
+  checkInstallation: bridge.buildProvider<boolean, void>('vnstock:checkInstallation'),
+  getQuote: bridge.buildProvider<IBridgeResponse, { symbol: string; start?: string; end?: string; interval?: string; source?: string }>('vnstock:getQuote'),
+  getFinancials: bridge.buildProvider<IBridgeResponse, { symbol: string; statement_type?: string; period?: string; lang?: string }>('vnstock:getFinancials'),
+  listSymbols: bridge.buildProvider<IBridgeResponse, { category?: string; exchange?: string; industry?: string; group?: string }>('vnstock:listSymbols'),
+  getPriceBoard: bridge.buildProvider<IBridgeResponse, { symbols_list: string; source?: string }>('vnstock:getPriceBoard'),
+  screenStocks: bridge.buildProvider<IBridgeResponse, Record<string, any>>('vnstock:screenStocks'),
+  getFundData: bridge.buildProvider<IBridgeResponse, Record<string, any>>('vnstock:getFundData'),
+};

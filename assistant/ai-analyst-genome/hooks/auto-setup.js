@@ -10,22 +10,40 @@ const MARKER_FILE = '.initialized';
 
 module.exports = {
   /**
-   * onWorkspaceInit — Set up the workspace environment
+   * onWorkspaceInit — Set up the workspace environment with progress messages
    *
    * - Creates required working directories (_working/, outputs/, data/cache/)
    * - Runs setup.sh to install Python dependencies (vnstock, pandas, scipy, etc.)
    * - Writes .initialized marker to prevent re-running on subsequent sessions
+   * - Emits progress updates to conversation UI
    */
   onWorkspaceInit: {
     handler: async (context) => {
-      const { workspace, utils } = context;
+      const { workspace, utils, emitMessage } = context;
       if (!utils) return;
 
       try {
         // Check if already initialized
         const markerPath = utils.join(workspace, MARKER_FILE);
         if (await utils.exists(markerPath)) {
+          // Already initialized, emit ready message
+          if (emitMessage) {
+            emitMessage({
+              content: '✅ AI Analyst Environment already initialized',
+              type: 'success',
+              category: 'setup_complete',
+            });
+          }
           return;
+        }
+
+        // Emit start message
+        if (emitMessage) {
+          emitMessage({
+            content: '🔧 Initializing AI Analyst (Genome) workspace...',
+            type: 'info',
+            category: 'setup_progress',
+          });
         }
 
         // Create required working directories
@@ -37,29 +55,64 @@ module.exports = {
         // Run setup.sh if it exists
         const setupPath = utils.join(workspace, 'setup.sh');
         if (await utils.exists(setupPath)) {
+          if (emitMessage) {
+            emitMessage({
+              content: '📦 Installing Python dependencies (this may take 1-2 minutes)...',
+              type: 'info',
+              category: 'setup_progress',
+            });
+          }
+
           const { execSync } = require('child_process');
           try {
             const output = execSync(`bash "${setupPath}"`, {
               cwd: workspace,
               stdio: 'pipe',
-              timeout: 180000, // 3 minute timeout (increased from 2 min)
+              timeout: 180000, // 3 minute timeout
               env: { ...process.env, HOME: process.env.HOME || '/root' },
             }).toString();
 
-            // Log setup output for debugging
+            // Write marker file
+            await utils.writeFile(markerPath, new Date().toISOString());
+
+            // Emit success message
+            if (emitMessage) {
+              emitMessage({
+                content: '✅ **AI Analyst Environment Ready**\n\nWorkspace is initialized with vnstock data platform. Configuration: `genome_config.yaml`, `data_sources.yaml`. Helpers, agents, skills, and templates are available.',
+                type: 'success',
+                category: 'setup_complete',
+              });
+            }
+
+            // Log output for debugging
             console.log('[ai-analyst-genome] setup.sh completed:', output);
           } catch (setupError) {
-            // Log full error including stderr
+            // Emit error message
+            if (emitMessage) {
+              emitMessage({
+                content: `❌ **AI Analyst Environment Setup Failed**\n\n` + `Error: ${setupError.message}\n\n` + `Please check the setup.sh script. You may need to install Python 3.10+:\n` + `\`\`\`bash\n` + `# macOS\n` + `brew install python@3.10\n\n` + `# Ubuntu\n` + `sudo apt install python3.10\n` + `\`\`\``,
+                type: 'error',
+                category: 'setup_error',
+              });
+            }
+
+            // Log full error for debugging
             console.error('[ai-analyst-genome] setup.sh FAILED:', setupError.message, '\nStderr:', setupError.stderr?.toString());
+
             // Don't write .initialized marker if setup failed
-            throw setupError;
+            // (don't throw error, allow conversation to continue)
           }
         }
-
-        // Write marker file
-        await utils.writeFile(markerPath, new Date().toISOString());
       } catch (error) {
         console.warn('[ai-analyst-genome] Workspace init warning:', error.message);
+
+        if (emitMessage) {
+          emitMessage({
+            content: `⚠️ Workspace initialization warning: ${error.message}`,
+            type: 'warning',
+            category: 'setup_warning',
+          });
+        }
       }
     },
     priority: 10, // HIGH — run before other hooks

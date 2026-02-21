@@ -12,6 +12,8 @@ import { loadHookModules } from './ModuleLoader';
 import { executeHooks } from './HookExecutor';
 import type { ExecuteHooksResult } from './HookExecutor';
 import type { HookEvent, HookContext, HookUtils } from './types';
+import { conversation } from '@/common/ipcBridge';
+import { uuid } from '@/common/utils';
 
 /**
  * Create utility functions for hooks
@@ -89,6 +91,32 @@ export function createHookUtils(): HookUtils {
 }
 
 /**
+ * Create emitMessage function for hooks to send progress/status to UI
+ */
+function createEmitMessage(conversationId?: string) {
+  return (message: { content: string; type?: 'info' | 'warning' | 'error' | 'success'; category?: string }) => {
+    if (!conversationId) {
+      // No conversation yet, log to console
+      console.log(`[Hook Message] ${message.content}`);
+      return;
+    }
+
+    // Emit directly to conversation UI via IPC
+    conversation.responseStream.emit({
+      type: 'system_message',
+      conversation_id: conversationId,
+      msg_id: uuid(),
+      data: {
+        content: message.content,
+        messageType: message.type || 'info',
+        category: message.category || 'hook',
+      },
+      timestamp: Date.now(),
+    });
+  };
+}
+
+/**
  * Run hooks for assistant-level customization
  *
  * Hook modules are loaded from:
@@ -125,6 +153,7 @@ export async function runHooks(event: HookEvent, context: Partial<HookContext>):
     enabledSkills: [],
     skillsSourceDir: getSkillsDir(),
     enqueue: noop,
+    emitMessage: createEmitMessage(context.conversationId),
     ...context,
   };
 
