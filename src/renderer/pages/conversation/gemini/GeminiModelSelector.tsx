@@ -1,8 +1,10 @@
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import classNames from 'classnames';
 
 // Unified model dropdown for chat header, send box, and channel settings
 const GeminiModelSelector: React.FC<{
@@ -12,6 +14,8 @@ const GeminiModelSelector: React.FC<{
   variant?: 'header' | 'settings';
 }> = ({ selection, disabled = false, label: customLabel, variant = 'header' }) => {
   const { t } = useTranslation();
+  const { isOpen: isPreviewOpen } = usePreviewContext();
+  const compact = variant === 'header' && isPreviewOpen;
 
   // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
   if (disabled || !selection) {
@@ -43,8 +47,8 @@ const GeminiModelSelector: React.FC<{
         <Down theme='outline' size={14} />
       </Button>
     ) : (
-      <Button className='sendbox-model-btn header-model-btn' shape='round' size='small'>
-        {label}
+      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small'>
+        <span className={compact ? 'block truncate' : undefined}>{label}</span>
       </Button>
     );
 
