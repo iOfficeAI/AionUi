@@ -10,6 +10,7 @@ import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
+import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
@@ -252,7 +253,7 @@ const GuidPage: React.FC = () => {
         <div className={styles.guidLayout}>
           <p className='text-2xl font-semibold mb-8 text-0 text-center'>{t('conversation.welcome.title')}</p>
 
-          {agentSelection.availableAgents && agentSelection.availableAgents.length > 0 && <AgentPillBar availableAgents={agentSelection.availableAgents} selectedAgentKey={agentSelection.selectedAgentKey} getAgentKey={agentSelection.getAgentKey} onSelectAgent={handleSelectAgentFromPillBar} />}
+          {agentSelection.availableAgents === undefined ? <AgentPillBarSkeleton /> : agentSelection.availableAgents.length > 0 ? <AgentPillBar availableAgents={agentSelection.availableAgents} selectedAgentKey={agentSelection.selectedAgentKey} getAgentKey={agentSelection.getAgentKey} onSelectAgent={handleSelectAgentFromPillBar} /> : null}
 
           <GuidInputCard
             input={guidInput.input}
@@ -278,7 +279,7 @@ const GuidPage: React.FC = () => {
             actionRow={actionRowNode}
           />
 
-          <AssistantSelectionArea isPresetAgent={agentSelection.isPresetAgent} selectedAgentInfo={agentSelection.selectedAgentInfo} customAgents={agentSelection.customAgents} localeKey={localeKey} currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo} onSelectAssistant={handleSelectAssistant} onSetInput={guidInput.setInput} onFocusInput={guidInput.handleTextareaFocus} />
+          {agentSelection.availableAgents === undefined ? <AssistantsSkeleton /> : <AssistantSelectionArea isPresetAgent={agentSelection.isPresetAgent} selectedAgentInfo={agentSelection.selectedAgentInfo} customAgents={agentSelection.customAgents} localeKey={localeKey} currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo} onSelectAssistant={handleSelectAssistant} onSetInput={guidInput.setInput} onFocusInput={guidInput.handleTextareaFocus} />}
         </div>
 
         <QuickActionButtons onOpenLink={openLink} inactiveBorderColor={inactiveBorderColor} activeShadow={activeShadow} />

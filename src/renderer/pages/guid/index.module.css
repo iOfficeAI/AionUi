@@ -53,6 +53,30 @@
   }
 }
 
+/* Skeleton shimmer animation */
+@keyframes guid-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-fill-2) 25%, var(--color-fill-3) 50%, var(--color-fill-2) 75%);
+  background-size: 200% 100%;
+  animation: guid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+.skeletonPill {
+  background: linear-gradient(90deg, var(--color-fill-2) 25%, var(--color-fill-3) 50%, var(--color-fill-2) 75%);
+  background-size: 200% 100%;
+  animation: guid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 100px;
+}
+
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
