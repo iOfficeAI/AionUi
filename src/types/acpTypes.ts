@@ -27,7 +27,7 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'ope
  * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
  * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
  */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode'] as const;
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex'] as const;
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
@@ -43,7 +43,7 @@ export type AcpBackendAll =
   | 'gemini' // Google Gemini ACP
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
-  | 'codex' // OpenAI Codex MCP
+  | 'codex' // OpenAI Codex ACP (via codex-acp bridge)
   | 'codebuddy' // Tencent CodeBuddy Code CLI
   | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
@@ -320,11 +320,13 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   codex: {
     id: 'codex',
-    name: 'Codex ',
-    cliCommand: 'codex',
-    authRequired: false,
-    enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
+    name: 'Codex',
+    cliCommand: 'codex', // Detect local codex CLI (codex-acp bridge invokes it)
+    defaultCliPath: 'npx @zed-industries/codex-acp@0.9.4',
+    authRequired: true, // Needs OPENAI_API_KEY or ChatGPT auth
+    enabled: true, // ✅ Codex via codex-acp ACP bridge
     supportsStreaming: false,
+    acpArgs: [], // codex-acp is ACP by default, no flag needed
   },
   codebuddy: {
     id: 'codebuddy',

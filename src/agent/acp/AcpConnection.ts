@@ -209,6 +209,10 @@ export class AcpConnection {
         await this.connectCodebuddy(workingDir);
         break;
 
+      case 'codex':
+        await this.connectCodex(workingDir);
+        break;
+
       case 'gemini':
       case 'qwen':
       case 'iflow':
@@ -267,6 +271,32 @@ export class AcpConnection {
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms`);
 
     await this.setupChildProcessHandlers('claude');
+  }
+
+  private async connectCodex(workingDir: string = process.cwd()): Promise<void> {
+    // Use NPX to run codex-acp bridge (Zed's ACP adapter for Codex)
+    console.error('[ACP] Using NPX approach for Codex ACP bridge');
+
+    const envStart = Date.now();
+    const cleanEnv = this.prepareNpxEnv();
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codex: env prepared ${Date.now() - envStart}ms`);
+
+    this.ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
+
+    const isWindows = process.platform === 'win32';
+    const spawnCommand = resolveNpxPath(cleanEnv);
+    const spawnArgs = ['--prefer-offline', '@zed-industries/codex-acp@0.9.4'];
+
+    const spawnStart = Date.now();
+    this.child = spawn(spawnCommand, spawnArgs, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: cleanEnv,
+      shell: isWindows,
+    });
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codex: process spawned ${Date.now() - spawnStart}ms`);
+
+    await this.setupChildProcessHandlers('codex');
   }
 
   private async connectCodebuddy(workingDir: string = process.cwd()): Promise<void> {
@@ -873,9 +903,10 @@ export class AcpConnection {
     const defaultPath = '.';
     if (!cwd) return defaultPath;
 
-    // GitHub Copilot CLI requires absolute paths
-    // Error: "Directory path must be absolute: ."
-    if (this.backend === 'copilot') {
+    // Some CLIs require absolute paths for cwd
+    // - Copilot: "Directory path must be absolute: ."
+    // - Codex (via codex-acp): "cwd is not absolute: ."
+    if (this.backend === 'copilot' || this.backend === 'codex') {
       return path.resolve(cwd);
     }
 

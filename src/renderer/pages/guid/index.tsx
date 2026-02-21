@@ -27,7 +27,6 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
-import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
 import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type AcpModelInfo, type PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
@@ -313,7 +312,6 @@ const Guid: React.FC = () => {
   const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
   const [selectedMode, setSelectedMode] = useState<string>('default');
-  const [selectedCodexModel, setSelectedCodexModel] = useState<string>(DEFAULT_CODEX_MODEL_ID);
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [selectedAcpModel, setSelectedAcpModel] = useState<string | null>(null);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
@@ -1026,66 +1024,6 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    } else if (selectedAgent === 'codex' || finalEffectiveAgentType === 'codex') {
-      // Codex conversation type (including preset with codex agent type)
-      const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-
-      // 创建 Codex 会话并保存初始消息，由对话页负责发送
-      try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'codex',
-          name: input,
-          model: currentModel!, // not used by codex, but required by type
-          extra: {
-            defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            // Pass preset context (rules only)
-            presetContext: isPreset ? presetRules : undefined,
-            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
-            enabledSkills: isPreset ? enabledSkills : undefined,
-            // 预设助手 ID，用于在会话面板显示助手名称和头像
-            // Preset assistant ID for displaying name and avatar in conversation panel
-            presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
-            // Initial session mode from Guid page mode selector
-            sessionMode: selectedMode,
-            // User-selected Codex model from Guid page
-            codexModel: selectedCodexModel,
-          },
-        });
-
-        if (!conversation || !conversation.id) {
-          console.error('Failed to create Codex conversation - conversation object is null or missing id');
-          return;
-        }
-
-        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
-        if (isCustomWorkspace) {
-          closeAllTabs();
-          updateWorkspaceTime(finalWorkspace);
-          // 将新会话添加到 tabs
-          openTab(conversation);
-        }
-
-        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
-        emitter.emit('chat.history.refresh');
-
-        // 交给对话页发送，避免事件丢失
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
-        // 然后导航到会话页面
-        await navigate(`/conversation/${conversation.id}`);
-      } catch (error: unknown) {
-        // 静默处理错误，让会话面板处理
-        // Silently handle errors, let conversation panel handle it
-        console.error('Failed to create Codex conversation:', error);
-        throw error;
-      }
-      return;
     } else if (selectedAgent === 'openclaw-gateway') {
       // OpenClaw Gateway conversation type (WebSocket mode)
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
@@ -1751,25 +1689,6 @@ const Guid: React.FC = () => {
                   >
                     <Button className={'sendbox-model-btn'} shape='round'>
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
-                    </Button>
-                  </Dropdown>
-                ) : (selectedAgent === 'codex' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'codex') ? (
-                  <Dropdown
-                    trigger='click'
-                    droplist={
-                      <Menu selectedKeys={[selectedCodexModel]}>
-                        {DEFAULT_CODEX_MODELS.map((model) => (
-                          <Menu.Item key={model.id} className={model.id === selectedCodexModel ? '!bg-2' : ''} onClick={() => setSelectedCodexModel(model.id)}>
-                            <Tooltip position='right' trigger='hover' content={<div className='max-w-240px text-12px text-t-secondary leading-5'>{model.description}</div>}>
-                              <span>{model.label}</span>
-                            </Tooltip>
-                          </Menu.Item>
-                        ))}
-                      </Menu>
-                    }
-                  >
-                    <Button className={'sendbox-model-btn'} shape='round'>
-                      {DEFAULT_CODEX_MODELS.find((m) => m.id === selectedCodexModel)?.label || selectedCodexModel}
                     </Button>
                   </Dropdown>
                 ) : currentAcpCachedModelInfo && currentAcpCachedModelInfo.availableModels?.length > 0 ? (
