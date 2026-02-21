@@ -34,6 +34,8 @@ const AcpModelSelector: React.FC<{
   const [modelInfo, setModelInfo] = useState<AcpModelInfo | null>(null);
   const modelInfoRef = useRef(modelInfo);
   modelInfoRef.current = modelInfo;
+  // Track whether user has manually switched model via dropdown
+  const hasUserChangedModel = useRef(false);
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
   useEffect(() => {
@@ -43,7 +45,17 @@ const AcpModelSelector: React.FC<{
       .then((result) => {
         if (cancelled) return;
         if (result.success && result.data?.modelInfo) {
-          setModelInfo(result.data.modelInfo);
+          const info = result.data.modelInfo;
+          // When agent is not fully initialized, getModelInfo returns
+          // canSwitch=false with empty availableModels. Prefer cached data
+          // in that case to keep the dropdown functional.
+          if (info.availableModels?.length > 0) {
+            setModelInfo(info);
+          } else if (backend) {
+            void loadCachedModelInfo(backend, cancelled);
+          } else {
+            setModelInfo(info);
+          }
         } else if (backend) {
           // Manager not yet created — load cached model list from storage
           void loadCachedModelInfo(backend, cancelled);
@@ -83,7 +95,22 @@ const AcpModelSelector: React.FC<{
     const handler = (message: IResponseMessage) => {
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info' && message.data) {
-        setModelInfo(message.data as AcpModelInfo);
+        const incoming = message.data as AcpModelInfo;
+        // Preserve pre-selected model from Guid page until user manually switches.
+        // The agent emits its default model during start (before re-apply), which
+        // would otherwise overwrite the user's Guid page selection.
+        if (initialModelId && !hasUserChangedModel.current && incoming.availableModels?.length > 0) {
+          const match = incoming.availableModels.find((m) => m.id === initialModelId);
+          if (match && incoming.currentModelId !== initialModelId) {
+            setModelInfo({
+              ...incoming,
+              currentModelId: initialModelId,
+              currentModelLabel: match.label || initialModelId,
+            });
+            return;
+          }
+        }
+        setModelInfo(incoming);
       } else if (message.type === 'codex_model_info' && message.data) {
         // Codex model info: always read-only display
         const data = message.data as { model: string };
@@ -99,10 +126,11 @@ const AcpModelSelector: React.FC<{
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId]);
+  }, [conversationId, initialModelId]);
 
   const handleSelectModel = useCallback(
     (modelId: string) => {
+      hasUserChangedModel.current = true;
       ipcBridge.acpConversation.setModel
         .invoke({ conversationId, modelId })
         .then((result) => {
