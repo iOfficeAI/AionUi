@@ -3,7 +3,7 @@
 project_name: "Vietnamese Stock Market Analyst"
 data_platform: "vnstock"
 dataset_description: "Vietnamese stocks data"
-primary_use_case: "Quant researchers use to research the market, find edges - fundamentals, factors, technicals, portfolio management"
+primary_use_case: "Quant researchers use to research the market, find edges - fundamentals, factors, technicals, macro regime, valuation, investor persona analysis, portfolio management"
 audience: "Quant researchers, normal users, stock investors, traders"
 capability_tier: full
 
@@ -20,6 +20,10 @@ connection:
       - "Financial ratios"
       - "Real-time price boards"
       - "Symbol listings (VN30, exchanges, industries)"
+      - "Technical indicators (RSI, MACD, Bollinger, ADX, ATR via pandas-ta)"
+      - "Macro regime classification (GDP, credit, inflation)"
+      - "Factor scores (value, momentum, quality, growth, volatility)"
+      - "Professional Plotly charts (technical, valuation, radar)"
   credential_source: "library_managed"
   credential_ref: "vnstock handles authentication internally"
 

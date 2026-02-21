@@ -1,0 +1,70 @@
+{
+  "_description": "User-maintained macroeconomic data for Vietnam market analysis",
+  "_instructions": "Update these values when new GSO/SBV data is released. Delete keys to fall back to market proxy estimates.",
+  "_sources": {
+    "gso": "https://www.gso.gov.vn/en/homepage/",
+    "sbv": "https://www.sbv.gov.vn/webcenter/portal/en/home"
+  },
+  "_last_updated": "2026-02-21",
+  "gso": {
+    "source": "General Statistics Office of Vietnam",
+    "timestamp": "2026-02-21T00:00:00Z",
+    "gdp_growth": {
+      "current": 7.09,
+      "previous_quarter": 6.82,
+      "yoy": 7.09,
+      "period": "2025"
+    },
+    "inflation": {
+      "cpi_yoy": 3.63,
+      "core_inflation": 2.98,
+      "food_inflation": 4.12,
+      "period": "2025"
+    },
+    "industrial_production": {
+      "index": 115.2,
+      "yoy_growth": 8.4,
+      "period": "2025"
+    },
+    "retail_sales": {
+      "yoy_growth": 9.3,
+      "period": "2025"
+    },
+    "exports": {
+      "value_usd_bn": 405.5,
+      "yoy_growth": 14.0,
+      "period": "2025"
+    },
+    "fdi": {
+      "disbursement_usd_bn": 25.3,
+      "yoy_growth": 9.4,
+      "period": "2025"
+    },
+    "unemployment": {
+      "rate": 2.24,
+      "period": "2025-Q4"
+    }
+  },
+  "sbv": {
+    "source": "State Bank of Vietnam",
+    "timestamp": "2026-02-21T00:00:00Z",
+    "credit_growth": {
+      "current": 15.08,
+      "yoy_change": 1.8,
+      "period": "2025"
+    },
+    "interest_rates": {
+      "policy_rate": 4.5,
+      "deposit_rate_12m": 5.0,
+      "lending_rate": 7.5
+    },
+    "forex_reserves": {
+      "amount_usd_bn": 100.0,
+      "import_coverage_months": 3.5
+    },
+    "exchange_rate": {
+      "usd_vnd": 25450,
+      "yoy_depreciation_pct": 3.9
+    }
+  }
+}

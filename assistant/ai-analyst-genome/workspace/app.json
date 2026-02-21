@@ -1,0 +1,7 @@
+{
+  "name": "AI Analyst Dashboard",
+  "url": "http://localhost:8050",
+  "type": "analyst",
+  "description": "Vietnamese stock market AI data analyst with 17-agent pipeline",
+  "icon": "chart-bar"
+}

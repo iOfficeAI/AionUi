@@ -803,6 +803,24 @@ reference architecture for the AI Data Analyst.
 | presentation-themes | Creating a deck | Theme selection and rules |
 | stakeholder-communication | Producing narrative or deck | Audience-adapted communication |
 
+**Specialist Investment Analysis (14):**
+| Skill | Trigger | Purpose |
+|-------|---------|---------|
+| technicals | L3+ stock analysis with price data | RSI, MACD, Bollinger, ADX, ATR, Stochastic, OBV, support/resistance |
+| macro-regime | L4+ portfolio or sector analysis | EXPANSION/SLOWDOWN/RECESSION/RECOVERY classification, sector/factor rotation |
+| factor-analyst | L3+ multi-stock comparison or screening | Value, momentum, quality, growth, volatility z-scores + universe ranking |
+| fundamentals | L2+ financial analysis | Profitability, growth, financial health, valuation ratio scoring |
+| valuation | L3+ fair value or undervalued queries | DCF, relative multiples, owner earnings valuation |
+| risk-manager | L4+ portfolio or position sizing | Volatility-adjusted position sizing (5-25% bounds) |
+| portfolio-manager | L4+ multi-signal aggregation | Multi-signal consensus (Strong Buy/Buy/Hold/Sell/Strong Sell) |
+| financial-visualization | Chart generation for financial data | 4-panel technical, candlestick+EMA+BB, financials bar, valuation multiples, radar consensus |
+| warren-buffett | L4+ value investing or moat analysis | ROE consistency, moat quality, owner earnings, 3-stage DCF, margin of safety |
+| ben-graham | L4+ growth-momentum screening | CANSLIM 7-factor scoring (C/A/N/S/L/I/M) |
+| cathie-wood | L4+ disruptive innovation or high-growth | Growth trajectory, innovation investment, TAM expansion, competitive position |
+| stanley-druckenmiller | L4+ macro-momentum or asymmetric opportunity | Price momentum, fundamental acceleration, risk/reward asymmetry |
+| growth-analyst | L3+ growth stock analysis | S-curve stage, Rule of 40, earnings leverage, margin expansion |
+| news-sentiment | L3+ sentiment or news-driven queries | Keyword-based headline sentiment scoring |
+
 ### 4.3 Pipeline DAG
 
 ```
