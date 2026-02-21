@@ -4,6 +4,7 @@ permissions:
   contents: write
   issues: read
   pull-requests: read
+  actions: write
 
 on:
   push:
@@ -101,9 +102,14 @@ jobs:
 
       - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
         if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: |
-          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 60
+          shell: pwsh
+          command: |
+            choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
 
       - name: Setup Windows build environment (for Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -499,23 +505,20 @@ jobs:
       - name: Log retry information
         run: |
           echo "=========================================="
-          echo "🔄 自动重试触发（首次失败）"
+          echo "🔄 Auto retry triggered (first failure)"
           echo "=========================================="
-          echo "构建首次失败，准备自动重试..."
-          echo "当前尝试次数: ${{ github.run_attempt }}"
-          echo "等待策略: 1 小时后重试（给 Apple 公证服务处理时间）"
-          echo ""
-          echo "根据 Apple 官方说明，首次公证可能需要数小时甚至数天"
-          echo "参考: https://developer.apple.com/forums/thread/756867"
+          echo "Build failed on first attempt, preparing auto retry..."
+          echo "Current attempt: ${{ github.run_attempt }}"
+          echo "Wait strategy: 5 minutes cooldown before retry"
           echo "=========================================="
 
-      - name: Wait before retry (1 hour for Apple notarization)
+      - name: Wait before retry (5 min cooldown)
         run: |
-          echo "⏳ 等待 1 小时后重试，给 Apple 公证服务处理时间..."
-          echo "开始时间: $(date)"
-          sleep 3600
-          echo "等待结束: $(date)"
-          echo "准备触发重试..."
+          echo "⏳ Waiting 5 minutes before retry..."
+          echo "Start: $(date)"
+          sleep 300
+          echo "End: $(date)"
+          echo "Triggering retry..."
 
       - name: Trigger workflow rerun
         run: |
