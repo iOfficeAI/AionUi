@@ -35,7 +35,7 @@ export interface AgentModeOption {
  */
 export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   claude: [
-    { value: 'default', label: 'Accept Edits' },
+    { value: 'default', label: 'Default' },
     { value: 'plan', label: 'Plan' },
     { value: 'bypassPermissions', label: 'YOLO' },
   ],

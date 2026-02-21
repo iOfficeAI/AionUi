@@ -27,8 +27,8 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    // Google Gemini CLI 支持 stdio, sse, http 传输类型
-    return ['stdio', 'sse', 'http'];
+    // Google Gemini CLI 支持 stdio, sse, http 传输类型 (streamable_http maps to http)
+    return ['stdio', 'sse', 'http', 'streamable_http'];
   }
 
   /**
@@ -188,10 +188,11 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
           if (server.transport.type === 'stdio') {
             // 使用 Gemini CLI 添加 MCP 服务器
             // 格式: gemini mcp add <name> <command> [args...]
-            const args = server.transport.args?.join(' ') || '';
             let command = `gemini mcp add "${server.name}" "${server.transport.command}"`;
-            if (args) {
-              command += ` ${args}`;
+            if (server.transport.args?.length) {
+              // Quote each arg to protect URLs and special characters from shell interpretation
+              const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
+              command += ` ${quotedArgs}`;
             }
 
             // 添加 scope 参数（user 或 project）
@@ -204,12 +205,14 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
               console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
               // 继续处理其他服务器
             }
-          } else if (server.transport.type === 'sse' || server.transport.type === 'http') {
-            // 处理 SSE/HTTP 传输类型
+          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+            // 处理 SSE/HTTP/Streamable HTTP 传输类型
+            // Gemini CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
+            const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
             let command = `gemini mcp add "${server.name}" "${server.transport.url}"`;
 
             // 添加 transport 类型
-            command += ` --transport ${server.transport.type}`;
+            command += ` --transport ${transportFlag}`;
 
             // 添加 scope 参数
             command += ' -s user';
@@ -220,8 +223,6 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
             }
-          } else {
-            console.warn(`Skipping ${server.name}: Gemini CLI does not support ${server.transport.type} transport type`);
           }
         }
         return { success: true };

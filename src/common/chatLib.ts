@@ -447,6 +447,8 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'finish':
     case 'thought':
     case 'system': // Cron system responses, ignored
+    case 'acp_model_info': // Model info updates, handled by AcpModelSelector
+    case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
       break;
     case 'swarm_directive': {
       const data = message.data as { from: string; fromName: string; fromAvatar: string; summary: string };

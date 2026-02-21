@@ -29,28 +29,33 @@ export interface PresetAssistantInfo {
  */
 function resolvePresetId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
-    presetAssistantId?: string;
-    customAgentId?: string;
-    enabledSkills?: string[];
+    presetAssistantId?: unknown;
+    customAgentId?: unknown;
+    enabledSkills?: unknown;
   };
+  const presetAssistantId = typeof extra?.presetAssistantId === 'string' ? extra.presetAssistantId.trim() : '';
+  const customAgentId = typeof extra?.customAgentId === 'string' ? extra.customAgentId.trim() : '';
+  const enabledSkills = Array.isArray(extra?.enabledSkills) ? extra.enabledSkills : [];
 
   // 1. 优先使用 presetAssistantId（新会话）
   // Priority: use presetAssistantId (new conversations)
-  if (extra?.presetAssistantId && extra.presetAssistantId.trim()) {
-    return extra.presetAssistantId;
+  if (presetAssistantId) {
+    const resolved = presetAssistantId.replace('builtin-', '');
+    return resolved;
   }
 
   // 2. 向后兼容：customAgentId（ACP/Codex 旧会话）
   // Backward compatible: customAgentId (ACP/Codex old conversations)
-  if (extra?.customAgentId && extra.customAgentId.trim()) {
-    return extra.customAgentId;
+  if (customAgentId) {
+    const resolved = customAgentId.replace('builtin-', '');
+    return resolved;
   }
 
   // 3. 向后兼容：enabledSkills 存在说明是 Cowork 会话（Gemini 旧会话）
   // Backward compatible: enabledSkills means Cowork conversation (Gemini old conversations)
   // 只有在既没有 presetAssistantId 也没有 customAgentId 时才使用此逻辑
   // Only use this logic when both presetAssistantId and customAgentId are absent (including empty strings)
-  if (conversation.type === 'gemini' && !extra?.presetAssistantId?.trim() && !extra?.customAgentId?.trim() && extra?.enabledSkills && extra.enabledSkills.length > 0) {
+  if (conversation.type === 'gemini' && !presetAssistantId && !customAgentId && enabledSkills.length > 0) {
     return 'cowork';
   }
 
@@ -68,11 +73,12 @@ function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo 
   const name = preset.nameI18n[locale] || preset.nameI18n['en-US'] || preset.id;
 
   // avatar 可能是 emoji 或 svg 文件名 / avatar can be emoji or svg filename
-  const isEmoji = !preset.avatar.endsWith('.svg');
+  const avatar = typeof preset.avatar === 'string' ? preset.avatar : '';
+  const isEmoji = avatar ? !avatar.endsWith('.svg') : true;
   let logo: string;
 
   if (isEmoji) {
-    logo = preset.avatar;
+    logo = avatar || '🤖';
   } else if (preset.id === 'cowork') {
     logo = CoworkLogo;
   } else {
@@ -127,14 +133,15 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         const localeKey = resolveLocaleKey(locale);
 
         // Handle avatar: could be emoji or svg filename
-        let logo = customAgent.avatar || '🤖';
+        const avatar = typeof customAgent.avatar === 'string' ? customAgent.avatar : '';
+        let logo = avatar || '🤖';
         let isEmoji = true;
 
-        if (customAgent.avatar) {
-          if (customAgent.avatar.endsWith('.svg')) {
+        if (avatar) {
+          if (avatar.endsWith('.svg')) {
             isEmoji = false;
             // For cowork.svg, use the imported logo; for others, use emoji fallback
-            if (customAgent.avatar === 'cowork.svg') {
+            if (avatar === 'cowork.svg') {
               logo = CoworkLogo;
             } else {
               // Other svgs not yet supported, fallback to emoji

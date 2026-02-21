@@ -19,7 +19,7 @@ const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '' } });
  * Codex CLI MCP代理实现
  *
  * 使用 Codex CLI 的 mcp 子命令管理 MCP 服务器配置
- * 注意：Codex CLI 目前只支持 stdio 传输类型
+ * Codex CLI 支持 stdio 和 streamable HTTP (via --url) 传输类型
  */
 export class CodexMcpAgent extends AbstractMcpAgent {
   constructor() {
@@ -27,8 +27,8 @@ export class CodexMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    // Codex CLI 目前只支持 stdio 传输类型
-    return ['stdio'];
+    // Codex CLI supports stdio and streamable HTTP (via --url flag)
+    return ['stdio', 'http', 'streamable_http'];
   }
 
   /**
@@ -169,8 +169,32 @@ export class CodexMcpAgent extends AbstractMcpAgent {
               console.warn(`Failed to add MCP ${server.name} to Codex:`, error);
               // 继续处理其他服务器，不要因为一个失败就停止
             }
+          } else if (server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+            // Codex CLI uses --url flag for streamable HTTP servers
+            // Format: codex mcp add <NAME> --url <URL>
+            const url = 'url' in server.transport ? server.transport.url : '';
+            const commandParts = ['codex', 'mcp', 'add', server.name, '--url', url];
+
+            // Add bearer token env var if available in headers
+            if ('headers' in server.transport && server.transport.headers) {
+              const authHeader = Object.entries(server.transport.headers).find(([key]) => key.toLowerCase() === 'authorization');
+              if (authHeader) {
+                // Codex expects --bearer-token-env-var, not direct token
+                // For now, just log a warning
+                console.warn(`[CodexMcpAgent] ${server.name}: Codex CLI uses --bearer-token-env-var for auth, manual header not supported`);
+              }
+            }
+
+            const command = commandParts.map((part) => `"${part}"`).join(' ');
+
+            try {
+              await execAsync(command, { timeout: 5000, ...getExecEnv() });
+              console.log(`[CodexMcpAgent] Added MCP server: ${server.name}`);
+            } catch (error) {
+              console.warn(`Failed to add MCP ${server.name} to Codex:`, error);
+            }
           } else {
-            console.warn(`Skipping ${server.name}: Codex CLI only supports stdio transport type`);
+            console.warn(`Skipping ${server.name}: Codex CLI does not support ${server.transport.type} transport type`);
           }
         }
         return { success: true };

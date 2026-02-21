@@ -48,7 +48,23 @@ export class CodexEventHandler {
       this.messageProcessor.processFinalMessage(msg);
       return;
     }
-    if (type === 'session_configured' || type === 'token_count') {
+    if (type === 'session_configured') {
+      // Extract model name from session_configured event and emit to UI
+      const sessionMsg = msg as Extract<CodexEventMsg, { type: 'session_configured' }>;
+      if (sessionMsg.model) {
+        this.messageEmitter.emitAndPersistMessage(
+          {
+            type: 'codex_model_info',
+            msg_id: uuid(),
+            conversation_id: this.conversation_id,
+            data: { model: sessionMsg.model },
+          },
+          false
+        );
+      }
+      return;
+    }
+    if (type === 'token_count') {
       return;
     }
     if (type === 'task_started') {

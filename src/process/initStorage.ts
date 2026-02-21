@@ -781,6 +781,8 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
             customSkillNames: config.customSkillNames || [],
             assistantPath,
             workspacePath: config.workspacePath,
+            // 复制快捷提示词 / Copy quick prompts
+            promptsI18n: config.promptsI18n,
           });
           continue;
         } catch (error) {
@@ -810,6 +812,8 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
           enabledSkills: preset.defaultEnabledSkills || [],
           customSkillNames: [],
           assistantPath,
+          // 复制快捷提示词 / Copy quick prompts
+          promptsI18n: preset.promptsI18n,
         });
       } else {
         console.warn(`[AionUi] No assistant.json or preset found for: ${entry.name}`);
@@ -925,6 +929,12 @@ const initStorage = async () => {
     const builtinSkillsMigrationDone = await configFile.get(BUILTIN_SKILLS_MIGRATION_KEY).catch(() => false);
     const needsBuiltinSkillsMigration = !builtinSkillsMigrationDone;
 
+    // 5.2.3 检查是否需要迁移：为内置助手添加 promptsI18n
+    // Check if migration needed: add promptsI18n for builtin assistants
+    const PROMPTS_I18N_MIGRATION_KEY = 'migration.promptsI18nAdded';
+    const promptsI18nMigrationDone = await configFile.get(PROMPTS_I18N_MIGRATION_KEY).catch(() => false);
+    const needsPromptsI18nMigration = !promptsI18nMigrationDone;
+
     // 更新或添加内置助手配置
     // Update or add built-in assistant configurations
     const updatedAgents = [...existingAgents];
@@ -944,7 +954,12 @@ const initStorage = async () => {
         // Update only if key fields are different to avoid unnecessary writes
         // 注意：enabled 和 presetAgentType 字段由用户控制，不参与 shouldUpdate 判断
         // Note: enabled and presetAgentType are user-controlled, not included in shouldUpdate check
-        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || versionChanged;
+        // 检查 promptsI18n 是否需要更新（如果不存在或已更改，或需要迁移）
+        // Check if promptsI18n needs update (if missing, changed, or migration needed)
+        const promptsI18nMissing = !existing.promptsI18n && builtin.promptsI18n;
+        const promptsI18nChanged = existing.promptsI18n && builtin.promptsI18n && JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
+        const needsPromptsI18nUpdate = needsPromptsI18nMigration || promptsI18nMissing || promptsI18nChanged;
+        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || versionChanged || needsPromptsI18nUpdate;
         // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
         const needsEnabledFix = existing.enabled === undefined || needsMigration;
@@ -970,7 +985,7 @@ const initStorage = async () => {
           }
         }
 
-        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) || needsSkillsResync) {
+        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) || needsSkillsResync || needsPromptsI18nUpdate) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,
@@ -978,6 +993,8 @@ const initStorage = async () => {
             enabled: resolvedEnabled,
             presetAgentType: resolvedPresetAgentType,
             enabledSkills: resolvedEnabledSkills,
+            // 确保 promptsI18n 被更新 / Ensure promptsI18n is updated
+            promptsI18n: builtin.promptsI18n,
           };
           hasChanges = true;
         }
@@ -1038,6 +1055,9 @@ const initStorage = async () => {
     }
     if (needsBuiltinSkillsMigration) {
       await configFile.set(BUILTIN_SKILLS_MIGRATION_KEY, true);
+    }
+    if (needsPromptsI18nMigration) {
+      await configFile.set(PROMPTS_I18N_MIGRATION_KEY, true);
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);
