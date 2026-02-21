@@ -361,6 +361,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
   /**
    * 测试HTTP连接的通用实现
+   * MCP Streamable HTTP servers may respond with JSON or SSE (text/event-stream).
+   * Try raw JSON-RPC first; if the response is SSE, fall back to StreamableHTTPClientTransport.
    */
   protected async testHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
     try {
@@ -370,6 +372,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
           ...transport.headers,
         },
         body: JSON.stringify({
@@ -405,6 +408,12 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       if (!initResponse.ok) {
         return { success: false, error: `HTTP ${initResponse.status}: ${initResponse.statusText}` };
+      }
+
+      // If server responds with SSE, delegate to StreamableHTTPClientTransport
+      const contentType = initResponse.headers.get('Content-Type') || '';
+      if (contentType.includes('text/event-stream')) {
+        return this.testStreamableHttpConnection(transport);
       }
 
       const initResult = await initResponse.json();

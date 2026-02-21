@@ -31,9 +31,9 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    // @office-ai/aioncli-core 支持 stdio, sse, http
+    // @office-ai/aioncli-core 支持 stdio, sse, http (streamable_http maps to http)
     // 参考: node_modules/@office-ai/aioncli-core/dist/src/config/config.d.ts -> MCPServerConfig
-    return ['stdio', 'sse', 'http'];
+    return ['stdio', 'sse', 'http', 'streamable_http'];
   }
 
   /**

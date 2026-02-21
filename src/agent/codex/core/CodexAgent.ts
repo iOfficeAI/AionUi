@@ -155,7 +155,7 @@ export class CodexAgent {
     return false;
   }
 
-  async newSession(cwd?: string, initialPrompt?: string): Promise<{ sessionId: string }> {
+  async newSession(cwd?: string, initialPrompt?: string, model?: string): Promise<{ sessionId: string }> {
     // Establish Codex conversation via MCP tool call; we will keep the generated ID locally
     const convId = this.conversationId || this.generateConversationId();
     this.conversationId = convId;
@@ -171,7 +171,9 @@ export class CodexAgent {
       prompt: initialPrompt || '',
       cwd: cwd || this.workingDir,
     };
-    console.log(`[CodexAgent] newSession: yoloMode=${this.yoloMode}, cwd=${cwd || this.workingDir}`);
+    if (model) {
+      args.model = model;
+    }
 
     // Restore web_search_request for older versions (< 0.40.0)
     // Codex CLI 0.40.0+ (mcp-server) handles web_search configuration internally and errors on duplicate field

@@ -38,6 +38,10 @@ export function initApplicationBridge(): void {
     return Promise.resolve(getSystemDir());
   });
 
+  ipcBridge.application.getPath.provider(({ name }) => {
+    return Promise.resolve(app.getPath(name));
+  });
+
   ipcBridge.application.openDevTools.provider(() => {
     // This will be handled by the main window when needed
     return Promise.resolve();

@@ -85,6 +85,33 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
   }, [visible, server]);
 
+  /**
+   * Parse transport config from JSON server config.
+   * Supports both "type" field (standard) and "transport" field (Gemini CLI format).
+   */
+  const parseTransport = (serverConfig: Record<string, any>): IMcpServerTransport => {
+    if (serverConfig.command) {
+      return {
+        type: 'stdio',
+        command: serverConfig.command,
+        args: serverConfig.args || [],
+        env: serverConfig.env || {},
+      };
+    }
+
+    // Check both "type" and "transport" fields for transport type detection
+    // Gemini CLI uses "transport" field, standard format uses "type" field
+    const transportType = serverConfig.type || serverConfig.transport;
+
+    if (transportType === 'sse' || serverConfig.url?.includes('/sse')) {
+      return { type: 'sse', url: serverConfig.url, headers: serverConfig.headers };
+    }
+    if (transportType === 'streamable_http') {
+      return { type: 'streamable_http', url: serverConfig.url, headers: serverConfig.headers };
+    }
+    return { type: 'http', url: serverConfig.url, headers: serverConfig.headers };
+  };
+
   const handleSubmit = () => {
     // 语法校验已经通过了（按钮禁用逻辑保证），直接解析
     const config = JSON.parse(jsonInput);
@@ -106,36 +133,11 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     if (serverKeys.length > 1 && onBatchImport) {
       const serversToImport = serverKeys.map((serverKey) => {
         const serverConfig = mcpServers[serverKey];
-        const transport: IMcpServerTransport = serverConfig.command
-          ? {
-              type: 'stdio',
-              command: serverConfig.command,
-              args: serverConfig.args || [],
-              env: serverConfig.env || {},
-            }
-          : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
-            ? {
-                type: 'sse',
-                url: serverConfig.url,
-                headers: serverConfig.headers,
-              }
-            : serverConfig.type === 'streamable_http'
-              ? {
-                  type: 'streamable_http',
-                  url: serverConfig.url,
-                  headers: serverConfig.headers,
-                }
-              : {
-                  type: 'http',
-                  url: serverConfig.url,
-                  headers: serverConfig.headers,
-                };
-
         return {
           name: serverKey,
           description: serverConfig.description || `Imported from JSON`,
           enabled: true,
-          transport,
+          transport: parseTransport(serverConfig),
           status: 'disconnected' as const,
           tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
           originalJson: JSON.stringify({ mcpServers: { [serverKey]: serverConfig } }, null, 2),
@@ -150,36 +152,12 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     // 单个服务器导入
     const firstServerKey = serverKeys[0];
     const serverConfig = mcpServers[firstServerKey];
-    const transport: IMcpServerTransport = serverConfig.command
-      ? {
-          type: 'stdio',
-          command: serverConfig.command,
-          args: serverConfig.args || [],
-          env: serverConfig.env || {},
-        }
-      : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
-        ? {
-            type: 'sse',
-            url: serverConfig.url,
-            headers: serverConfig.headers,
-          }
-        : serverConfig.type === 'streamable_http'
-          ? {
-              type: 'streamable_http',
-              url: serverConfig.url,
-              headers: serverConfig.headers,
-            }
-          : {
-              type: 'http',
-              url: serverConfig.url,
-              headers: serverConfig.headers,
-            };
 
     onSubmit({
       name: firstServerKey,
       description: serverConfig.description || 'Imported from JSON',
       enabled: true,
-      transport,
+      transport: parseTransport(serverConfig),
       status: 'disconnected',
       tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
       originalJson: jsonInput,

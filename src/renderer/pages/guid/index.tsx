@@ -10,22 +10,7 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { resolveLocaleKey, uuid } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import DroidLogo from '@/renderer/assets/logos/droid.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import GitHubLogo from '@/renderer/assets/logos/github.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import MistralLogo from '@/renderer/assets/logos/mistral.svg';
-import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
-import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
-import QoderLogo from '@/renderer/assets/logos/qoder.png';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import { supportsModeSwitch } from '@/renderer/constants/agentModes';
 import FilePreview from '@/renderer/components/FilePreview';
@@ -42,6 +27,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
+import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
 import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
@@ -174,25 +160,8 @@ const useModelList = () => {
   return { modelList, isGoogleAuth, geminiModeOptions };
 };
 
-// Agent Logo 映射 (custom uses Robot icon from @icon-park/react)
-const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
-  claude: ClaudeLogo,
-  gemini: GeminiLogo,
-  qwen: QwenLogo,
-  codex: CodexLogo,
-  codebuddy: CodeBuddyLogo,
-  droid: DroidLogo,
-  iflow: IflowLogo,
-  goose: GooseLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  opencode: OpenCodeLogo,
-  copilot: GitHubLogo,
-  qoder: QoderLogo,
-  vibe: MistralLogo,
-  'openclaw-gateway': OpenClawLogo,
-  nanobot: NanobotLogo,
-};
+// Agent Logo 现在统一从 @/renderer/utils/agentLogo 获取
+// Agent Logo is now unified from @/renderer/utils/agentLogo
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
   '🛠️': coworkSvg,
@@ -344,6 +313,7 @@ const Guid: React.FC = () => {
   const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
   const [selectedMode, setSelectedMode] = useState<string>('default');
+  const [selectedCodexModel, setSelectedCodexModel] = useState<string>(DEFAULT_CODEX_MODEL_ID);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
@@ -470,7 +440,7 @@ const Guid: React.FC = () => {
         tokens,
         avatar,
         avatarImage: avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined,
-        logo: AGENT_LOGO_MAP[agent.backend],
+        logo: getAgentLogo(agent.backend) || undefined,
       };
     });
   }, [availableAgents, customAgentAvatarMap]);
@@ -1058,6 +1028,8 @@ const Guid: React.FC = () => {
             presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
             // Initial session mode from Guid page mode selector
             sessionMode: selectedMode,
+            // User-selected Codex model from Guid page
+            codexModel: selectedCodexModel,
           },
         });
 
@@ -1461,6 +1433,14 @@ const Guid: React.FC = () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [t]);
+
+  // Calculate button disabled state
+  const isButtonDisabled =
+    !input.trim() ||
+    // For Gemini mode: disable only when logged in but no model selected
+    // When not logged in, allow click to trigger Google login flow
+    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && !currentModel && isGoogleAuth);
+
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
@@ -1486,7 +1466,7 @@ const Guid: React.FC = () => {
                   .filter((agent) => agent.backend !== 'custom')
                   .map((agent, index) => {
                     const isSelected = selectedAgentKey === getAgentKey(agent);
-                    const logoSrc = AGENT_LOGO_MAP[agent.backend];
+                    const logoSrc = getAgentLogo(agent.backend);
 
                     return (
                       <React.Fragment key={getAgentKey(agent)}>
@@ -1750,6 +1730,25 @@ const Guid: React.FC = () => {
                       {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
+                ) : (selectedAgent === 'codex' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'codex') ? (
+                  <Dropdown
+                    trigger='click'
+                    droplist={
+                      <Menu selectedKeys={[selectedCodexModel]}>
+                        {DEFAULT_CODEX_MODELS.map((model) => (
+                          <Menu.Item key={model.id} className={model.id === selectedCodexModel ? '!bg-2' : ''} onClick={() => setSelectedCodexModel(model.id)}>
+                            <Tooltip position='right' trigger='hover' content={<div className='max-w-240px text-12px text-t-secondary leading-5'>{model.description}</div>}>
+                              <span>{model.label}</span>
+                            </Tooltip>
+                          </Menu.Item>
+                        ))}
+                      </Menu>
+                    }
+                  >
+                    <Button className={'sendbox-model-btn'} shape='round'>
+                      {DEFAULT_CODEX_MODELS.find((m) => m.id === selectedCodexModel)?.label || selectedCodexModel}
+                    </Button>
+                  </Dropdown>
                 ) : (
                   <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
                     <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
@@ -1794,13 +1793,13 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={
-                    !input.trim() ||
-                    // For Gemini mode: disable only when logged in but no model selected
-                    // When not logged in, allow click to trigger Google login flow
-                    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && !currentModel && isGoogleAuth)
-                  }
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  disabled={isButtonDisabled}
+                  className='send-button-custom'
+                  style={{
+                    backgroundColor: isButtonDisabled ? undefined : '#000000',
+                    borderColor: isButtonDisabled ? undefined : '#000000',
+                  }}
+                  icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
                   onClick={() => {
                     handleSend().catch((error) => {
                       console.error('Failed to send message:', error);
@@ -1910,7 +1909,7 @@ const Guid: React.FC = () => {
                       return (
                         <div
                           key={assistant.id}
-                          className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid border-arco-2 hover:bg-fill-0 select-none'
+                          className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid border-arco-2 bg-fill-0 hover:bg-fill-1 select-none'
                           onClick={() => {
                             setSelectedAgentKey(`custom:${assistant.id}`);
                             setMentionOpen(false);
@@ -1920,13 +1919,13 @@ const Guid: React.FC = () => {
                           }}
                         >
                           {avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 16, lineHeight: '18px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />}
-                          <span className='text-14px text-4 hover:text-2'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
+                          <span className='text-14px text-2 hover:text-1'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
                         </div>
                       );
                     })}
-                  <div className='h-28px flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all text-t-secondary hover:text-t-primary hover:bg-fill-2 b-1 b-dashed b-aou-2 select-none' onClick={() => navigate('/settings/agent')}>
+                  <div className='h-28px flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all hover:bg-fill-2 b-1 b-dashed b-aou-2 select-none' onClick={() => navigate('/settings/agent')}>
                     <Plus theme='outline' size={14} className='line-height-0' />
-                    <span className='text-13px'>{t('settings.createAssistant', { defaultValue: 'Create' })}</span>
+                    <span className='text-14px text-2 hover:text-1'>{t('settings.addAssistant', { defaultValue: 'Add Assistant' })}</span>
                   </div>
                 </div>
               )}
