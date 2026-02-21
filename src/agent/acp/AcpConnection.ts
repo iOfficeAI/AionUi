@@ -255,7 +255,7 @@ export class AcpConnection {
     // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp@0.18.0'];
+    const spawnArgs = ['@zed-industries/claude-agent-acp@0.18.0'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -664,8 +664,8 @@ export class AcpConnection {
           }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
-          // Update cached configOptions when config_options_update arrives
-          if (message.params?.update && (message.params.update as Record<string, unknown>).sessionUpdate === 'config_options_update') {
+          // Update cached configOptions when config_option_update arrives
+          if (message.params?.update && (message.params.update as Record<string, unknown>).sessionUpdate === 'config_option_update') {
             const updatePayload = message.params.update as { configOptions?: AcpSessionConfigOption[] };
             if (Array.isArray(updatePayload.configOptions)) {
               this.configOptions = updatePayload.configOptions;
@@ -937,6 +937,13 @@ export class AcpConnection {
       this.models = { ...this.models, currentModelId: modelId };
     }
 
+    // Also update configOptions cache so getModelInfo() returns consistent data.
+    // The unstable_setSessionModel handler in claude-agent-acp will also send a
+    // config_option_update notification, but we update eagerly for immediate reads.
+    if (this.configOptions) {
+      this.configOptions = this.configOptions.map((opt) => (opt.category === 'model' ? { ...opt, currentValue: modelId, selectedValue: modelId } : opt));
+    }
+
     return response;
   }
 
@@ -955,6 +962,11 @@ export class AcpConnection {
     const result = response as unknown as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
+    } else if (this.configOptions) {
+      // Optimistically update the cached currentValue so getModelInfo() reflects
+      // the switch immediately, even if the agent responds without configOptions.
+      // A subsequent config_option_update notification will overwrite this if needed.
+      this.configOptions = this.configOptions.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt));
     }
 
     return response;

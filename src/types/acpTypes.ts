@@ -674,7 +674,7 @@ export interface AcpSessionConfigOption {
 /** Config options update notification (within session/update) */
 export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   update: {
-    sessionUpdate: 'config_options_update';
+    sessionUpdate: 'config_option_update';
     configOptions: AcpSessionConfigOption[];
   };
 }
