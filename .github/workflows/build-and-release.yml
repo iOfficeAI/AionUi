@@ -40,6 +40,9 @@ jobs:
       - name: Run Prettier check
         run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
 
+      - name: Run unit tests
+        run: npx vitest run tests/extensions/
+
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
@@ -273,8 +276,8 @@ jobs:
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
-          # Node.js memory limit for webpack bundling (prevents OOM during build)
-          # Node.js 内存限制，防止 webpack 打包时内存不足
+          # Node.js memory limit for vite bundling (prevents OOM during build)
+          # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: "--max-old-space-size=8192"
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}

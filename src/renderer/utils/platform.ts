@@ -40,3 +40,19 @@ export const isWindows = (): boolean => {
 export const isLinux = (): boolean => {
   return typeof navigator !== 'undefined' && /linux/i.test(navigator.userAgent);
 };
+
+/**
+ * Resolve an extension asset URL for the current environment.
+ * - In Electron desktop: `aion-asset://` protocol works natively, returned as-is.
+ * - In a regular browser (WebUI): converts `aion-asset://asset/{path}` to
+ *   `/api/ext-asset?path={encodedPath}` which is served by the Express server.
+ *
+ * 将扩展资源 URL 转换为当前环境可用的地址
+ */
+export const resolveExtensionAssetUrl = (url: string | undefined): string | undefined => {
+  if (!url) return url;
+  if (!url.startsWith('aion-asset://asset/')) return url;
+  if (isElectronDesktop()) return url; // native protocol works in Electron renderer
+  const absPath = url.slice('aion-asset://asset/'.length);
+  return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
+};

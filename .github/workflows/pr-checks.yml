@@ -43,10 +43,36 @@ jobs:
       - name: Prettier Check
         run: npm run format:check
 
-  # Job 2: Trigger GPT AI review (only on first PR submission)
+  # Job 2: Unit tests across all platforms
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }})
+    if: github.event.action != 'edited'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-2022]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run extension system tests
+        run: npx vitest run tests/extensions/
+
+  # Job 3: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality]
+    needs: [code-quality, unit-tests]
     if: github.event.action == 'opened'
     uses: './.github/workflows/gpt-review.yml'
     with:
@@ -56,10 +82,10 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 3: Check if PR author is an external contributor
+  # Job 4: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality]
+    needs: [code-quality, unit-tests]
     if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     outputs:
@@ -86,7 +112,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 4: Trigger GPT PR assessment for external contributors
+  # Job 5: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]

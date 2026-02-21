@@ -25,7 +25,7 @@ function runPostInstall() {
     } else {
       // In local environment, use electron-builder to install dependencies
       console.log('Local environment, installing app deps');
-      execSync('npx electron-builder install-app-deps', {
+      execSync('bunx electron-builder install-app-deps', {
         stdio: 'inherit',
         env: {
           ...process.env,

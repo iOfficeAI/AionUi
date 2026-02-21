@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>AionUi</title>
+  </head>
+  <style>
+    html,
+    body,
+    #root {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      color: var(--text-primary);
+    }
+
+    /* Startup loading screen — shown until React mounts and replaces #root content */
+    #app-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      z-index: 99999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-app-region: drag;
+    }
+
+    @media (prefers-color-scheme: light) {
+      #app-loading { background: #f5f5f7; }
+      #app-loading .loading-logo { background: linear-gradient(135deg, #4e5969 0%, #6b7b8d 100%); }
+      #app-loading .loading-tip { color: #86909c; }
+      #app-loading .loading-dots span { background: #86909c; }
+    }
+
+    .loading-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #4e5969 0%, #6b7b8d 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: logo-pulse 2s ease-in-out infinite;
+      box-shadow: 0 8px 32px rgba(78, 89, 105, 0.3);
+    }
+
+    @keyframes logo-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    .loading-dots {
+      display: flex;
+      gap: 6px;
+      margin-top: 28px;
+    }
+
+    .loading-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      animation: dot-bounce 1.4s ease-in-out infinite;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: 0.16s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+    @keyframes dot-bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    .loading-tip {
+      margin-top: 20px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.45);
+      letter-spacing: 0.3px;
+      text-align: center;
+      max-width: 360px;
+      line-height: 1.5;
+      transition: opacity 0.5s ease;
+    }
+  </style>
+  <body>
+    <div id="root">
+      <!-- Startup loading screen — React will replace this on mount -->
+      <div id="app-loading">
+        <div class="loading-logo">
+          <svg viewBox="0 0 80 80" fill="none" width="44" height="44">
+            <path d="M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20" fill="white"/>
+            <circle cx="40" cy="46" r="3" fill="white"/>
+            <path d="M18 50 Q40 70 62 50" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="loading-tip" id="loading-tip"></div>
+      </div>
+    </div>
+    <script>
+      // Multilingual random tips shown during startup loading
+      (function () {
+        var tips = [
+          'Initializing your AI workspace...',
+          '正在初始化 AI 工作空间...',
+          'AI ワークスペースを初期化中...',
+          'AI 작업 공간을 초기화하는 중...',
+          '正在載入 AI 工作空間...',
+          'Tip: Press Ctrl+N to start a new conversation',
+          '提示：按 Ctrl+N 开始新对话',
+          'ヒント：Ctrl+N で新しい会話を開始',
+          '팁: Ctrl+N을 눌러 새 대화를 시작하세요',
+          'Tip: You can use multiple AI agents in one chat',
+          '提示：你可以在一个对话中使用多个 AI 代理',
+          'ヒント：1つのチャットで複数のAIエージェントを使用できます',
+          'Tip: Drag & drop files to share them with AI',
+          '提示：拖放文件即可与 AI 共享',
+          'Loading extensions and agents...',
+          '正在加载扩展和代理...',
+          '拡張機能とエージェントを読み込み中...',
+          '확장 프로그램과 에이전트를 로드하는 중...',
+        ];
+        var el = document.getElementById('loading-tip');
+        if (el) el.textContent = tips[Math.floor(Math.random() * tips.length)];
+      })();
+    </script>
+    <script type="module" src="./index.ts"></script>
+  </body>
+</html>
+
