@@ -8,13 +8,15 @@
 
 - Manual via `/backtest` command
 - When user asks to test a strategy historically
-- Invokes the `experiment-designer` agent (standalone)
+- Invokes the `experiment-designer` agent (standalone) for design
+- Uses `scripts/run_backtest.py` for execution
 
 ## Command
 
 `/backtest [hypothesis]` - Design and specify a backtest
+`/backtest run [strategy]` - Execute a factor backtest (value, momentum, quality, growth, low_vol)
 `/backtest status` - Check status of current backtest design
-`/backtest results` - View latest experiment brief
+`/backtest results` - View latest experiment brief or backtest results
 
 ## Purpose
 
@@ -85,9 +87,33 @@ Output: Experiment brief with:
 | rebalance  | Rebalancing frequency                   | Quarterly         |
 | metric     | Primary success metric                  | Annualized return |
 
+## Execution Script
+
+`scripts/run_backtest.py` provides historical simulation with:
+
+```bash
+# Value strategy on VN30
+python scripts/run_backtest.py --strategy value --universe VN30 --start 2022-01-01 --end 2025-12-31
+
+# Momentum strategy on HOSE
+python scripts/run_backtest.py --strategy momentum --universe HOSE --rebalance monthly --top-n 15
+
+# Available strategies: value, momentum, quality, growth, low_vol
+```
+
+**Backtest Engine Features:**
+
+- Equal-weight rebalancing at configurable intervals
+- Transaction costs: 0.2% round trip + 0.1% selling tax
+- T+2 settlement and 2-day execution lag
+- Liquidity filter: min 100K avg daily volume
+- Benchmark comparison (equal-weight universe)
+- Metrics: annual return, Sharpe, Sortino, max drawdown, win rate, alpha
+
 ## Output Location
 
 - Experiment brief: `outputs/experiment_brief.md`
+- Backtest results: `outputs/backtest_results.json`
 - Referenced data: `_working/data_inventory.md`
 
 ## Vietnamese Market Backtest Rules

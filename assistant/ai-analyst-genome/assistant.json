@@ -1,0 +1,37 @@
+{
+  "id": "ai-analyst-genome",
+  "name": "AI Analyst",
+  "version": "1.1.0",
+  "description": "AI Data Analyst for Vietnamese stock market powered by AI Analyst Genome. 17-agent pipeline, 4-layer quality system, 55+ skills. Full technical analysis (RSI, MACD, Bollinger, ADX), macro regime classification, factor scoring, multi-model valuation, investor persona analysis (Buffett, Graham, Wood, Druckenmiller, CANSLIM), professional Plotly charting, and presentation-ready output for ~1,700 stocks across HOSE, HNX, and UPCOM.",
+  "author": "AI Analyst Lab",
+  "presetAgentType": "claude",
+  "workspacePath": "./workspace",
+  "avatar": "📊",
+  "ruleFiles": {
+    "en-US": "ai-analyst-genome.en-US.md"
+  },
+  "tags": ["ai-analyst", "vietnam", "stock-market", "vnstock", "data-analysis", "equity-research", "pipeline", "presentation", "technical-analysis", "macro-regime", "factor-investing", "valuation"],
+  "defaultEnabledSkills": ["vnstock-data", "question-router", "explore"],
+  "nameI18n": {
+    "en-US": "AI Analyst (Genome)",
+    "zh-CN": "AI 分析师 (Genome)",
+    "zh-TW": "AI 分析師 (Genome)",
+    "ja-JP": "AI アナリスト (Genome)",
+    "ko-KR": "AI 애널리스트 (Genome)"
+  },
+  "descriptionI18n": {
+    "en-US": "AI Data Analyst for Vietnamese stock market. 17-agent pipeline with 4-layer validation, technical analysis (RSI, MACD, Bollinger), macro regime classification, factor scoring, multi-model valuation, investor persona analysis (Buffett, Graham, Wood, Druckenmiller), professional Plotly charting, and presentation-ready output for ~1,700 stocks across HOSE, HNX, and UPCOM.",
+    "zh-CN": "越南股市 AI 数据分析师。17 代理管道，4 层验证系统，置信度评分，可直接用于演示的输出。支持约 1,700 只股票的实时行情、财务分析、股票筛选、回测和投资组合优化。",
+    "zh-TW": "越南股市 AI 資料分析師。17 代理管道，4 層驗證系統，信心評分，可直接用於簡報的輸出。支援約 1,700 檔股票的即時報價、財務分析、股票篩選、回測和投資組合最佳化。",
+    "ja-JP": "ベトナム株式市場向け AI データアナリスト。17 エージェントパイプライン、4 層検証、信頼度スコアリング、プレゼン対応出力。HOSE、HNX、UPCOM の約 1,700 銘柄のリアルタイム相場、財務分析、スクリーニング、バックテスト、ポートフォリオ最適化をサポート。",
+    "ko-KR": "베트남 주식 시장 AI 데이터 애널리스트. 17개 에이전트 파이프라인, 4계층 검증, 신뢰도 점수, 프레젠테이션 수준의 결과물. HOSE, HNX, UPCOM 약 1,700개 종목의 실시간 시세, 재무 분석, 종목 스크리닝, 백테스트, 포트폴리오 최적화 지원."
+  },
+  "promptsI18n": {
+    "en-US": ["What's VCB's current price?", "Compare VCB and TCB P/E ratios", "Screen stocks with PE < 15 and ROE > 20%", "Find undervalued stocks with strong momentum in VN30", "Build an optimal banking sector portfolio for 2026", "Run a full analysis pipeline on HPG"],
+    "zh-CN": ["VCB 当前价格是多少？", "比较 VCB 和 TCB 的市盈率", "筛选 PE < 15 且 ROE > 20% 的股票", "在 VN30 中寻找被低估且动量强劲的股票", "构建 2026 年银行板块最优组合", "对 HPG 运行完整分析管道"],
+    "zh-TW": ["VCB 目前的價格是多少？", "比較 VCB 和 TCB 的本益比", "篩選 PE < 15 且 ROE > 20% 的股票", "在 VN30 中尋找被低估且動能強勁的股票", "建構 2026 年銀行板塊最佳投資組合", "對 HPG 執行完整分析管道"],
+    "ja-JP": ["VCB の現在の株価は？", "VCB と TCB の PER を比較", "PE < 15 かつ ROE > 20% の銘柄をスクリーニング", "VN30 で割安かつモメンタムが強い銘柄を探す", "2026 年の銀行セクター最適ポートフォリオを構築", "HPG に完全な分析パイプラインを実行"],
+    "ko-KR": ["VCB 현재 주가는?", "VCB와 TCB의 PER 비교", "PE < 15이고 ROE > 20%인 종목 스크리닝", "VN30에서 저평가 + 강한 모멘텀 종목 찾기", "2026년 은행 섹터 최적 포트폴리오 구성", "HPG에 대해 전체 분석 파이프라인 실행"]
+  },
+  "isBuiltin": true
+}

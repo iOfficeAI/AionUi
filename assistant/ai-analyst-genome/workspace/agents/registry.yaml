@@ -478,7 +478,8 @@ skills:
     - id: "backtest"
       file: ".claude/skills/backtest/skill.md"
       trigger: "/backtest command"
-      purpose: "Historical strategy testing interface"
+      purpose: "Historical strategy testing with execution engine"
+      scripts: ["scripts/run_backtest.py"]
 
     - id: "screen"
       file: ".claude/skills/screen/skill.md"
@@ -567,6 +568,92 @@ skills:
       trigger: "/glossary command"
       purpose: "Vietnamese market glossary"
 
+# Skills Registry (Wave 5 — Specialist Investment Analysis)
+  wave_5:
+    - id: "technicals"
+      file: ".claude/skills/technicals/skill.md"
+      trigger: "auto (L3+ stock analysis with price data)"
+      purpose: "Technical analysis — RSI, MACD, Bollinger, ADX, ATR, Stochastic, OBV, support/resistance"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "macro-regime"
+      file: ".claude/skills/macro-regime/skill.md"
+      trigger: "auto (L4+ portfolio or sector analysis)"
+      purpose: "Macro regime classification — EXPANSION/SLOWDOWN/RECESSION/RECOVERY with sector/factor rotation"
+      scripts: ["scripts/classify_regime.py", "scripts/fetch_gso_data.py", "scripts/fetch_sbv_data.py"]
+
+    - id: "factor-analyst"
+      file: ".claude/skills/factor-analyst/skill.md"
+      trigger: "auto (L3+ multi-stock comparison or screening)"
+      purpose: "Quantitative factor scoring — value, momentum, quality, growth, volatility z-scores"
+      scripts: ["scripts/calculate_factors.py", "scripts/factor_correlation.py", "scripts/rank_universe.py"]
+
+    - id: "fundamentals"
+      file: ".claude/skills/fundamentals/skill.md"
+      trigger: "auto (L2+ financial analysis)"
+      purpose: "Fundamental analysis — profitability, growth, financial health, valuation scoring"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "valuation"
+      file: ".claude/skills/valuation/skill.md"
+      trigger: "auto (L3+ fair value or undervalued queries)"
+      purpose: "Multi-model valuation — DCF, relative multiples, owner earnings"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "risk-manager"
+      file: ".claude/skills/risk-manager/skill.md"
+      trigger: "auto (L4+ portfolio or position sizing)"
+      purpose: "Risk management — volatility-adjusted position sizing (5-25% bounds)"
+      scripts: ["scripts/calculate.py"]
+
+    - id: "portfolio-manager"
+      file: ".claude/skills/portfolio-manager/skill.md"
+      trigger: "auto (L4+ multi-signal aggregation)"
+      purpose: "Portfolio management — multi-signal consensus (Strong Buy → Strong Sell)"
+      scripts: ["scripts/aggregate.py"]
+
+    - id: "financial-visualization"
+      file: ".claude/skills/financial-visualization/skill.md"
+      trigger: "auto (chart generation for financial data)"
+      purpose: "Professional Plotly charts — 4-panel technical, candlestick, financials bar, valuation multiples, radar consensus"
+      scripts: ["scripts/plot_technical_chart.py", "scripts/plot_price.py", "scripts/plot_financials.py", "scripts/plot_valuation.py", "scripts/plot_radar.py"]
+
+    - id: "warren-buffett"
+      file: ".claude/skills/warren-buffett/skill.md"
+      trigger: "auto (L4+ value investing or moat analysis)"
+      purpose: "Buffett-style analysis — ROE consistency, moat quality, owner earnings, 3-stage DCF, margin of safety"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "ben-graham"
+      file: ".claude/skills/ben-graham/skill.md"
+      trigger: "auto (L4+ growth-momentum screening)"
+      purpose: "CANSLIM 7-factor scoring — Current earnings, Annual growth, New highs, Supply/demand, Leader, Institutional, Market direction"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "cathie-wood"
+      file: ".claude/skills/cathie-wood/skill.md"
+      trigger: "auto (L4+ disruptive innovation or high-growth analysis)"
+      purpose: "Wood-style analysis — growth trajectory, innovation investment, TAM expansion, competitive position"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "stanley-druckenmiller"
+      file: ".claude/skills/stanley-druckenmiller/skill.md"
+      trigger: "auto (L4+ macro-momentum or asymmetric opportunity)"
+      purpose: "Druckenmiller-style analysis — price momentum, fundamental acceleration, risk/reward asymmetry"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "growth-analyst"
+      file: ".claude/skills/growth-analyst/skill.md"
+      trigger: "auto (L3+ growth stock analysis)"
+      purpose: "Growth analysis — S-curve stage, Rule of 40, earnings leverage, margin expansion"
+      scripts: ["scripts/analyze.py"]
+
+    - id: "news-sentiment"
+      file: ".claude/skills/news-sentiment/skill.md"
+      trigger: "auto (L3+ sentiment or news-driven queries)"
+      purpose: "News sentiment analysis — keyword-based headline scoring"
+      scripts: ["scripts/analyze.py"]
+
 # Build Status
 build:
   wave_0_agents_created: 1   # connector-inspector (internal)
@@ -578,8 +665,9 @@ build:
   wave_3_skills_created: 9   # visualization-patterns, presentation-themes, stakeholder-communication, export, run-pipeline, resume-pipeline, close-the-loop, forecast, role
   wave_4_agents_created: 1   # experiment-designer
   wave_4_skills_created: 6   # help, datasets, backtest, screen, portfolio, chart
+  wave_5_skills_created: 14  # technicals, macro-regime, factor-analyst, fundamentals, valuation, risk-manager, portfolio-manager, financial-visualization, warren-buffett, ben-graham, cathie-wood, stanley-druckenmiller, growth-analyst, news-sentiment
   total_agents_created: 19
-  total_skills_created: 42   # 14 foundation + 13 wave_2 + 9 wave_3 + 6 wave_4
+  total_skills_created: 56   # 14 foundation + 13 wave_2 + 9 wave_3 + 6 wave_4 + 14 wave_5
 
   status: "COMPLETE"
   completed_at: "2026-02-21"
