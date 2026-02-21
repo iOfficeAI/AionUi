@@ -376,7 +376,7 @@ const ChatLayout: React.FC<{
                 <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
                 {createPreviewDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: {} })}
               </div>
-              <div className='preview-panel flex flex-col relative my-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, border: '1px solid var(--bg-3)', minWidth: '260px' }}>
+              <div className='preview-panel flex flex-col relative overflow-hidden mt-[6px] mb-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, border: '1px solid var(--bg-3)', minWidth: '260px' }}>
                 <PreviewPanel />
               </div>
               {workspaceEnabled && (
@@ -405,7 +405,7 @@ const ChatLayout: React.FC<{
               {isPreviewOpen && !layout?.isMobile && createPreviewDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: {} })}
             </div>
             {isPreviewOpen && (
-              <div className='preview-panel flex flex-col relative my-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: layout?.isMobile ? 0 : 1, flexShrink: layout?.isMobile ? 0 : 1, flexBasis: layout?.isMobile ? '100%' : 0, border: '1px solid var(--bg-3)', minWidth: layout?.isMobile ? '100%' : '260px' }}>
+              <div className='preview-panel flex flex-col relative overflow-hidden my-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: layout?.isMobile ? 0 : 1, flexShrink: layout?.isMobile ? 0 : 1, flexBasis: layout?.isMobile ? '100%' : 0, border: '1px solid var(--bg-3)', minWidth: layout?.isMobile ? '100%' : '260px' }}>
                 <PreviewPanel />
               </div>
             )}
