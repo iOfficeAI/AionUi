@@ -392,11 +392,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       this.storeApprovalDecision(callId, decision);
     }
 
-    // Apply patch changes if available and approved
-    const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(callId);
-    if (changes && isApproved) {
-      await this.applyPatchChanges(callId, changes);
-    }
+    // IMPORTANT: Codex CLI is the single writer for patch application.
+    // Do not apply patch changes locally before sending approval.
 
     // Normalize call id back to server's codex_call_id
     // Handle the new unified permission_ prefix as well as legacy prefixes
@@ -636,15 +633,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // Clean up pending confirmation tracking
       this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
 
-      // For edit actions, apply patch changes asynchronously (fire-and-forget)
-      if (data.action === 'edit') {
-        const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
-        if (changes) {
-          void this.applyPatchChanges(data.callId, changes).catch((err) => {
-            console.error('[CodexAgentManager] Failed to apply patch changes during auto-approve:', err);
-          });
-        }
-      }
+      // IMPORTANT: Do not apply patch changes locally in auto-approve mode.
+      // Let Codex CLI apply changes after approval response.
 
       // Send approval response to CLI (synchronous write to stdin)
       this.agent.respondElicitation(origCallId, 'approved');
