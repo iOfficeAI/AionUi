@@ -577,8 +577,8 @@ const Guid: React.FC = () => {
         if (!isActive) return;
         setAcpCachedModels(cached || {});
       })
-      .catch((error) => {
-        console.error('Failed to load cached ACP models:', error);
+      .catch(() => {
+        // Silently ignore - cached models are optional
       });
     return () => {
       isActive = false;
@@ -1772,7 +1772,7 @@ const Guid: React.FC = () => {
                       {DEFAULT_CODEX_MODELS.find((m) => m.id === selectedCodexModel)?.label || selectedCodexModel}
                     </Button>
                   </Dropdown>
-                ) : currentAcpCachedModelInfo && currentAcpCachedModelInfo.availableModels.length > 0 ? (
+                ) : currentAcpCachedModelInfo && currentAcpCachedModelInfo.availableModels?.length > 0 ? (
                   currentAcpCachedModelInfo.canSwitch ? (
                     <Dropdown
                       trigger='click'

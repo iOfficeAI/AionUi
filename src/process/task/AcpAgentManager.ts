@@ -336,7 +336,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
         // Cache model list for Guid page pre-selection after agent starts
         const modelInfo = this.agent.getModelInfo();
-        if (modelInfo && modelInfo.availableModels.length > 0) {
+        if (modelInfo && modelInfo.availableModels?.length > 0) {
           void this.cacheModelList(modelInfo);
         }
         return this.agent;
@@ -728,8 +728,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
     try {
       const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
-      cached[this.options.backend] = modelInfo;
-      await ProcessConfig.set('acp.cachedModels', cached);
+      await ProcessConfig.set('acp.cachedModels', {
+        ...cached,
+        [this.options.backend]: modelInfo,
+      });
     } catch (error) {
       console.warn('[AcpAgentManager] Failed to cache model list:', error);
     }

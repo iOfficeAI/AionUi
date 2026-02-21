@@ -44,14 +44,14 @@ const AcpModelSelector: React.FC<{
         if (cancelled) return;
         if (result.success && result.data?.modelInfo) {
           setModelInfo(result.data.modelInfo);
-        } else if (backend && initialModelId) {
+        } else if (backend) {
           // Manager not yet created — load cached model list from storage
-          void loadCachedModelInfo(backend, initialModelId, cancelled);
+          void loadCachedModelInfo(backend, cancelled);
         }
       })
       .catch(() => {
-        if (!cancelled && backend && initialModelId) {
-          void loadCachedModelInfo(backend, initialModelId, cancelled);
+        if (!cancelled && backend) {
+          void loadCachedModelInfo(backend, cancelled);
         }
       });
 
@@ -59,16 +59,17 @@ const AcpModelSelector: React.FC<{
       cancelled = true;
     };
 
-    async function loadCachedModelInfo(backendKey: string, modelId: string, isCancelled: boolean) {
+    async function loadCachedModelInfo(backendKey: string, isCancelled: boolean) {
       try {
         const cached = await ConfigStorage.get('acp.cachedModels');
         if (isCancelled) return;
         const cachedInfo = cached?.[backendKey];
-        if (cachedInfo && cachedInfo.availableModels.length > 0) {
+        if (cachedInfo?.availableModels?.length > 0) {
+          const effectiveModelId = initialModelId || cachedInfo.currentModelId || null;
           setModelInfo({
             ...cachedInfo,
-            currentModelId: modelId,
-            currentModelLabel: cachedInfo.availableModels.find((m) => m.id === modelId)?.label || modelId,
+            currentModelId: effectiveModelId,
+            currentModelLabel: (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) || effectiveModelId,
           });
         }
       } catch {
