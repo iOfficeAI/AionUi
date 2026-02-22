@@ -187,10 +187,44 @@ export class AcpConnection {
     await this.setupChildProcessHandlers(backend);
   }
 
+  /** Npx-based backends that may need npm cache recovery on version mismatch */
+  private static readonly NPX_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex', 'codebuddy']);
+
   async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const connectStart = Date.now();
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: start backend=${backend}`);
 
+    try {
+      await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
+    } catch (error) {
+      // For npx-based backends, detect stale npm cache errors and auto-recover.
+      // When we upgrade a bridge package version (e.g., claude-agent-acp 0.17→0.18),
+      // users with the old version cached hit "notarget" because --prefer-offline
+      // serves stale metadata. Cleaning the cache and retrying fixes this.
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (AcpConnection.NPX_BACKENDS.has(backend) && /notarget|no matching version/i.test(errMsg)) {
+        console.warn(`[ACP] Detected stale npm cache for ${backend}, cleaning and retrying...`);
+        try {
+          const cleanEnv = this.prepareNpxEnv();
+          const npmPath = resolveNpxPath(cleanEnv)
+            .replace(/npx$/, 'npm')
+            .replace(/npx\.cmd$/, 'npm.cmd');
+          await execFile(npmPath, ['cache', 'clean', '--force'], { env: cleanEnv, timeout: 30000 });
+          console.warn('[ACP] npm cache cleaned, retrying connection...');
+        } catch (cleanError) {
+          console.warn('[ACP] Failed to clean npm cache:', cleanError);
+          throw error; // Throw original error if cache clean fails
+        }
+        await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
+      } else {
+        throw error;
+      }
+    }
+
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
+  }
+
+  private async doConnect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     if (this.child) {
       await this.disconnect();
     }
@@ -240,8 +274,6 @@ export class AcpConnection {
       default:
         throw new Error(`Unsupported backend: ${backend}`);
     }
-
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
   private async connectClaude(workingDir: string = process.cwd()): Promise<void> {
@@ -259,7 +291,7 @@ export class AcpConnection {
     // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp@0.18.0'];
+    const spawnArgs = ['--yes', '--prefer-offline', '@zed-industries/claude-agent-acp@0.18.0'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -285,7 +317,7 @@ export class AcpConnection {
 
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--prefer-offline', '@zed-industries/codex-acp@0.9.4'];
+    const spawnArgs = ['--yes', '--prefer-offline', '@zed-industries/codex-acp@0.9.4'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -390,12 +422,14 @@ export class AcpConnection {
       console.error(`[ACP ${backend}] Process exited with code: ${code}, signal: ${signal}`);
 
       if (!this.isSetupComplete) {
-        // Startup phase - set error for initial check
+        // Startup phase - set error for initial check.
+        // Include stderr in spawnError so callers can detect specific failures
+        // (e.g., npm "notarget" for stale cache recovery).
+        const errMsg = stderrOutput ? `${backend} ACP process exited during startup (code: ${code}):\n${stderrOutput}` : `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
         if (code !== 0 && !spawnError) {
-          spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
+          spawnError = new Error(errMsg);
         }
         // Reject processExitPromise so Promise.race returns immediately
-        const errMsg = stderrOutput ? `${backend} ACP process exited during startup (code: ${code}):\n${stderrOutput}` : `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
         processExitReject?.(new Error(errMsg));
       } else {
         // Runtime phase - handle unexpected exit
