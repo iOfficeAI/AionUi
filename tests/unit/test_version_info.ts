@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import { VersionInfo } from '../../src/common/update/models/VersionInfo';
 
 describe('VersionInfo Model', () => {

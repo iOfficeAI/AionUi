@@ -4,11 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgentEventType, EventDataMap, type McpInvocation, McpToolInfo, OutputFormat, RendererType, ToolAvailability, ToolCapabilities, ToolCategory, ToolDefinition, ToolRenderer } from '../types';
+// Import values (enums) and types separately
+import { CodexAgentEventType } from '../types/eventTypes';
+import { ToolCategory, OutputFormat, RendererType } from '../types/toolTypes';
+import type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer } from '../types';
 import i18n from '../../../renderer/i18n';
 
+// Re-export enums (values) - these can be re-exported
+export { ToolCategory, OutputFormat, RendererType };
 // Re-export types for backward compatibility
-export { ToolCategory, OutputFormat, RendererType, ToolAvailability, ToolCapabilities, ToolRenderer, ToolDefinition, McpToolInfo, EventDataMap };
+export type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer };
 
 /**
  * 工具注册表 - 负责管理所有工具的注册、发现和解析

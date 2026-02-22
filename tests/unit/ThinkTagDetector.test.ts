@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { hasThinkTags, stripThinkTags, extractThinkContent } from '@/process/task/ThinkTagDetector';
 
 describe('ThinkTagDetector', () => {
