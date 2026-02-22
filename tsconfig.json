@@ -3,6 +3,7 @@
     "target": "ES6",
     "allowJs": true,
     "module": "commonjs",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
@@ -10,6 +11,9 @@
     "outDir": "dist",
     "resolveJsonModule": true,
     "jsx": "react",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@process/*": ["./src/process/*"],
