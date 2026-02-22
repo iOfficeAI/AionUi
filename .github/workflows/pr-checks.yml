@@ -90,22 +90,27 @@ jobs:
             os: 'macos-14'
             arch: 'arm64'
             target: '--mac'
+            build_args: '--mac --arm64'
           - platform: 'macos-x64'
             os: 'macos-14'
             arch: 'x64'
             target: '--mac'
+            build_args: '--mac --x64'
           - platform: 'windows-x64'
             os: 'windows-2022'
             arch: 'x64'
             target: '--win'
+            build_args: '--win --x64'
           - platform: 'windows-arm64'
             os: 'windows-2022'
             arch: 'arm64'
             target: '--win'
+            build_args: '--win --arm64'
           - platform: 'linux'
             os: 'ubuntu-latest'
             arch: 'x64'
             target: '--linux'
+            build_args: '--linux --x64'
 
     steps:
       - name: Checkout code
@@ -197,7 +202,7 @@ jobs:
           echo "=========================================="
           echo "BUILD TEST: ${{ matrix.platform }}"
           echo "=========================================="
-          node scripts/build-with-builder.js auto ${{ matrix.target }} --${{ matrix.arch }}
+          node scripts/build-with-builder.js auto ${{ matrix.build_args }}
           echo "✅ Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"

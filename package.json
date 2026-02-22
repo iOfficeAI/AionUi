@@ -162,6 +162,7 @@
     "turndown-plugin-gfm": "^1.0.2",
     "web-tree-sitter": "^0.25.10",
     "ws": "^8.18.3",
+    "diff": "^8.0.3",
     "xlsx-republish": "^0.20.3",
     "zod": "^3.25.76"
   },
