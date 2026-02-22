@@ -28,6 +28,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@main
         with:
+          tools: 'node@22 bun'
           setup: 'true'
           cache: 'true'
 
@@ -60,6 +61,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@main
         with:
+          tools: 'node@22 bun'
           setup: 'true'
           cache: 'true'
 

@@ -17,7 +17,7 @@ jobs:
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -25,6 +25,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@main
         with:
+          tools: 'node@22 bun'
           setup: 'true'
           cache: 'true'
 
@@ -87,6 +88,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@main
         with:
+          tools: 'node@22 bun python@3.12'
           setup: 'true'
           cache: 'true'
 
