@@ -251,11 +251,27 @@ export class AcpConnection {
 
     this.ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
 
-    // Resolve npx from the same bin directory as the verified node binary
-    // to avoid picking up a stale globally-installed npx (pre npm 7)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--prefer-offline', '@zed-industries/claude-agent-acp@0.18.0'];
+
+    // Phase 1: Try with --prefer-offline for fast startup (~1-2s)
+    try {
+      await this.spawnAndSetupClaude(spawnCommand, cleanEnv, workingDir, isWindows, true);
+    } catch (firstError) {
+      // Phase 2: Retry without --prefer-offline to refresh stale cache (~3-5s)
+      // This handles upgrades where cached registry metadata is outdated
+      console.warn('[ACP] --prefer-offline failed, retrying with fresh registry lookup:', firstError instanceof Error ? firstError.message : String(firstError));
+
+      // Clean up failed spawn state
+      this.child = null;
+      this.isSetupComplete = false;
+
+      await this.spawnAndSetupClaude(spawnCommand, cleanEnv, workingDir, isWindows, false);
+    }
+  }
+
+  private async spawnAndSetupClaude(spawnCommand: string, cleanEnv: Record<string, string | undefined>, workingDir: string, isWindows: boolean, preferOffline: boolean): Promise<void> {
+    const spawnArgs = ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), '@zed-industries/claude-agent-acp@0.18.0'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -264,7 +280,9 @@ export class AcpConnection {
       env: cleanEnv,
       shell: isWindows,
     });
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms`);
+    if (ACP_PERF_LOG) {
+      console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms (preferOffline=${preferOffline})`);
+    }
 
     await this.setupChildProcessHandlers('claude');
   }
@@ -279,21 +297,39 @@ export class AcpConnection {
 
     this.ensureMinNodeVersion(cleanEnv, 20, 10, 'CodeBuddy ACP');
 
-    // Resolve npx from the verified node bin directory (same as connectClaude)
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--yes', '--prefer-offline', '@tencent-ai/codebuddy-code', '--acp'];
 
     // Load user's MCP config if available (~/.codebuddy/mcp.json)
     // CodeBuddy CLI in --acp mode does not auto-load mcp.json, so we pass it explicitly
     const mcpConfigPath = path.join(os.homedir(), '.codebuddy', 'mcp.json');
+    const extraArgs: string[] = [];
     try {
       await fs.access(mcpConfigPath);
-      spawnArgs.push('--mcp-config', mcpConfigPath);
+      extraArgs.push('--mcp-config', mcpConfigPath);
       console.error(`[ACP] Loading CodeBuddy MCP config from ${mcpConfigPath}`);
     } catch {
       console.error('[ACP] No CodeBuddy MCP config found, starting without MCP servers');
     }
+
+    // Phase 1: Try with --prefer-offline for fast startup
+    try {
+      await this.spawnAndSetupCodebuddy(spawnCommand, cleanEnv, workingDir, isWindows, extraArgs, true);
+    } catch (firstError) {
+      // Phase 2: Retry without --prefer-offline to refresh stale cache
+      console.warn('[ACP] CodeBuddy --prefer-offline failed, retrying with fresh registry lookup:', firstError instanceof Error ? firstError.message : String(firstError));
+
+      // Clean up failed spawn state
+      this.child = null;
+      this.isSetupComplete = false;
+      this.isDetached = false;
+
+      await this.spawnAndSetupCodebuddy(spawnCommand, cleanEnv, workingDir, isWindows, extraArgs, false);
+    }
+  }
+
+  private async spawnAndSetupCodebuddy(spawnCommand: string, cleanEnv: Record<string, string | undefined>, workingDir: string, isWindows: boolean, extraArgs: string[], preferOffline: boolean): Promise<void> {
+    const spawnArgs = ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), '@tencent-ai/codebuddy-code', '--acp', ...extraArgs];
 
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] codebuddy: spawning ${spawnCommand} ${spawnArgs.join(' ')}`);
     const spawnStart = Date.now();
@@ -314,7 +350,9 @@ export class AcpConnection {
     if (this.isDetached) {
       this.child.unref();
     }
-    if (ACP_PERF_LOG) console.log(`[ACP-PERF] codebuddy: process spawned ${Date.now() - spawnStart}ms`);
+    if (ACP_PERF_LOG) {
+      console.log(`[ACP-PERF] codebuddy: process spawned ${Date.now() - spawnStart}ms (preferOffline=${preferOffline})`);
+    }
 
     const handlerStart = Date.now();
     await this.setupChildProcessHandlers('codebuddy');
