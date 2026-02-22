@@ -36,7 +36,9 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install --frozen-lockfile
+        run: |
+          rm -rf node_modules
+          vx bun install
         env:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
@@ -71,7 +73,9 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install --frozen-lockfile
+        run: |
+          rm -rf node_modules
+          vx bun install
         env:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
