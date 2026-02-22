@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup vx
-        uses: loonghao/vx@main
+        uses: loonghao/vx@v0.8.4
         with:
           tools: 'node@22 bun'
           setup: 'true'
@@ -86,7 +86,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup vx
-        uses: loonghao/vx@main
+        uses: loonghao/vx@v0.8.4
         with:
           tools: 'node@22 bun python@3.12'
           setup: 'true'
