@@ -109,6 +109,47 @@ export class AcpConnection {
   private isDetached = false;
 
   /**
+   * Kill the current child process (if any) and clear process-related state.
+   * Handles platform differences: Windows taskkill tree kill, POSIX detached
+   * process group kill, and standard SIGTERM.
+   *
+   * Used by both disconnect() and retry paths. Does NOT reset session-level
+   * state (sessionId, backend, etc.) — that is disconnect()'s responsibility.
+   */
+  private async terminateChild(): Promise<void> {
+    if (!this.child) {
+      this.isDetached = false;
+      return;
+    }
+
+    const pid = this.child.pid;
+    if (process.platform === 'win32' && pid) {
+      // Windows: shell:true spawns cmd.exe as parent; taskkill /T kills the tree.
+      try {
+        await execFile('taskkill', ['/PID', String(pid), '/T'], { windowsHide: true, timeout: 2000 });
+      } catch {
+        try {
+          await execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, timeout: 2000 });
+        } catch (forceError) {
+          console.warn(`[ACP] taskkill /F failed for PID ${pid}:`, forceError);
+        }
+      }
+    } else if (this.isDetached && pid) {
+      // POSIX detached: negative PID kills the entire process group (setsid).
+      try {
+        process.kill(-pid, 'SIGTERM');
+      } catch {
+        this.child.kill('SIGTERM');
+      }
+    } else {
+      this.child.kill('SIGTERM');
+    }
+
+    this.child = null;
+    this.isDetached = false;
+  }
+
+  /**
    * Prepare a clean environment for npx-based ACP backends.
    * Removes Node.js debugging vars and npm lifecycle vars that can interfere
    * with child npx processes.
@@ -262,8 +303,9 @@ export class AcpConnection {
       // This handles upgrades where cached registry metadata is outdated
       console.warn('[ACP] --prefer-offline failed, retrying with fresh registry lookup:', firstError instanceof Error ? firstError.message : String(firstError));
 
-      // Clean up failed spawn state
-      this.child = null;
+      // Terminate the first child (may still be running if initialize() timed out)
+      // to prevent orphaned processes and stale exit handlers interfering with retry
+      await this.terminateChild();
       this.isSetupComplete = false;
 
       await this.spawnAndSetupClaude(spawnCommand, cleanEnv, workingDir, isWindows, false);
@@ -319,10 +361,10 @@ export class AcpConnection {
       // Phase 2: Retry without --prefer-offline to refresh stale cache
       console.warn('[ACP] CodeBuddy --prefer-offline failed, retrying with fresh registry lookup:', firstError instanceof Error ? firstError.message : String(firstError));
 
-      // Clean up failed spawn state
-      this.child = null;
+      // Terminate the first child (may still be running if initialize() timed out)
+      // to prevent orphaned processes and stale exit handlers interfering with retry
+      await this.terminateChild();
       this.isSetupComplete = false;
-      this.isDetached = false;
 
       await this.spawnAndSetupCodebuddy(spawnCommand, cleanEnv, workingDir, isWindows, extraArgs, false);
     }
@@ -1007,52 +1049,13 @@ export class AcpConnection {
   }
 
   async disconnect(): Promise<void> {
-    if (this.child) {
-      const pid = this.child.pid;
-      if (process.platform === 'win32' && pid) {
-        // When shell:true is used on Windows, this.child usually points to
-        // cmd.exe while the actual ACP CLI runs as a descendant process.
-        // taskkill /T ensures the full process tree is terminated.
-        // Step 1: Graceful tree kill (no /F) — gives the CLI a chance to clean up.
-        // Step 2: Force kill if graceful termination failed.
-        // Using async execFile to avoid blocking the Electron main process.
-        try {
-          await execFile('taskkill', ['/PID', String(pid), '/T'], {
-            windowsHide: true,
-            timeout: 2000,
-          });
-        } catch {
-          try {
-            await execFile('taskkill', ['/PID', String(pid), '/T', '/F'], {
-              windowsHide: true,
-              timeout: 2000,
-            });
-          } catch (forceError) {
-            console.warn(`[ACP] taskkill /F failed for PID ${pid}:`, forceError);
-          }
-        }
-      } else if (this.isDetached && pid) {
-        // For detached processes (CodeBuddy on non-Windows), kill the entire
-        // process group so npx's child CLI also terminates.
-        // Negative PID = process group kill (POSIX setsid).
-        try {
-          process.kill(-pid, 'SIGTERM');
-        } catch {
-          // Fallback: process group kill failed (e.g., already exited)
-          this.child.kill('SIGTERM');
-        }
-      } else {
-        this.child.kill('SIGTERM');
-      }
-      this.child = null;
-    }
+    await this.terminateChild();
 
-    // Reset state
+    // Reset session-level state
     this.pendingRequests.clear();
     this.sessionId = null;
     this.isInitialized = false;
     this.isSetupComplete = false;
-    this.isDetached = false;
     this.backend = null;
     this.initializeResponse = null;
     this.configOptions = null;
