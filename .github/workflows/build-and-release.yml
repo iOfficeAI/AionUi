@@ -16,8 +16,7 @@ env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
-  # 代码质量检查
-  code-quality:
+  # 代码质量检�?  code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
 
@@ -33,7 +32,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -48,7 +47,7 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
+    # dev 分支或正�?tag 触发构建（排�?-dev- tag，避免重复构建）
     if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
 
     strategy:
@@ -93,7 +92,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -128,8 +127,7 @@ jobs:
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
-        if: startsWith(matrix.platform, 'macos')  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
-        env:
+        if: startsWith(matrix.platform, 'macos')  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构�?        env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
@@ -140,8 +138,7 @@ jobs:
             # 创建证书文件
             echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
 
-            # 创建临时钥匙串
-            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            # 创建临时钥匙�?            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
 
@@ -244,8 +241,7 @@ jobs:
           echo "Cleanup complete"
 
       # macOS: Build with notarization - DMG failure = CI failure, notarization failure = warning only
-      # macOS: 构建并公证 - DMG 失败 = CI 失败，公证失败 = 仅警告
-      - name: Build with electron-builder (macOS)
+      # macOS: 构建并公�?- DMG 失败 = CI 失败，公证失�?= 仅警�?      - name: Build with electron-builder (macOS)
         if: startsWith(matrix.platform, 'macos')
         id: macos-build
         shell: bash
@@ -260,12 +256,12 @@ jobs:
           DMG_EXISTS=false
           if ls out/*.dmg 1>/dev/null 2>&1; then
             DMG_EXISTS=true
-            echo "✅ DMG created successfully"
+            echo "�?DMG created successfully"
           fi
 
           # If build succeeded completely
           if [ $BUILD_EXIT_CODE -eq 0 ]; then
-            echo "✅ Build completed successfully"
+            echo "�?Build completed successfully"
             echo "notarization_status=success" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -283,13 +279,13 @@ jobs:
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "Users may see Gatekeeper warnings when opening the app for the first time." >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "To fix: Right-click the app → Open → Open" >> $GITHUB_STEP_SUMMARY
+              echo "To fix: Right-click the app �?Open �?Open" >> $GITHUB_STEP_SUMMARY
               exit 0  # Allow CI to continue
             fi
           fi
 
           # DMG doesn't exist or other fatal error - fail CI
-          echo "❌ Build failed - DMG was not created"
+          echo "�?Build failed - DMG was not created"
           echo "notarization_status=build_failed" >> $GITHUB_OUTPUT
           exit 1
         env:
@@ -341,8 +337,7 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      # macOS 钥匙串清理
-      - name: Clean up keychain (macOS only)
+      # macOS 钥匙串清�?      - name: Clean up keychain (macOS only)
         if: startsWith(matrix.platform, 'macos') && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
@@ -357,18 +352,18 @@ jobs:
         run: |
           echo "::error title=macOS Build Failed::Build failed. Check the logs for details."
           echo ""
-          echo "❌ macOS Build Failed"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "�?macOS Build Failed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━�?
           echo ""
           echo "Common causes:"
-          echo "  • hdiutil/DMG creation failure (Device not configured)"
-          echo "  • Code signing issues"
-          echo "  • Notarization timeout"
-          echo "  • Out of memory (OOM)"
+          echo "  �?hdiutil/DMG creation failure (Device not configured)"
+          echo "  �?Code signing issues"
+          echo "  �?Notarization timeout"
+          echo "  �?Out of memory (OOM)"
           echo ""
           echo "Check the build logs above for the specific error."
           echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━�?
 
       - name: List build artifacts
         if: success() || failure()
@@ -390,10 +385,8 @@ jobs:
       # - Build succeeded (all platforms)
       # - macOS: notarization timeout but artifacts exist (handled in build step)
       # - Windows: only if windows-build step succeeded
-      # 上传产物条件：
-      # - 构建成功（所有平台）
-      # - macOS: 公证超时但有产物（已在构建步骤中处理）
-      # - Windows: 仅当 windows-build 步骤成功
+      # 上传产物条件�?      # - 构建成功（所有平台）
+      # - macOS: 公证超时但有产物（已在构建步骤中处理�?      # - Windows: 仅当 windows-build 步骤成功
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
@@ -423,8 +416,7 @@ jobs:
     name: Auto Retry on Build Failure
     runs-on: ubuntu-latest
     needs: build
-    # 关键：只在首次失败时触发，避免无限循环
-    if: |
+    # 关键：只在首次失败时触发，避免无限循�?    if: |
       failure() &&
       github.run_attempt == 1 &&
       (github.event_name == 'push' || github.event_name == 'schedule')
@@ -442,7 +434,7 @@ jobs:
 
       - name: Wait before retry (5 min cooldown)
         run: |
-          echo "⏳ Waiting 5 minutes before retry..."
+          echo "�?Waiting 5 minutes before retry..."
           echo "Start: $(date)"
           sleep 300
           echo "End: $(date)"
@@ -463,19 +455,18 @@ jobs:
 
           if [ "$http_code" = "201" ]; then
             echo ""
-            echo "✅ Retry triggered successfully"
+            echo "�?Retry triggered successfully"
             echo "This will be attempt 2"
             echo "Details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           else
             echo ""
-            echo "❌ Retry trigger failed, HTTP status: $http_code"
+            echo "�?Retry trigger failed, HTTP status: $http_code"
             echo "Response:"
             echo "$response" | head -n-1
             exit 1
           fi
 
-  # 自动创建tag（仅 dev 分支推送时）
-  create-tag:
+  # 自动创建tag（仅 dev 分支推送时�?  create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [ build ]
@@ -516,10 +507,9 @@ jobs:
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
 
-          # 检查远程tag是否已存在
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
+          # 检查远程tag是否已存�?          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
             if [ "$IS_DEV" = "false" ]; then
-              # Main 分支：需要递增版本并修改 package.json
+              # Main 分支：需要递增版本并修�?package.json
               echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
 
               if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
@@ -531,8 +521,7 @@ jobs:
 
                 echo "📝 Updating package.json version to $NEW_VERSION"
 
-                # 更新 package.json 版本号
-                vx bun pm version $NEW_VERSION
+                # 更新 package.json 版本�?                vx bun pm version $NEW_VERSION
 
                 # 配置git用户信息
                 git config user.name "github-actions[bot]"
@@ -556,14 +545,12 @@ jobs:
                 echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
               fi
             else
-              # Dev 分支 tag 已存在则失败（不应该发生）
-              echo "⚠️ Dev tag $TAG_NAME already exists, this shouldn't happen"
+              # Dev 分支 tag 已存在则失败（不应该发生�?              echo "⚠️ Dev tag $TAG_NAME already exists, this shouldn't happen"
               exit 1
             fi
           fi
 
-          # 配置git用户信息（如果前面没配置）
-          git config user.name "github-actions[bot]"
+          # 配置git用户信息（如果前面没配置�?          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # 创建并推送tag
@@ -571,18 +558,17 @@ jobs:
           git tag $TAG_NAME
           git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin $TAG_NAME
-          echo "✅ Successfully created and pushed tag: $TAG_NAME"
+          echo "�?Successfully created and pushed tag: $TAG_NAME"
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-  # 发布到 GitHub Releases
+  # 发布�?GitHub Releases
   release:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [ build, create-tag ]
-    # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
-    if: always() && needs.build.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
-    # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
+    # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复�?    if: always() && needs.build.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    # dev 分支使用 dev-release 环境，正�?tag 使用 release 环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
 
     steps:
@@ -592,15 +578,14 @@ jobs:
       - name: Get version for release
         id: version
         run: |
-          # 判断触发来源：正式 tag 推送 or dev 分支
+          # 判断触发来源：正�?tag 推�?or dev 分支
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             # 正式 Tag 推送触发（-dev- tag 已被排除，不会到达这里）
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             IS_DEV="false"
             echo "🚀 Creating stable release from tag: $TAG_NAME"
           else
-            # dev 分支触发，使用 create-tag job 的输出
-            TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+            # dev 分支触发，使�?create-tag job 的输�?            TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
             IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
             echo "🔧 Creating development release: $TAG_NAME"
           fi

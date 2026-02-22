@@ -1,4 +1,4 @@
-name: 'âœ… PR Checks'
+name: 'âœ?PR Checks'
 
 on:
   pull_request:
@@ -38,7 +38,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -68,7 +68,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -124,7 +124,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -185,7 +185,7 @@ jobs:
           Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
           vx just build-win-x64
-          Write-Host "âœ… Build test passed for ${{ matrix.platform }}"
+          Write-Host "âœ?Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           MSVS_VERSION: 2022
@@ -201,7 +201,7 @@ jobs:
           Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
           vx just build-win-arm64
-          Write-Host "âœ… Build test passed for ${{ matrix.platform }}"
+          Write-Host "âœ?Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           MSVS_VERSION: 2022
@@ -217,7 +217,7 @@ jobs:
           echo "BUILD TEST: ${{ matrix.platform }}"
           echo "=========================================="
           node scripts/build-with-builder.js auto ${{ matrix.build_args }}
-          echo "âœ… Build test passed for ${{ matrix.platform }}"
+          echo "âœ?Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           npm_config_arch: ${{ matrix.arch }}
