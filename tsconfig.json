@@ -17,5 +17,5 @@
       "@worker/*": ["./src/worker/*"]
     }
   },
-  "include": ["src/**/*", "uno.config.ts", "src/renderer/types.d.ts"]
+  "include": ["src/**/*", "uno.config.ts", "electron.vite.config.ts", "src/renderer/types.d.ts"]
 }

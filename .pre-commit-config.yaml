@@ -34,34 +34,34 @@ repos:
         types: [text]
         files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml)$
 
-  # TypeScript type checking
+  # TypeScript type checking (use bun to match CI)
   - repo: local
     hooks:
       - id: typecheck
         name: TypeScript Check
-        entry: bash -c 'npx tsc --noEmit'
+        entry: bash -c 'bunx tsc --noEmit'
         language: system
         types: [typescript]
         pass_filenames: false
         files: \.(ts|tsx)$
 
-  # ESLint
+  # ESLint (use bun to match CI)
   - repo: local
     hooks:
       - id: eslint
         name: ESLint
-        entry: bash -c 'npm run lint'
+        entry: bash -c 'bun run lint'
         language: system
         types: [typescript]
         pass_filenames: false
         files: \.(ts|tsx)$
 
-  # Prettier
+  # Prettier (use bun to match CI)
   - repo: local
     hooks:
       - id: prettier
         name: Prettier
-        entry: bash -c 'npm run format:check'
+        entry: bash -c 'bun run format:check'
         language: system
         types: [text]
         pass_filenames: false
