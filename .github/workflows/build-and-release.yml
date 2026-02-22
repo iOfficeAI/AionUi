@@ -38,13 +38,13 @@ jobs:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
       - name: Run TypeScript check
-        run: vx run typecheck
+        run: vx bunx tsc --noEmit
 
       - name: Run ESLint
-        run: vx run lint || echo "ESLint warnings detected but not blocking build"
+        run: vx bun run lint || echo "ESLint warnings detected but not blocking build"
 
       - name: Run Prettier check
-        run: vx run format:check || echo "Prettier formatting issues detected but not blocking build"
+        run: vx bun run format:check || echo "Prettier formatting issues detected but not blocking build"
 
       - name: Run unit tests
         run: vx bunx vitest run tests/extensions/

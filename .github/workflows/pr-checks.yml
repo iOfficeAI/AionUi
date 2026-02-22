@@ -41,13 +41,13 @@ jobs:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
       - name: TypeScript Check
-        run: vx run typecheck
+        run: vx bunx tsc --noEmit
 
       - name: ESLint Check
-        run: vx run lint
+        run: vx bun run lint
 
       - name: Prettier Check
-        run: vx run format:check
+        run: vx bun run format:check
 
   # Job 2: Unit tests across all platforms
   unit-tests:
@@ -76,7 +76,7 @@ jobs:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
       - name: Run extension system tests
-        run: vx bunx vitest run tests/extensions/
+        run: vx bunx vitest run tests
 
   # Job 3: Trigger GPT AI review (only on first PR submission)
   review:
