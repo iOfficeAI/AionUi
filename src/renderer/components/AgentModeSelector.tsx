@@ -71,7 +71,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
       .invoke({ conversationId })
       .then((result) => {
         if (!cancelled && result.success && result.data) {
-          setCurrentMode(result.data.mode);
+          // Only sync from backend when manager is initialized;
+          // before first message, getMode returns { mode: 'default', initialized: false }
+          // which would overwrite the correct initialMode (e.g. opencode has no 'default').
+          if (result.data.initialized !== false) {
+            setCurrentMode(result.data.mode);
+          }
         }
       })
       .catch(() => {

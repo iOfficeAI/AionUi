@@ -88,6 +88,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       presetAssistantId: extra.presetAssistantId,
       // Initial session mode selected on Guid page (from AgentModeSelector)
       sessionMode: extra.sessionMode,
+      // Pre-selected model from Guid page (cached model list)
+      currentModelId: extra.currentModelId,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

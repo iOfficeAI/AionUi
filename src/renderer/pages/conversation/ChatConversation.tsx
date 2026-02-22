@@ -147,7 +147,7 @@ const ChatConversation: React.FC<{
     if (!conversation || isGeminiConversation) return null;
     switch (conversation.type) {
       case 'acp':
-        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'}></AcpChat>;
+        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode}></AcpChat>;
       case 'codex':
         return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       case 'openclaw-gateway':
@@ -176,7 +176,11 @@ const ChatConversation: React.FC<{
   // NOTE: This must be placed before the Gemini early return to maintain consistent hook order.
   const modelSelector = useMemo(() => {
     if (!conversation || isGeminiConversation) return undefined;
-    if (conversation.type === 'acp' || conversation.type === 'codex') {
+    if (conversation.type === 'acp') {
+      const extra = conversation.extra as { backend?: string; currentModelId?: string };
+      return <AcpModelSelector conversationId={conversation.id} backend={extra.backend} initialModelId={extra.currentModelId} />;
+    }
+    if (conversation.type === 'codex') {
       return <AcpModelSelector conversationId={conversation.id} />;
     }
     return <GeminiModelSelector disabled={true} />;

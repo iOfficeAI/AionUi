@@ -313,7 +313,8 @@ const useSendBoxDraft = (conversation_id: string) => {
 const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
-}> = ({ conversation_id, backend }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, backend, sessionMode }) => {
   const { thought, running, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
@@ -542,7 +543,7 @@ const AcpSendBox: React.FC<{
                 });
               }}
             />
-            <AgentModeSelector backend={backend} conversationId={conversation_id} compact />
+            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} />
           </div>
         }
         prefix={

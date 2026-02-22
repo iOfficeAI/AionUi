@@ -88,22 +88,16 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
 
   // 加载内置 skills 并创建虚拟 extension
   // Load builtin skills and create a virtual extension
+  // 仅在指定 enabledSkills 时加载，非 preset agent 不加载任何可选 skills
+  // Only load when enabledSkills is specified; non-preset agents get no optional skills
   let builtinSkills: SkillDefinition[] = [];
-  if (skillsDir) {
+  if (skillsDir && enabledSkills && enabledSkills.length > 0) {
     try {
       builtinSkills = await loadSkillsFromDir(skillsDir);
-      console.log(`[Config] Loaded ${builtinSkills.length} builtin skills from ${skillsDir}`);
-
-      // 根据 enabledSkills 过滤 skills
-      // Filter skills based on enabledSkills
-      // 当 enabledSkills 是数组时（包括空数组），进行过滤
-      // When enabledSkills is an array (including empty), apply filtering
-      if (Array.isArray(enabledSkills)) {
-        const enabledSet = new Set(enabledSkills);
-        const originalCount = builtinSkills.length;
-        builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
-        console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ') || 'none'})`);
-      }
+      const enabledSet = new Set(enabledSkills);
+      const originalCount = builtinSkills.length;
+      builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
+      console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
     }

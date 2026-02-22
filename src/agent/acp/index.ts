@@ -112,6 +112,16 @@ export class AcpAgent {
   // Workaround for claude-agent-acp bug: it doesn't check suggestions to auto-approve
   private approvalStore = new AcpApprovalStore();
 
+  // Track user-initiated model override so we can re-assert before each prompt.
+  // Prevents model drift if the CLI subprocess loses the override state.
+  private userModelOverride: string | null = null;
+
+  // Pending model switch notice to inject into the next user prompt.
+  // Equivalent to the terminal's "/model" command output that appears in conversation,
+  // which lets the AI know its model identity has changed (since the env_info system
+  // prompt section is cached with cacheBreak:false and never refreshed on model switch).
+  private pendingModelSwitchNotice: string | null = null;
+
   // Store permission request metadata for later use in confirmMessage
   private permissionRequestMeta = new Map<string, { kind?: string; title?: string; rawInput?: Record<string, unknown> }>();
 
@@ -240,7 +250,10 @@ export class AcpAgent {
         }
       }
 
-      // Auto-set model from ~/.claude/settings.json for Claude backend
+      // Apply model from ~/.claude/settings.json for Claude backend.
+      // claude-agent-acp may default to a region-mismatched Bedrock model;
+      // explicitly setting the model from settings ensures correctness.
+      // Uses session/set_model (direct CLI control) for consistency with runtime switching.
       if (this.extra.backend === 'claude') {
         const configuredModel = getClaudeModel();
         if (configuredModel) {
@@ -249,7 +262,6 @@ export class AcpAgent {
             await this.connection.setModel(configuredModel);
             if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
-            // Log warning but don't fail - fallback to default model
             console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
@@ -330,7 +342,16 @@ export class AcpAgent {
   }
 
   /**
-   * Switch model using the appropriate API based on model info source.
+   * Switch model using session/set_model (preferred) with configOption fallback.
+   *
+   * session/set_model is preferred because it maps to unstable_setSessionModel()
+   * in claude-agent-acp which:
+   *   1. Calls query.setModel() → sends set_model control request to CLI
+   *   2. Calls updateConfigOption() → sends config_option_update notification
+   * This provides both the actual CLI model change AND a cache sync notification.
+   *
+   * session/set_config_option only returns updated configOptions in the response
+   * but does NOT send a separate notification, making it less robust for cache sync.
    */
   async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
     const modelInfo = this.getModelInfo();
@@ -338,11 +359,27 @@ export class AcpAgent {
       throw new Error('No model info available');
     }
 
-    if (modelInfo.source === 'configOption' && modelInfo.configOptionId) {
-      await this.connection.setConfigOption(modelInfo.configOptionId, modelId);
-    } else {
+    // Always use session/set_model for direct CLI control.
+    // Falls back to session/set_config_option only for non-Claude backends
+    // that don't support the unstable_setSessionModel method.
+    try {
       await this.connection.setModel(modelId);
+    } catch (setModelError) {
+      // Fallback to set_config_option if set_model is not supported
+      if (modelInfo.source === 'configOption' && modelInfo.configOptionId) {
+        await this.connection.setConfigOption(modelInfo.configOptionId, modelId);
+      } else {
+        throw setModelError;
+      }
     }
+
+    this.userModelOverride = modelId;
+
+    // Queue a model switch notice for the next prompt.
+    // In terminal mode, "/model haiku" outputs "Set model to haiku" into the conversation,
+    // and the AI reads this to update its self-identification. In ACP mode, set_model is
+    // silent, so we inject an equivalent notice into the next user message.
+    this.pendingModelSwitchNotice = modelId;
 
     // Return updated model info after switch
     return this.getModelInfo();
@@ -435,6 +472,30 @@ export class AcpAgent {
       const atFileDuration = Date.now() - atFileStart;
       if (atFileDuration > 10) {
         if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
+      }
+
+      // Re-assert model override before sending prompt.
+      // This ensures the CLI subprocess uses the correct model even if it
+      // lost the override state (e.g., after internal compaction or restart).
+      if (this.userModelOverride) {
+        const currentInfo = this.getModelInfo();
+        const expected = this.userModelOverride;
+        if (currentInfo?.currentModelId !== expected) {
+          try {
+            await this.connection.setModel(expected);
+          } catch (err) {
+            console.warn(`[ACP] Pre-prompt model re-assert failed: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+      }
+
+      // Inject model switch notice for Claude backend.
+      // In terminal, "/model X" output appears in conversation so the AI knows about
+      // the switch. In ACP mode set_model is silent, so we prepend an equivalent notice.
+      if (this.pendingModelSwitchNotice && this.extra.backend === 'claude') {
+        const modelNotice = `<system-reminder>\n` + `Model switch: The active model has been changed to ${this.pendingModelSwitchNotice} via the /model command. ` + `You are now running as ${this.pendingModelSwitchNotice}. ` + `The ANTHROPIC_MODEL environment variable and the earlier "You are powered by" text in the system prompt are stale (cached from session start) and no longer reflect the actual model. ` + `When asked which model you are, answer ${this.pendingModelSwitchNotice}.\n` + `</system-reminder>\n\n`;
+        processedContent = modelNotice + processedContent;
+        this.pendingModelSwitchNotice = null;
       }
 
       const promptStart = Date.now();
@@ -732,8 +793,8 @@ export class AcpAgent {
         }
       }
 
-      // Emit updated model info when config_options_update arrives
-      if (data.update?.sessionUpdate === 'config_options_update') {
+      // Emit updated model info when config_option_update arrives
+      if (data.update?.sessionUpdate === 'config_option_update') {
         this.emitModelInfo();
       }
 

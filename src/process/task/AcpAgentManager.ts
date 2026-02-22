@@ -325,14 +325,26 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // Re-apply persisted model if current model differs from persisted one
         // 如果当前模型与持久化模型不同，重新应用持久化的模型
         if (this.persistedModelId) {
-          try {
-            const currentInfo = this.agent.getModelInfo();
-            if (!currentInfo || currentInfo.currentModelId !== this.persistedModelId) {
+          const currentInfo = this.agent.getModelInfo();
+          // Validate persisted model exists in current available models before re-applying.
+          // Stale cache may reference models that no longer exist (e.g., gpt-5.3-codex).
+          const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
+          if (!isModelAvailable) {
+            console.warn(`[AcpAgentManager] Persisted model ${this.persistedModelId} is not in available models, clearing`);
+            this.persistedModelId = null;
+          } else if (currentInfo?.currentModelId !== this.persistedModelId) {
+            try {
               await this.agent.setModelByConfigOption(this.persistedModelId);
+            } catch (error) {
+              console.warn(`[AcpAgentManager] Failed to re-apply model ${this.persistedModelId}:`, error);
+              this.persistedModelId = null;
             }
-          } catch (error) {
-            console.warn(`[AcpAgentManager] Failed to re-apply model ${this.persistedModelId}:`, error);
           }
+        }
+        // Cache model list for Guid page pre-selection after agent starts
+        const modelInfo = this.agent.getModelInfo();
+        if (modelInfo && modelInfo.availableModels?.length > 0) {
+          void this.cacheModelList(modelInfo);
         }
         return this.agent;
       });
@@ -564,6 +576,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (result) {
       this.persistedModelId = result.currentModelId;
       this.saveModelId(result.currentModelId);
+      // Update cached models so Guid page defaults to the newly selected model
+      if (result.availableModels?.length > 0) {
+        void this.cacheModelList(result);
+      }
     }
     return result;
   }
@@ -714,6 +730,22 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       })
       .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
       .finally(doKill);
+  }
+
+  /**
+   * Cache model list to storage for Guid page pre-selection.
+   * Keyed by backend name (e.g., 'claude', 'qwen').
+   */
+  private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
+    try {
+      const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+      await ProcessConfig.set('acp.cachedModels', {
+        ...cached,
+        [this.options.backend]: modelInfo,
+      });
+    } catch (error) {
+      console.warn('[AcpAgentManager] Failed to cache model list:', error);
+    }
   }
 
   /**

@@ -445,6 +445,8 @@ export interface ICreateConversationParams {
     sessionMode?: string;
     /** User-selected Codex model from Guid page */
     codexModel?: string;
+    /** Pre-selected ACP model from Guid page (cached model list) */
+    currentModelId?: string;
     /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
     runtimeValidation?: {
       expectedWorkspace?: string;

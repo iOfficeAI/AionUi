@@ -18,7 +18,8 @@ const AcpChat: React.FC<{
   conversation_id: string;
   workspace?: string;
   backend: AcpBackend;
-}> = ({ conversation_id, workspace, backend }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, workspace, backend, sessionMode }) => {
   useMessageLstCache(conversation_id);
 
   return (
@@ -28,7 +29,7 @@ const AcpChat: React.FC<{
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AcpSendBox conversation_id={conversation_id} backend={backend}></AcpSendBox>
+          <AcpSendBox conversation_id={conversation_id} backend={backend} sessionMode={sessionMode}></AcpSendBox>
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>

@@ -336,6 +336,9 @@ export class GeminiAgent {
       const enabledSet = new Set(this.enabledSkills);
       this.config.getSkillManager().filterSkills((skill) => enabledSet.has(skill.name));
       console.log(`[GeminiAgent] Filtered skills after initialize: ${this.enabledSkills.join(', ')}`);
+    } else {
+      // Non-preset agent: clear all optional skills (cron is injected via system instructions)
+      this.config.getSkillManager().filterSkills(() => false);
     }
 
     // 对于 Google OAuth 认证，先检查凭证是否存在，避免触发浏览器授权弹窗
