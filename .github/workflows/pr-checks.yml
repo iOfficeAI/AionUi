@@ -18,7 +18,7 @@ env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
-  # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
+  # Job 1: Code quality checks (TypeScript, ESLint, Prettier) using prek
   code-quality:
     name: Code Quality
     if: github.event.action != 'edited'
@@ -31,7 +31,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@v0.8.4
         with:
-          tools: 'node@22 bun'
+          tools: 'node@22 bun prek'
           setup: 'true'
           cache: 'true'
 
@@ -41,14 +41,8 @@ jobs:
       - name: Run postinstall
         run: vx bun run postinstall || true
 
-      - name: TypeScript Check
-        run: vx bunx tsc --noEmit
-
-      - name: ESLint Check
-        run: vx bun run lint
-
-      - name: Prettier Check
-        run: vx bun run format:check
+      - name: Run prek checks (TypeScript, ESLint, Prettier)
+        run: vx prek run --all-files
 
   # Job 2: Unit tests across all platforms
   unit-tests:
