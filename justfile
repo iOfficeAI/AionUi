@@ -224,10 +224,8 @@ build-win: preflight
     Write-Host "🧹 Cleaning output directory..."; \
     Get-Process -Name "AionUI","electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; \
     if (Test-Path "out") { Remove-Item -Recurse -Force "out" -ErrorAction SilentlyContinue }; \
-    Write-Host "Reinstalling with npm for Windows build..."; \
-    if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }; \
     vx npm install; \
-    vx bun run postinstall || true; \
+    vx npm run postinstall || true; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:MSVS_VERSION = "2022"; \
     $env:GYP_MSVS_VERSION = "2022"; \
