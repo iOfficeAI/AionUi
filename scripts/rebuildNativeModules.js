@@ -26,25 +26,27 @@ function isVxAvailable() {
 /**
  * Get bunx command for the current platform
  * Windows requires bunx.cmd, others use bunx
- * If vx is available, uses vx bunx for consistent toolchain
+ * Note: does NOT add 'vx' prefix here — the caller's cmdPrefix (e.g. 'vx --with msvc')
+ * already provides the vx entry point, so we must not nest another 'vx' call.
  */
-function getBunxCommand(useVx = true) {
-  const bunxCmd = process.platform === 'win32' ? 'bunx.cmd' : 'bunx';
-  if (useVx && isVxAvailable()) {
-    return `vx ${bunxCmd}`;
-  }
-  return bunxCmd;
+function getBunxCommand() {
+  return process.platform === 'win32' ? 'bunx.cmd' : 'bunx';
 }
 
 /**
- * Get command prefix for native compilation with proper toolchain
- * On Windows, uses 'vx --with msvc' to ensure MSVC is available
+ * Get command prefix for native compilation with proper toolchain.
+ * On Windows, returns 'vx --with msvc' so MSVC env vars are injected into
+ * the subprocess environment before bunx/node-gyp runs.
+ * On other platforms returns 'vx' to ensure the correct bun version is used.
+ * Returns '' when vx is not available.
  */
 function getCommandPrefix(platform, useVx = true) {
   if (!useVx || !isVxAvailable()) {
     return '';
   }
   if (platform === 'win32' || platform === 'windows') {
+    // 'vx --with msvc <cmd>' injects VCINSTALLDIR and related env vars so
+    // node-gyp can locate the MSVC compiler without a separate choco install.
     return 'vx --with msvc';
   }
   return 'vx';
