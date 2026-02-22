@@ -28,6 +28,28 @@
   min-width: 0;
 }
 
+/* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
+.actionTools :global(.sendbox-model-btn) {
+  background-color: transparent !important;
+  border: 1px solid var(--border-base) !important;
+  color: var(--color-text-2) !important;
+}
+
+.actionTools :global(.sendbox-model-btn:hover) {
+  background-color: var(--color-fill-2) !important;
+  border-color: var(--color-border-2) !important;
+  color: var(--color-text-1) !important;
+}
+
+/* 暗色模式：边框用稍亮色，否则与背景融在一起看不见 */
+[data-theme='dark'] .actionTools :global(.sendbox-model-btn) {
+  border-color: var(--bg-4) !important;
+}
+
+[data-theme='dark'] .actionTools :global(.sendbox-model-btn:hover) {
+  border-color: var(--bg-5) !important;
+}
+
 .actionSubmit {
   display: flex;
   align-items: center;
@@ -94,6 +116,11 @@
   position: relative;
 }
 
+/* 整体内容块略往上移，减轻「重心偏下」的感觉 */
+.guidContainer .guidLayout {
+  margin-top: -5vh;
+}
+
 @media (max-width: 768px) {
   .guidContainer {
     justify-content: flex-start;
@@ -101,6 +128,10 @@
     overflow-x: hidden;
     padding-top: 20px;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .guidContainer .guidLayout {
+    margin-top: 0;
   }
 }
 

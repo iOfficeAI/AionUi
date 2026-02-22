@@ -862,11 +862,11 @@ const Guid: React.FC = () => {
   const handleInputChange = useCallback(
     (value: string) => {
       setInput(value);
+      // 首页不根据输入 @ 呼起 mention 列表，占位符里的 @agent 仅为提示，选 agent 用顶部栏或下拉手动选
       const match = value.match(mentionMatchRegex);
       if (match) {
         setMentionQuery(match[1]);
-        setMentionOpen(true);
-        setMentionSelectorOpen(false);
+        setMentionOpen(false);
       } else {
         setMentionQuery(null);
         setMentionOpen(false);
@@ -1431,17 +1431,18 @@ const Guid: React.FC = () => {
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
-          <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
+          <p className={`text-2xl font-semibold mb-6 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
           {/* Agent 选择器 - 在标题下方 */}
           {availableAgents && availableAgents.length > 0 && (
             <div className='w-full flex justify-center'>
               <div
-                className='inline-flex items-center bg-fill-2'
+                className='flex flex-wrap items-center justify-center'
                 style={{
-                  marginBottom: 16,
-                  padding: '4px',
+                  marginBottom: 20,
+                  padding: '6px',
                   borderRadius: '30px',
+                  backgroundColor: 'var(--color-guid-agent-bar, var(--aou-2))',
                   transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
                   width: 'fit-content',
                   gap: 0,
@@ -1532,7 +1533,7 @@ const Guid: React.FC = () => {
                 </Dropdown>
               </div>
             )}
-            <Input.TextArea autoSize={{ minRows: 3, maxRows: 20 }} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
+            <Input.TextArea autoSize={{ minRows: 3, maxRows: 20 }} placeholder={`${selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
             {mentionOpen && (
               <div className='absolute z-50' style={{ left: 16, top: 44 }}>
                 {mentionMenu}
@@ -1598,7 +1599,7 @@ const Guid: React.FC = () => {
                   }
                 >
                   <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                    <Button type='text' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}></Button>
+                    <Button type='text' shape='circle' className={`sendbox-model-btn ${isPlusDropdownOpen ? styles.plusButtonRotate : ''}`} icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}></Button>
                     {files.length > 0 && (
                       <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                         <span className='text-t-primary'>File({files.length})</span>
