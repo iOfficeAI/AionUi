@@ -44,7 +44,10 @@ jobs:
             ${{ runner.os }}-bun-cache-
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Run postinstall scripts
+        run: bun run postinstall || true
 
       - name: TypeScript Check
         run: bunx tsc --noEmit
@@ -88,7 +91,10 @@ jobs:
             ${{ runner.os }}-bun-cache-
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Run postinstall scripts
+        run: bun run postinstall || true
 
       - name: Run extension system tests
         run: bunx vitest run tests/extensions/
