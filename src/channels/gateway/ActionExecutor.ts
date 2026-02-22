@@ -157,7 +157,8 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
     case 'text': {
       // 根据平台格式化文本
       // Format text based on platform
-      const text = formatTextForPlatform(message.content.content || '', platform) || '...';
+      const rawText = formatTextForPlatform(message.content.content || '', platform);
+      const text = rawText.trim() ? rawText : '...';
       return {
         type: 'text',
         text,
