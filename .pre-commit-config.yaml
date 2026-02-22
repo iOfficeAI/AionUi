@@ -31,7 +31,6 @@ repos:
         args: [--maxkb=1000]
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        types: [text]
         files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml)$
 
   # TypeScript type checking (use bun to match CI)
@@ -39,33 +38,30 @@ repos:
     hooks:
       - id: typecheck
         name: TypeScript Check
-        entry: bash -c 'bunx tsc --noEmit'
+        entry: bunx tsc --noEmit
         language: system
-        types: [typescript]
-        pass_filenames: false
         files: \.(ts|tsx)$
+        pass_filenames: false
 
   # ESLint (use bun to match CI)
   - repo: local
     hooks:
       - id: eslint
         name: ESLint
-        entry: bash -c 'bun run lint'
+        entry: bun run lint
         language: system
-        types: [typescript]
-        pass_filenames: false
         files: \.(ts|tsx)$
+        pass_filenames: false
 
   # Prettier (use bun to match CI)
   - repo: local
     hooks:
       - id: prettier
         name: Prettier
-        entry: bash -c 'bun run format:check'
+        entry: bun run format:check
         language: system
-        types: [text]
-        pass_filenames: false
         files: \.(ts|tsx|js|jsx|json|css|md)$
+        pass_filenames: false
 
   # Commit message format (Conventional Commits)
   - repo: https://github.com/compilerla/conventional-pre-commit
