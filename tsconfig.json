@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES6",
     "allowJs": true,
-    "module": "commonjs",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
     "esModuleInterop": true,
