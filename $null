@@ -1,0 +1,59 @@
+error: unknown switch `r'
+usage: git fetch [<options>] [<repository> [<refspec>...]]
+   or: git fetch [<options>] <group>
+   or: git fetch --multiple [<options>] [(<repository> | <group>)...]
+   or: git fetch --all [<options>]
+
+    -v, --[no-]verbose    be more verbose
+    -q, --[no-]quiet      be more quiet
+    --[no-]all            fetch from all remotes
+    --[no-]set-upstream   set upstream for git pull/fetch
+    -a, --[no-]append     append to .git/FETCH_HEAD instead of overwriting
+    --[no-]atomic         use atomic transaction to update references
+    --[no-]upload-pack <path>
+                          path to upload pack on remote end
+    -f, --[no-]force      force overwrite of local reference
+    -m, --[no-]multiple   fetch from multiple remotes
+    -t, --[no-]tags       fetch all tags and associated objects
+    -n                    do not fetch all tags (--no-tags)
+    -j, --[no-]jobs <n>   number of submodules fetched in parallel
+    --[no-]prefetch       modify the refspec to place all refs within refs/prefetch/
+    -p, --[no-]prune      prune remote-tracking branches no longer on remote
+    -P, --[no-]prune-tags prune local tags no longer on remote and clobber changed tags
+    --[no-]recurse-submodules[=<on-demand>]
+                          control recursive fetching of submodules
+    --[no-]dry-run        dry run
+    --[no-]porcelain      machine-readable output
+    --[no-]write-fetch-head
+                          write fetched references to the FETCH_HEAD file
+    -k, --[no-]keep       keep downloaded pack
+    -u, --[no-]update-head-ok
+                          allow updating of HEAD ref
+    --[no-]progress       force progress reporting
+    --[no-]depth <depth>  deepen history of shallow clone
+    --[no-]shallow-since <time>
+                          deepen history of shallow repository based on time
+    --[no-]shallow-exclude <ref>
+                          deepen history of shallow clone, excluding ref
+    --[no-]deepen <n>     deepen history of shallow clone
+    --unshallow           convert to a complete repository
+    --refetch             re-fetch without negotiating common commits
+    --[no-]update-shallow accept refs that update .git/shallow
+    --refmap <refmap>     specify fetch refmap
+    -o, --[no-]server-option <server-specific>
+                          option to transmit
+    -4, --ipv4            use IPv4 addresses only
+    -6, --ipv6            use IPv6 addresses only
+    --[no-]negotiation-tip <revision>
+                          report that we have only objects reachable from this object
+    --[no-]negotiate-only do not fetch a packfile; instead, print ancestors of negotiation tips
+    --[no-]filter <args>  object filtering
+    --[no-]auto-maintenance
+                          run 'maintenance --auto' after fetching
+    --[no-]auto-gc        run 'maintenance --auto' after fetching
+    --[no-]show-forced-updates
+                          check for forced-updates on all updated branches
+    --[no-]write-commit-graph
+                          write the commit-graph after fetching
+    --[no-]stdin          accept refspecs from stdin
+

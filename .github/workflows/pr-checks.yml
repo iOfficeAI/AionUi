@@ -38,10 +38,10 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx npm install
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: vx npm run postinstall || true
 
       - name: Run prek checks (TypeScript, ESLint, Prettier)
         run: vx prek run --from-ref origin/main --to-ref HEAD
@@ -68,10 +68,10 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx npm install
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: vx npm run postinstall || true
 
       - name: Run extension system tests
         run: vx bunx vitest run tests
@@ -124,10 +124,10 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx npm install
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: vx npm run postinstall || true
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')

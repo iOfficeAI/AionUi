@@ -33,10 +33,10 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx npm install
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: vx npm run postinstall || true
 
       - name: Run prek checks (TypeScript, ESLint, Prettier)
         run: vx prek run --all-files
@@ -93,10 +93,10 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx bun install
+        run: vx npm install
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: vx npm run postinstall || true
 
       - name: Rebuild native modules for Electron
         if: "!startsWith(matrix.platform, 'windows')"
