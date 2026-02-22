@@ -551,6 +551,83 @@ brew install aionui
 - [Discord コミュニティ](https://discord.gg/2QAwJn7Egx) — 英語コミュニティ
 - [WeChat グループ](./resources/wechat_group.png) — 中国語コミュニティ
 
+### 開発ガイド
+
+[vx](https://github.com/loonghao/vx) を使用して開発環境を管理しています。すべてのツールをクロスプラットフォームで統一的に実行する方法を提供します。
+
+#### 前提条件
+
+- **Node.js** 22 以上
+- **bun**（推奨）または npm
+- **Python** 3.11+（ネイティブモジュールのコンパイル用）
+- **vx** - 環境マネージャー（推奨）
+
+#### vx でクイックスタート
+
+```bash
+# vx をインストール（まだインストールされていない場合）
+# 参照: https://github.com/loonghao/vx
+
+# リポジトリをクローン
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# 依存関係をインストール
+vx just install
+
+# 開発サーバーを起動
+vx just dev
+```
+
+#### よく使うコマンド（justfile 経由）
+
+```bash
+# 開発
+vx just dev              # HMR付き開発サーバーを起動
+vx just webui            # WebUI モードを起動
+vx just cli              # CLI モードを起動
+
+# ビルド
+vx just build            # 現在のプラットフォーム用にビルド
+vx just build-win        # Windows 用にビルド
+vx just build-mac        # macOS 用にビルド
+vx just build-linux      # Linux 用にビルド
+
+# テストと品質チェック
+vx just test             # テストを実行
+vx just lint             # リンターを実行
+vx just typecheck        # TypeScript チェック
+vx just check            # すべてのチェックを実行
+
+# ネイティブモジュール
+vx just rebuild-native   # Electron 用にネイティブモジュールを再ビルド
+vx just setup            # 完全セットアップ: インストール + ネイティブ再ビルド
+```
+
+#### ビルドシステム
+
+AionUi は **electron-vite** を使用して高速なバンドルを行います：
+
+- **メインプロセス**: Vite でバンドル（ESM）
+- **レンダラープロセス**: Vite でバンドル（React + TypeScript）
+- **プリロードスクリプト**: Vite でバンドル
+
+ビルド出力は `out/` ディレクトリに配置されます：
+
+- `out/main/` - メインプロセスコード
+- `out/renderer/` - レンダラープロセスコード
+- `out/preload/` - プリロードスクリプト
+
+#### 技術スタック
+
+- **Electron** - クロスプラットフォームデスクトップフレームワーク
+- **React 19** - UI フレームワーク
+- **TypeScript** - 型安全性
+- **Vite** - 高速バンドラー（electron-vite 経由）
+- **UnoCSS** - アトミック CSS エンジン
+- **better-sqlite3** - ローカルデータベース
+- **vitest** - テストフレームワーク
+
 ### 貢献
 
 1. このプロジェクトを Fork

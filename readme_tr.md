@@ -551,6 +551,83 @@ brew install aionui
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
 - [WeChat Grubu](./resources/wechat_group.png) — Çince topluluk
 
+### Geliştirme Kılavuzu
+
+Geliştirme ortamını yönetmek için [vx](https://github.com/loonghao/vx) kullanıyoruz. Farklı platformlarda tüm araçları tutarlı bir şekilde çalıştırma yöntemi sağlar.
+
+#### Ön Koşullar
+
+- **Node.js** 22 veya üzeri
+- **bun** (önerilen) veya npm
+- **Python** 3.11+ (yerel modül derlemesi için)
+- **vx** - Ortam yöneticisi (önerilen)
+
+#### vx ile Hızlı Başlangıç
+
+```bash
+# vx'i yükleyin (henüz yüklenmemişse)
+# Bakın: https://github.com/loonghao/vx
+
+# Depoyu klonlayın
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# Bağımlılıkları yükleyin
+vx just install
+
+# Geliştirme sunucusunu başlatın
+vx just dev
+```
+
+#### Mevcut Komutlar (justfile üzerinden)
+
+```bash
+# Geliştirme
+vx just dev              # HMR ile geliştirme sunucusu başlat
+vx just webui            # WebUI modunu başlat
+vx just cli              # CLI modunu başlat
+
+# Derleme
+vx just build            # Mevcut platform için derle
+vx just build-win        # Windows için derle
+vx just build-mac        # macOS için derle
+vx just build-linux      # Linux için derle
+
+# Test ve Kalite
+vx just test             # Testleri çalıştır
+vx just lint             # Linter'ı çalıştır
+vx just typecheck        # TypeScript kontrolü
+vx just check            # Tüm kontrolleri çalıştır
+
+# Yerel Modüller
+vx just rebuild-native   # Electron için yerel modülleri yeniden derle
+vx just setup            # Tam kurulum: yükle + yerel modülleri yeniden derle
+```
+
+#### Derleme Sistemi
+
+AionUi hızlı paketleme için **electron-vite** kullanır:
+
+- **Ana süreç**: Vite ile paketlenir (ESM)
+- **Renderer süreci**: Vite ile paketlenir (React + TypeScript)
+- **Ön yükleme scriptleri**: Vite ile paketlenir
+
+Derleme çıktısı `out/` dizinine gider:
+
+- `out/main/` - Ana süreç kodu
+- `out/renderer/` - Renderer süreç kodu
+- `out/preload/` - Ön yükleme scriptleri
+
+#### Teknoloji Yığını
+
+- **Electron** - Çapraz platform masaüstü framework'ü
+- **React 19** - UI framework'ü
+- **TypeScript** - Tip güvenliği
+- **Vite** - Hızlı paketleyici (electron-vite üzerinden)
+- **UnoCSS** - Atomik CSS motoru
+- **better-sqlite3** - Yerel veritabanı
+- **vitest** - Test framework'ü
+
 ### Katkıda Bulunma
 
 1. Bu projeyi fork edin

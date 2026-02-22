@@ -551,6 +551,83 @@ brew install aionui
 - [Discord Community](https://discord.gg/2QAwJn7Egx) — English community
 - [WeChat Group](./resources/wechat_group.png) — Chinese community
 
+### Development
+
+We use [vx](https://github.com/loonghao/vx) to manage the development environment. It provides a consistent way to run all tools across different platforms.
+
+#### Prerequisites
+
+- **Node.js** 22 or higher
+- **bun** (recommended) or npm
+- **Python** 3.11+ (for native module compilation)
+- **vx** - Environment manager (recommended)
+
+#### Quick Start with vx
+
+```bash
+# Install vx (if not already installed)
+# See: https://github.com/loonghao/vx
+
+# Clone the repository
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# Install dependencies
+vx just install
+
+# Start development server
+vx just dev
+```
+
+#### Available Commands (via justfile)
+
+```bash
+# Development
+vx just dev              # Start dev server with HMR
+vx just webui            # Start WebUI mode
+vx just cli              # Start CLI mode
+
+# Building
+vx just build            # Build for current platform
+vx just build-win        # Build for Windows
+vx just build-mac        # Build for macOS
+vx just build-linux      # Build for Linux
+
+# Testing & Quality
+vx just test             # Run tests
+vx just lint             # Run linter
+vx just typecheck        # TypeScript check
+vx just check            # Run all checks (lint + format + typecheck)
+
+# Native Modules
+vx just rebuild-native   # Rebuild native modules for Electron
+vx just setup            # Full setup: install + rebuild native
+```
+
+#### Build System
+
+AionUi uses **electron-vite** for fast bundling:
+
+- **Main process**: bundled with Vite (ESM)
+- **Renderer process**: bundled with Vite (React + TypeScript)
+- **Preload scripts**: bundled with Vite
+
+The build output goes to `out/` directory:
+
+- `out/main/` - Main process code
+- `out/renderer/` - Renderer process code
+- `out/preload/` - Preload scripts
+
+#### Tech Stack
+
+- **Electron** - Cross-platform desktop framework
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Fast bundler (via electron-vite)
+- **UnoCSS** - Atomic CSS engine
+- **better-sqlite3** - Local database
+- **vitest** - Testing framework
+
 ### Contributing
 
 1. Fork this project

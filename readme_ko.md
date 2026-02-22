@@ -551,6 +551,83 @@ brew install aionui
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
 - [WeChat 그룹](./resources/wechat_group.png) — 중국어 커뮤니티
 
+### 개발 가이드
+
+[vx](https://github.com/loonghao/vx)를 사용하여 개발 환경을 관리합니다. 모든 도구를 크로스 플랫폼에서 일관되게 실행할 수 있는 방법을 제공합니다.
+
+#### 필수 조건
+
+- **Node.js** 22 이상
+- **bun** (권장) 또는 npm
+- **Python** 3.11+ (네이티브 모듈 컴파일용)
+- **vx** - 환경 관리자 (권장)
+
+#### vx로 빠른 시작
+
+```bash
+# vx 설치 (아직 설치되지 않은 경우)
+# 참조: https://github.com/loonghao/vx
+
+# 저장소 클론
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# 의존성 설치
+vx just install
+
+# 개발 서버 시작
+vx just dev
+```
+
+#### 자주 사용하는 명령어 (justfile 통해)
+
+```bash
+# 개발
+vx just dev              # HMR 지원 개발 서버 시작
+vx just webui            # WebUI 모드 시작
+vx just cli              # CLI 모드 시작
+
+# 빌드
+vx just build            # 현재 플랫폼용 빌드
+vx just build-win        # Windows용 빌드
+vx just build-mac        # macOS용 빌드
+vx just build-linux      # Linux용 빌드
+
+# 테스트 및 품질 검사
+vx just test             # 테스트 실행
+vx just lint             # 린터 실행
+vx just typecheck        # TypeScript 검사
+vx just check            # 모든 검사 실행
+
+# 네이티브 모듈
+vx just rebuild-native   # Electron용 네이티브 모듈 재빌드
+vx just setup            # 전체 설정: 설치 + 네이티브 재빌드
+```
+
+#### 빌드 시스템
+
+AionUi는 **electron-vite**를 사용하여 빠른 번들링을 수행합니다:
+
+- **메인 프로세스**: Vite로 번들링 (ESM)
+- **렌더러 프로세스**: Vite로 번들링 (React + TypeScript)
+- **프리로드 스크립트**: Vite로 번들링
+
+빌드 출력은 `out/` 디렉토리에 위치합니다:
+
+- `out/main/` - 메인 프로세스 코드
+- `out/renderer/` - 렌더러 프로세스 코드
+- `out/preload/` - 프리로드 스크립트
+
+#### 기술 스택
+
+- **Electron** - 크로스 플랫폼 데스크톱 프레임워크
+- **React 19** - UI 프레임워크
+- **TypeScript** - 타입 안전성
+- **Vite** - 빠른 번들러 (electron-vite 통해)
+- **UnoCSS** - 원자적 CSS 엔진
+- **better-sqlite3** - 로컬 데이터베이스
+- **vitest** - 테스트 프레임워크
+
 ### 기여하기
 
 1. 이 프로젝트를 Fork하세요

@@ -551,6 +551,83 @@ brew install aionui
 - [Comunidade Discord](https://discord.gg/2QAwJn7Egx) — comunidade em inglês
 - [Grupo WeChat](./resources/wechat_group.png) — comunidade chinesa
 
+### Guia de Desenvolvimento
+
+Usamos [vx](https://github.com/loonghao/vx) para gerenciar o ambiente de desenvolvimento. Ele fornece uma forma consistente de executar todas as ferramentas em diferentes plataformas.
+
+#### Pré-requisitos
+
+- **Node.js** 22 ou superior
+- **bun** (recomendado) ou npm
+- **Python** 3.11+ (para compilação de módulos nativos)
+- **vx** - Gerenciador de ambiente (recomendado)
+
+#### Início Rápido com vx
+
+```bash
+# Instalar vx (se ainda não estiver instalado)
+# Veja: https://github.com/loonghao/vx
+
+# Clonar o repositório
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# Instalar dependências
+vx just install
+
+# Iniciar servidor de desenvolvimento
+vx just dev
+```
+
+#### Comandos Disponíveis (via justfile)
+
+```bash
+# Desenvolvimento
+vx just dev              # Iniciar servidor dev com HMR
+vx just webui            # Iniciar modo WebUI
+vx just cli              # Iniciar modo CLI
+
+# Build
+vx just build            # Build para plataforma atual
+vx just build-win        # Build para Windows
+vx just build-mac        # Build para macOS
+vx just build-linux      # Build para Linux
+
+# Testes e Qualidade
+vx just test             # Executar testes
+vx just lint             # Executar linter
+vx just typecheck        # Verificação TypeScript
+vx just check            # Executar todas as verificações
+
+# Módulos Nativos
+vx just rebuild-native   # Recompilar módulos nativos para Electron
+vx just setup            # Configuração completa: instalar + recompilar nativos
+```
+
+#### Sistema de Build
+
+AionUi usa **electron-vite** para empacotamento rápido:
+
+- **Processo principal**: Empacotado com Vite (ESM)
+- **Processo renderer**: Empacotado com Vite (React + TypeScript)
+- **Scripts de preload**: Empacotados com Vite
+
+A saída do build vai para o diretório `out/`:
+
+- `out/main/` - Código do processo principal
+- `out/renderer/` - Código do processo renderer
+- `out/preload/` - Scripts de preload
+
+#### Stack Tecnológico
+
+- **Electron** - Framework de desktop multiplataforma
+- **React 19** - Framework UI
+- **TypeScript** - Segurança de tipos
+- **Vite** - Empacotador rápido (via electron-vite)
+- **UnoCSS** - Motor CSS atômico
+- **better-sqlite3** - Banco de dados local
+- **vitest** - Framework de testes
+
 ### Contribuindo
 
 1. Faça fork deste projeto

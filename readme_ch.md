@@ -551,6 +551,83 @@ brew install aionui
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
 - [微信群](./resources/wechat_group.png) — 中文社区
 
+### 开发指南
+
+我们使用 [vx](https://github.com/loonghao/vx) 管理开发环境，它提供了跨平台统一的方式来运行所有工具。
+
+#### 环境要求
+
+- **Node.js** 22 或更高版本
+- **bun**（推荐）或 npm
+- **Python** 3.11+（用于原生模块编译）
+- **vx** - 环境管理器（推荐）
+
+#### 使用 vx 快速开始
+
+```bash
+# 安装 vx（如果尚未安装）
+# 参考: https://github.com/loonghao/vx
+
+# 克隆仓库
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# 安装依赖
+vx just install
+
+# 启动开发服务器
+vx just dev
+```
+
+#### 常用命令（通过 justfile）
+
+```bash
+# 开发
+vx just dev              # 启动开发服务器（支持 HMR）
+vx just webui            # 启动 WebUI 模式
+vx just cli              # 启动 CLI 模式
+
+# 构建
+vx just build            # 构建当前平台
+vx just build-win        # 构建 Windows 版本
+vx just build-mac        # 构建 macOS 版本
+vx just build-linux      # 构建 Linux 版本
+
+# 测试与质量检查
+vx just test             # 运行测试
+vx just lint             # 运行代码检查
+vx just typecheck        # TypeScript 类型检查
+vx just check            # 运行所有检查
+
+# 原生模块
+vx just rebuild-native   # 为 Electron 重新编译原生模块
+vx just setup            # 完整设置：安装依赖 + 编译原生模块
+```
+
+#### 构建系统
+
+AionUi 使用 **electron-vite** 进行快速打包：
+
+- **主进程**: 使用 Vite 打包（ESM）
+- **渲染进程**: 使用 Vite 打包（React + TypeScript）
+- **预加载脚本**: 使用 Vite 打包
+
+构建输出位于 `out/` 目录：
+
+- `out/main/` - 主进程代码
+- `out/renderer/` - 渲染进程代码
+- `out/preload/` - 预加载脚本
+
+#### 技术栈
+
+- **Electron** - 跨平台桌面框架
+- **React 19** - UI 框架
+- **TypeScript** - 类型安全
+- **Vite** - 快速打包工具（通过 electron-vite）
+- **UnoCSS** - 原子化 CSS 引擎
+- **better-sqlite3** - 本地数据库
+- **vitest** - 测试框架
+
 ### 贡献
 
 1. Fork 本项目
