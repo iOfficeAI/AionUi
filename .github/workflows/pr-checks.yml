@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup vx
         uses: loonghao/vx@v0.8.4
@@ -74,11 +76,10 @@ jobs:
       - name: Run extension system tests
         run: vx bunx vitest run tests
 
-  # Job 3: Build test across all platforms
+  # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
-    needs: [code-quality, unit-tests]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -209,7 +210,7 @@ jobs:
   review:
     name: AI Review
     needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened'
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -222,7 +223,7 @@ jobs:
   check-external:
     name: Check External
     needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened'
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
