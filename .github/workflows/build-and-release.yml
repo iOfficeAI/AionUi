@@ -12,6 +12,9 @@ on:
     tags:
       - '*'
 
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
 jobs:
   # 代码质量检查
   code-quality:
@@ -31,6 +34,8 @@ jobs:
 
       - name: Install dependencies
         run: vx bun install --frozen-lockfile
+        env:
+          BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
       - name: Run TypeScript check
         run: vx run typecheck
@@ -94,6 +99,8 @@ jobs:
 
       - name: Install dependencies
         run: vx bun install --frozen-lockfile
+        env:
+          BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')
