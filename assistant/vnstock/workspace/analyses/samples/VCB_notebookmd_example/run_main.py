@@ -6,9 +6,7 @@ Demonstrates synthesis (not aggregation) of sub-agent discoveries.
 Focus: Finding edges by triangulating independent discoveries
 """
 
-import sys
 from pathlib import Path
-sys.path.insert(0, '../../..')
 
 from notebookmd import nb, NotebookConfig
 

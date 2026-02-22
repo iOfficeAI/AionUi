@@ -6,9 +6,7 @@ Demonstrates anomaly detection: WHY does high-quality stock trade cheap?
 Focus: Finding mispricings, not just calculating z-scores
 """
 
-import sys
 from pathlib import Path
-sys.path.insert(0, '../../../..')
 
 from notebookmd import nb, NotebookConfig
 import pandas as pd

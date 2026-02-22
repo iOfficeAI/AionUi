@@ -6,9 +6,7 @@ Demonstrates how macro agent investigates regime state using notebookmd.
 Focus: Finding non-obvious sector rotation insights, not just "expansion = bullish"
 """
 
-import sys
 from pathlib import Path
-sys.path.insert(0, '../../../..')  # Access vnstock workspace root
 
 from notebookmd import nb, NotebookConfig
 
