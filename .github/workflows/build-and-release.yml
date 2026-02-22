@@ -203,24 +203,14 @@ jobs:
           Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
           Write-Host "=========================================="
 
-          # 先尝试使用 electron-builder 的原生重建（更可靠）
+          # 使用 vx --with msvc 确保 MSVC 工具链可用
           Write-Host ""
-          Write-Host "Step 1: Running electron-builder install-app-deps..."
-          try {
-            vx bunx electron-builder install-app-deps --arch $arch
-            Write-Host "✅ electron-builder install-app-deps completed"
-          } catch {
-            Write-Warning "electron-builder install-app-deps failed, will try electron-rebuild"
-          }
-
-          # 如果需要，使用 electron-rebuild 作为备选方案
-          Write-Host ""
-          Write-Host "Step 2: Running electron-rebuild for critical modules..."
-          vx bunx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
+          Write-Host "Using vx --with msvc for MSVC toolchain..."
+          vx --with msvc bunx electron-rebuild -f -w better-sqlite3
 
           # 验证关键模块是否存在
           Write-Host ""
-          Write-Host "Step 3: Verifying native modules..."
+          Write-Host "Verifying native modules..."
           $verified = $true
 
           $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"

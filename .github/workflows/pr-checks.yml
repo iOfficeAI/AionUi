@@ -184,8 +184,8 @@ jobs:
           $electronVersion = "${{ steps.electron-version.outputs.version }}"
           $arch = "${{ matrix.arch }}"
           Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
-          vx bunx electron-builder install-app-deps --arch $arch
-          vx bunx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
+          Write-Host "Using vx --with msvc for MSVC toolchain..."
+          vx --with msvc bunx electron-rebuild -f -w better-sqlite3
         env:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
