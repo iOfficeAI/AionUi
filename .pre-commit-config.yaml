@@ -1,0 +1,76 @@
+# Pre-commit configuration for AionUi
+# Ensures local checks match CI checks (TypeScript, ESLint, Prettier)
+#
+# Installation:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Or using vx:
+#   vx pip install pre-commit
+#   vx pre-commit install
+#
+# Run manually:
+#   pre-commit run --all-files
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        types: [text]
+        files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml)$
+
+  # TypeScript type checking
+  - repo: local
+    hooks:
+      - id: typecheck
+        name: TypeScript Check
+        entry: bash -c 'npx tsc --noEmit'
+        language: system
+        types: [typescript]
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
+  # ESLint
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'npm run lint'
+        language: system
+        types: [typescript]
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
+  # Prettier
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Prettier
+        entry: bash -c 'npm run format:check'
+        language: system
+        types: [text]
+        pass_filenames: false
+        files: \.(ts|tsx|js|jsx|json|css|md)$
+
+  # Commit message format (Conventional Commits)
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--strict, --force-scope, feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
