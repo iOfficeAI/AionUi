@@ -89,6 +89,8 @@
   },
   "dependencies": {
     "defer-to-connect": "^2.0.1",
+    "clone-response": "^1.0.3",
+    "cacheable-request": "^10.2.14",
     "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@aws-sdk/client-bedrock": "^3.987.0",
