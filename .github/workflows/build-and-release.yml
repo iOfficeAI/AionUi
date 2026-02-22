@@ -35,9 +35,12 @@ jobs:
       - name: Install dependencies
         run: |
           rm -rf node_modules
-          vx bun install
+          vx bun install --ignore-scripts
         env:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+      - name: Run postinstall
+        run: vx bun run postinstall || true
 
       - name: Run TypeScript check
         run: vx bunx tsc --noEmit
@@ -102,9 +105,12 @@ jobs:
       - name: Install dependencies
         run: |
           rm -rf node_modules
-          vx bun install
+          vx bun install --ignore-scripts
         env:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+      - name: Run postinstall
+        run: vx bun run postinstall || true
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')

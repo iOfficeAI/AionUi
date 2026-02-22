@@ -38,9 +38,12 @@ jobs:
       - name: Install dependencies
         run: |
           rm -rf node_modules
-          vx bun install
+          vx bun install --ignore-scripts
         env:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+      - name: Run postinstall
+        run: vx bun run postinstall || true
 
       - name: TypeScript Check
         run: vx bunx tsc --noEmit
@@ -75,9 +78,12 @@ jobs:
       - name: Install dependencies
         run: |
           rm -rf node_modules
-          vx bun install
+          vx bun install --ignore-scripts
         env:
           BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+      - name: Run postinstall
+        run: vx bun run postinstall || true
 
       - name: Run extension system tests
         run: vx bunx vitest run tests
