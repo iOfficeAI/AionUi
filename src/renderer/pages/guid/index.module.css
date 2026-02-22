@@ -129,6 +129,10 @@
     padding-top: 20px;
     -webkit-overflow-scrolling: touch;
   }
+
+  .guidContainer .guidLayout {
+    margin-top: 0;
+  }
 }
 
 /* 浅色占位符 */
