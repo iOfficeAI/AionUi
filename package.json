@@ -167,6 +167,9 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.46.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.46.2",
+    "@rollup/rollup-darwin-x64": "^4.46.2",
+    "@rollup/rollup-darwin-arm64": "^4.46.2",
     "electron-winstaller": "^5.4.0"
   },
   "electronRebuild": {

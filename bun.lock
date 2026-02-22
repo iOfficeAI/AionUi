@@ -122,6 +122,9 @@
         "vitest": "^4.0.18",
       },
       "optionalDependencies": {
+        "@rollup/rollup-darwin-arm64": "^4.46.2",
+        "@rollup/rollup-darwin-x64": "^4.46.2",
+        "@rollup/rollup-linux-x64-gnu": "^4.46.2",
         "@rollup/rollup-win32-x64-msvc": "^4.46.2",
         "electron-winstaller": "^5.4.0",
       },
@@ -641,6 +644,10 @@
     "@replit/codemirror-lang-svelte": ["@replit/codemirror-lang-svelte@6.0.0", "https://mirrors.tencent.com/npm/@replit/codemirror-lang-svelte/-/codemirror-lang-svelte-6.0.0.tgz", { "peerDependencies": { "@codemirror/autocomplete": "^6.0.0", "@codemirror/lang-css": "^6.0.1", "@codemirror/lang-html": "^6.2.0", "@codemirror/lang-javascript": "^6.1.1", "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.0.0", "@lezer/common": "^1.0.0", "@lezer/highlight": "^1.0.0", "@lezer/javascript": "^1.2.0", "@lezer/lr": "^1.0.0" } }, ""],
 
     "@rollup/rollup-darwin-arm64": ["@rollup/rollup-darwin-arm64@4.52.5", "https://mirrors.tencent.com/npm/@rollup/rollup-darwin-arm64/-/rollup-darwin-arm64-4.52.5.tgz", { "os": "darwin", "cpu": "arm64" }, ""],
+
+    "@rollup/rollup-darwin-x64": ["@rollup/rollup-darwin-x64@4.59.0", "https://mirrors.tencent.com/npm/@rollup/rollup-darwin-x64/-/rollup-darwin-x64-4.59.0.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-ZW2KkwlS4lwTv7ZVsYDiARfFCnSGhzYPdiOU4IM2fDbL+QGlyAbjgSFuqNRbSthybLbIJ915UtZBtmuLrQAT/w=="],
+
+    "@rollup/rollup-linux-x64-gnu": ["@rollup/rollup-linux-x64-gnu@4.59.0", "https://mirrors.tencent.com/npm/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.59.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-3AHmtQq/ppNuUspKAlvA8HtLybkDflkMuLK4DPo77DfthRb71V84/c4MlWJXixZz4uruIH4uaa07IqoAkG64fg=="],
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.57.1", "https://mirrors.tencent.com/npm/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.57.1.tgz", { "os": "win32", "cpu": "x64" }, "sha512-mxRFDdHIWRxg3UfIIAwCm6NzvxG0jDX/wBN6KsQFTvKFqqg9vTrWUE68qEjHt19A5wwx5X5aUi2zuZT7YR0jrA=="],
 
