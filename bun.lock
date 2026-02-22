@@ -27,13 +27,10 @@
         "bcryptjs": "^2.4.3",
         "better-sqlite3": "^12.4.1",
         "buffer": "^6.0.3",
-        "cacheable-request": "^10.2.14",
         "classnames": "^2.5.1",
-        "clone-response": "^1.0.3",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "croner": "^9.1.0",
-        "defer-to-connect": "^2.0.1",
         "diff": "^8.0.3",
         "diff2html": "^3.4.55",
         "dingtalk-stream": "^2.1.4",
@@ -1256,7 +1253,7 @@
 
     "cacheable-lookup": ["cacheable-lookup@5.0.4", "https://mirrors.tencent.com/npm/cacheable-lookup/-/cacheable-lookup-5.0.4.tgz", {}, ""],
 
-    "cacheable-request": ["cacheable-request@10.2.14", "https://mirrors.tencent.com/npm/cacheable-request/-/cacheable-request-10.2.14.tgz", { "dependencies": { "@types/http-cache-semantics": "^4.0.2", "get-stream": "^6.0.1", "http-cache-semantics": "^4.1.1", "keyv": "^4.5.3", "mimic-response": "^4.0.0", "normalize-url": "^8.0.0", "responselike": "^3.0.0" } }, "sha512-zkDT5WAF4hSSoUgyfg5tFIxz8XQK+25W/TLVojJTMKBaxevLBBtLxgqguAuVQB8PVW79FVjHcU+GJ9tVbDZ9mQ=="],
+    "cacheable-request": ["cacheable-request@7.0.4", "https://mirrors.tencent.com/npm/cacheable-request/-/cacheable-request-7.0.4.tgz", { "dependencies": { "clone-response": "^1.0.2", "get-stream": "^5.1.0", "http-cache-semantics": "^4.0.0", "keyv": "^4.0.0", "lowercase-keys": "^2.0.0", "normalize-url": "^6.0.1", "responselike": "^2.0.0" } }, ""],
 
     "call-bind": ["call-bind@1.0.8", "https://mirrors.tencent.com/npm/call-bind/-/call-bind-1.0.8.tgz", { "dependencies": { "call-bind-apply-helpers": "^1.0.0", "es-define-property": "^1.0.0", "get-intrinsic": "^1.2.4", "set-function-length": "^1.2.2" } }, ""],
 
@@ -1804,7 +1801,7 @@
 
     "get-proto": ["get-proto@1.0.1", "https://mirrors.tencent.com/npm/get-proto/-/get-proto-1.0.1.tgz", { "dependencies": { "dunder-proto": "^1.0.1", "es-object-atoms": "^1.0.0" } }, ""],
 
-    "get-stream": ["get-stream@6.0.1", "https://mirrors.tencent.com/npm/get-stream/-/get-stream-6.0.1.tgz", {}, ""],
+    "get-stream": ["get-stream@5.2.0", "https://mirrors.tencent.com/npm/get-stream/-/get-stream-5.2.0.tgz", { "dependencies": { "pump": "^3.0.0" } }, ""],
 
     "get-symbol-description": ["get-symbol-description@1.1.0", "https://mirrors.tencent.com/npm/get-symbol-description/-/get-symbol-description-1.1.0.tgz", { "dependencies": { "call-bound": "^1.0.3", "es-errors": "^1.3.0", "get-intrinsic": "^1.2.6" } }, ""],
 
@@ -2184,7 +2181,7 @@
 
     "lop": ["lop@0.4.2", "https://mirrors.tencent.com/npm/lop/-/lop-0.4.2.tgz", { "dependencies": { "duck": "^0.1.12", "option": "~0.2.1", "underscore": "^1.13.1" } }, ""],
 
-    "lowercase-keys": ["lowercase-keys@3.0.0", "https://mirrors.tencent.com/npm/lowercase-keys/-/lowercase-keys-3.0.0.tgz", {}, "sha512-ozCC6gdQ+glXOQsveKD0YsDy8DSQFjDTz4zyzEHNV5+JP5D62LmfDZ6o1cycFx9ouG940M5dE8C8CTewdj2YWQ=="],
+    "lowercase-keys": ["lowercase-keys@2.0.0", "https://mirrors.tencent.com/npm/lowercase-keys/-/lowercase-keys-2.0.0.tgz", {}, ""],
 
     "lowlight": ["lowlight@1.20.0", "https://mirrors.tencent.com/npm/lowlight/-/lowlight-1.20.0.tgz", { "dependencies": { "fault": "^1.0.0", "highlight.js": "~10.7.0" } }, ""],
 
@@ -2330,7 +2327,7 @@
 
     "mimic-function": ["mimic-function@5.0.1", "https://mirrors.tencent.com/npm/mimic-function/-/mimic-function-5.0.1.tgz", {}, ""],
 
-    "mimic-response": ["mimic-response@4.0.0", "https://mirrors.tencent.com/npm/mimic-response/-/mimic-response-4.0.0.tgz", {}, "sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg=="],
+    "mimic-response": ["mimic-response@3.1.0", "https://mirrors.tencent.com/npm/mimic-response/-/mimic-response-3.1.0.tgz", {}, ""],
 
     "minimalistic-assert": ["minimalistic-assert@1.0.1", "https://mirrors.tencent.com/npm/minimalistic-assert/-/minimalistic-assert-1.0.1.tgz", {}, ""],
 
@@ -2408,7 +2405,7 @@
 
     "normalize-path": ["normalize-path@3.0.0", "https://mirrors.tencent.com/npm/normalize-path/-/normalize-path-3.0.0.tgz", {}, ""],
 
-    "normalize-url": ["normalize-url@8.1.1", "https://mirrors.tencent.com/npm/normalize-url/-/normalize-url-8.1.1.tgz", {}, "sha512-JYc0DPlpGWB40kH5g07gGTrYuMqV653k3uBKY6uITPWds3M0ov3GaWGp9lbE3Bzngx8+XkfzgvASb9vk9JDFXQ=="],
+    "normalize-url": ["normalize-url@6.1.0", "https://mirrors.tencent.com/npm/normalize-url/-/normalize-url-6.1.0.tgz", {}, ""],
 
     "npm-run-path": ["npm-run-path@6.0.0", "https://mirrors.tencent.com/npm/npm-run-path/-/npm-run-path-6.0.0.tgz", { "dependencies": { "path-key": "^4.0.0", "unicorn-magic": "^0.3.0" } }, "sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA=="],
 
@@ -2694,7 +2691,7 @@
 
     "resolve-from": ["resolve-from@4.0.0", "https://mirrors.tencent.com/npm/resolve-from/-/resolve-from-4.0.0.tgz", {}, ""],
 
-    "responselike": ["responselike@3.0.0", "https://mirrors.tencent.com/npm/responselike/-/responselike-3.0.0.tgz", { "dependencies": { "lowercase-keys": "^3.0.0" } }, "sha512-40yHxbNcl2+rzXvZuVkrYohathsSJlMTXKryG5y8uciHv1+xDLHQpgjG64JUO9nrEq2jGLH6IZ8BcZyw3wrweg=="],
+    "responselike": ["responselike@2.0.1", "https://mirrors.tencent.com/npm/responselike/-/responselike-2.0.1.tgz", { "dependencies": { "lowercase-keys": "^2.0.0" } }, ""],
 
     "restore-cursor": ["restore-cursor@5.1.0", "https://mirrors.tencent.com/npm/restore-cursor/-/restore-cursor-5.1.0.tgz", { "dependencies": { "onetime": "^7.0.0", "signal-exit": "^4.1.0" } }, ""],
 
@@ -3470,8 +3467,6 @@
 
     "d3-sankey/d3-shape": ["d3-shape@1.3.7", "https://mirrors.tencent.com/npm/d3-shape/-/d3-shape-1.3.7.tgz", { "dependencies": { "d3-path": "1" } }, ""],
 
-    "decompress-response/mimic-response": ["mimic-response@3.1.0", "https://mirrors.tencent.com/npm/mimic-response/-/mimic-response-3.1.0.tgz", {}, ""],
-
     "dingtalk-stream/axios": ["axios@1.12.2", "https://mirrors.tencent.com/npm/axios/-/axios-1.12.2.tgz", { "dependencies": { "follow-redirects": "^1.15.6", "form-data": "^4.0.4", "proxy-from-env": "^1.1.0" } }, ""],
 
     "dmg-builder/fs-extra": ["fs-extra@10.1.0", "https://mirrors.tencent.com/npm/fs-extra/-/fs-extra-10.1.0.tgz", { "dependencies": { "graceful-fs": "^4.2.0", "jsonfile": "^6.0.1", "universalify": "^2.0.0" } }, ""],
@@ -3520,8 +3515,6 @@
 
     "express/qs": ["qs@6.14.0", "https://mirrors.tencent.com/npm/qs/-/qs-6.14.0.tgz", { "dependencies": { "side-channel": "^1.1.0" } }, ""],
 
-    "extract-zip/get-stream": ["get-stream@5.2.0", "https://mirrors.tencent.com/npm/get-stream/-/get-stream-5.2.0.tgz", { "dependencies": { "pump": "^3.0.0" } }, ""],
-
     "extract-zip/yauzl": ["yauzl@2.10.0", "https://mirrors.tencent.com/npm/yauzl/-/yauzl-2.10.0.tgz", { "dependencies": { "buffer-crc32": "~0.2.3", "fd-slicer": "~1.1.0" } }, ""],
 
     "fast-glob/glob-parent": ["glob-parent@5.1.2", "https://mirrors.tencent.com/npm/glob-parent/-/glob-parent-5.1.2.tgz", { "dependencies": { "is-glob": "^4.0.1" } }, ""],
@@ -3559,12 +3552,6 @@
     "googleapis-common/qs": ["qs@6.14.0", "https://mirrors.tencent.com/npm/qs/-/qs-6.14.0.tgz", { "dependencies": { "side-channel": "^1.1.0" } }, ""],
 
     "googleapis-common/uuid": ["uuid@9.0.1", "https://mirrors.tencent.com/npm/uuid/-/uuid-9.0.1.tgz", { "bin": "dist/bin/uuid" }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
-
-    "got/cacheable-request": ["cacheable-request@7.0.4", "https://mirrors.tencent.com/npm/cacheable-request/-/cacheable-request-7.0.4.tgz", { "dependencies": { "clone-response": "^1.0.2", "get-stream": "^5.1.0", "http-cache-semantics": "^4.0.0", "keyv": "^4.0.0", "lowercase-keys": "^2.0.0", "normalize-url": "^6.0.1", "responselike": "^2.0.0" } }, ""],
-
-    "got/lowercase-keys": ["lowercase-keys@2.0.0", "https://mirrors.tencent.com/npm/lowercase-keys/-/lowercase-keys-2.0.0.tgz", {}, ""],
-
-    "got/responselike": ["responselike@2.0.1", "https://mirrors.tencent.com/npm/responselike/-/responselike-2.0.1.tgz", { "dependencies": { "lowercase-keys": "^2.0.0" } }, ""],
 
     "grammy/node-fetch": ["node-fetch@2.7.0", "https://mirrors.tencent.com/npm/node-fetch/-/node-fetch-2.7.0.tgz", { "dependencies": { "whatwg-url": "^5.0.0" }, "peerDependencies": { "encoding": "^0.1.0" }, "optionalPeers": ["encoding"] }, ""],
 
@@ -3836,6 +3823,8 @@
 
     "@joshua.litt/get-ripgrep/got/keyv": ["keyv@5.5.5", "https://mirrors.tencent.com/npm/keyv/-/keyv-5.5.5.tgz", { "dependencies": { "@keyv/serialize": "^1.1.1" } }, "sha512-FA5LmZVF1VziNc0bIdCSA1IoSVnDCqE8HJIZZv2/W8YmoAM50+tnUgJR/gQZwEeIMleuIOnRnHA/UaZRNeV4iQ=="],
 
+    "@joshua.litt/get-ripgrep/got/lowercase-keys": ["lowercase-keys@3.0.0", "https://mirrors.tencent.com/npm/lowercase-keys/-/lowercase-keys-3.0.0.tgz", {}, "sha512-ozCC6gdQ+glXOQsveKD0YsDy8DSQFjDTz4zyzEHNV5+JP5D62LmfDZ6o1cycFx9ouG940M5dE8C8CTewdj2YWQ=="],
+
     "@joshua.litt/get-ripgrep/got/p-cancelable": ["p-cancelable@4.0.1", "https://mirrors.tencent.com/npm/p-cancelable/-/p-cancelable-4.0.1.tgz", {}, "sha512-wBowNApzd45EIKdO1LaU+LrMBwAcjfPaYtVzV3lmfM3gf8Z4CHZsiIqlM8TZZ8okYvh5A1cP6gTfCRQtwUpaUg=="],
 
     "@joshua.litt/get-ripgrep/got/responselike": ["responselike@4.0.2", "https://mirrors.tencent.com/npm/responselike/-/responselike-4.0.2.tgz", { "dependencies": { "lowercase-keys": "^3.0.0" } }, "sha512-cGk8IbWEAnaCpdAt1BHzJ3Ahz5ewDJa0KseTsE3qIRMJ3C698W8psM7byCeWVpd/Ha7FUYzuRVzXoKoM6nRUbA=="],
@@ -3980,10 +3969,6 @@
 
     "googleapis/google-auth-library/jws": ["jws@4.0.1", "https://mirrors.tencent.com/npm/jws/-/jws-4.0.1.tgz", { "dependencies": { "jwa": "^2.0.1", "safe-buffer": "^5.0.1" } }, ""],
 
-    "got/cacheable-request/get-stream": ["get-stream@5.2.0", "https://mirrors.tencent.com/npm/get-stream/-/get-stream-5.2.0.tgz", { "dependencies": { "pump": "^3.0.0" } }, ""],
-
-    "got/cacheable-request/normalize-url": ["normalize-url@6.1.0", "https://mirrors.tencent.com/npm/normalize-url/-/normalize-url-6.1.0.tgz", {}, ""],
-
     "gtoken/jws/jwa": ["jwa@2.0.1", "https://mirrors.tencent.com/npm/jwa/-/jwa-2.0.1.tgz", { "dependencies": { "buffer-equal-constant-time": "^1.0.1", "ecdsa-sig-formatter": "1.0.11", "safe-buffer": "^5.0.1" } }, ""],
 
     "iconv-corefoundation/cli-truncate/slice-ansi": ["slice-ansi@3.0.0", "https://mirrors.tencent.com/npm/slice-ansi/-/slice-ansi-3.0.0.tgz", { "dependencies": { "ansi-styles": "^4.0.0", "astral-regex": "^2.0.0", "is-fullwidth-code-point": "^3.0.0" } }, ""],
@@ -4009,6 +3994,8 @@
     "readable-web-to-node-stream/readable-stream/string_decoder": ["string_decoder@1.3.0", "https://mirrors.tencent.com/npm/string_decoder/-/string_decoder-1.3.0.tgz", { "dependencies": { "safe-buffer": "~5.2.0" } }, ""],
 
     "schema-utils/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "https://mirrors.tencent.com/npm/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz", {}, ""],
+
+    "shell-env/execa/get-stream": ["get-stream@6.0.1", "https://mirrors.tencent.com/npm/get-stream/-/get-stream-6.0.1.tgz", {}, ""],
 
     "shell-env/execa/human-signals": ["human-signals@2.1.0", "https://mirrors.tencent.com/npm/human-signals/-/human-signals-2.1.0.tgz", {}, ""],
 
@@ -4115,6 +4102,12 @@
     "@google-cloud/opentelemetry-resource-util/gcp-metadata/gaxios/uuid": ["uuid@9.0.1", "https://mirrors.tencent.com/npm/uuid/-/uuid-9.0.1.tgz", { "bin": "dist/bin/uuid" }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
 
     "@joshua.litt/get-ripgrep/got/cacheable-request/get-stream": ["get-stream@9.0.1", "https://mirrors.tencent.com/npm/get-stream/-/get-stream-9.0.1.tgz", { "dependencies": { "@sec-ant/readable-stream": "^0.4.1", "is-stream": "^4.0.1" } }, "sha512-kVCxPF3vQM/N0B1PmoqVUqgHP+EeVjmZSQn+1oCRPxd2P21P2F19lIgbR3HBosbB1PUhOAoctJnfEn2GbN2eZA=="],
+
+    "@joshua.litt/get-ripgrep/got/cacheable-request/mimic-response": ["mimic-response@4.0.0", "https://mirrors.tencent.com/npm/mimic-response/-/mimic-response-4.0.0.tgz", {}, "sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg=="],
+
+    "@joshua.litt/get-ripgrep/got/cacheable-request/normalize-url": ["normalize-url@8.1.1", "https://mirrors.tencent.com/npm/normalize-url/-/normalize-url-8.1.1.tgz", {}, "sha512-JYc0DPlpGWB40kH5g07gGTrYuMqV653k3uBKY6uITPWds3M0ov3GaWGp9lbE3Bzngx8+XkfzgvASb9vk9JDFXQ=="],
+
+    "@joshua.litt/get-ripgrep/got/decompress-response/mimic-response": ["mimic-response@4.0.0", "https://mirrors.tencent.com/npm/mimic-response/-/mimic-response-4.0.0.tgz", {}, "sha512-e5ISH9xMYU0DzrT+jl8q2ze9D6eWBto+I8CNpe+VI+K2J/F/k3PdkdTdz4wvGVH4NTpo+NRYTVIuMQEMMcsLqg=="],
 
     "@office-ai/aioncli-core/google-auth-library/gaxios/is-stream": ["is-stream@2.0.1", "https://mirrors.tencent.com/npm/is-stream/-/is-stream-2.0.1.tgz", {}, "sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg=="],
 

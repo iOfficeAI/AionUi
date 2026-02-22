@@ -22,41 +22,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Setup vx
+        uses: loonghao/vx@main
         with:
-          node-version: '22'
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache bun global cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-cache-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-cache-
+          setup: 'true'
+          cache: 'true'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile --ignore-scripts
-
-      - name: Run postinstall scripts
-        run: bun run postinstall || true
+        run: vx bun install --frozen-lockfile
 
       - name: Run TypeScript check
-        run: bunx tsc --noEmit
+        run: vx run typecheck
 
       - name: Run ESLint
-        run: bun run lint || echo "ESLint warnings detected but not blocking build"
+        run: vx run lint || echo "ESLint warnings detected but not blocking build"
 
       - name: Run Prettier check
-        run: bun run format:check || echo "Prettier formatting issues detected but not blocking build"
+        run: vx run format:check || echo "Prettier formatting issues detected but not blocking build"
 
       - name: Run unit tests
-        run: bunx vitest run tests/extensions/
+        run: vx bunx vitest run tests/extensions/
 
   build:
     name: Build ${{ matrix.platform }}
@@ -91,7 +76,7 @@ jobs:
             arch: 'arm64'
           - platform: 'linux'
             os: 'ubuntu-latest'
-            command: 'bun run dist:linux'
+            command: 'vx bun run dist:linux'
             artifact-name: 'linux-build'
             arch: 'x64,arm64'
 
@@ -99,39 +84,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Setup vx
+        uses: loonghao/vx@main
         with:
-          node-version: '22'
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache bun global cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-cache-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-cache-
-
-      - name: Setup Python (for native dependencies)
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
+          setup: 'true'
+          cache: 'true'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile --ignore-scripts
-
-      - name: Run postinstall scripts
-        run: bun run postinstall || true
+        run: vx bun install --frozen-lockfile
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')
         run: |
-          bun install --global node-gyp
+          vx bun install --global node-gyp
 
       - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
         if: matrix.platform == 'windows-arm64'
@@ -158,7 +123,7 @@ jobs:
 
       - name: Rebuild native modules for Electron
         if: "!startsWith(matrix.platform, 'windows')"
-        run: bunx electron-builder install-app-deps
+        run: vx bunx electron-builder install-app-deps
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
@@ -237,7 +202,7 @@ jobs:
           Write-Host ""
           Write-Host "Step 1: Running electron-builder install-app-deps..."
           try {
-            bunx electron-builder install-app-deps --arch $arch
+            vx bunx electron-builder install-app-deps --arch $arch
             Write-Host "✅ electron-builder install-app-deps completed"
           } catch {
             Write-Warning "electron-builder install-app-deps failed, will try electron-rebuild"
@@ -246,7 +211,7 @@ jobs:
           # 如果需要，使用 electron-rebuild 作为备选方案
           Write-Host ""
           Write-Host "Step 2: Running electron-rebuild for critical modules..."
-          bunx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
+          vx bunx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
 
           # 验证关键模块是否存在
           Write-Host ""
@@ -637,7 +602,7 @@ jobs:
                 echo "📝 Updating package.json version to $NEW_VERSION"
           
                 # 更新 package.json 版本号
-                bun pm version $NEW_VERSION
+                vx bun pm version $NEW_VERSION
           
                 # 配置git用户信息
                 git config user.name "github-actions[bot]"
