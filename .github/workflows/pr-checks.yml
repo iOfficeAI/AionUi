@@ -36,11 +36,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: |
-          rm -rf node_modules
-          vx bun install --ignore-scripts
-        env:
-          BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+        run: vx bun install
 
       - name: Run postinstall
         run: vx bun run postinstall || true
@@ -76,11 +72,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: |
-          rm -rf node_modules
-          vx bun install --ignore-scripts
-        env:
-          BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+        run: vx bun install
 
       - name: Run postinstall
         run: vx bun run postinstall || true
