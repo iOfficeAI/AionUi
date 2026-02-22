@@ -116,7 +116,9 @@ nsis:
 mac:
   target:
     - dmg
-    - zip
+    # zip target removed: 7zip 16.02 (bundled in electron-builder) fails with E_INVALIDARG
+    # when compressing .app bundles containing symlinks on macOS CI runners.
+    # DMG is the standard macOS distribution format and is sufficient.
   icon: resources/app.icns
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity

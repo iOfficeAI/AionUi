@@ -5,10 +5,11 @@
 #   vx pip install pre-commit
 #   vx pre-commit install
 #
-# Run manually (checks staged files only):
-#   vx pre-commit run
-# Or using prek:
+# Run manually on staged files (same as CI pre-commit):
 #   vx prek run
+#
+# Run on changed files vs main (same as CI PR check):
+#   vx prek run --from-ref origin/main --to-ref HEAD
 #
 # Run on all files:
 #   vx prek run --all-files
@@ -31,6 +32,8 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=1000]
       - id: end-of-file-fixer
+        # Only fix text files, exclude binary files and special OS files
+        exclude: '^(\.DS_Store|Thumbs\.db|.*\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|pdf|zip|tar|gz|bz2|7z|exe|dll|so|dylib|node|bin))$'
       - id: trailing-whitespace
         files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml)$
 

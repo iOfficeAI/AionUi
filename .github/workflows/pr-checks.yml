@@ -129,32 +129,9 @@ jobs:
       - name: Run postinstall
         run: vx npm run postinstall || true
 
-      - name: Setup Windows native dependencies (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: vx bun install --global node-gyp
-
-      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
-        if: matrix.platform == 'windows-arm64'
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 3
-          retry_wait_seconds: 60
-          shell: pwsh
-          command: |
-            choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
-
-      - name: Setup Windows build environment (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: |
-          echo "Setting Windows SDK version for ConPty support"
-          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
-
-      - name: Setup MSBuild (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: '17.0'
+      # Note: Windows native toolchain setup (node-gyp, MSVC, MSBuild, Windows SDK)
+      # is handled internally by `vx just build-win-x64` / `vx just build-win-arm64`
+      # via `vx --with msvc`, so no separate setup steps are needed here.
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
