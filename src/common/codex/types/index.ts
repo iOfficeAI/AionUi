@@ -56,11 +56,7 @@ export {
 } from './eventData';
 
 // From permissionTypes.ts
-export {
-  PermissionType,
-  PermissionSeverity,
-  PERMISSION_DECISION_MAP,
-} from './permissionTypes';
+export { PermissionType, PermissionSeverity, PERMISSION_DECISION_MAP } from './permissionTypes';
 export {
   type CodexPermissionOption,
   type CodexToolCallRawInput,
@@ -70,18 +66,8 @@ export {
 } from './permissionTypes';
 
 // From toolTypes.ts
-export {
-  ToolCategory,
-  OutputFormat,
-  RendererType,
-} from './toolTypes';
-export {
-  type ToolAvailability,
-  type ToolCapabilities,
-  type ToolRenderer,
-  type ToolDefinition,
-  type McpToolInfo,
-} from './toolTypes';
+export { ToolCategory, OutputFormat, RendererType } from './toolTypes';
+export { type ToolAvailability, type ToolCapabilities, type ToolRenderer, type ToolDefinition, type McpToolInfo } from './toolTypes';
 
 // From errorTypes.ts
 export * from './errorTypes';

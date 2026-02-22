@@ -12,6 +12,7 @@
  */
 if (process.platform === 'win32') {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { execSync } = require('child_process');
     execSync('chcp 65001', { stdio: 'ignore' });
   } catch {
