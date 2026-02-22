@@ -38,7 +38,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx npm install
+        run: vx bun install
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -68,7 +68,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx npm install
+        run: vx bun install
 
       - name: Run postinstall
         run: vx npm run postinstall || true
@@ -124,7 +124,7 @@ jobs:
           cache: 'true'
 
       - name: Install dependencies
-        run: vx npm install
+        run: vx bun install
 
       - name: Run postinstall
         run: vx npm run postinstall || true
