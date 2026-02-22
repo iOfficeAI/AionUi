@@ -68,7 +68,7 @@ const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties =>
 
 function CodeBlock(props: any) {
   const { t } = useTranslation();
-  const [fold, setFlow] = useState(false);
+  const [fold, setFlow] = useState(true);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
@@ -131,12 +131,13 @@ function CodeBlock(props: any) {
     const diffLines = isDiff ? formattedContent.split('\n') : [];
 
     return (
-      <div style={{ width: '100%', ...(props.codeStyle || {}) }}>
+      <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...(props.codeStyle || {}) }}>
         <div
           style={{
             border: '1px solid var(--bg-3)',
             borderRadius: '0.3rem',
             overflow: 'hidden',
+            overflowX: 'auto',
           }}
         >
           <div
@@ -182,36 +183,54 @@ function CodeBlock(props: any) {
           </div>
           {logicRender(
             !fold,
-            <SyntaxHighlighter
-              children={formattedContent}
-              language={language}
-              style={codeTheme}
-              PreTag='div'
-              wrapLines={isDiff}
-              lineProps={
-                isDiff
-                  ? (lineNumber: number) => ({
-                      style: { display: 'block', ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark') },
-                    })
-                  : undefined
-              }
-              customStyle={{
-                marginTop: '0',
-                margin: '0',
-                borderTopLeftRadius: '0',
-                borderTopRightRadius: '0',
-                borderBottomLeftRadius: '0.3rem',
-                borderBottomRightRadius: '0.3rem',
-                border: 'none',
-                background: 'transparent',
-                color: 'var(--text-primary)',
-              }}
-              codeTagProps={{
-                style: {
+            <>
+              <SyntaxHighlighter
+                children={formattedContent}
+                language={language}
+                style={codeTheme}
+                PreTag='div'
+                wrapLines={isDiff}
+                lineProps={
+                  isDiff
+                    ? (lineNumber: number) => ({
+                        style: { display: 'block', ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark') },
+                      })
+                    : undefined
+                }
+                customStyle={{
+                  marginTop: '0',
+                  margin: '0',
+                  borderTopLeftRadius: '0',
+                  borderTopRightRadius: '0',
+                  borderBottomLeftRadius: '0',
+                  borderBottomRightRadius: '0',
+                  border: 'none',
+                  background: 'transparent',
                   color: 'var(--text-primary)',
-                },
-              }}
-            />
+                  overflowX: 'auto',
+                  maxWidth: '100%',
+                }}
+                codeTagProps={{
+                  style: {
+                    color: 'var(--text-primary)',
+                  },
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  backgroundColor: 'var(--bg-2)',
+                  borderBottomLeftRadius: '0.3rem',
+                  borderBottomRightRadius: '0.3rem',
+                  padding: '6px 10px',
+                  borderTop: '1px solid var(--bg-3)',
+                }}
+              >
+                <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} title={t('common.collapse', '收起')} />
+              </div>
+            </>
           )}
         </div>
       </div>
