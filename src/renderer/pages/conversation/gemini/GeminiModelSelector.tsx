@@ -27,8 +27,8 @@ const GeminiModelSelector: React.FC<{
 
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className='sendbox-model-btn header-model-btn' shape='round' size='small' style={{ cursor: 'default' }}>
-          {displayLabel}
+        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
         </Button>
       </Tooltip>
     );
