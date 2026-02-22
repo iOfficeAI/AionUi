@@ -24,7 +24,7 @@
     "build-mac:arm64": "node scripts/build-with-builder.js arm64 --mac --arm64",
     "build-mac:x64": "node scripts/build-with-builder.js x64 --mac --x64",
     "build": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
-    "lint": "eslint --ext .ts,.tsx .",
+    "lint": "eslint --quiet --ext .ts,.tsx .",
     "lint:fix": "eslint --ext .ts,.tsx . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
