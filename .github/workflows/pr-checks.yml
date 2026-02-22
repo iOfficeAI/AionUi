@@ -80,10 +80,141 @@ jobs:
       - name: Run extension system tests
         run: vx bunx vitest run tests
 
-  # Job 3: Trigger GPT AI review (only on first PR submission)
+  # Job 3: Build test across all platforms
+  build-test:
+    name: Build Test (${{ matrix.platform }})
+    if: github.event.action != 'edited'
+    needs: [code-quality, unit-tests]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-arm64'
+            os: 'macos-14'
+            arch: 'arm64'
+          - platform: 'macos-x64'
+            os: 'macos-14'
+            arch: 'x64'
+          - platform: 'windows-x64'
+            os: 'windows-2022'
+            arch: 'x64'
+          - platform: 'windows-arm64'
+            os: 'windows-2022'
+            arch: 'arm64'
+          - platform: 'linux'
+            os: 'ubuntu-latest'
+            arch: 'x64'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup vx
+        uses: loonghao/vx@v0.8.4
+        with:
+          tools: 'node@22 bun python@3.12'
+          setup: 'true'
+          cache: 'true'
+
+      - name: Install dependencies
+        run: vx bun install
+
+      - name: Run postinstall
+        run: vx bun run postinstall || true
+
+      - name: Setup Windows native dependencies (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: vx bun install --global node-gyp
+
+      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
+        if: matrix.platform == 'windows-arm64'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          retry_wait_seconds: 60
+          shell: pwsh
+          command: |
+            choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+
+      - name: Setup Windows build environment (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          echo "Setting Windows SDK version for ConPty support"
+          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup MSBuild (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
+
+      - name: Get Electron version
+        id: electron-version
+        shell: bash
+        run: |
+          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
+          echo "Electron version: $ELECTRON_VERSION"
+
+      - name: Rebuild native modules for Electron (non-Windows)
+        if: "!startsWith(matrix.platform, 'windows')"
+        run: vx bunx electron-builder install-app-deps
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+
+      - name: Rebuild native modules for Electron (Windows)
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        run: |
+          $electronVersion = "${{ steps.electron-version.outputs.version }}"
+          $arch = "${{ matrix.arch }}"
+          Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
+          vx bunx electron-builder install-app-deps --arch $arch
+          vx bunx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
+        env:
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+
+      - name: Build test
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD TEST: ${{ matrix.platform }}"
+          echo "=========================================="
+          vx bun run build
+          echo "✅ Build test passed for ${{ matrix.platform }}"
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_disturl: https://electronjs.org/headers
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+          WindowsTargetPlatformVersion: 10.0.19041.0
+          CI: true
+
+  # Job 4: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality, unit-tests]
+    needs: [code-quality, unit-tests, build-test]
     if: github.event.action == 'opened'
     uses: './.github/workflows/gpt-review.yml'
     with:
@@ -93,10 +224,10 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 4: Check if PR author is an external contributor
+  # Job 5: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality, unit-tests]
+    needs: [code-quality, unit-tests, build-test]
     if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     outputs:
@@ -123,7 +254,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 5: Trigger GPT PR assessment for external contributors
+  # Job 6: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]
