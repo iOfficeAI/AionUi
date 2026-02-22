@@ -191,6 +191,8 @@ build-force: preflight clean
 
 # Build for Windows x64 (with full CI-equivalent env)
 build-win-x64: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { vx npm install } else { vx npm install --prefer-offline }; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (vx node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
@@ -204,6 +206,8 @@ build-win-x64: preflight
 
 # Build for Windows arm64 (with full CI-equivalent env)
 build-win-arm64: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { vx npm install } else { vx npm install --prefer-offline }; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (vx node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
@@ -220,6 +224,10 @@ build-win: preflight
     Write-Host "🧹 Cleaning output directory..."; \
     Get-Process -Name "AionUI","electron" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; \
     if (Test-Path "out") { Remove-Item -Recurse -Force "out" -ErrorAction SilentlyContinue }; \
+    Write-Host "Reinstalling with npm for Windows build..."; \
+    if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }; \
+    vx npm install; \
+    vx bun run postinstall || true; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:MSVS_VERSION = "2022"; \
     $env:GYP_MSVS_VERSION = "2022"; \
@@ -227,6 +235,8 @@ build-win: preflight
 
 # Build for macOS ARM64
 build-mac-arm64: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { vx npm install } else { vx npm install --prefer-offline }; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (vx node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
@@ -235,6 +245,8 @@ build-mac-arm64: preflight
 
 # Build for macOS x64
 build-mac-x64: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { vx npm install } else { vx npm install --prefer-offline }; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (vx node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
@@ -243,6 +255,8 @@ build-mac-x64: preflight
 
 # Build for macOS (arm64 + x64)
 build-mac: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { vx npm install } else { vx npm install --prefer-offline }; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (vx node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
@@ -251,6 +265,8 @@ build-mac: preflight
 
 # Build for Linux
 build-linux: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { vx npm install } else { vx npm install --prefer-offline }; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (vx node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \

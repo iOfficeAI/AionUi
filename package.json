@@ -185,7 +185,9 @@
     "diff": "^7.0.0",
     "lodash-es": "^4.17.23",
     "tar": "^7.5.7",
-    "hono": "^4.11.7"
+    "hono": "^4.11.7",
+    "@isaacs/cliui": "^9.0.0",
+    "jackspeak": "^4.0.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

@@ -30,6 +30,15 @@ files:
   - node_modules/prebuild-install/**/*
   - node_modules/node-gyp-build/**/*
   - node_modules/bindings/**/*
+  # CLI dependencies (needed by nested jackspeak/glob)
+  - node_modules/@isaacs/cliui/**/*
+  - node_modules/ansi-regex/**/*
+  - node_modules/ansi-styles/**/*
+  - node_modules/strip-ansi/**/*
+  - node_modules/wrap-ansi/**/*
+  - node_modules/string-width/**/*
+  - node_modules/eastasianwidth/**/*
+  - node_modules/emoji-regex/**/*
   # open library - needs to be external for Windows asar compatibility
   - node_modules/open/**/*
   - node_modules/default-browser/**/*
