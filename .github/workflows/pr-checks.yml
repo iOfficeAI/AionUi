@@ -177,22 +177,6 @@ jobs:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
 
-      - name: Rebuild native modules for Electron (Windows)
-        if: startsWith(matrix.platform, 'windows')
-        shell: pwsh
-        run: |
-          Write-Host "Rebuilding native modules using vx just rebuild-native..."
-          vx just rebuild-native
-        env:
-          npm_config_runtime: electron
-          npm_config_target: ${{ steps.electron-version.outputs.version }}
-          npm_config_arch: ${{ matrix.arch }}
-          npm_config_target_arch: ${{ matrix.arch }}
-          npm_config_disturl: https://electronjs.org/headers
-          npm_config_build_from_source: true
-          MSVS_VERSION: 2022
-          GYP_MSVS_VERSION: 2022
-
       - name: Build test (Windows x64)
         if: matrix.platform == 'windows-x64'
         shell: pwsh
