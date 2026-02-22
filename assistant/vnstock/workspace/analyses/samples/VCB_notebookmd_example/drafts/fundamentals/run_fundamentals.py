@@ -6,9 +6,7 @@ Demonstrates deep investigation vs surface-level checklist.
 Focus: WHY is ROE high? WHY is it sustainable? Not just "ROE is 22.5%"
 """
 
-import sys
 from pathlib import Path
-sys.path.insert(0, '../../../..')
 
 from notebookmd import nb, NotebookConfig
 import pandas as pd
