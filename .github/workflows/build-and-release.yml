@@ -32,15 +32,13 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Cache bun dependencies
+      - name: Cache bun global cache
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-cache-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-bun-cache-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -108,15 +106,13 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Cache bun dependencies
+      - name: Cache bun global cache
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-cache-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-bun-cache-
 
       - name: Setup Python (for native dependencies)
         uses: actions/setup-python@v6
