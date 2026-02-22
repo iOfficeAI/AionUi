@@ -31,6 +31,7 @@
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "croner": "^9.1.0",
+        "defer-to-connect": "^2.0.1",
         "diff": "^8.0.3",
         "diff2html": "^3.4.55",
         "dingtalk-stream": "^2.1.4",
