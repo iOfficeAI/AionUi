@@ -20,7 +20,7 @@ function iconParkPlugin() {
           ${components.map((key: string) => `const ${key.trim()} = IconParkHOC(_${key.trim()})`).join(';\n')}`;
         return importComponent + ';' + hoc;
       });
-      if (transformedSource !== source) return { code: transformedSource, map: null };
+      if (transformedSource !== source) return { code: transformedSource, map: null } as { code: string; map: null };
       return null;
     },
   };
