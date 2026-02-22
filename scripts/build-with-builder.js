@@ -36,7 +36,7 @@ function computeSourceHash() {
     'electron.vite.config.ts',
     'electron-builder.yml',
   ];
-  
+
   for (const file of filesToHash) {
     const filePath = path.resolve(__dirname, '..', file);
     if (fs.existsSync(filePath)) {
@@ -45,7 +45,7 @@ function computeSourceHash() {
       hash.update(content);
     }
   }
-  
+
   // Add key src directories modification times
   const srcDirs = ['src', 'public'];
   for (const dir of srcDirs) {
@@ -55,7 +55,7 @@ function computeSourceHash() {
       hash.update(dir + ':' + stat.mtimeMs);
     }
   }
-  
+
   return hash.digest('hex');
 }
 
@@ -92,16 +92,16 @@ function viteBuildExists() {
 function shouldSkipViteBuild(skipViteFlag, forceFlag) {
   if (forceFlag) return false;
   if (skipViteFlag) return true;
-  
+
   // Auto-detect: skip if build exists and hash matches
   const currentHash = computeSourceHash();
   const cachedHash = loadCachedHash();
-  
+
   if (cachedHash && currentHash === cachedHash && viteBuildExists()) {
     console.log('📦 Incremental build: Vite output unchanged, skipping compilation');
     return true;
   }
-  
+
   return false;
 }
 

@@ -1,7 +1,7 @@
 /**
  * Unified native module rebuild utility
  * Handles rebuilding native modules for different platforms and architectures
- * 
+ *
  * Supports vx toolchain management:
  * - Uses 'vx --with msvc' on Windows to ensure MSVC compiler is available
  * - Falls back to standard bunx if vx is not available

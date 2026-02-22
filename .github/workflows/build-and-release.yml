@@ -164,22 +164,22 @@ jobs:
         run: |
           if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
             echo "Installing code signing certificate..."
-          
+
             # 创建证书文件
             echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
-          
+
             # 创建临时钥匙串
             security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          
+
             # 导入证书
             security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          
+
             # 清理证书文件
             rm certificate.p12
-          
+
             echo "Certificate imported successfully"
           else
             echo "No certificate provided - building unsigned application"
@@ -558,7 +558,7 @@ jobs:
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -576,7 +576,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           COMMIT_SHORT=$(git rev-parse --short HEAD)
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          
+
           # 根据分支确定 tag 格式
           if [ "$BRANCH_NAME" = "dev" ]; then
             TAG_NAME="v${VERSION}-dev-${COMMIT_SHORT}"
@@ -587,42 +587,42 @@ jobs:
             IS_DEV="false"
             echo "🚀 Production release: $TAG_NAME"
           fi
-          
+
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
-          
+
           # 检查远程tag是否已存在
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
             if [ "$IS_DEV" = "false" ]; then
               # Main 分支：需要递增版本并修改 package.json
               echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
-          
+
               if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
                 MAJOR=${BASH_REMATCH[1]}
                 MINOR=${BASH_REMATCH[2]}
                 PATCH=${BASH_REMATCH[3]}
                 NEW_PATCH=$((PATCH + 1))
                 NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-          
+
                 echo "📝 Updating package.json version to $NEW_VERSION"
-          
+
                 # 更新 package.json 版本号
                 vx bun pm version $NEW_VERSION
-          
+
                 # 配置git用户信息
                 git config user.name "github-actions[bot]"
                 git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
                 # 提交版本更新
                 git add package.json bun.lock
                 git commit -m "chore: bump version to $NEW_VERSION"
                 git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
                 git push origin $BRANCH_NAME
-          
+
                 # 获取新的 commit ID
                 COMMIT_SHORT=$(git rev-parse --short HEAD)
                 TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
-          
+
                 echo "🚀 New tag with updated version: $TAG_NAME"
                 echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
               else
@@ -636,11 +636,11 @@ jobs:
               exit 1
             fi
           fi
-          
+
           # 配置git用户信息（如果前面没配置）
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # 创建并推送tag
           echo "Creating tag: $TAG_NAME"
           git tag $TAG_NAME
