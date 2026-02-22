@@ -883,13 +883,18 @@ export class AcpConnection {
 
     this.sessionId = response.sessionId;
 
+    // Debug: log full session/new response for diagnosing model list issues
+    console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
+
     // Parse configOptions and models from session/new response
     const result = response as unknown as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
     }
-    if (result.models && typeof result.models === 'object') {
-      this.models = result.models as AcpSessionModels;
+    // Check top-level models first, then fall back to _meta.models (used by iFlow)
+    const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
+    if (modelsSource && typeof modelsSource === 'object') {
+      this.models = modelsSource as AcpSessionModels;
     }
 
     return response;

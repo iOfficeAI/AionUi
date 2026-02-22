@@ -569,6 +569,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (result) {
       this.persistedModelId = result.currentModelId;
       this.saveModelId(result.currentModelId);
+      // Update cached models so Guid page defaults to the newly selected model
+      if (result.availableModels?.length > 0) {
+        void this.cacheModelList(result);
+      }
     }
     return result;
   }
