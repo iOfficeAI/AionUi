@@ -96,7 +96,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
 
   return (
     <>
-      <div className={classNames('flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
+      <div className={classNames('min-w-0 flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
             {files.length === 1 ? (
@@ -113,7 +113,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           </div>
         )}
         <div
-          className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
+          className={classNames('min-w-0 w-full rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
             'bg-aou-2 p-8px': isUserMessage,
           })}
         >

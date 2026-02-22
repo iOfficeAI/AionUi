@@ -8,7 +8,9 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -22,6 +24,7 @@ import { useTranslation } from 'react-i18next';
  *
  * When backend and initialModelId are provided, the component can show
  * cached model info before the agent manager is created (pre-first-message).
+ * When preview panel is open, shows compact version (truncated label).
  */
 const AcpModelSelector: React.FC<{
   conversationId: string;
@@ -31,6 +34,7 @@ const AcpModelSelector: React.FC<{
   initialModelId?: string;
 }> = ({ conversationId, backend, initialModelId }) => {
   const { t } = useTranslation();
+  const { isOpen: isPreviewOpen } = usePreviewContext();
   const [modelInfo, setModelInfo] = useState<AcpModelInfo | null>(null);
   const modelInfoRef = useRef(modelInfo);
   modelInfoRef.current = modelInfo;
@@ -145,25 +149,26 @@ const AcpModelSelector: React.FC<{
     [conversationId]
   );
 
+  const displayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || t('conversation.welcome.useCliModel');
+  const compact = isPreviewOpen;
+
   // State 1: No model info — show disabled "Use CLI model" button
   if (!modelInfo) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className='sendbox-model-btn header-model-btn' shape='round' size='small' style={{ cursor: 'default' }}>
-          {t('conversation.welcome.useCliModel')}
+        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+          <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
         </Button>
       </Tooltip>
     );
   }
 
-  const displayLabel = modelInfo.currentModelLabel || modelInfo.currentModelId || t('conversation.welcome.useCliModel');
-
   // State 2: Has model info but cannot switch — read-only display
   if (!modelInfo.canSwitch) {
     return (
       <Tooltip content={displayLabel} position='top'>
-        <Button className='sendbox-model-btn header-model-btn' shape='round' size='small' style={{ cursor: 'default' }}>
-          {displayLabel}
+        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
         </Button>
       </Tooltip>
     );
@@ -183,8 +188,8 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button className='sendbox-model-btn header-model-btn' shape='round' size='small'>
-        {displayLabel}
+      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small'>
+        <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
       </Button>
     </Dropdown>
   );

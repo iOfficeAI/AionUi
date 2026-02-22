@@ -257,6 +257,8 @@ body,
 /* Layout sider base styles / 布局侧栏基础样式 */
 .layout-sider {
   overflow-x: hidden;
+  box-shadow: none !important;
+  border-right: 1px solid var(--border-base);
 }
 
 .layout-sider.collapsed .arco-layout-sider-children,

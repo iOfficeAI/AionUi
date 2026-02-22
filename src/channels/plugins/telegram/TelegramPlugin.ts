@@ -153,6 +153,11 @@ export class TelegramPlugin extends BasePlugin {
     // Truncate if too long (can't split when editing)
     const truncatedText = text.length > TELEGRAM_MESSAGE_LIMIT ? text.slice(0, TELEGRAM_MESSAGE_LIMIT - 3) + '...' : text;
 
+    // Skip edit if text is empty or whitespace-only (Telegram API rejects it)
+    if (!truncatedText.trim()) {
+      return;
+    }
+
     try {
       await this.bot.api.editMessageText(chatId, parseInt(messageId, 10), truncatedText, {
         parse_mode: options.parse_mode,

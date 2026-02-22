@@ -20,11 +20,12 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({ availableAgents, selectedAg
   return (
     <div className='w-full flex justify-center'>
       <div
-        className='inline-flex items-center bg-fill-2'
+        className='flex flex-wrap items-center justify-center'
         style={{
-          marginBottom: 16,
-          padding: '4px',
+          marginBottom: 20,
+          padding: '6px',
           borderRadius: '30px',
+          backgroundColor: 'var(--color-guid-agent-bar, var(--aou-2))',
           transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
           width: 'fit-content',
           gap: 0,

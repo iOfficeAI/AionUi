@@ -116,16 +116,16 @@ const GuidPage: React.FC = () => {
     (value: string) => {
       guidInput.setInput(value);
       const match = value.match(mention.mentionMatchRegex);
+      // 首页不根据输入 @ 呼起 mention 列表，占位符里的 @agent 仅为提示，选 agent 用顶部栏或下拉手动选
       if (match) {
         mention.setMentionQuery(match[1]);
-        mention.setMentionOpen(true);
-        mention.setMentionSelectorOpen(false);
+        mention.setMentionOpen(false);
       } else {
         mention.setMentionQuery(null);
         mention.setMentionOpen(false);
       }
     },
-    [mention.mentionMatchRegex, guidInput.setInput, mention.setMentionQuery, mention.setMentionOpen, mention.setMentionSelectorOpen]
+    [mention.mentionMatchRegex, guidInput.setInput, mention.setMentionQuery, mention.setMentionOpen]
   );
 
   const handleInputKeyDown = useCallback(
@@ -251,7 +251,7 @@ const GuidPage: React.FC = () => {
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
-          <p className='text-2xl font-semibold mb-8 text-0 text-center'>{t('conversation.welcome.title')}</p>
+          <p className='text-2xl font-semibold mb-6 text-0 text-center'>{t('conversation.welcome.title')}</p>
 
           {agentSelection.availableAgents === undefined ? <AgentPillBarSkeleton /> : agentSelection.availableAgents.length > 0 ? <AgentPillBar availableAgents={agentSelection.availableAgents} selectedAgentKey={agentSelection.selectedAgentKey} getAgentKey={agentSelection.getAgentKey} onSelectAgent={handleSelectAgentFromPillBar} /> : null}
 
@@ -262,7 +262,7 @@ const GuidPage: React.FC = () => {
             onPaste={guidInput.onPaste}
             onFocus={guidInput.handleTextareaFocus}
             onBlur={guidInput.handleTextareaBlur}
-            placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')}
+            placeholder={`${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
             isInputActive={guidInput.isInputFocused}
             isFileDragging={guidInput.isFileDragging}
             activeBorderColor={activeBorderColor}
