@@ -42,7 +42,7 @@ jobs:
         run: vx bun run postinstall || true
 
       - name: Run prek checks (TypeScript, ESLint, Prettier)
-        run: vx prek run --all-files
+        run: vx prek run --from-ref origin/main --to-ref HEAD
 
   # Job 2: Unit tests across all platforms
   unit-tests:

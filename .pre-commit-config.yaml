@@ -5,9 +5,12 @@
 #   vx pip install pre-commit
 #   vx pre-commit install
 #
-# Run manually:
-#   vx pre-commit run --all-files
+# Run manually (checks staged files only):
+#   vx pre-commit run
 # Or using prek:
+#   vx prek run
+#
+# Run on all files:
 #   vx prek run --all-files
 
 default_install_hook_types:
@@ -31,7 +34,7 @@ repos:
       - id: trailing-whitespace
         files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml)$
 
-  # TypeScript type checking
+  # TypeScript type checking (full project check required)
   - repo: local
     hooks:
       - id: typecheck
@@ -41,7 +44,7 @@ repos:
         files: \.(ts|tsx)$
         pass_filenames: false
 
-  # ESLint
+  # ESLint (checks staged files only)
   - repo: local
     hooks:
       - id: eslint
@@ -51,7 +54,7 @@ repos:
         files: \.(ts|tsx)$
         pass_filenames: false
 
-  # Prettier
+  # Prettier (checks staged files only)
   - repo: local
     hooks:
       - id: prettier
