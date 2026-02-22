@@ -119,7 +119,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@v0.8.4
         with:
-          tools: 'node@22 bun python@3.12'
+          tools: 'node@22 bun python@3.12 just'
           setup: 'true'
           cache: 'true'
 
@@ -181,11 +181,8 @@ jobs:
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         run: |
-          $electronVersion = "${{ steps.electron-version.outputs.version }}"
-          $arch = "${{ matrix.arch }}"
-          Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
-          Write-Host "Using vx --with msvc for MSVC toolchain..."
-          vx --with msvc bunx electron-rebuild -f -w better-sqlite3
+          Write-Host "Rebuilding native modules using vx just rebuild-native..."
+          vx just rebuild-native
         env:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}

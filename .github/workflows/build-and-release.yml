@@ -88,7 +88,7 @@ jobs:
       - name: Setup vx
         uses: loonghao/vx@v0.8.4
         with:
-          tools: 'node@22 bun python@3.12'
+          tools: 'node@22 bun python@3.12 just'
           setup: 'true'
           cache: 'true'
 
@@ -197,39 +197,10 @@ jobs:
         shell: pwsh
         continue-on-error: false  # 修复：原生模块重建失败应该中止构建
         run: |
-          $electronVersion = "${{ steps.electron-version.outputs.version }}"
-          $arch = "${{ matrix.arch }}"
           Write-Host "=========================================="
-          Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
+          Write-Host "Rebuilding native modules using vx just rebuild-native"
           Write-Host "=========================================="
-
-          # 使用 vx --with msvc 确保 MSVC 工具链可用
-          Write-Host ""
-          Write-Host "Using vx --with msvc for MSVC toolchain..."
-          vx --with msvc bunx electron-rebuild -f -w better-sqlite3
-
-          # 验证关键模块是否存在
-          Write-Host ""
-          Write-Host "Verifying native modules..."
-          $verified = $true
-
-          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
-          if (Test-Path $sqliteNode) {
-            Write-Host "✅ better-sqlite3 found: $sqliteNode"
-          } else {
-            Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
-            $verified = $false
-          }
-
-          if (!$verified) {
-            Write-Error "Native modules verification failed!"
-            exit 1
-          }
-
-          Write-Host ""
-          Write-Host "=========================================="
-          Write-Host "✅ All critical native modules verified"
-          Write-Host "=========================================="
+          vx just rebuild-native
         env:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
