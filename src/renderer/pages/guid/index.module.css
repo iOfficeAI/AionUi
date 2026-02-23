@@ -145,6 +145,32 @@
   margin-top: -5vh;
 }
 
+/* Agent 选中时：先放大再回落至略大（pop 动效） */
+@keyframes agentSelectPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+.agentItemSelected {
+  background-color: var(--fill-0);
+  transition:
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    background-color 0.25s ease-out;
+  animation: agentSelectPop 0.4s ease-out forwards;
+}
+
+/* 底部快捷按钮：基础间距 + 安全区 */
+.guidQuickActions {
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
 @media (max-width: 768px) {
   .guidContainer {
     justify-content: flex-start;

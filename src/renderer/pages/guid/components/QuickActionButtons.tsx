@@ -6,6 +6,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import styles from '../index.module.css';
 
 type QuickActionButtonsProps = {
   onOpenLink: (url: string) => void;
@@ -28,7 +29,7 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
   );
 
   return (
-    <div className='absolute bottom-32px left-50% -translate-x-1/2 flex flex-col justify-center items-center'>
+    <div className={`absolute left-50% -translate-x-1/2 flex flex-col justify-center items-center ${styles.guidQuickActions}`}>
       <div className='flex justify-center items-center gap-24px'>
         <div className='group flex items-center justify-center w-36px h-36px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={quickActionStyle(hoveredQuickAction === 'feedback')} onMouseEnter={() => setHoveredQuickAction('feedback')} onMouseLeave={() => setHoveredQuickAction(null)} onClick={() => onOpenLink('https://x.com/AionUi')}>
           <svg className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#2C7FFF] transition-colors duration-300' width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'>
