@@ -48,7 +48,7 @@
     "email": "service@aionui.com"
   },
   "license": "Apache-2.0",
-"devDependencies": {
+  "devDependencies": {
     "@electron/fuses": "^1.8.0",
     "@electron/notarize": "^3.1.0",
     "@types/better-sqlite3": "^7.6.13",

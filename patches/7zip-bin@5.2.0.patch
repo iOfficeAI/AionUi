@@ -1,7 +1,8 @@
 diff --git a/index.js b/index.js
+index d4c7a8ce..e7b86edc 100644
 --- a/index.js
 +++ b/index.js
-@@ -1,22 +1,82 @@
+@@ -1,6 +1,8 @@
  "use strict"
  
  const path = require("path")
@@ -10,7 +11,7 @@ diff --git a/index.js b/index.js
  
  function getPath() {
    if (process.env.USE_SYSTEM_7ZA === "true") {
-     return "7za"
+@@ -8,15 +10,93 @@ function getPath() {
    }
  
    if (process.platform === "darwin") {
@@ -106,3 +107,4 @@ diff --git a/index.js b/index.js
 +
  exports.path7za = getPath()
  exports.path7x = path.join(__dirname, "7x.sh")
+\ No newline at end of file
