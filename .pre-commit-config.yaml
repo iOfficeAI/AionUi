@@ -35,7 +35,9 @@ repos:
         # Only fix text files, exclude binary files and special OS files
         exclude: '^(\.DS_Store|Thumbs\.db|.*\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|pdf|zip|tar|gz|bz2|7z|exe|dll|so|dylib|node|bin))$'
       - id: trailing-whitespace
-        files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml)$
+        # Auto-fix trailing whitespace in text files
+        # Excludes binary files (matching end-of-file-fixer pattern)
+        exclude: '^(\.DS_Store|Thumbs\.db|.*\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|pdf|zip|tar|gz|bz2|7z|exe|dll|so|dylib|node|bin|patch))$'
 
   # TypeScript type checking (full project check required)
   - repo: local

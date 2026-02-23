@@ -176,33 +176,59 @@ jobs:
       - name: Rebuild native modules for Electron
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
-        continue-on-error: false  # 修复：原生模块重建失败应该中止构建
+        continue-on-error: false
         run: |
           $arch = "${{ matrix.arch }}"
+          $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
+          
           Write-Host "=========================================="
-          Write-Host "Rebuilding native modules for Electron ($arch)"
+          Write-Host "Rebuilding native modules for Electron $electronVer ($arch)"
           Write-Host "=========================================="
 
-          # 使用 vx --with msvc 确保 MSVC 工具链可用
-          Write-Host ""
-          Write-Host "Using vx --with msvc for MSVC toolchain..."
-          vx --with msvc bunx electron-rebuild -f -w better-sqlite3
+          # Strategy: Try prebuild-install first (faster, more reliable)
+          # Fallback to electron-rebuild only if prebuild-install fails
+          $success = $false
 
-          # 验证关键模块是否存在
+          # Step 1: Try prebuild-install (downloads prebuilt binaries)
           Write-Host ""
-          Write-Host "Verifying native modules..."
-          $verified = $true
-
-          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
-          if (Test-Path $sqliteNode) {
-            Write-Host "✅ better-sqlite3 found: $sqliteNode"
-          } else {
-            Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
-            $verified = $false
+          Write-Host "[Step 1] Trying prebuild-install..."
+          $prebuildResult = $null
+          try {
+            $prebuildResult = vx --with msvc bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=$arch --force 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ prebuild-install succeeded"
+              $success = $true
+            } else {
+              Write-Host "⚠️ prebuild-install exited with code $LASTEXITCODE"
+            }
+          } catch {
+            Write-Host "⚠️ prebuild-install failed: $_"
           }
 
-          if (!$verified) {
-            Write-Error "Native modules verification failed!"
+          # Step 2: Verify or fallback to electron-rebuild
+          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+          if (-not (Test-Path $sqliteNode)) {
+            Write-Host ""
+            Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
+            try {
+              vx --with msvc bunx electron-rebuild -f -w better-sqlite3
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✅ electron-rebuild succeeded"
+                $success = $true
+              }
+            } catch {
+              Write-Host "❌ electron-rebuild failed: $_"
+            }
+          }
+
+          # Final verification
+          Write-Host ""
+          Write-Host "Verifying native modules..."
+          if (Test-Path $sqliteNode) {
+            $size = [math]::Round((Get-Item $sqliteNode).Length / 1MB, 1)
+            Write-Host "✅ better-sqlite3 found: $sqliteNode ($size MB)"
+          } else {
+            Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
             exit 1
           }
 
@@ -215,7 +241,7 @@ jobs:
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_disturl: https://electronjs.org/headers
-          npm_config_build_from_source: true
+          # Don't force build_from_source - let prebuild-install try first
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
