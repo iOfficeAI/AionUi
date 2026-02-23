@@ -201,5 +201,8 @@
     "*.{json,css,md}": [
       "prettier --write"
     ]
+  },
+  "patchedDependencies": {
+    "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   }
 }

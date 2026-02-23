@@ -1,0 +1,109 @@
+diff --git a/index.js b/index.js
+index 1234567..abcdefg 100644
+--- a/index.js
++++ b/index.js
+@@ -1,22 +1,82 @@
+ "use strict"
+ 
+ const path = require("path")
++const fs = require("fs")
++const os = require("os")
+ 
+ function getPath() {
+   if (process.env.USE_SYSTEM_7ZA === "true") {
+     return "7za"
+   }
+ 
+   if (process.platform === "darwin") {
+-    return path.join(__dirname, "mac", process.arch, "7za")
++    // macOS: bundled 7za 16.02 fails with E_INVALIDARG on .app bundles containing symlinks.
++    // Delegate to system `zip` which handles symlinks correctly.
++    return getMacWrapper()
+   }
+   else if (process.platform === "win32") {
+-    return path.join(__dirname, "win", process.arch, "7za.exe")
++    // Windows: bundled 7za 21.07 fails with E_INVALIDARG on large directories.
++    // Delegate to PowerShell Compress-Archive which handles large files correctly.
++    return getWinWrapper()
+   }
+   else {
+     return path.join(__dirname, "linux", process.arch, "7za")
+   }
+ }
+ 
++// macOS wrapper: translates `7za a [opts] output.zip input` -> `zip -r -y output.zip input`
++function getMacWrapper() {
++  const wrapperDir = path.join(os.tmpdir(), "7zip-bin-compat")
++  const wrapperPath = path.join(wrapperDir, "7za")
++  try {
++    if (!fs.existsSync(wrapperPath)) {
++      fs.mkdirSync(wrapperDir, { recursive: true })
++      const lines = [
++        "#!/bin/sh",
++        "# 7zip-bin compat wrapper: uses system zip instead of bundled 7za 16.02",
++        "if [ \"$1\" = \"a\" ]; then",
++        "  shift",
++        "  while [ $# -gt 0 ] && case \"$1\" in -*) true;; *) false;; esac; do shift; done",
++        "  OUTPUT=\"$1\"; shift",
++        "  INPUT_DIR=$(dirname \"$1\")",
++        "  INPUT_BASE=$(basename \"$1\")",
++        "  cd \"$INPUT_DIR\" && exec zip -r -y \"$OUTPUT\" \"$INPUT_BASE\"",
++        "else",
++        "  exec \"" + path.join(__dirname, "mac", process.arch, "7za") + "\" \"$@\"",
++        "fi",
++      ]
++      fs.writeFileSync(wrapperPath, lines.join("\n") + "\n", { mode: 0o755 })
++    }
++  } catch (e) {
++    // Fallback to bundled binary if wrapper creation fails
++    return path.join(__dirname, "mac", process.arch, "7za")
++  }
++  return wrapperPath
++}
++
++// Windows wrapper: translates `7za a [opts] output.zip input` -> PowerShell Compress-Archive
++function getWinWrapper() {
++  const wrapperDir = path.join(os.tmpdir(), "7zip-bin-compat")
++  const wrapperPath = path.join(wrapperDir, "7za.cmd")
++  try {
++    if (!fs.existsSync(wrapperPath)) {
++      fs.mkdirSync(wrapperDir, { recursive: true })
++      const bundled = path.join(__dirname, "win", process.arch, "7za.exe")
++      const lines = [
++        "@echo off",
++        "REM 7zip-bin compat wrapper: uses PowerShell Compress-Archive instead of bundled 7za",
++        "if \"%1\"==\"a\" (",
++        "  setlocal enabledelayedexpansion",
++        "  set _OUT=",
++        "  set _IN=",
++        "  set _SKIP=1",
++        "  shift",
++        "  :_loop",
++        "  if \"%1\"==\"\" goto _run",
++        "  if \"!_SKIP!\"==\"1\" (",
++        "    set _C=%1",
++        "    if \"!_C:~0,1!\"==\"-\" ( shift & goto _loop )",
++        "    set _SKIP=0",
++        "    set _OUT=%1",
++        "    shift & goto _loop",
++        "  )",
++        "  if \"!_IN!\"==\"\" ( set _IN=%1 ) else ( set _IN=!_IN! %1 )",
++        "  shift & goto _loop",
++        "  :_run",
++        "  powershell -NoProfile -Command \"Compress-Archive -Path '!_IN!' -DestinationPath '!_OUT!' -Force\"",
++        "  exit /b %ERRORLEVEL%",
++        ") else (",
++        "  \"" + bundled + "\" %*",
++        ")",
++      ]
++      fs.writeFileSync(wrapperPath, lines.join("\r\n") + "\r\n")
++    }
++  } catch (e) {
++    // Fallback to bundled binary if wrapper creation fails
++    return path.join(__dirname, "win", process.arch, "7za.exe")
++  }
++  return wrapperPath
++}
++
+ exports.path7za = getPath()
+ exports.path7x = path.join(__dirname, "7x.sh")

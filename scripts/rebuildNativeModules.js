@@ -30,7 +30,7 @@ function isVxAvailable() {
  * already provides the vx entry point, so we must not nest another 'vx' call.
  */
 function getBunxCommand() {
-  return process.platform === 'win32' ? 'bunx.cmd' : 'bunx';
+  return process.platform === 'win32' ? 'bun x' : 'bun x';
 }
 
 /**
