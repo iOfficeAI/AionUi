@@ -12,6 +12,7 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.html text eol=lf
+*.patch text eol=lf
 
 # Binary files
 *.png binary
