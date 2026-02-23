@@ -237,6 +237,8 @@ export const createAcpAgent = async (options: ICreateConversationParams, assista
   if (extra.presetAssistantId !== undefined) conversationExtra.presetAssistantId = extra.presetAssistantId;
   if (extra.botId !== undefined) conversationExtra.botId = extra.botId;
   if (extra.externalChannelId !== undefined) conversationExtra.externalChannelId = extra.externalChannelId;
+  if (extra.sessionMode !== undefined) conversationExtra.sessionMode = extra.sessionMode;
+  if (extra.currentModelId !== undefined) conversationExtra.currentModelId = extra.currentModelId;
   if (defaultAgent !== undefined) conversationExtra.defaultAgent = defaultAgent;
   if (assistantHooksPath !== undefined) conversationExtra.assistantHooksPath = assistantHooksPath;
 

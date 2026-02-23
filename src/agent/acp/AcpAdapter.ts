@@ -101,6 +101,11 @@ export class AcpAdapter {
         break;
       }
 
+      // Config option updates (e.g., model switch) are handled by AcpConnection
+      // directly in handleIncomingRequest; no chat message conversion needed.
+      case 'config_option_update':
+        break;
+
       // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands_update':
         // Still reset message tracking so next agent_message_chunk gets new msg_id
