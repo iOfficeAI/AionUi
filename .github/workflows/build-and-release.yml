@@ -180,7 +180,7 @@ jobs:
         run: |
           $arch = "${{ matrix.arch }}"
           $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
-          
+
           Write-Host "=========================================="
           Write-Host "Rebuilding native modules for Electron $electronVer ($arch)"
           Write-Host "=========================================="
