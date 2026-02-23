@@ -1,5 +1,4 @@
 diff --git a/index.js b/index.js
-index 1234567..abcdefg 100644
 --- a/index.js
 +++ b/index.js
 @@ -1,22 +1,82 @@
