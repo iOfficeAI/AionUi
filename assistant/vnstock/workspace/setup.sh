@@ -29,8 +29,10 @@ $PYTHON -m pip install -q vnstock>=3.4.2
 $PYTHON -m pip install -q pandas-ta
 # Enhanced charting
 $PYTHON -m pip install -q plotly-resampler
+# Markdown report generation (notebookmd from PyPI)
+$PYTHON -m pip install -q "notebookmd[all]"
 
-echo "Dependencies installed (including vnstock, pandas-ta, and plotly-resampler)."
+echo "Dependencies installed (including vnstock, pandas-ta, plotly-resampler, and notebookmd)."
 touch "$MARKER"
 echo "Environment ready. You can now run finance research commands."
 echo "To launch the dashboard: python app.py"
