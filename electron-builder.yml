@@ -112,6 +112,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  differentialPackage: true
 
 mac:
   target:
@@ -204,6 +205,7 @@ electronDownload:
 
 publish:
   provider: github
-  owner: ${env.GITHUB_REPOSITORY_OWNER:-aionui}
+  owner: ${env.GITHUB_REPOSITORY_OWNER:-iOfficeAI}
   repo: ${env.GITHUB_REPOSITORY_NAME:-AionUi}
-  publishAutoUpdate: false
+  publishAutoUpdate: true
+  releaseType: release
