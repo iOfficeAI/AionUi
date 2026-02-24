@@ -67,6 +67,7 @@
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
     "electron": "^37.3.1",

@@ -84,7 +84,7 @@ export const update = {
 // Auto-updater (electron-updater) API
 export const autoUpdate = {
   /** Check for updates using electron-updater */
-  check: bridge.buildProvider<IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>, void>('auto-update.check'),
+  check: bridge.buildProvider<IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>, { includePrerelease?: boolean }>('auto-update.check'),
   /** Download update using electron-updater */
   download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
   /** Quit and install the downloaded update */
