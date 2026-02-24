@@ -26,10 +26,7 @@ export default defineConfig({
       // 手动指定需要覆盖的源文件，确保只检测新增/修改的逻辑
       // 新增功能时，将对应的源文件路径添加到此数组
       // 例如: 'src/process/services/newService.ts'
-      include: [
-        'src/process/services/autoUpdaterService.ts',
-        'src/process/bridge/updateBridge.ts',
-      ],
+      include: ['src/process/services/autoUpdaterService.ts', 'src/process/bridge/updateBridge.ts'],
       thresholds: {
         statements: 30,
         branches: 10,

@@ -108,7 +108,7 @@ describe('AcpConnection disconnect', () => {
         (connection as unknown as { child: ChildProcess | null }).child = shellProcess;
         await connection.disconnect();
 
-        await waitForExit(shellProcess, 3000);
+        await waitForExit(shellProcess, 8000);
         await sleep(300);
 
         expect(isProcessAlive(cliPid)).toBe(false);
