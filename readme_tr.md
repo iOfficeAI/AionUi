@@ -553,59 +553,74 @@ brew install aionui
 
 ### Geliştirme Kılavuzu
 
-Geliştirme ortamını yönetmek için [vx](https://github.com/loonghao/vx) kullanıyoruz. Farklı platformlarda tüm araçları tutarlı bir şekilde çalıştırma yöntemi sağlar.
+### Geliştirme Kılavuzu
 
 #### Ön Koşullar
 
 - **Node.js** 22 veya üzeri
-- **bun** (önerilen) veya npm
-- **Python** 3.11+ (yerel modül derlemesi için)
-- **vx** - Ortam yöneticisi (önerilen)
+- **bun** — Paket yöneticisi & çalışma zamanı（[yükle](https://bun.sh)）
+- **just** — Komut çalıştırıcı（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（yerel modül derlemesi için）
+- **prek** — PR kod kontrol aracı（`npm install -g @j178/prek`）
 
-#### vx ile Hızlı Başlangıç
+#### Hızlı Başlangıç
 
 ```bash
-# vx'i yükleyin (henüz yüklenmemişse)
-# Bakın: https://github.com/loonghao/vx
-
 # Depoyu klonlayın
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # Bağımlılıkları yükleyin
-vx just install
+just install
 
 # Geliştirme sunucusunu başlatın
-vx just dev
+just dev
 ```
 
-#### Mevcut Komutlar (justfile üzerinden)
+#### Kullanılabilir Komutlar（justfile aracılığıyla）
 
 ```bash
 # Geliştirme
-vx just dev              # HMR ile geliştirme sunucusu başlat
-vx just webui            # WebUI modunu başlat
-vx just cli              # CLI modunu başlat
+just dev              # HMR ile geliştirme sunucusu başlat
+just webui            # WebUI modunu başlat
+just cli              # CLI modunu başlat
 
 # Derleme
-vx just build            # Mevcut platform için derle
-vx just build-win        # Windows için derle
-vx just build-mac        # macOS için derle
-vx just build-linux      # Linux için derle
+just build            # Mevcut platform için derle
+just build-win        # Windows için derle
+just build-mac        # macOS için derle
+just build-linux      # Linux için derle
 
-# Test ve Kalite
-vx just test             # Testleri çalıştır
-vx just lint             # Linter'ı çalıştır
-vx just typecheck        # TypeScript kontrolü
-vx just check            # Tüm kontrolleri çalıştır
+# Test & Kalite
+just test             # Testleri çalıştır
+just lint             # Linter'ı çalıştır
+just typecheck        # TypeScript kontrolü
+just check            # Tüm kontrolleri çalıştır
 
 # Yerel Modüller
-vx just rebuild-native   # Electron için yerel modülleri yeniden derle
-vx just setup            # Tam kurulum: yükle + yerel modülleri yeniden derle
+just rebuild-native   # Electron için yerel modülleri yeniden derle
+just setup            # Tam kurulum: yükle + yerel modülleri yeniden derle
+```
+
+#### Kod Kontrolü（prek）
+
+Proje, kod kontrolü için [prek](https://github.com/j178/prek)（pre-commit'in Rust uygulaması）kullanır, `.pre-commit-config.yaml` dosyasında yapılandırılmıştır：
+
+```bash
+# prek'i yükleyin
+npm install -g @j178/prek
+
+# git hooks'ları yükleyin（isteğe bağlı, commit öncesi otomatik kontrol）
+prek install
+
+# Staged dosyalarda kontrol çalıştırın
+prek run
+
+# main dalıyla değişiklikleri kontrol edin（CI ile aynı）
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### Derleme Sistemi
-
 AionUi hızlı paketleme için **electron-vite** kullanır:
 
 - **Ana süreç**: Vite ile paketlenir (ESM)

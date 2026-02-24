@@ -553,59 +553,74 @@ brew install aionui
 
 ### Guia de Desenvolvimento
 
-Usamos [vx](https://github.com/loonghao/vx) para gerenciar o ambiente de desenvolvimento. Ele fornece uma forma consistente de executar todas as ferramentas em diferentes plataformas.
+### Guia de Desenvolvimento
 
 #### Pré-requisitos
 
 - **Node.js** 22 ou superior
-- **bun** (recomendado) ou npm
-- **Python** 3.11+ (para compilação de módulos nativos)
-- **vx** - Gerenciador de ambiente (recomendado)
+- **bun** — Gerenciador de pacotes & runtime（[instalar](https://bun.sh)）
+- **just** — Executor de comandos（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（para compilação de módulos nativos）
+- **prek** — Ferramenta de verificação de código PR（`npm install -g @j178/prek`）
 
-#### Início Rápido com vx
+#### Início Rápido
 
 ```bash
-# Instalar vx (se ainda não estiver instalado)
-# Veja: https://github.com/loonghao/vx
-
 # Clonar o repositório
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # Instalar dependências
-vx just install
+just install
 
 # Iniciar servidor de desenvolvimento
-vx just dev
+just dev
 ```
 
-#### Comandos Disponíveis (via justfile)
+#### Comandos Disponíveis（via justfile）
 
 ```bash
 # Desenvolvimento
-vx just dev              # Iniciar servidor dev com HMR
-vx just webui            # Iniciar modo WebUI
-vx just cli              # Iniciar modo CLI
+just dev              # Iniciar servidor dev com HMR
+just webui            # Iniciar modo WebUI
+just cli              # Iniciar modo CLI
 
 # Build
-vx just build            # Build para plataforma atual
-vx just build-win        # Build para Windows
-vx just build-mac        # Build para macOS
-vx just build-linux      # Build para Linux
+just build            # Build para plataforma atual
+just build-win        # Build para Windows
+just build-mac        # Build para macOS
+just build-linux      # Build para Linux
 
-# Testes e Qualidade
-vx just test             # Executar testes
-vx just lint             # Executar linter
-vx just typecheck        # Verificação TypeScript
-vx just check            # Executar todas as verificações
+# Testes & Qualidade
+just test             # Executar testes
+just lint             # Executar linter
+just typecheck        # Verificação TypeScript
+just check            # Executar todas as verificações
 
 # Módulos Nativos
-vx just rebuild-native   # Recompilar módulos nativos para Electron
-vx just setup            # Configuração completa: instalar + recompilar nativos
+just rebuild-native   # Recompilar módulos nativos para Electron
+just setup            # Configuração completa: instalar + recompilar nativos
+```
+
+#### Verificação de Código（prek）
+
+O projeto usa [prek](https://github.com/j178/prek)（implementação Rust do pre-commit）para verificação de código, configurado em `.pre-commit-config.yaml`：
+
+```bash
+# Instalar prek
+npm install -g @j178/prek
+
+# Instalar git hooks（opcional, verificação automática antes do commit）
+prek install
+
+# Executar verificações em arquivos staged
+prek run
+
+# Verificar mudanças vs branch main（igual ao CI）
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### Sistema de Build
-
 AionUi usa **electron-vite** para empacotamento rápido:
 
 - **Processo principal**: Empacotado com Vite (ESM)

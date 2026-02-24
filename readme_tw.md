@@ -553,59 +553,72 @@ brew install aionui
 
 ### 開發指南
 
-我們使用 [vx](https://github.com/loonghao/vx) 管理開發環境，它提供了跨平台統一的方式來運行所有工具。
-
 #### 環境要求
 
 - **Node.js** 22 或更高版本
-- **bun**（推薦）或 npm
+- **bun** — 套件管理器與執行環境（[安裝](https://bun.sh)）
+- **just** — 命令執行器（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
 - **Python** 3.11+（用於原生模組編譯）
-- **vx** - 環境管理器（推薦）
+- **prek** — PR 程式碼檢查工具（`npm install -g @j178/prek`）
 
-#### 使用 vx 快速開始
+#### 快速開始
 
 ```bash
-# 安裝 vx（如果尚未安裝）
-# 參考: https://github.com/loonghao/vx
-
-# 複製倉庫
+# 複製儲存庫
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # 安裝依賴
-vx just install
+just install
 
 # 啟動開發伺服器
-vx just dev
+just dev
 ```
 
-#### 常用命令（透過 justfile）
+#### 常用命令（通過 justfile）
 
 ```bash
 # 開發
-vx just dev              # 啟動開發伺服器（支援 HMR）
-vx just webui            # 啟動 WebUI 模式
-vx just cli              # 啟動 CLI 模式
+just dev              # 啟動開發伺服器（支援 HMR）
+just webui            # 啟動 WebUI 模式
+just cli              # 啟動 CLI 模式
 
 # 建構
-vx just build            # 建構當前平台
-vx just build-win        # 建構 Windows 版本
-vx just build-mac        # 建構 macOS 版本
-vx just build-linux      # 建構 Linux 版本
+just build            # 建構當前平台
+just build-win        # 建構 Windows 版本
+just build-mac        # 建構 macOS 版本
+just build-linux      # 建構 Linux 版本
 
 # 測試與品質檢查
-vx just test             # 執行測試
-vx just lint             # 執行程式碼檢查
-vx just typecheck        # TypeScript 類型檢查
-vx just check            # 執行所有檢查
+just test             # 執行測試
+just lint             # 執行程式碼檢查
+just typecheck        # TypeScript 類型檢查
+just check            # 執行所有檢查
 
 # 原生模組
-vx just rebuild-native   # 為 Electron 重新編譯原生模組
-vx just setup            # 完整設定：安裝依賴 + 編譯原生模組
+just rebuild-native   # 為 Electron 重新編譯原生模組
+just setup            # 完整設定：安裝依賴 + 編譯原生模組
+```
+
+#### 程式碼檢查（prek）
+
+專案使用 [prek](https://github.com/j178/prek)（pre-commit 的 Rust 實作）進行程式碼檢查，設定檔為 `.pre-commit-config.yaml`：
+
+```bash
+# 安裝 prek
+npm install -g @j178/prek
+
+# 安裝 git hooks（可選，提交前自動檢查）
+prek install
+
+# 手動檢查暫存檔案
+prek run
+
+# 檢查與 main 分支的差異（與 CI 一致）
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### 建構系統
-
 AionUi 使用 **electron-vite** 進行快速打包：
 
 - **主進程**: 使用 Vite 打包（ESM）

@@ -553,55 +553,69 @@ brew install aionui
 
 ### 开发指南
 
-我们使用 [vx](https://github.com/loonghao/vx) 管理开发环境，它提供了跨平台统一的方式来运行所有工具。
-
 #### 环境要求
 
 - **Node.js** 22 或更高版本
-- **bun**（推荐）或 npm
+- **bun** — 包管理器与运行时（[安装](https://bun.sh)）
+- **just** — 命令运行器（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
 - **Python** 3.11+（用于原生模块编译）
-- **vx** - 环境管理器（推荐）
+- **prek** — PR 代码检查工具（`npm install -g @j178/prek`）
 
-#### 使用 vx 快速开始
+#### 快速开始
 
 ```bash
-# 安装 vx（如果尚未安装）
-# 参考: https://github.com/loonghao/vx
-
 # 克隆仓库
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # 安装依赖
-vx just install
+just install
 
 # 启动开发服务器
-vx just dev
+just dev
 ```
 
 #### 常用命令（通过 justfile）
 
 ```bash
 # 开发
-vx just dev              # 启动开发服务器（支持 HMR）
-vx just webui            # 启动 WebUI 模式
-vx just cli              # 启动 CLI 模式
+just dev              # 启动开发服务器（支持 HMR）
+just webui            # 启动 WebUI 模式
+just cli              # 启动 CLI 模式
 
 # 构建
-vx just build            # 构建当前平台
-vx just build-win        # 构建 Windows 版本
-vx just build-mac        # 构建 macOS 版本
-vx just build-linux      # 构建 Linux 版本
+just build            # 构建当前平台
+just build-win        # 构建 Windows 版本
+just build-mac        # 构建 macOS 版本
+just build-linux      # 构建 Linux 版本
 
 # 测试与质量检查
-vx just test             # 运行测试
-vx just lint             # 运行代码检查
-vx just typecheck        # TypeScript 类型检查
-vx just check            # 运行所有检查
+just test             # 运行测试
+just lint             # 运行代码检查
+just typecheck        # TypeScript 类型检查
+just check            # 运行所有检查
 
 # 原生模块
-vx just rebuild-native   # 为 Electron 重新编译原生模块
-vx just setup            # 完整设置：安装依赖 + 编译原生模块
+just rebuild-native   # 为 Electron 重新编译原生模块
+just setup            # 完整设置：安装依赖 + 编译原生模块
+```
+
+#### 代码检查（prek）
+
+项目使用 [prek](https://github.com/j178/prek)（pre-commit 的 Rust 实现）进行代码检查，配置文件为 `.pre-commit-config.yaml`：
+
+```bash
+# 安装 prek
+npm install -g @j178/prek
+
+# 安装 git hooks（可选，提交前自动检查）
+prek install
+
+# 手动检查暂存文件
+prek run
+
+# 检查与 main 分支的差异（与 CI 一致）
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### 构建系统

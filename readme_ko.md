@@ -553,59 +553,74 @@ brew install aionui
 
 ### 개발 가이드
 
-[vx](https://github.com/loonghao/vx)를 사용하여 개발 환경을 관리합니다. 모든 도구를 크로스 플랫폼에서 일관되게 실행할 수 있는 방법을 제공합니다.
+### 개발 가이드
 
-#### 필수 조건
+#### 사전 요구사항
 
 - **Node.js** 22 이상
-- **bun** (권장) 또는 npm
-- **Python** 3.11+ (네이티브 모듈 컴파일용)
-- **vx** - 환경 관리자 (권장)
+- **bun** — 패키지 매니저 & 런타임（[설치](https://bun.sh)）
+- **just** — 명령 실행기（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（네이티브 모듈 컴파일용）
+- **prek** — PR 코드 검사 도구（`npm install -g @j178/prek`）
 
-#### vx로 빠른 시작
+#### 빠른 시작
 
 ```bash
-# vx 설치 (아직 설치되지 않은 경우)
-# 참조: https://github.com/loonghao/vx
-
 # 저장소 클론
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # 의존성 설치
-vx just install
+just install
 
 # 개발 서버 시작
-vx just dev
+just dev
 ```
 
-#### 자주 사용하는 명령어 (justfile 통해)
+#### 사용 가능한 명령어（justfile 통해）
 
 ```bash
 # 개발
-vx just dev              # HMR 지원 개발 서버 시작
-vx just webui            # WebUI 모드 시작
-vx just cli              # CLI 모드 시작
+just dev              # HMR 지원 개발 서버 시작
+just webui            # WebUI 모드 시작
+just cli              # CLI 모드 시작
 
 # 빌드
-vx just build            # 현재 플랫폼용 빌드
-vx just build-win        # Windows용 빌드
-vx just build-mac        # macOS용 빌드
-vx just build-linux      # Linux용 빌드
+just build            # 현재 플랫폼용 빌드
+just build-win        # Windows용 빌드
+just build-mac        # macOS용 빌드
+just build-linux      # Linux용 빌드
 
-# 테스트 및 품질 검사
-vx just test             # 테스트 실행
-vx just lint             # 린터 실행
-vx just typecheck        # TypeScript 검사
-vx just check            # 모든 검사 실행
+# 테스트 & 품질
+just test             # 테스트 실행
+just lint             # 린터 실행
+just typecheck        # TypeScript 검사
+just check            # 모든 검사 실행
 
 # 네이티브 모듈
-vx just rebuild-native   # Electron용 네이티브 모듈 재빌드
-vx just setup            # 전체 설정: 설치 + 네이티브 재빌드
+just rebuild-native   # Electron용 네이티브 모듈 재빌드
+just setup            # 전체 설정: 설치 + 네이티브 재빌드
+```
+
+#### 코드 검사（prek）
+
+프로젝트는 [prek](https://github.com/j178/prek)（pre-commit의 Rust 구현）을 사용하여 코드 검사를 수행합니다. 설정 파일은 `.pre-commit-config.yaml`입니다：
+
+```bash
+# prek 설치
+npm install -g @j178/prek
+
+# git hooks 설치（선택사항, 커밋 전 자동 검사）
+prek install
+
+# 스테이징된 파일 검사 실행
+prek run
+
+# main 브랜치와의 차이 검사（CI와 동일）
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### 빌드 시스템
-
 AionUi는 **electron-vite**를 사용하여 빠른 번들링을 수행합니다:
 
 - **메인 프로세스**: Vite로 번들링 (ESM)

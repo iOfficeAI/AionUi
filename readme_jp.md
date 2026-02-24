@@ -553,59 +553,74 @@ brew install aionui
 
 ### 開発ガイド
 
-[vx](https://github.com/loonghao/vx) を使用して開発環境を管理しています。すべてのツールをクロスプラットフォームで統一的に実行する方法を提供します。
+### 開発ガイド
 
 #### 前提条件
 
 - **Node.js** 22 以上
-- **bun**（推奨）または npm
+- **bun** — パッケージマネージャー & ランタイム（[インストール](https://bun.sh)）
+- **just** — コマンドランナー（macOS: `brew install just`、Windows: `choco install just`、Linux: `apt install just`）
 - **Python** 3.11+（ネイティブモジュールのコンパイル用）
-- **vx** - 環境マネージャー（推奨）
+- **prek** — PRコードチェックツール（`npm install -g @j178/prek`）
 
-#### vx でクイックスタート
+#### クイックスタート
 
 ```bash
-# vx をインストール（まだインストールされていない場合）
-# 参照: https://github.com/loonghao/vx
-
 # リポジトリをクローン
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # 依存関係をインストール
-vx just install
+just install
 
 # 開発サーバーを起動
-vx just dev
+just dev
 ```
 
-#### よく使うコマンド（justfile 経由）
+#### 利用可能なコマンド（justfile経由）
 
 ```bash
 # 開発
-vx just dev              # HMR付き開発サーバーを起動
-vx just webui            # WebUI モードを起動
-vx just cli              # CLI モードを起動
+just dev              # HMR付き開発サーバーを起動
+just webui            # WebUI モードを起動
+just cli              # CLI モードを起動
 
 # ビルド
-vx just build            # 現在のプラットフォーム用にビルド
-vx just build-win        # Windows 用にビルド
-vx just build-mac        # macOS 用にビルド
-vx just build-linux      # Linux 用にビルド
+just build            # 現在のプラットフォーム用にビルド
+just build-win        # Windows 用にビルド
+just build-mac        # macOS 用にビルド
+just build-linux      # Linux 用にビルド
 
-# テストと品質チェック
-vx just test             # テストを実行
-vx just lint             # リンターを実行
-vx just typecheck        # TypeScript チェック
-vx just check            # すべてのチェックを実行
+# テスト & 品質
+just test             # テストを実行
+just lint             # リンターを実行
+just typecheck        # TypeScript チェック
+just check            # すべてのチェックを実行
 
 # ネイティブモジュール
-vx just rebuild-native   # Electron 用にネイティブモジュールを再ビルド
-vx just setup            # 完全セットアップ: インストール + ネイティブ再ビルド
+just rebuild-native   # Electron 用にネイティブモジュールを再ビルド
+just setup            # 完全セットアップ: インストール + ネイティブ再ビルド
+```
+
+#### コードチェック（prek）
+
+プロジェクトは [prek](https://github.com/j178/prek)（pre-commitのRust実装）を使用してコードチェックを行います。設定ファイルは `.pre-commit-config.yaml` です：
+
+```bash
+# prek をインストール
+npm install -g @j178/prek
+
+# git hooks をインストール（オプション、コミット前に自動チェック）
+prek install
+
+# ステージングファイルのチェックを実行
+prek run
+
+# main ブランチとの差分をチェック（CIと同じ）
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### ビルドシステム
-
 AionUi は **electron-vite** を使用して高速なバンドルを行います：
 
 - **メインプロセス**: Vite でバンドル（ESM）

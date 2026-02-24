@@ -553,55 +553,69 @@ brew install aionui
 
 ### Development
 
-We use [vx](https://github.com/loonghao/vx) to manage the development environment. It provides a consistent way to run all tools across different platforms.
-
 #### Prerequisites
 
 - **Node.js** 22 or higher
-- **bun** (recommended) or npm
+- **bun** — Package manager & runtime ([install](https://bun.sh))
+- **just** — Command runner (macOS: `brew install just`, Windows: `choco install just`, Linux: `apt install just`)
 - **Python** 3.11+ (for native module compilation)
-- **vx** - Environment manager (recommended)
+- **prek** — PR code checker (`npm install -g @j178/prek`)
 
-#### Quick Start with vx
+#### Quick Start
 
 ```bash
-# Install vx (if not already installed)
-# See: https://github.com/loonghao/vx
-
 # Clone the repository
 git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
 
 # Install dependencies
-vx just install
+just install
 
 # Start development server
-vx just dev
+just dev
 ```
 
 #### Available Commands (via justfile)
 
 ```bash
 # Development
-vx just dev              # Start dev server with HMR
-vx just webui            # Start WebUI mode
-vx just cli              # Start CLI mode
+just dev              # Start dev server with HMR
+just webui            # Start WebUI mode
+just cli              # Start CLI mode
 
 # Building
-vx just build            # Build for current platform
-vx just build-win        # Build for Windows
-vx just build-mac        # Build for macOS
-vx just build-linux      # Build for Linux
+just build            # Build for current platform
+just build-win        # Build for Windows
+just build-mac        # Build for macOS
+just build-linux      # Build for Linux
 
 # Testing & Quality
-vx just test             # Run tests
-vx just lint             # Run linter
-vx just typecheck        # TypeScript check
-vx just check            # Run all checks (lint + format + typecheck)
+just test             # Run tests
+just lint             # Run linter
+just typecheck        # TypeScript check
+just check            # Run all checks (lint + format + typecheck)
 
 # Native Modules
-vx just rebuild-native   # Rebuild native modules for Electron
-vx just setup            # Full setup: install + rebuild native
+just rebuild-native   # Rebuild native modules for Electron
+just setup            # Full setup: install + rebuild native
+```
+
+#### Code Checks (prek)
+
+The project uses [prek](https://github.com/j178/prek) (a Rust implementation of pre-commit) for code checks, configured in `.pre-commit-config.yaml`:
+
+```bash
+# Install prek
+npm install -g @j178/prek
+
+# Install git hooks (optional, auto-check before commit)
+prek install
+
+# Run checks on staged files
+prek run
+
+# Run checks on changes vs main (same as CI)
+prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### Build System
