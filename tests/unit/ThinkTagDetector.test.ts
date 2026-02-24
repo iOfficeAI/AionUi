@@ -22,6 +22,11 @@ describe('ThinkTagDetector', () => {
       expect(hasThinkTags('Hello <Thinking>reasoning</Thinking> world')).toBe(true);
     });
 
+    it('should detect orphaned closing tags (MiniMax M2.5 style)', () => {
+      expect(hasThinkTags('some thinking\n</think>\nresponse')).toBe(true);
+      expect(hasThinkTags('reasoning...</thinking>\nanswer')).toBe(true);
+    });
+
     it('should return false for content without think tags', () => {
       expect(hasThinkTags('Hello world')).toBe(false);
       expect(hasThinkTags('This is normal text')).toBe(false);
@@ -41,12 +46,12 @@ describe('ThinkTagDetector', () => {
       expect(stripThinkTags(input)).toBe(expected);
     });
 
-    it('should remove orphaned closing tags', () => {
-      const input = 'Some content </think> more content';
+    it('should remove orphaned closing tags and content before them', () => {
+      const input = 'Some thinking content </think> actual response';
       const result = stripThinkTags(input);
       expect(result).not.toContain('</think>');
-      expect(result).toContain('Some content');
-      expect(result).toContain('more content');
+      expect(result).not.toContain('Some thinking content');
+      expect(result).toContain('actual response');
     });
 
     it('should remove orphaned opening tags', () => {
@@ -201,6 +206,28 @@ That should solve your problem!`;
       expect(result).toContain('Based on your question');
       expect(result).toContain('Step one');
       expect(result).toContain('That should solve your problem!');
+    });
+
+    it('should handle MiniMax M2.5 format (no opening <think> tag)', () => {
+      const input = `I need to analyze the user's request carefully.
+Let me break down the problem:
+1. First point
+2. Second point
+</think>
+
+Based on your question, here is my answer:
+
+The solution involves implementing the following steps:
+1. Step one
+2. Step two`;
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('I need to analyze');
+      expect(result).not.toContain('First point');
+      expect(result).toContain('Based on your question');
+      expect(result).toContain('Step one');
+      expect(result).toContain('Step two');
     });
 
     it('should handle DeepSeek-style thinking tags', () => {

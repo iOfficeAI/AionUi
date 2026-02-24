@@ -715,8 +715,8 @@ export class GeminiAgentManager extends BaseAgentManager<
     // Filter content messages
     if (message.type === 'content' && typeof message.data === 'string') {
       const content = message.data;
-      // Quick check to avoid unnecessary processing
-      if (/<think(?:ing)?>/i.test(content)) {
+      // Quick check to avoid unnecessary processing (detect both opening and closing tags)
+      if (/<\/?think(?:ing)?>/i.test(content)) {
         return {
           ...message,
           data: stripThinkTags(content),
@@ -727,8 +727,8 @@ export class GeminiAgentManager extends BaseAgentManager<
     // Filter thought messages (they might contain think tags too)
     if (message.type === 'thought' && typeof message.data === 'string') {
       const content = message.data;
-      // Quick check to avoid unnecessary processing
-      if (/<think(?:ing)?>/i.test(content)) {
+      // Quick check to avoid unnecessary processing (detect both opening and closing tags)
+      if (/<\/?think(?:ing)?>/i.test(content)) {
         return {
           ...message,
           data: stripThinkTags(content),

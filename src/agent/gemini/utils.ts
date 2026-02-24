@@ -102,13 +102,15 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
             const contentText = typeof contentValue === 'string' ? contentValue : '';
 
             // Check if content contains <think> or <thinking> tags (common in proxy services like newapi)
+            // Also detect orphaned closing tags from models like MiniMax M2.5 that omit opening <think>
             // 检查内容是否包含 <think> 或 <thinking> 标签（中转站如 newapi 常见格式）
+            // 同时检测 MiniMax M2.5 等省略开始标签的孤立结束标签
             const thinkTagRegex = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
-            const hasThinkTags = /<think(?:ing)?>/i.test(contentText);
+            const hasThinkTags = /<\/?think(?:ing)?>/i.test(contentText);
 
             if (hasThinkTags) {
-              // Extract thinking content and emit as thought events
-              // 提取思考内容并作为 thought 事件发送
+              // Extract thinking content from complete blocks and emit as thought events
+              // 提取完整块中的思考内容并作为 thought 事件发送
               const thinkMatches = contentText.matchAll(thinkTagRegex);
               for (const match of thinkMatches) {
                 const thinkContent = match[1]?.trim();
@@ -120,10 +122,25 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 }
               }
 
-              // Remove <think> and <thinking> tags from content and emit remaining content
-              // 从内容中移除 <think> 和 <thinking> 标签，发送剩余内容
+              // Handle MiniMax-style: extract thinking content before orphaned </think>
+              // 处理 MiniMax 风格：提取孤立 </think> 前的思考内容
+              const orphanCloseMatch = contentText.match(/^([\s\S]*?)<\s*\/\s*think(?:ing)?\s*>/i);
+              if (orphanCloseMatch && !/<think(?:ing)?>/i.test(orphanCloseMatch[1])) {
+                const thinkContent = orphanCloseMatch[1]?.trim();
+                if (thinkContent) {
+                  onStreamEvent({
+                    type: ServerGeminiEventType.Thought,
+                    data: thinkContent,
+                  });
+                }
+              }
+
+              // Remove think tags and associated content, then emit remaining content
+              // 移除 think 标签及相关内容，发送剩余内容
               const cleanedContent = contentText
                 .replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '')
+                // Remove content before orphaned </think> (MiniMax-style)
+                .replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '')
                 // Also remove unclosed tags at the end
                 .replace(/<think(?:ing)?>[\s\S]*$/gi, '')
                 .replace(/\n{3,}/g, '\n\n')
@@ -133,8 +150,8 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 onStreamEvent({ type: event.type, data: cleanedContent });
               }
             } else {
-              // No <think> tags, emit content as-is
-              // 没有 <think> 标签，直接发送内容
+              // No think tags, emit content as-is
+              // 没有 think 标签，直接发送内容
               onStreamEvent({ type: event.type, data: contentValue });
             }
           }
