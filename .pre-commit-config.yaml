@@ -2,17 +2,17 @@
 # Ensures local checks match CI checks (TypeScript, ESLint, Prettier)
 #
 # Installation:
-#   vx pip install pre-commit
-#   vx pre-commit install
+#   pip install pre-commit  (or: brew install pre-commit / choco install pre-commit)
+#   prek install            (or: pre-commit install)
 #
 # Run manually on staged files (same as CI pre-commit):
-#   vx prek run
+#   prek run
 #
 # Run on changed files vs main (same as CI PR check):
-#   vx prek run --from-ref origin/main --to-ref HEAD
+#   prek run --from-ref origin/main --to-ref HEAD
 #
 # Run on all files:
-#   vx prek run --all-files
+#   prek run --all-files
 
 default_install_hook_types:
   - pre-commit
@@ -44,7 +44,7 @@ repos:
     hooks:
       - id: typecheck
         name: TypeScript Check
-        entry: vx bunx tsc --noEmit
+        entry: bunx tsc --noEmit
         language: system
         files: \.(ts|tsx)$
         pass_filenames: false
@@ -54,7 +54,7 @@ repos:
     hooks:
       - id: eslint
         name: ESLint
-        entry: vx bun run lint
+        entry: bun run lint
         language: system
         files: \.(ts|tsx)$
         pass_filenames: false
@@ -64,7 +64,7 @@ repos:
     hooks:
       - id: prettier
         name: Prettier
-        entry: vx bun run format:check
+        entry: bun run format:check
         language: system
         files: \.(ts|tsx|js|jsx|json|css|md)$
         pass_filenames: false

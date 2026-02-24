@@ -47,7 +47,7 @@ jobs:
         run: npm run postinstall || true
 
       - name: Install prek
-        run: bun add -g prek
+        run: npm install -g @j178/prek
 
       - name: Run prek checks
         run: prek run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
