@@ -1,22 +1,19 @@
-name: Build Pipeline (Reusable)
+name: Reusable Build Pipeline
 
 on:
   workflow_call:
     inputs:
       matrix:
-        description: 'Build matrix as JSON string (passed via fromJSON in caller)'
-        type: string
+        description: 'Build matrix JSON'
         required: true
-      ref:
-        description: 'Git ref to checkout (leave empty to use the triggering commit)'
         type: string
-        default: ''
+      ref:
+        description: 'Git ref to checkout'
+        required: false
+        type: string
       skip_code_quality:
-        description: 'Skip code quality checks (faster builds for debugging)'
-        type: boolean
-        default: false
-      append_commit_hash:
-        description: 'Append short commit hash to artifact names'
+        description: 'Skip code quality checks'
+        required: false
         type: boolean
         default: false
 
@@ -45,6 +42,17 @@ jobs:
         with:
           bun-version: latest
 
+      # Cache bun dependencies
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
 
@@ -61,7 +69,7 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Run unit tests
-        run: bunx vitest run
+        run: bunx vitest run tests/unit/
 
   build:
     name: Build ${{ matrix.platform }}
@@ -104,6 +112,38 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # Cache Electron binaries
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        id: cache-electron
+        with:
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+          key: ${{ runner.os }}-${{ runner.arch }}-electron-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-electron-
+
+      # Cache electron-builder binaries (winCodeSign, etc.)
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/electron-builder
+          key: ${{ runner.os }}-${{ runner.arch }}-electron-builder-binaries
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-electron-builder-
+
+      # Cache bun dependencies
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-bun-
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
@@ -160,6 +200,7 @@ jobs:
           echo "Runner Arch: ${{ runner.arch }}"
           echo "Ref: ${{ inputs.ref || '(default)' }}"
           echo "Commit: ${{ steps.commit.outputs.short }}"
+          echo "Electron Cache: ${{ steps.cache-electron.outputs.cache-hit }}"
           echo "=========================================="
 
       # macOS code signing certificate installation
@@ -200,7 +241,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
-      - name: Rebuild native modules for Electron
+      - name: Rebuild native modules for Electron (Windows)
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         continue-on-error: false
@@ -263,8 +304,6 @@ jobs:
           Write-Host "=========================================="
           Write-Host "✅ All critical native modules verified"
           Write-Host "=========================================="
-          # Reset exit code so the step succeeds when verification passes
-          exit 0
         env:
           npm_config_runtime: electron
           npm_config_arch: ${{ matrix.arch }}
@@ -280,7 +319,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $Command = $env:WINDOWS_BUILD_COMMAND
+          $Command = ${{ matrix.command }}
           $BuildFailed = $false
 
           try {
@@ -301,18 +340,19 @@ jobs:
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           # Node.js memory limit for vite bundling (prevents OOM during build)
+          # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: "--max-old-space-size=8192"
-          # Target arch
+          # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
-          # Native module compilation
+          # Native module compilation / 原生模块编译
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-          # Signing & IDs
+          # Signing & IDs / 签名与应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
           appleId: ${{ secrets.APPLE_ID }}
           appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -320,17 +360,17 @@ jobs:
           identity: ${{ secrets.IDENTITY }}
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Windows build flags
+          # Windows build flags / Windows 构建参数
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
           WindowsTargetPlatformVersion: 10.0.19041.0
           _WIN32_WINNT: 0x0A00
-          # CI flag & GitHub token
+          # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       # Clean up any stale disk images before DMG creation (macOS only)
-      # Prevents hdiutil "Device not configured" errors
+      # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
       - name: Clean up stale disk images (macOS only)
         if: startsWith(matrix.platform, 'macos')
         run: |
@@ -345,6 +385,7 @@ jobs:
           echo "Cleanup complete"
 
       # macOS: Build with notarization - DMG failure = CI failure, notarization failure = warning only
+      # macOS: 构建并公证 - DMG 失败 = CI 失败，公证失败 = 仅警告
       - name: Build with electron-builder (macOS)
         if: startsWith(matrix.platform, 'macos')
         id: macos-build
@@ -376,8 +417,8 @@ jobs:
             if grep -qiE "notariz|staple" "${RUNNER_TEMP}/build.log"; then
               echo "⚠️ DMG created but notarization failed"
               echo "notarization_status=failed" >> $GITHUB_OUTPUT
-              echo "::warning title=Notarization Failed::DMG was built successfully but notarization failed. Users may see Gatekeeper warnings."
-              # Write to job summary
+              echo "::warning title=Notarization Failed::DMG was built and signed successfully, but **notarization failed**."
+              echo "" >> $GITHUB_STEP_SUMMARY
               echo "## ⚠️ Notarization Warning" >> $GITHUB_STEP_SUMMARY
               echo "DMG was built and signed successfully, but **notarization failed**." >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
@@ -415,6 +456,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       # Linux: Standard build without special error handling
+      # Linux: 标准构建，无特殊错误处理
       - name: Build with electron-builder (Linux)
         if: matrix.platform == 'linux'
         uses: nick-fields/retry@v3
@@ -438,7 +480,9 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      # macOS keychain cleanup
+
+
+      # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
         if: startsWith(matrix.platform, 'macos') && always()
         run: |
@@ -447,6 +491,7 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
+      # macOS 构建失败通知
       # macOS build failure notification
       - name: Notify on macOS build failure
         if: startsWith(matrix.platform, 'macos') && failure()
@@ -486,13 +531,17 @@ jobs:
       # - Build succeeded (all platforms)
       # - macOS: notarization timeout but artifacts exist (handled in build step)
       # - Windows: only if windows-build step succeeded
+      # 上传产物条件：
+      # - 构建成功（所有平台）
+      # - macOS: 公证超时但有产物（已在构建步骤中处理）
+      # - Windows: 仅当 windows-build 步骤成功
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
           success() &&
           (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
         with:
-          name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
+          name: ${{ matrix.artifact-name }}
           path: |
             out/*.exe
             out/*.msi
@@ -503,26 +552,3 @@ jobs:
             out/AionUi-*-mac-*.zip
           if-no-files-found: warn
           retention-days: 7
-
-  build-summary:
-    name: Build Summary
-    runs-on: ubuntu-latest
-    needs: [code-quality, build]
-    if: always()
-
-    steps:
-      - name: Write build summary
-        env:
-          MATRIX: ${{ inputs.matrix }}
-        run: |
-          PLATFORMS=$(echo "$MATRIX" | jq -r '[.include[].platform] | join(", ")')
-
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Ref | \`${{ inputs.ref || '(default)' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | \`${{ needs.build.outputs.commit-short }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Platforms | $PLATFORMS |" >> $GITHUB_STEP_SUMMARY
-          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
