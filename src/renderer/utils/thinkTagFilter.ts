@@ -26,10 +26,10 @@ export function stripThinkTags(content: string): string {
       .replace(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi, '')
       // Step 2: Remove complete <thinking>...</thinking> blocks (with optional spaces in tags)
       .replace(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi, '')
-      // Step 3: Remove orphaned closing tags BEFORE removing opening tags
-      // (this handles cases where tags are split during streaming)
-      .replace(/<\s*\/\s*think(?:ing)?\s*>/gi, '')
-      // Step 4: Remove orphaned opening tags
+      // Step 3: Handle MiniMax-style format: content before orphaned </think> without opening <think>
+      // Models like MiniMax M2.5 omit the opening tag: "thinking content...\n</think>\nresponse"
+      .replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '')
+      // Step 4: Remove any remaining orphaned opening tags
       .replace(/<\s*think(?:ing)?\s*>/gi, '')
       // Step 5: Collapse multiple newlines
       .replace(/\n{3,}/g, '\n\n')
@@ -39,7 +39,8 @@ export function stripThinkTags(content: string): string {
 }
 
 /**
- * Check if content contains think tags
+ * Check if content contains think tags (opening or closing)
+ * Also detects orphaned closing tags like </think> without opening <think>
  * @param content - The content to check
  * @returns True if think tags are present
  */
@@ -47,7 +48,7 @@ export function hasThinkTags(content: string): boolean {
   if (!content || typeof content !== 'string') {
     return false;
   }
-  return /<think(?:ing)?>/i.test(content);
+  return /<\/?think(?:ing)?>/i.test(content);
 }
 
 /**

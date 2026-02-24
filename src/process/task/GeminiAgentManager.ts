@@ -712,14 +712,22 @@ export class GeminiAgentManager extends BaseAgentManager<
    * @returns Message with think tags removed from content
    */
   private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
-    // Filter content messages
+    // Filter content messages: only strip complete <think>...</think> blocks.
+    // Orphaned </think> tags must be preserved so the frontend can detect them
+    // in accumulated content and strip all preceding thinking content.
+    // 仅剔除完整的 <think>...</think> 块。
+    // 保留孤立的 </think> 标签，让前端在累积内容中检测并过滤思考内容。
     if (message.type === 'content' && typeof message.data === 'string') {
       const content = message.data;
-      // Quick check to avoid unnecessary processing
-      if (/<think(?:ing)?>/i.test(content)) {
+      const completeBlockRegex = /<\s*think(?:ing)?\s*>[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i;
+      if (completeBlockRegex.test(content)) {
         return {
           ...message,
-          data: stripThinkTags(content),
+          data: content
+            .replace(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi, '')
+            .replace(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim(),
         };
       }
     }
@@ -727,8 +735,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     // Filter thought messages (they might contain think tags too)
     if (message.type === 'thought' && typeof message.data === 'string') {
       const content = message.data;
-      // Quick check to avoid unnecessary processing
-      if (/<think(?:ing)?>/i.test(content)) {
+      if (/<\/?think(?:ing)?>/i.test(content)) {
         return {
           ...message,
           data: stripThinkTags(content),
