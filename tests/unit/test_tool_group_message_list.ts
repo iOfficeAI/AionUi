@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import type { IMessageToolGroup, TMessage } from '../../src/common/chatLib';
 import { composeMessage } from '../../src/common/chatLib';
 

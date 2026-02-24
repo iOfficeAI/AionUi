@@ -254,7 +254,7 @@ export enum CodexAgentEventType {
 
   /**
    * MCP工具调用结束事件 - 表示MCP工具调用结束
-   * 
+   *
    * prompt: 帮我查询 2025-10-10 从深圳到广州的高铁票
    * payload: {
     "type": "mcp_tool_call_end",

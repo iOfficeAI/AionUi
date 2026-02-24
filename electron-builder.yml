@@ -11,13 +11,17 @@ directories:
   buildResources: resources
 
 files:
-  - .webpack/main/**/*
-  - .webpack/renderer/**/*
+  # electron-vite build output (main process + preload + renderer)
+  - out/main/**/*
+  - out/preload/**/*
+  - out/renderer/**/*
+  # Static resources — use explicit directory inclusion to prevent resource loss
   - public/**/*
   - rules/**/*
   - skills/**/*
   - assistant/**/*
   - package.json
+  # Native modules and their runtime dependencies
   - node_modules/better-sqlite3/**/*
   - node_modules/bcrypt/**/*
   - node_modules/node-pty/**/*
@@ -26,6 +30,15 @@ files:
   - node_modules/prebuild-install/**/*
   - node_modules/node-gyp-build/**/*
   - node_modules/bindings/**/*
+  # CLI dependencies (needed by nested jackspeak/glob)
+  - node_modules/@isaacs/cliui/**/*
+  - node_modules/ansi-regex/**/*
+  - node_modules/ansi-styles/**/*
+  - node_modules/strip-ansi/**/*
+  - node_modules/wrap-ansi/**/*
+  - node_modules/string-width/**/*
+  - node_modules/eastasianwidth/**/*
+  - node_modules/emoji-regex/**/*
   # open library - needs to be external for Windows asar compatibility
   - node_modules/open/**/*
   - node_modules/default-browser/**/*
@@ -71,12 +84,13 @@ files:
   - 'node_modules/better-sqlite3/vendor/**'
   - 'node_modules/bcrypt/vendor/**'
   - 'node_modules/node-pty/vendor/**'
-  # Exclude webpack source maps
+  # Exclude vite source maps
   - '!**/*.map'
-  - '!**/webpack-stats.json'
   # Exclude syntax highlighter languages (keep common ones)
-  - '!**/.webpack/**/react-syntax-highlighter_languages_highlight_*'
-  - '.webpack/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
+  - '!**/out/**/react-syntax-highlighter_languages_highlight_*'
+  - 'out/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
+  # Ensure vendor chunks from manual splitting are included
+  - 'out/renderer/**/vendor-*.js'
 
 extraResources:
   - from: public
@@ -180,7 +194,10 @@ asarUnpack:
   - "rules/**/*"
   - "skills/**/*"
 
-compression: maximum
+# Compression level: normal for faster builds, maximum for smallest size
+# Note: electron-builder doesn't support YAML template syntax for env vars
+# The build script sets ELECTRON_BUILDER_COMPRESSION_LEVEL env var which takes precedence
+compression: normal
 removePackageScripts: true
 electronDownload:
   cache: ${env.ELECTRON_CACHE}

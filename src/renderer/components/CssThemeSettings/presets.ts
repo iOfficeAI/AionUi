@@ -1871,14 +1871,14 @@ a:hover {
   --color-primary-light-3: #4da6f0;
   --color-primary-dark-1: #005a9e;
   --primary-rgb: 0, 120, 212;
-  
+
   /* 品牌色 - Windows Classic */
   --brand: #0078d4;
   --brand-light: #e6f2fa;
   --brand-hover: #1a86d9;
   --color-brand-fill: #0078d4;
   --color-brand-bg: #e6f2fa;
-  
+
   /* AOU 品牌色板 - 蓝色系渐变 */
   --aou-1: #e6f2fa;
   --aou-2: #cce5f5;
@@ -1890,7 +1890,7 @@ a:hover {
   --aou-8: #004578;
   --aou-9: #003052;
   --aou-10: #001b2c;
-  
+
   /* 背景色 - Classic Windows Gray/Beige */
   --color-bg-1: #f0f0f0;
   --bg-1: #f0f0f0;
@@ -1905,7 +1905,7 @@ a:hover {
   --bg-active: #c0c0c0;
   --fill: #f0f0f0;
   --color-fill: #f0f0f0;
-  
+
   /* 文字色 - Classic Windows Text */
   --color-text-1: #000000;
   --text-primary: #000000;
@@ -1914,30 +1914,30 @@ a:hover {
   --color-text-3: #808080;
   --text-disabled: #808080;
   --text-0: #000000;
-  
+
   /* 边框色 - Classic Windows Border */
   --color-border: #808080;
   --color-border-1: #808080;
   --color-border-2: #c0c0c0;
   --border-base: #808080;
   --border-light: #c0c0c0;
-  
+
   /* 语义色 - Classic Windows Colors */
   --success: #00a300; /* Windows 绿 */
   --warning: #ff8c00;
   --danger: #d13438;
   --info: #0078d4; /* Windows 蓝 */
-  
+
   /* Windows 经典绿色 - 适度使用 */
   --windows-green: #00a300;
   --windows-green-light: #00c300;
   --windows-green-dark: #008000;
-  
+
   /* 消息背景色 - Message Backgrounds */
   --message-user-bg: #d0e8f5;
   --message-tips-bg: #f0f0f0;
   --workspace-btn-bg: #e0e0e0;
-  
+
   /* 对话框颜色 - Dialog Colors */
   --dialog-fill-0: rgba(255, 255, 255, 0.95);
 }
@@ -2028,7 +2028,7 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
   z-index: 0;
   pointer-events: none;
 }
-  
+
 /* 聊天页面背景图 - Windows 经典配色 */
 .chat-layout-header,
 [class*="chat-layout"] .arco-layout-content,
@@ -2697,7 +2697,7 @@ input[type="radio"]:checked::after {
   --warning: #ff9800;
   --danger: #f44336;
   --info: #4da6f0;
-  
+
   /* Windows 经典绿色 - 深色模式 */
   --windows-green: #4caf50;
   --windows-green-light: #66bb6a;
@@ -2707,7 +2707,7 @@ input[type="radio"]:checked::after {
   --message-user-bg: #1a2a3a;
   --message-tips-bg: #1a1a1a;
   --workspace-btn-bg: #2d2d2d;
-  
+
   /* 对话框颜色 */
   --dialog-fill-0: rgba(26, 26, 26, 0.95);
 }

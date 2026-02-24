@@ -551,6 +551,98 @@ brew install aionui
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
 - [WeChat Grubu](./resources/wechat_group.png) — Çince topluluk
 
+### Geliştirme Kılavuzu
+
+### Geliştirme Kılavuzu
+
+#### Ön Koşullar
+
+- **Node.js** 22 veya üzeri
+- **bun** — Paket yöneticisi & çalışma zamanı（[yükle](https://bun.sh)）
+- **just** — Komut çalıştırıcı（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（yerel modül derlemesi için）
+- **prek** — PR kod kontrol aracı（`npm install -g @j178/prek`）
+
+#### Hızlı Başlangıç
+
+```bash
+# Depoyu klonlayın
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# Bağımlılıkları yükleyin
+just install
+
+# Geliştirme sunucusunu başlatın
+just dev
+```
+
+#### Kullanılabilir Komutlar（justfile aracılığıyla）
+
+```bash
+# Geliştirme
+just dev              # HMR ile geliştirme sunucusu başlat
+just webui            # WebUI modunu başlat
+just cli              # CLI modunu başlat
+
+# Derleme
+just build            # Mevcut platform için derle
+just build-win        # Windows için derle
+just build-mac        # macOS için derle
+just build-linux      # Linux için derle
+
+# Test & Kalite
+just test             # Testleri çalıştır
+just lint             # Linter'ı çalıştır
+just typecheck        # TypeScript kontrolü
+just check            # Tüm kontrolleri çalıştır
+
+# Yerel Modüller
+just rebuild-native   # Electron için yerel modülleri yeniden derle
+just setup            # Tam kurulum: yükle + yerel modülleri yeniden derle
+```
+
+#### Kod Kontrolü（prek）
+
+Proje, kod kontrolü için [prek](https://github.com/j178/prek)（pre-commit'in Rust uygulaması）kullanır, `.pre-commit-config.yaml` dosyasında yapılandırılmıştır：
+
+```bash
+# prek'i yükleyin
+npm install -g @j178/prek
+
+# git hooks'ları yükleyin（isteğe bağlı, commit öncesi otomatik kontrol）
+prek install
+
+# Staged dosyalarda kontrol çalıştırın
+prek run
+
+# main dalıyla değişiklikleri kontrol edin（CI ile aynı）
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+#### Derleme Sistemi
+AionUi hızlı paketleme için **electron-vite** kullanır:
+
+- **Ana süreç**: Vite ile paketlenir (ESM)
+- **Renderer süreci**: Vite ile paketlenir (React + TypeScript)
+- **Ön yükleme scriptleri**: Vite ile paketlenir
+
+Derleme çıktısı `out/` dizinine gider:
+
+- `out/main/` - Ana süreç kodu
+- `out/renderer/` - Renderer süreç kodu
+- `out/preload/` - Ön yükleme scriptleri
+
+#### Teknoloji Yığını
+
+- **Electron** - Çapraz platform masaüstü framework'ü
+- **React 19** - UI framework'ü
+- **TypeScript** - Tip güvenliği
+- **Vite** - Hızlı paketleyici (electron-vite üzerinden)
+- **UnoCSS** - Atomik CSS motoru
+- **better-sqlite3** - Yerel veritabanı
+- **vitest** - Test framework'ü
+
 ### Katkıda Bulunma
 
 1. Bu projeyi fork edin

@@ -551,6 +551,98 @@ brew install aionui
 - [Comunidad Discord](https://discord.gg/2QAwJn7Egx) — comunidad en inglés
 - [Grupo WeChat](./resources/wechat_group.png) — comunidad china
 
+### Guía de Desarrollo
+
+### Guía de Desarrollo
+
+#### Requisitos Previos
+
+- **Node.js** 22 o superior
+- **bun** — Gestor de paquetes y runtime（[instalar](https://bun.sh)）
+- **just** — Ejecutor de comandos（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（para compilación de módulos nativos）
+- **prek** — Herramienta de verificación de código PR（`npm install -g @j178/prek`）
+
+#### Inicio Rápido
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# Instalar dependencias
+just install
+
+# Iniciar servidor de desarrollo
+just dev
+```
+
+#### Comandos Disponibles（via justfile）
+
+```bash
+# Desarrollo
+just dev              # Iniciar servidor dev con HMR
+just webui            # Iniciar modo WebUI
+just cli              # Iniciar modo CLI
+
+# Construcción
+just build            # Construir para plataforma actual
+just build-win        # Construir para Windows
+just build-mac        # Construir para macOS
+just build-linux      # Construir para Linux
+
+# Pruebas & Calidad
+just test             # Ejecutar pruebas
+just lint             # Ejecutar linter
+just typecheck        # Verificación TypeScript
+just check            # Ejecutar todas las verificaciones
+
+# Módulos Nativos
+just rebuild-native   # Recompilar módulos nativos para Electron
+just setup            # Configuración completa: instalar + recompilar nativos
+```
+
+#### Verificación de Código（prek）
+
+El proyecto usa [prek](https://github.com/j178/prek)（implementación Rust de pre-commit）para verificación de código, configurado en `.pre-commit-config.yaml`：
+
+```bash
+# Instalar prek
+npm install -g @j178/prek
+
+# Instalar git hooks（opcional, verificación automática antes de commit）
+prek install
+
+# Ejecutar verificaciones en archivos staged
+prek run
+
+# Verificar cambios vs rama main（igual que CI）
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+#### Sistema de Construcción
+AionUi usa **electron-vite** para empaquetado rápido:
+
+- **Proceso principal**: Empaquetado con Vite (ESM)
+- **Proceso renderer**: Empaquetado con Vite (React + TypeScript)
+- **Scripts de precarga**: Empaquetados con Vite
+
+La salida de construcción va al directorio `out/`:
+
+- `out/main/` - Código del proceso principal
+- `out/renderer/` - Código del proceso renderer
+- `out/preload/` - Scripts de precarga
+
+#### Stack Tecnológico
+
+- **Electron** - Framework de escritorio multiplataforma
+- **React 19** - Framework UI
+- **TypeScript** - Seguridad de tipos
+- **Vite** - Empaquetador rápido (vía electron-vite)
+- **UnoCSS** - Motor CSS atómico
+- **better-sqlite3** - Base de datos local
+- **vitest** - Framework de pruebas
+
 ### Contribuir
 
 1. Haz fork de este proyecto

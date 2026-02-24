@@ -4,11 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgentEventType, EventDataMap, type McpInvocation, McpToolInfo, OutputFormat, RendererType, ToolAvailability, ToolCapabilities, ToolCategory, ToolDefinition, ToolRenderer } from '../types';
-import i18n from '../../../renderer/i18n';
+// Import values (enums) and types separately
+import { CodexAgentEventType } from '../types/eventTypes';
+import { ToolCategory, OutputFormat, RendererType } from '../types/toolTypes';
+import type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer } from '../types';
 
+/** Translation function type, injected by the consumer (e.g. renderer) to avoid coupling common layer to renderer i18n */
+export type TranslateFn = (key: string, params?: Record<string, string>) => string;
+
+// Re-export enums (values) - these can be re-exported
+export { ToolCategory, OutputFormat, RendererType };
 // Re-export types for backward compatibility
-export { ToolCategory, OutputFormat, RendererType, ToolAvailability, ToolCapabilities, ToolRenderer, ToolDefinition, McpToolInfo, EventDataMap };
+export type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer };
 
 /**
  * 工具注册表 - 负责管理所有工具的注册、发现和解析
@@ -395,27 +402,35 @@ export class ToolRegistry {
   }
 
   /**
-   * 获取工具的本地化显示名称
+   * Get the localized display name of a tool.
+   * Pass a `t` function (e.g. from i18next) to enable translation;
+   * omit it to fall back to the raw tool name.
    */
-  getToolDisplayName(tool: ToolDefinition, fallbackParams?: Record<string, string>): string {
-    try {
-      return i18n.t(tool.displayNameKey, fallbackParams || {});
-    } catch {
-      // 如果没有找到翻译，返回工具名称
-      return tool.name;
+  getToolDisplayName(tool: ToolDefinition, fallbackParams?: Record<string, string>, t?: TranslateFn): string {
+    if (t) {
+      try {
+        return t(tool.displayNameKey, fallbackParams || {});
+      } catch {
+        // fall through to fallback
+      }
     }
+    return tool.name;
   }
 
   /**
-   * 获取工具的本地化描述
+   * Get the localized description of a tool.
+   * Pass a `t` function (e.g. from i18next) to enable translation;
+   * omit it to fall back to a generic description.
    */
-  getToolDescription(tool: ToolDefinition, fallbackParams?: Record<string, string>): string {
-    try {
-      return i18n.t(tool.descriptionKey, fallbackParams || {});
-    } catch {
-      // 如果没有找到翻译，返回基础描述
-      return `Tool: ${tool.name}`;
+  getToolDescription(tool: ToolDefinition, fallbackParams?: Record<string, string>, t?: TranslateFn): string {
+    if (t) {
+      try {
+        return t(tool.descriptionKey, fallbackParams || {});
+      } catch {
+        // fall through to fallback
+      }
     }
+    return `Tool: ${tool.name}`;
   }
 
   /**

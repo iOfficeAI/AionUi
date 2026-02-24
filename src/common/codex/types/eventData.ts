@@ -3,9 +3,10 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
+import type { CodexAgentEventType } from './eventTypes';
 
 // JSON-RPC 消息的泛型结构 - 使用 CodexEventMsg 自动推断类型
-export interface CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventMsg['type']> {
+export type CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventMsg['type']> = {
   jsonrpc: '2.0';
   method: 'codex/event';
   params: {
@@ -17,7 +18,7 @@ export interface CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventM
     id: string;
     msg: Extract<CodexEventMsg, { type: T }>; // 直接从 CodexEventMsg 提取类型
   };
-}
+};
 
 // 精准的事件消息类型，直接对应 params.msg
 export type CodexEventMsg =
@@ -340,3 +341,17 @@ export interface ElicitationCreateData {
   codex_call_id?: string;
   codex_changes?: Record<string, FileChange>;
 }
+
+// Event data type map for type-safe event handling
+export type EventDataMap = {
+  [CodexAgentEventType.EXEC_COMMAND_BEGIN]: Extract<CodexEventMsg, { type: 'exec_command_begin' }>;
+  [CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA]: Extract<CodexEventMsg, { type: 'exec_command_output_delta' }>;
+  [CodexAgentEventType.EXEC_COMMAND_END]: Extract<CodexEventMsg, { type: 'exec_command_end' }>;
+  [CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST]: Extract<CodexEventMsg, { type: 'apply_patch_approval_request' }>;
+  [CodexAgentEventType.PATCH_APPLY_BEGIN]: Extract<CodexEventMsg, { type: 'patch_apply_begin' }>;
+  [CodexAgentEventType.PATCH_APPLY_END]: Extract<CodexEventMsg, { type: 'patch_apply_end' }>;
+  [CodexAgentEventType.MCP_TOOL_CALL_BEGIN]: Extract<CodexEventMsg, { type: 'mcp_tool_call_begin' }>;
+  [CodexAgentEventType.MCP_TOOL_CALL_END]: Extract<CodexEventMsg, { type: 'mcp_tool_call_end' }>;
+  [CodexAgentEventType.WEB_SEARCH_BEGIN]: Extract<CodexEventMsg, { type: 'web_search_begin' }>;
+  [CodexAgentEventType.WEB_SEARCH_END]: Extract<CodexEventMsg, { type: 'web_search_end' }>;
+};

@@ -12,33 +12,46 @@ on:
     tags:
       - '*'
 
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
 jobs:
   # 代码质量检查
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --no-frozen-lockfile
 
-      - name: Run TypeScript check
-        run: npx tsc --noEmit
+      - name: Run postinstall
+        run: bun run postinstall || true
 
       - name: Run ESLint
-        run: npm run lint || echo "ESLint warnings detected but not blocking build"
+        run: bun run lint
 
-      - name: Run Prettier check
-        run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
+      - name: Check Prettier formatting
+        run: bun run format:check
+
+      - name: TypeScript type check
+        run: bunx tsc --noEmit
+
+      - name: Run unit tests
+        run: bunx vitest run tests/extensions/
 
   build:
     name: Build ${{ matrix.platform }}
@@ -73,7 +86,7 @@ jobs:
             arch: 'arm64'
           - platform: 'linux'
             os: 'ubuntu-latest'
-            command: 'npm run dist:linux'
+            command: 'bun run dist:linux'
             artifact-name: 'linux-build'
             arch: 'x64,arm64'
 
@@ -82,34 +95,30 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
-      - name: Setup Python (for native dependencies)
-        uses: actions/setup-python@v6
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
         with:
-          python-version: '3.11'
+          bun-version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: bun run postinstall || true
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')
         run: |
-          npm install --global node-gyp
-
-      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
-        if: matrix.platform == 'windows-arm64'
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 3
-          retry_wait_seconds: 60
-          shell: pwsh
-          command: |
-            choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+          bun install --global node-gyp
 
       - name: Setup Windows build environment (for Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -125,18 +134,10 @@ jobs:
 
       - name: Rebuild native modules for Electron
         if: "!startsWith(matrix.platform, 'windows')"
-        run: npx electron-builder install-app-deps
+        run: bunx electron-builder install-app-deps
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
-
-      - name: Get Electron version
-        id: electron-version
-        shell: bash
-        run: |
-          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
-          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
-          echo "Electron version: $ELECTRON_VERSION"
 
       - name: Print build configuration
         shell: bash
@@ -161,22 +162,22 @@ jobs:
         run: |
           if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
             echo "Installing code signing certificate..."
-          
+
             # 创建证书文件
             echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
-          
+
             # 创建临时钥匙串
             security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          
+
             # 导入证书
             security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          
+
             # 清理证书文件
             rm certificate.p12
-          
+
             echo "Certificate imported successfully"
           else
             echo "No certificate provided - building unsigned application"
@@ -192,44 +193,59 @@ jobs:
       - name: Rebuild native modules for Electron
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
-        continue-on-error: false  # 修复：原生模块重建失败应该中止构建
+        continue-on-error: false
         run: |
-          $electronVersion = "${{ steps.electron-version.outputs.version }}"
           $arch = "${{ matrix.arch }}"
+          $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
+
           Write-Host "=========================================="
-          Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
+          Write-Host "Rebuilding native modules for Electron $electronVer ($arch)"
           Write-Host "=========================================="
 
-          # 先尝试使用 electron-builder 的原生重建（更可靠）
+          # Strategy: Try prebuild-install first (faster, more reliable)
+          # Fallback to electron-rebuild only if prebuild-install fails
+          $success = $false
+
+          # Step 1: Try prebuild-install (downloads prebuilt binaries)
           Write-Host ""
-          Write-Host "Step 1: Running electron-builder install-app-deps..."
+          Write-Host "[Step 1] Trying prebuild-install..."
+          $prebuildResult = $null
           try {
-            npx electron-builder install-app-deps --arch $arch
-            Write-Host "✅ electron-builder install-app-deps completed"
+          $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=$arch --force 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ prebuild-install succeeded"
+              $success = $true
+            } else {
+              Write-Host "⚠️ prebuild-install exited with code $LASTEXITCODE"
+            }
           } catch {
-            Write-Warning "electron-builder install-app-deps failed, will try electron-rebuild"
+            Write-Host "⚠️ prebuild-install failed: $_"
           }
 
-          # 如果需要，使用 electron-rebuild 作为备选方案
-          Write-Host ""
-          Write-Host "Step 2: Running electron-rebuild for critical modules..."
-          npx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
-
-          # 验证关键模块是否存在
-          Write-Host ""
-          Write-Host "Step 3: Verifying native modules..."
-          $verified = $true
-
+          # Step 2: Verify or fallback to electron-rebuild
           $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+          if (-not (Test-Path $sqliteNode)) {
+            Write-Host ""
+            Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
+            try {
+              bunx electron-rebuild -f -w better-sqlite3
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✅ electron-rebuild succeeded"
+                $success = $true
+              }
+            } catch {
+              Write-Host "❌ electron-rebuild failed: $_"
+            }
+          }
+
+          # Final verification
+          Write-Host ""
+          Write-Host "Verifying native modules..."
           if (Test-Path $sqliteNode) {
-            Write-Host "✅ better-sqlite3 found: $sqliteNode"
+            $size = [math]::Round((Get-Item $sqliteNode).Length / 1MB, 1)
+            Write-Host "✅ better-sqlite3 found: $sqliteNode ($size MB)"
           } else {
             Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
-            $verified = $false
-          }
-
-          if (!$verified) {
-            Write-Error "Native modules verification failed!"
             exit 1
           }
 
@@ -239,11 +255,10 @@ jobs:
           Write-Host "=========================================="
         env:
           npm_config_runtime: electron
-          npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_disturl: https://electronjs.org/headers
-          npm_config_build_from_source: true
+          # Don't force build_from_source - let prebuild-install try first
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
@@ -273,15 +288,14 @@ jobs:
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
-          # Node.js memory limit for webpack bundling (prevents OOM during build)
-          # Node.js 内存限制，防止 webpack 打包时内存不足
+          # Node.js memory limit for vite bundling (prevents OOM during build)
+          # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: "--max-old-space-size=8192"
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
           # Native module compilation / 原生模块编译
           npm_config_runtime: electron
-          npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
           npm_config_cache: ${{ runner.temp }}/.npm
@@ -386,7 +400,6 @@ jobs:
           ELECTRON_MIRROR: ""
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
-          npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -412,10 +425,11 @@ jobs:
           ELECTRON_MIRROR: ""
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
-          npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
@@ -555,12 +569,22 @@ jobs:
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.GH_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Create and push tag
         id: create_tag
@@ -568,7 +592,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           COMMIT_SHORT=$(git rev-parse --short HEAD)
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          
+
           # 根据分支确定 tag 格式
           if [ "$BRANCH_NAME" = "dev" ]; then
             TAG_NAME="v${VERSION}-dev-${COMMIT_SHORT}"
@@ -579,42 +603,42 @@ jobs:
             IS_DEV="false"
             echo "🚀 Production release: $TAG_NAME"
           fi
-          
+
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
-          
+
           # 检查远程tag是否已存在
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
             if [ "$IS_DEV" = "false" ]; then
               # Main 分支：需要递增版本并修改 package.json
               echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
-          
+
               if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
                 MAJOR=${BASH_REMATCH[1]}
                 MINOR=${BASH_REMATCH[2]}
                 PATCH=${BASH_REMATCH[3]}
                 NEW_PATCH=$((PATCH + 1))
                 NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-          
+
                 echo "📝 Updating package.json version to $NEW_VERSION"
-          
+
                 # 更新 package.json 版本号
-                npm version $NEW_VERSION --no-git-tag-version
-          
+                bun pm version $NEW_VERSION
+
                 # 配置git用户信息
                 git config user.name "github-actions[bot]"
                 git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
                 # 提交版本更新
-                git add package.json package-lock.json
+                git add package.json bun.lock
                 git commit -m "chore: bump version to $NEW_VERSION"
                 git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
                 git push origin $BRANCH_NAME
-          
+
                 # 获取新的 commit ID
                 COMMIT_SHORT=$(git rev-parse --short HEAD)
                 TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
-          
+
                 echo "🚀 New tag with updated version: $TAG_NAME"
                 echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
               else
@@ -628,11 +652,11 @@ jobs:
               exit 1
             fi
           fi
-          
+
           # 配置git用户信息（如果前面没配置）
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # 创建并推送tag
           echo "Creating tag: $TAG_NAME"
           git tag $TAG_NAME

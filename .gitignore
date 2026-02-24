@@ -161,3 +161,12 @@ wiki/
 
 # Local design docs and screenshots
 desdoc/
+
+# PowerShell accidentally creates a literal file named '$null' when a command
+# redirects output to $null (e.g. `cmd > $null`) on Windows runners.
+# This file has no meaning and should never be committed.
+$null
+
+# vx tool manager (local development only, not used in CI)
+vx.lock
+vx.toml

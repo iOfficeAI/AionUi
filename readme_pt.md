@@ -551,6 +551,98 @@ brew install aionui
 - [Comunidade Discord](https://discord.gg/2QAwJn7Egx) — comunidade em inglês
 - [Grupo WeChat](./resources/wechat_group.png) — comunidade chinesa
 
+### Guia de Desenvolvimento
+
+### Guia de Desenvolvimento
+
+#### Pré-requisitos
+
+- **Node.js** 22 ou superior
+- **bun** — Gerenciador de pacotes & runtime（[instalar](https://bun.sh)）
+- **just** — Executor de comandos（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（para compilação de módulos nativos）
+- **prek** — Ferramenta de verificação de código PR（`npm install -g @j178/prek`）
+
+#### Início Rápido
+
+```bash
+# Clonar o repositório
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# Instalar dependências
+just install
+
+# Iniciar servidor de desenvolvimento
+just dev
+```
+
+#### Comandos Disponíveis（via justfile）
+
+```bash
+# Desenvolvimento
+just dev              # Iniciar servidor dev com HMR
+just webui            # Iniciar modo WebUI
+just cli              # Iniciar modo CLI
+
+# Build
+just build            # Build para plataforma atual
+just build-win        # Build para Windows
+just build-mac        # Build para macOS
+just build-linux      # Build para Linux
+
+# Testes & Qualidade
+just test             # Executar testes
+just lint             # Executar linter
+just typecheck        # Verificação TypeScript
+just check            # Executar todas as verificações
+
+# Módulos Nativos
+just rebuild-native   # Recompilar módulos nativos para Electron
+just setup            # Configuração completa: instalar + recompilar nativos
+```
+
+#### Verificação de Código（prek）
+
+O projeto usa [prek](https://github.com/j178/prek)（implementação Rust do pre-commit）para verificação de código, configurado em `.pre-commit-config.yaml`：
+
+```bash
+# Instalar prek
+npm install -g @j178/prek
+
+# Instalar git hooks（opcional, verificação automática antes do commit）
+prek install
+
+# Executar verificações em arquivos staged
+prek run
+
+# Verificar mudanças vs branch main（igual ao CI）
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+#### Sistema de Build
+AionUi usa **electron-vite** para empacotamento rápido:
+
+- **Processo principal**: Empacotado com Vite (ESM)
+- **Processo renderer**: Empacotado com Vite (React + TypeScript)
+- **Scripts de preload**: Empacotados com Vite
+
+A saída do build vai para o diretório `out/`:
+
+- `out/main/` - Código do processo principal
+- `out/renderer/` - Código do processo renderer
+- `out/preload/` - Scripts de preload
+
+#### Stack Tecnológico
+
+- **Electron** - Framework de desktop multiplataforma
+- **React 19** - Framework UI
+- **TypeScript** - Segurança de tipos
+- **Vite** - Empacotador rápido (via electron-vite)
+- **UnoCSS** - Motor CSS atômico
+- **better-sqlite3** - Banco de dados local
+- **vitest** - Framework de testes
+
 ### Contribuindo
 
 1. Faça fork deste projeto

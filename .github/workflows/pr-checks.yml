@@ -1,4 +1,4 @@
-name: '✅ PR Checks'
+name: '✓PR Checks'
 
 on:
   pull_request:
@@ -14,6 +14,9 @@ permissions:
   pull-requests: write
   issues: read
 
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
 jobs:
   # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
@@ -23,31 +26,211 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --no-frozen-lockfile
 
-      - name: TypeScript Check
-        run: npx tsc --noEmit
+      - name: Run postinstall
+        run: npm run postinstall || true
 
-      - name: ESLint Check
-        run: npm run lint
+      - name: Install prek
+        run: npm install -g @j178/prek
 
-      - name: Prettier Check
-        run: npm run format:check
+      - name: Run prek checks
+        run: prek run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
 
-  # Job 2: Trigger GPT AI review (only on first PR submission)
+  # Job 2: Unit tests across all platforms
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }})
+    if: github.event.action != 'edited'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-2022]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Run extension system tests
+        run: bunx vitest run tests
+
+  # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
+  build-test:
+    name: Build Test (${{ matrix.platform }})
+    if: github.event.action != 'edited'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-arm64'
+            os: 'macos-14'
+            arch: 'arm64'
+            target: '--mac'
+            build_args: '--mac --arm64'
+          - platform: 'macos-x64'
+            os: 'macos-14'
+            arch: 'x64'
+            target: '--mac'
+            build_args: '--mac --x64'
+          - platform: 'windows-x64'
+            os: 'windows-2022'
+            arch: 'x64'
+            target: '--win'
+            build_args: '--win --x64'
+          - platform: 'windows-arm64'
+            os: 'windows-2022'
+            arch: 'arm64'
+            target: '--win'
+            build_args: '--win --arm64'
+          - platform: 'linux'
+            os: 'ubuntu-latest'
+            arch: 'x64'
+            target: '--linux'
+            build_args: '--linux --x64'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
+
+      - name: Get Electron version
+        id: electron-version
+        shell: bash
+        run: |
+          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
+          echo "Electron version: $ELECTRON_VERSION"
+
+      - name: Rebuild native modules for Electron (non-Windows)
+        if: "!startsWith(matrix.platform, 'windows')"
+        run: bunx electron-builder install-app-deps
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+
+      - name: Setup MSBuild (Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
+      - name: Build test (Windows x64)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: |
+          Write-Host "=========================================="
+          Write-Host "BUILD TEST: ${{ matrix.platform }}"
+          Write-Host "=========================================="
+          just build-win-x64
+          Write-Host "✓Build test passed for ${{ matrix.platform }}"
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+          WindowsTargetPlatformVersion: 10.0.19041.0
+          CI: true
+
+      - name: Build test (Windows arm64)
+        if: matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          Write-Host "=========================================="
+          Write-Host "BUILD TEST: ${{ matrix.platform }}"
+          Write-Host "=========================================="
+          just build-win-arm64
+          Write-Host "✓Build test passed for ${{ matrix.platform }}"
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+          WindowsTargetPlatformVersion: 10.0.19041.0
+          CI: true
+
+      - name: Build test (non-Windows)
+        if: "!startsWith(matrix.platform, 'windows')"
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD TEST: ${{ matrix.platform }}"
+          echo "=========================================="
+          node scripts/build-with-builder.js auto ${{ matrix.build_args }}
+          echo "✓Build test passed for ${{ matrix.platform }}"
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_disturl: https://electronjs.org/headers
+          CI: true
+
+  # Job 4: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality]
-    if: github.event.action == 'opened'
+    needs: [code-quality, unit-tests, build-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -56,11 +239,11 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 3: Check if PR author is an external contributor
+  # Job 5: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality]
-    if: github.event.action == 'opened'
+    needs: [code-quality, unit-tests, build-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
@@ -86,7 +269,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 4: Trigger GPT PR assessment for external contributors
+  # Job 6: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]

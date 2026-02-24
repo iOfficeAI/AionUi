@@ -3,7 +3,6 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { CodexAgentEventType } from './eventTypes';
 
 // 工具类别枚举
 export enum ToolCategory {
@@ -57,7 +56,7 @@ export interface ToolCapabilities {
 // 渲染器配置
 export interface ToolRenderer {
   type: RendererType;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 // 工具定义接口
@@ -72,7 +71,7 @@ export interface ToolDefinition {
   renderer: ToolRenderer;
   icon?: string; // 工具图标
   descriptionKey: string; // i18n key for description
-  schema?: any; // 工具Schema
+  schema?: Record<string, unknown>; // 工具Schema
 }
 
 // MCP工具信息
@@ -82,17 +81,3 @@ export interface McpToolInfo {
   description?: string;
   inputSchema?: Record<string, unknown>;
 }
-
-// 事件数据类型定义 (simplified using CodexEventMsg structure)
-export type EventDataMap = {
-  [CodexAgentEventType.EXEC_COMMAND_BEGIN]: Extract<import('./eventData').CodexEventMsg, { type: 'exec_command_begin' }>;
-  [CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA]: Extract<import('./eventData').CodexEventMsg, { type: 'exec_command_output_delta' }>;
-  [CodexAgentEventType.EXEC_COMMAND_END]: Extract<import('./eventData').CodexEventMsg, { type: 'exec_command_end' }>;
-  [CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST]: Extract<import('./eventData').CodexEventMsg, { type: 'apply_patch_approval_request' }>;
-  [CodexAgentEventType.PATCH_APPLY_BEGIN]: Extract<import('./eventData').CodexEventMsg, { type: 'patch_apply_begin' }>;
-  [CodexAgentEventType.PATCH_APPLY_END]: Extract<import('./eventData').CodexEventMsg, { type: 'patch_apply_end' }>;
-  [CodexAgentEventType.MCP_TOOL_CALL_BEGIN]: Extract<import('./eventData').CodexEventMsg, { type: 'mcp_tool_call_begin' }>;
-  [CodexAgentEventType.MCP_TOOL_CALL_END]: Extract<import('./eventData').CodexEventMsg, { type: 'mcp_tool_call_end' }>;
-  [CodexAgentEventType.WEB_SEARCH_BEGIN]: Extract<import('./eventData').CodexEventMsg, { type: 'web_search_begin' }>;
-  [CodexAgentEventType.WEB_SEARCH_END]: Extract<import('./eventData').CodexEventMsg, { type: 'web_search_end' }>;
-};

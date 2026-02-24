@@ -294,7 +294,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   code{
     font-size:14px;
   }
- 
+
   .markdown-shadow-body>p:last-child{
     margin-bottom:0px;
   }

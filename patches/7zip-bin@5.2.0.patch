@@ -1,0 +1,148 @@
+diff --git a/index.js b/index.js
+index d4c7a8ce..f34e75ab 100644
+--- a/index.js
++++ b/index.js
+@@ -1,6 +1,84 @@
+ "use strict"
+ 
+ const path = require("path")
++const fs = require("fs")
++const os = require("os")
++
++// Monkey-patch child_process.spawn and execFile on Windows to intercept 7za zip calls
++// and replace them with PowerShell ZipFile API (avoids 7za E_INVALIDARG on large dirs)
++if (process.platform === "win32") {
++  const cp = require("child_process")
++
++  function buildPsZipArgs(command, args, options) {
++    if (
++      typeof command === "string" &&
++      command.replace(/\\/g, "/").toLowerCase().endsWith("7za.exe") &&
++      Array.isArray(args) && args[0] === "a"
++    ) {
++      // Extract output path and input path from 7za args
++      // 7za args format: ["a", "-bd", "-mx=7", ..., "output.zip", "input"]
++      let outputFile = null
++      let inputPath = null
++      for (let i = 1; i < args.length; i++) {
++        if (!args[i].startsWith("-")) {
++          if (outputFile === null) {
++            outputFile = args[i]
++          } else {
++            inputPath = args[i]
++            break
++          }
++        }
++      }
++
++      if (outputFile && inputPath) {
++        const cwd = (options && options.cwd) ? options.cwd : process.cwd()
++        const absOutput = path.isAbsolute(outputFile) ? outputFile : path.join(cwd, outputFile)
++        const absInput = path.isAbsolute(inputPath) ? inputPath : path.join(cwd, inputPath)
++
++        // Use .NET ZipFile API via PowerShell (more reliable than Compress-Archive for large dirs)
++        const psCmd = [
++          "Add-Type -Assembly System.IO.Compression.FileSystem;",
++          "[System.IO.Compression.ZipFile]::CreateFromDirectory(",
++          "  '" + absInput.replace(/'/g, "''") + "',",
++          "  '" + absOutput.replace(/'/g, "''") + "',",
++          "  [System.IO.Compression.CompressionLevel]::Optimal,",
++          "  $false",
++          ")",
++        ].join(" ")
++
++        return {
++          command: "powershell.exe",
++          args: ["-NoProfile", "-NonInteractive", "-Command", psCmd],
++        }
++      }
++    }
++    return null
++  }
++
++  const _origSpawn = cp.spawn
++  cp.spawn = function patchedSpawn(command, args, options) {
++    const replacement = buildPsZipArgs(command, args, options)
++    if (replacement) {
++      return _origSpawn.call(this, replacement.command, replacement.args, options)
++    }
++    return _origSpawn.apply(this, arguments)
++  }
++
++  const _origExecFile = cp.execFile
++  cp.execFile = function patchedExecFile(command, args, options, callback) {
++    // execFile can be called as (cmd, callback), (cmd, args, callback), (cmd, args, options, callback)
++    // Normalize: find the actual args array
++    let actualArgs = args
++    if (!Array.isArray(actualArgs)) {
++      actualArgs = []
++    }
++    const replacement = buildPsZipArgs(command, actualArgs, typeof options === "object" && options !== null ? options : {})
++    if (replacement) {
++      return _origExecFile.call(this, replacement.command, replacement.args, options, callback)
++    }
++    return _origExecFile.apply(this, arguments)
++  }
++}
+ 
+ function getPath() {
+   if (process.env.USE_SYSTEM_7ZA === "true") {
+@@ -8,9 +86,12 @@ function getPath() {
+   }
+ 
+   if (process.platform === "darwin") {
+-    return path.join(__dirname, "mac", process.arch, "7za")
++    // macOS: bundled 7za 16.02 fails with E_INVALIDARG on .app bundles containing symlinks.
++    // Delegate to system `zip` which handles symlinks correctly.
++    return getMacWrapper()
+   }
+   else if (process.platform === "win32") {
++    // Return the real 7za.exe; spawn is monkey-patched above to use PowerShell for zip
+     return path.join(__dirname, "win", process.arch, "7za.exe")
+   }
+   else {
+@@ -18,5 +99,43 @@ function getPath() {
+   }
+ }
+ 
++// macOS wrapper: translates `7za a [opts] output.zip input` -> `zip -r -y output.zip input`
++function getMacWrapper() {
++  const wrapperDir = path.join(os.tmpdir(), "7zip-bin-compat")
++  const wrapperPath = path.join(wrapperDir, "7za")
++  try {
++    if (!fs.existsSync(wrapperPath)) {
++      fs.mkdirSync(wrapperDir, { recursive: true })
++      const bundled = path.join(__dirname, "mac", process.arch, "7za")
++      const script = [
++        "#!/bin/sh",
++        "# 7zip-bin compat wrapper: uses system zip instead of bundled 7za 16.02",
++        "if [ \"$1\" = \"a\" ]; then",
++        "  shift",
++        "  # skip all option flags",
++        "  while [ $# -gt 0 ]; do",
++        "    case \"$1\" in",
++        "      -*) shift ;;",
++        "      *)  break ;;",
++        "    esac",
++        "  done",
++        "  OUTPUT=\"$1\"; shift",
++        "  INPUT=\"$1\"",
++        "  INPUT_DIR=$(dirname \"$INPUT\")",
++        "  INPUT_BASE=$(basename \"$INPUT\")",
++        "  cd \"$INPUT_DIR\" && exec zip -r -y \"$OUTPUT\" \"$INPUT_BASE\"",
++        "else",
++        "  exec \"" + bundled + "\" \"$@\"",
++        "fi",
++      ].join("\n") + "\n"
++      fs.writeFileSync(wrapperPath, script, { mode: 0o755 })
++    }
++  } catch (e) {
++    // Fallback to bundled binary if wrapper creation fails
++    return path.join(__dirname, "mac", process.arch, "7za")
++  }
++  return wrapperPath
++}
++
+ exports.path7za = getPath()
+ exports.path7x = path.join(__dirname, "7x.sh")
+\ No newline at end of file

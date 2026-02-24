@@ -551,6 +551,98 @@ brew install aionui
 - [Discord コミュニティ](https://discord.gg/2QAwJn7Egx) — 英語コミュニティ
 - [WeChat グループ](./resources/wechat_group.png) — 中国語コミュニティ
 
+### 開発ガイド
+
+### 開発ガイド
+
+#### 前提条件
+
+- **Node.js** 22 以上
+- **bun** — パッケージマネージャー & ランタイム（[インストール](https://bun.sh)）
+- **just** — コマンドランナー（macOS: `brew install just`、Windows: `choco install just`、Linux: `apt install just`）
+- **Python** 3.11+（ネイティブモジュールのコンパイル用）
+- **prek** — PRコードチェックツール（`npm install -g @j178/prek`）
+
+#### クイックスタート
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# 依存関係をインストール
+just install
+
+# 開発サーバーを起動
+just dev
+```
+
+#### 利用可能なコマンド（justfile経由）
+
+```bash
+# 開発
+just dev              # HMR付き開発サーバーを起動
+just webui            # WebUI モードを起動
+just cli              # CLI モードを起動
+
+# ビルド
+just build            # 現在のプラットフォーム用にビルド
+just build-win        # Windows 用にビルド
+just build-mac        # macOS 用にビルド
+just build-linux      # Linux 用にビルド
+
+# テスト & 品質
+just test             # テストを実行
+just lint             # リンターを実行
+just typecheck        # TypeScript チェック
+just check            # すべてのチェックを実行
+
+# ネイティブモジュール
+just rebuild-native   # Electron 用にネイティブモジュールを再ビルド
+just setup            # 完全セットアップ: インストール + ネイティブ再ビルド
+```
+
+#### コードチェック（prek）
+
+プロジェクトは [prek](https://github.com/j178/prek)（pre-commitのRust実装）を使用してコードチェックを行います。設定ファイルは `.pre-commit-config.yaml` です：
+
+```bash
+# prek をインストール
+npm install -g @j178/prek
+
+# git hooks をインストール（オプション、コミット前に自動チェック）
+prek install
+
+# ステージングファイルのチェックを実行
+prek run
+
+# main ブランチとの差分をチェック（CIと同じ）
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+#### ビルドシステム
+AionUi は **electron-vite** を使用して高速なバンドルを行います：
+
+- **メインプロセス**: Vite でバンドル（ESM）
+- **レンダラープロセス**: Vite でバンドル（React + TypeScript）
+- **プリロードスクリプト**: Vite でバンドル
+
+ビルド出力は `out/` ディレクトリに配置されます：
+
+- `out/main/` - メインプロセスコード
+- `out/renderer/` - レンダラープロセスコード
+- `out/preload/` - プリロードスクリプト
+
+#### 技術スタック
+
+- **Electron** - クロスプラットフォームデスクトップフレームワーク
+- **React 19** - UI フレームワーク
+- **TypeScript** - 型安全性
+- **Vite** - 高速バンドラー（electron-vite 経由）
+- **UnoCSS** - アトミック CSS エンジン
+- **better-sqlite3** - ローカルデータベース
+- **vitest** - テストフレームワーク
+
 ### 貢献
 
 1. このプロジェクトを Fork

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import type { ChildProcess } from 'child_process';
 import { spawn, spawnSync } from 'child_process';
 import { once } from 'events';

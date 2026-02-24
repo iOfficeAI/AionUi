@@ -551,6 +551,98 @@ brew install aionui
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
 - [WeChat 그룹](./resources/wechat_group.png) — 중국어 커뮤니티
 
+### 개발 가이드
+
+### 개발 가이드
+
+#### 사전 요구사항
+
+- **Node.js** 22 이상
+- **bun** — 패키지 매니저 & 런타임（[설치](https://bun.sh)）
+- **just** — 명령 실행기（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
+- **Python** 3.11+（네이티브 모듈 컴파일용）
+- **prek** — PR 코드 검사 도구（`npm install -g @j178/prek`）
+
+#### 빠른 시작
+
+```bash
+# 저장소 클론
+git clone https://github.com/iOfficeAI/AionUi.git
+cd AionUi
+
+# 의존성 설치
+just install
+
+# 개발 서버 시작
+just dev
+```
+
+#### 사용 가능한 명령어（justfile 통해）
+
+```bash
+# 개발
+just dev              # HMR 지원 개발 서버 시작
+just webui            # WebUI 모드 시작
+just cli              # CLI 모드 시작
+
+# 빌드
+just build            # 현재 플랫폼용 빌드
+just build-win        # Windows용 빌드
+just build-mac        # macOS용 빌드
+just build-linux      # Linux용 빌드
+
+# 테스트 & 품질
+just test             # 테스트 실행
+just lint             # 린터 실행
+just typecheck        # TypeScript 검사
+just check            # 모든 검사 실행
+
+# 네이티브 모듈
+just rebuild-native   # Electron용 네이티브 모듈 재빌드
+just setup            # 전체 설정: 설치 + 네이티브 재빌드
+```
+
+#### 코드 검사（prek）
+
+프로젝트는 [prek](https://github.com/j178/prek)（pre-commit의 Rust 구현）을 사용하여 코드 검사를 수행합니다. 설정 파일은 `.pre-commit-config.yaml`입니다：
+
+```bash
+# prek 설치
+npm install -g @j178/prek
+
+# git hooks 설치（선택사항, 커밋 전 자동 검사）
+prek install
+
+# 스테이징된 파일 검사 실행
+prek run
+
+# main 브랜치와의 차이 검사（CI와 동일）
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+#### 빌드 시스템
+AionUi는 **electron-vite**를 사용하여 빠른 번들링을 수행합니다:
+
+- **메인 프로세스**: Vite로 번들링 (ESM)
+- **렌더러 프로세스**: Vite로 번들링 (React + TypeScript)
+- **프리로드 스크립트**: Vite로 번들링
+
+빌드 출력은 `out/` 디렉토리에 위치합니다:
+
+- `out/main/` - 메인 프로세스 코드
+- `out/renderer/` - 렌더러 프로세스 코드
+- `out/preload/` - 프리로드 스크립트
+
+#### 기술 스택
+
+- **Electron** - 크로스 플랫폼 데스크톱 프레임워크
+- **React 19** - UI 프레임워크
+- **TypeScript** - 타입 안전성
+- **Vite** - 빠른 번들러 (electron-vite 통해)
+- **UnoCSS** - 원자적 CSS 엔진
+- **better-sqlite3** - 로컬 데이터베이스
+- **vitest** - 테스트 프레임워크
+
 ### 기여하기
 
 1. 이 프로젝트를 Fork하세요

@@ -91,13 +91,16 @@ const specialColors = {
 };
 
 export default defineConfig({
-  envMode: 'build',
   presets: [presetMini(), presetExtra(), presetWind3()],
   transformers: [transformerVariantGroup(), transformerDirectives({ enforce: 'pre' })],
   content: {
     pipeline: {
-      include: ['src/**/*.{ts,tsx,vue,css}'],
-      exclude: [/\.html($|\?)/],
+      // Use RegExp instead of glob strings so patterns match against absolute
+      // module IDs regardless of the Vite root directory.  electron-vite sets
+      // the renderer root to src/renderer/, which causes glob patterns like
+      // 'src/**/*.tsx' to resolve to the non-existent src/renderer/src/ path.
+      include: [/\.[jt]sx?($|\?)/, /\.vue($|\?)/, /\.css($|\?)/],
+      exclude: [/[\\/]node_modules[\\/]/, /\.html($|\?)/],
     },
   },
   // 自定义规则 / Custom rules
