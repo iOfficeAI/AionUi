@@ -122,26 +122,18 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 }
               }
 
-              // Handle MiniMax-style: extract thinking content before orphaned </think>
-              // 处理 MiniMax 风格：提取孤立 </think> 前的思考内容
-              const orphanCloseMatch = contentText.match(/^([\s\S]*?)<\s*\/\s*think(?:ing)?\s*>/i);
-              if (orphanCloseMatch && !/<think(?:ing)?>/i.test(orphanCloseMatch[1])) {
-                const thinkContent = orphanCloseMatch[1]?.trim();
-                if (thinkContent) {
-                  onStreamEvent({
-                    type: ServerGeminiEventType.Thought,
-                    data: thinkContent,
-                  });
-                }
-              }
-
-              // Remove think tags and associated content, then emit remaining content
-              // 移除 think 标签及相关内容，发送剩余内容
+              // Remove complete think blocks from content, but preserve orphaned </think> tags.
+              // In streaming mode, thinking content from earlier chunks (without tags) is already
+              // accumulated in the frontend. Only the chunk containing </think> has the tag.
+              // By preserving it, the frontend can detect </think> in the accumulated content
+              // and strip all preceding thinking content via stripThinkTags.
+              // 移除完整的 think 块，但保留孤立的 </think> 标签。
+              // 流式模式下，前面 chunk 的思考内容（无标签）已被前端累积。
+              // 保留 </think> 让前端在累积内容中检测到它，从而正确过滤所有思考内容。
               const cleanedContent = contentText
                 .replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '')
-                // Remove content before orphaned </think> (MiniMax-style)
-                .replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '')
-                // Also remove unclosed tags at the end
+                // Keep orphaned </think> for frontend accumulated content filtering
+                // Also remove unclosed opening tags at the end
                 .replace(/<think(?:ing)?>[\s\S]*$/gi, '')
                 .replace(/\n{3,}/g, '\n\n')
                 .trim();

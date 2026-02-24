@@ -230,6 +230,25 @@ The solution involves implementing the following steps:
       expect(result).toContain('Step two');
     });
 
+    it('should handle streaming accumulated content (MiniMax M2.5 style)', () => {
+      // Simulates frontend accumulated content from multiple streaming chunks:
+      // Chunk 1: "I need to analyze..." (no tags, passed through)
+      // Chunk 2: "Let me think...\n" (no tags, passed through)
+      // Chunk 3: "</think>\n\nHere's my answer" (orphaned </think> preserved)
+      const accumulated =
+        "I need to analyze the user's request.\n" +
+        "Let me think about this carefully.\n" +
+        "</think>\n\nHere's my answer:\n" +
+        "The solution is X.";
+
+      const result = stripThinkTags(accumulated);
+      expect(result).not.toContain('I need to analyze');
+      expect(result).not.toContain('Let me think');
+      expect(result).not.toContain('</think>');
+      expect(result).toContain("Here's my answer");
+      expect(result).toContain('The solution is X.');
+    });
+
     it('should handle DeepSeek-style thinking tags', () => {
       const input = `<thinking>
 Let me think through this step by step:
