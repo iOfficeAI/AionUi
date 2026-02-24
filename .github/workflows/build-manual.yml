@@ -1,4 +1,4 @@
-name: Manual Build
+name: '🔨 Manual Build'
 
 permissions:
   contents: write
