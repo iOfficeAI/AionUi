@@ -1,0 +1,6 @@
+{
+  "name": "Blog Writer Pipeline",
+  "description": "Subagent-driven workspace for transforming blog ideas into complete illustrated articles",
+  "version": "2.0.0",
+  "skills": ["content-strategy", "domain-research", "content-writing", "illustration"]
+}

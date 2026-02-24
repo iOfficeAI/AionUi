@@ -1,0 +1,62 @@
+{
+  "id": "blog-writer",
+  "name": "Blog Writer — Content Pipeline",
+  "version": "2.0.0",
+  "description": "Orchestrator that drives a 4-phase blog pipeline using subagents and skills. Strategy, Research, Writing, and Illustration — each delegated to a focused subagent with specialized skills.",
+  "author": "AionUi",
+  "presetAgentType": "claude",
+  "avatar": "blog-writer.svg",
+  "workspacePath": "./workspace",
+  "tags": ["blog", "content", "copywriting", "subagent", "pipeline", "seo", "writing", "illustration"],
+  "ruleFiles": {
+    "en-US": "blog-writer.md"
+  },
+  "defaultEnabledSkills": ["content-strategy", "domain-research", "content-writing", "illustration"],
+  "nameI18n": {
+    "en-US": "Blog Writer",
+    "zh-CN": "博客写作助手",
+    "zh-TW": "部落格寫作助手",
+    "ja-JP": "ブログライター",
+    "ko-KR": "블로그 작성 도우미"
+  },
+  "descriptionI18n": {
+    "en-US": "Orchestrator that drives a 4-phase blog pipeline using subagents and skills. Strategy plans the angle, Research gathers evidence, Writing drafts the prose, Illustration adds visuals.",
+    "zh-CN": "通过子代理和技能驱动四阶段博客流水线的编排器。策略规划角度，研究收集证据，写作撰写正文，插画添加视觉元素。",
+    "zh-TW": "透過子代理和技能驅動四階段部落格流水線的編排器。策略規劃角度，研究蒐集證據，寫作撰寫正文，插畫添加視覺元素。",
+    "ja-JP": "サブエージェントとスキルを使用して4段階のブログパイプラインを駆動するオーケストレーター。戦略が角度を計画し、リサーチが証拠を収集し、ライティングが文章を執筆し、イラストがビジュアルを追加。",
+    "ko-KR": "서브에이전트와 스킬을 사용하여 4단계 블로그 파이프라인을 구동하는 오케스트레이터. 전략이 각도를 계획하고, 리서치가 증거를 수집하고, 라이팅이 글을 작성하고, 일러스트가 시각 자료를 추가합니다."
+  },
+  "promptsI18n": {
+    "en-US": [
+      "Write a blog post about the future of AI agents in software development",
+      "Create an article: 10 lessons learned building a SaaS product from scratch",
+      "Write a technical deep-dive on WebSocket vs Server-Sent Events",
+      "Draft a thought leadership piece on why remote teams outperform co-located ones"
+    ],
+    "zh-CN": [
+      "写一篇关于 AI 代理在软件开发中未来的博客文章",
+      "创建一篇文章：从零构建 SaaS 产品的 10 个经验教训",
+      "写一篇关于 WebSocket 与 Server-Sent Events 的技术深度分析",
+      "撰写一篇关于远程团队为何优于集中办公团队的思想领导力文章"
+    ],
+    "zh-TW": [
+      "寫一篇關於 AI 代理在軟體開發中未來的部落格文章",
+      "建立一篇文章：從零構建 SaaS 產品的 10 個經驗教訓",
+      "寫一篇關於 WebSocket 與 Server-Sent Events 的技術深度分析",
+      "撰寫一篇關於遠端團隊為何優於集中辦公團隊的思想領導力文章"
+    ],
+    "ja-JP": [
+      "ソフトウェア開発における AI エージェントの未来についてブログ記事を書く",
+      "記事を作成：ゼロから SaaS 製品を構築して学んだ 10 の教訓",
+      "WebSocket と Server-Sent Events の技術的な詳細分析を書く",
+      "リモートチームがオフィスチームを上回る理由についてソートリーダーシップ記事を書く"
+    ],
+    "ko-KR": [
+      "소프트웨어 개발에서 AI 에이전트의 미래에 대한 블로그 게시물 작성",
+      "기사 작성: SaaS 제품을 처음부터 구축하면서 배운 10가지 교훈",
+      "WebSocket과 Server-Sent Events에 대한 기술 심층 분석 작성",
+      "원격 팀이 동일 장소 팀을 능가하는 이유에 대한 사고 리더십 글 작성"
+    ]
+  },
+  "isBuiltin": true
+}
