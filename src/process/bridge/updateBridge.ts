@@ -31,6 +31,12 @@ type GitHubReleaseApi = {
   assets?: GitHubReleaseApiAsset[];
 };
 
+/** Parameters for auto-update check via electron-updater */
+interface AutoUpdateCheckParams {
+  /** Whether to include prerelease/dev builds in update check */
+  includePrerelease?: boolean;
+}
+
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
 const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.AppImage', '.deb', '.rpm'];
@@ -358,6 +364,17 @@ const startDownloadInBackground = async (downloadId: string, url: string, filePa
   }
 };
 
+/**
+ * Create a status broadcast callback that sends updates via ipcBridge.autoUpdate.status.emit.
+ * This is a pure emitter: it does not bind to any specific window.
+ * The ipcBridge channel broadcasts to all renderer listeners, so no window guard is needed here.
+ */
+export function createAutoUpdateStatusBroadcast(): (status: import('../services/autoUpdaterService').AutoUpdateStatus) => void {
+  return (status) => {
+    ipcBridge.autoUpdate.status.emit(status);
+  };
+}
+
 export function initUpdateBridge(): void {
   ipcBridge.update.check.provider(async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
     try {
@@ -441,8 +458,12 @@ export function initUpdateBridge(): void {
   });
 
   // Auto-updater IPC handlers (electron-updater)
-  ipcBridge.autoUpdate.check.provider(async (): Promise<{ success: boolean; data?: { updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }; msg?: string }> => {
+  ipcBridge.autoUpdate.check.provider(async (params: AutoUpdateCheckParams): Promise<{ success: boolean; data?: { updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }; msg?: string }> => {
     try {
+      // Set prerelease preference before checking
+      const includePrerelease = Boolean(params?.includePrerelease);
+      autoUpdaterService.setAllowPrerelease(includePrerelease);
+
       const result = await autoUpdaterService.checkForUpdates();
       if (result.success && result.updateInfo) {
         return {
