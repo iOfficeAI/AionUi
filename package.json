@@ -122,6 +122,7 @@
     "diff2html": "^3.4.55",
     "dingtalk-stream": "^2.1.4",
     "docx": "^9.5.1",
+    "electron-log": "^5.4.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
     "eventemitter3": "^5.0.1",
