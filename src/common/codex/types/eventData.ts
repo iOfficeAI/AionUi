@@ -3,10 +3,10 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { CodexAgentEventType } from './eventTypes';
+import { CodexAgentEventType } from './eventTypes';
 
 // JSON-RPC 消息的泛型结构 - 使用 CodexEventMsg 自动推断类型
-export interface CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventMsg['type']> {
+export type CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventMsg['type']> = {
   jsonrpc: '2.0';
   method: 'codex/event';
   params: {
@@ -18,7 +18,7 @@ export interface CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventM
     id: string;
     msg: Extract<CodexEventMsg, { type: T }>; // 直接从 CodexEventMsg 提取类型
   };
-}
+};
 
 // 精准的事件消息类型，直接对应 params.msg
 export type CodexEventMsg =

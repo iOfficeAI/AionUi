@@ -56,7 +56,7 @@ export interface ToolCapabilities {
 // 渲染器配置
 export interface ToolRenderer {
   type: RendererType;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 // 工具定义接口
@@ -71,7 +71,7 @@ export interface ToolDefinition {
   renderer: ToolRenderer;
   icon?: string; // 工具图标
   descriptionKey: string; // i18n key for description
-  schema?: any; // 工具Schema
+  schema?: Record<string, unknown>; // 工具Schema
 }
 
 // MCP工具信息

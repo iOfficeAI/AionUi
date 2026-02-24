@@ -8,7 +8,9 @@
 import { CodexAgentEventType } from '../types/eventTypes';
 import { ToolCategory, OutputFormat, RendererType } from '../types/toolTypes';
 import type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer } from '../types';
-import i18n from '../../../renderer/i18n';
+
+/** Translation function type, injected by the consumer (e.g. renderer) to avoid coupling common layer to renderer i18n */
+export type TranslateFn = (key: string, params?: Record<string, string>) => string;
 
 // Re-export enums (values) - these can be re-exported
 export { ToolCategory, OutputFormat, RendererType };
@@ -400,27 +402,35 @@ export class ToolRegistry {
   }
 
   /**
-   * 获取工具的本地化显示名称
+   * Get the localized display name of a tool.
+   * Pass a `t` function (e.g. from i18next) to enable translation;
+   * omit it to fall back to the raw tool name.
    */
-  getToolDisplayName(tool: ToolDefinition, fallbackParams?: Record<string, string>): string {
-    try {
-      return i18n.t(tool.displayNameKey, fallbackParams || {});
-    } catch {
-      // 如果没有找到翻译，返回工具名称
-      return tool.name;
+  getToolDisplayName(tool: ToolDefinition, fallbackParams?: Record<string, string>, t?: TranslateFn): string {
+    if (t) {
+      try {
+        return t(tool.displayNameKey, fallbackParams || {});
+      } catch {
+        // fall through to fallback
+      }
     }
+    return tool.name;
   }
 
   /**
-   * 获取工具的本地化描述
+   * Get the localized description of a tool.
+   * Pass a `t` function (e.g. from i18next) to enable translation;
+   * omit it to fall back to a generic description.
    */
-  getToolDescription(tool: ToolDefinition, fallbackParams?: Record<string, string>): string {
-    try {
-      return i18n.t(tool.descriptionKey, fallbackParams || {});
-    } catch {
-      // 如果没有找到翻译，返回基础描述
-      return `Tool: ${tool.name}`;
+  getToolDescription(tool: ToolDefinition, fallbackParams?: Record<string, string>, t?: TranslateFn): string {
+    if (t) {
+      try {
+        return t(tool.descriptionKey, fallbackParams || {});
+      } catch {
+        // fall through to fallback
+      }
     }
+    return `Tool: ${tool.name}`;
   }
 
   /**
