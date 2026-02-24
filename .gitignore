@@ -36,6 +36,10 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Lock files for other package managers (project uses bun.lock)
+package-lock.json
+yarn.lock
+
 # TypeScript v1 declaration files
 typings/
 
