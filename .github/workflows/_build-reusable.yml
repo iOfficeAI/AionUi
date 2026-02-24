@@ -1,0 +1,509 @@
+name: Build Pipeline (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        description: 'Build matrix as JSON string (passed via fromJSON in caller)'
+        type: string
+        required: true
+      ref:
+        description: 'Git ref to checkout (leave empty to use the triggering commit)'
+        type: string
+        default: ''
+      skip_code_quality:
+        description: 'Skip code quality checks (faster builds for debugging)'
+        type: boolean
+        default: false
+      append_commit_hash:
+        description: 'Append short commit hash to artifact names'
+        type: boolean
+        default: false
+
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_code_quality }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: bun run postinstall || true
+
+      - name: Run ESLint
+        run: bun run lint
+
+      - name: Check Prettier formatting
+        run: bun run format:check
+
+      - name: TypeScript type check
+        run: bunx tsc --noEmit
+
+      - name: Run unit tests
+        run: bunx vitest run tests/extensions/
+
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    needs: code-quality
+    if: ${{ always() && (inputs.skip_code_quality || needs.code-quality.result == 'success') }}
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Get commit hash
+        id: commit
+        shell: bash
+        run: |
+          SHORT=$(git rev-parse --short HEAD)
+          echo "short=$SHORT" >> $GITHUB_OUTPUT
+          echo "Commit: $SHORT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: bun run postinstall || true
+
+      - name: Setup Windows native dependencies (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          bun install --global node-gyp
+
+      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
+        if: matrix.platform == 'windows-arm64'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 20
+          max_attempts: 3
+          retry_wait_seconds: 60
+          shell: pwsh
+          command: |
+            choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+
+      - name: Setup Windows build environment (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          echo "Setting Windows SDK version for ConPty support"
+          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup MSBuild (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
+      - name: Rebuild native modules for Electron
+        if: "!startsWith(matrix.platform, 'windows')"
+        run: bunx electron-builder install-app-deps
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+
+      - name: Print build configuration
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD CONFIGURATION"
+          echo "=========================================="
+          echo "Platform: ${{ matrix.platform }}"
+          echo "Target Architecture: ${{ matrix.arch }}"
+          echo "Build Command: ${{ matrix.command }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner Arch: ${{ runner.arch }}"
+          echo "Ref: ${{ inputs.ref || '(default)' }}"
+          echo "Commit: ${{ steps.commit.outputs.short }}"
+          echo "=========================================="
+
+      - name: Write build summary
+        shell: bash
+        run: |
+          echo "## Build Info" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Ref | \`${{ inputs.ref || '(default)' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ steps.commit.outputs.short }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | \`${{ matrix.platform }}\` |" >> $GITHUB_STEP_SUMMARY
+
+      # macOS code signing certificate installation
+      - name: Setup macOS code signing (macOS only)
+        if: startsWith(matrix.platform, 'macos')
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
+        run: |
+          if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+            echo "Installing code signing certificate..."
+
+            # Create certificate file
+            echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+
+            # Create temporary keychain
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+
+            # Import certificate
+            security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+            # Clean up certificate file
+            rm certificate.p12
+
+            echo "Certificate imported successfully"
+          else
+            echo "No certificate provided - building unsigned application"
+            echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
+          fi
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
+
+      - name: Rebuild native modules for Electron
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        continue-on-error: false
+        run: |
+          $arch = "${{ matrix.arch }}"
+          $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')").Trim()
+
+          Write-Host "=========================================="
+          Write-Host "Rebuilding native modules for Electron $electronVer ($arch)"
+          Write-Host "=========================================="
+
+          # Strategy: Try prebuild-install first (faster, more reliable)
+          # Fallback to electron-rebuild only if prebuild-install fails
+          $success = $false
+
+          # Step 1: Try prebuild-install (downloads prebuilt binaries)
+          Write-Host ""
+          Write-Host "[Step 1] Trying prebuild-install..."
+          $prebuildResult = $null
+          try {
+          $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=$arch --force 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ prebuild-install succeeded"
+              $success = $true
+            } else {
+              Write-Host "⚠️ prebuild-install exited with code $LASTEXITCODE"
+            }
+          } catch {
+            Write-Host "⚠️ prebuild-install failed: $_"
+          }
+
+          # Step 2: Verify or fallback to electron-rebuild
+          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+          if (-not (Test-Path $sqliteNode)) {
+            Write-Host ""
+            Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
+            try {
+              bunx electron-rebuild -f -w better-sqlite3
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✅ electron-rebuild succeeded"
+                $success = $true
+              }
+            } catch {
+              Write-Host "❌ electron-rebuild failed: $_"
+            }
+          }
+
+          # Final verification
+          Write-Host ""
+          Write-Host "Verifying native modules..."
+          if (Test-Path $sqliteNode) {
+            $size = [math]::Round((Get-Item $sqliteNode).Length / 1MB, 1)
+            Write-Host "✅ better-sqlite3 found: $sqliteNode ($size MB)"
+          } else {
+            Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
+            exit 1
+          }
+
+          Write-Host ""
+          Write-Host "=========================================="
+          Write-Host "✅ All critical native modules verified"
+          Write-Host "=========================================="
+        env:
+          npm_config_runtime: electron
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_disturl: https://electronjs.org/headers
+          # Don't force build_from_source - let prebuild-install try first
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+
+      - name: Build with electron-builder (Windows)
+        if: startsWith(matrix.platform, 'windows')
+        id: windows-build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Command = $env:WINDOWS_BUILD_COMMAND
+          $BuildFailed = $false
+
+          try {
+            Write-Host "Running Windows build command: $Command"
+            iex $Command
+            Write-Host "Windows build completed successfully"
+          } catch {
+            $BuildFailed = $true
+            Write-Warning "${{ matrix.platform }} build failed but will not block the workflow"
+            Write-Host "::notice title=Windows build skipped::${{ matrix.platform }} build failed (see logs above) but workflow is allowed to continue."
+          }
+
+          if ($BuildFailed) {
+            "result=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+        env:
+          WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
+          # Node.js memory limit for vite bundling (prevents OOM during build)
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          # Target arch
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          # Native module compilation
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          # Signing & IDs
+          APP_ID: ${{ secrets.APP_ID }}
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
+          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Windows build flags
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+          WindowsTargetPlatformVersion: 10.0.19041.0
+          _WIN32_WINNT: 0x0A00
+          # CI flag & GitHub token
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # Clean up any stale disk images before DMG creation (macOS only)
+      # Prevents hdiutil "Device not configured" errors
+      - name: Clean up stale disk images (macOS only)
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          echo "Cleaning up any stale disk images..."
+          # Detach any mounted disk images
+          hdiutil info 2>/dev/null | grep '/dev/disk' | awk '{print $1}' | while read disk; do
+            echo "Detaching $disk..."
+            hdiutil detach "$disk" -force 2>/dev/null || true
+          done
+          # Clean up any temporary DMG files
+          rm -f /tmp/*.dmg 2>/dev/null || true
+          echo "Cleanup complete"
+
+      # macOS: Build with notarization - DMG failure = CI failure, notarization failure = warning only
+      - name: Build with electron-builder (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        id: macos-build
+        shell: bash
+        run: |
+          set +e  # Handle errors manually
+
+          # Run build command
+          ${{ matrix.command }} 2>&1 | tee "${RUNNER_TEMP}/build.log"
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+
+          # Check if DMG was created (most important artifact)
+          DMG_EXISTS=false
+          if ls out/*.dmg 1>/dev/null 2>&1; then
+            DMG_EXISTS=true
+            echo "✅ DMG created successfully"
+          fi
+
+          # If build succeeded completely
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Build completed successfully"
+            echo "notarization_status=success" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Build failed - check if it's just notarization failure
+          if [ "$DMG_EXISTS" = true ]; then
+            # DMG exists but build failed - likely notarization issue
+            if grep -qiE "notariz|staple" "${RUNNER_TEMP}/build.log"; then
+              echo "⚠️ DMG created but notarization failed"
+              echo "notarization_status=failed" >> $GITHUB_OUTPUT
+              echo "::warning title=Notarization Failed::DMG was built successfully but notarization failed. Users may see Gatekeeper warnings."
+              # Write to job summary
+              echo "## ⚠️ Notarization Warning" >> $GITHUB_STEP_SUMMARY
+              echo "DMG was built and signed successfully, but **notarization failed**." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Users may see Gatekeeper warnings when opening the app for the first time." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "To fix: Right-click the app → Open → Open" >> $GITHUB_STEP_SUMMARY
+              exit 0  # Allow CI to continue
+            fi
+          fi
+
+          # DMG doesn't exist or other fatal error - fail CI
+          echo "❌ Build failed - DMG was not created"
+          echo "notarization_status=build_failed" >> $GITHUB_OUTPUT
+          exit 1
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          npm_config_arch: ${{ matrix.arch }}
+          APP_ID: ${{ secrets.APP_ID }}
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
+          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          ELECTRON_MIRROR: ""
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target_arch: ${{ matrix.arch }}
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # Linux: Standard build without special error handling
+      - name: Build with electron-builder (Linux)
+        if: matrix.platform == 'linux'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 2
+          retry_wait_seconds: 60
+          command: ${{ matrix.command }}
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          ELECTRON_MIRROR: ""
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target_arch: ${{ matrix.arch }}
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # macOS keychain cleanup
+      - name: Clean up keychain (macOS only)
+        if: startsWith(matrix.platform, 'macos') && always()
+        run: |
+          if security list-keychains | grep -q build.keychain; then
+            security delete-keychain build.keychain
+            echo "Temporary keychain deleted"
+          fi
+
+      # macOS build failure notification
+      - name: Notify on macOS build failure
+        if: startsWith(matrix.platform, 'macos') && failure()
+        run: |
+          echo "::error title=macOS Build Failed::Build failed. Check the logs for details."
+          echo ""
+          echo "❌ macOS Build Failed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Common causes:"
+          echo "  • hdiutil/DMG creation failure (Device not configured)"
+          echo "  • Code signing issues"
+          echo "  • Notarization timeout"
+          echo "  • Out of memory (OOM)"
+          echo ""
+          echo "Check the build logs above for the specific error."
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: List build artifacts
+        if: success() || failure()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD ARTIFACTS"
+          echo "=========================================="
+          if [ -d "out" ]; then
+            ls -lh out/ || true
+            echo "=========================================="
+            echo "Total artifacts:"
+            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+          else
+            echo "No out directory found!"
+          fi
+
+      # Upload artifacts when:
+      # - Build succeeded (all platforms)
+      # - macOS: notarization timeout but artifacts exist (handled in build step)
+      # - Windows: only if windows-build step succeeded
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v6
+        if: >-
+          success() &&
+          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
+        with:
+          name: ${{ inputs.append_commit_hash && format('{0}-{1}', matrix.artifact-name, steps.commit.outputs.short) || matrix.artifact-name }}
+          path: |
+            out/*.exe
+            out/*.msi
+            out/*.dmg
+            out/*.deb
+            out/*.AppImage
+            out/AionUi-*-win32-*.zip
+            out/AionUi-*-mac-*.zip
+          if-no-files-found: warn
+          retention-days: 7
