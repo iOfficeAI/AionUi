@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><!-- VAR: title --></title>
+<script src="../p5.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a14;
+    --sidebar: linear-gradient(180deg, #16213e, #1a1a2e);
+    --sidebar-bg: #1a1a2e;
+    --accent: #d97757;
+    --accent-hover: #c4663f;
+    --surface: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.1);
+    --separator: rgba(255,255,255,0.04);
+    --text: #e0e0e0;
+    --text-light: #ccc;
+    --text-label: #aabbcc;
+    --text-muted: #667788;
+    --text-desc: #8899aa;
+    --sidebar-w: 320px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ──── Sidebar ──── */
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--sidebar);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-right: 1px solid var(--separator);
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+  .sidebar-header { padding: 20px; border-bottom: 1px solid var(--separator); }
+  .sidebar-header h1 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .sidebar-header p { font-size: 12px; color: var(--text-desc); line-height: 1.5; }
+
+  .section { padding: 16px 20px; border-bottom: 1px solid var(--separator); }
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-muted); margin-bottom: 12px; font-weight: 600;
+  }
+
+  /* ──── Seed Controls ──── */
+  .seed-row { display: flex; align-items: center; gap: 6px; }
+  .seed-input, .btn-seed {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  }
+  .seed-input {
+    flex: 1; color: #fff; padding: 8px 12px; font-size: 14px;
+    font-family: 'SF Mono', 'Fira Code', monospace; text-align: center;
+    outline: none; transition: border-color 0.2s;
+  }
+  .seed-input:focus { border-color: var(--accent); }
+  .btn-seed {
+    width: 34px; height: 34px; color: var(--text-light); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s;
+  }
+  .btn-seed:hover { background: rgba(217,119,87,0.2); border-color: var(--accent); color: var(--accent); }
+
+  /* ──── Sliders ──── */
+  .param-group { margin-bottom: 12px; }
+  .param-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .param-label span:first-child { color: var(--text-label); }
+  .param-label span:last-child { color: var(--accent); font-family: monospace; }
+
+  input[type="range"] {
+    width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+    background: var(--border); border-radius: 2px; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid var(--sidebar-bg);
+  }
+
+  /* ──── Color Pickers ──── */
+  .color-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .color-row label { font-size: 12px; color: var(--text-label); min-width: 70px; }
+  .color-row input[type="color"] {
+    width: 32px; height: 24px; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px; background: none; cursor: pointer; padding: 0;
+  }
+  .color-hex { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+
+  /* ──── Action Buttons ──── */
+  .actions { display: flex; flex-direction: column; gap: 8px; }
+  .btn {
+    padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all 0.15s; text-align: center;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary { background: var(--surface); color: var(--text-light); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+
+  /* ──── Canvas Area ──── */
+  .canvas-area {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); overflow: auto; padding: 16px;
+  }
+  .canvas-area canvas { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  /* ──── Description ──── */
+  .description { padding: 16px 20px; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .description a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 900px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--separator); }
+    .canvas-area { min-height: 55vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <!-- ─── Header ─── -->
+  <div class="sidebar-header">
+    <h1><!-- VAR: title --></h1>
+    <p><!-- VAR: description --></p>
+  </div>
+
+  <!-- ─── Seed Controls (FIXED — do not modify) ─── -->
+  <div class="section">
+    <div class="section-title">Seed</div>
+    <div class="seed-row">
+      <button class="btn-seed" onclick="changeSeed(-1)" title="Previous">&#9664;</button>
+      <input type="number" class="seed-input" id="seedInput" value="42" min="0" max="9999" onchange="setSeed(this.value)">
+      <button class="btn-seed" onclick="changeSeed(1)" title="Next">&#9654;</button>
+      <button class="btn-seed" onclick="randomSeed()" title="Random">&#9776;</button>
+    </div>
+  </div>
+
+  <!-- VAR: Parameters -->
+  <div class="section">
+    <div class="section-title">Parameters</div>
+    <!-- VAR: Add parameter sliders here. Example: -->
+    <div class="param-group">
+      <div class="param-label"><span>Parameter 1</span><span id="param1Val">50</span></div>
+      <input type="range" id="param1" min="1" max="100" value="50"
+             oninput="CONFIG.param1=+this.value; document.getElementById('param1Val').textContent=this.value; regenerate()">
+    </div>
+  </div>
+
+  <!-- VAR: Colors -->
+  <div class="section">
+    <div class="section-title">Colors</div>
+    <!-- VAR: Add color pickers here. Example: -->
+    <div class="color-row">
+      <label>Primary</label>
+      <input type="color" id="color1" value="#d97757" onchange="CONFIG.colors[0]=this.value; regenerate()">
+      <span class="color-hex" id="color1Hex">#d97757</span>
+    </div>
+  </div>
+
+  <!-- ─── Actions (FIXED — do not modify) ─── -->
+  <div class="section">
+    <div class="section-title">Actions</div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="regenerate()">&#8634; Regenerate</button>
+      <button class="btn btn-secondary" onclick="resetDefaults()">Reset Defaults</button>
+      <button class="btn btn-secondary" onclick="downloadPNG()">&#11015; Download PNG</button>
+    </div>
+  </div>
+
+  <!-- ─── Description (VAR) ─── -->
+  <div class="description">
+    <!-- VAR: Detailed description of the algorithm -->
+    <p>Describe the algorithm and what it demonstrates.</p>
+  </div>
+</div>
+
+<div class="canvas-area" id="canvasContainer"></div>
+
+<script>
+// ── FIXED: Mulberry32 PRNG & Seed Management ──
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+let currentSeed = 42;
+let rng = mulberry32(currentSeed);
+
+function seededRandom() { return rng(); }
+function seededRandomRange(min, max) { return min + seededRandom() * (max - min); }
+function seededRandomInt(min, max) { return Math.floor(seededRandomRange(min, max + 1)); }
+function seededGaussian(mean, sd) {
+  let u1 = seededRandom(), u2 = seededRandom();
+  return mean + sd * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+function seededShuffle(arr) {
+  let a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    let j = Math.floor(seededRandom() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function setSeed(val) {
+  currentSeed = parseInt(val) || 0;
+  document.getElementById('seedInput').value = currentSeed;
+  regenerate();
+}
+function changeSeed(delta) { setSeed(currentSeed + delta); }
+function randomSeed() { setSeed(Math.floor(Math.random() * 10000)); }
+
+function regenerate() {
+  rng = mulberry32(currentSeed);
+  if (typeof generateArt === 'function') {
+    clear();
+    generateArt();
+  }
+}
+
+function resetDefaults() {
+  Object.assign(CONFIG, JSON.parse(JSON.stringify(DEFAULT_CONFIG)));
+  syncUIFromConfig();
+  regenerate();
+}
+
+function downloadPNG() {
+  saveCanvas('visualization_seed_' + currentSeed, 'png');
+}
+
+// ── VAR: CONFIG & DEFAULT_CONFIG ──
+// VAR: Customize per visualization
+const DEFAULT_CONFIG = {
+  param1: 50,
+  colors: ['#d97757'],
+  background: '#0a0a14'
+};
+
+const CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+
+function syncUIFromConfig() {
+  // VAR: Update all UI controls to reflect CONFIG
+  document.getElementById('param1').value = CONFIG.param1;
+  document.getElementById('param1Val').textContent = CONFIG.param1;
+
+  CONFIG.colors.forEach((c, i) => {
+    let picker = document.getElementById('color' + (i + 1));
+    let hex = document.getElementById('color' + (i + 1) + 'Hex');
+    if (picker) { picker.value = c; }
+    if (hex) { hex.textContent = c; }
+  });
+}
+
+// ── VAR: p5.js Setup & Art Generation ──
+const CANVAS_SIZE = 1200;
+
+function setup() {
+  let canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
+  canvas.parent('canvasContainer');
+  pixelDensity(1);
+  noLoop();
+  generateArt();
+}
+
+function generateArt() {
+  // VAR: Replace with your algorithm
+  background(CONFIG.background);
+  fill(CONFIG.colors[0]);
+  noStroke();
+  ellipse(width / 2, height / 2, width * 0.4);
+}
+
+// Handle color picker hex display updates
+document.querySelectorAll('input[type="color"]').forEach(picker => {
+  picker.addEventListener('input', function() {
+    let hexSpan = document.getElementById(this.id + 'Hex');
+    if (hexSpan) hexSpan.textContent = this.value;
+  });
+});
+</script>
+</body>
+</html>

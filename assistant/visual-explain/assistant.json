@@ -1,0 +1,25 @@
+{
+  "id": "visual-explain",
+  "name": "Visual Explain Assistant",
+  "version": "3.3.0",
+  "description": "Specialized assistant for creating interactive visualizations using p5.js (2D) and Three.js (3D) — for education, simulation, diagramming, and data representation",
+  "author": "AionUi",
+  "workspacePath": "./workspace",
+  "tags": ["visualization", "p5js", "threejs", "education", "simulation", "mathematics", "physics", "diagrams", "interactive"],
+  "presetAgentType": "claude",
+  "defaultAgent": "visualization-consultant",
+  "avatar": "📊",
+  "nameI18n": {
+    "en-US": "Visual Explain",
+    "zh-CN": "可视化解释助手"
+  },
+  "descriptionI18n": {
+    "en-US": "Specialized assistant for creating interactive visualizations using p5.js (2D) and Three.js (3D) — for education, simulation, diagramming, and data representation.",
+    "zh-CN": "专业的交互式可视化助手，使用 p5.js (2D) 和 Three.js (3D) 创作 — 适用于教育、仿真、图表和数据表现。"
+  },
+  "promptsI18n": {
+    "en-US": ["Simulate a double pendulum with chaotic motion", "Visualize Fourier transform decomposition", "Draw a microservices architecture diagram", "Animate sorting algorithm comparison"],
+    "zh-CN": ["模拟具有混沌运动的双摆", "可视化傅里叶变换分解", "绘制微服务架构图", "动画展示排序算法比较"]
+  },
+  "isBuiltin": true
+}

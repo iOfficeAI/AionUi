@@ -327,4 +327,26 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': ['读取 prd.json 并实现下一个用户故事', '为以下功能生成 PRD：添加 OAuth 用户认证', '检查进度并继续下一个任务', '验证所有故事已完成并运行最终检查'],
     },
   },
+  {
+    id: 'visual-explain',
+    avatar: '📊',
+    presetAgentType: 'claude',
+    resourceDir: 'assistant/visual-explain',
+    ruleFiles: {
+      'en-US': 'visual-explain.md',
+      'zh-CN': 'visual-explain.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Visual Explain',
+      'zh-CN': '可视化解释',
+    },
+    descriptionI18n: {
+      'en-US': 'Create interactive visualizations with p5.js and Three.js — simulations, diagrams, algorithm animations, and scientific visualizations for education and engineering.',
+      'zh-CN': '使用 p5.js 和 Three.js 创建交互式可视化 — 仿真、图表、算法动画和科学可视化，适用于教育和工程。',
+    },
+    promptsI18n: {
+      'en-US': ['Simulate a double pendulum with chaotic motion', 'Visualize Fourier transform decomposition', 'Draw a microservices architecture diagram', 'Animate sorting algorithm comparison'],
+      'zh-CN': ['模拟具有混沌运动的双摆', '可视化傅里叶变换分解', '绘制微服务架构图', '动画展示排序算法比较'],
+    },
+  },
 ];

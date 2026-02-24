@@ -1,0 +1,7 @@
+{
+  "name": "Visual Explain Studio",
+  "description": "Workspace for creating interactive visualizations with p5.js (2D) and Three.js (3D) — mathematics, physics, biology, geometry, acoustics, and spatial visualization",
+  "version": "3.1.0",
+  "skills": ["algorithmic-art-p5js", "algorithmic-art-3js"],
+  "agents": ["visualization-consultant", "code-generator", "quality-reviewer"]
+}

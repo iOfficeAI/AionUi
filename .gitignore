@@ -109,6 +109,10 @@ out/
 # Keep important project documentation
 !.specify/memory/constitution.md
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Temporary and backup files
 *.tmp
 *.bak
