@@ -1,7 +1,7 @@
 {
   "id": "visual-explain",
   "name": "Visual Explain Assistant",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Specialized assistant for creating interactive visualizations using p5.js (2D) and Three.js (3D) — for education, simulation, diagramming, and data representation",
   "author": "AionUi",
   "workspacePath": "./workspace",
@@ -21,5 +21,11 @@
     "en-US": ["Simulate a double pendulum with chaotic motion", "Visualize Fourier transform decomposition", "Draw a microservices architecture diagram", "Animate sorting algorithm comparison"],
     "zh-CN": ["模拟具有混沌运动的双摆", "可视化傅里叶变换分解", "绘制微服务架构图", "动画展示排序算法比较"]
   },
-  "isBuiltin": true
+  "isBuiltin": true,
+  "preview": {
+    "autoOpen": true,
+    "file": "index.html",
+    "contentType": "html",
+    "title": "Visual Explain Preview"
+  }
 }

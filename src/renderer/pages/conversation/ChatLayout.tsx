@@ -175,15 +175,8 @@ const ChatLayout: React.FC<{
         if (shouldCollapse !== rightSiderCollapsed) {
           setRightSiderCollapsed(shouldCollapse);
         }
-      } else {
-        // 无用户偏好：有文件展开，没文件折叠
-        // No user preference: expand if has files, collapse if not
-        if (detail.hasFiles && rightSiderCollapsed) {
-          setRightSiderCollapsed(false);
-        } else if (!detail.hasFiles && !rightSiderCollapsed) {
-          setRightSiderCollapsed(true);
-        }
       }
+      // No user preference: keep current state (don't auto-expand/collapse)
     };
     window.addEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
     return () => {
