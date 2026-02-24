@@ -69,6 +69,9 @@ jobs:
     needs: code-quality
     if: ${{ always() && (inputs.skip_code_quality || needs.code-quality.result == 'success') }}
 
+    outputs:
+      commit-short: ${{ steps.commit.outputs.short }}
+
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(inputs.matrix) }}
@@ -158,16 +161,6 @@ jobs:
           echo "Ref: ${{ inputs.ref || '(default)' }}"
           echo "Commit: ${{ steps.commit.outputs.short }}"
           echo "=========================================="
-
-      - name: Write build summary
-        shell: bash
-        run: |
-          echo "## Build Info" >> $GITHUB_STEP_SUMMARY
-          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Ref | \`${{ inputs.ref || '(default)' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | \`${{ steps.commit.outputs.short }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform | \`${{ matrix.platform }}\` |" >> $GITHUB_STEP_SUMMARY
 
       # macOS code signing certificate installation
       - name: Setup macOS code signing (macOS only)
@@ -510,3 +503,26 @@ jobs:
             out/AionUi-*-mac-*.zip
           if-no-files-found: warn
           retention-days: 7
+
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, build]
+    if: always()
+
+    steps:
+      - name: Write build summary
+        env:
+          MATRIX: ${{ inputs.matrix }}
+        run: |
+          PLATFORMS=$(echo "$MATRIX" | jq -r '[.include[].platform] | join(", ")')
+
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Ref | \`${{ inputs.ref || '(default)' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ needs.build.outputs.commit-short }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Platforms | $PLATFORMS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
