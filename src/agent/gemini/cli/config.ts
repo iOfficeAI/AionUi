@@ -100,8 +100,11 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
       let builtinDirSkills: SkillDefinition[] = [];
       try {
         builtinDirSkills = await loadSkillsFromDir(builtinDir);
-      } catch {
-        // _builtin directory may not exist, ignore
+      } catch (e) {
+        // Only ignore "not found" errors; warn on unexpected failures
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+          console.warn(`[Config] Failed to load skills from ${builtinDir}:`, e);
+        }
       }
       const allSkills = [...topLevelSkills, ...builtinDirSkills];
       const enabledSet = new Set(enabledSkills);
