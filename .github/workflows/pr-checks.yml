@@ -18,7 +18,7 @@ env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
-  # Job 1: Code quality checks (TypeScript, ESLint, Prettier) using prek
+  # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
     if: github.event.action != 'edited'
@@ -46,8 +46,14 @@ jobs:
       - name: Run postinstall
         run: npm run postinstall || true
 
-      - name: Run prek checks (TypeScript, ESLint, Prettier)
-        run: bunx prek run --from-ref origin/main --to-ref HEAD
+      - name: Run ESLint
+        run: bun run lint
+
+      - name: Check Prettier formatting
+        run: bun run format:check
+
+      - name: TypeScript type check
+        run: bunx tsc --noEmit
 
   # Job 2: Unit tests across all platforms
   unit-tests:

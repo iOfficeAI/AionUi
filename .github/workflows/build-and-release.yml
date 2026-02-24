@@ -41,8 +41,14 @@ jobs:
       - name: Run postinstall
         run: bun run postinstall || true
 
-      - name: Run prek checks (TypeScript, ESLint, Prettier)
-        run: bunx prek run --all-files
+      - name: Run ESLint
+        run: bun run lint
+
+      - name: Check Prettier formatting
+        run: bun run format:check
+
+      - name: TypeScript type check
+        run: bunx tsc --noEmit
 
       - name: Run unit tests
         run: bunx vitest run tests/extensions/
