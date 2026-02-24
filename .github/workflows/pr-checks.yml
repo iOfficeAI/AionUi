@@ -46,14 +46,11 @@ jobs:
       - name: Run postinstall
         run: npm run postinstall || true
 
-      - name: Run ESLint
-        run: bun run lint
+      - name: Install prek
+        run: bun add -g prek
 
-      - name: Check Prettier formatting
-        run: bun run format:check
-
-      - name: TypeScript type check
-        run: bunx tsc --noEmit
+      - name: Run prek checks
+        run: prek run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
 
   # Job 2: Unit tests across all platforms
   unit-tests:
