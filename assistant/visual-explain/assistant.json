@@ -1,7 +1,7 @@
 {
   "id": "visual-explain",
   "name": "Visual Explain Assistant",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Specialized assistant for creating interactive visualizations using p5.js (2D) and Three.js (3D) — for education, simulation, diagramming, and data representation",
   "author": "AionUi",
   "workspacePath": "./workspace",
