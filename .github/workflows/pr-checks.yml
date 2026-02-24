@@ -143,15 +143,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Setup just (Windows)
-        if: startsWith(matrix.platform, 'windows')
-        shell: pwsh
-        run: choco install just -y
-
-      - name: Setup just (macOS/Linux)
-        if: "!startsWith(matrix.platform, 'windows')"
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+      - name: Setup just
+        uses: extractions/setup-just@v2
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
