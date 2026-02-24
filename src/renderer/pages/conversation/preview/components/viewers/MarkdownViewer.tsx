@@ -26,6 +26,7 @@ import { Streamdown } from 'streamdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
+import { convertLatexDelimiters } from '@/renderer/utils/latexDelimiters';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -196,7 +197,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
   // 🎯 使用流式打字动画 Hook / Use typing animation Hook
-  const previewSource = useMemo(() => rewriteExternalMediaUrls(content), [content]);
+  const previewSource = useMemo(() => convertLatexDelimiters(rewriteExternalMediaUrls(content)), [content]);
 
   const { displayedContent, isAnimating } = useTypingAnimation({
     content: previewSource,

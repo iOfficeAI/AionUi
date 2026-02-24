@@ -27,6 +27,7 @@ import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { addImportantToAll } from '../utils/customCssProcessor';
+import { convertLatexDelimiters } from '../utils/latexDelimiters';
 import LocalImageView from './LocalImageView';
 
 const formatCode = (code: string) => {
@@ -531,7 +532,9 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
 
   const normalizedChildren = useMemo(() => {
     if (typeof childrenProp === 'string') {
-      return childrenProp.replace(/file:\/\//g, '');
+      let text = childrenProp.replace(/file:\/\//g, '');
+      text = convertLatexDelimiters(text);
+      return text;
     }
     return childrenProp;
   }, [childrenProp]);
