@@ -30,21 +30,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup vx
-        uses: loonghao/vx@v0.8.4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          tools: 'node@22 bun prek'
-          setup: 'true'
-          cache: 'true'
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: vx bun install --no-frozen-lockfile
+        run: bun install --no-frozen-lockfile
 
       - name: Run postinstall
-        run: vx npm run postinstall || true
+        run: npm run postinstall || true
 
       - name: Run prek checks (TypeScript, ESLint, Prettier)
-        run: vx prek run --from-ref origin/main --to-ref HEAD
+        run: bunx prek run --from-ref origin/main --to-ref HEAD
 
   # Job 2: Unit tests across all platforms
   unit-tests:
@@ -60,21 +63,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup vx
-        uses: loonghao/vx@v0.8.4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          tools: 'node@22 bun'
-          setup: 'true'
-          cache: 'true'
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: vx bun install --no-frozen-lockfile
+        run: bun install --no-frozen-lockfile
 
       - name: Run postinstall
-        run: vx npm run postinstall || true
+        run: npm run postinstall || true
 
       - name: Run extension system tests
-        run: vx bunx vitest run tests
+        run: bunx vitest run tests
 
   # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
@@ -116,22 +122,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup vx
-        uses: loonghao/vx@v0.8.4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          tools: 'node@22 bun python@3.12 just'
-          setup: 'true'
-          cache: 'true'
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup just (Windows)
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        run: choco install just -y
+
+      - name: Setup just (macOS/Linux)
+        if: "!startsWith(matrix.platform, 'windows')"
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
       - name: Install dependencies
-        run: vx bun install --no-frozen-lockfile
+        run: bun install --no-frozen-lockfile
 
       - name: Run postinstall
-        run: vx npm run postinstall || true
-
-      # Note: Windows native toolchain setup (node-gyp, MSVC, MSBuild, Windows SDK)
-      # is handled internally by `vx just build-win-x64` / `vx just build-win-arm64`
-      # via `vx --with msvc`, so no separate setup steps are needed here.
+        run: npm run postinstall || true
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
@@ -149,10 +169,16 @@ jobs:
 
       - name: Rebuild native modules for Electron (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
-        run: vx bunx electron-builder install-app-deps
+        run: bunx electron-builder install-app-deps
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
+
+      - name: Setup MSBuild (Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
 
       - name: Build test (Windows x64)
         if: matrix.platform == 'windows-x64'
@@ -161,7 +187,7 @@ jobs:
           Write-Host "=========================================="
           Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
-          vx just build-win-x64
+          just build-win-x64
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
@@ -177,7 +203,7 @@ jobs:
           Write-Host "=========================================="
           Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
-          vx just build-win-arm64
+          just build-win-arm64
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"

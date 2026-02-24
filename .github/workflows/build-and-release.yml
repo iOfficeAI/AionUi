@@ -25,24 +25,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup vx
-        uses: loonghao/vx@v0.8.4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          tools: 'node@22 bun prek'
-          setup: 'true'
-          cache: 'true'
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install dependencies
-        run: vx bun install --no-frozen-lockfile
+        run: bun install --no-frozen-lockfile
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: bun run postinstall || true
 
       - name: Run prek checks (TypeScript, ESLint, Prettier)
-        run: vx prek run --all-files
+        run: bunx prek run --all-files
 
       - name: Run unit tests
-        run: vx bunx vitest run tests/extensions/
+        run: bunx vitest run tests/extensions/
 
   build:
     name: Build ${{ matrix.platform }}
@@ -77,7 +80,7 @@ jobs:
             arch: 'arm64'
           - platform: 'linux'
             os: 'ubuntu-latest'
-            command: 'vx bun run dist:linux'
+          command: 'bun run dist:linux'
             artifact-name: 'linux-build'
             arch: 'x64,arm64'
 
@@ -85,23 +88,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup vx
-        uses: loonghao/vx@v0.8.4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          tools: 'node@22 bun python@3.12'
-          setup: 'true'
-          cache: 'true'
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Install dependencies
-        run: vx bun install --no-frozen-lockfile
+        run: bun install --no-frozen-lockfile
 
       - name: Run postinstall
-        run: vx bun run postinstall || true
+        run: bun run postinstall || true
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')
         run: |
-          vx bun install --global node-gyp
+          bun install --global node-gyp
 
       - name: Setup Windows build environment (for Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -117,7 +128,7 @@ jobs:
 
       - name: Rebuild native modules for Electron
         if: "!startsWith(matrix.platform, 'windows')"
-        run: vx bunx electron-builder install-app-deps
+        run: bunx electron-builder install-app-deps
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
@@ -194,7 +205,7 @@ jobs:
           Write-Host "[Step 1] Trying prebuild-install..."
           $prebuildResult = $null
           try {
-            $prebuildResult = vx --with msvc bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=$arch --force 2>&1
+          $prebuildResult = bun x --yes prebuild-install --runtime=electron --target=$electronVer --platform=win32 --arch=$arch --force 2>&1
             if ($LASTEXITCODE -eq 0) {
               Write-Host "✅ prebuild-install succeeded"
               $success = $true
@@ -211,7 +222,7 @@ jobs:
             Write-Host ""
             Write-Host "[Step 2] prebuild-install didn't produce binary, trying electron-rebuild..."
             try {
-              vx --with msvc bunx electron-rebuild -f -w better-sqlite3
+              bunx electron-rebuild -f -w better-sqlite3
               if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ electron-rebuild succeeded"
                 $success = $true
@@ -412,6 +423,8 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
+
+
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
         if: startsWith(matrix.platform, 'macos') && always()
@@ -557,6 +570,11 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -599,7 +617,7 @@ jobs:
                 echo "📝 Updating package.json version to $NEW_VERSION"
 
                 # 更新 package.json 版本号
-                vx bun pm version $NEW_VERSION
+                bun pm version $NEW_VERSION
 
                 # 配置git用户信息
                 git config user.name "github-actions[bot]"
