@@ -103,10 +103,7 @@ class AutoUpdaterService extends EventEmitter {
     // Remove each registered handler from autoUpdater to prevent
     // duplicate handler accumulation across multiple initialize() calls in tests
     for (const [event, handler] of this._autoUpdaterHandlers) {
-      autoUpdater.removeListener(
-        event as Parameters<typeof autoUpdater.removeListener>[0],
-        handler as Parameters<typeof autoUpdater.removeListener>[1],
-      );
+      autoUpdater.removeListener(event as Parameters<typeof autoUpdater.removeListener>[0], handler as Parameters<typeof autoUpdater.removeListener>[1]);
     }
     this._autoUpdaterHandlers.clear();
   }
