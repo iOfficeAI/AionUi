@@ -196,6 +196,16 @@ jobs:
           echo "Commit: ${{ steps.commit.outputs.short }}"
           echo "=========================================="
 
+      - name: Write build summary
+        shell: bash
+        run: |
+          echo "## Build Info" >> $GITHUB_STEP_SUMMARY
+          echo "| Key | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ inputs.branch }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ steps.commit.outputs.short }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform | \`${{ matrix.platform }}\` |" >> $GITHUB_STEP_SUMMARY
+
       - name: Setup macOS code signing (macOS only)
         if: startsWith(matrix.platform, 'macos')
         env:
