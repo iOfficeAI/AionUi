@@ -93,10 +93,23 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   let builtinSkills: SkillDefinition[] = [];
   if (skillsDir && enabledSkills && enabledSkills.length > 0) {
     try {
-      builtinSkills = await loadSkillsFromDir(skillsDir);
+      // Load skills from both top-level and _builtin/ subdirectory
+      // loadSkillsFromDir only scans direct children, so _builtin/cron is not found by default
+      const topLevelSkills = await loadSkillsFromDir(skillsDir);
+      const builtinDir = path.join(skillsDir, '_builtin');
+      let builtinDirSkills: SkillDefinition[] = [];
+      try {
+        builtinDirSkills = await loadSkillsFromDir(builtinDir);
+      } catch (e) {
+        // Only ignore "not found" errors; warn on unexpected failures
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+          console.warn(`[Config] Failed to load skills from ${builtinDir}:`, e);
+        }
+      }
+      const allSkills = [...topLevelSkills, ...builtinDirSkills];
       const enabledSet = new Set(enabledSkills);
-      const originalCount = builtinSkills.length;
-      builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
+      const originalCount = allSkills.length;
+      builtinSkills = allSkills.filter((skill) => enabledSet.has(skill.name));
       console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);

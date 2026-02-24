@@ -11,7 +11,8 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
-import { buildSystemInstructions } from './agentUtils';
+import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
+import { detectSkillLoadRequest, AcpSkillManager, buildSkillContentText } from './AcpSkillManager';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType, getOauthInfoWithCache } from '@office-ai/aioncli-core';
@@ -133,15 +134,20 @@ export class GeminiAgentManager extends BaseAgentManager<
           }
         }
 
-        // Build system instructions using unified agentUtils
-        // 使用统一的 agentUtils 构建系统指令
-        // Always include 'cron' as a built-in skill
-        // 始终将 'cron' 作为内置 skill 包含
-        const allEnabledSkills = ['cron', ...(this.enabledSkills || [])];
-        const finalPresetRules = await buildSystemInstructions({
+        // Build system instructions with skills INDEX only (not full content)
+        // 使用 skills 索引构建系统指令（不注入全文，按需通过 activate_skill 加载）
+        // Builtin skills (e.g. cron) are auto-included in the index by AcpSkillManager
+        const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
+        await skillManager.discoverSkills(this.enabledSkills);
+        const finalPresetRules = await buildSystemInstructionsWithSkillsIndex({
           presetContext: this.presetRules,
-          enabledSkills: allEnabledSkills,
+          enabledSkills: this.enabledSkills,
         });
+
+        // Merge builtin skill names into enabledSkills for the worker's activate_skill tool
+        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 activate_skill 能找到它们
+        const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
+        const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
 
         // Determine yoloMode from legacy config (SecurityModalContent)
         const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
@@ -177,9 +183,9 @@ export class GeminiAgentManager extends BaseAgentManager<
           contextContent: this.contextContent,
           // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
           skillsDir: getSkillsDir(),
-          // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
-          // Enabled skills list for filtering skills in SkillManager
-          enabledSkills: this.enabledSkills,
+          // 启用的 skills 列表（含内置 skills），用于 worker 的 activate_skill 工具
+          // Enabled skills list (including builtins) for worker's activate_skill tool
+          enabledSkills: allEnabledSkills,
           // Yolo mode: derived from currentMode, not directly from legacy config
           yoloMode: effectiveYoloMode,
         });
@@ -545,11 +551,33 @@ export class GeminiAgentManager extends BaseAgentManager<
       const latestMsg = assistantMsgs[0];
       const textContent = extractTextFromMessage(latestMsg);
 
+      // Collect system responses to send back to AI
+      const collectedResponses: string[] = [];
+
+      // Detect [LOAD_SKILL: ...] requests and load skill content on demand
+      if (textContent) {
+        const skillRequests = detectSkillLoadRequest(textContent);
+        if (skillRequests.length > 0) {
+          const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
+          await skillManager.discoverSkills(this.enabledSkills);
+          const skills = await skillManager.getSkills(skillRequests);
+          if (skills.length > 0) {
+            const skillContent = buildSkillContentText(skills);
+            collectedResponses.push(skillContent);
+            ipcBridge.geminiConversation.responseStream.emit({
+              type: 'system',
+              conversation_id: this.conversation_id,
+              msg_id: uuid(),
+              data: skillContent,
+            });
+          }
+        }
+      }
+
+      // Detect cron commands
       if (textContent && hasCronCommands(textContent)) {
         // Create a message with finish status for middleware
         const msgWithStatus = { ...latestMsg, status: 'finish' as const };
-        // Collect system responses to send back to AI
-        const collectedResponses: string[] = [];
         await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {
           collectedResponses.push(sysMsg);
           // Also emit to frontend for display
@@ -560,15 +588,15 @@ export class GeminiAgentManager extends BaseAgentManager<
             data: sysMsg,
           });
         });
-        // Send collected responses back to AI agent so it can continue
-        if (collectedResponses.length > 0) {
-          const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
-          // Use sendMessage to send the feedback back to AI
-          await this.sendMessage({
-            input: feedbackMessage,
-            msg_id: uuid(),
-          });
-        }
+      }
+
+      // Send collected responses back to AI agent so it can continue
+      if (collectedResponses.length > 0) {
+        const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+        await this.sendMessage({
+          input: feedbackMessage,
+          msg_id: uuid(),
+        });
       }
 
       // Found assistant messages, no need to retry
