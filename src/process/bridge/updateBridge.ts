@@ -11,6 +11,7 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
+import { autoUpdaterService } from '../services/autoUpdaterService';
 
 type GitHubReleaseApiAsset = {
   name: string;
@@ -437,5 +438,41 @@ export function initUpdateBridge(): void {
     } catch (err: unknown) {
       return Promise.resolve({ success: false, msg: err instanceof Error ? err.message : String(err) });
     }
+  });
+
+  // Auto-updater IPC handlers (electron-updater)
+  ipcBridge.autoUpdate.check.provider(async (): Promise<{ success: boolean; data?: { updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }; msg?: string }> => {
+    try {
+      const result = await autoUpdaterService.checkForUpdates();
+      if (result.success && result.updateInfo) {
+        return {
+          success: true,
+          data: {
+            updateInfo: {
+              version: result.updateInfo.version,
+              releaseDate: result.updateInfo.releaseDate,
+              releaseNotes: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : undefined,
+            },
+          },
+        };
+      }
+      return { success: result.success, msg: result.error };
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcBridge.autoUpdate.download.provider(async (): Promise<{ success: boolean; msg?: string }> => {
+    try {
+      const result = await autoUpdaterService.downloadUpdate();
+      return { success: result.success, msg: result.error };
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcBridge.autoUpdate.quitAndInstall.provider(() => {
+    autoUpdaterService.quitAndInstall();
+    return Promise.resolve();
   });
 }

@@ -218,6 +218,21 @@ const createWindow = (): void => {
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
+  // Initialize auto-updater service
+  // 初始化自动更新服务
+  import('./process/services/autoUpdaterService')
+    .then(({ autoUpdaterService }) => {
+      autoUpdaterService.initialize(mainWindow);
+      // Check for updates after 3 seconds delay
+      // 3秒后检查更新
+      setTimeout(() => {
+        void autoUpdaterService.checkForUpdatesAndNotify();
+      }, 3000);
+    })
+    .catch((error) => {
+      console.error('[App] Failed to initialize autoUpdaterService:', error);
+    });
+
   // and load the index.html of the app.
   // electron-vite: In development, use ELECTRON_RENDERER_URL for HMR
   // In production, load the built HTML file

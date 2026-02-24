@@ -11,7 +11,7 @@ import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
-import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
+import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 
 export const shell = {
@@ -79,6 +79,18 @@ export const update = {
   download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
   /** Download progress events emitted by main process. */
   downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
+};
+
+// Auto-updater (electron-updater) API
+export const autoUpdate = {
+  /** Check for updates using electron-updater */
+  check: bridge.buildProvider<IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>, void>('auto-update.check'),
+  /** Download update using electron-updater */
+  download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
+  /** Quit and install the downloaded update */
+  quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
+  /** Auto-update status events */
+  status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
 };
 
 export const dialog = {
