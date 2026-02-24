@@ -86,7 +86,7 @@ jobs:
             arch: 'arm64'
           - platform: 'linux'
             os: 'ubuntu-latest'
-          command: 'bun run dist:linux'
+            command: 'bun run dist:linux'
             artifact-name: 'linux-build'
             arch: 'x64,arm64'
 
