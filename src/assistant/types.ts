@@ -62,4 +62,15 @@ export interface AssistantMetadata {
   descriptionI18n?: Record<string, string>;
   /** Localized prompt suggestions */
   promptsI18n?: Record<string, string[]>;
+  /** Preview sidebar configuration */
+  preview?: {
+    /** Auto-open preview sidebar when conversation starts */
+    autoOpen?: boolean;
+    /** File to open in preview (relative to workspace) */
+    file?: string;
+    /** Content type for the preview */
+    contentType?: 'html' | 'markdown' | 'code' | 'url';
+    /** Preview title */
+    title?: string;
+  };
 }

@@ -62,6 +62,13 @@ export type HookContext = {
     type?: 'info' | 'warning' | 'error' | 'success';
     category?: string; // e.g., 'setup_progress', 'setup_complete', 'setup_error'
   }) => void;
+  /** Open the preview sidebar with content or a file */
+  openPreview: (options: {
+    content: string;
+    contentType: 'html' | 'markdown' | 'code' | 'url';
+    title?: string;
+    fileName?: string;
+  }) => void;
 };
 
 /**

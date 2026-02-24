@@ -12,7 +12,7 @@ import { executeHooks } from '@/assistant/hooks/HookExecutor';
 import type { ExecuteHooksResult } from '@/assistant/hooks/HookExecutor';
 import { createHookUtils } from '@/assistant/hooks/HookRunner';
 import type { HookEvent, HookContext } from '@/assistant/hooks/types';
-import { conversation } from '@/common/ipcBridge';
+import { conversation, preview } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 
 /**
@@ -86,6 +86,16 @@ export async function runAgentHooks(
           category: message.category || 'hook',
         },
         timestamp: Date.now(),
+      });
+    },
+    openPreview: (options) => {
+      preview.open.emit({
+        content: options.content,
+        contentType: options.contentType,
+        metadata: {
+          title: options.title,
+          fileName: options.fileName,
+        },
       });
     },
   };

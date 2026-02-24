@@ -12,7 +12,7 @@ import { loadHookModules } from './ModuleLoader';
 import { executeHooks } from './HookExecutor';
 import type { ExecuteHooksResult } from './HookExecutor';
 import type { HookEvent, HookContext, HookUtils } from './types';
-import { conversation } from '@/common/ipcBridge';
+import { conversation, preview } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 
 /**
@@ -117,6 +117,22 @@ function createEmitMessage(conversationId?: string) {
 }
 
 /**
+ * Create openPreview function for hooks to open the preview sidebar
+ */
+function createOpenPreview() {
+  return (options: { content: string; contentType: 'html' | 'markdown' | 'code' | 'url'; title?: string; fileName?: string }) => {
+    preview.open.emit({
+      content: options.content,
+      contentType: options.contentType,
+      metadata: {
+        title: options.title,
+        fileName: options.fileName,
+      },
+    });
+  };
+}
+
+/**
  * Run hooks for assistant-level customization
  *
  * Hook modules are loaded from:
@@ -154,6 +170,7 @@ export async function runHooks(event: HookEvent, context: Partial<HookContext>):
     skillsSourceDir: getSkillsDir(),
     enqueue: noop,
     emitMessage: createEmitMessage(context.conversationId),
+    openPreview: createOpenPreview(),
     ...context,
   };
 

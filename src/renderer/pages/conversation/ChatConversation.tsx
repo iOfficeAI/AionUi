@@ -10,6 +10,7 @@ import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import DevToolsButton from './components/DevToolsButton';
+import { useAutoPreview } from '@/renderer/hooks/useAutoPreview';
 import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/theme/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
@@ -100,6 +101,9 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 
 const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({ conversation, sliderTitle }) => {
+  // Auto-open preview sidebar if assistant has preview config
+  useAutoPreview(conversation);
+
   // Save model selection to conversation via IPC
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -171,6 +175,10 @@ const ChatConversation: React.FC<{
         return null;
     }
   }, [conversation, isGeminiConversation, isGroupConversation]);
+
+  // Auto-open preview sidebar if assistant has preview config (non-Gemini conversations)
+  // Gemini conversations are handled by GeminiConversationPanel
+  useAutoPreview(isGeminiConversation ? undefined : conversation);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)

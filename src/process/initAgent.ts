@@ -181,7 +181,10 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   // that may have hooks already in place.
   await runHooks('onConversationInit', { workspace });
 
-  return { workspace, customWorkspace, defaultAgent, assistantHooksPath };
+  // Extract preview config from assistant metadata (if available)
+  const preview = assistantConfig?.preview;
+
+  return { workspace, customWorkspace, defaultAgent, assistantHooksPath, preview };
 };
 
 export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string): Promise<TChatConversation> => {
@@ -219,7 +222,7 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
 export const createAcpAgent = async (options: ICreateConversationParams, assistantConfig?: import('@/assistant/types').AssistantMetadata | null): Promise<TChatConversation> => {
   const { extra } = options;
   // Use presetAssistantId as workspace template source (resolves automatically)
-  const { workspace, customWorkspace, defaultAgent, assistantHooksPath } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId, assistantConfig);
+  const { workspace, customWorkspace, defaultAgent, assistantHooksPath, preview } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId, assistantConfig);
 
   // Build extra object, only including defined fields to prevent undefined values from being JSON.stringify'd
   const conversationExtra: any = {
@@ -241,6 +244,7 @@ export const createAcpAgent = async (options: ICreateConversationParams, assista
   if (extra.currentModelId !== undefined) conversationExtra.currentModelId = extra.currentModelId;
   if (defaultAgent !== undefined) conversationExtra.defaultAgent = defaultAgent;
   if (assistantHooksPath !== undefined) conversationExtra.assistantHooksPath = assistantHooksPath;
+  if (preview) conversationExtra.preview = preview;
 
   return {
     type: 'acp' as const,
@@ -350,7 +354,7 @@ export const createSwarmConversation = async (options: ICreateConversationParams
   }
 
   // Build workspace (reusing existing infrastructure)
-  const { workspace, customWorkspace, defaultAgent, assistantHooksPath } = await buildWorkspaceWidthFiles(
+  const { workspace, customWorkspace, defaultAgent, assistantHooksPath, preview } = await buildWorkspaceWidthFiles(
     `swarm-temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
@@ -374,6 +378,7 @@ export const createSwarmConversation = async (options: ICreateConversationParams
       defaultAgent,
       assistantHooksPath,
       swarmConfig: assistantConfig.swarm,
+      ...(preview && { preview }),
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

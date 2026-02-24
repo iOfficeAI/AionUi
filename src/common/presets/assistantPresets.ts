@@ -20,6 +20,17 @@ export type AssistantPreset = {
   nameI18n: Record<string, string>;
   descriptionI18n: Record<string, string>;
   promptsI18n?: Record<string, string[]>;
+  /** Preview sidebar configuration */
+  preview?: {
+    /** Auto-open preview sidebar when conversation starts */
+    autoOpen?: boolean;
+    /** File to open in preview (relative to workspace) */
+    file?: string;
+    /** Content type for the preview */
+    contentType?: 'html' | 'markdown' | 'code' | 'url';
+    /** Preview title */
+    title?: string;
+  };
 };
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
@@ -137,6 +148,12 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     promptsI18n: {
       'en-US': ['Create a 3D platformer game with jumping mechanics', 'Make a coin collection game with obstacles', 'Build a 3D maze exploration game'],
       'zh-CN': ['创建一个带跳跃机制的 3D 平台游戏', '制作一个带障碍物的金币收集游戏', '构建一个 3D 迷宫探索游戏'],
+    },
+    preview: {
+      autoOpen: true,
+      file: 'index.html',
+      contentType: 'html',
+      title: '3D Game Preview',
     },
   },
   {

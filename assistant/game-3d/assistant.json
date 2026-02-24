@@ -8,5 +8,11 @@
   "tags": ["3d", "game-development", "threejs", "babylonjs", "webgl", "graphics"],
   "presetAgentType": "claude",
   "defaultAgent": "game-developer",
-  "isBuiltin": true
+  "isBuiltin": true,
+  "preview": {
+    "autoOpen": true,
+    "file": "index.html",
+    "contentType": "html",
+    "title": "3D Game Preview"
+  }
 }
