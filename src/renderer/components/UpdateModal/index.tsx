@@ -48,7 +48,7 @@ const UpdateModal: React.FC = () => {
     try {
       // 优先使用自动更新模式
       if (useAutoUpdate) {
-        const res = await ipcBridge.autoUpdate.check.invoke();
+        const res = await ipcBridge.autoUpdate.check.invoke({});
         if (res?.success && res.data?.updateInfo) {
           setAutoUpdateInfo({
             version: res.data.updateInfo.version,
@@ -359,9 +359,7 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.readyToInstall')}</div>
-            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>
-              {t('update.readyToInstallDesc')}
-            </div>
+            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>{t('update.readyToInstallDesc')}</div>
             <Button type='primary' size='small' onClick={quitAndInstall} icon={<Install size='14' />} className='!px-16px'>
               {t('update.installNow')}
             </Button>

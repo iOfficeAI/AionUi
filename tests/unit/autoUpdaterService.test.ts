@@ -376,9 +376,7 @@ describe('AutoUpdaterService', () => {
 
     it('should throw when triggering an event before initialize', () => {
       // Handler not registered yet — triggerEventForTest must throw a clear error
-      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow(
-        'No handler registered for autoUpdater event "checking-for-update"',
-      );
+      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow('No handler registered for autoUpdater event "checking-for-update"');
     });
   });
 
@@ -436,9 +434,7 @@ describe('AutoUpdaterService', () => {
       autoUpdaterService.resetForTest();
 
       // After reset, handlers are gone — triggerEventForTest must throw
-      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow(
-        'No handler registered for autoUpdater event "checking-for-update"',
-      );
+      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow('No handler registered for autoUpdater event "checking-for-update"');
     });
   });
 });
