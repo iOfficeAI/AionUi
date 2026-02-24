@@ -147,6 +147,16 @@ jobs:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
 
+      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/.cache/electron-builder
+          key: electron-builder-binaries-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            electron-builder-binaries-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-builder-binaries-${{ matrix.platform }}-
+
       - name: Print build configuration
         shell: bash
         run: |
