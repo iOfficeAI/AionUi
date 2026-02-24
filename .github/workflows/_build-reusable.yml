@@ -115,6 +115,7 @@ jobs:
 
       - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
         if: matrix.platform == 'windows-arm64'
+        continue-on-error: true
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 20
