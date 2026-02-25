@@ -1,93 +1,23 @@
+diff --git a/node_modules/7zip-bin/.bun-tag-4d314d69e08871fe b/.bun-tag-4d314d69e08871fe
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/7zip-bin/.bun-tag-af2be5958dbfc6a3 b/.bun-tag-af2be5958dbfc6a3
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/index.js b/index.js
-index d4c7a8ce..f34e75ab 100644
+index d4c7a8ce90ce7ad7b89d3d59376b62aab04b3da9..3bad4b87a670835924df25410bc36f0dfa2ede5c 100644
 --- a/index.js
 +++ b/index.js
-@@ -1,6 +1,84 @@
+@@ -1,6 +1,8 @@
  "use strict"
  
  const path = require("path")
 +const fs = require("fs")
 +const os = require("os")
-+
-+// Monkey-patch child_process.spawn and execFile on Windows to intercept 7za zip calls
-+// and replace them with PowerShell ZipFile API (avoids 7za E_INVALIDARG on large dirs)
-+if (process.platform === "win32") {
-+  const cp = require("child_process")
-+
-+  function buildPsZipArgs(command, args, options) {
-+    if (
-+      typeof command === "string" &&
-+      command.replace(/\\/g, "/").toLowerCase().endsWith("7za.exe") &&
-+      Array.isArray(args) && args[0] === "a"
-+    ) {
-+      // Extract output path and input path from 7za args
-+      // 7za args format: ["a", "-bd", "-mx=7", ..., "output.zip", "input"]
-+      let outputFile = null
-+      let inputPath = null
-+      for (let i = 1; i < args.length; i++) {
-+        if (!args[i].startsWith("-")) {
-+          if (outputFile === null) {
-+            outputFile = args[i]
-+          } else {
-+            inputPath = args[i]
-+            break
-+          }
-+        }
-+      }
-+
-+      if (outputFile && inputPath) {
-+        const cwd = (options && options.cwd) ? options.cwd : process.cwd()
-+        const absOutput = path.isAbsolute(outputFile) ? outputFile : path.join(cwd, outputFile)
-+        const absInput = path.isAbsolute(inputPath) ? inputPath : path.join(cwd, inputPath)
-+
-+        // Use .NET ZipFile API via PowerShell (more reliable than Compress-Archive for large dirs)
-+        const psCmd = [
-+          "Add-Type -Assembly System.IO.Compression.FileSystem;",
-+          "[System.IO.Compression.ZipFile]::CreateFromDirectory(",
-+          "  '" + absInput.replace(/'/g, "''") + "',",
-+          "  '" + absOutput.replace(/'/g, "''") + "',",
-+          "  [System.IO.Compression.CompressionLevel]::Optimal,",
-+          "  $false",
-+          ")",
-+        ].join(" ")
-+
-+        return {
-+          command: "powershell.exe",
-+          args: ["-NoProfile", "-NonInteractive", "-Command", psCmd],
-+        }
-+      }
-+    }
-+    return null
-+  }
-+
-+  const _origSpawn = cp.spawn
-+  cp.spawn = function patchedSpawn(command, args, options) {
-+    const replacement = buildPsZipArgs(command, args, options)
-+    if (replacement) {
-+      return _origSpawn.call(this, replacement.command, replacement.args, options)
-+    }
-+    return _origSpawn.apply(this, arguments)
-+  }
-+
-+  const _origExecFile = cp.execFile
-+  cp.execFile = function patchedExecFile(command, args, options, callback) {
-+    // execFile can be called as (cmd, callback), (cmd, args, callback), (cmd, args, options, callback)
-+    // Normalize: find the actual args array
-+    let actualArgs = args
-+    if (!Array.isArray(actualArgs)) {
-+      actualArgs = []
-+    }
-+    const replacement = buildPsZipArgs(command, actualArgs, typeof options === "object" && options !== null ? options : {})
-+    if (replacement) {
-+      return _origExecFile.call(this, replacement.command, replacement.args, options, callback)
-+    }
-+    return _origExecFile.apply(this, arguments)
-+  }
-+}
  
  function getPath() {
    if (process.env.USE_SYSTEM_7ZA === "true") {
-@@ -8,9 +86,12 @@ function getPath() {
+@@ -8,7 +10,9 @@ function getPath() {
    }
  
    if (process.platform === "darwin") {
@@ -97,11 +27,8 @@ index d4c7a8ce..f34e75ab 100644
 +    return getMacWrapper()
    }
    else if (process.platform === "win32") {
-+    // Return the real 7za.exe; spawn is monkey-patched above to use PowerShell for zip
      return path.join(__dirname, "win", process.arch, "7za.exe")
-   }
-   else {
-@@ -18,5 +99,43 @@ function getPath() {
+@@ -18,5 +22,43 @@ function getPath() {
    }
  }
  

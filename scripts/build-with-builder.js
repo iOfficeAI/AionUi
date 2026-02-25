@@ -344,14 +344,14 @@ try {
   const publishArg = '--publish=never';
 
   // Set compression level based on environment
-  // CI builds use maximum compression for smallest size
-  // Local builds use normal compression for 30-50% faster ASAR packing
+  // 7za -mx accepts numeric values: 0 (store) to 9 (ultra)
+  // CI builds use 9 (maximum) for smallest size
+  // Local builds use 7 (normal) for 30-50% faster ASAR packing
   const isCI = process.env.CI === 'true';
-  const compressionLevel = isCI ? 'maximum' : 'normal';
   if (!process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL) {
-    process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = compressionLevel;
+    process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL = isCI ? '9' : '7';
   }
-  console.log(`📦 Using ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL} compression (${isCI ? 'CI build' : 'local build'})`);
+  console.log(`📦 Compression level: ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL} (${isCI ? 'CI build' : 'local build'})`);
 
   // 根据模式添加架构标志
   // Add arch flags based on mode
