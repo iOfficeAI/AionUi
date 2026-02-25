@@ -491,7 +491,7 @@ jobs:
             ls -lh out/ || true
             echo "=========================================="
             echo "Total artifacts:"
-            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) -exec basename {} \; || true
           else
             echo "No out directory found!"
           fi
@@ -519,6 +519,8 @@ jobs:
             out/*.AppImage
             out/AionUi-*-win32-*.zip
             out/AionUi-*-mac-*.zip
+            out/*.yml
+            out/*.blockmap
           if-no-files-found: warn
           retention-days: 7
 

@@ -48,7 +48,7 @@ const UpdateModal: React.FC = () => {
     try {
       // 优先使用自动更新模式
       if (useAutoUpdate) {
-        const res = await ipcBridge.autoUpdate.check.invoke({});
+        const res = await ipcBridge.autoUpdate.check.invoke({ includePrerelease });
         if (res?.success && res.data?.updateInfo) {
           setAutoUpdateInfo({
             version: res.data.updateInfo.version,
