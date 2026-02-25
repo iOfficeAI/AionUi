@@ -54,10 +54,13 @@ const UpdateModal: React.FC = () => {
             version: res.data.updateInfo.version,
             releaseNotes: res.data.updateInfo.releaseNotes,
           });
-          // 获取当前版本
+          // 获取当前版本和 markdown 格式的 release notes
           const manualRes = await ipcBridge.update.check.invoke({ includePrerelease });
           if (manualRes?.success) {
             setCurrentVersion(manualRes.data?.currentVersion || '');
+            if (manualRes.data?.latest) {
+              setUpdateInfo(manualRes.data.latest);
+            }
           }
           setStatus('available');
           return;
