@@ -312,12 +312,10 @@ const UpdateModal: React.FC = () => {
             </div>
 
             {/* 自动更新开关 / Auto update toggle */}
-            {useAutoUpdate && (
-              <div className='flex items-center justify-between px-24px py-12px bg-fill-1 border-b border-border-2'>
-                <div className='text-13px text-t-secondary'>{t('update.autoUpdateMode')}</div>
-                <Switch checked={useAutoUpdate} onChange={setUseAutoUpdate} size='small' />
-              </div>
-            )}
+            <div className='flex items-center justify-between px-24px py-12px bg-fill-1 border-b border-border-2'>
+              <div className='text-13px text-t-secondary'>{t('update.autoUpdateMode')}</div>
+              <Switch checked={useAutoUpdate} onChange={setUseAutoUpdate} size='small' />
+            </div>
 
             {/* 更新日志内容 / Release notes content */}
             <div className='flex-1 min-h-0 overflow-y-auto px-24px py-16px custom-scrollbar'>
