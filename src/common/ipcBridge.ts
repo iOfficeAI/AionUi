@@ -59,6 +59,31 @@ export const geminiConversation = {
   responseStream: conversation.responseStream,
 };
 
+// CDP status interface
+export interface ICdpStatus {
+  /** Whether CDP is currently enabled */
+  enabled: boolean;
+  /** Current CDP port (null if disabled or not started) */
+  port: number | null;
+  /** Whether CDP was enabled at startup (requires restart to change) */
+  startupEnabled: boolean;
+  /** All active CDP instances from registry */
+  instances: Array<{
+    pid: number;
+    port: number;
+    cwd: string;
+    startTime: number;
+  }>;
+}
+
+// CDP config interface
+export interface ICdpConfig {
+  /** Whether CDP is enabled */
+  enabled?: boolean;
+  /** Preferred port number */
+  port?: number;
+}
+
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
@@ -67,6 +92,9 @@ export const application = {
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+  // CDP (Chrome DevTools Protocol) management
+  getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
+  updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
 };
 
 // Manual (opt-in) updates via GitHub Releases

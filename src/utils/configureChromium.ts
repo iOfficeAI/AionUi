@@ -35,26 +35,53 @@ if (isWebUI || isResetPassword) {
 }
 
 // ---------------------------------------------------------------------------
-// Chrome DevTools Protocol (CDP) — enable remote debugging in dev mode
+// Chrome DevTools Protocol (CDP) — enable remote debugging
 // so chrome-devtools-mcp and other CDP clients can connect to this Electron app.
 //
 // Default port: 9223 (avoids conflict with common CDP port 9222).
 // Override via AIONUI_CDP_PORT env variable. Set to "0" to disable.
 //
+// Configuration file: userData/cdp.config.json
+// - enabled: boolean - whether CDP is enabled (default: true in dev mode, false in production)
+// - port: number - preferred port (will find available port if occupied)
+//
 // Multi-instance support: a file-based registry tracks all active instances
 // so each one gets a unique port and MCP tools can discover them all.
 // Registry file: ~/.aionui-cdp-registry.json
 // ---------------------------------------------------------------------------
+
 const DEFAULT_CDP_PORT = 9223;
 const CDP_PORT_RANGE_START = 9223;
-const CDP_PORT_RANGE_END = 9230;
+const CDP_PORT_RANGE_END = 9240;
 const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
+const CDP_CONFIG_FILE = 'cdp.config.json';
 
+/** CDP configuration stored in userData directory */
+export interface CdpConfig {
+  /** Whether CDP is enabled (default: true in dev mode, false in production) */
+  enabled?: boolean;
+  /** Preferred port number (default: 9223) */
+  port?: number;
+}
+
+/** CDP registry entry for multi-instance tracking */
 interface CdpRegistryEntry {
   pid: number;
   port: number;
   cwd: string;
   startTime: number;
+}
+
+/** CDP status information exposed to renderer */
+export interface CdpStatus {
+  /** Whether CDP is currently enabled */
+  enabled: boolean;
+  /** Current CDP port (null if disabled or not started) */
+  port: number | null;
+  /** Whether CDP was enabled at startup (requires restart to change) */
+  startupEnabled: boolean;
+  /** All active CDP instances from registry */
+  instances: CdpRegistryEntry[];
 }
 
 /** Read the CDP registry file, returning an empty array on any error. */
@@ -75,7 +102,7 @@ function writeRegistry(entries: CdpRegistryEntry[]): void {
     fs.writeFileSync(CDP_REGISTRY_FILE, JSON.stringify(entries, null, 2), 'utf-8');
   } catch {
     // Non-critical — log but don't crash
-    console.warn('[DevTools MCP] Failed to write CDP registry file');
+    console.warn('[CDP] Failed to write CDP registry file');
   }
 }
 
@@ -141,30 +168,115 @@ export function unregisterInstance(): void {
   }
 }
 
-function resolveCdpPort(): number | null {
+/**
+ * Load CDP configuration from userData directory.
+ * This must be called before app.ready, so we use synchronous file operations.
+ */
+function loadCdpConfig(): CdpConfig {
+  try {
+    // Try to get userData path - this works even before app.ready
+    const userDataPath = app.getPath('userData');
+    const configPath = path.join(userDataPath, CDP_CONFIG_FILE);
+
+    if (!fs.existsSync(configPath)) {
+      return {};
+    }
+
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      return parsed as CdpConfig;
+    }
+  } catch {
+    // Ignore errors when loading config
+  }
+  return {};
+}
+
+/**
+ * Save CDP configuration to userData directory.
+ */
+export function saveCdpConfig(config: CdpConfig): void {
+  try {
+    const userDataPath = app.getPath('userData');
+    const configPath = path.join(userDataPath, CDP_CONFIG_FILE);
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn('[CDP] Failed to save CDP config:', error);
+  }
+}
+
+/**
+ * Resolve CDP port from environment variable.
+ * Returns null if explicitly disabled via env.
+ */
+function resolveCdpPortFromEnv(): number | null {
   const envVal = process.env.AIONUI_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return null;
   if (envVal) {
     const parsed = Number(envVal);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
+  return undefined as unknown as number | null; // undefined means "not set"
+}
+
+/**
+ * Determine if CDP should be enabled at startup.
+ * Priority: env variable > config file > default (dev mode: true, production: false)
+ */
+function shouldEnableCdp(config: CdpConfig): boolean {
+  // Environment variable takes highest priority
+  const envVal = process.env.AIONUI_CDP_PORT;
+  if (envVal === '0' || envVal === 'false') return false;
+  if (envVal) return true;
+
+  // Config file setting
+  if (config.enabled !== undefined) {
+    return config.enabled;
+  }
+
+  // Default: enabled in dev mode, disabled in production
+  return !app.isPackaged;
+}
+
+/**
+ * Determine preferred CDP port.
+ * Priority: env variable > config file > default (9223)
+ */
+function getPreferredPort(config: CdpConfig): number {
+  // Environment variable takes highest priority
+  const envPort = resolveCdpPortFromEnv();
+  if (envPort !== null && envPort !== undefined) {
+    return envPort;
+  }
+
+  // Config file setting
+  if (config.port && Number.isFinite(config.port) && config.port > 0) {
+    return config.port;
+  }
+
   return DEFAULT_CDP_PORT;
 }
 
 /** The active CDP port, or null if remote debugging is disabled. */
 export let cdpPort: number | null = null;
 
-if (!app.isPackaged) {
-  const preferredPort = resolveCdpPort();
-  if (preferredPort) {
-    const port = findAvailablePort(preferredPort);
-    app.commandLine.appendSwitch('remote-debugging-port', String(port));
-    cdpPort = port;
-    registerInstance(port);
+/** Whether CDP was enabled at startup (requires restart to change). */
+export let cdpStartupEnabled: boolean = false;
 
-    // Clean up registry on exit
-    process.on('exit', () => unregisterInstance());
-  }
+// Load config and initialize CDP at startup
+const cdpConfig = loadCdpConfig();
+cdpStartupEnabled = shouldEnableCdp(cdpConfig);
+
+if (cdpStartupEnabled) {
+  const preferredPort = getPreferredPort(cdpConfig);
+  const port = findAvailablePort(preferredPort);
+  app.commandLine.appendSwitch('remote-debugging-port', String(port));
+  cdpPort = port;
+  registerInstance(port);
+
+  // Clean up registry on exit
+  process.on('exit', () => unregisterInstance());
 }
 
 /**
@@ -199,4 +311,27 @@ export async function verifyCdpReady(port: number, maxRetries = 5, retryDelay = 
  */
 export function getActiveCdpInstances(): CdpRegistryEntry[] {
   return pruneRegistry();
+}
+
+/**
+ * Get current CDP status for display in UI.
+ */
+export function getCdpStatus(): CdpStatus {
+  return {
+    enabled: cdpPort !== null,
+    port: cdpPort,
+    startupEnabled: cdpStartupEnabled,
+    instances: getActiveCdpInstances(),
+  };
+}
+
+/**
+ * Update CDP configuration and save to disk.
+ * Note: Changing the enabled state requires app restart to take effect.
+ */
+export function updateCdpConfig(newConfig: Partial<CdpConfig>): CdpConfig {
+  const currentConfig = loadCdpConfig();
+  const updatedConfig = { ...currentConfig, ...newConfig };
+  saveCdpConfig(updatedConfig);
+  return updatedConfig;
 }
