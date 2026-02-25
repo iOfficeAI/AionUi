@@ -217,6 +217,9 @@ class AutoUpdaterService extends EventEmitter {
       }
 
       const result = await autoUpdater.checkForUpdates();
+      if (!result) {
+        return { success: false, error: 'checkForUpdates returned null (not packaged or dev mode)' };
+      }
       return {
         success: true,
         updateInfo: result.updateInfo,

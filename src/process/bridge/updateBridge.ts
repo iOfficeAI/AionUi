@@ -492,8 +492,12 @@ export function initUpdateBridge(): void {
     }
   });
 
-  ipcBridge.autoUpdate.quitAndInstall.provider(() => {
-    autoUpdaterService.quitAndInstall();
-    return Promise.resolve();
+  ipcBridge.autoUpdate.quitAndInstall.provider(async (): Promise<{ success: boolean; msg?: string }> => {
+    try {
+      autoUpdaterService.quitAndInstall();
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
   });
 }
