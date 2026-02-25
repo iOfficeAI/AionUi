@@ -124,15 +124,12 @@ export class AcpConnection {
 
     const pid = this.child.pid;
     if (process.platform === 'win32' && pid) {
-      // Windows: shell:true spawns cmd.exe as parent; taskkill /T kills the tree.
+      // Windows: shell:true spawns cmd.exe as parent; use /T /F directly to kill
+      // the entire process tree forcefully and avoid delayed exit events.
       try {
-        await execFile('taskkill', ['/PID', String(pid), '/T'], { windowsHide: true, timeout: 2000 });
-      } catch {
-        try {
-          await execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, timeout: 2000 });
-        } catch (forceError) {
-          console.warn(`[ACP] taskkill /F failed for PID ${pid}:`, forceError);
-        }
+        await execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true, timeout: 5000 });
+      } catch (forceError) {
+        console.warn(`[ACP] taskkill /T /F failed for PID ${pid}:`, forceError);
       }
     } else if (this.isDetached && pid) {
       // POSIX detached: negative PID kills the entire process group (setsid).

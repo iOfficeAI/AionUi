@@ -57,6 +57,11 @@ async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<void
       return;
     }),
     sleep(timeoutMs).then(() => {
+      // After timeout, check again if the process has already exited
+      // (taskkill may have succeeded but the exit event is delayed on Windows)
+      if (child.exitCode !== null || child.signalCode !== null || child.killed) {
+        return;
+      }
       throw new Error(`Timed out waiting for shell process ${child.pid} to exit`);
     }),
   ]);
