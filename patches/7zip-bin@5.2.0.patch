@@ -20,6 +20,13 @@ index d4c7a8ce..f34e75ab 100644
 +      command.replace(/\\/g, "/").toLowerCase().endsWith("7za.exe") &&
 +      Array.isArray(args) && args[0] === "a"
 +    ) {
++      // NSIS installers require real 7z format — only intercept zip archive creation.
++      // If -t7z is present, delegate to the real 7za so electron-builder's NSIS
++      // packaging produces a valid .7z that the installer stub can extract.
++      if (args.some(function(a) { return a === "-t7z" || a.startsWith("-t7z=") })) {
++        return null
++      }
++
 +      // Extract output path and input path from 7za args
 +      // 7za args format: ["a", "-bd", "-mx=7", ..., "output.zip", "input"]
 +      let outputFile = null
@@ -33,6 +40,11 @@ index d4c7a8ce..f34e75ab 100644
 +            break
 +          }
 +        }
++      }
++
++      // Skip interception for .7z output files (used by NSIS installer packaging)
++      if (outputFile && outputFile.toLowerCase().endsWith(".7z")) {
++        return null
 +      }
 +
 +      if (outputFile && inputPath) {
