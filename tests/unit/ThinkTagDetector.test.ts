@@ -34,8 +34,8 @@ describe('ThinkTagDetector', () => {
 
     it('should handle empty or null input', () => {
       expect(hasThinkTags('')).toBe(false);
-      expect(hasThinkTags(null as any)).toBe(false);
-      expect(hasThinkTags(undefined as any)).toBe(false);
+      expect(hasThinkTags(null as unknown as string)).toBe(false);
+      expect(hasThinkTags(undefined as unknown as string)).toBe(false);
     });
   });
 
@@ -128,8 +128,8 @@ After`;
 
     it('should handle empty or null input', () => {
       expect(stripThinkTags('')).toBe('');
-      expect(stripThinkTags(null as any)).toBe(null);
-      expect(stripThinkTags(undefined as any)).toBe(undefined);
+      expect(stripThinkTags(null as unknown as string)).toBe(null);
+      expect(stripThinkTags(undefined as unknown as string)).toBe(undefined);
     });
 
     it('should handle content with no think tags', () => {
@@ -175,8 +175,8 @@ Line 2
 
     it('should handle empty or null input', () => {
       expect(extractThinkContent('')).toEqual([]);
-      expect(extractThinkContent(null as any)).toEqual([]);
-      expect(extractThinkContent(undefined as any)).toEqual([]);
+      expect(extractThinkContent(null as unknown as string)).toEqual([]);
+      expect(extractThinkContent(undefined as unknown as string)).toEqual([]);
     });
   });
 
@@ -235,11 +235,7 @@ The solution involves implementing the following steps:
       // Chunk 1: "I need to analyze..." (no tags, passed through)
       // Chunk 2: "Let me think...\n" (no tags, passed through)
       // Chunk 3: "</think>\n\nHere's my answer" (orphaned </think> preserved)
-      const accumulated =
-        "I need to analyze the user's request.\n" +
-        "Let me think about this carefully.\n" +
-        "</think>\n\nHere's my answer:\n" +
-        "The solution is X.";
+      const accumulated = "I need to analyze the user's request.\n" + 'Let me think about this carefully.\n' + "</think>\n\nHere's my answer:\n" + 'The solution is X.';
 
       const result = stripThinkTags(accumulated);
       expect(result).not.toContain('I need to analyze');

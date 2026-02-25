@@ -1,8 +1,11 @@
+diff --git a/node_modules/7zip-bin/.bun-tag-4d314d69e08871fe b/.bun-tag-4d314d69e08871fe
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/index.js b/index.js
-index d4c7a8ce..f34e75ab 100644
+index d4c7a8ce90ce7ad7b89d3d59376b62aab04b3da9..11133610955fc605980b40bf86022cea6433d8a4 100644
 --- a/index.js
 +++ b/index.js
-@@ -1,6 +1,84 @@
+@@ -1,6 +1,96 @@
  "use strict"
  
  const path = require("path")
@@ -99,7 +102,7 @@ index d4c7a8ce..f34e75ab 100644
  
  function getPath() {
    if (process.env.USE_SYSTEM_7ZA === "true") {
-@@ -8,9 +86,12 @@ function getPath() {
+@@ -8,9 +98,12 @@ function getPath() {
    }
  
    if (process.platform === "darwin") {
@@ -113,7 +116,7 @@ index d4c7a8ce..f34e75ab 100644
      return path.join(__dirname, "win", process.arch, "7za.exe")
    }
    else {
-@@ -18,5 +99,43 @@ function getPath() {
+@@ -18,5 +111,43 @@ function getPath() {
    }
  }
  

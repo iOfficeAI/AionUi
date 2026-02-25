@@ -548,9 +548,7 @@ export function compactToolResponsesInHistory(geminiClient: GeminiClient): void 
 
         // Case 2: response.output is a very long string
         if ('output' in resp && typeof resp.output === 'string' && resp.output.length > COMPACT_TEXT_THRESHOLD) {
-          resp.output =
-            resp.output.slice(0, COMPACT_TEXT_KEEP) +
-            `\n\n... [${resp.output.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`;
+          resp.output = resp.output.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${resp.output.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`;
           modified = true;
           continue;
         }
@@ -559,9 +557,7 @@ export function compactToolResponsesInHistory(geminiClient: GeminiClient): void 
       // Case 3: response is a raw string (some tool results)
       if (typeof resp === 'string' && resp.length > COMPACT_TEXT_THRESHOLD) {
         fnResp.response = {
-          output:
-            resp.slice(0, COMPACT_TEXT_KEEP) +
-            `\n\n... [${resp.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`,
+          output: resp.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${resp.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`,
         };
         modified = true;
         continue;
@@ -584,17 +580,13 @@ export function compactToolResponsesInHistory(geminiClient: GeminiClient): void 
               }
               // Nested long string
               if (typeof item === 'string' && item.length > COMPACT_TEXT_THRESHOLD) {
-                value[j] =
-                  item.slice(0, COMPACT_TEXT_KEEP) +
-                  `\n\n... [${item.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
+                value[j] = item.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${item.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
                 modified = true;
               }
             }
             // Also check if the array-valued field itself is a large string
           } else if (typeof value === 'string' && value.length > COMPACT_TEXT_THRESHOLD) {
-            (resp as Record<string, unknown>)[key] =
-              value.slice(0, COMPACT_TEXT_KEEP) +
-              `\n\n... [${value.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
+            (resp as Record<string, unknown>)[key] = value.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${value.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
             modified = true;
           }
         }
