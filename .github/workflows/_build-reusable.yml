@@ -152,9 +152,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/.cache/electron-builder
-          key: electron-builder-binaries-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json') }}
+          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
           restore-keys: |
-            electron-builder-binaries-${{ matrix.platform }}-${{ matrix.arch }}-
             electron-builder-binaries-${{ matrix.platform }}-
 
       - name: Print build configuration
