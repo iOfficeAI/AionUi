@@ -208,4 +208,4 @@ publish:
   owner: ${env.GITHUB_REPOSITORY_OWNER:-iOfficeAI}
   repo: ${env.GITHUB_REPOSITORY_NAME:-AionUi}
   publishAutoUpdate: true
-  releaseType: release
+  releaseType: prerelease
