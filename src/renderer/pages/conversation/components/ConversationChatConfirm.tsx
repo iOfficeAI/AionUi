@@ -194,9 +194,11 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
             boxShadow: '0px 2px 20px 0px rgba(74, 88, 250, 0.1)',
           }}
         >
-          <div className='color-[rgba(29,33,41,1)] text-16px font-bold shrink-0'>{$t(confirmation.title) || 'Choose an action'}:</div>
-          <Divider className={'!my-10px shrink-0'}></Divider>
           <div className='flex-1 overflow-y-auto min-h-0'>
+            <Typography.Ellipsis className='text-16px font-bold color-[rgba(29,33,41,1)]' rows={2} expandable>
+              {$t(confirmation.title) || 'Choose an action'}
+            </Typography.Ellipsis>
+            <Divider className={'!my-10px'}></Divider>
             <Typography.Ellipsis className='text-14px color-[rgba(29,33,41,1)]' rows={5} expandable>
               {$t(confirmation.description)}
             </Typography.Ellipsis>
