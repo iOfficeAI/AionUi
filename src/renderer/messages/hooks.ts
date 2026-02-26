@@ -273,7 +273,21 @@ export const useMessageLstCache = (key: string) => {
       })
       .then((messages) => {
         if (messages && Array.isArray(messages)) {
-          update(() => messages);
+          // Merge DB messages with any real-time streaming messages already in the list.
+          // This prevents a race condition where streaming messages (added via IPC before
+          // the DB load completes) could cause DB-only messages (e.g. cron user messages
+          // whose IPC event was emitted before the component mounted) to be lost.
+          // Use both msg_id and id for deduplication since DB messages and streaming
+          // messages share the same msg_id but may have different id values
+          // (streaming messages get new UUIDs from transformMessage).
+          update((currentList) => {
+            if (!currentList.length) return messages;
+            const dbIds = new Set(messages.map((m) => m.id));
+            const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+            const streamingOnly = currentList.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
+            if (!streamingOnly.length) return messages;
+            return [...messages, ...streamingOnly];
+          });
         }
       })
       .catch((error) => {

@@ -1328,6 +1328,7 @@
   "cron.drawer.nextRun": "下次执行",
   "cron.drawer.save": "保存",
   "cron.drawer.saveSuccess": "保存成功",
+  "cron.message.badge": "定时任务",
   "guid.agentFallbackNotice": "{{original}} 不可用，已自动切换到 {{fallback}}。",
   "guid.noAgentAvailable": "没有可用的 Main Agent。请登录 Google 或安装 Claude/Codex CLI。是否前往设置？",
   "guid.noAgentAvailableShort": "没有可用的 Main Agent。点击配置。",

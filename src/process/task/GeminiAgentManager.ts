@@ -6,7 +6,7 @@
 
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IMessageToolGroup, TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
@@ -244,7 +244,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
+  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -252,9 +252,22 @@ export class GeminiAgentManager extends BaseAgentManager<
       conversation_id: this.conversation_id,
       content: {
         content: data.input,
+        ...(data.cronMeta && { cronMeta: data.cronMeta }),
       },
     };
     addMessage(this.conversation_id, message);
+    // Emit user_content IPC for cron messages so the frontend can display them
+    // even if the component mounts after the DB save but before the DB load completes.
+    // Normal user-initiated messages are added locally by the frontend, so only cron needs this.
+    if (data.cronMeta) {
+      const userResponseMessage: IResponseMessage = {
+        type: 'user_content',
+        conversation_id: this.conversation_id,
+        msg_id: data.msg_id,
+        data: { content: message.content.content, cronMeta: data.cronMeta },
+      };
+      ipcBridge.geminiConversation.responseStream.emit(userResponseMessage);
+    }
     this.status = 'pending';
     cronBusyGuard.setProcessing(this.conversation_id, true);
     const result = await this.bootstrap

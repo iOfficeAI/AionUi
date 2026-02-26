@@ -51,7 +51,12 @@ type GuidInputCardProps = {
 
 const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onKeyDown, onPaste, onFocus, onBlur, placeholder, isInputActive, isFileDragging, activeBorderColor, inactiveBorderColor, activeShadow, dragHandlers, mentionOpen, mentionSelectorBadge, mentionDropdown, files, onRemoveFile, dir, onClearDir, actionRow }) => {
   const { t } = useTranslation();
-  const { compositionHandlers, isComposing: _isComposing } = useCompositionInput();
+  const { compositionHandlers, isComposing } = useCompositionInput();
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isComposing.current) return;
+    onKeyDown(e);
+  };
 
   return (
     <div
@@ -74,7 +79,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onK
       {...dragHandlers}
     >
       {mentionSelectorBadge}
-      <Input.TextArea autoSize={{ minRows: 3, maxRows: 20 }} placeholder={placeholder} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={onInputChange} onPaste={onPaste} onFocus={onFocus} onBlur={onBlur} {...compositionHandlers} onKeyDown={onKeyDown} />
+      <Input.TextArea autoSize={{ minRows: 3, maxRows: 20 }} placeholder={placeholder} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={onInputChange} onPaste={onPaste} onFocus={onFocus} onBlur={onBlur} {...compositionHandlers} onKeyDown={handleKeyDown} />
       {mentionOpen && (
         <div className='absolute z-50' style={{ left: 16, top: 44 }}>
           {mentionDropdown}

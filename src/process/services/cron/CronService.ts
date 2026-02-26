@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import { getDatabase } from '@process/database';
 import { addMessage } from '@process/message';
@@ -383,12 +383,20 @@ class CronService {
       // Copy files to workspace if needed (empty array for cron jobs)
       const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
 
+      // Build cronMeta for message origin tracking
+      const cronMeta: CronMessageMeta = {
+        source: 'cron',
+        cronJobId: job.id,
+        cronJobName: job.name,
+        triggeredAt: Date.now(),
+      };
+
       // Call sendMessage directly on the task
       // Different agents use different parameter names: Gemini uses 'input', ACP/Codex use 'content'
       if (task.type === 'codex' || task.type === 'acp') {
-        await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles });
+        await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
       } else {
-        await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles });
+        await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
       }
 
       // Success

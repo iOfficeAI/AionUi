@@ -1100,6 +1100,7 @@
   "cron.drawer.nextRun": "次回実行",
   "cron.drawer.save": "保存",
   "cron.drawer.saveSuccess": "保存しました",
+  "cron.message.badge": "スケジュール",
   "guid.agentFallbackNotice": "{{original}} が利用できないため、{{fallback}} に自動切り替えしました。",
   "guid.noAgentAvailable": "利用可能なMain Agentがありません。Googleにログインするか、Claude/Codex CLIをインストールしてください。設定に移動しますか？",
   "guid.noAgentAvailableShort": "利用可能なMain Agentがありません。クリックして設定。",

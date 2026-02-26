@@ -31,6 +31,8 @@ export interface IConfigStorageRefer {
     /** 按 Google 账号存储的 GCP 项目 ID / GCP project IDs stored per Google account */
     accountProjects?: Record<string, string>;
     yoloMode?: boolean;
+    /** Preferred session mode for new conversations / 新会话的默认模式 */
+    preferredMode?: string;
   };
   'codex.config'?: {
     cliPath?: string;
@@ -43,6 +45,10 @@ export interface IConfigStorageRefer {
       lastAuthTime?: number;
       cliPath?: string;
       yoloMode?: boolean;
+      /** Preferred session mode for new conversations / 新会话的默认模式 */
+      preferredMode?: string;
+      /** Preferred model ID for new conversations / 新会话的默认模型 */
+      preferredModelId?: string;
     };
   };
   'acp.customAgents'?: AcpBackendConfig[];
