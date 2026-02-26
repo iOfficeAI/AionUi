@@ -15,6 +15,7 @@ import type { AcpBackendAll } from '@/types/acpTypes';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
@@ -183,9 +184,17 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
         addMessage(this.conversation_id, userMessage);
       }
 
+      // 首条消息注入 HTML 交互协议和 skills 索引
+      // Inject HTML interaction protocol and skills index on first message
+      let contentToSend = data.content;
+      if (this.isFirstMessage) {
+        contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {});
+        this.isFirstMessage = false;
+      }
+
       // Send message to agent
       const result = await this.agent.sendMessage({
-        content: data.content,
+        content: contentToSend,
         files: data.files,
         msg_id: data.msg_id,
       });

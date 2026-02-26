@@ -13,6 +13,7 @@ import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 
 export interface NanoBotAgentManagerData {
   conversation_id: string;
@@ -27,6 +28,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
   workspace?: string;
   agent!: NanobotAgent;
   bootstrap: Promise<NanobotAgent>;
+  private isFirstMessage: boolean = true;
 
   constructor(data: NanoBotAgentManagerData) {
     super('nanobot', data);
@@ -108,7 +110,12 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
       // await it here. The IPC response needs to return immediately so the
       // frontend can display the user message. Response and finish events
       // are emitted asynchronously via handleStreamEvent/handleSignalEvent.
-      this.agent.sendMessage({ content: data.content }).catch((error) => {
+      let contentToSend = data.content;
+      if (this.isFirstMessage) {
+        contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {});
+        this.isFirstMessage = false;
+      }
+      this.agent.sendMessage({ content: contentToSend }).catch((error) => {
         cronBusyGuard.setProcessing(this.conversation_id, false);
         const errorMsg = error instanceof Error ? error.message : String(error);
         this.emitErrorMessage(`Failed to send message: ${errorMsg}`);

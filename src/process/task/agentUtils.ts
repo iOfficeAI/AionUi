@@ -8,6 +8,45 @@ import { getSkillsDir, loadSkillsContent } from '@process/initStorage';
 import { AcpSkillManager, buildSkillsIndexText } from './AcpSkillManager';
 
 /**
+ * HTML Preview 交互协议说明（注入到所有 Agent 的 System Prompt）
+ * HTML Preview interaction protocol (injected into all agents' system prompts)
+ */
+const HTML_INTERACTION_PROTOCOL = `[HTML Preview Interaction Protocol]
+When generating HTML pages for preview, you can make them interactive using two protocols:
+
+## 1. __AGENT_ACTION__ — Send natural language instructions to the Agent
+Usage: console.log('__AGENT_ACTION__' + instruction)
+The agent receives the instruction as a new user message and decides how to execute it.
+
+Rules:
+- The instruction MUST be natural language describing the user's intent and data
+- Include full context in the instruction (file paths, data content, operation type)
+
+Examples:
+- Button: <button onclick="console.log('__AGENT_ACTION__User clicked refresh, please regenerate the report')">Refresh</button>
+- Form: <form onsubmit="event.preventDefault();var d=Object.fromEntries(new FormData(this));console.log('__AGENT_ACTION__User submitted: '+JSON.stringify(d)+', please append to data.json')"><input name="name"><button type="submit">Submit</button></form>
+
+## 2. __EXEC__ — Execute Node.js code directly (no agent round-trip)
+Usage: const result = await window.__exec(code_string)
+The code runs in Node.js with access to: fs, path, workspace, readJSON, writeJSON, readFile, writeFile.
+Returns: { success: boolean, result?: any, error?: string }
+
+Built-in helpers:
+- readJSON(relativePath) — read and parse a JSON file
+- writeJSON(relativePath, data) — write data as JSON (auto-creates directories)
+- readFile(relativePath) — read a text file
+- writeFile(relativePath, content) — write a text file (auto-creates directories)
+- fs, path — Node.js built-in modules
+- workspace — current workspace directory path
+
+Examples:
+- Read: const r = await window.__exec("return readJSON('data.json')"); if(r.success) console.log(r.result);
+- Write: await window.__exec("const d=readJSON('data.json');d.items.push({name:'New'});writeJSON('data.json',d)");
+- List files: const r = await window.__exec("return fs.readdirSync(workspace)");
+
+Choose __AGENT_ACTION__ for complex/ambiguous tasks needing AI reasoning. Choose __EXEC__ for direct data operations (CRUD, file I/O) where the logic is straightforward.`;
+
+/**
  * 首次消息处理配置
  * First message processing configuration
  */
@@ -40,6 +79,9 @@ export async function buildSystemInstructions(config: FirstMessageConfig): Promi
       instructions.push(skillsContent);
     }
   }
+
+  // 注入 HTML 交互协议 / Inject HTML interaction protocol
+  instructions.push(HTML_INTERACTION_PROTOCOL);
 
   if (instructions.length === 0) {
     return undefined;
@@ -130,6 +172,9 @@ For example:
     }
   }
 
+  // 3. 注入 HTML 交互协议 / Inject HTML interaction protocol
+  instructions.push(HTML_INTERACTION_PROTOCOL);
+
   if (instructions.length === 0) {
     return content;
   }
@@ -173,6 +218,9 @@ export async function buildSystemInstructionsWithSkillsIndex(config: FirstMessag
       instructions.push(indexText);
     }
   }
+
+  // 注入 HTML 交互协议 / Inject HTML interaction protocol
+  instructions.push(HTML_INTERACTION_PROTOCOL);
 
   if (instructions.length === 0) {
     return undefined;

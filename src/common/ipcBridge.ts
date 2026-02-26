@@ -304,6 +304,8 @@ export const preview = {
       fileName?: string;
     };
   }>('preview.open'),
+  // HTML 页面通过 __EXEC__ 协议执行 Node.js 代码 / HTML page executes Node.js code via __EXEC__ protocol
+  exec: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, { code: string; workspace?: string }>('preview.exec'),
 };
 
 export const document = {

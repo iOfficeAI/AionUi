@@ -27,6 +27,7 @@ import { PreviewTabs, PreviewToolbar, PreviewContextMenu, PreviewConfirmModals, 
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
 import { usePreviewHistory, usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
 import { useTranslation } from 'react-i18next';
+import { emitter } from '@/renderer/utils/emitter';
 
 /**
  * 预览面板主组件
@@ -89,6 +90,11 @@ const PreviewPanel: React.FC = () => {
     },
     [addDomSnippet]
   );
+
+  // 处理 HTML 页面发出的 Agent 动作指令 / Handle agent action instructions from HTML page
+  const handleAgentAction = useCallback((instruction: string) => {
+    emitter.emit('sendbox.fill', instruction);
+  }, []);
 
   const toolbarExtrasContextValue = useMemo(
     () => ({
@@ -418,7 +424,7 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} inspectMode={inspectMode} onElementSelected={handleElementSelected} />
+              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} inspectMode={inspectMode} onElementSelected={handleElementSelected} onAgentAction={handleAgentAction} />
             </div>
           );
         }
@@ -446,7 +452,7 @@ const PreviewPanel: React.FC = () => {
               <div className='flex flex-col flex-1 overflow-hidden'>
                 {/* prettier-ignore */}
                 {/* eslint-disable-next-line max-len */}
-                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
+                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} onAgentAction={handleAgentAction} />
               </div>
             </div>
           </div>
@@ -464,7 +470,7 @@ const PreviewPanel: React.FC = () => {
         // 预览模式 / Preview mode
         return (
           <div className='flex-1 overflow-hidden'>
-            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
+            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} onAgentAction={handleAgentAction} />
           </div>
         );
       }

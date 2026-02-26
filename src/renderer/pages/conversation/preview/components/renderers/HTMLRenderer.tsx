@@ -27,6 +27,8 @@ interface HTMLRendererProps {
   copySuccessMessage?: string;
   /** 元素选中回调 / Element selected callback */
   onElementSelected?: (element: InspectedElement) => void;
+  /** Agent 动作回调：HTML 页面通过 console.log('__AGENT_ACTION__' + 指令) 触发 / Agent action callback: triggered by console.log('__AGENT_ACTION__' + instruction) from HTML page */
+  onAgentAction?: (instruction: string) => void;
 }
 
 // Electron webview 元素的类型定义 / Type definition for Electron webview element
@@ -178,7 +180,7 @@ async function inlineRelativeResources(html: string, basePath: string): Promise<
  * 在 iframe/webview 中渲染 HTML 内容（自动检测环境）
  * Renders HTML content in iframe/webview (auto-detect environment)
  */
-const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, onScroll, inspectMode = false, copySuccessMessage, onElementSelected }) => {
+const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, onScroll, inspectMode = false, copySuccessMessage, onElementSelected, onAgentAction }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<ElectronWebView | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -274,19 +276,64 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   // 用于 browser iframe 的最终 HTML 内容
   // Final HTML content for browser iframe
   const browserHtmlContent = useMemo(() => {
+    let html: string;
     if (hasRelativeResources && filePath) {
-      return inlinedHtmlContent || content; // 在内联化完成前显示原始内容 / Show original content before inlining completes
+      html = inlinedHtmlContent || content; // 在内联化完成前显示原始内容 / Show original content before inlining completes
+    } else {
+      html = displayedContent;
     }
-    return displayedContent;
+
+    // 注入 __AGENT_ACTION__ 和 __EXEC__ 桥接脚本（iframe 环境下 console.log 不会冒泡到父窗口）
+    // Inject __AGENT_ACTION__ and __EXEC__ bridge scripts (console.log doesn't bubble to parent in iframe)
+    const bridgeScript = `<script>(function(){
+var _log=console.log;
+console.log=function(){
+  var a=arguments[0];
+  if(typeof a==='string'){
+    if(a.indexOf('__AGENT_ACTION__')===0){window.parent.postMessage({type:'__AGENT_ACTION__',payload:a.slice(16)},'*')}
+    else if(a.indexOf('__EXEC__')===0){try{var p=JSON.parse(a.slice(8));window.parent.postMessage({type:'__EXEC__',id:p.id,code:p.code},'*')}catch(e){}}
+  }
+  _log.apply(console,arguments)
+};
+window.__EXEC_RESOLVE={};
+window.__exec=function(code){
+  return new Promise(function(resolve){
+    var id='e'+Date.now()+Math.random().toString(36).slice(2,7);
+    window.__EXEC_RESOLVE[id]=resolve;
+    console.log('__EXEC__'+JSON.stringify({id:id,code:code}));
+  });
+};
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='__EXEC_RESULT__'&&e.data.id&&window.__EXEC_RESOLVE[e.data.id]){
+    window.__EXEC_RESOLVE[e.data.id](e.data);
+    delete window.__EXEC_RESOLVE[e.data.id];
+  }
+});
+})();</script>`;
+
+    // 注入到 <head> 或 HTML 开头 / Inject into <head> or beginning of HTML
+    if (html.match(/<head[^>]*>/i)) {
+      html = html.replace(/<head[^>]*>/i, `$&${bridgeScript}`);
+    } else if (html.match(/<html[^>]*>/i)) {
+      html = html.replace(/<html[^>]*>/i, `$&<head>${bridgeScript}</head>`);
+    } else {
+      html = bridgeScript + html;
+    }
+
+    return html;
   }, [hasRelativeResources, filePath, inlinedHtmlContent, content, displayedContent]);
 
   // 计算 webview 的 src
   // Calculate webview src
+  // 依赖 content 确保文件内容变化时 webview 重新加载（尤其是 file:// 模式）
+  // Depend on content to ensure webview reloads when file content changes (especially file:// mode)
   const webviewSrc = useMemo(() => {
     // 如果有相对资源引用且有文件路径，直接用 file:// URL 加载
     // If has relative resource references and has file path, load directly via file:// URL
     if (shouldLoadFromFile && filePath) {
-      return `file://${filePath}`;
+      // 使用 content 长度作为缓存破坏参数，内容变化时强制 webview 重新挂载
+      // Use content length as cache-busting param to force webview remount on content change
+      return `file://${filePath}?_v=${content.length}`;
     }
 
     // 否则使用 data URL（适用于动态生成的 HTML 或没有外部资源的情况）
@@ -312,7 +359,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     const encoded = encodeURIComponent(html);
     return `data:text/html;charset=utf-8,${encoded}`;
-  }, [htmlContent, filePath, shouldLoadFromFile]);
+  }, [htmlContent, filePath, shouldLoadFromFile, content]);
 
   // 当 webviewSrc 改变时重置加载状态 / Reset loading state when webviewSrc changes
   useEffect(() => {
@@ -348,11 +395,35 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   const copySuccessText = useMemo(() => copySuccessMessage ?? '✓ Copied HTML snippet', [copySuccessMessage]);
   const inspectScript = useMemo(() => generateInspectScript(inspectMode, { copySuccess: copySuccessText }), [inspectMode, copySuccessText]);
 
+  // __EXEC__ 桥接脚本（webview 环境）：提供 window.__exec() 和 __EXEC_CALLBACK__
+  // __EXEC__ bridge script (webview): provides window.__exec() and __EXEC_CALLBACK__
+  const execBridgeScript = useMemo(() => `(function(){
+    if(window.__execBridgeInit) return;
+    window.__execBridgeInit=true;
+    window.__EXEC_RESOLVE={};
+    window.__exec=function(code){
+      return new Promise(function(resolve){
+        var id='e'+Date.now()+Math.random().toString(36).slice(2,7);
+        window.__EXEC_RESOLVE[id]=resolve;
+        console.log('__EXEC__'+JSON.stringify({id:id,code:code}));
+      });
+    };
+    window.__EXEC_CALLBACK__=function(data){
+      if(data&&data.id&&window.__EXEC_RESOLVE[data.id]){
+        window.__EXEC_RESOLVE[data.id](data);
+        delete window.__EXEC_RESOLVE[data.id];
+      }
+    };
+  })();`, []);
+
   // 执行脚本注入的函数 / Function to execute script injection
   // 使用 useCallback 缓存，避免每次渲染都创建新函数 / Use useCallback to cache, avoid creating new function on each render
   const executeScript = useCallback(() => {
     const webview = webviewRef.current;
     if (!webview) return;
+
+    // 注入 __EXEC__ 桥接脚本 / Inject __EXEC__ bridge script
+    void webview.executeJavaScript(execBridgeScript).catch(() => {});
 
     // executeJavaScript 返回 Promise，需要处理 / executeJavaScript returns Promise, need to handle it
     void webview
@@ -363,7 +434,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
       .catch((_error) => {
         // Failed to inject inspect script
       });
-  }, [inspectScript, inspectMode]);
+  }, [inspectScript, inspectMode, execBridgeScript]);
 
   // 注入检查模式脚本 / Inject inspect mode script
   useEffect(() => {
@@ -430,6 +501,33 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
             console.warn('[HTMLRenderer] Failed to parse content height message:', e);
           }
         }
+        // 处理 Agent 动作消息（HTML 页面通过 console.log 触发 Agent 指令）
+        // Handle agent action message (HTML page triggers agent instruction via console.log)
+        else if (message.startsWith('__AGENT_ACTION__') && onAgentAction) {
+          try {
+            const instruction = message.slice('__AGENT_ACTION__'.length);
+            if (instruction.trim()) {
+              onAgentAction(instruction);
+            }
+          } catch (e) {
+            console.warn('[HTMLRenderer] Failed to handle agent action:', e);
+          }
+        }
+        // 处理 __EXEC__ 协议：在 Node.js 主进程执行代码并返回结果
+        // Handle __EXEC__ protocol: execute code in Node.js main process and return result
+        else if (message.startsWith('__EXEC__')) {
+          try {
+            const payload = JSON.parse(message.slice('__EXEC__'.length)) as { id: string; code: string };
+            void ipcBridge.preview.exec.invoke({ code: payload.code, workspace: filePath ? filePath.substring(0, filePath.lastIndexOf('/')) : undefined }).then((result) => {
+              const wv = webviewRef.current;
+              if (wv) {
+                void wv.executeJavaScript(`window.__EXEC_CALLBACK__ && window.__EXEC_CALLBACK__(${JSON.stringify({ id: payload.id, ...result })})`).catch(() => {});
+              }
+            });
+          } catch (e) {
+            console.warn('[HTMLRenderer] Failed to handle __EXEC__:', e);
+          }
+        }
       }
     };
 
@@ -438,7 +536,35 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     return () => {
       webview.removeEventListener('console-message', handleConsoleMessage);
     };
-  }, [onElementSelected, onScroll]);
+  }, [onElementSelected, onScroll, onAgentAction]);
+
+  // 监听 iframe postMessage（browser 环境下的 __AGENT_ACTION__ 和 __EXEC__ 桥接）
+  // Listen for iframe postMessage (__AGENT_ACTION__ and __EXEC__ bridge in browser environment)
+  useEffect(() => {
+    if (isElectron) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data) return;
+
+      if (data.type === '__AGENT_ACTION__' && typeof data.payload === 'string' && onAgentAction) {
+        const instruction = data.payload.trim();
+        if (instruction) {
+          onAgentAction(instruction);
+        }
+      } else if (data.type === '__EXEC__' && data.id && data.code) {
+        void ipcBridge.preview.exec.invoke({ code: data.code, workspace: filePath ? filePath.substring(0, filePath.lastIndexOf('/')) : undefined }).then((result) => {
+          const iframe = iframeRef.current;
+          if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage({ type: '__EXEC_RESULT__', id: data.id, ...result }, '*');
+          }
+        });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isElectron, onAgentAction, filePath]);
 
   // 注入滚动监听脚本 / Inject scroll listener script
   const scrollSyncScript = useMemo(
