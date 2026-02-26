@@ -585,9 +585,8 @@ const WebuiModalContent: React.FC = () => {
               label={t('settings.webui.allowRemote')}
               description={
                 <>
-                  {t('settings.webui.allowRemoteDesc')}
-                  {'  '}
-                  <button className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px' onClick={() => shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide').catch(console.error)}>
+                  <span className='text-t-tertiary'>{t('settings.webui.allowRemoteDesc')}</span>
+                  <button className='ml-8px text-primary hover:opacity-80 underline underline-offset-2 cursor-pointer bg-transparent border-none p-0 text-12px font-500 transition-colors' onClick={() => shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide').catch(console.error)}>
                     {t('settings.webui.viewGuide')}
                   </button>
                 </>
@@ -636,13 +635,13 @@ const WebuiModalContent: React.FC = () => {
 
                 <div className='flex flex-col items-center gap-12px'>
                   {/* 二维码显示区域 / QR Code display area */}
-                  <div className='p-12px bg-white rd-10px'>
+                  <div className='p-12px bg-bg-1 border border-line rd-10px'>
                     {qrLoading ? (
                       <div className='w-140px h-140px flex items-center justify-center'>
                         <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
                       </div>
                     ) : qrUrl ? (
-                      <QRCodeSVG value={qrUrl} size={140} level='M' />
+                      <QRCodeSVG value={qrUrl} size={140} level='M' bgColor='#FFFFFF' fgColor='#000000' />
                     ) : (
                       <div className='w-140px h-140px flex items-center justify-center'>
                         <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
