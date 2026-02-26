@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ContextMenuState } from '../types';
 
 interface UseWorkspaceEventsOptions {
@@ -38,6 +38,11 @@ interface UseWorkspaceEventsOptions {
 export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   const { conversation_id, eventPrefix, refreshWorkspace, clearSelection, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, closeContextMenu, setContextMenu, closeRenameModal, closeDeleteModal } = options;
 
+  // Use ref to avoid including refreshWorkspace in the reset effect's deps,
+  // which would cause unnecessary state clearing during AI function calls
+  const refreshWorkspaceRef = useRef(refreshWorkspace);
+  refreshWorkspaceRef.current = refreshWorkspace;
+
   /**
    * 监听对话切换事件 - 重置所有状态
    * Listen to conversation switch event - reset all states
@@ -52,9 +57,9 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
     setContextMenu({ visible: false, x: 0, y: 0, node: null });
     closeRenameModal();
     closeDeleteModal();
-    refreshWorkspace();
+    refreshWorkspaceRef.current();
     emitter.emit(`${eventPrefix}.selected.file`, []);
-  }, [conversation_id, eventPrefix, refreshWorkspace, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, setContextMenu, closeRenameModal, closeDeleteModal]);
+  }, [conversation_id, eventPrefix, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, setContextMenu, closeRenameModal, closeDeleteModal]);
 
   /**
    * 监听 Agent 响应流 - 自动刷新工作空间
