@@ -282,9 +282,13 @@ export const useMessageLstCache = (key: string) => {
           // (streaming messages get new UUIDs from transformMessage).
           update((currentList) => {
             if (!currentList.length) return messages;
+            // Only keep streaming messages that belong to the current conversation
+            // to prevent messages from a previous conversation leaking into the new one
+            const sameConversation = currentList.filter((m) => m.conversation_id === key);
+            if (!sameConversation.length) return messages;
             const dbIds = new Set(messages.map((m) => m.id));
             const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
-            const streamingOnly = currentList.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
+            const streamingOnly = sameConversation.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
             if (!streamingOnly.length) return messages;
             return [...messages, ...streamingOnly];
           });
