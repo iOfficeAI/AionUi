@@ -131,7 +131,6 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           ) : (
             <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
-
         </div>
         <div
           className={classNames('h-32px flex items-center mt-4px', {
