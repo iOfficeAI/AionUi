@@ -117,9 +117,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           </div>
         )}
         <div
-          className={classNames('min-w-0 w-full rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
-            'bg-aou-2 p-8px': isUserMessage,
+          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
+            'bg-aou-2 p-8px': isUserMessage || cronMeta,
+            'w-full': !(isUserMessage || cronMeta),
           })}
+          style={isUserMessage || cronMeta ? { borderRadius: '8px 0 8px 8px' } : undefined}
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (
@@ -129,6 +131,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           ) : (
             <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
+
         </div>
         <div
           className={classNames('h-32px flex items-center mt-4px', {

@@ -14,19 +14,17 @@ type MessageCronBadgeProps = {
   meta: CronMessageMeta;
 };
 
-const formatTime = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const formatTime = (timestamp: number, locale: string): string => {
+  return new Date(timestamp).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 const MessageCronBadge: React.FC<MessageCronBadgeProps> = ({ meta }) => {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
 
   return (
-    <div className='flex items-center gap-4px mb-4px text-12px' style={{ color: 'var(--color-bg-6)' }}>
-      <AlarmClock theme='outline' size={13} fill={iconColors.secondary} className='flex items-center' />
-      <span>{meta.cronJobName || t('cron.message.badge')}</span>
-      <span>{formatTime(meta.triggeredAt)}</span>
+    <div className='inline-flex items-center gap-4px mb-4px px-12px py-2px rounded-full text-12px bg-fill-2' style={{ color: 'var(--color-bg-6)' }}>
+      <AlarmClock strokeWidth={4} theme='outline' size={13} fill={iconColors.secondary} className='flex items-center' />
+      <span>{formatTime(meta.triggeredAt, i18n.language)}</span>
     </div>
   );
 };
