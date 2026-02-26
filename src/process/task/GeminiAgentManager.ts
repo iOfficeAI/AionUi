@@ -256,6 +256,14 @@ export class GeminiAgentManager extends BaseAgentManager<
       },
     };
     addMessage(this.conversation_id, message);
+    // Update conversation modifyTime so history list sorts correctly.
+    // Without this, chat.history.refresh fires before modifyTime is updated,
+    // causing stale sorting until a manual page refresh.
+    try {
+      getDatabase().updateConversation(this.conversation_id, {});
+    } catch {
+      // Conversation might not exist in DB yet
+    }
     // Emit user_content IPC for cron messages so the frontend can display them
     // even if the component mounts after the DB save but before the DB load completes.
     // Normal user-initiated messages are added locally by the frontend, so only cron needs this.

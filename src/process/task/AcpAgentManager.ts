@@ -395,6 +395,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           createdAt: Date.now(),
         };
         addMessage(this.conversation_id, userMessage);
+        // Update conversation modifyTime so history list sorts correctly.
+        // For Claude with session resume, onSessionIdUpdate won't fire when
+        // session ID is unchanged, leaving modifyTime stale.
+        try {
+          getDatabase().updateConversation(this.conversation_id, {});
+        } catch {
+          // Conversation might not exist in DB yet
+        }
         const userResponseMessage: IResponseMessage = {
           type: 'user_content',
           conversation_id: this.conversation_id,
