@@ -100,6 +100,9 @@ const CdpSettings: React.FC = () => {
 
   const status = cdpStatus?.data;
 
+  // Track the pending state (config saved but not yet applied)
+  const hasPendingChange = status?.startupEnabled !== status?.enabled;
+
   const handleToggle = async (checked: boolean) => {
     setSwitchLoading(true);
     try {
@@ -118,9 +121,18 @@ const CdpSettings: React.FC = () => {
     }
   };
 
+  const handleRestart = async () => {
+    try {
+      await ipcBridge.application.restart.invoke();
+    } catch (error) {
+      Message.error(t('common.error'));
+    }
+  };
+
   const openCdpUrl = () => {
     if (status?.port) {
-      const url = `http://127.0.0.1:${status.port}`;
+      // Open the CDP JSON list page which shows all inspectable pages
+      const url = `http://127.0.0.1:${status.port}/json`;
       ipcBridge.shell.openExternal.invoke(url).catch(console.error);
     }
   };
@@ -129,6 +141,27 @@ const CdpSettings: React.FC = () => {
     if (status?.port) {
       const url = `http://127.0.0.1:${status.port}`;
       void navigator.clipboard.writeText(url).then(() => {
+        Message.success(t('common.copied'));
+      });
+    }
+  };
+
+  const copyMcpConfig = () => {
+    if (status?.port) {
+      // Include complete MCP configuration with mcpServers wrapper
+      const config = `{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--browser-url=http://127.0.0.1:${status.port}"
+      ]
+    }
+  }
+}`;
+      void navigator.clipboard.writeText(config).then(() => {
         Message.success(t('common.copied'));
       });
     }
@@ -145,30 +178,69 @@ const CdpSettings: React.FC = () => {
   return (
     <div className='space-y-12px'>
       <PreferenceRow label={t('settings.cdp.enable')} description={t('settings.cdp.enableDesc')}>
+        {/* Use startupEnabled for the switch state (config value), not runtime enabled status */}
         <Switch checked={status?.startupEnabled ?? false} loading={switchLoading} onChange={handleToggle} />
       </PreferenceRow>
 
       {/* Show current status if port is available */}
       {status?.port && (
-        <div className='flex items-center gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
-          <div className='flex-1'>
-            <div className='text-12px text-t-tertiary'>{t('settings.cdp.currentPort')}</div>
-            <div className='text-14px text-t-primary font-medium'>http://127.0.0.1:{status.port}</div>
+        <div className='space-y-8px'>
+          <div className='flex items-center gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
+            <div className='flex-1'>
+              <div className='text-12px text-t-tertiary'>{t('settings.cdp.currentPort')}</div>
+              <div className='text-14px text-t-primary font-medium'>http://127.0.0.1:{status.port}</div>
+            </div>
+            <Tooltip content={t('settings.cdp.openInBrowser')}>
+              <Button type='text' size='small' icon={<Link theme='outline' size='16' />} onClick={openCdpUrl} />
+            </Tooltip>
+            <Tooltip content={t('common.copy')}>
+              <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyCdpUrl} />
+            </Tooltip>
           </div>
-          <Tooltip content={t('settings.cdp.openInBrowser')}>
-            <Button type='text' size='small' icon={<Link theme='outline' size='16' />} onClick={openCdpUrl} />
-          </Tooltip>
-          <Tooltip content={t('common.copy')}>
-            <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyCdpUrl} />
-          </Tooltip>
+          {/* MCP configuration hint */}
+          <div className='space-y-4px'>
+            <div className='text-12px text-t-tertiary'>{t('settings.cdp.mcpConfig')}</div>
+            <div className='flex items-start gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
+              <pre className='flex-1 text-11px text-t-secondary font-mono overflow-x-auto whitespace-pre-wrap break-all m-0 leading-relaxed'>
+{`{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--browser-url=http://127.0.0.1:${status.port}"
+      ]
+    }
+  }
+}`}</pre>
+              <Tooltip content={t('settings.cdp.copyMcpConfig')}>
+                <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyMcpConfig} />
+              </Tooltip>
+            </div>
+            <div className='text-11px text-t-tertiary'>{t('settings.cdp.mcpConfigHint')}</div>
+          </div>
         </div>
       )}
 
       {/* Show hint when CDP is disabled */}
       {status && !status.port && !status.startupEnabled && <div className='text-12px text-t-tertiary py-8px'>{t('settings.cdp.disabledHint')}</div>}
 
-      {/* Restart hint when config changed */}
-      {status?.startupEnabled !== status?.enabled && <Alert type='warning' content={t('settings.cdp.restartRequired')} className='mt-8px' />}
+      {/* Restart hint with action button when config changed */}
+      {hasPendingChange && (
+        <Alert
+          type='warning'
+          content={
+            <div className='flex items-center justify-between gap-12px'>
+              <span>{t('settings.cdp.restartRequired')}</span>
+              <Button size='small' type='primary' onClick={handleRestart}>
+                {t('settings.restartNow')}
+              </Button>
+            </div>
+          }
+          className='mt-8px'
+        />
+      )}
     </div>
   );
 };

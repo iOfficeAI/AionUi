@@ -7,6 +7,7 @@
 import { app } from 'electron';
 import http from 'http';
 import * as fs from 'fs';
+import * as net from 'net';
 import * as path from 'path';
 import os from 'os';
 
@@ -50,9 +51,9 @@ if (isWebUI || isResetPassword) {
 // Registry file: ~/.aionui-cdp-registry.json
 // ---------------------------------------------------------------------------
 
-const DEFAULT_CDP_PORT = 9223;
-const CDP_PORT_RANGE_START = 9223;
-const CDP_PORT_RANGE_END = 9240;
+const DEFAULT_CDP_PORT = 9230;
+const CDP_PORT_RANGE_START = 9230;
+const CDP_PORT_RANGE_END = 9250;
 const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
@@ -126,20 +127,102 @@ function pruneRegistry(): CdpRegistryEntry[] {
   return alive;
 }
 
-/** Find the first available port not occupied by a live registry entry. */
+/**
+ * Check if a port has an existing TCP listener (async version).
+ * Uses net.connect with immediate error handling.
+ * Returns true if the port is available (no listener).
+ * @deprecated Use isPortAvailableSync for pre-app.ready usage
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function isPortAvailable(port: number): boolean {
+  return new Promise<boolean>((resolve) => {
+    const socket = new net.Socket();
+    const timeout = setTimeout(() => {
+      socket.destroy();
+      resolve(true); // Timeout = port available
+    }, 200);
+
+    socket.once('connect', () => {
+      clearTimeout(timeout);
+      socket.destroy();
+      resolve(false); // Connected = port in use
+    });
+
+    socket.once('error', () => {
+      clearTimeout(timeout);
+      socket.destroy();
+      resolve(true); // Error = port available
+    });
+
+    socket.connect(port, '127.0.0.1');
+  }) as unknown as boolean; // Sync cast for pre-app.ready usage
+}
+
+/**
+ * Synchronous version for use before app.ready when event loop isn't fully operational.
+ * Uses a blocking approach with net.Socket.
+ */
+function isPortAvailableSync(port: number): boolean {
+  let available = true;
+  const socket = new net.Socket();
+
+  // Set very short timeout
+  socket.setTimeout(100);
+
+  socket.once('connect', () => {
+    available = false;
+    socket.destroy();
+  });
+
+  socket.once('error', () => {
+    available = true;
+  });
+
+  socket.once('timeout', () => {
+    socket.destroy();
+  });
+
+  try {
+    socket.connect(port, '127.0.0.1');
+    // Give it a brief moment to determine availability
+    const start = Date.now();
+    while (Date.now() - start < 150) {
+      // Spin briefly to allow the connection attempt to complete
+    }
+    socket.destroy();
+  } catch {
+    available = true;
+  }
+
+  return available;
+}
+
+/** Find the first available port not occupied by a live registry entry or system-level process. */
 function findAvailablePort(preferredPort: number): number {
   const liveEntries = pruneRegistry();
   const usedPorts = new Set(liveEntries.map((e) => e.port));
 
+  console.log(`[CDP] Checking port availability, preferred: ${preferredPort}`);
+
   // Try the preferred port first
-  if (!usedPorts.has(preferredPort)) return preferredPort;
+  if (!usedPorts.has(preferredPort) && isPortAvailableSync(preferredPort)) {
+    console.log(`[CDP] Port ${preferredPort} is available`);
+    return preferredPort;
+  }
+
+  console.log(`[CDP] Port ${preferredPort} is occupied, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
 
   // Scan the port range for an available one
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
-    if (!usedPorts.has(p)) return p;
+    if (p === preferredPort) continue; // Already checked
+    if (!usedPorts.has(p) && isPortAvailableSync(p)) {
+      console.log(`[CDP] Found available port: ${p}`);
+      return p;
+    }
   }
 
   // All ports in range occupied — fall back to preferred and let Electron handle the conflict
+  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are occupied, trying ${preferredPort}`);
   return preferredPort;
 }
 
@@ -275,8 +358,23 @@ if (cdpStartupEnabled) {
   cdpPort = port;
   registerInstance(port);
 
-  // Clean up registry on exit
-  process.on('exit', () => unregisterInstance());
+  // Log CDP initialization
+  console.log('[CDP] Chrome DevTools Protocol enabled');
+  console.log(`[CDP] Remote debugging port: ${port}`);
+  console.log(`[CDP] DevTools URL: http://127.0.0.1:${port}`);
+  console.log('[CDP] MCP chrome-devtools connection: --browser-url=http://127.0.0.1:' + port);
+
+  // Clean up registry on exit - handle multiple exit signals
+  const cleanup = () => unregisterInstance();
+  process.on('exit', cleanup);
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+  // Handle Windows specific signals
+  if (process.platform === 'win32') {
+    process.on('SIGBREAK', cleanup);
+  }
+} else {
+  console.log('[CDP] Chrome DevTools Protocol disabled');
 }
 
 /**

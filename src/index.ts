@@ -326,6 +326,18 @@ const handleAppReady = async (): Promise<void> => {
     void loadShellEnvironmentAsync();
   }
 
+  // Verify CDP is ready and log status
+  const { cdpPort, verifyCdpReady } = await import('./utils/configureChromium');
+  if (cdpPort) {
+    const cdpReady = await verifyCdpReady(cdpPort);
+    if (cdpReady) {
+      console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
+      console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
+    } else {
+      console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
+    }
+  }
+
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
   powerMonitor.on('resume', () => {
     console.log('[App] System resumed from sleep, triggering cron recovery');
