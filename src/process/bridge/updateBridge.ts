@@ -466,6 +466,12 @@ export function initUpdateBridge(): void {
 
       const result = await autoUpdaterService.checkForUpdates();
       if (result.success && result.updateInfo) {
+        // Only report update when the remote version is actually newer than the current version.
+        // electron-updater's checkForUpdates() always returns updateInfo regardless of availability.
+        const currentVersion = app.getVersion();
+        if (!semver.gt(result.updateInfo.version, currentVersion)) {
+          return { success: true, data: {} };
+        }
         return {
           success: true,
           data: {

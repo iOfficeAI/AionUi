@@ -185,6 +185,7 @@ const UpdateModal: React.FC = () => {
             releaseNotes: evt.releaseNotes,
           });
           setStatus('available');
+          setVisible(true);
           break;
         case 'not-available':
           setStatus('upToDate');
