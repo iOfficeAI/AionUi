@@ -18,29 +18,27 @@ import { createRateLimiter } from '../middleware/security';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
-  // Webpack assets are always inside app.asar in production or project directory in development
-  // app.getAppPath() returns the correct path for both cases
   const appPath = app.getAppPath();
-
-  const candidates = [
-    {
-      staticRoot: path.join(appPath, 'out', 'renderer'),
-      indexHtml: path.join(appPath, 'out', 'renderer', 'index.html'),
-    },
-    {
-      staticRoot: path.join(appPath, '.webpack', 'renderer'),
-      indexHtml: path.join(appPath, '.webpack', 'renderer', 'main_window', 'index.html'),
-    },
-  ];
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate.indexHtml)) {
-      return candidate;
-    }
+  
+  // Try electron-vite build output structure first (used by npm run build)
+  // When running from source, renderer is at project_root/out/renderer
+  // 首先尝试 electron-vite 构建输出结构（npm run build 使用）
+  // 从源码运行时，renderer 在 project_root/out/renderer
+  const viteRoot = path.join(appPath, '..', 'renderer');
+  const viteIndexHtml = path.join(viteRoot, 'index.html');
+  if (fs.existsSync(viteIndexHtml)) {
+    return { indexHtml: viteIndexHtml, staticRoot: viteRoot } as const;
+  }
+  
+  // Fall back to webpack assets (production packaging)
+  // 回退到 webpack 资源（生产打包）
+  const webpackRoot = path.join(appPath, '.webpack', 'renderer');
+  const webpackIndexHtml = path.join(webpackRoot, 'main_window', 'index.html');
+  if (fs.existsSync(webpackIndexHtml)) {
+    return { indexHtml: webpackIndexHtml, staticRoot: webpackRoot } as const;
   }
 
-  const triedPaths = candidates.map((candidate) => candidate.indexHtml).join('; ');
-  throw new Error(`Renderer assets not found. Tried: ${triedPaths}`);
+  throw new Error(`Renderer assets not found. Tried:\n  - ${viteIndexHtml}\n  - ${webpackIndexHtml}`);
 };
 
 export function registerStaticRoutes(app: Express): void {
@@ -97,7 +95,7 @@ export function registerStaticRoutes(app: Express): void {
    * Exclude: api, static, main_window, and webpack chunk directories (react, arco, vendors, etc.)
    * Also exclude files with extensions (.js, .css, .map, etc.)
    */
-  app.get(/^\/(?!api|static|main_window|assets|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
+  app.get(/^\/(?!api|static|main_window|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
 
   /**
    * 静态资源

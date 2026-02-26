@@ -308,6 +308,8 @@ const handleAppReady = async (): Promise<void> => {
       app.exit(1);
     }
   } else if (isWebUIMode) {
+    // In WebUI mode, start the web server without creating any window
+    // 在WebUI模式下启动Web服务器，不创建任何窗口
     const userConfigInfo = loadUserWebUIConfig();
     if (userConfigInfo.exists && userConfigInfo.path) {
       // Config file loaded from user directory
@@ -315,11 +317,27 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config);
     await startWebServer(resolvedPort, allowRemote);
+    
+    // Initialize ACP detector before keeping process alive (skip in --resetpass mode)
+    // 在保持进程运行前初始化ACP检测器（resetpass模式跳过）
+    if (!isResetPasswordMode) {
+      await initializeAcpDetector();
+      // Preload shell environment in background for faster ACP connections
+      void loadShellEnvironmentAsync();
+    }
+    
+    // Keep the process alive in WebUI mode by returning a never-resolving promise
+    // 在WebUI模式下保持进程运行，返回一个永不resolve的promise
+    return new Promise(() => {
+      // This promise never resolves, keeping the app alive
+      // 这个promise永不resolve，保持应用运行
+    });
   } else {
     createWindow();
   }
 
-  // 启动时初始化ACP检测器 (skip in --resetpass mode)
+  // 启动时初始化ACP检测器 (skip in --resetpass mode) - only for non-WebUI mode
+  // 桌面模式下初始化ACP检测器
   if (!isResetPasswordMode) {
     await initializeAcpDetector();
     // Preload shell environment in background for faster ACP connections
@@ -343,9 +361,12 @@ const handleAppReady = async (): Promise<void> => {
 void app
   .whenReady()
   .then(handleAppReady)
-  .catch((_error) => {
+  .catch((error) => {
     // App initialization failed
-    app.quit();
+    console.error('[App] Initialization failed:', error);
+    if (!isWebUIMode) {
+      app.quit();
+    }
   });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -353,7 +374,14 @@ void app
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   // In WebUI mode, don't quit when windows are closed since we're running a web server
-  if (!isWebUIMode && process.platform !== 'darwin') {
+  // WebUI模式下，即使所有窗口关闭也不退出，因为我们运行的是Web服务器
+  if (isWebUIMode) {
+    console.log('[App] WebUI mode: ignoring window-all-closed event');
+    return;
+  }
+  
+  // In normal GUI mode, quit on all platforms except macOS
+  if (process.platform !== 'darwin') {
     app.quit();
   }
 });
