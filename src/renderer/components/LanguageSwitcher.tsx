@@ -1,8 +1,8 @@
-import { ConfigStorage } from '@/common/storage';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import type { SelectHandle } from '@arco-design/web-react/es/Select/interface';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '@/renderer/i18n';
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n } = useTranslation();
@@ -14,12 +14,8 @@ const LanguageSwitcher: React.FC = () => {
       // Blur before switching to avoid dropdown and language change fighting for layout
       selectRef.current?.blur?.();
 
-      ConfigStorage.set('language', value).catch((error: Error) => {
-        console.error('Failed to save language preference:', error);
-      });
-
       const applyLanguage = () => {
-        i18n.changeLanguage(value).catch((error: Error) => {
+        changeLanguage(value).catch((error: Error) => {
           console.error('Failed to change language:', error);
         });
       };
@@ -31,7 +27,7 @@ const LanguageSwitcher: React.FC = () => {
         setTimeout(applyLanguage, 0);
       }
     },
-    [i18n]
+    []
   );
 
   return (

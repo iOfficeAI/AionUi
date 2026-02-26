@@ -11,6 +11,27 @@ export type SupportedLanguage = (typeof supportedLanguages)[number];
 // Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
 
+// Module names for each locale
+const MODULES = [
+  'common',
+  'agentMode',
+  'update',
+  'login',
+  'fileSelection',
+  'preview',
+  'conversation',
+  'settings',
+  'messages',
+  'mcp',
+  'acp',
+  'codex',
+  'tools',
+  'gemini',
+  'cron',
+  'guid',
+  'agent',
+] as const;
+
 // Import function to dynamically load locale modules
 async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
   // Check cache first
@@ -18,63 +39,27 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
     return loadedTranslations.get(locale)!;
   }
 
-  // Dynamic import based on locale
+  // Dynamic import based on locale - all languages now use modular structure
   let modules: Record<string, unknown> = {};
 
   try {
-    switch (locale) {
-      case 'zh-CN':
-        modules = {
-          ...(await import('./locales/zh-CN/common.json')).default,
-          ...(await import('./locales/zh-CN/agentMode.json')).default,
-          ...(await import('./locales/zh-CN/update.json')).default,
-          ...(await import('./locales/zh-CN/login.json')).default,
-          ...(await import('./locales/zh-CN/fileSelection.json')).default,
-          ...(await import('./locales/zh-CN/preview.json')).default,
-          ...(await import('./locales/zh-CN/conversation.json')).default,
-          ...(await import('./locales/zh-CN/settings.json')).default,
-          ...(await import('./locales/zh-CN/messages.json')).default,
-          ...(await import('./locales/zh-CN/mcp.json')).default,
-          ...(await import('./locales/zh-CN/acp.json')).default,
-          ...(await import('./locales/zh-CN/codex.json')).default,
-          ...(await import('./locales/zh-CN/tools.json')).default,
-          ...(await import('./locales/zh-CN/gemini.json')).default,
-          ...(await import('./locales/zh-CN/cron.json')).default,
-          ...(await import('./locales/zh-CN/guid.json')).default,
-          ...(await import('./locales/zh-CN/agent.json')).default,
-        };
-        break;
-      case 'en-US':
-        modules = {
-          ...(await import('./locales/en-US/common.json')).default,
-          ...(await import('./locales/en-US/agentMode.json')).default,
-          ...(await import('./locales/en-US/update.json')).default,
-          ...(await import('./locales/en-US/login.json')).default,
-          ...(await import('./locales/en-US/fileSelection.json')).default,
-          ...(await import('./locales/en-US/preview.json')).default,
-          ...(await import('./locales/en-US/conversation.json')).default,
-          ...(await import('./locales/en-US/settings.json')).default,
-          ...(await import('./locales/en-US/messages.json')).default,
-          ...(await import('./locales/en-US/mcp.json')).default,
-          ...(await import('./locales/en-US/acp.json')).default,
-          ...(await import('./locales/en-US/codex.json')).default,
-          ...(await import('./locales/en-US/tools.json')).default,
-          ...(await import('./locales/en-US/gemini.json')).default,
-          ...(await import('./locales/en-US/cron.json')).default,
-          ...(await import('./locales/en-US/guid.json')).default,
-          ...(await import('./locales/en-US/agent.json')).default,
-        };
-        break;
-      case 'ja-JP':
-      case 'zh-TW':
-      case 'ko-KR':
-      case 'tr-TR':
-        // Fallback to monolithic JSON for languages not yet modularized
-        modules = (await import(`./locales/${locale}.json`)).default;
-        break;
-      default:
-        console.warn(`Unknown locale: ${locale}, falling back to en-US`);
-        return loadLocaleModules('en-US');
+    // Import all modules dynamically
+    const importPromises = MODULES.map(async (moduleName) => {
+      try {
+        const module = await import(`./locales/${locale}/${moduleName}.json`);
+        return [moduleName, module.default || {}];
+      } catch {
+        return [moduleName, {}];
+      }
+    });
+
+    const results = await Promise.all(importPromises);
+
+    // Merge all modules with namespace (moduleName as key)
+    for (const [moduleName, content] of results) {
+      if (Object.keys(content as Record<string, unknown>).length > 0) {
+        modules[moduleName as string] = content;
+      }
     }
 
     // Cache the loaded translation
@@ -115,10 +100,10 @@ async function initLanguage(): Promise<void> {
   try {
     const savedLanguage = await ConfigStorage.get('language');
     const language = savedLanguage || i18n.language || 'en-US';
-    
+
     // Normalize language code
     const normalizedLang = normalizeLanguageCode(language);
-    
+
     // Load and set the language
     const translation = await loadLocaleModules(normalizedLang);
     i18n.addResourceBundle(normalizedLang, 'translation', translation, true, true);
@@ -131,12 +116,12 @@ async function initLanguage(): Promise<void> {
 // Normalize language code to match supported languages
 function normalizeLanguageCode(lang: string): SupportedLanguage {
   const normalized = lang.replace('_', '-');
-  
+
   // Direct match
   if (supportedLanguages.includes(normalized as SupportedLanguage)) {
     return normalized as SupportedLanguage;
   }
-  
+
   // Handle language-only codes (e.g., 'zh' -> 'zh-CN')
   const langOnly = normalized.split('-')[0];
   switch (langOnly) {
@@ -156,12 +141,12 @@ function normalizeLanguageCode(lang: string): SupportedLanguage {
 // Listen for language changes and lazy load translations
 i18n.on('languageChanged', async (lang: string) => {
   const normalizedLang = normalizeLanguageCode(lang);
-  
+
   // Skip if already loaded
   if (i18n.hasResourceBundle(normalizedLang, 'translation')) {
     return;
   }
-  
+
   try {
     const translation = await loadLocaleModules(normalizedLang);
     i18n.addResourceBundle(normalizedLang, 'translation', translation, true, true);
@@ -176,20 +161,30 @@ initLanguage();
 // Export a function to change language with lazy loading
 export async function changeLanguage(lang: string): Promise<void> {
   const normalizedLang = normalizeLanguageCode(lang);
-  
+
   try {
     // Load translation if not already loaded
     if (!i18n.hasResourceBundle(normalizedLang, 'translation')) {
       const translation = await loadLocaleModules(normalizedLang);
       i18n.addResourceBundle(normalizedLang, 'translation', translation, true, true);
     }
-    
+
     await i18n.changeLanguage(normalizedLang);
     await ConfigStorage.set('language', normalizedLang);
   } catch (error) {
     console.error(`Failed to change language to ${normalizedLang}:`, error);
     throw error;
   }
+}
+
+// Clear translation cache (useful for development/testing)
+export function clearTranslationCache(): void {
+  loadedTranslations.clear();
+}
+
+// Get loaded languages
+export function getLoadedLanguages(): string[] {
+  return Array.from(loadedTranslations.keys());
 }
 
 export default i18n;
