@@ -7,9 +7,14 @@
 import { shell, webui, type IWebUIStatus } from '@/common/ipcBridge';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
+import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
+import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
+import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
+import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Form, Input, Message, Switch, Tooltip } from '@arco-design/web-react';
-import { Copy, Refresh } from '@icon-park/react';
+import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
+import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
 import { QRCodeSVG } from 'qrcode.react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,25 +38,13 @@ const PreferenceRow: React.FC<{ label: string; description?: React.ReactNode; ex
   </div>
 );
 
-/**
- * 信息行组件（用于登录信息展示）
- * Info row component (for login info display)
- */
-const InfoRow: React.FC<{ label: string; value: string; onCopy?: () => void; showCopy?: boolean }> = ({ label, value, onCopy, showCopy = true }) => (
-  <div className='flex items-center justify-between py-12px'>
-    <span className='text-14px text-t-secondary'>{label}</span>
-    <div className='flex items-center gap-8px'>
-      <span className='text-14px text-t-primary'>{value}</span>
-      {showCopy && onCopy && (
-        <Tooltip content='复制'>
-          <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={onCopy}>
-            <Copy size={16} />
-          </button>
-        </Tooltip>
-      )}
-    </div>
-  </div>
-);
+const CHANNEL_LOGOS = [
+  { src: ChannelTelegramLogo, alt: 'Telegram' },
+  { src: ChannelLarkLogo, alt: 'Lark' },
+  { src: ChannelDingTalkLogo, alt: 'DingTalk' },
+  { src: ChannelSlackLogo, alt: 'Slack' },
+  { src: ChannelDiscordLogo, alt: 'Discord' },
+] as const;
 
 /**
  * WebUI 设置内容组件
@@ -61,6 +54,7 @@ const WebuiModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const [activeTab, setActiveTab] = useState<'webui' | 'channels'>('webui');
 
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
   const isDesktop = isElectronDesktop();
@@ -388,17 +382,6 @@ const WebuiModalContent: React.FC = () => {
     Message.success(t('common.copySuccess'));
   };
 
-  // 复制密码（复制后立即变密文）/ Copy password (immediately hide after copying)
-  const handleCopyPassword = async () => {
-    const password = status?.initialPassword || cachedPassword;
-    if (password) {
-      void navigator.clipboard.writeText(password);
-      Message.success(t('common.copySuccess'));
-      // 复制后立即隐藏明文，图标变成重置 / Hide plaintext immediately after copying, icon changes to reset
-      setCanShowPlainPassword(false);
-    }
-  };
-
   // 打开设置新密码弹窗 / Open set new password modal
   const handleResetPassword = () => {
     form.resetFields();
@@ -544,132 +527,197 @@ const WebuiModalContent: React.FC = () => {
     );
   }
 
-  return (
-    <div className='flex flex-col h-full w-full'>
-      <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
-        <div className='space-y-16px'>
-          {/* 标题 / Title */}
-          <h2 className='text-20px font-500 text-t-primary m-0'>WebUI</h2>
+  const webuiPanel = (
+    <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
+      <div className='space-y-12px px-[12px] md:px-[28px]'>
+        {/* 标题 / Title */}
+        <h2 className='text-20px font-500 text-t-primary m-0'>WebUI</h2>
 
-          {/* 描述说明 / Description */}
-          <div className='p-16px bg-fill-2 rd-12px border border-line text-13px text-t-secondary leading-relaxed'>
-            <p className='m-0'>{t('settings.webui.description')}</p>
-            <p className='m-0 mt-4px'>{t('settings.webui.steps')}</p>
-          </div>
-
-          {/* WebUI 服务卡片 / WebUI Service Card */}
-          <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
-            {/* 启用 WebUI / Enable WebUI */}
-            <PreferenceRow label={t('settings.webui.enable')} extra={startLoading ? <span className='text-12px text-warning'>{t('settings.webui.starting')}</span> : status?.running ? <span className='text-12px text-green-500'>✓ {t('settings.webui.running')}</span> : null}>
-              <Switch checked={status?.running || startLoading} loading={startLoading} onChange={handleToggle} />
-            </PreferenceRow>
-
-            {/* 访问地址（仅运行时显示）/ Access URL (only when running) */}
-            {status?.running && (
-              <PreferenceRow label={t('settings.webui.accessUrl')}>
-                <div className='flex items-center gap-8px'>
-                  <button className='text-14px text-primary font-mono hover:underline cursor-pointer bg-transparent border-none p-0' onClick={() => shell.openExternal.invoke(getDisplayUrl()).catch(console.error)}>
-                    {getDisplayUrl()}
-                  </button>
-                  <Tooltip content={t('common.copy')}>
-                    <button className='p-4px text-t-tertiary hover:text-t-primary cursor-pointer bg-transparent border-none' onClick={() => handleCopy(getDisplayUrl())}>
-                      <Copy size={16} />
-                    </button>
-                  </Tooltip>
-                </div>
-              </PreferenceRow>
-            )}
-
-            {/* 允许局域网访问 / Allow LAN Access */}
-            <PreferenceRow
-              label={t('settings.webui.allowRemote')}
-              description={
-                <>
-                  <span className='text-t-tertiary'>{t('settings.webui.allowRemoteDesc')}</span>
-                  <button className='ml-8px text-primary hover:opacity-80 underline underline-offset-2 cursor-pointer bg-transparent border-none p-0 text-12px font-500 transition-colors' onClick={() => shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide').catch(console.error)}>
-                    {t('settings.webui.viewGuide')}
-                  </button>
-                </>
-              }
-            >
-              <Switch checked={allowRemote} onChange={handleAllowRemoteChange} />
-            </PreferenceRow>
-          </div>
-
-          {/* 登录信息卡片 / Login Info Card */}
-          <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
-            <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.loginInfo')}</div>
-
-            {/* 用户名 / Username */}
-            <InfoRow label='Username:' value={status?.adminUsername || 'admin'} onCopy={() => handleCopy(status?.adminUsername || 'admin')} />
-
-            {/* 密码 / Password */}
-            <div className='flex items-center justify-between py-12px'>
-              <span className='text-14px text-t-secondary'>Password:</span>
-              <div className='flex items-center gap-8px'>
-                <span className='text-14px text-t-primary'>{displayPassword}</span>
-                {canShowPlainPassword && actualPassword ? (
-                  // 可以显示明文时，显示复制图标 / Show copy icon when plaintext is visible
-                  <Tooltip content={t('settings.webui.copyPasswordTooltip')}>
-                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={handleCopyPassword}>
-                      <Copy size={16} />
-                    </button>
-                  </Tooltip>
-                ) : (
-                  // 密文状态时，显示重置图标 / Show reset icon when password is hidden
-                  <Tooltip content={t('settings.webui.resetPasswordTooltip')}>
-                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={handleResetPassword} disabled={resetLoading}>
-                      <Refresh size={16} className={resetLoading ? 'animate-spin' : ''} />
-                    </button>
-                  </Tooltip>
-                )}
+        {/* 描述说明 / Description */}
+        <div className='space-y-6px'>
+          <p className='m-0 text-13px text-t-secondary leading-relaxed'>{t('settings.webui.description')}</p>
+          <div className='flex flex-wrap gap-x-12px gap-y-6px'>
+            {[t('settings.webui.enable', { defaultValue: 'Enable WebUI' }), t('settings.webui.accessUrl', { defaultValue: 'Access URL' }), t('settings.webui.allowRemote', { defaultValue: 'Allow Remote Access' })].map((stepLabel, idx) => (
+              <div key={stepLabel} className='inline-flex items-center gap-6px'>
+                <span className='inline-flex items-center justify-center w-16px h-16px rd-50% text-10px font-600 bg-[rgba(var(--primary-6),0.12)] text-[rgb(var(--primary-6))]'>{idx + 1}</span>
+                <CheckOne theme='outline' size='12' className='text-[rgb(var(--primary-6))]' />
+                <span className='text-12px text-t-secondary'>{stepLabel}</span>
               </div>
-            </div>
-
-            {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
-            {status?.running && allowRemote && (
-              <>
-                <div className='border-t border-line my-12px' />
-                <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
-                <div className='text-12px text-t-tertiary mb-12px'>{t('settings.webui.qrLoginHint')}</div>
-
-                <div className='flex flex-col items-center gap-12px'>
-                  {/* 二维码显示区域 / QR Code display area */}
-                  <div className='p-12px bg-bg-1 border border-line rd-10px'>
-                    {qrLoading ? (
-                      <div className='w-140px h-140px flex items-center justify-center'>
-                        <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
-                      </div>
-                    ) : qrUrl ? (
-                      <QRCodeSVG value={qrUrl} size={140} level='M' bgColor='#FFFFFF' fgColor='#000000' />
-                    ) : (
-                      <div className='w-140px h-140px flex items-center justify-center'>
-                        <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 过期时间和刷新按钮 / Expiration time and refresh button */}
-                  <div className='flex items-center gap-8px'>
-                    {qrExpiresAt && <span className='text-12px text-t-tertiary'>{t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}</span>}
-                    <Tooltip content={t('settings.webui.refreshQr')}>
-                      <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => void generateQRCode()} disabled={qrLoading}>
-                        <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
-                      </button>
-                    </Tooltip>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Channels 配置 / Channels Configuration */}
-          <div className='mt-24px'>
-            <h2 className='text-20px font-500 text-t-primary m-0 mb-16px'>Channels</h2>
-            <ChannelModalContent />
+            ))}
           </div>
         </div>
-      </AionScrollArea>
+
+        {/* Messaging 强引导入口 / Messaging primary entry */}
+        {false && (
+          <div className='rd-12px border border-line bg-2 px-12px py-10px flex items-center justify-between gap-10px'>
+            <div className='min-w-0 flex items-center gap-8px'>
+              <Communication theme='outline' size='18' className='text-[rgb(var(--primary-6))] shrink-0' />
+              <div className='min-w-0'>
+                <div className='text-13px text-t-primary font-500'>{t('settings.webui.featureChannelsTitle')}</div>
+                <div className='text-12px text-t-secondary truncate'>{t('settings.webui.featureChannelsDesc')}</div>
+              </div>
+            </div>
+            <Button type='primary' size='small' className='rd-100px' onClick={() => setActiveTab('channels')}>
+              {t('settings.webui.goToChannels')}
+            </Button>
+          </div>
+        )}
+
+        {/* WebUI 服务卡片 / WebUI Service Card */}
+        <div className='px-[12px] md:px-[28px] py-14px bg-2 rd-16px'>
+          {/* WebUI 引导提示 / WebUI hint */}
+          <div className='mb-8px rd-10px border border-line bg-fill-1 px-10px py-8px flex items-start gap-6px'>
+            <Earth theme='outline' size='16' className='mt-1px text-[rgb(var(--primary-6))]' />
+            <div className='text-12px text-t-secondary leading-relaxed'>{t('settings.webui.featureRemoteDesc')}</div>
+          </div>
+
+          {/* 启用 WebUI / Enable WebUI */}
+          <PreferenceRow label={t('settings.webui.enable')} extra={startLoading ? <span className='text-12px text-warning'>{t('settings.webui.starting')}</span> : status?.running ? <span className='text-12px text-success'>✓ {t('settings.webui.running')}</span> : null}>
+            <Switch checked={status?.running || startLoading} loading={startLoading} onChange={handleToggle} />
+          </PreferenceRow>
+
+          {/* 访问地址（仅运行时显示）/ Access URL (only when running) */}
+          {status?.running && (
+            <PreferenceRow label={t('settings.webui.accessUrl')}>
+              <div className='flex items-center gap-8px'>
+                <button className='text-14px text-primary font-mono hover:underline cursor-pointer bg-transparent border-none p-0' onClick={() => shell.openExternal.invoke(getDisplayUrl()).catch(console.error)}>
+                  {getDisplayUrl()}
+                </button>
+                <Tooltip content={t('common.copy')}>
+                  <button className='p-4px text-t-tertiary hover:text-t-primary cursor-pointer bg-transparent border-none' onClick={() => handleCopy(getDisplayUrl())}>
+                    <Copy size={16} />
+                  </button>
+                </Tooltip>
+              </div>
+            </PreferenceRow>
+          )}
+
+          {/* 允许局域网访问 / Allow LAN Access */}
+          <PreferenceRow
+            label={t('settings.webui.allowRemote')}
+            description={
+              <span className='text-t-secondary'>
+                {t('settings.webui.allowRemoteDesc')}
+                {'  '}
+                <button className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px' onClick={() => shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide').catch(console.error)}>
+                  {t('settings.webui.viewGuide')}
+                </button>
+              </span>
+            }
+          >
+            <Switch checked={allowRemote} onChange={handleAllowRemoteChange} />
+          </PreferenceRow>
+        </div>
+
+        {/* 登录信息卡片 / Login Info Card */}
+        <div className='px-[12px] md:px-[28px] py-14px bg-2 rd-16px'>
+          <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.loginInfo')}</div>
+
+          {/* 账号 / Account */}
+          <div className='flex items-center justify-between py-12px'>
+            <span className='text-14px text-t-secondary'>{t('settings.webui.username')}:</span>
+            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px whitespace-nowrap'>
+              <span className='text-14px text-t-primary'>{status?.adminUsername || 'admin'}</span>
+              <Tooltip content={t('common.copy')}>
+                <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={() => handleCopy(status?.adminUsername || 'admin')}>
+                  <Copy size={14} />
+                </Button>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* 密码 / Password */}
+          <div className='flex items-center justify-between py-12px'>
+            <span className='text-14px text-t-secondary'>{t('settings.webui.initialPassword')}:</span>
+            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px whitespace-nowrap'>
+              <span className='text-14px text-t-primary'>{displayPassword}</span>
+              <Tooltip content={t('settings.webui.resetPasswordTooltip')}>
+                <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={handleResetPassword} disabled={resetLoading}>
+                  <EditTwo size={14} />
+                </Button>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
+          {status?.running && allowRemote && (
+            <>
+              <div className='border-t border-line my-12px' />
+              <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
+              <div className='text-12px text-t-tertiary mb-12px'>{t('settings.webui.qrLoginHint')}</div>
+
+              <div className='flex flex-col items-center gap-12px'>
+                {/* 二维码显示区域 / QR Code display area */}
+                <div className='p-12px bg-fill-1 border border-line rd-10px'>
+                  {qrLoading ? (
+                    <div className='w-140px h-140px flex items-center justify-center'>
+                      <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                    </div>
+                  ) : qrUrl ? (
+                    <div className='p-8px bg-white rd-8px'>
+                      <QRCodeSVG value={qrUrl} size={140} level='M' />
+                    </div>
+                  ) : (
+                    <div className='w-140px h-140px flex items-center justify-center'>
+                      <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 过期时间和刷新按钮 / Expiration time and refresh button */}
+                <div className='flex items-center gap-8px'>
+                  {qrExpiresAt && <span className='text-12px text-t-tertiary'>{t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}</span>}
+                  <Tooltip content={t('settings.webui.refreshQr')}>
+                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => void generateQRCode()} disabled={qrLoading}>
+                      <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </Tooltip>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </AionScrollArea>
+  );
+
+  return (
+    <div className='flex flex-col h-full w-full'>
+      <Tabs activeTab={activeTab} onChange={(key) => setActiveTab((key as 'webui' | 'channels') || 'webui')} type='line' className='mb-12px settings-remote-tabs'>
+        <Tabs.TabPane
+          key='webui'
+          title={
+            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+              <Earth theme='outline' size='15' />
+              <span>WebUI</span>
+            </span>
+          }
+        />
+        <Tabs.TabPane
+          key='channels'
+          title={
+            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+              <Communication theme='outline' size='15' />
+              <span>Channels</span>
+              <span className='inline-flex items-center gap-4px ml-2px'>
+                {CHANNEL_LOGOS.map((item) => (
+                  <span key={item.alt} className='inline-flex items-center justify-center w-16px h-16px rd-50% border border-line bg-fill-1' title={item.alt} aria-label={item.alt}>
+                    <img src={item.src} alt={item.alt} className='w-14px h-14px object-contain' />
+                  </span>
+                ))}
+              </span>
+            </span>
+          }
+        />
+      </Tabs>
+
+      {activeTab === 'webui' ? (
+        webuiPanel
+      ) : (
+        <div className='flex-1 min-h-0'>
+          <ChannelModalContent />
+        </div>
+      )}
 
       {/* 设置新密码弹窗 / Set New Password Modal */}
       <AionModal visible={setPasswordModalVisible} onCancel={() => setSetPasswordModalVisible(false)} onOk={handleSetNewPassword} confirmLoading={passwordLoading} title={t('settings.webui.setNewPassword')} size='small'>
