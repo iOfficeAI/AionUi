@@ -5,8 +5,7 @@
  */
 
 import { app } from 'electron';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { safeExec } from '@process/utils/safeExec';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { IMcpServer } from '@/common/storage';
@@ -200,7 +199,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       // Use enhanced env (includes shell PATH) instead of bare process.env
       // so CLI tools installed via nvm/fnm/volta are discoverable in packaged mode
-      const enhancedEnv = getEnhancedEnv(transport.env);
+      const enhancedEnv = { ...getEnhancedEnv(transport.env), TERM: 'dumb', NO_COLOR: '1' };
       // Resolve bare 'npx' to a modern npx to avoid old standalone npx (pre npm 7)
       const command = transport.command === 'npx' ? resolveNpxPath(enhancedEnv) : transport.command;
 
@@ -208,6 +207,11 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         command,
         args: transport.args || [],
         env: enhancedEnv,
+        // Prevent child process stderr from inheriting parent's TTY.
+        // Default 'inherit' causes `zsh: suspended (tty output)` when the
+        // spawned MCP server (e.g. npx) writes to stderr while Electron
+        // runs under terminal job control.
+        stderr: 'pipe',
       });
 
       // 创建 MCP 客户端
@@ -235,16 +239,39 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       return { success: true, tools };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorCode = (error as NodeJS.ErrnoException)?.code;
+
+      // Detect missing command (npx/node not installed)
+      // 检测命令不存在（npx/node 未安装）
+      if (errorCode === 'ENOENT' || errorMessage.includes('ENOENT') || errorMessage.includes('spawn') || errorMessage.includes('not found')) {
+        const cmd = transport.command;
+        const isNpx = cmd === 'npx' || cmd.endsWith('/npx') || cmd.endsWith('\\npx');
+        if (isNpx) {
+          return {
+            success: false,
+            error: `npx command not found. Please install Node.js (v18+) from https://nodejs.org and restart the app.`,
+          };
+        }
+        return {
+          success: false,
+          error: `Command "${cmd}" not found. Please ensure it is installed and available in your PATH.`,
+        };
+      }
+
+      // Detect permission errors
+      // 检测权限错误
+      if (errorCode === 'EACCES' || errorMessage.includes('EACCES') || errorMessage.includes('permission denied')) {
+        return {
+          success: false,
+          error: `Permission denied when running "${transport.command}". Please check file permissions or try reinstalling Node.js.`,
+        };
+      }
 
       // 检测 npm 缓存问题并自动修复
       if (errorMessage.includes('ENOTEMPTY') && retryCount < 1) {
         try {
-          // exec imported statically
-          // promisify imported statically
-          const execAsync = promisify(exec);
-
           // 清理 npm 缓存并重试
-          await Promise.race([execAsync('npm cache clean --force && rm -rf ~/.npm/_npx'), new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))]);
+          await Promise.race([safeExec('npm cache clean --force && rm -rf ~/.npm/_npx'), new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))]);
 
           return await this.testStdioConnection(transport, retryCount + 1);
         } catch (cleanupError) {
@@ -253,6 +280,15 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
             error: `npm cache corruption detected. Auto-cleanup failed, please manually run: npm cache clean --force`,
           };
         }
+      }
+
+      // Detect timeout errors
+      // 检测超时错误
+      if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
+        return {
+          success: false,
+          error: `Connection timed out. The MCP server "${transport.command}" may be taking too long to start. Check network and try again.`,
+        };
       }
 
       return {

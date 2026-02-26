@@ -67,6 +67,9 @@ export class GeminiAgentManager extends BaseAgentManager<
   enabledSkills?: string[];
   private bootstrap: Promise<void>;
 
+  /** Fingerprint of MCP config used by the current worker, for change detection */
+  private mcpFingerprint: string = '';
+
   /** Session-level approval store for "always allow" memory */
   readonly approvalStore = new GeminiApprovalStore();
 
@@ -79,6 +82,9 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
   private currentMode: string = 'default';
+
+  /** Stored webSearchEngine for worker re-bootstrap / 保存 webSearchEngine 用于重建 worker */
+  private webSearchEngine?: 'google' | 'default';
 
   constructor(
     data: {
@@ -107,16 +113,20 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.enabledSkills = data.enabledSkills;
     this.forceYoloMode = data.yoloMode;
     this.currentMode = data.sessionMode || 'default';
+    this.webSearchEngine = data.webSearchEngine;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
-    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
-      .then(async ([config, imageGenerationModel, mcpServers]) => {
-        // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
-        // Get GOOGLE_CLOUD_PROJECT for current account
-        let projectId: string | undefined;
+    this.bootstrap = this.createBootstrap();
+  }
 
-        // 只有使用 Google OAuth 认证时才需要获取 OAuth 信息
-        // Only fetch OAuth info when using Google OAuth authentication
+  /**
+   * Create bootstrap promise that initializes the worker with current config.
+   * Extracted to allow re-bootstrapping when MCP config changes.
+   */
+  private createBootstrap(): Promise<void> {
+    return Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
+      .then(async ([config, imageGenerationModel, mcpServers]) => {
+        let projectId: string | undefined;
         const authType = getProviderAuthType(this.model);
         const needsGoogleOAuth = authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI;
 
@@ -126,11 +136,8 @@ export class GeminiAgentManager extends BaseAgentManager<
             if (oauthInfo && oauthInfo.email && config?.accountProjects) {
               projectId = config.accountProjects[oauthInfo.email];
             }
-            // 注意：不使用旧的全局 GOOGLE_CLOUD_PROJECT 回退，因为可能属于其他账号
-            // Note: Don't fall back to old global GOOGLE_CLOUD_PROJECT, it might belong to another account
           } catch {
-            // 获取账号失败时不设置 projectId，让系统使用默认值
-            // If account retrieval fails, don't set projectId, let system use default
+            // If account retrieval fails, don't set projectId
           }
         }
 
@@ -151,23 +158,12 @@ export class GeminiAgentManager extends BaseAgentManager<
 
         // Determine yoloMode from legacy config (SecurityModalContent)
         const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
-
-        // Migrate legacy yoloMode config to currentMode.
-        // When old config has yoloMode=true and no explicit session mode was set,
-        // initialize currentMode to 'yolo' so the mode selector reflects the setting.
-        // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
-        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+        if (legacyYoloMode && this.currentMode === 'default') {
           this.currentMode = 'yolo';
         }
-
-        // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
-        // on the Guid page, clear the legacy config so it won't re-activate next time.
-        if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+        if (legacyYoloMode && this.currentMode !== 'yolo') {
           void this.clearLegacyYoloConfig();
         }
-
-        // Derive effective yoloMode from currentMode so that the worker respects
-        // the user's explicit mode choice. forceYoloMode (cron jobs) always takes priority.
         const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
         return this.start({
@@ -176,12 +172,11 @@ export class GeminiAgentManager extends BaseAgentManager<
           workspace: this.workspace,
           model: this.model,
           imageGenerationModel,
-          webSearchEngine: data.webSearchEngine,
+          webSearchEngine: this.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
           presetRules: finalPresetRules,
           contextContent: this.contextContent,
-          // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
           skillsDir: getSkillsDir(),
           // 启用的 skills 列表（含内置 skills），用于 worker 的 activate_skill 工具
           // Enabled skills list (including builtins) for worker's activate_skill tool
@@ -206,12 +201,35 @@ export class GeminiAgentManager extends BaseAgentManager<
       .catch(() => Promise.resolve(undefined));
   }
 
+  /**
+   * Compute a fingerprint of ALL MCP servers for change detection.
+   * Includes name, enabled, status and transport key for every server so that
+   * any add / remove / toggle / reconnect / config-change is detected —
+   * even when a server is deleted and re-added with the same name.
+   */
+  private static computeMcpFingerprint(mcpServers: IMcpServer[] | undefined | null): string {
+    if (!mcpServers || !Array.isArray(mcpServers)) return '[]';
+    const entries = mcpServers
+      .map((s: IMcpServer) => {
+        // Include transport identity so config changes (e.g. different command/url) are detected
+        const transportKey = s.transport.type === 'stdio' ? `${s.transport.command}|${(s.transport.args || []).join(',')}` : 'url' in s.transport ? s.transport.url : '';
+        return { n: s.name, e: s.enabled, st: s.status, t: transportKey };
+      })
+      .sort((a, b) => a.n.localeCompare(b.n));
+    return JSON.stringify(entries);
+  }
+
   private async getMcpServers(): Promise<Record<string, UiMcpServerConfig>> {
     try {
       const mcpServers = await ProcessConfig.get('mcp.config');
       if (!mcpServers || !Array.isArray(mcpServers)) {
+        this.mcpFingerprint = '[]';
         return {};
       }
+
+      // Store fingerprint for later change detection
+      // 保存指纹用于后续变更检测
+      this.mcpFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
 
       // 转换为 aioncli-core 期望的格式
       // MCPServerConfig supports: stdio (command/args/env), sse/http (url/type/headers)
@@ -240,6 +258,7 @@ export class GeminiAgentManager extends BaseAgentManager<
 
       return mcpConfig;
     } catch (error) {
+      this.mcpFingerprint = '[]';
       return {};
     }
   }
@@ -276,6 +295,12 @@ export class GeminiAgentManager extends BaseAgentManager<
       };
       ipcBridge.geminiConversation.responseStream.emit(userResponseMessage);
     }
+
+    // Check if MCP config has changed since worker was initialized
+    // If changed, kill old worker and re-bootstrap with fresh config
+    // 检查 MCP 配置是否在 worker 初始化后发生变更
+    // 若变更则终止旧 worker 并使用最新配置重新初始化
+    await this.refreshWorkerIfMcpChanged();
     this.status = 'pending';
     cronBusyGuard.setProcessing(this.conversation_id, true);
     const result = await this.bootstrap
@@ -286,9 +311,6 @@ export class GeminiAgentManager extends BaseAgentManager<
           data: e.message || JSON.stringify(e),
           msg_id: data.msg_id,
         });
-        // 需要同步后才返回结果
-        // 为什么需要如此?
-        // 在某些情况下，消息需要同步到本地文件中，由于是异步，可能导致前端接受响应和无法获取到最新的消息，因此需要等待同步后再返回
         return new Promise((_, reject) => {
           nextTickToLocalFinish(() => {
             reject(e);
@@ -300,6 +322,30 @@ export class GeminiAgentManager extends BaseAgentManager<
         cronBusyGuard.setProcessing(this.conversation_id, false);
       });
     return result;
+  }
+
+  /**
+   * Re-bootstrap the worker if MCP config has changed since last initialization.
+   * This ensures deleted/disabled MCP servers are no longer callable.
+   */
+  private async refreshWorkerIfMcpChanged(): Promise<void> {
+    try {
+      const mcpServers = await ProcessConfig.get('mcp.config');
+      const currentFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
+
+      if (currentFingerprint !== this.mcpFingerprint) {
+        console.log(`[GeminiAgentManager] MCP config changed (${this.mcpFingerprint} -> ${currentFingerprint}), re-bootstrapping worker...`);
+        // Kill old worker process and its child processes (MCP server connections)
+        this.kill();
+        // Re-bootstrap with fresh config (getMcpServers will update the fingerprint)
+        this.bootstrap = this.createBootstrap();
+        await this.bootstrap;
+        console.log('[GeminiAgentManager] Worker re-bootstrapped with updated MCP config');
+      }
+    } catch (error) {
+      console.warn('[GeminiAgentManager] Failed to check MCP config changes:', error);
+      // Don't block message sending on MCP check failure
+    }
   }
 
   private getConfirmationButtons = (confirmationDetails: IMessageToolGroup['content'][number]['confirmationDetails'], t: (key: string, options?: any) => string) => {

@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '@/common/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { safeExec } from '@process/utils/safeExec';
 
-const execAsync = promisify(exec);
 /** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
-const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '' } });
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
 
 /**
  * Codex CLI MCP代理实现
@@ -38,7 +36,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
     const detectOperation = async () => {
       try {
         // 使用 Codex CLI 命令获取 MCP 配置
-        const { stdout: result } = await execAsync('codex mcp list', { timeout: this.timeout, ...getExecEnv() });
+        const { stdout: result } = await safeExec('codex mcp list', { timeout: this.timeout, ...getExecEnv() });
 
         // 如果没有配置任何MCP服务器，返回空数组
         if (result.includes('No MCP servers configured') || !result.trim()) {
@@ -163,7 +161,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
             const command = commandParts.map((part) => `"${part}"`).join(' ');
 
             try {
-              await execAsync(command, { timeout: 5000, ...getExecEnv() });
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
               console.log(`[CodexMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Codex:`, error);
@@ -188,7 +186,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
             const command = commandParts.map((part) => `"${part}"`).join(' ');
 
             try {
-              await execAsync(command, { timeout: 5000, ...getExecEnv() });
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
               console.log(`[CodexMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Codex:`, error);
@@ -217,7 +215,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
         const removeCommand = `codex mcp remove "${mcpServerName}"`;
 
         try {
-          const result = await execAsync(removeCommand, { timeout: 5000, ...getExecEnv() });
+          const result = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
           // 检查输出确认删除成功
           if (result.stdout && (result.stdout.includes('removed') || result.stdout.includes('Removed'))) {

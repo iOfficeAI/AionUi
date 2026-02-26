@@ -477,9 +477,9 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               }
             />
 
-            {(description || resultDisplay) && (
+            {(description || resultDisplay || status === 'Error') && (
               <div className='mt-8px'>
-                {description && <div className='text-12px text-t-secondary truncate mb-2'>{description}</div>}
+                {description && <div className={`text-12px text-t-secondary mb-2 ${status === 'Error' ? 'whitespace-pre-wrap break-words' : 'truncate'}`}>{description}</div>}
                 {resultDisplay && (
                   <div>
                     {/* 在 Alert 外展示完整结果 Display full result outside Alert */}

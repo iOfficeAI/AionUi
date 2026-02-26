@@ -21,14 +21,26 @@ const resolveRendererPath = () => {
   // Webpack assets are always inside app.asar in production or project directory in development
   // app.getAppPath() returns the correct path for both cases
   const appPath = app.getAppPath();
-  const baseRoot = path.join(appPath, '.webpack', 'renderer');
-  const indexHtml = path.join(baseRoot, 'main_window', 'index.html');
 
-  if (fs.existsSync(indexHtml)) {
-    return { indexHtml, staticRoot: baseRoot } as const;
+  const candidates = [
+    {
+      staticRoot: path.join(appPath, 'out', 'renderer'),
+      indexHtml: path.join(appPath, 'out', 'renderer', 'index.html'),
+    },
+    {
+      staticRoot: path.join(appPath, '.webpack', 'renderer'),
+      indexHtml: path.join(appPath, '.webpack', 'renderer', 'main_window', 'index.html'),
+    },
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate.indexHtml)) {
+      return candidate;
+    }
   }
 
-  throw new Error(`Renderer assets not found at ${indexHtml}`);
+  const triedPaths = candidates.map((candidate) => candidate.indexHtml).join('; ');
+  throw new Error(`Renderer assets not found. Tried: ${triedPaths}`);
 };
 
 export function registerStaticRoutes(app: Express): void {
@@ -85,7 +97,7 @@ export function registerStaticRoutes(app: Express): void {
    * Exclude: api, static, main_window, and webpack chunk directories (react, arco, vendors, etc.)
    * Also exclude files with extensions (.js, .css, .map, etc.)
    */
-  app.get(/^\/(?!api|static|main_window|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
+  app.get(/^\/(?!api|static|main_window|assets|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
 
   /**
    * 静态资源
