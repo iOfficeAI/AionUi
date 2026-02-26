@@ -76,7 +76,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
         onClick={async () => {
           const id = uuid();
           // Fetch latest conversation from DB to ensure sessionMode is current
-          const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch(() => null);
+          const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
           const source = latest || conversation;
           ipcBridge.conversation.createWithConversation
             .invoke({ conversation: { ...source, id, createTime: Date.now(), modifyTime: Date.now() } })
