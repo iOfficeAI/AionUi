@@ -122,15 +122,12 @@ const LoginPage: React.FC = () => {
     []
   );
 
-  const handleLanguageChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextLanguage = event.target.value;
-      changeLanguage(nextLanguage).catch((error: Error) => {
-        console.error('Failed to change language:', error);
-      });
-    },
-    []
-  );
+  const handleLanguageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextLanguage = event.target.value;
+    changeLanguage(nextLanguage).catch((error: Error) => {
+      console.error('Failed to change language:', error);
+    });
+  }, []);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {

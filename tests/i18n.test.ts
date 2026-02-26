@@ -8,25 +8,7 @@ import * as path from 'path';
 // 测试常量 - 使用 __dirname 相对路径
 const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/i18n/locales');
 const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
-const REQUIRED_MODULES = [
-  'common',
-  'agentMode',
-  'update',
-  'login',
-  'fileSelection',
-  'preview',
-  'conversation',
-  'settings',
-  'messages',
-  'mcp',
-  'acp',
-  'codex',
-  'tools',
-  'gemini',
-  'cron',
-  'guid',
-  'agent',
-] as const;
+const REQUIRED_MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
 
 // 辅助函数：递归获取所有键
 function getAllKeys(obj: unknown, prefix = ''): string[] {

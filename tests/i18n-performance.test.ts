@@ -8,11 +8,7 @@ import * as path from 'path';
 
 const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/i18n/locales');
 const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'];
-const MODULES = [
-  'common', 'agentMode', 'update', 'login', 'fileSelection',
-  'preview', 'conversation', 'settings', 'messages', 'mcp',
-  'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent',
-];
+const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'];
 
 describe('i18n 性能测试', () => {
   describe('模块加载性能', () => {

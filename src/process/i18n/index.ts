@@ -8,25 +8,7 @@ import i18n from 'i18next';
 import { ConfigStorage } from '@/common/storage';
 
 // Module names for each locale
-const MODULES = [
-  'common',
-  'agentMode',
-  'update',
-  'login',
-  'fileSelection',
-  'preview',
-  'conversation',
-  'settings',
-  'messages',
-  'mcp',
-  'acp',
-  'codex',
-  'tools',
-  'gemini',
-  'cron',
-  'guid',
-  'agent',
-] as const;
+const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
 
 // Supported languages
 const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
@@ -46,7 +28,7 @@ function loadLocaleModules(locale: string): Record<string, unknown> {
   const path = require('path');
   const fs = require('fs');
 
-  let modules: Record<string, unknown> = {};
+  const modules: Record<string, unknown> = {};
 
   try {
     const localeDir = path.resolve(__dirname, '../../../renderer/i18n/locales', locale);

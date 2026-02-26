@@ -12,25 +12,7 @@ export type SupportedLanguage = (typeof supportedLanguages)[number];
 const loadedTranslations = new Map<string, Record<string, unknown>>();
 
 // Module names for each locale
-const MODULES = [
-  'common',
-  'agentMode',
-  'update',
-  'login',
-  'fileSelection',
-  'preview',
-  'conversation',
-  'settings',
-  'messages',
-  'mcp',
-  'acp',
-  'codex',
-  'tools',
-  'gemini',
-  'cron',
-  'guid',
-  'agent',
-] as const;
+const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
 
 // Import function to dynamically load locale modules
 async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
@@ -40,7 +22,7 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
   }
 
   // Dynamic import based on locale - all languages now use modular structure
-  let modules: Record<string, unknown> = {};
+  const modules: Record<string, unknown> = {};
 
   try {
     // Import all modules dynamically
@@ -156,7 +138,7 @@ i18n.on('languageChanged', async (lang: string) => {
 });
 
 // Initialize on module load
-initLanguage();
+void initLanguage();
 
 // Export a function to change language with lazy loading
 export async function changeLanguage(lang: string): Promise<void> {
