@@ -1,7 +1,7 @@
 import { AcpAgent } from '@/agent/acp';
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
@@ -352,7 +352,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -390,15 +390,24 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           conversation_id: this.conversation_id,
           content: {
             content: data.content, // Save original content to history
+            ...(data.cronMeta && { cronMeta: data.cronMeta }),
           },
           createdAt: Date.now(),
         };
         addMessage(this.conversation_id, userMessage);
+        // Update conversation modifyTime so history list sorts correctly.
+        // For Claude with session resume, onSessionIdUpdate won't fire when
+        // session ID is unchanged, leaving modifyTime stale.
+        try {
+          getDatabase().updateConversation(this.conversation_id, {});
+        } catch {
+          // Conversation might not exist in DB yet
+        }
         const userResponseMessage: IResponseMessage = {
           type: 'user_content',
           conversation_id: this.conversation_id,
           msg_id: data.msg_id,
-          data: userMessage.content.content,
+          data: data.cronMeta ? { content: userMessage.content.content, cronMeta: data.cronMeta } : userMessage.content.content,
         };
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
 
@@ -480,7 +489,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
     const content = message.data;
     // Quick check to avoid unnecessary processing
-    if (!/<think(?:ing)?>/i.test(content)) {
+    // Match both opening and closing tags (including orphaned </think> from MiniMax-style models)
+    if (!/<\s*\/?\s*think(?:ing)?\s*>/i.test(content)) {
       return message;
     }
 
@@ -739,9 +749,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
     try {
       const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+      // Cache the available model list only. Don't overwrite currentModelId from
+      // session-level switches — that should not affect the Guid page default.
+      // The Guid page default is managed separately via acp.config[backend].preferredModelId.
       await ProcessConfig.set('acp.cachedModels', {
         ...cached,
-        [this.options.backend]: modelInfo,
+        [this.options.backend]: {
+          ...modelInfo,
+          // Keep the original default from initial session, not from user switches
+          currentModelId: cached[this.options.backend]?.currentModelId ?? modelInfo.currentModelId,
+          currentModelLabel: cached[this.options.backend]?.currentModelLabel ?? modelInfo.currentModelLabel,
+        },
       });
     } catch (error) {
       console.warn('[AcpAgentManager] Failed to cache model list:', error);

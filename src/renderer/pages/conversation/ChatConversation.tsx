@@ -73,10 +73,13 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
       <Button
         size='mini'
         icon={<img src={addChatIcon} alt='Add chat' className='w-14px h-14px block m-auto' />}
-        onClick={() => {
+        onClick={async () => {
           const id = uuid();
+          // Fetch latest conversation from DB to ensure sessionMode is current
+          const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch(() => null);
+          const source = latest || conversation;
           ipcBridge.conversation.createWithConversation
-            .invoke({ conversation: { ...conversation, id, createTime: Date.now(), modifyTime: Date.now() } })
+            .invoke({ conversation: { ...source, id, createTime: Date.now(), modifyTime: Date.now() } })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
                 console.error('Navigation failed:', error);
@@ -148,7 +151,7 @@ const ChatConversation: React.FC<{
     switch (conversation.type) {
       case 'acp':
         return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode}></AcpChat>;
-      case 'codex':
+      case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
         return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       case 'openclaw-gateway':
         return <OpenClawChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;

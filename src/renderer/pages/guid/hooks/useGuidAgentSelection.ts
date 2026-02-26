@@ -9,8 +9,36 @@ import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo, PresetAgentType } from '../types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getAgentModes } from '@/renderer/constants/agentModes';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate } from 'swr';
+
+/** Save preferred mode to the agent's own config key */
+async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
+  try {
+    if (agentKey === 'gemini') {
+      const config = await ConfigStorage.get('gemini.config');
+      await ConfigStorage.set('gemini.config', { ...config, preferredMode: mode });
+    } else if (agentKey !== 'custom') {
+      const config = await ConfigStorage.get('acp.config');
+      const backendConfig = config?.[agentKey as AcpBackend] || {};
+      await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
+    }
+  } catch {
+    /* silent */
+  }
+}
+
+/** Save preferred model ID to the agent's acp.config key */
+async function savePreferredModelId(agentKey: string, modelId: string): Promise<void> {
+  try {
+    const config = await ConfigStorage.get('acp.config');
+    const backendConfig = config?.[agentKey as AcpBackend] || {};
+    await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: modelId } });
+  } catch {
+    /* silent */
+  }
+}
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -53,15 +81,41 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('gemini');
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
-  const [selectedMode, setSelectedMode] = useState<string>('default');
+  const [selectedMode, _setSelectedMode] = useState<string>('default');
+  // Track whether mode was loaded from preferences to avoid overwriting during initial load
+  const selectedAgentRef = useRef<string | null>(null);
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
-  const [selectedAcpModel, setSelectedAcpModel] = useState<string | null>(null);
+  const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
 
   // Wrap setSelectedAgentKey to also save to storage
   const setSelectedAgentKey = useCallback((key: string) => {
     _setSelectedAgentKey(key);
     ConfigStorage.set('guid.lastSelectedAgent', key).catch((error) => {
       console.error('Failed to save selected agent:', error);
+    });
+  }, []);
+
+  // Wrap setSelectedMode to also save preferred mode to the agent's own config
+  const setSelectedMode = useCallback((mode: React.SetStateAction<string>) => {
+    _setSelectedMode((prev) => {
+      const newMode = typeof mode === 'function' ? mode(prev) : mode;
+      const agentKey = selectedAgentRef.current;
+      if (agentKey) {
+        void savePreferredMode(agentKey, newMode);
+      }
+      return newMode;
+    });
+  }, []);
+
+  // Wrap setSelectedAcpModel to also save preferred model to the agent's config
+  const setSelectedAcpModel = useCallback((modelId: React.SetStateAction<string | null>) => {
+    _setSelectedAcpModel((prev) => {
+      const newModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
+      const agentKey = selectedAgentRef.current;
+      if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
+        void savePreferredModelId(agentKey, newModelId);
+      }
+      return newModelId;
     });
   }, []);
 
@@ -196,35 +250,71 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
     };
   }, []);
 
-  // Reset selected ACP model when agent changes
+  // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
     const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
-    const cachedInfo = acpCachedModels[backend];
-    if (cachedInfo?.currentModelId) {
-      setSelectedAcpModel(cachedInfo.currentModelId);
-    } else {
-      setSelectedAcpModel(null);
-    }
+
+    let cancelled = false;
+    // Read preferred model from acp.config[backend], fallback to cached model list default
+    void ConfigStorage.get('acp.config')
+      .then((config) => {
+        if (cancelled) return;
+        const preferred = (config?.[backend as AcpBackend] as any)?.preferredModelId;
+        if (preferred) {
+          _setSelectedAcpModel(preferred);
+        } else {
+          const cachedInfo = acpCachedModels[backend];
+          _setSelectedAcpModel(cachedInfo?.currentModelId ?? null);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const cachedInfo = acpCachedModels[backend];
+        _setSelectedAcpModel(cachedInfo?.currentModelId ?? null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedAgentKey, acpCachedModels]);
 
-  // Read legacy yoloMode config
+  // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
-    setSelectedMode('default');
+    _setSelectedMode('default');
+    selectedAgentRef.current = selectedAgent;
     if (!selectedAgent) return;
 
-    const readLegacyYoloMode = async () => {
+    let cancelled = false;
+
+    const loadPreferredMode = async () => {
       try {
+        // Read preferredMode from the agent's own config, fallback to legacy yoloMode
+        let preferred: string | undefined;
         let yoloMode = false;
+
         if (selectedAgent === 'gemini') {
           const config = await ConfigStorage.get('gemini.config');
+          preferred = config?.preferredMode;
           yoloMode = config?.yoloMode ?? false;
-        } else if (selectedAgent === 'codex') {
-          const config = await ConfigStorage.get('codex.config');
-          yoloMode = config?.yoloMode ?? false;
-        } else if (selectedAgent !== 'custom' && selectedAgent !== 'openclaw-gateway' && selectedAgent !== 'nanobot') {
+        } else if (selectedAgent !== 'custom') {
           const config = await ConfigStorage.get('acp.config');
-          yoloMode = (config?.[selectedAgent as AcpBackend] as any)?.yoloMode ?? false;
+          const backendConfig = config?.[selectedAgent as AcpBackend] as any;
+          preferred = backendConfig?.preferredMode;
+          yoloMode = backendConfig?.yoloMode ?? false;
         }
+
+        if (cancelled) return;
+
+        // 1. Use preferredMode if valid
+        if (preferred) {
+          const modes = getAgentModes(selectedAgent);
+          if (modes.some((m) => m.value === preferred)) {
+            _setSelectedMode(preferred);
+            return;
+          }
+        }
+
+        // 2. Fallback: legacy yoloMode
         if (yoloMode) {
           const yoloValues: Record<string, string> = {
             claude: 'bypassPermissions',
@@ -233,13 +323,18 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
             iflow: 'yolo',
             qwen: 'yolo',
           };
-          setSelectedMode(yoloValues[selectedAgent] || 'yolo');
+          _setSelectedMode(yoloValues[selectedAgent] || 'yolo');
         }
       } catch {
         /* silent */
       }
     };
-    void readLegacyYoloMode();
+
+    void loadPreferredMode();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedAgent]);
 
   // --- Preset assistant resolution ---

@@ -27,6 +27,13 @@ describe('ThinkTagDetector', () => {
       expect(hasThinkTags('reasoning...</thinking>\nanswer')).toBe(true);
     });
 
+    it('should detect tags with spaces', () => {
+      expect(hasThinkTags('text < /think> more')).toBe(true);
+      expect(hasThinkTags('text </ think> more')).toBe(true);
+      expect(hasThinkTags('text </think > more')).toBe(true);
+      expect(hasThinkTags('text < think > more')).toBe(true);
+    });
+
     it('should return false for content without think tags', () => {
       expect(hasThinkTags('Hello world')).toBe(false);
       expect(hasThinkTags('This is normal text')).toBe(false);
@@ -243,6 +250,51 @@ The solution involves implementing the following steps:
       expect(result).not.toContain('</think>');
       expect(result).toContain("Here's my answer");
       expect(result).toContain('The solution is X.');
+    });
+
+    it('should handle multiple orphaned </think> preserving actual response between them', () => {
+      // When text messages get concatenated across tool calls, there may be
+      // actual response content between two </think> tags that must be preserved.
+      // Strategy: strip content before FIRST </think>, then remove remaining </think> tags only.
+      const input = 'thinking about approach\n</think>\nresponse part 1\nthinking about step 2\n</think>\nresponse part 2';
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('thinking about approach');
+      // Response between </think> tags is preserved (may include leaked thinking text,
+      // but that's safer than losing actual response content)
+      expect(result).toContain('response part 1');
+      expect(result).toContain('response part 2');
+    });
+
+    it('should handle two orphaned </think> with no response in between', () => {
+      const input = 'thinking 1\n</think>\n\nthinking 2\n</think>';
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('thinking 1');
+      // thinking 2 text may remain (as harmless plain text), but the tag is removed
+    });
+
+    it('should handle real-world tool call scenario with thinking leaked into text', () => {
+      // Each segment individually should be fully stripped
+      const beforeTool = 'Investigating the Failure\nThe fetch returned empty.\n</think>';
+      const afterTool = 'Examining the Content\nThe fetch failed.\n</think>';
+
+      expect(stripThinkTags(beforeTool)).toBe('');
+      expect(stripThinkTags(afterTool)).toBe('');
+    });
+
+    it('should preserve markdown code blocks between orphaned </think> tags', () => {
+      // Real-world scenario: AI thinking + response with code + more thinking
+      const input = 'Investigating...\n</think>\n\n基本用法\n```tsx\nimport { Collapse }\n```\n\nmore thinking\n</think>\n\n更多用法';
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('Investigating');
+      expect(result).toContain('基本用法');
+      expect(result).toContain('import { Collapse }');
+      expect(result).toContain('更多用法');
     });
 
     it('should handle DeepSeek-style thinking tags', () => {

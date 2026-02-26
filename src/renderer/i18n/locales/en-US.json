@@ -1327,6 +1327,7 @@
   "cron.drawer.nextRun": "Next Run",
   "cron.drawer.save": "Save",
   "cron.drawer.saveSuccess": "Saved successfully",
+  "cron.message.badge": "Scheduled",
   "guid.agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead.",
   "guid.noAgentAvailable": "No Main Agent is available. Please login to Google or install Claude/Codex CLI. Go to settings?",
   "guid.noAgentAvailableShort": "No Main Agent available. Click to configure.",

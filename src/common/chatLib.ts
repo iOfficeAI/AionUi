@@ -90,7 +90,14 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
   status?: 'finish' | 'pending' | 'error' | 'work';
 }
 
-export type IMessageText = IMessage<'text', { content: string }>;
+export type CronMessageMeta = {
+  source: 'cron';
+  cronJobId: string;
+  cronJobName: string;
+  triggeredAt: number;
+};
+
+export type IMessageText = IMessage<'text', { content: string; cronMeta?: CronMessageMeta }>;
 
 export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
 
@@ -317,15 +324,15 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     case 'content':
     case 'user_content': {
+      const data = message.data;
+      const isRichData = typeof data === 'object' && data !== null && 'content' in data;
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
         position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
-        content: {
-          content: message.data as string,
-        },
+        content: isRichData ? { content: (data as { content: string; cronMeta?: CronMessageMeta }).content, cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta } : { content: data as string },
       };
     }
     case 'tool_call': {

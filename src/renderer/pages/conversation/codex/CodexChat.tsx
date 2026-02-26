@@ -14,6 +14,10 @@ import LocalImageView from '../../../components/LocalImageView';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import CodexSendBox from './CodexSendBox';
 
+/**
+ * @deprecated Legacy Codex chat component. New Codex conversations use ACP
+ * protocol and render via AcpChat. Kept for existing sessions only.
+ */
 const CodexChat: React.FC<{
   conversation_id: string;
   workspace: string;
