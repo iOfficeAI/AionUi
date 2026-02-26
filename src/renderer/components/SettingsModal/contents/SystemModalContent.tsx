@@ -201,8 +201,7 @@ const CdpSettings: React.FC = () => {
           <div className='space-y-4px'>
             <div className='text-12px text-t-tertiary'>{t('settings.cdp.mcpConfig')}</div>
             <div className='flex items-start gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
-              <pre className='flex-1 text-11px text-t-secondary font-mono overflow-x-auto whitespace-pre-wrap break-all m-0 leading-relaxed'>
-{`{
+              <pre className='flex-1 text-11px text-t-secondary font-mono overflow-x-auto whitespace-pre-wrap break-all m-0 leading-relaxed'>{`{
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
