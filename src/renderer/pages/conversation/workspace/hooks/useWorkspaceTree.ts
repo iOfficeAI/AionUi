@@ -94,13 +94,9 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
             setTreeKey(Math.random());
           }
 
-          // Preserve user's expanded keys during refresh; only reset on initial load or search
-          setExpandedKeys((prev) => {
-            if (prev.length === 0 || search) {
-              return getFirstLevelKeys(res);
-            }
-            return prev;
-          });
+          // 只展开第一层文件夹（根节点）
+          // Only expand first level folders (root node)
+          setExpandedKeys(getFirstLevelKeys(res));
 
           // 根据是否有文件决定工作空间面板的展开/折叠状态
           // Determine workspace panel expand/collapse state based on files
