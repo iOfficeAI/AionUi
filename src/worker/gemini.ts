@@ -35,11 +35,15 @@ export default forkTask(({ data }, pipe) => {
 
             if (!registeredConfirmCallIds.has(tool.callId)) {
               registeredConfirmCallIds.add(tool.callId);
-              pipe.once(tool.callId, (confirmKey: string) => {
+              pipe.once(tool.callId, (confirmKey: string, deferred?: { resolve: (v: unknown) => void }) => {
                 const latestOnConfirm = confirmCallbacks.get(tool.callId);
                 registeredConfirmCallIds.delete(tool.callId);
                 confirmCallbacks.delete(tool.callId);
                 if (latestOnConfirm) latestOnConfirm(confirmKey);
+                // Resolve the deferred so postMessagePromise in the main process
+                // gets its callback. Without this, the promise leaks and the
+                // main-process once(callbackKey) listener is never cleaned up.
+                if (deferred?.resolve) deferred.resolve(undefined);
               });
             }
             return {
