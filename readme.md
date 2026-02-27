@@ -575,31 +575,6 @@ just install
 just dev
 ```
 
-#### Available Commands (via justfile)
-
-```bash
-# Development
-just dev              # Start dev server with HMR
-just webui            # Start WebUI mode
-just cli              # Start CLI mode
-
-# Building
-just build            # Build for current platform
-just build-win        # Build for Windows
-just build-mac        # Build for macOS
-just build-linux      # Build for Linux
-
-# Testing & Quality
-just test             # Run tests
-just lint             # Run linter
-just typecheck        # TypeScript check
-just check            # Run all checks (lint + format + typecheck)
-
-# Native Modules
-just rebuild-native   # Rebuild native modules for Electron
-just setup            # Full setup: install + rebuild native
-```
-
 #### Code Checks (prek)
 
 The project uses [prek](https://github.com/j178/prek) (a Rust implementation of pre-commit) for code checks, configured in `.pre-commit-config.yaml`:
