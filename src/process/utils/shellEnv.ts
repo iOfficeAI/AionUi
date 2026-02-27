@@ -14,7 +14,7 @@
  */
 
 import { execFile, execFileSync } from 'child_process';
-import { accessSync, readdirSync } from 'fs';
+import { accessSync, existsSync, readdirSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
@@ -206,19 +206,64 @@ export function mergePaths(path1?: string, path2?: string): string {
 }
 
 /**
+ * Scan well-known Windows tool installation directories and return any that exist
+ * but are not already in the current PATH.
+ *
+ * On Windows, apps launched via shortcuts or the Start menu may miss user-local
+ * tool paths (e.g. npm global packages, nvm-windows, Scoop, Volta) that are
+ * added to PATH only when a shell session starts.
+ *
+ * 扫描 Windows 常见工具安装目录，返回当前 PATH 中缺少的路径。
+ */
+function getWindowsExtraToolPaths(): string[] {
+  if (process.platform !== 'win32') return [];
+
+  const homeDir = os.homedir();
+  const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+  const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local');
+  const currentPath = process.env.PATH || '';
+
+  const candidates = [
+    // npm global packages (most common - installed with Node.js)
+    path.join(appData, 'npm'),
+    // nvm-windows: %APPDATA%\nvm (the active version symlink lives here)
+    process.env.NVM_HOME || path.join(appData, 'nvm'),
+    // Volta: cross-platform Node version manager
+    path.join(homeDir, '.volta', 'bin'),
+    // Scoop: Windows package manager
+    process.env.SCOOP ? path.join(process.env.SCOOP, 'shims') : path.join(homeDir, 'scoop', 'shims'),
+    // pnpm global store shims
+    path.join(localAppData, 'pnpm'),
+  ];
+
+  return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
+}
+
+/**
  * Get enhanced environment variables by merging shell env with process.env.
  * For PATH, we merge both sources to ensure CLI tools are found regardless of
  * how the app was started (terminal vs Finder/launchd).
  *
+ * On Windows, also appends well-known tool paths (npm globals, nvm, volta, scoop)
+ * that may not be present when Electron starts from a shortcut.
+ *
  * 获取增强的环境变量，合并 shell 环境变量和 process.env。
  * 对于 PATH，合并两个来源以确保无论应用如何启动都能找到 CLI 工具。
+ * 在 Windows 上，还会追加常见工具路径（npm 全局包、nvm、volta、scoop 等）。
  */
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
 
   // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
   // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
-  const mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
+  let mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
+
+  // On Windows, also append any discovered tool paths not already in PATH
+  // 在 Windows 上，追加未在 PATH 中的常见工具路径
+  const winExtraPaths = getWindowsExtraToolPaths();
+  if (winExtraPaths.length > 0) {
+    mergedPath = mergePaths(mergedPath, winExtraPaths.join(';'));
+  }
 
   return {
     ...process.env,
