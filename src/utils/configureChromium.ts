@@ -19,10 +19,13 @@ const isResetPassword = process.argv.includes('--resetpass');
 // Only configure flags for WebUI and --resetpass modes
 // 仅为 WebUI 和重置密码模式配置参数
 if (isWebUI || isResetPassword) {
-  // For Linux without DISPLAY, enable headless mode
-  // 对于无显示服务器的 Linux，启用 headless 模式
+  // For Linux without DISPLAY, use headless Ozone platform
+  // 对于无显示服务器的 Linux，使用 headless Ozone 平台后端
+  // Note: Do NOT use --headless (browser automation mode that causes auto-exit).
+  // Instead, use --ozone-platform=headless which provides a proper display backend
+  // without requiring a display server, keeping the Electron process alive.
   if (process.platform === 'linux' && !process.env.DISPLAY) {
-    app.commandLine.appendSwitch('headless');
+    app.commandLine.appendSwitch('ozone-platform', 'headless');
     app.commandLine.appendSwitch('disable-gpu');
     app.commandLine.appendSwitch('disable-software-rasterizer');
   }

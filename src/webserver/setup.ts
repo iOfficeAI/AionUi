@@ -16,10 +16,11 @@ import { errorHandler } from './middleware/errorHandler';
 import { attachCsrfToken } from './middleware/security';
 
 /**
- * 获取局域网 IP 地址
- * Get LAN IP address for CORS configuration
+ * 获取所有非内部 IPv4 地址（LAN、VPN、Tailscale 等）
+ * Get all non-internal IPv4 addresses (LAN, VPN, Tailscale, etc.)
  */
-function getLanIP(): string | null {
+function getAllNonInternalIPs(): string[] {
+  const ips: string[] = [];
   const nets = networkInterfaces();
   for (const name of Object.keys(nets)) {
     const netInfo = nets[name];
@@ -30,11 +31,11 @@ function getLanIP(): string | null {
       const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
       const isNotInternal = !net.internal;
       if (isIPv4 && isNotInternal) {
-        return net.address;
+        ips.push(net.address);
       }
     }
   }
-  return null;
+  return ips;
 }
 
 /**
@@ -119,13 +120,13 @@ function normalizeOrigin(origin: string): string | null {
 function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
   const baseOrigins = new Set<string>([`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
 
-  // 允许远程访问时，自动添加局域网 IP
-  // When remote access is enabled, automatically add LAN IP
+  // 允许远程访问时，自动添加所有网络接口 IP（LAN、VPN、Tailscale 等）
+  // When remote access is enabled, add all network interface IPs (LAN, VPN, Tailscale, etc.)
   if (allowRemote) {
-    const lanIP = getLanIP();
-    if (lanIP) {
-      baseOrigins.add(`http://${lanIP}:${port}`);
-      console.log(`[CORS] Added LAN IP to allowed origins: http://${lanIP}:${port}`);
+    const allIPs = getAllNonInternalIPs();
+    for (const ip of allIPs) {
+      baseOrigins.add(`http://${ip}:${port}`);
+      console.log(`[CORS] Added IP to allowed origins: http://${ip}:${port}`);
     }
   }
 

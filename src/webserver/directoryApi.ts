@@ -10,17 +10,45 @@ import fs from 'fs';
 import os from 'os';
 import { fileOperationLimiter } from './middleware/security';
 
-// Allow browsing within the running workspace and the current user's home directory only
-// 仅允许在工作目录与当前用户主目录中浏览
-const DEFAULT_ALLOWED_DIRECTORIES = [process.cwd(), os.homedir()]
-  .map((dir) => {
+// Allow browsing within the running workspace, current user's home directory,
+// and WSL mount points (/mnt/*) on Linux
+// 允许在工作目录、用户主目录，以及 WSL 挂载点（/mnt/*）中浏览
+const DEFAULT_ALLOWED_DIRECTORIES = (() => {
+  const baseDirs = [process.cwd(), os.homedir()];
+
+  // On Linux (WSL), add /mnt to allow browsing Windows drives
+  // 在 Linux（WSL）环境中，添加 /mnt 以允许浏览 Windows 驱动器
+  if (process.platform === 'linux' && fs.existsSync('/mnt')) {
     try {
-      return fs.realpathSync(dir);
+      const mntEntries = fs.readdirSync('/mnt');
+      for (const entry of mntEntries) {
+        const mountPath = path.join('/mnt', entry);
+        try {
+          if (fs.statSync(mountPath).isDirectory()) {
+            baseDirs.push(mountPath);
+          }
+        } catch {
+          // Skip inaccessible mount points
+        }
+      }
     } catch {
-      return path.resolve(dir);
+      // /mnt exists but not readable
     }
-  })
-  .filter((dir, index, arr) => dir && arr.indexOf(dir) === index);
+  }
+
+  return baseDirs
+    .map((dir) => {
+      try {
+        return fs.realpathSync(dir);
+      } catch {
+        return path.resolve(dir);
+      }
+    })
+    .filter((dir, index, arr) => dir && arr.indexOf(dir) === index);
+})();
+
+// Maximum number of items to return per directory listing
+const MAX_DIRECTORY_ITEMS = 500;
 
 const router = Router();
 
@@ -193,11 +221,16 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
       return a.name.localeCompare(b.name);
     });
 
+    // Limit items to prevent browser freeze with very large directories
+    const truncated = items.length > MAX_DIRECTORY_ITEMS;
+    const limitedItems = truncated ? items.slice(0, MAX_DIRECTORY_ITEMS) : items;
+
     res.json({
       currentPath: safeDir,
       parentPath: path.dirname(safeDir),
-      items,
+      items: limitedItems,
       canGoUp: path.dirname(safeDir) !== safeDir && isPathAllowed(path.dirname(safeDir)),
+      truncated,
     });
   } catch (error) {
     console.error('Directory browse error:', error);

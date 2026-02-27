@@ -165,6 +165,9 @@ const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
 
+// Flag to distinguish intentional quit from unexpected exit in WebUI mode
+let isExplicitQuit = false;
+
 let mainWindow: BrowserWindow;
 
 const createWindow = (): void => {
@@ -315,6 +318,17 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config);
     await startWebServer(resolvedPort, allowRemote);
+
+    // Keep the process alive in WebUI mode by preventing default quit behavior.
+    // On Linux headless (systemd), Electron may attempt to quit when no windows exist.
+    app.on('will-quit', (event) => {
+      // Only prevent quit if this is an unexpected exit (server still running).
+      // Explicit app.exit() calls bypass will-quit, so they are unaffected.
+      if (!isExplicitQuit) {
+        event.preventDefault();
+        console.warn('[WebUI] Prevented unexpected quit — server is still running');
+      }
+    });
   } else {
     createWindow();
   }
@@ -367,6 +381,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', async () => {
+  isExplicitQuit = true;
   // 在应用退出前清理工作进程
   WorkerManage.clear();
 
