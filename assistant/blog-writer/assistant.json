@@ -1,61 +1,61 @@
 {
   "id": "blog-writer",
-  "name": "Blog Writer — Content Pipeline",
-  "version": "2.0.0",
-  "description": "Orchestrator that drives a 4-phase blog pipeline using subagents and skills. Strategy, Research, Writing, and Illustration — each delegated to a focused subagent with specialized skills.",
+  "name": "Blog Writer — Content Engine",
+  "version": "3.0.0",
+  "description": "Full-lifecycle blog engine with 12 commands, 12 content templates, 5-category 100-point scoring, and 4 specialized agents. Dual-optimized for Google rankings (E-E-A-T, December 2025 Core Update) and AI citations (GEO/AEO). Writes, rewrites, analyzes, outlines, audits, and repurposes blog content.",
   "author": "AionUi",
   "presetAgentType": "claude",
   "avatar": "blog-writer.svg",
   "workspacePath": "./workspace",
-  "tags": ["blog", "content", "copywriting", "subagent", "pipeline", "seo", "writing", "illustration"],
+  "tags": ["blog", "content", "copywriting", "seo", "writing", "eeat", "ai-citations", "geo", "schema", "editorial"],
   "ruleFiles": {
     "en-US": "blog-writer.md"
   },
-  "defaultEnabledSkills": ["content-strategy", "domain-research", "content-writing", "illustration"],
+  "defaultEnabledSkills": ["content-strategy", "domain-research", "content-writing", "illustration", "blog-researcher", "blog-seo", "blog-reviewer"],
   "nameI18n": {
     "en-US": "Blog Writer",
-    "zh-CN": "博客写作助手",
-    "zh-TW": "部落格寫作助手",
+    "zh-CN": "博客写作引擎",
+    "zh-TW": "部落格寫作引擎",
     "ja-JP": "ブログライター",
-    "ko-KR": "블로그 작성 도우미"
+    "ko-KR": "블로그 작성 엔진"
   },
   "descriptionI18n": {
-    "en-US": "Orchestrator that drives a 4-phase blog pipeline using subagents and skills. Strategy plans the angle, Research gathers evidence, Writing drafts the prose, Illustration adds visuals.",
-    "zh-CN": "通过子代理和技能驱动四阶段博客流水线的编排器。策略规划角度，研究收集证据，写作撰写正文，插画添加视觉元素。",
-    "zh-TW": "透過子代理和技能驅動四階段部落格流水線的編排器。策略規劃角度，研究蒐集證據，寫作撰寫正文，插畫添加視覺元素。",
-    "ja-JP": "サブエージェントとスキルを使用して4段階のブログパイプラインを駆動するオーケストレーター。戦略が角度を計画し、リサーチが証拠を収集し、ライティングが文章を執筆し、イラストがビジュアルを追加。",
-    "ko-KR": "서브에이전트와 스킬을 사용하여 4단계 블로그 파이프라인을 구동하는 오케스트레이터. 전략이 각도를 계획하고, 리서치가 증거를 수집하고, 라이팅이 글을 작성하고, 일러스트가 시각 자료를 추가합니다."
+    "en-US": "Full-lifecycle blog engine with 12 commands, 12 content templates, 100-point scoring, and 4 specialized agents. Dual-optimized for Google rankings and AI citation platforms.",
+    "zh-CN": "全生命周期博客引擎，具有12个命令、12种内容模板、100分评分系统和4个专业代理。针对Google排名和AI引用平台进行双重优化。",
+    "zh-TW": "全生命週期部落格引擎，具有12個命令、12種內容模板、100分評分系統和4個專業代理。針對Google排名和AI引用平台進行雙重優化。",
+    "ja-JP": "12コマンド、12コンテンツテンプレート、100点スコアリング、4つの専門エージェントを備えたフルライフサイクルブログエンジン。Google検索順位とAI引用プラットフォームの両方に最適化。",
+    "ko-KR": "12개 명령, 12개 콘텐츠 템플릿, 100점 채점 시스템, 4개 전문 에이전트를 갖춘 풀 라이프사이클 블로그 엔진. Google 순위와 AI 인용 플랫폼 모두에 최적화."
   },
   "promptsI18n": {
     "en-US": [
       "Write a blog post about the future of AI agents in software development",
-      "Create an article: 10 lessons learned building a SaaS product from scratch",
-      "Write a technical deep-dive on WebSocket vs Server-Sent Events",
-      "Draft a thought leadership piece on why remote teams outperform co-located ones"
+      "Analyze and score this blog post with the 100-point quality rubric",
+      "Create a content strategy and editorial calendar for a developer blog",
+      "Rewrite this existing blog post to optimize for AI citations and E-E-A-T"
     ],
     "zh-CN": [
       "写一篇关于 AI 代理在软件开发中未来的博客文章",
-      "创建一篇文章：从零构建 SaaS 产品的 10 个经验教训",
-      "写一篇关于 WebSocket 与 Server-Sent Events 的技术深度分析",
-      "撰写一篇关于远程团队为何优于集中办公团队的思想领导力文章"
+      "使用100分质量评分标准分析并评分这篇博客文章",
+      "为开发者博客创建内容策略和编辑日历",
+      "重写这篇现有博客文章，优化AI引用和E-E-A-T信号"
     ],
     "zh-TW": [
       "寫一篇關於 AI 代理在軟體開發中未來的部落格文章",
-      "建立一篇文章：從零構建 SaaS 產品的 10 個經驗教訓",
-      "寫一篇關於 WebSocket 與 Server-Sent Events 的技術深度分析",
-      "撰寫一篇關於遠端團隊為何優於集中辦公團隊的思想領導力文章"
+      "使用100分品質評分標準分析並評分這篇部落格文章",
+      "為開發者部落格建立內容策略和編輯日曆",
+      "重寫這篇現有部落格文章，優化AI引用和E-E-A-T信號"
     ],
     "ja-JP": [
-      "ソフトウェア開発における AI エージェントの未来についてブログ記事を書く",
-      "記事を作成：ゼロから SaaS 製品を構築して学んだ 10 の教訓",
-      "WebSocket と Server-Sent Events の技術的な詳細分析を書く",
-      "リモートチームがオフィスチームを上回る理由についてソートリーダーシップ記事を書く"
+      "ソフトウェア開発におけるAIエージェントの未来についてブログ記事を書く",
+      "100点品質ルブリックでこのブログ記事を分析・採点する",
+      "開発者ブログのコンテンツ戦略と編集カレンダーを作成する",
+      "AI引用とE-E-A-Tに最適化するためにこの既存ブログ記事を書き直す"
     ],
     "ko-KR": [
       "소프트웨어 개발에서 AI 에이전트의 미래에 대한 블로그 게시물 작성",
-      "기사 작성: SaaS 제품을 처음부터 구축하면서 배운 10가지 교훈",
-      "WebSocket과 Server-Sent Events에 대한 기술 심층 분석 작성",
-      "원격 팀이 동일 장소 팀을 능가하는 이유에 대한 사고 리더십 글 작성"
+      "100점 품질 루브릭으로 이 블로그 게시물 분석 및 채점",
+      "개발자 블로그를 위한 콘텐츠 전략 및 편집 캘린더 작성",
+      "AI 인용 및 E-E-A-T 최적화를 위해 기존 블로그 게시물 다시 작성"
     ]
   },
   "isBuiltin": true

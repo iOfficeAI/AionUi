@@ -2,7 +2,7 @@
 
 ## What This Skill Does
 
-Enhances a written article with visual assets — Mermaid diagrams, ASCII art, SVG illustrations, and image generation prompts — replacing placeholder markers with actual visuals.
+Enhances a written article with visual assets — Mermaid diagrams, ASCII art, SVG illustrations, inline SVG charts, and image generation prompts — replacing placeholder markers with actual visuals.
 
 ## Where to Save
 
@@ -19,7 +19,7 @@ The post-slug will be provided by the orchestrator. Read `draft.md` from the sam
 
 ### 1. Final Article (`post.md`)
 
-The complete article with all `<!-- ILLUSTRATION: ... -->` markers replaced by actual visual content embedded inline. Mermaid diagrams in fenced code blocks, SVG inline, image prompts as comments.
+The complete article with all `<!-- ILLUSTRATION: ... -->`, `[IMAGE: ...]`, and `[CHART: ...]` markers replaced by actual visual content embedded inline. Mermaid diagrams in fenced code blocks, SVG inline, image prompts as comments.
 
 ### 2. Metadata (`meta.json`)
 
@@ -32,8 +32,10 @@ The complete article with all `<!-- ILLUSTRATION: ... -->` markers replaced by a
   "wordCount": 0,
   "readTime": "X min",
   "category": "pillar | edge | deep-dive | tutorial",
+  "template": "how-to-guide | listicle | case-study | comparison | pillar-page | product-review | thought-leadership | roundup | tutorial | news-analysis | data-research | faq-knowledge",
   "illustrations": [
     { "type": "mermaid", "file": "assets/diagrams/pipeline.mmd", "description": "..." },
+    { "type": "svg-chart", "file": "assets/diagrams/chart.svg", "description": "..." },
     { "type": "image-prompt", "file": "assets/images/hero.prompt.md", "description": "..." }
   ],
   "createdAt": "ISO date"
@@ -44,7 +46,7 @@ The complete article with all `<!-- ILLUSTRATION: ... -->` markers replaced by a
 
 Save each visual as a standalone file alongside embedding it in `post.md`:
 - Mermaid diagrams: `assets/diagrams/[name].mmd`
-- SVG illustrations: `assets/diagrams/[name].svg`
+- SVG charts/illustrations: `assets/diagrams/[name].svg`
 - ASCII art: `assets/diagrams/[name].txt`
 - Image prompts: `assets/images/[name].prompt.md`
 
@@ -54,12 +56,21 @@ Save each visual as a standalone file alongside embedding it in `post.md`:
 **Best for:** processes, workflows, architectures, sequences, comparisons
 **When:** article describes a process, system architecture, decision tree, or timeline
 
+### SVG Data Charts
+**Best for:** bar charts, grouped bar, lollipop, donut, line, area, radar
+**When:** article contains data that benefits from visualization
+**Rules:**
+- Each chart in an article must be a different type (no duplicates)
+- Dark-mode friendly styling (use CSS custom properties)
+- Include source attribution below chart
+- Responsive viewBox, no fixed dimensions
+
 ### ASCII Art
 **Best for:** developer audiences, terminal-themed content, lightweight diagrams
 **When:** targeting developers and the visual is simple enough for ASCII
 
 ### SVG Illustrations
-**Best for:** inline charts, simple graphics, icons, visual metaphors
+**Best for:** inline graphics, icons, visual metaphors
 **When:** lightweight, scalable visual needed without external dependencies
 
 ### Image Generation Prompts
@@ -75,6 +86,7 @@ Style: [art style, colors]. Dimensions: 1200x630 -->
 - **Visuals communicate, not decorate.** Every illustration must convey information that text handles poorly. If text already explains it clearly, a visual is redundant.
 - **Match the article's tone.** Technical deep-dive gets clean diagrams. Thought leadership gets conceptual illustrations. Tutorial gets step-by-step flows.
 - **Mermaid is the primary tool.** Renders natively in most Markdown environments.
+- **Chart diversity required.** Never use the same chart type twice in one article.
 - **Less is more.** 3-5 well-placed visuals > 10 scattered ones.
 
 ## Anti-Patterns
@@ -84,3 +96,4 @@ Style: [art style, colors]. Dimensions: 1200x630 -->
 - **Decorative illustrations** — stock-photo-feeling visuals with zero information
 - **Inconsistent style** — mixing playful ASCII with formal SVG in the same article
 - **Breaking the reading flow** — visuals at natural pause points, not mid-argument
+- **Duplicate chart types** — each chart must use a different visualization type

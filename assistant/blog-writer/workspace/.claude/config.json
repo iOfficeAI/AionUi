@@ -1,6 +1,6 @@
 {
-  "name": "Blog Writer Pipeline",
-  "description": "Subagent-driven workspace for transforming blog ideas into complete illustrated articles",
-  "version": "2.0.0",
-  "skills": ["content-strategy", "domain-research", "content-writing", "illustration"]
+  "name": "Blog Writer — Content Engine",
+  "description": "Full-lifecycle blog engine with 12 commands, 12 content templates, 100-point scoring, and 4 specialized agents. Dual-optimized for Google rankings and AI citation platforms.",
+  "version": "3.0.0",
+  "skills": ["content-strategy", "domain-research", "content-writing", "illustration", "blog-researcher", "blog-seo", "blog-reviewer"]
 }
