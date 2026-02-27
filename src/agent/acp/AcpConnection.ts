@@ -61,6 +61,22 @@ export function createGenericSpawnConfig(cliPath: string, workingDir: string, ac
     spawnArgs = effectiveAcpArgs;
   }
 
+  if (process.env.AION_ENV_DEBUG === '1') {
+    const sep = process.platform === 'win32' ? ';' : ':';
+    const pathEntries = env.PATH?.split(sep) ?? [];
+    console.log(`[EnvDebug][C-AcpSpawn] spawning: ${spawnCommand} ${spawnArgs.join(' ')}`);
+    console.log(`[EnvDebug][C-AcpSpawn] PATH entries: ${pathEntries.length}`);
+    console.log(`[EnvDebug][C-AcpSpawn] PATH[:5]: ${pathEntries.slice(0, 5).join(', ')}`);
+    // Check if the CLI command itself is resolvable in this PATH
+    try {
+      const whichCmd = isWindows ? 'where' : 'which';
+      const found = execFileSync(whichCmd, [cliPath.split(' ')[0]], { env, encoding: 'utf-8', timeout: 3000 }).trim();
+      console.log(`[EnvDebug][C-AcpSpawn] '${cliPath.split(' ')[0]}' resolved to: ${found}`);
+    } catch {
+      console.log(`[EnvDebug][C-AcpSpawn] '${cliPath.split(' ')[0]}' NOT found in PATH ❌`);
+    }
+  }
+
   const options: SpawnOptions = {
     cwd: workingDir,
     stdio: ['pipe', 'pipe', 'pipe'],

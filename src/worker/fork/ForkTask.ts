@@ -13,6 +13,7 @@
 import { uuid } from '@/renderer/utils/common';
 import type { UtilityProcess } from 'electron';
 import { app, utilityProcess } from 'electron';
+import path from 'path';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { Pipe } from './pipe';
 
@@ -69,6 +70,14 @@ export class ForkTask<Data> extends Pipe {
     // This is critical for skills that depend on globally installed tools (node, npm, playwright, etc.)
     // Without this, workers only get Electron's limited env, missing paths set in .zshrc/.bashrc
     const workerEnv = getEnhancedEnv();
+    if (process.env.AION_ENV_DEBUG === '1') {
+      const sep = process.platform === 'win32' ? ';' : ':';
+      const pathEntries = workerEnv.PATH?.split(sep) ?? [];
+      const workerName = path.basename(this.path);
+      console.log(`[EnvDebug][A-ForkTask] forking worker: ${workerName}`);
+      console.log(`[EnvDebug][A-ForkTask] PATH entries: ${pathEntries.length}`);
+      console.log(`[EnvDebug][A-ForkTask] PATH[:5]: ${pathEntries.slice(0, 5).join(', ')}`);
+    }
     const fcp = utilityProcess.fork(this.path, [], {
       cwd: workerCwd,
       env: workerEnv,
