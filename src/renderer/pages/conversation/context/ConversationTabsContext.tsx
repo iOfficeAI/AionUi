@@ -22,7 +22,7 @@ export interface ConversationTab {
   /** 是否有未保存的修改 / Whether there are unsaved changes */
   isDirty?: boolean;
   /** Conversation mode: 'direct' (default) or 'group' (swarm group chat) */
-  conversationMode?: 'direct' | 'group';
+  conversationMode?: 'direct' | 'group' | 'agentchat';
 }
 
 export interface ConversationTabsContextValue {
