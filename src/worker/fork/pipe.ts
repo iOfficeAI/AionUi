@@ -99,10 +99,11 @@ export class Pipe {
     };
   }
   once(name: string, handler: THandler) {
-    this.on(name, (...args) => {
+    const wrapper: THandler = (...args) => {
+      this.off(name, wrapper);
       handler(...args);
-      this.off(name, handler);
-    });
+    };
+    this.on(name, wrapper);
   }
   deferred(key?: string) {
     return new Deferred(key);
