@@ -262,6 +262,8 @@ class AutoUpdaterService extends EventEmitter {
    */
   async checkForUpdatesAndNotify(): Promise<void> {
     try {
+      // Ensure clean state: prevent stale allowDowngrade=true from prior setAllowPrerelease(true) calls
+      autoUpdater.allowDowngrade = false;
       await autoUpdater.checkForUpdatesAndNotify();
     } catch (error) {
       log.error('Auto-update check failed:', error);
