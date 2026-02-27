@@ -157,8 +157,8 @@ interface IChatConversation<T, Extra> {
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channelChatId?: string;
-  /** Conversation mode: 'direct' (default one-on-one) or 'group' (swarm group chat) */
-  conversationMode?: 'direct' | 'group';
+  /** Conversation mode: 'direct' (default one-on-one), 'group' (swarm group chat), or 'agentchat' (multi-agent chat room) */
+  conversationMode?: 'direct' | 'group' | 'agentchat';
   /** Parent group conversation ID for child agent conversations in swarm mode */
   parentId?: string;
 }

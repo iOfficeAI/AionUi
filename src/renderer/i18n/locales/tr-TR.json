@@ -264,6 +264,24 @@
       "closeRight": "Sağ tarafı kapat",
       "closeOthers": "Diğerlerini Kapat"
     },
+    "swarm": {
+      "groupChat": "Group Chat",
+      "directiveFrom": "Directive from {{name}}"
+    },
+    "agentchat": {
+      "title": "Agent Chat Room",
+      "inputPlaceholder": "Type a message... (use @name to mention agents)",
+      "todosTitle": "Todos",
+      "todosEmpty": "No pinned items yet. Click \"Pin\" on any message to add it here.",
+      "settings": "Settings",
+      "loopGuard": "Loop guard",
+      "isThinking": "{{name}} is thinking...",
+      "reply": "Reply",
+      "pin": "Pin",
+      "done": "Done",
+      "unpin": "Unpin",
+      "scrollToBottom": "Scroll to bottom"
+    },
     "workspace": {
       "expand": "Çalışma Alanını Genişlet",
       "collapse": "Çalışma Alanını Daralt",

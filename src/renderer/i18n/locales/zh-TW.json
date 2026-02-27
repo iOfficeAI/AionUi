@@ -367,6 +367,24 @@
       "closeRight": "關閉右側",
       "closeOthers": "關閉其他"
     },
+    "swarm": {
+      "groupChat": "群聊",
+      "directiveFrom": "來自 {{name}} 的指令"
+    },
+    "agentchat": {
+      "title": "智能體聊天室",
+      "inputPlaceholder": "輸入訊息... (使用 @名稱 提及智能體)",
+      "todosTitle": "待辦事項",
+      "todosEmpty": "暫無置頂項。點擊訊息上的「置頂」即可添加。",
+      "settings": "設定",
+      "loopGuard": "循環保護",
+      "isThinking": "{{name}} 正在思考...",
+      "reply": "回覆",
+      "pin": "置頂",
+      "done": "完成",
+      "unpin": "取消置頂",
+      "scrollToBottom": "滾動到底部"
+    },
     "workspace": {
       "title": "工作空間",
       "pasteConfirm_title": "貼上檔案",

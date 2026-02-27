@@ -32,6 +32,7 @@ import AcpModelSelector from '@/renderer/components/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
 import SwarmGroupChat from './swarm/SwarmGroupChat';
+import { AgentChatRoom } from './agentchat';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -151,9 +152,16 @@ const ChatConversation: React.FC<{
   const isGeminiConversation = conversation?.type === 'gemini';
 
   const isGroupConversation = conversation?.conversationMode === 'group';
+  const isAgentChatMode = conversation?.conversationMode === 'agentchat';
 
   const conversationNode = useMemo(() => {
     if (!conversation || isGeminiConversation) return null;
+
+    // AgentChatR mode: multi-agent chat room with @mentions, todos, reply threading
+    if (isAgentChatMode) {
+      const extra = conversation.extra as { workspace?: string; backend?: string };
+      return <AgentChatRoom key={conversation.id} conversation_id={conversation.id} workspace={extra?.workspace} backend={extra?.backend || 'claude'} />;
+    }
 
     // Group conversations use the SwarmGroupChat component
     if (isGroupConversation) {
@@ -174,7 +182,7 @@ const ChatConversation: React.FC<{
       default:
         return null;
     }
-  }, [conversation, isGeminiConversation, isGroupConversation]);
+  }, [conversation, isGeminiConversation, isGroupConversation, isAgentChatMode]);
 
   // Auto-open preview sidebar if assistant has preview config (non-Gemini conversations)
   // Gemini conversations are handled by GeminiConversationPanel

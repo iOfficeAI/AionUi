@@ -1,0 +1,691 @@
+/* AgentChatR — dark theme chat room styles */
+
+.agentchatRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg-1);
+  overflow: hidden;
+}
+
+/* --- Agent Status Pills --- */
+
+.statusBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+.statusPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  font-size: 12px;
+  color: var(--color-text-3);
+  transition: background 0.2s, border-color 0.2s;
+  cursor: default;
+  user-select: none;
+}
+
+.statusPill:hover {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: var(--color-primary-6, #7c3aed);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.statusDot[data-status='available'] {
+  background: #4ade80;
+}
+
+.statusDot[data-status='busy'] {
+  background: #4ade80;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.statusDot[data-status='offline'] {
+  background: #555;
+}
+
+.statusPill[data-status='offline'] {
+  opacity: 0.4;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* --- Mention Toggles --- */
+
+.mentionToggles {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.mentionToggle {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-2, #2a2a3e);
+  border-radius: 14px;
+  color: var(--color-text-3);
+  padding: 3px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.mentionToggle:hover {
+  border-color: var(--agent-color, var(--color-primary-6));
+  color: var(--agent-color, var(--color-primary-6));
+}
+
+.mentionToggle[data-active='true'] {
+  background: color-mix(in srgb, var(--agent-color, var(--color-primary-6)) 20%, transparent);
+  border-color: var(--agent-color, var(--color-primary-6));
+  color: var(--agent-color, var(--color-primary-6));
+}
+
+/* --- Chat Timeline --- */
+
+.timeline {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  scroll-behavior: smooth;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* --- Chat Bubble Message --- */
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 8px;
+  gap: 8px;
+  line-height: 1.5;
+  position: relative;
+  max-width: 100%;
+  animation: msgIn 0.2s ease-out both;
+  margin-top: 8px;
+}
+
+.messageConsecutive {
+  margin-top: 2px;
+}
+
+.messageSelf {
+  flex-direction: row-reverse;
+}
+
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Avatar --- */
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--bubble-color, currentColor) 35%, transparent);
+}
+
+/* Invisible spacer that keeps alignment when avatar is hidden */
+.avatarSpacer {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+/* --- Chat Bubble --- */
+
+.chatBubble {
+  background: color-mix(in srgb, var(--bubble-color, var(--color-text-3)) 10%, var(--color-bg-2));
+  border: 1px solid color-mix(in srgb, var(--bubble-color, var(--color-text-3)) 15%, transparent);
+  border-radius: 16px;
+  border-top-left-radius: 4px;
+  padding: 8px 14px;
+  max-width: 85%;
+  min-width: 80px;
+  position: relative;
+}
+
+.messageSelf .chatBubble {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 4px;
+}
+
+.message:hover .chatBubble {
+  background: color-mix(in srgb, var(--bubble-color, var(--color-text-3)) 15%, var(--color-bg-2));
+}
+
+.bubbleHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.msgSender {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.messageSelf .msgSender {
+  display: none;
+}
+
+.msgTime {
+  font-size: 11px;
+  color: var(--color-text-3);
+}
+
+.msgText {
+  word-break: break-word;
+}
+
+/* --- @Mention pills in text --- */
+
+.mention {
+  font-weight: 600;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+/* --- Message Actions (reply + pin) --- */
+
+.msgActions {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.message:hover .msgActions {
+  opacity: 1;
+}
+
+.actionBtn {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  color: var(--color-text-3);
+  user-select: none;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.actionBtn:hover {
+  color: var(--color-primary-6, #7c3aed);
+}
+
+/* --- Todo Strip --- */
+
+.todoStrip {
+  width: 3px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  align-self: stretch;
+  background: transparent;
+  transition: background 0.1s;
+}
+
+.todoStrip[data-status='todo'] {
+  background: var(--color-primary-6, #7c3aed);
+}
+
+.todoStrip[data-status='done'] {
+  background: #4ade80;
+}
+
+/* --- Reply Quote --- */
+
+.replyQuote {
+  font-size: 12px;
+  color: var(--color-text-3);
+  padding: 3px 0 3px 8px;
+  margin-bottom: 4px;
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.replyQuote:hover {
+  color: var(--color-text-1);
+  border-left-color: var(--color-primary-6, #7c3aed);
+}
+
+.replySender {
+  font-weight: 600;
+}
+
+/* --- Reply Preview Bar (above input) --- */
+
+.replyPreview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid var(--color-primary-6, #7c3aed);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--color-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.replyPreviewLabel {
+  color: var(--color-primary-6, #7c3aed);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.replyCancel {
+  background: none;
+  border: none;
+  color: var(--color-text-3);
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: auto;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.replyCancel:hover {
+  color: var(--color-danger-6, #f87171);
+}
+
+/* --- Message Highlight (on reply navigation) --- */
+
+.messageHighlight .chatBubble {
+  box-shadow: 0 0 0 2px var(--color-primary-6, #7c3aed);
+  transition: box-shadow 1.5s ease-out;
+}
+
+/* --- Date Divider --- */
+
+.dateDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 8px;
+  color: var(--color-text-3);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dateDivider::before,
+.dateDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-2, #2a2a3e);
+}
+
+/* --- Typing Indicator --- */
+
+.typingIndicator {
+  padding: 6px 10px;
+  color: var(--color-text-3);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.typingName {
+  font-weight: 600;
+}
+
+/* --- Scroll Anchor --- */
+
+.scrollAnchor {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary-6, #7c3aed);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.2s;
+  border: none;
+}
+
+.scrollAnchor:hover {
+  opacity: 0.85;
+}
+
+.unreadBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--color-danger-6, #f87171);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* --- Todos Panel --- */
+
+.todosPanel {
+  background: var(--color-bg-2);
+  border-bottom: 1px solid var(--color-border-2, #2a2a3e);
+  max-height: 250px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.todosPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-6, #7c3aed);
+  border-bottom: 1px solid var(--color-border-2, #2a2a3e);
+}
+
+.todosClose {
+  background: none;
+  border: none;
+  color: var(--color-text-3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.todosClose:hover {
+  color: var(--color-text-1);
+}
+
+.todoItem {
+  padding: 4px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.todoItem:hover {
+  background: var(--color-bg-3);
+}
+
+.todoItemDone {
+  opacity: 0.5;
+}
+
+.todoItemDone .todoText {
+  text-decoration: line-through;
+}
+
+.todoSender {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.todoText {
+  flex: 1;
+}
+
+.todoCheck {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-primary-6, #7c3aed);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.todoCheckDone {
+  color: #4ade80;
+}
+
+.todoRemove {
+  background: none;
+  border: none;
+  color: var(--color-text-3);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.todoRemove:hover {
+  color: var(--color-danger-6, #f87171);
+}
+
+.todosEmpty {
+  padding: 12px 16px;
+  color: var(--color-text-3);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* --- System/Join Messages --- */
+
+.systemMessage {
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 10px;
+  opacity: 0.5;
+}
+
+.joinDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.joinText {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+/* --- Streaming Cursor --- */
+
+.streamCursor {
+  color: var(--color-primary-6, #7c3aed);
+  animation: blink 0.6s step-end infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* --- Input Row (footer) --- */
+
+.footer {
+  padding: 10px 16px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.senderLabel {
+  color: #a78bfa;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.inputHint {
+  font-size: 11px;
+  color: var(--color-text-3);
+  margin-top: 4px;
+}
+
+/* --- Settings Panel --- */
+
+.settingsPanel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--color-bg-2);
+  border-bottom: 1px solid var(--color-border-2, #2a2a3e);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* --- Consecutive bubble refinement (no header, tighter radius) --- */
+
+.messageConsecutive .chatBubble {
+  border-top-left-radius: 4px;
+}
+
+.messageSelf.messageConsecutive .chatBubble {
+  border-top-right-radius: 4px;
+  border-top-left-radius: 16px;
+}
+
+/* --- Empty State --- */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-3);
+}
+
+.emptyIcon {
+  font-size: 48px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+.emptyHint {
+  font-size: 13px;
+  max-width: 300px;
+}
+
+/* --- Markdown content styling inside bubbles --- */
+
+.msgText :global(.markdown-body) {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.msgText :global(.markdown-body) p {
+  margin: 0 0 4px;
+}
+
+.msgText :global(.markdown-body) p:last-child {
+  margin-bottom: 0;
+}
+
+.msgText :global(.markdown-body) pre {
+  margin: 6px 0;
+  border-radius: 8px;
+}
+
+.msgText :global(.markdown-body) code {
+  font-size: 12px;
+}
+
+.msgText :global(.markdown-body) ul,
+.msgText :global(.markdown-body) ol {
+  padding-left: 20px;
+  margin: 4px 0;
+}
+
+/* --- Self-bubble text color (user messages) --- */
+
+.messageSelf .msgText {
+  color: var(--color-text-1);
+}

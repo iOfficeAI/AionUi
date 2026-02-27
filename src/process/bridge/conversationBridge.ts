@@ -451,9 +451,49 @@ export function initConversationBridge(): void {
         }
       }
 
-      // Swarm already running - reject additional messages during collaboration
-      console.warn(`[conversationBridge] Swarm already running, message ignored`);
-      return { success: false, msg: 'Swarm session in progress' };
+      // Swarm already initialized — check for @mentions to route to specific agents
+      const { AgentChatDelegator } = await import('../agentchat/AgentChatDelegator');
+      const swarmRoles = swarmManager.getAgentRoles();
+      const { mentions, cleanText } = AgentChatDelegator.parseMentionsWithAllowList(other.input, swarmRoles);
+
+      if (mentions.length > 0) {
+        // Route to each mentioned agent in the swarm
+        for (const role of mentions) {
+          swarmManager.routeUserMention(role, cleanText, files);
+        }
+        console.log(`[conversationBridge] Routed user @mention to swarm agents: ${mentions.join(', ')}`);
+        return { success: true };
+      }
+
+      // No valid @mentions — reject (swarm orchestrates its own turns)
+      console.warn(`[conversationBridge] Swarm already running, no valid @mentions found`);
+      return { success: false, msg: 'Swarm session in progress. Use @agent to address a specific agent.' };
+    }
+
+    // Check if this is an agentchat conversation with @mentions → delegate to mentioned agents
+    try {
+      const db = getDatabase();
+      const convResult = db.getConversation(conversation_id);
+      if (convResult.success && convResult.data && (convResult.data as any).conversationMode === 'agentchat') {
+        const { AgentChatDelegator } = await import('../agentchat/AgentChatDelegator');
+        const conv = convResult.data;
+        const extra = conv.extra as { workspace?: string; backend?: string; agents?: string[] } | undefined;
+        const workspace = extra?.workspace || '';
+        const defaultBackend = extra?.backend || 'claude';
+        // Only agents explicitly configured in the conversation are valid @mention targets
+        const allowedAgents = extra?.agents || [defaultBackend];
+
+        const delegator = AgentChatDelegator.getOrCreate(conversation_id, workspace, defaultBackend, allowedAgents);
+        const delegated = await delegator.delegateMessage(other.input, other.msg_id || uuid());
+
+        if (delegated) {
+          console.log(`[conversationBridge] AgentChat message delegated to mentioned agents`);
+          return { success: true };
+        }
+        // If not delegated (no non-default mentions), fall through to regular flow
+      }
+    } catch (err) {
+      console.warn(`[conversationBridge] AgentChat delegation check failed, falling through:`, err);
     }
 
     // Regular conversation flow continues...

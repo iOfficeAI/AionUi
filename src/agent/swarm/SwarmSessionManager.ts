@@ -517,4 +517,35 @@ export class SwarmSessionManager {
       conversationId: handle.conversationId,
     }));
   }
+
+  /** Get list of registered agent role names */
+  getAgentRoles(): string[] {
+    return [...this.agents.keys()];
+  }
+
+  /**
+   * Route a user message to a specific agent by role name.
+   * Used when the user @mentions an agent in the swarm.
+   * Returns true if the agent was found and the message was delivered.
+   */
+  routeUserMention(role: string, content: string, files?: string[]): boolean {
+    const handle = this.agents.get(role);
+    if (!handle) {
+      console.warn(`[SwarmSessionManager] Unknown agent role for @mention: "${role}"`);
+      return false;
+    }
+
+    // Write to the shared feed as a user → agent message
+    this.feedManager.append({
+      from: 'user',
+      to: role,
+      type: 'message',
+      content,
+      files,
+    });
+
+    // Deliver directly to the agent
+    this.enqueueAndDeliver(handle, { content, files, fromRole: 'user' });
+    return true;
+  }
 }

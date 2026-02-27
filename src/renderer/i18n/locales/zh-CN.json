@@ -299,6 +299,20 @@
       "groupChat": "群聊",
       "directiveFrom": "来自 {{name}} 的指令"
     },
+    "agentchat": {
+      "title": "智能体聊天室",
+      "inputPlaceholder": "输入消息... (使用 @名称 提及智能体)",
+      "todosTitle": "待办事项",
+      "todosEmpty": "暂无置顶项。点击消息上的「置顶」即可添加。",
+      "settings": "设置",
+      "loopGuard": "循环保护",
+      "isThinking": "{{name}} 正在思考...",
+      "reply": "回复",
+      "pin": "置顶",
+      "done": "完成",
+      "unpin": "取消置顶",
+      "scrollToBottom": "滚动到底部"
+    },
     "workspace": {
       "title": "工作空间",
       "pasteConfirm_title": "粘贴文件",

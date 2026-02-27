@@ -271,6 +271,24 @@
       "closeRight": "오른쪽 닫기",
       "closeOthers": "다른 탭 닫기"
     },
+    "swarm": {
+      "groupChat": "Group Chat",
+      "directiveFrom": "Directive from {{name}}"
+    },
+    "agentchat": {
+      "title": "에이전트 채팅방",
+      "inputPlaceholder": "메시지 입력... (@이름으로 에이전트 멘션)",
+      "todosTitle": "할 일",
+      "todosEmpty": "고정된 항목이 없습니다. 메시지에서 \"고정\"을 클릭하여 추가하세요.",
+      "settings": "설정",
+      "loopGuard": "루프 가드",
+      "isThinking": "{{name}} 생각 중...",
+      "reply": "답장",
+      "pin": "고정",
+      "done": "완료",
+      "unpin": "고정 해제",
+      "scrollToBottom": "맨 아래로 스크롤"
+    },
     "workspace": {
       "title": "워크스페이스",
       "pasteConfirm_title": "파일 붙여넣기",

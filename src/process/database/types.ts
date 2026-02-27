@@ -76,7 +76,7 @@ export interface IConversationRow {
   status?: 'pending' | 'running' | 'finished';
   source?: 'aionui' | 'telegram' | 'lark' | 'dingtalk'; // 会话来源 / Conversation source
   channel_chat_id?: string; // Channel chat isolation ID (e.g. user:xxx or group:xxx)
-  conversation_mode?: 'direct' | 'group'; // Conversation mode: 'direct' (default) or 'group' (swarm group chat)
+  conversation_mode?: 'direct' | 'group' | 'agentchat'; // Conversation mode: 'direct' (default), 'group' (swarm group chat), or 'agentchat' (multi-agent chat room)
   parent_id?: string; // Parent group conversation ID for child agent conversations
   created_at: number;
   updated_at: number;
@@ -146,7 +146,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     status: row.status,
     source: row.source,
     channelChatId: row.channel_chat_id,
-    conversationMode: row.conversation_mode as 'direct' | 'group' | undefined,
+    conversationMode: row.conversation_mode as 'direct' | 'group' | 'agentchat' | undefined,
     parentId: row.parent_id,
   };
 

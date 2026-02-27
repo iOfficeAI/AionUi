@@ -396,6 +396,24 @@
       "closeRight": "右側を閉じる",
       "closeOthers": "他を閉じる"
     },
+    "swarm": {
+      "groupChat": "Group Chat",
+      "directiveFrom": "Directive from {{name}}"
+    },
+    "agentchat": {
+      "title": "エージェントチャットルーム",
+      "inputPlaceholder": "メッセージを入力... (@名前 でエージェントにメンション)",
+      "todosTitle": "ToDo",
+      "todosEmpty": "ピン留めされた項目はありません。メッセージの「ピン」をクリックして追加できます。",
+      "settings": "設定",
+      "loopGuard": "ループガード",
+      "isThinking": "{{name}} が考え中...",
+      "reply": "返信",
+      "pin": "ピン",
+      "done": "完了",
+      "unpin": "ピン解除",
+      "scrollToBottom": "最下部にスクロール"
+    },
     "workspace": {
       "title": "ワークスペース",
       "pasteConfirm_title": "ファイルを貼り付け",
