@@ -6,12 +6,13 @@
 
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IMessageToolGroup, TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig, getSkillsDir, getAssistantsDir } from '@/process/initStorage';
-import { runHooks, runAgentHooks } from '@/assistant/hooks';
+import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
+import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
+import { detectSkillLoadRequest, AcpSkillManager, buildSkillContentText } from './AcpSkillManager';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType, getOauthInfoWithCache } from '@office-ai/aioncli-core';
@@ -25,8 +26,6 @@ import BaseAgentManager from './BaseAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
-import * as path from 'path';
-
 // gemini agent管理器类
 type UiMcpServerConfig = {
   command?: string;
@@ -67,6 +66,9 @@ export class GeminiAgentManager extends BaseAgentManager<
   enabledSkills?: string[];
   private bootstrap: Promise<void>;
 
+  /** Fingerprint of MCP config used by the current worker, for change detection */
+  private mcpFingerprint: string = '';
+
   /** Session-level approval store for "always allow" memory */
   readonly approvalStore = new GeminiApprovalStore();
 
@@ -79,6 +81,9 @@ export class GeminiAgentManager extends BaseAgentManager<
 
   /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
   private currentMode: string = 'default';
+
+  /** Stored webSearchEngine for worker re-bootstrap / 保存 webSearchEngine 用于重建 worker */
+  private webSearchEngine?: 'google' | 'default';
 
   constructor(
     data: {
@@ -107,16 +112,20 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.enabledSkills = data.enabledSkills;
     this.forceYoloMode = data.yoloMode;
     this.currentMode = data.sessionMode || 'default';
+    this.webSearchEngine = data.webSearchEngine;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
-    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
-      .then(async ([config, imageGenerationModel, mcpServers]) => {
-        // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
-        // Get GOOGLE_CLOUD_PROJECT for current account
-        let projectId: string | undefined;
+    this.bootstrap = this.createBootstrap();
+  }
 
-        // 只有使用 Google OAuth 认证时才需要获取 OAuth 信息
-        // Only fetch OAuth info when using Google OAuth authentication
+  /**
+   * Create bootstrap promise that initializes the worker with current config.
+   * Extracted to allow re-bootstrapping when MCP config changes.
+   */
+  private createBootstrap(): Promise<void> {
+    return Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
+      .then(async ([config, imageGenerationModel, mcpServers]) => {
+        let projectId: string | undefined;
         const authType = getProviderAuthType(this.model);
         const needsGoogleOAuth = authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI;
 
@@ -126,43 +135,34 @@ export class GeminiAgentManager extends BaseAgentManager<
             if (oauthInfo && oauthInfo.email && config?.accountProjects) {
               projectId = config.accountProjects[oauthInfo.email];
             }
-            // 注意：不使用旧的全局 GOOGLE_CLOUD_PROJECT 回退，因为可能属于其他账号
-            // Note: Don't fall back to old global GOOGLE_CLOUD_PROJECT, it might belong to another account
           } catch {
-            // 获取账号失败时不设置 projectId，让系统使用默认值
-            // If account retrieval fails, don't set projectId, let system use default
+            // If account retrieval fails, don't set projectId
           }
         }
 
-        // Build system instructions via agent hooks
-        // 通过 agent hooks 构建系统指令
-        const hookResult = await runAgentHooks('onBuildSystemInstructions', {
-          agentType: 'gemini',
-          workspace: this.workspace,
+        // Build system instructions with skills INDEX only (not full content)
+        // 使用 skills 索引构建系统指令（不注入全文，按需通过 activate_skill 加载）
+        // Builtin skills (e.g. cron) are auto-included in the index by AcpSkillManager
+        const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
+        await skillManager.discoverSkills(this.enabledSkills);
+        const finalPresetRules = await buildSystemInstructionsWithSkillsIndex({
           presetContext: this.presetRules,
-          enabledSkills: this.enabledSkills || [],
+          enabledSkills: this.enabledSkills,
         });
-        const finalPresetRules = hookResult.content;
+
+        // Merge builtin skill names into enabledSkills for the worker's activate_skill tool
+        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 activate_skill 能找到它们
+        const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
+        const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
 
         // Determine yoloMode from legacy config (SecurityModalContent)
         const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
-
-        // Migrate legacy yoloMode config to currentMode.
-        // When old config has yoloMode=true and no explicit session mode was set,
-        // initialize currentMode to 'yolo' so the mode selector reflects the setting.
-        // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
-        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+        if (legacyYoloMode && this.currentMode === 'default') {
           this.currentMode = 'yolo';
         }
-
-        // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
-        // on the Guid page, clear the legacy config so it won't re-activate next time.
-        if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+        if (legacyYoloMode && this.currentMode !== 'yolo') {
           void this.clearLegacyYoloConfig();
         }
-
-        // Derive effective yoloMode from currentMode so that the worker respects
-        // the user's explicit mode choice. forceYoloMode (cron jobs) always takes priority.
         const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
 
         return this.start({
@@ -171,16 +171,15 @@ export class GeminiAgentManager extends BaseAgentManager<
           workspace: this.workspace,
           model: this.model,
           imageGenerationModel,
-          webSearchEngine: data.webSearchEngine,
+          webSearchEngine: this.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
           presetRules: finalPresetRules,
           contextContent: this.contextContent,
-          // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
           skillsDir: getSkillsDir(),
-          // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
-          // Enabled skills list for filtering skills in SkillManager
-          enabledSkills: this.enabledSkills,
+          // 启用的 skills 列表（含内置 skills），用于 worker 的 activate_skill 工具
+          // Enabled skills list (including builtins) for worker's activate_skill tool
+          enabledSkills: allEnabledSkills,
           // Yolo mode: derived from currentMode, not directly from legacy config
           yoloMode: effectiveYoloMode,
         });
@@ -201,12 +200,35 @@ export class GeminiAgentManager extends BaseAgentManager<
       .catch(() => Promise.resolve(undefined));
   }
 
+  /**
+   * Compute a fingerprint of ALL MCP servers for change detection.
+   * Includes name, enabled, status and transport key for every server so that
+   * any add / remove / toggle / reconnect / config-change is detected —
+   * even when a server is deleted and re-added with the same name.
+   */
+  private static computeMcpFingerprint(mcpServers: IMcpServer[] | undefined | null): string {
+    if (!mcpServers || !Array.isArray(mcpServers)) return '[]';
+    const entries = mcpServers
+      .map((s: IMcpServer) => {
+        // Include transport identity so config changes (e.g. different command/url) are detected
+        const transportKey = s.transport.type === 'stdio' ? `${s.transport.command}|${(s.transport.args || []).join(',')}` : 'url' in s.transport ? s.transport.url : '';
+        return { n: s.name, e: s.enabled, st: s.status, t: transportKey };
+      })
+      .sort((a, b) => a.n.localeCompare(b.n));
+    return JSON.stringify(entries);
+  }
+
   private async getMcpServers(): Promise<Record<string, UiMcpServerConfig>> {
     try {
       const mcpServers = await ProcessConfig.get('mcp.config');
       if (!mcpServers || !Array.isArray(mcpServers)) {
+        this.mcpFingerprint = '[]';
         return {};
       }
+
+      // Store fingerprint for later change detection
+      // 保存指纹用于后续变更检测
+      this.mcpFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
 
       // 转换为 aioncli-core 期望的格式
       // MCPServerConfig supports: stdio (command/args/env), sse/http (url/type/headers)
@@ -235,42 +257,49 @@ export class GeminiAgentManager extends BaseAgentManager<
 
       return mcpConfig;
     } catch (error) {
+      this.mcpFingerprint = '[]';
       return {};
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
-    // Run assistant hooks from workspace .claude/hooks/ folder
-    // Get assistant path from conversation extra data
-    const db = getDatabase();
-    const conversationResult = db.getConversation(this.conversation_id);
-    let assistantPath: string | undefined;
-    if (conversationResult.success && conversationResult.data?.extra?.presetAssistantId) {
-      assistantPath = path.join(getAssistantsDir(), conversationResult.data.extra.presetAssistantId);
-    }
-
-    const hookResult = await runHooks('onSendMessage', {
-      workspace: this.workspace,
-      assistantPath,
-      conversationId: this.conversation_id,
-      content: data.input,
-      enabledSkills: this.enabledSkills || [],
-    });
-    if (hookResult.blocked) {
-      return { success: false, msg: hookResult.blockReason || 'Message blocked by assistant hook' };
-    }
-    const processedData = hookResult.content !== data.input ? { ...data, input: hookResult.content } : data;
-
+  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
       position: 'right',
       conversation_id: this.conversation_id,
       content: {
-        content: data.input, // Save original content to history
+        content: data.input,
+        ...(data.cronMeta && { cronMeta: data.cronMeta }),
       },
     };
     addMessage(this.conversation_id, message);
+    // Update conversation modifyTime so history list sorts correctly.
+    // Without this, chat.history.refresh fires before modifyTime is updated,
+    // causing stale sorting until a manual page refresh.
+    try {
+      getDatabase().updateConversation(this.conversation_id, {});
+    } catch {
+      // Conversation might not exist in DB yet
+    }
+    // Emit user_content IPC for cron messages so the frontend can display them
+    // even if the component mounts after the DB save but before the DB load completes.
+    // Normal user-initiated messages are added locally by the frontend, so only cron needs this.
+    if (data.cronMeta) {
+      const userResponseMessage: IResponseMessage = {
+        type: 'user_content',
+        conversation_id: this.conversation_id,
+        msg_id: data.msg_id,
+        data: { content: message.content.content, cronMeta: data.cronMeta },
+      };
+      ipcBridge.geminiConversation.responseStream.emit(userResponseMessage);
+    }
+
+    // Check if MCP config has changed since worker was initialized
+    // If changed, kill old worker and re-bootstrap with fresh config
+    // 检查 MCP 配置是否在 worker 初始化后发生变更
+    // 若变更则终止旧 worker 并使用最新配置重新初始化
+    await this.refreshWorkerIfMcpChanged();
     this.status = 'pending';
     cronBusyGuard.setProcessing(this.conversation_id, true);
     const result = await this.bootstrap
@@ -282,20 +311,41 @@ export class GeminiAgentManager extends BaseAgentManager<
           msg_id: data.msg_id,
           timestamp: Date.now(),
         });
-        // 需要同步后才返回结果
-        // 为什么需要如此?
-        // 在某些情况下，消息需要同步到本地文件中，由于是异步，可能导致前端接受响应和无法获取到最新的消息，因此需要等待同步后再返回
         return new Promise((_, reject) => {
           nextTickToLocalFinish(() => {
             reject(e);
           });
         });
       })
-      .then(() => super.sendMessage(processedData))
+      .then(() => super.sendMessage(data))
       .finally(() => {
         cronBusyGuard.setProcessing(this.conversation_id, false);
       });
     return result;
+  }
+
+  /**
+   * Re-bootstrap the worker if MCP config has changed since last initialization.
+   * This ensures deleted/disabled MCP servers are no longer callable.
+   */
+  private async refreshWorkerIfMcpChanged(): Promise<void> {
+    try {
+      const mcpServers = await ProcessConfig.get('mcp.config');
+      const currentFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
+
+      if (currentFingerprint !== this.mcpFingerprint) {
+        console.log(`[GeminiAgentManager] MCP config changed (${this.mcpFingerprint} -> ${currentFingerprint}), re-bootstrapping worker...`);
+        // Kill old worker process and its child processes (MCP server connections)
+        this.kill();
+        // Re-bootstrap with fresh config (getMcpServers will update the fingerprint)
+        this.bootstrap = this.createBootstrap();
+        await this.bootstrap;
+        console.log('[GeminiAgentManager] Worker re-bootstrapped with updated MCP config');
+      }
+    } catch (error) {
+      console.warn('[GeminiAgentManager] Failed to check MCP config changes:', error);
+      // Don't block message sending on MCP check failure
+    }
   }
 
   private getConfirmationButtons = (confirmationDetails: IMessageToolGroup['content'][number]['confirmationDetails'], t: (key: string, options?: any) => string) => {
@@ -568,11 +618,33 @@ export class GeminiAgentManager extends BaseAgentManager<
       const latestMsg = assistantMsgs[0];
       const textContent = extractTextFromMessage(latestMsg);
 
+      // Collect system responses to send back to AI
+      const collectedResponses: string[] = [];
+
+      // Detect [LOAD_SKILL: ...] requests and load skill content on demand
+      if (textContent) {
+        const skillRequests = detectSkillLoadRequest(textContent);
+        if (skillRequests.length > 0) {
+          const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
+          await skillManager.discoverSkills(this.enabledSkills);
+          const skills = await skillManager.getSkills(skillRequests);
+          if (skills.length > 0) {
+            const skillContent = buildSkillContentText(skills);
+            collectedResponses.push(skillContent);
+            ipcBridge.geminiConversation.responseStream.emit({
+              type: 'system',
+              conversation_id: this.conversation_id,
+              msg_id: uuid(),
+              data: skillContent,
+            });
+          }
+        }
+      }
+
+      // Detect cron commands
       if (textContent && hasCronCommands(textContent)) {
         // Create a message with finish status for middleware
         const msgWithStatus = { ...latestMsg, status: 'finish' as const };
-        // Collect system responses to send back to AI
-        const collectedResponses: string[] = [];
         await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {
           collectedResponses.push(sysMsg);
           // Also emit to frontend for display
@@ -584,15 +656,15 @@ export class GeminiAgentManager extends BaseAgentManager<
             timestamp: Date.now(),
           });
         });
-        // Send collected responses back to AI agent so it can continue
-        if (collectedResponses.length > 0) {
-          const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
-          // Use sendMessage to send the feedback back to AI
-          await this.sendMessage({
-            input: feedbackMessage,
-            msg_id: uuid(),
-          });
-        }
+      }
+
+      // Send collected responses back to AI agent so it can continue
+      if (collectedResponses.length > 0) {
+        const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+        await this.sendMessage({
+          input: feedbackMessage,
+          msg_id: uuid(),
+        });
       }
 
       // Found assistant messages, no need to retry
@@ -708,14 +780,22 @@ export class GeminiAgentManager extends BaseAgentManager<
    * @returns Message with think tags removed from content
    */
   private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
-    // Filter content messages
+    // Filter content messages: only strip complete <think>...</think> blocks.
+    // Orphaned </think> tags must be preserved so the frontend can detect them
+    // in accumulated content and strip all preceding thinking content.
+    // 仅剔除完整的 <think>...</think> 块。
+    // 保留孤立的 </think> 标签，让前端在累积内容中检测并过滤思考内容。
     if (message.type === 'content' && typeof message.data === 'string') {
       const content = message.data;
-      // Quick check to avoid unnecessary processing
-      if (/<think(?:ing)?>/i.test(content)) {
+      const completeBlockRegex = /<\s*think(?:ing)?\s*>[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i;
+      if (completeBlockRegex.test(content)) {
         return {
           ...message,
-          data: stripThinkTags(content),
+          data: content
+            .replace(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi, '')
+            .replace(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi, '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim(),
         };
       }
     }
@@ -723,8 +803,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     // Filter thought messages (they might contain think tags too)
     if (message.type === 'thought' && typeof message.data === 'string') {
       const content = message.data;
-      // Quick check to avoid unnecessary processing
-      if (/<think(?:ing)?>/i.test(content)) {
+      if (/<\/?think(?:ing)?>/i.test(content)) {
         return {
           ...message,
           data: stripThinkTags(content),

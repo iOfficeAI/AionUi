@@ -50,7 +50,7 @@ const patchGlobalErrorListeners = () => {
   const listenerMap = new WeakMap<EventListenerOrEventListenerObject, EventListenerOrEventListenerObject>();
 
   // Hook the top-level error listeners so we can filter ResizeObserver noise before
-  // Webpack/Arco overlays run (避免在 overlay 触发前就被 ResizeObserver 循环警告刷屏，同时保留真实报错).
+  // Arco overlays run (避免在 overlay 触发前就被 ResizeObserver 循环警告刷屏，同时保留真实报错).
   window.addEventListener = ((type: any, listener: any, options: any) => {
     if ((type === 'error' || type === 'unhandledrejection') && listener) {
       const wrapped: EventListenerOrEventListenerObject = (event: any) => {
@@ -145,14 +145,6 @@ const patchConsole = () => {
   }
 };
 
-const patchDevServerOverlay = () => {
-  const devClient = (window as any).__webpack_dev_server_client__ || ((window as any).__webpack_dev_server_client__ = {});
-  devClient.overlay = {
-    show: () => {},
-    hide: () => {},
-  };
-};
-
 export const applyRuntimePatches = () => {
   if (typeof window === 'undefined') {
     return;
@@ -161,7 +153,6 @@ export const applyRuntimePatches = () => {
   patchResizeObserver();
   patchGlobalErrorFilters();
   patchConsole();
-  patchDevServerOverlay();
 };
 
 applyRuntimePatches();

@@ -4,16 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { promisify } from 'util';
 import type { IMcpServer } from '../../../../common/storage';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-
-const execFileAsync = promisify(execFile);
+import { safeExecFile } from '@process/utils/safeExec';
 
 /**
  * CodeBuddy MCP server entry in ~/.codebuddy/mcp.json
@@ -199,9 +196,9 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
                 args.push('-e', `${key}=${value}`);
               }
 
-              await execFileAsync('codebuddy', args, {
+              await safeExecFile('codebuddy', args, {
                 timeout: 5000,
-                env: { ...process.env, NODE_OPTIONS: '' },
+                env: { ...process.env, NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' },
               });
             } else if ('url' in server.transport && server.transport.url) {
               // For HTTP-based transports, use add-json to preserve full config
@@ -214,9 +211,9 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
               }
 
               const jsonStr = JSON.stringify(config);
-              await execFileAsync('codebuddy', ['mcp', 'add-json', '-s', 'user', server.name, jsonStr], {
+              await safeExecFile('codebuddy', ['mcp', 'add-json', '-s', 'user', server.name, jsonStr], {
                 timeout: 5000,
-                env: { ...process.env, NODE_OPTIONS: '' },
+                env: { ...process.env, NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' },
               });
             }
             console.log(`[CodebuddyMcpAgent] Added MCP server: ${server.name}`);
@@ -244,9 +241,9 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
 
         for (const scope of scopes) {
           try {
-            const result = await execFileAsync('codebuddy', ['mcp', 'remove', '-s', scope, mcpServerName], {
+            const result = await safeExecFile('codebuddy', ['mcp', 'remove', '-s', scope, mcpServerName], {
               timeout: 5000,
-              env: { ...process.env, NODE_OPTIONS: '' },
+              env: { ...process.env, NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' },
             });
 
             if (result.stdout && result.stdout.includes('removed')) {

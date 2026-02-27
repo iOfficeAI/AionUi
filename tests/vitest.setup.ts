@@ -1,9 +1,7 @@
 /**
- * Jest Test Setup
- * Global configuration for MCP integration tests
+ * Vitest Test Setup
+ * Global configuration for extension system tests
  */
-
-// Jest types are automatically available
 
 // Make this a module
 export {};

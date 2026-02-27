@@ -98,7 +98,14 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
   };
 }
 
-export type IMessageText = IMessage<'text', { content: string }>;
+export type CronMessageMeta = {
+  source: 'cron';
+  cronJobId: string;
+  cronJobName: string;
+  triggeredAt: number;
+};
+
+export type IMessageText = IMessage<'text', { content: string; cronMeta?: CronMessageMeta }>;
 
 export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
 
@@ -330,15 +337,21 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'content':
     case 'user_content': {
       const rawData = message.data;
-      const contentString =
-        typeof rawData === 'string'
-          ? rawData
-          : Array.isArray(rawData)
-            ? (rawData as Array<{ type?: string; text?: string }>)
-                .filter((b) => b?.type === 'text')
-                .map((b) => b.text ?? '')
-                .join('')
-            : String(rawData ?? '');
+      // Handle different data formats: string, array (multi-part), or rich object with cronMeta
+      let contentString: string;
+      let cronMeta: CronMessageMeta | undefined;
+      if (typeof rawData === 'object' && rawData !== null && !Array.isArray(rawData) && 'content' in rawData) {
+        // Rich data object with content and optional cronMeta
+        contentString = (rawData as { content: string }).content;
+        cronMeta = (rawData as { cronMeta?: CronMessageMeta }).cronMeta;
+      } else if (Array.isArray(rawData)) {
+        contentString = (rawData as Array<{ type?: string; text?: string }>)
+          .filter((b) => b?.type === 'text')
+          .map((b) => b.text ?? '')
+          .join('');
+      } else {
+        contentString = typeof rawData === 'string' ? rawData : String(rawData ?? '');
+      }
       return {
         id: uuid(),
         type: 'text',
@@ -347,6 +360,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         conversation_id: message.conversation_id,
         content: {
           content: contentString,
+          ...(cronMeta && { cronMeta }),
         },
         createdAt: message.timestamp || Date.now(),
         // Carry through agentMeta for swarm group chat messages

@@ -256,10 +256,11 @@ export const createAcpAgent = async (options: ICreateConversationParams, assista
   };
 };
 
-export const createCodexAgent = async (options: ICreateConversationParams, assistantConfig?: import('@/assistant/types').AssistantMetadata | null): Promise<TChatConversation> => {
+/** @deprecated Legacy Codex creation. New Codex conversations use ACP protocol via createAcpAgent. */
+export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   // Use presetAssistantId as workspace template source (resolves automatically)
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId, assistantConfig);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace, extra.presetAssistantId);
   return {
     type: 'codex',
     extra: {

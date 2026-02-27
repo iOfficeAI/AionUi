@@ -206,3 +206,29 @@ body[arco-theme='dark'] .arco-message-error {
     background: var(--color-primary);
   }
 }
+
+/* WebUI / Channels tabs in Remote settings */
+.settings-remote-tabs {
+  .arco-tabs-nav {
+    border-bottom: 1px solid var(--color-border-2);
+  }
+
+  .arco-tabs-nav-tab {
+    color: var(--color-text-2);
+    padding: 8px 0;
+  }
+
+  .arco-tabs-nav-tab:hover {
+    color: var(--color-text-1);
+  }
+
+  .arco-tabs-nav-tab-active {
+    color: var(--color-text-1);
+    font-weight: 600;
+  }
+
+  .arco-tabs-nav-ink {
+    height: 2px;
+    background: var(--color-primary);
+  }
+}

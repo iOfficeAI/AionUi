@@ -102,13 +102,15 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
             const contentText = typeof contentValue === 'string' ? contentValue : '';
 
             // Check if content contains <think> or <thinking> tags (common in proxy services like newapi)
+            // Also detect orphaned closing tags from models like MiniMax M2.5 that omit opening <think>
             // 检查内容是否包含 <think> 或 <thinking> 标签（中转站如 newapi 常见格式）
+            // 同时检测 MiniMax M2.5 等省略开始标签的孤立结束标签
             const thinkTagRegex = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
-            const hasThinkTags = /<think(?:ing)?>/i.test(contentText);
+            const hasThinkTags = /<\/?think(?:ing)?>/i.test(contentText);
 
             if (hasThinkTags) {
-              // Extract thinking content and emit as thought events
-              // 提取思考内容并作为 thought 事件发送
+              // Extract thinking content from complete blocks and emit as thought events
+              // 提取完整块中的思考内容并作为 thought 事件发送
               const thinkMatches = contentText.matchAll(thinkTagRegex);
               for (const match of thinkMatches) {
                 const thinkContent = match[1]?.trim();
@@ -120,11 +122,18 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 }
               }
 
-              // Remove <think> and <thinking> tags from content and emit remaining content
-              // 从内容中移除 <think> 和 <thinking> 标签，发送剩余内容
+              // Remove complete think blocks from content, but preserve orphaned </think> tags.
+              // In streaming mode, thinking content from earlier chunks (without tags) is already
+              // accumulated in the frontend. Only the chunk containing </think> has the tag.
+              // By preserving it, the frontend can detect </think> in the accumulated content
+              // and strip all preceding thinking content via stripThinkTags.
+              // 移除完整的 think 块，但保留孤立的 </think> 标签。
+              // 流式模式下，前面 chunk 的思考内容（无标签）已被前端累积。
+              // 保留 </think> 让前端在累积内容中检测到它，从而正确过滤所有思考内容。
               const cleanedContent = contentText
                 .replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '')
-                // Also remove unclosed tags at the end
+                // Keep orphaned </think> for frontend accumulated content filtering
+                // Also remove unclosed opening tags at the end
                 .replace(/<think(?:ing)?>[\s\S]*$/gi, '')
                 .replace(/\n{3,}/g, '\n\n')
                 .trim();
@@ -133,8 +142,8 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 onStreamEvent({ type: event.type, data: cleanedContent });
               }
             } else {
-              // No <think> tags, emit content as-is
-              // 没有 <think> 标签，直接发送内容
+              // No think tags, emit content as-is
+              // 没有 think 标签，直接发送内容
               onStreamEvent({ type: event.type, data: contentValue });
             }
           }
@@ -487,6 +496,109 @@ export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedT
   }
   return mergePartListUnions(responsesToSend);
 };
+
+// Maximum character length for a single functionResponse text part kept in history.
+// Responses exceeding this will be truncated to reduce context window usage.
+const COMPACT_TEXT_THRESHOLD = 10000;
+// How many characters to keep when truncating a large functionResponse text.
+const COMPACT_TEXT_KEEP = 2000;
+
+/**
+ * Compact large tool call responses (functionResponse) already stored in
+ * the chat history to prevent context window overflow.
+ *
+ * After the agentic loop finishes (model has responded with text, no more
+ * pending tool calls), we walk through the history and:
+ *   1. Replace inlineData (base64 images/audio/pdf) with a lightweight
+ *      text placeholder — the binary blob is the main source of bloat.
+ *   2. Truncate very long text functionResponse parts, keeping only the
+ *      head so the model still has partial context.
+ *
+ * The functionCall ↔ functionResponse pairing is preserved so the Gemini
+ * API will not reject the history.
+ */
+export function compactToolResponsesInHistory(geminiClient: GeminiClient): void {
+  if (!geminiClient.isInitialized()) return;
+
+  const history = geminiClient.getHistory();
+  let modified = false;
+
+  for (const content of history) {
+    if (content.role !== 'user' || !content.parts) continue;
+
+    for (let i = 0; i < content.parts.length; i++) {
+      const part = content.parts[i] as Record<string, unknown>;
+      if (!('functionResponse' in part) || !part.functionResponse) continue;
+
+      const fnResp = part.functionResponse as Record<string, unknown>;
+      const resp = fnResp.response as Record<string, unknown> | string | undefined;
+      if (!resp) continue;
+
+      // Case 1: response itself contains inlineData (image/pdf/audio base64)
+      if (typeof resp === 'object' && resp !== null) {
+        if ('inlineData' in resp) {
+          const inlineData = resp.inlineData as { mimeType?: string };
+          const mimeType = inlineData?.mimeType || 'unknown';
+          fnResp.response = {
+            output: `[File content was read: ${mimeType}. Binary data removed from history to save context. Use read_file tool to re-read if needed.]`,
+          };
+          modified = true;
+          continue;
+        }
+
+        // Case 2: response.output is a very long string
+        if ('output' in resp && typeof resp.output === 'string' && resp.output.length > COMPACT_TEXT_THRESHOLD) {
+          resp.output = resp.output.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${resp.output.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`;
+          modified = true;
+          continue;
+        }
+      }
+
+      // Case 3: response is a raw string (some tool results)
+      if (typeof resp === 'string' && resp.length > COMPACT_TEXT_THRESHOLD) {
+        fnResp.response = {
+          output: resp.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${resp.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`,
+        };
+        modified = true;
+        continue;
+      }
+
+      // Case 4: response contains an array (llmContent from read_many_files etc.)
+      // Walk nested parts looking for inlineData or long strings
+      if (typeof resp === 'object' && resp !== null) {
+        for (const [key, value] of Object.entries(resp)) {
+          if (Array.isArray(value)) {
+            for (let j = 0; j < value.length; j++) {
+              const item = value[j];
+              // Nested inlineData
+              if (item && typeof item === 'object' && 'inlineData' in item) {
+                const mimeType = (item.inlineData as { mimeType?: string })?.mimeType || 'unknown';
+                value[j] = {
+                  text: `[File content was read: ${mimeType}. Binary data removed from history to save context.]`,
+                };
+                modified = true;
+              }
+              // Nested long string
+              if (typeof item === 'string' && item.length > COMPACT_TEXT_THRESHOLD) {
+                value[j] = item.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${item.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
+                modified = true;
+              }
+            }
+            // Also check if the array-valued field itself is a large string
+          } else if (typeof value === 'string' && value.length > COMPACT_TEXT_THRESHOLD) {
+            (resp as Record<string, unknown>)[key] = value.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${value.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
+            modified = true;
+          }
+        }
+      }
+    }
+  }
+
+  if (modified) {
+    geminiClient.setHistory(history);
+    console.log('[GeminiAgent] Compacted large tool responses in history to reduce context window usage');
+  }
+}
 
 let promptCount = 0;
 
