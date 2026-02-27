@@ -7,6 +7,7 @@ import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { blurActiveElement } from '@/renderer/utils/focus';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -14,11 +15,23 @@ import useSWR from 'swr';
 import { WORKSPACE_HAS_FILES_EVENT, WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent, type WorkspaceHasFilesDetail } from '@/renderer/utils/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 
 const MIN_CHAT_RATIO = 25;
 const MIN_WORKSPACE_RATIO = 12;
 const MIN_PREVIEW_RATIO = 20;
 const WORKSPACE_HEADER_HEIGHT = 32;
+
+const detectMobileViewportOrTouch = () => {
+  if (typeof window === 'undefined') return false;
+  if (isElectronDesktop()) {
+    return window.innerWidth < 768;
+  }
+  const byWidth = window.innerWidth < 768;
+  const byMedia = window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches;
+  const byTouchPoints = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
+  return byWidth || byMedia || byTouchPoints;
+};
 
 const isMacEnvironment = () => {
   if (typeof navigator === 'undefined') return false;
@@ -73,9 +86,13 @@ const ChatLayout: React.FC<{
   /** 会话 ID，用于模式切换 / Conversation ID for mode switching */
   conversationId?: string;
 }> = (props) => {
+  const { conversationId } = props;
   // 工作空间面板折叠状态 - 全局持久化
   // Workspace panel collapse state - globally persisted
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(() => {
+    if (detectMobileViewportOrTouch()) {
+      return true;
+    }
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE);
       if (stored !== null) {
@@ -91,7 +108,7 @@ const ChatLayout: React.FC<{
   const currentConversationIdRef = useRef<string | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
-  const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true, conversationId } = props;
+  const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
@@ -155,6 +172,14 @@ const ChatLayout: React.FC<{
       // 更新当前会话 ID / Update current conversation ID
       currentConversationIdRef.current = conversationId;
 
+      // 移动端始终保持工作空间收起，避免进入会话时被自动拉起覆盖主对话区
+      if (layout?.isMobile) {
+        if (!rightCollapsedRef.current) {
+          setRightSiderCollapsed(true);
+        }
+        return;
+      }
+
       // 检查用户是否有手动设置的偏好 / Check if user has manual preference
       let userPreference: 'expanded' | 'collapsed' | null = null;
       if (conversationId) {
@@ -189,7 +214,7 @@ const ChatLayout: React.FC<{
     return () => {
       window.removeEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
     };
-  }, [workspaceEnabled, rightSiderCollapsed]);
+  }, [layout?.isMobile, workspaceEnabled, rightSiderCollapsed]);
 
   useEffect(() => {
     if (!workspaceEnabled) {
@@ -244,6 +269,25 @@ const ChatLayout: React.FC<{
     }
     setRightSiderCollapsed(true);
   }, [layout?.isMobile, workspaceEnabled]);
+
+  // 移动端切换会话时强制收起工作空间，防止第一次进入会话被工作空间面板覆盖
+  useEffect(() => {
+    if (!workspaceEnabled || !layout?.isMobile) {
+      return;
+    }
+    setRightSiderCollapsed(true);
+  }, [conversationId, layout?.isMobile, workspaceEnabled]);
+
+  // 移动端切换会话时，强制清除输入焦点，避免软键盘被自动唤起
+  useEffect(() => {
+    if (!layout?.isMobile) {
+      return;
+    }
+    const rafId = requestAnimationFrame(() => {
+      blurActiveElement();
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [conversationId, layout?.isMobile]);
 
   const {
     splitRatio: chatSplitRatio,
@@ -405,7 +449,19 @@ const ChatLayout: React.FC<{
               {isPreviewOpen && !layout?.isMobile && createPreviewDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: {} })}
             </div>
             {isPreviewOpen && (
-              <div className='preview-panel flex flex-col relative overflow-hidden my-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: layout?.isMobile ? 0 : 1, flexShrink: layout?.isMobile ? 0 : 1, flexBasis: layout?.isMobile ? '100%' : 0, border: '1px solid var(--bg-3)', minWidth: layout?.isMobile ? '100%' : '260px' }}>
+              <div
+                className={classNames('preview-panel flex flex-col relative overflow-hidden rounded-[15px]', layout?.isMobile ? 'm-[8px]' : 'my-[12px] mr-[12px] ml-[8px]')}
+                style={{
+                  flexGrow: 1,
+                  flexShrink: 1,
+                  flexBasis: 0,
+                  border: '1px solid var(--bg-3)',
+                  width: layout?.isMobile ? 'calc(100% - 16px)' : undefined,
+                  maxWidth: layout?.isMobile ? 'calc(100% - 16px)' : undefined,
+                  minWidth: layout?.isMobile ? 0 : '260px',
+                  boxSizing: 'border-box',
+                }}
+              >
                 <PreviewPanel />
               </div>
             )}

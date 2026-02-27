@@ -7,9 +7,11 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
-import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { cleanupSiderTooltips } from '@/renderer/utils/siderTooltip';
+import { Dropdown, Menu } from '@arco-design/web-react';
 import { Close, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +33,8 @@ interface TabFadeState {
  * Displays all open conversation tabs, supports switching, closing, and creating new conversations
  */
 const ConversationTabs: React.FC = () => {
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { openTabs, activeTabId, switchTab, closeTab, closeAllTabs, closeTabsToLeft, closeTabsToRight, closeOtherTabs, openTab } = useConversationTabs();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -88,6 +92,7 @@ const ConversationTabs: React.FC = () => {
   // 切换 tab 并导航
   const handleSwitchTab = useCallback(
     (tabId: string) => {
+      cleanupSiderTooltips();
       switchTab(tabId);
       void navigate(`/conversation/${tabId}`);
     },
@@ -97,6 +102,7 @@ const ConversationTabs: React.FC = () => {
   // 关闭 tab
   const handleCloseTab = useCallback(
     (tabId: string) => {
+      cleanupSiderTooltips();
       closeTab(tabId);
       // 如果关闭的是当前 tab，导航将由 context 自动处理（切换到最后一个）
       // 如果没有 tab 了，导航到欢迎页
@@ -109,6 +115,7 @@ const ConversationTabs: React.FC = () => {
 
   // 新建会话 - 在当前工作空间分组下创建新会话
   const handleNewConversation = useCallback(() => {
+    cleanupSiderTooltips();
     const currentTab = openTabs.find((tab) => tab.id === activeTabId);
     if (!currentTab || !currentTab.workspace) {
       // 没有活动tab或没有workspace，跳转到欢迎页
@@ -204,7 +211,6 @@ const ConversationTabs: React.FC = () => {
   );
 
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
-
   // 检查当前激活的 tab 是否在 openTabs 中
   // Check if current active tab is in openTabs
   const isActiveTabInList = openTabs.some((tab) => tab.id === activeTabId);
@@ -222,21 +228,19 @@ const ConversationTabs: React.FC = () => {
         <div ref={tabsContainerRef} className='flex items-center h-full flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'>
           {openTabs.map((tab) => (
             <Dropdown key={tab.id} droplist={getContextMenu(tab.id)} trigger='contextMenu' position='bl'>
-              <Tooltip content={tab.name} position='bottom'>
-                <div className={`flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${tab.id === activeTabId ? 'bg-1 text-[color:var(--color-text-1)] font-medium' : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] border-b border-[color:var(--border-base)]'}`} style={{ borderRight: '1px solid var(--border-base)' }} onClick={() => handleSwitchTab(tab.id)}>
-                  <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{tab.name}</span>
-                  <Close
-                    theme='outline'
-                    size='14'
-                    fill={iconColors.secondary}
-                    className='shrink-0 transition-all duration-200 hover:fill-[rgb(var(--danger-6))]'
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloseTab(tab.id);
-                    }}
-                  />
-                </div>
-              </Tooltip>
+              <div className={`flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${tab.id === activeTabId ? 'bg-1 text-[color:var(--color-text-1)] font-medium' : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] border-b border-[color:var(--border-base)]'}`} style={{ borderRight: '1px solid var(--border-base)' }} onClick={() => handleSwitchTab(tab.id)} title={isMobile ? undefined : tab.name}>
+                <span className='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none flex-1'>{tab.name}</span>
+                <Close
+                  theme='outline'
+                  size='14'
+                  fill={iconColors.secondary}
+                  className='shrink-0 transition-all duration-200 hover:fill-[rgb(var(--danger-6))]'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloseTab(tab.id);
+                  }}
+                />
+              </div>
             </Dropdown>
           ))}
         </div>

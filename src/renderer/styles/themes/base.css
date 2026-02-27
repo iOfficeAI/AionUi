@@ -205,6 +205,11 @@ body,
 /* 使用 dvh (dynamic viewport height) 以获得更好的移动端支持 */
 /* Use dvh for better mobile browser support (iOS Chrome/Safari) */
 @media (max-width: 767px) {
+  .sider-tooltip-popup {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
   .layout-sider {
     /* 固定定位从顶部开始 */
     top: 0 !important;

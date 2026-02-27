@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { emitter } from '@/renderer/utils/emitter';
+import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/focus';
 import { Message, Modal } from '@arco-design/web-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +51,8 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
         toggleSelectedConversation(conversation);
         return;
       }
+      blockMobileInputFocus();
+      blurActiveElement();
 
       const customWorkspace = conversation.extra?.customWorkspace;
       const newWorkspace = conversation.extra?.workspace;

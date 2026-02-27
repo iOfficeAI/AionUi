@@ -5,6 +5,7 @@
  */
 
 import FilePreview from '@/renderer/components/FilePreview';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
@@ -50,6 +51,8 @@ type GuidInputCardProps = {
 };
 
 const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onKeyDown, onPaste, onFocus, onBlur, placeholder, isInputActive, isFileDragging, activeBorderColor, inactiveBorderColor, activeShadow, dragHandlers, mentionOpen, mentionSelectorBadge, mentionDropdown, files, onRemoveFile, dir, onClearDir, actionRow }) => {
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const { compositionHandlers, isComposing } = useCompositionInput();
 
@@ -60,7 +63,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onK
 
   return (
     <div
-      className={`${styles.guidInputCard} relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed' : ''}`}
+      className={`${styles.guidInputCard} relative p-16px ${dir ? 'pb-8px' : ''} border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed' : ''}`}
       style={{
         zIndex: 1,
         transition: 'box-shadow 0.25s ease, border-color 0.25s ease, border-width 0.25s ease',
@@ -94,17 +97,25 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onK
       )}
       {actionRow}
       {dir && (
-        <div className='flex items-center justify-between gap-6px h-28px mt-12px px-12px text-13px text-t-secondary ' style={{ borderTop: '1px solid var(--border-base)' }}>
-          <div className='flex items-center'>
-            <FolderOpen className='m-r-8px flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-            <Tooltip content={dir} position='top'>
-              <span className='truncate'>
-                {t('conversation.welcome.currentWorkspace')}: {dir}
+        <div className='flex items-start justify-between gap-10px mt-8px px-10px py-6px text-13px text-t-secondary' style={{ borderTop: '1px solid var(--border-base)' }}>
+          <div className='flex items-start min-w-0 flex-1 gap-8px'>
+            <FolderOpen className='mt-1px flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+            <Tooltip content={dir} position='top' disabled={isMobile}>
+              <span className='block min-w-0 whitespace-normal break-all leading-18px'>
+                {isMobile ? (
+                  <span className='text-12px lh-18px'>{dir}</span>
+                ) : (
+                  <>
+                    {t('conversation.welcome.currentWorkspace')}: {dir}
+                  </>
+                )}
               </span>
             </Tooltip>
           </div>
-          <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top'>
-            <IconClose className='hover:text-[rgb(var(--danger-6))] hover:bg-3 transition-colors' strokeWidth={3} style={{ fontSize: 16 }} onClick={onClearDir} />
+          <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top' disabled={isMobile}>
+            <button type='button' className='mt-1px h-28px w-28px rd-999px flex items-center justify-center flex-shrink-0 text-t-tertiary hover:text-[rgb(var(--danger-6))] hover:bg-[rgba(var(--danger-6),0.12)] active:bg-[rgba(var(--danger-6),0.18)] transition-colors' onClick={onClearDir} aria-label={t('conversation.welcome.clearWorkspace')} style={{ border: '1px solid var(--border-base)' }}>
+              <IconClose strokeWidth={3} style={{ fontSize: 15 }} />
+            </button>
           </Tooltip>
         </div>
       )}

@@ -9,6 +9,8 @@ import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
+import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/focus';
+import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/siderTooltip';
 import { getActivityTime, createTimelineGrouper } from '@/renderer/utils/timeline';
 import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
@@ -16,6 +18,7 @@ import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 const useTimeline = () => {
   const { t } = useTranslation();
@@ -58,6 +61,8 @@ const useScrollIntoView = (id: string) => {
 };
 
 const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({ onSessionClick, collapsed = false }) => {
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
@@ -65,10 +70,14 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { getJobStatus } = useCronJobsMap();
+  const siderTooltipProps = getSiderTooltipProps(collapsed && !isMobile);
 
   useScrollIntoView(id);
 
   const handleSelect = (conversation: TChatConversation) => {
+    cleanupSiderTooltips();
+    blockMobileInputFocus();
+    blurActiveElement();
     // ipcBridge.conversation.createWithConversation.invoke({ conversation }).then(() => {
     Promise.resolve(navigate(`/conversation/${conversation.id}`)).catch((error) => {
       console.error('Navigation failed:', error);
@@ -168,7 +177,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
     const cronStatus = getJobStatus(conversation.id);
 
     return (
-      <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
+      <Tooltip key={conversation.id} {...siderTooltipProps} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
         <div
           id={'c-' + conversation.id}
           className={classNames('chat-history__item hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {

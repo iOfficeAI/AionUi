@@ -40,6 +40,7 @@ export type ExportTask = { mode: 'single'; conversation: TChatConversation } | {
 export type ConversationRowProps = {
   conversation: TChatConversation;
   collapsed: boolean;
+  tooltipEnabled: boolean;
   batchMode: boolean;
   checked: boolean;
   selected: boolean;
@@ -57,6 +58,7 @@ export type ConversationRowProps = {
 export type WorkspaceGroupedHistoryProps = {
   onSessionClick?: () => void;
   collapsed?: boolean;
+  tooltipEnabled?: boolean;
   batchMode?: boolean;
   onBatchModeChange?: (value: boolean) => void;
 };

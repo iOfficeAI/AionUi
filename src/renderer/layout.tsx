@@ -18,6 +18,8 @@ import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
 import UpdateModal from '@/renderer/components/UpdateModal';
+import { cleanupSiderTooltips } from './utils/siderTooltip';
+import { isElectronDesktop } from './utils/platform';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -50,6 +52,17 @@ const useDebug = () => {
 };
 
 const DEFAULT_SIDER_WIDTH = 250;
+
+const detectMobileViewportOrTouch = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (isElectronDesktop()) {
+    return window.innerWidth < 768;
+  }
+  const byWidth = window.innerWidth < 768;
+  const byMedia = window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches;
+  const byTouchPoints = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
+  return byWidth || byMedia || byTouchPoints;
+};
 
 const Layout: React.FC<{
   sider: React.ReactNode;
@@ -147,7 +160,7 @@ const Layout: React.FC<{
   // 检测移动端并响应窗口大小变化
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
+      const mobile = detectMobileViewportOrTouch();
       setIsMobile(mobile);
     };
 
@@ -166,6 +179,12 @@ const Layout: React.FC<{
     }
     setCollapsed(true);
   }, [isMobile]);
+
+  // 清理侧栏 Tooltip 残留节点，避免移动端路由切换后浮层卡在左上角
+  useEffect(() => {
+    cleanupSiderTooltips();
+  }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
+
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
@@ -232,6 +251,7 @@ const Layout: React.FC<{
               {React.isValidElement(sider)
                 ? React.cloneElement(sider, {
                     onSessionClick: () => {
+                      cleanupSiderTooltips();
                       if (isMobile) setCollapsed(true);
                     },
                     collapsed,

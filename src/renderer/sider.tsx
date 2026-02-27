@@ -8,6 +8,9 @@ import SettingsSider from './pages/settings/SettingsSider';
 import { iconColors } from './theme/colors';
 import { Tooltip } from '@arco-design/web-react';
 import { usePreviewContext } from './pages/conversation/preview';
+import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip';
+import { useLayoutContext } from './context/LayoutContext';
+import { blurActiveElement } from './utils/focus';
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -15,6 +18,8 @@ interface SiderProps {
 }
 
 const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
   const { pathname, search, hash } = location;
 
@@ -32,6 +37,8 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   }, [pathname, search, hash]);
 
   const handleSettingsClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
     if (isSettings) {
       const target = lastNonSettingsPathRef.current || '/guid';
       Promise.resolve(navigate(target)).catch((error) => {
@@ -50,20 +57,24 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleToggleBatchMode = () => {
     setIsBatchMode((prev) => !prev);
   };
+  const tooltipEnabled = collapsed && !isMobile;
+  const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
 
   return (
     <div className='size-full flex flex-col'>
       {/* Main content area */}
       <div className='flex-1 min-h-0 overflow-hidden'>
         {isSettings ? (
-          <SettingsSider collapsed={collapsed}></SettingsSider>
+          <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled}></SettingsSider>
         ) : (
           <div className='size-full flex flex-col'>
             <div className='mb-8px shrink-0 flex items-center gap-8px'>
-              <Tooltip disabled={!collapsed} content={t('conversation.welcome.newConversation')} position='right'>
+              <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
                 <div
                   className='h-40px flex-1 flex items-center justify-start gap-10px px-12px hover:bg-hover rd-0.5rem cursor-pointer group'
                   onClick={() => {
+                    cleanupSiderTooltips();
+                    blurActiveElement();
                     closePreview();
                     setIsBatchMode(false);
                     Promise.resolve(navigate('/guid')).catch((error) => {
@@ -79,7 +90,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   <span className='collapsed-hidden font-bold text-t-primary leading-24px'>{t('conversation.welcome.newConversation')}</span>
                 </div>
               </Tooltip>
-              <Tooltip disabled={!collapsed} content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')} position='right'>
+              <Tooltip {...siderTooltipProps} content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')} position='right'>
                 <div
                   className={classNames('h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent', {
                     'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
@@ -91,13 +102,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </div>
               </Tooltip>
             </div>
-            <WorkspaceGroupedHistory collapsed={collapsed} onSessionClick={onSessionClick} batchMode={isBatchMode} onBatchModeChange={setIsBatchMode}></WorkspaceGroupedHistory>
+            <WorkspaceGroupedHistory collapsed={collapsed} tooltipEnabled={tooltipEnabled} onSessionClick={onSessionClick} batchMode={isBatchMode} onBatchModeChange={setIsBatchMode}></WorkspaceGroupedHistory>
           </div>
         )}
       </div>
       {/* Footer - settings button */}
       <div className='shrink-0 sider-footer mt-auto pt-8px'>
-        <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
+        <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
             onClick={handleSettingsClick}
             className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors', {
