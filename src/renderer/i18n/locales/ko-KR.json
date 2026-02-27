@@ -261,7 +261,8 @@
       "renameSuccess": "이름이 변경되었습니다",
       "renameFailed": "이름 변경에 실패했습니다",
       "deleteSuccess": "삭제되었습니다",
-      "deleteFailed": "삭제에 실패했습니다"
+      "deleteFailed": "삭제에 실패했습니다",
+      "deleteWorkspaceOption": "워크스페이스 파일도 삭제"
     },
     "tabs": {
       "closeAll": "모두 닫기",

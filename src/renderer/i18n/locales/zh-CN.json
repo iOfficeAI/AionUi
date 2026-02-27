@@ -285,7 +285,8 @@
       "pinFailed": "置顶操作失败",
       "pinnedSection": "置顶",
       "deleteSuccess": "删除成功",
-      "deleteFailed": "删除失败"
+      "deleteFailed": "删除失败",
+      "deleteWorkspaceOption": "同时删除工作目录文件"
     },
     "tabs": {
       "closeAll": "关闭全部",

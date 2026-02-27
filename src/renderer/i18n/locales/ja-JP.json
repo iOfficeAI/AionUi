@@ -386,7 +386,8 @@
       "renameSuccess": "名前を変更しました",
       "renameFailed": "名前の変更に失敗しました",
       "deleteSuccess": "削除しました",
-      "deleteFailed": "削除に失敗しました"
+      "deleteFailed": "削除に失敗しました",
+      "deleteWorkspaceOption": "ワークスペースのファイルも削除する"
     },
     "tabs": {
       "closeAll": "すべて閉じる",

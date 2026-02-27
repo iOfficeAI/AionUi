@@ -7,8 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { emitter } from '@/renderer/utils/emitter';
-import { Message, Modal } from '@arco-design/web-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Checkbox, Message, Modal } from '@arco-design/web-react';
+import React, { type Dispatch, type SetStateAction, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -21,7 +21,7 @@ type UseConversationActionsParams = {
   onSessionClick?: () => void;
   onBatchModeChange?: (value: boolean) => void;
   selectedConversationIds: Set<string>;
-  setSelectedConversationIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setSelectedConversationIds: Dispatch<SetStateAction<Set<string>>>;
   toggleSelectedConversation: (conversation: TChatConversation) => void;
 };
 
@@ -80,8 +80,8 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
   );
 
   const removeConversation = useCallback(
-    async (conversationId: string) => {
-      const success = await ipcBridge.conversation.remove.invoke({ id: conversationId });
+    async (conversationId: string, deleteWorkspace?: boolean) => {
+      const success = await ipcBridge.conversation.remove.invoke({ id: conversationId, deleteWorkspace });
       if (!success) {
         return false;
       }
@@ -96,16 +96,26 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
   );
 
   const handleDeleteClick = useCallback(
-    (conversationId: string) => {
+    (conversation: TChatConversation) => {
+      const hasCustomWorkspace = conversation.extra?.customWorkspace === true && !!conversation.extra?.workspace;
+      const deleteWorkspaceRef = { current: false };
+
       Modal.confirm({
         title: t('conversation.history.deleteTitle'),
-        content: t('conversation.history.deleteConfirm'),
+        content: hasCustomWorkspace ? (
+          <div>
+            <p style={{ marginBottom: 12 }}>{t('conversation.history.deleteConfirm')}</p>
+            <Checkbox onChange={(checked) => { deleteWorkspaceRef.current = checked; }}>
+              {t('conversation.history.deleteWorkspaceOption')}
+            </Checkbox>
+          </div>
+        ) : t('conversation.history.deleteConfirm'),
         okText: t('conversation.history.confirmDelete'),
         cancelText: t('conversation.history.cancelDelete'),
         okButtonProps: { status: 'warning' },
         onOk: async () => {
           try {
-            const success = await removeConversation(conversationId);
+            const success = await removeConversation(conversation.id, deleteWorkspaceRef.current);
             if (success) {
               emitter.emit('chat.history.refresh');
               Message.success(t('conversation.history.deleteSuccess'));

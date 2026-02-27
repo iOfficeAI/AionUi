@@ -49,7 +49,7 @@ export type ConversationRowProps = {
   onOpenMenu: (conversation: TChatConversation) => void;
   onMenuVisibleChange: (conversationId: string, visible: boolean) => void;
   onEditStart: (conversation: TChatConversation) => void;
-  onDelete: (conversationId: string) => void;
+  onDelete: (conversation: TChatConversation) => void;
   onExport: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
 };

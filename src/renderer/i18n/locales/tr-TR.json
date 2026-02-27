@@ -256,7 +256,8 @@
       "renameSuccess": "Başarıyla yeniden adlandırıldı",
       "renameFailed": "Yeniden adlandırma başarısız oldu",
       "deleteSuccess": "Başarıyla silindi",
-      "deleteFailed": "Silme başarısız oldu"
+      "deleteFailed": "Silme başarısız oldu",
+      "deleteWorkspaceOption": "Çalışma alanı dosyalarını da sil"
     },
     "tabs": {
       "closeAll": "Tümünü Kapat",

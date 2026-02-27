@@ -288,7 +288,8 @@
       "pinFailed": "Pin operation failed",
       "pinnedSection": "Pinned",
       "deleteSuccess": "Deleted successfully",
-      "deleteFailed": "Delete failed"
+      "deleteFailed": "Delete failed",
+      "deleteWorkspaceOption": "Also delete workspace files"
     },
     "tabs": {
       "closeAll": "Close All",

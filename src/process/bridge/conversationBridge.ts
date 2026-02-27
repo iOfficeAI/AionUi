@@ -9,9 +9,12 @@ import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import { cronService } from '@process/services/cron/CronService';
+import { existsSync, readdirSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { ipcBridge } from '../../common';
 import { uuid } from '../../common/utils';
-import { ProcessChat } from '../initStorage';
+import { getSystemDir, ProcessChat } from '../initStorage';
 import { ConversationService } from '../services/conversationService';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
@@ -218,7 +221,7 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.remove.provider(async ({ id }) => {
+  ipcBridge.conversation.remove.provider(async ({ id, deleteWorkspace }) => {
     try {
       const db = getDatabase();
 
@@ -264,6 +267,43 @@ export function initConversationBridge(): void {
       if (!result.success) {
         console.error('[conversationBridge] Failed to delete conversation from database:', result.error);
         return false;
+      }
+
+      // Cleanup agent history files (always)
+      const { cacheDir } = getSystemDir();
+      const historyFile = path.join(cacheDir, 'aionui-chat-history', id + '.txt');
+      await fs.rm(historyFile, { force: true }).catch((e) => {
+        console.warn('[conversationBridge] Failed to cleanup history file:', e);
+      });
+
+      // Cleanup history backup files (always)
+      const backupDir = path.join(cacheDir, 'aionui-chat-history', 'backup');
+      if (existsSync(backupDir)) {
+        const backupFiles = readdirSync(backupDir).filter((f) => f.startsWith(id + '_') && f.endsWith('.txt'));
+        await Promise.all(
+          backupFiles.map((f) =>
+            fs.rm(path.join(backupDir, f), { force: true }).catch((e) => {
+              console.warn('[conversationBridge] Failed to cleanup backup file:', e);
+            })
+          )
+        );
+      }
+
+      // Cleanup workspace directory
+      const workspace = (conversation?.extra as Record<string, unknown> | undefined)?.workspace as string | undefined;
+      const isCustomWorkspace = (conversation?.extra as Record<string, unknown> | undefined)?.customWorkspace === true;
+      if (workspace) {
+        if (!isCustomWorkspace) {
+          // Auto-created temp workspace: always delete
+          await fs.rm(workspace, { recursive: true, force: true }).catch((e) => {
+            console.warn('[conversationBridge] Failed to cleanup temp workspace:', e);
+          });
+        } else if (deleteWorkspace) {
+          // User-specified custom workspace: only delete when explicitly requested
+          await fs.rm(workspace, { recursive: true, force: true }).catch((e) => {
+            console.warn('[conversationBridge] Failed to cleanup custom workspace:', e);
+          });
+        }
       }
 
       return true;
