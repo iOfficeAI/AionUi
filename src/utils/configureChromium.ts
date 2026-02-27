@@ -83,6 +83,8 @@ export interface CdpStatus {
   startupEnabled: boolean;
   /** All active CDP instances from registry */
   instances: CdpRegistryEntry[];
+  /** Whether the app is running in development mode */
+  isDevMode: boolean;
 }
 
 /** Read the CDP registry file, returning an empty array on any error. */
@@ -420,6 +422,7 @@ export function getCdpStatus(): CdpStatus {
     port: cdpPort,
     startupEnabled: cdpStartupEnabled,
     instances: getActiveCdpInstances(),
+    isDevMode: !app.isPackaged,
   };
 }
 

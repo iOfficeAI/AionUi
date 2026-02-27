@@ -74,6 +74,8 @@ export interface ICdpStatus {
     cwd: string;
     startTime: number;
   }>;
+  /** Whether the app is running in development mode */
+  isDevMode: boolean;
 }
 
 // CDP config interface

@@ -36,12 +36,14 @@ describe('CDP Configuration Utilities', () => {
         port: 9223,
         startupEnabled: true,
         instances: [],
+        isDevMode: true,
       };
 
       expect(status.enabled).toBe(true);
       expect(status.port).toBe(9223);
       expect(status.startupEnabled).toBe(true);
       expect(Array.isArray(status.instances)).toBe(true);
+      expect(status.isDevMode).toBe(true);
     });
   });
 

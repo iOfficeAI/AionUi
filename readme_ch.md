@@ -603,69 +603,6 @@ just rebuild-native   # 为 Electron 重新编译原生模块
 just setup            # 完整设置：安装依赖 + 编译原生模块
 ```
 
-#### CDP (Chrome DevTools Protocol) MCP 开发
-
-AionUi 支持 CDP 用于外部调试工具集成。在开发模式 (`just dev`) 下，CDP 默认在端口 9230 启用。
-
-**在生产环境启用 CDP:**
-
-1. 打开 AionUi 设置 → 系统 → 开发者调试
-2. 启用"启用远程调试 (CDP)"
-3. 重启应用
-
-**配置 MCP chrome-devtools:**
-
-将以下配置添加到你的 IDE 的 MCP 配置文件中。配置文件位置取决于你使用的 IDE：
-
-| IDE | 配置路径 |
-|-----|---------|
-| **Cursor** | `~/.cursor/mcp.json` |
-| **VS Code** | `~/.vscode/mcp.json` |
-| **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) 或 `%APPDATA%\Claude\claude_desktop_config.json` (Windows) |
-| **Codebuddy** | `~/.codebuddy/mcp.json` |
-
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest",
-        "--browser-url=http://127.0.0.1:9230"
-      ]
-    }
-  }
-}
-```
-
-**其他 AI 友好的开发工具：**
-
-AionUi 可以集成其他 MCP 工具来增强开发体验：
-
-| 工具 | 用途 | 配置 |
-|------|------|------|
-| **Playwright MCP** | 浏览器自动化（chrome-devtools 替代方案） | `"@playwright/mcp@latest"` |
-| **Puppeteer MCP** | 浏览器自动化 | `"@puppeteer/mcp@latest"` |
-| **Filesystem MCP** | 文件操作 | `@modelcontextprotocol/server-filesystem` |
-| **Git MCP** | Git 仓库操作 | `@modelcontextprotocol/server-git` |
-
-更多工具请查看 [MCP Servers](https://github.com/modelcontextprotocol/servers)。
-
-**MCP 使用方式：**
-
-配置完成后，可以使用 MCP 工具与 AionUi 交互：
-- `list_pages` — 列出 AionUi 中所有打开的页面
-- `take_snapshot` — 获取当前页面的可访问性树快照
-- `click`, `fill`, `hover` — 与 UI 元素交互
-- `navigate_page` — 导航到 URL
-
-**使用 Chrome DevTools 检查:**
-
-1. 在 Chrome 中打开 `http://127.0.0.1:9230/json`
-2. 点击页面链接使用 DevTools 检查
-3. 或使用 Chrome 的 `chrome://inspect` → 配置 → 添加 `127.0.0.1:9230`
-
 #### 代码检查（prek）
 
 项目使用 [prek](https://github.com/j178/prek)（pre-commit 的 Rust 实现）进行代码检查，配置文件为 `.pre-commit-config.yaml`：

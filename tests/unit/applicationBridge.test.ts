@@ -145,6 +145,7 @@ describe('CDP configuration functions', () => {
     expect(status).toHaveProperty('port');
     expect(status).toHaveProperty('startupEnabled');
     expect(status).toHaveProperty('instances');
+    expect(status).toHaveProperty('isDevMode');
     expect(Array.isArray(status.instances)).toBe(true);
   });
 
