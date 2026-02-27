@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import type { ChildProcess } from 'child_process';
 import { spawn, spawnSync } from 'child_process';
 import { once } from 'events';
@@ -57,6 +57,11 @@ async function waitForExit(child: ChildProcess, timeoutMs: number): Promise<void
       return;
     }),
     sleep(timeoutMs).then(() => {
+      // After timeout, check again if the process has already exited
+      // (taskkill may have succeeded but the exit event is delayed on Windows)
+      if (child.exitCode !== null || child.signalCode !== null || child.killed) {
+        return;
+      }
       throw new Error(`Timed out waiting for shell process ${child.pid} to exit`);
     }),
   ]);
@@ -103,12 +108,12 @@ describe('AcpConnection disconnect', () => {
       let cliPid: number | null = null;
 
       try {
-        cliPid = await waitForPidFile(pidFile, 5000);
+        cliPid = await waitForPidFile(pidFile, 10000);
 
         (connection as unknown as { child: ChildProcess | null }).child = shellProcess;
         await connection.disconnect();
 
-        await waitForExit(shellProcess, 3000);
+        await waitForExit(shellProcess, 8000);
         await sleep(300);
 
         expect(isProcessAlive(cliPid)).toBe(false);

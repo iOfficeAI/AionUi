@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '@/common/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { safeExec } from '@process/utils/safeExec';
 
-const execAsync = promisify(exec);
 /** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
-const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '' } });
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
 
 /**
  * Claude Code MCP代理实现
@@ -36,7 +34,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
     const detectOperation = async () => {
       try {
         // 使用Claude Code CLI命令获取MCP配置
-        const { stdout: result } = await execAsync('claude mcp list', {
+        const { stdout: result } = await safeExec('claude mcp list', {
           timeout: this.timeout,
           ...getExecEnv(),
         });
@@ -166,7 +164,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             }
 
             try {
-              await execAsync(command, {
+              await safeExec(command, {
                 timeout: 5000,
                 ...getExecEnv(),
               });
@@ -190,7 +188,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             }
 
             try {
-              await execAsync(command, {
+              await safeExec(command, {
                 timeout: 5000,
                 ...getExecEnv(),
               });
@@ -224,7 +222,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         for (const scope of scopes) {
           try {
             const removeCommand = `claude mcp remove -s ${scope} "${mcpServerName}"`;
-            const result = await execAsync(removeCommand, {
+            const result = await safeExec(removeCommand, {
               timeout: 5000,
               ...getExecEnv(),
             });

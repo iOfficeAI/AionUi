@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { hasThinkTags, stripThinkTags, extractThinkContent } from '@/process/task/ThinkTagDetector';
 
 describe('ThinkTagDetector', () => {
@@ -22,6 +22,18 @@ describe('ThinkTagDetector', () => {
       expect(hasThinkTags('Hello <Thinking>reasoning</Thinking> world')).toBe(true);
     });
 
+    it('should detect orphaned closing tags (MiniMax M2.5 style)', () => {
+      expect(hasThinkTags('some thinking\n</think>\nresponse')).toBe(true);
+      expect(hasThinkTags('reasoning...</thinking>\nanswer')).toBe(true);
+    });
+
+    it('should detect tags with spaces', () => {
+      expect(hasThinkTags('text < /think> more')).toBe(true);
+      expect(hasThinkTags('text </ think> more')).toBe(true);
+      expect(hasThinkTags('text </think > more')).toBe(true);
+      expect(hasThinkTags('text < think > more')).toBe(true);
+    });
+
     it('should return false for content without think tags', () => {
       expect(hasThinkTags('Hello world')).toBe(false);
       expect(hasThinkTags('This is normal text')).toBe(false);
@@ -29,8 +41,8 @@ describe('ThinkTagDetector', () => {
 
     it('should handle empty or null input', () => {
       expect(hasThinkTags('')).toBe(false);
-      expect(hasThinkTags(null as any)).toBe(false);
-      expect(hasThinkTags(undefined as any)).toBe(false);
+      expect(hasThinkTags(null as unknown as string)).toBe(false);
+      expect(hasThinkTags(undefined as unknown as string)).toBe(false);
     });
   });
 
@@ -41,12 +53,12 @@ describe('ThinkTagDetector', () => {
       expect(stripThinkTags(input)).toBe(expected);
     });
 
-    it('should remove orphaned closing tags', () => {
-      const input = 'Some content </think> more content';
+    it('should remove orphaned closing tags and content before them', () => {
+      const input = 'Some thinking content </think> actual response';
       const result = stripThinkTags(input);
       expect(result).not.toContain('</think>');
-      expect(result).toContain('Some content');
-      expect(result).toContain('more content');
+      expect(result).not.toContain('Some thinking content');
+      expect(result).toContain('actual response');
     });
 
     it('should remove orphaned opening tags', () => {
@@ -123,8 +135,8 @@ After`;
 
     it('should handle empty or null input', () => {
       expect(stripThinkTags('')).toBe('');
-      expect(stripThinkTags(null as any)).toBe(null);
-      expect(stripThinkTags(undefined as any)).toBe(undefined);
+      expect(stripThinkTags(null as unknown as string)).toBe(null);
+      expect(stripThinkTags(undefined as unknown as string)).toBe(undefined);
     });
 
     it('should handle content with no think tags', () => {
@@ -170,8 +182,8 @@ Line 2
 
     it('should handle empty or null input', () => {
       expect(extractThinkContent('')).toEqual([]);
-      expect(extractThinkContent(null as any)).toEqual([]);
-      expect(extractThinkContent(undefined as any)).toEqual([]);
+      expect(extractThinkContent(null as unknown as string)).toEqual([]);
+      expect(extractThinkContent(undefined as unknown as string)).toEqual([]);
     });
   });
 
@@ -201,6 +213,88 @@ That should solve your problem!`;
       expect(result).toContain('Based on your question');
       expect(result).toContain('Step one');
       expect(result).toContain('That should solve your problem!');
+    });
+
+    it('should handle MiniMax M2.5 format (no opening <think> tag)', () => {
+      const input = `I need to analyze the user's request carefully.
+Let me break down the problem:
+1. First point
+2. Second point
+</think>
+
+Based on your question, here is my answer:
+
+The solution involves implementing the following steps:
+1. Step one
+2. Step two`;
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('I need to analyze');
+      expect(result).not.toContain('First point');
+      expect(result).toContain('Based on your question');
+      expect(result).toContain('Step one');
+      expect(result).toContain('Step two');
+    });
+
+    it('should handle streaming accumulated content (MiniMax M2.5 style)', () => {
+      // Simulates frontend accumulated content from multiple streaming chunks:
+      // Chunk 1: "I need to analyze..." (no tags, passed through)
+      // Chunk 2: "Let me think...\n" (no tags, passed through)
+      // Chunk 3: "</think>\n\nHere's my answer" (orphaned </think> preserved)
+      const accumulated = "I need to analyze the user's request.\n" + 'Let me think about this carefully.\n' + "</think>\n\nHere's my answer:\n" + 'The solution is X.';
+
+      const result = stripThinkTags(accumulated);
+      expect(result).not.toContain('I need to analyze');
+      expect(result).not.toContain('Let me think');
+      expect(result).not.toContain('</think>');
+      expect(result).toContain("Here's my answer");
+      expect(result).toContain('The solution is X.');
+    });
+
+    it('should handle multiple orphaned </think> preserving actual response between them', () => {
+      // When text messages get concatenated across tool calls, there may be
+      // actual response content between two </think> tags that must be preserved.
+      // Strategy: strip content before FIRST </think>, then remove remaining </think> tags only.
+      const input = 'thinking about approach\n</think>\nresponse part 1\nthinking about step 2\n</think>\nresponse part 2';
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('thinking about approach');
+      // Response between </think> tags is preserved (may include leaked thinking text,
+      // but that's safer than losing actual response content)
+      expect(result).toContain('response part 1');
+      expect(result).toContain('response part 2');
+    });
+
+    it('should handle two orphaned </think> with no response in between', () => {
+      const input = 'thinking 1\n</think>\n\nthinking 2\n</think>';
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('thinking 1');
+      // thinking 2 text may remain (as harmless plain text), but the tag is removed
+    });
+
+    it('should handle real-world tool call scenario with thinking leaked into text', () => {
+      // Each segment individually should be fully stripped
+      const beforeTool = 'Investigating the Failure\nThe fetch returned empty.\n</think>';
+      const afterTool = 'Examining the Content\nThe fetch failed.\n</think>';
+
+      expect(stripThinkTags(beforeTool)).toBe('');
+      expect(stripThinkTags(afterTool)).toBe('');
+    });
+
+    it('should preserve markdown code blocks between orphaned </think> tags', () => {
+      // Real-world scenario: AI thinking + response with code + more thinking
+      const input = 'Investigating...\n</think>\n\n基本用法\n```tsx\nimport { Collapse }\n```\n\nmore thinking\n</think>\n\n更多用法';
+
+      const result = stripThinkTags(input);
+      expect(result).not.toContain('</think>');
+      expect(result).not.toContain('Investigating');
+      expect(result).toContain('基本用法');
+      expect(result).toContain('import { Collapse }');
+      expect(result).toContain('更多用法');
     });
 
     it('should handle DeepSeek-style thinking tags', () => {

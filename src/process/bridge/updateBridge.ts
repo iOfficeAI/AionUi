@@ -11,6 +11,7 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
+import { autoUpdaterService } from '../services/autoUpdaterService';
 
 type GitHubReleaseApiAsset = {
   name: string;
@@ -29,6 +30,12 @@ type GitHubReleaseApi = {
   draft: boolean;
   assets?: GitHubReleaseApiAsset[];
 };
+
+/** Parameters for auto-update check via electron-updater */
+interface AutoUpdateCheckParams {
+  /** Whether to include prerelease/dev builds in update check */
+  includePrerelease?: boolean;
+}
 
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
@@ -357,6 +364,17 @@ const startDownloadInBackground = async (downloadId: string, url: string, filePa
   }
 };
 
+/**
+ * Create a status broadcast callback that sends updates via ipcBridge.autoUpdate.status.emit.
+ * This is a pure emitter: it does not bind to any specific window.
+ * The ipcBridge channel broadcasts to all renderer listeners, so no window guard is needed here.
+ */
+export function createAutoUpdateStatusBroadcast(): (status: import('../services/autoUpdaterService').AutoUpdateStatus) => void {
+  return (status) => {
+    ipcBridge.autoUpdate.status.emit(status);
+  };
+}
+
 export function initUpdateBridge(): void {
   ipcBridge.update.check.provider(async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
     try {
@@ -436,6 +454,55 @@ export function initUpdateBridge(): void {
       return Promise.resolve({ success: true, data: { downloadId, filePath: targetPath } });
     } catch (err: unknown) {
       return Promise.resolve({ success: false, msg: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // Auto-updater IPC handlers (electron-updater)
+  ipcBridge.autoUpdate.check.provider(async (params: AutoUpdateCheckParams): Promise<{ success: boolean; data?: { updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }; msg?: string }> => {
+    try {
+      // Set prerelease preference before checking
+      const includePrerelease = Boolean(params?.includePrerelease);
+      autoUpdaterService.setAllowPrerelease(includePrerelease);
+
+      const result = await autoUpdaterService.checkForUpdates();
+      if (result.success && result.updateInfo) {
+        // Only report update when the remote version is actually newer than the current version.
+        // electron-updater's checkForUpdates() always returns updateInfo regardless of availability.
+        const currentVersion = app.getVersion();
+        if (!semver.gt(result.updateInfo.version, currentVersion)) {
+          return { success: true, data: {} };
+        }
+        return {
+          success: true,
+          data: {
+            updateInfo: {
+              version: result.updateInfo.version,
+              releaseDate: result.updateInfo.releaseDate,
+              releaseNotes: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : undefined,
+            },
+          },
+        };
+      }
+      return { success: result.success, msg: result.error };
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcBridge.autoUpdate.download.provider(async (): Promise<{ success: boolean; msg?: string }> => {
+    try {
+      const result = await autoUpdaterService.downloadUpdate();
+      return { success: result.success, msg: result.error };
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcBridge.autoUpdate.quitAndInstall.provider(async (): Promise<void> => {
+    try {
+      autoUpdaterService.quitAndInstall();
+    } catch (err: unknown) {
+      console.error('quitAndInstall failed:', err);
     }
   });
 }

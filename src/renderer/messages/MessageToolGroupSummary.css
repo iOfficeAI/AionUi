@@ -11,3 +11,34 @@
 .badge-breathing .arco-badge-status-dot {
   animation: breathing 1.5s ease-in-out infinite;
 }
+
+.tool-detail-panel {
+  border-left: 2px solid var(--color-border-2, #e5e6eb);
+  padding-left: 10px;
+  margin-bottom: 4px;
+}
+
+.tool-detail-section {
+  margin-bottom: 4px;
+}
+
+.tool-detail-label {
+  font-size: 11px;
+  color: var(--color-text-3, #86909c);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.tool-detail-content {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-2, #4e5969);
+  background: var(--color-fill-1, #f7f8fa);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}

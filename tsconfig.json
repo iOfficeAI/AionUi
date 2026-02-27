@@ -2,15 +2,18 @@
   "compilerOptions": {
     "target": "ES6",
     "allowJs": true,
-    "module": "commonjs",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "outDir": "dist",
     "resolveJsonModule": true,
     "jsx": "react",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@process/*": ["./src/process/*"],
@@ -18,5 +21,5 @@
       "@worker/*": ["./src/worker/*"]
     }
   },
-  "include": ["src/**/*", "uno.config.ts", "src/renderer/types.d.ts"]
+  "include": ["src/**/*", "uno.config.ts", "electron.vite.config.ts", "src/renderer/types.d.ts"]
 }

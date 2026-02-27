@@ -93,10 +93,23 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   let builtinSkills: SkillDefinition[] = [];
   if (skillsDir && enabledSkills && enabledSkills.length > 0) {
     try {
-      builtinSkills = await loadSkillsFromDir(skillsDir);
+      // Load skills from both top-level and _builtin/ subdirectory
+      // loadSkillsFromDir only scans direct children, so _builtin/cron is not found by default
+      const topLevelSkills = await loadSkillsFromDir(skillsDir);
+      const builtinDir = path.join(skillsDir, '_builtin');
+      let builtinDirSkills: SkillDefinition[] = [];
+      try {
+        builtinDirSkills = await loadSkillsFromDir(builtinDir);
+      } catch (e) {
+        // Only ignore "not found" errors; warn on unexpected failures
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+          console.warn(`[Config] Failed to load skills from ${builtinDir}:`, e);
+        }
+      }
+      const allSkills = [...topLevelSkills, ...builtinDirSkills];
       const enabledSet = new Set(enabledSkills);
-      const originalCount = builtinSkills.length;
-      builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
+      const originalCount = allSkills.length;
+      builtinSkills = allSkills.filter((skill) => enabledSet.has(skill.name));
       console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
@@ -260,9 +273,9 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     // 启用预览功能以支持 Gemini 3 等新模型
     // Enable preview features to support Gemini 3 and other new models
     previewFeatures: true,
-    // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
-    // skillsDir 有值时启用 / Enabled when skillsDir has value
-    skillsSupport: !!skillsDir,
+    // Disable native SkillManager to prevent XML <available_skills> injection into system prompt
+    // AionUi uses its own skill mechanism (AcpSkillManager) with plain-text index injection
+    skillsSupport: false,
     // 启用 fetch 错误重试，处理 "exception TypeError: fetch failed sending request" 错误
     // Enable retry on fetch errors to handle "exception TypeError: fetch failed sending request"
     // 这通常是由网络不稳定或代理问题导致的临时错误
