@@ -235,7 +235,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
 
   // 移动端菜单（Tabs切换）/ Mobile menu (Tabs)
   const mobileMenu = (
-    <div className='mt-16px mb-20px'>
+    <div className='mt-16px mb-20px overflow-x-auto'>
       <Tabs activeTab={activeTab} onChange={handleTabChange} type='line' size='default' className='settings-mobile-tabs [&_.arco-tabs-nav]:border-b-0'>
         {menuItems.map((item) => (
           <Tabs.TabPane key={item.key} title={item.label} />
@@ -273,8 +273,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         footer={null}
         className='settings-modal'
         style={{
-          width: isMobile ? `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
-          minWidth: 'var(--app-min-width, 360px)',
+          width: isMobile ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
           maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
           borderRadius: '16px',
         }}

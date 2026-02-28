@@ -268,7 +268,7 @@ const Layout: React.FC<{
             style={
               isMobile
                 ? {
-                    width: '100vw',
+                    width: '100%',
                   }
                 : undefined
             }
