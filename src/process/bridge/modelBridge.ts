@@ -93,21 +93,13 @@ export function initModelBridge(): void {
     }
 
     // DashScope Coding Plan (coding.dashscope.aliyuncs.com) does not support /v1/models (returns 404).
-    // Fall back to the regular DashScope endpoint which supports /v1/models for model listing only.
+    // Coding Plan API keys (sk-sp-*) are incompatible with regular DashScope API keys (sk-*),
+    // so we cannot fall back to the regular endpoint. Return hardcoded model list from official docs.
+    // Ref: https://help.aliyun.com/zh/model-studio/coding-plan-quickstart
     if (base_url && isDashScopeCodingAPI(base_url)) {
-      try {
-        const dashscopeClient = new OpenAI({
-          baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-          apiKey: actualApiKey,
-          defaultHeaders: { 'User-Agent': 'AionUI/1.0' },
-        });
-        const res = await dashscopeClient.models.list();
-        if (res.data?.length > 0) {
-          return { success: true, data: { mode: res.data.map((v) => v.id) } };
-        }
-      } catch {
-        // Key may not work cross-domain, fall through to standard path
-      }
+      console.log('Using DashScope Coding Plan model list (hardcoded)');
+      const codingPlanModels = ['qwen3.5-plus', 'qwen3-coder-plus', 'qwen3-coder-next', 'qwen3-max-2026-01-23', 'kimi-k2.5', 'MiniMax-M2.5', 'glm-5', 'glm-4.7'];
+      return { success: true, data: { mode: codingPlanModels } };
     }
 
     // 如果是 Anthropic/Claude 平台，使用 Anthropic API 获取模型列表
