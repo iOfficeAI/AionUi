@@ -254,6 +254,22 @@ export class AcpConnection {
           throw error; // Throw original error if cache clean fails
         }
         await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
+      } else if (AcpConnection.NPX_BACKENDS.has(backend) && errMsg.includes('_npx') && /ENOENT|ERR_MODULE_NOT_FOUND|Cannot find package/i.test(errMsg)) {
+        // Corrupted npx cache: the _npx/<hash> directory exists but has missing
+        // or incomplete files (e.g. package.json deleted, transitive deps like zod
+        // not installed). Phase 1/2 retries don't help because npx reuses the
+        // existing directory. Fix: delete the _npx cache and retry from scratch.
+        console.warn(`[ACP] Detected corrupted npx cache for ${backend}, cleaning _npx and retrying...`);
+        try {
+          const npmCacheBase = process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache') : path.join(os.homedir(), '.npm');
+          const npxCacheDir = path.join(npmCacheBase, '_npx');
+          await fs.rm(npxCacheDir, { recursive: true, force: true });
+          console.warn(`[ACP] Cleaned corrupted npx cache: ${npxCacheDir}`);
+        } catch (cleanError) {
+          console.warn('[ACP] Failed to clean npx cache:', cleanError);
+          throw error;
+        }
+        await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
       } else {
         throw error;
       }
