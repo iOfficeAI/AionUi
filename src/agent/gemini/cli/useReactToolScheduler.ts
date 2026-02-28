@@ -135,8 +135,7 @@ function mapCoreStatusToDisplayStatus(coreStatus: CoreStatus): ToolCallStatus {
     case 'scheduled':
       return ToolCallStatus.Pending;
     default: {
-      const exhaustiveCheck: never = coreStatus;
-      console.warn(`Unknown core status encountered: ${exhaustiveCheck}`);
+      console.warn(`Unknown core status encountered: ${coreStatus}`);
       return ToolCallStatus.Error;
     }
   }
@@ -229,9 +228,8 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
           confirmationDetails: undefined,
         };
       default: {
-        const exhaustiveCheck: never = trackedCall;
         return {
-          callId: (exhaustiveCheck as TrackedToolCall).request.callId,
+          callId: (trackedCall as TrackedToolCall).request.callId,
           name: 'Unknown Tool',
           description: 'Encountered an unknown tool call state.',
           status: ToolCallStatus.Error,
