@@ -207,7 +207,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const renderContent = () => {
     switch (activeTab) {
       case 'gemini':
-        return <GeminiModalContent onRequestClose={onCancel} />;
+        return <GeminiModalContent />;
       case 'model':
         return <ModelModalContent />;
       case 'agent':
@@ -217,7 +217,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       case 'webui':
         return <WebuiModalContent />;
       case 'system':
-        return <SystemModalContent onRequestClose={onCancel} />;
+        return <SystemModalContent />;
       case 'about':
         return <AboutModalContent />;
       default:
