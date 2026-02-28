@@ -194,6 +194,12 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
 > **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
 
 <p align="center">
+  <video src="./resources/webui%20remoet.mp4" controls width="800">WebUI remote access demo</video>
+</p>
+
+<p align="center"><em>Remote control &amp; monitor your agent — Claude, Gemini, Codex. Use from browser or phone, same as Claude Code remote.</em></p>
+
+<p align="center">
   <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
 </p>
 
@@ -573,31 +579,6 @@ just install
 
 # Start development server
 just dev
-```
-
-#### Available Commands (via justfile)
-
-```bash
-# Development
-just dev              # Start dev server with HMR
-just webui            # Start WebUI mode
-just cli              # Start CLI mode
-
-# Building
-just build            # Build for current platform
-just build-win        # Build for Windows
-just build-mac        # Build for macOS
-just build-linux      # Build for Linux
-
-# Testing & Quality
-just test             # Run tests
-just lint             # Run linter
-just typecheck        # TypeScript check
-just check            # Run all checks (lint + format + typecheck)
-
-# Native Modules
-just rebuild-native   # Rebuild native modules for Electron
-just setup            # Full setup: install + rebuild native
 ```
 
 #### Code Checks (prek)

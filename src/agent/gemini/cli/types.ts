@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ToolCallConfirmationDetails, ToolResultDisplay } from '@office-ai/aioncli-core';
+import type { SerializableConfirmationDetails, ToolCallConfirmationDetails, ToolResultDisplay } from '@office-ai/aioncli-core';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {
@@ -36,7 +36,7 @@ export interface ToolCallEvent {
   name: string;
   args: Record<string, never>;
   resultDisplay: ToolResultDisplay | undefined;
-  confirmationDetails: ToolCallConfirmationDetails | undefined;
+  confirmationDetails: ToolCallConfirmationDetails | SerializableConfirmationDetails | undefined;
 }
 
 export interface IndividualToolCallDisplay {
@@ -45,7 +45,7 @@ export interface IndividualToolCallDisplay {
   description: string;
   resultDisplay: ToolResultDisplay | undefined;
   status: ToolCallStatus;
-  confirmationDetails: ToolCallConfirmationDetails | undefined;
+  confirmationDetails: ToolCallConfirmationDetails | SerializableConfirmationDetails | undefined;
   renderOutputAsMarkdown?: boolean;
 }
 

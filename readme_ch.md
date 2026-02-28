@@ -194,6 +194,12 @@ _你的 24/7 AI 助手 — 手机、平板、电脑，随时随地都能用。_
 > **设置：** AionUi 设置 → WebUI 设置 → Channel，配置 Bot Token。
 
 <p align="center">
+  <video src="./resources/webui%20remoet.mp4" controls width="800">WebUI 远程访问演示</video>
+</p>
+
+<p align="center"><em>远程监管你的 Agent — Claude、Gemini、Codex，浏览器或手机即可远程控制与查看，如同 Claude Code remote。</em></p>
+
+<p align="center">
   <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
 </p>
 

@@ -732,9 +732,8 @@ const GeminiSendBox: React.FC<{
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     const hasFiles = filesToSend.length > 0;
 
-    // 立即清空输入框，避免用户误以为消息没发送
-    // Clear input immediately to avoid user thinking message wasn't sent
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     clearFiles();
 
     // User message: Display in UI immediately (Backend will persist when receiving from IPC)

@@ -13,6 +13,7 @@ import { useModelProviderList } from '@/renderer/hooks/useModelProviderList';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { Message } from '@arco-design/web-react';
+import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -48,24 +49,33 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
     const restore = async () => {
       try {
         const saved = (await ConfigStorage.get(configKey)) as { id: string; useModel: string } | undefined;
-        if (saved?.id && saved?.useModel) {
-          const provider = providers.find((p) => p.id === saved.id);
-          if (provider) {
-            // Google Auth provider's model array only contains top-level modes
-            // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
-            // 'gemini-2.5-flash' are also valid — skip strict membership check.
-            const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-            if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
-              setResolvedInitialModel({
-                ...provider,
-                useModel: saved.useModel,
-              } as TProviderWithModel);
-            }
-          }
+        if (!saved?.id || !saved?.useModel) {
+          // Nothing saved — mark restored so we don't keep retrying
+          setRestored(true);
+          return;
         }
+
+        const provider = providers.find((p) => p.id === saved.id);
+        if (!provider) {
+          // Provider not found in current list — don't mark as restored.
+          // The Google Auth provider may load after API-key providers;
+          // leaving restored=false lets this effect re-run when providers update.
+          return;
+        }
+
+        // Google Auth provider's model array only contains top-level modes
+        // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
+        // 'gemini-2.5-flash' are also valid — skip strict membership check.
+        const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+        if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
+          setResolvedInitialModel({
+            ...provider,
+            useModel: saved.useModel,
+          } as TProviderWithModel);
+        }
+        setRestored(true);
       } catch (error) {
         console.error(`[ChannelSettings] Failed to restore model for ${configKey}:`, error);
-      } finally {
         setRestored(true);
       }
     };
@@ -90,7 +100,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
             agent: (currentAgent as { backend: string; customAgentId?: string; name?: string }) || { backend: 'gemini' },
             model: modelRef,
           })
-          .catch(() => {});
+          .catch((err) => console.warn(`[ChannelSettings] syncChannelSettings failed for ${platform}:`, err));
 
         Message.success(t('settings.assistant.modelSwitched', 'Model switched successfully'));
         return true;
@@ -121,6 +131,9 @@ const ChannelModalContent: React.FC = () => {
   const [enableLoading, setEnableLoading] = useState(false);
   const [larkEnableLoading, setLarkEnableLoading] = useState(false);
   const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
+
+  // Track the token entered in TelegramConfigForm so the toggle handler can use it
+  const telegramTokenRef = React.useRef<string>('');
 
   // Collapse state - true means collapsed (closed), false means expanded (open)
   const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
@@ -185,8 +198,9 @@ const ChannelModalContent: React.FC = () => {
     setEnableLoading(true);
     try {
       if (enabled) {
-        // Check if we have a token - already saved in database
-        if (!pluginStatus?.hasToken) {
+        // Check if we have a token - either saved in database or entered in the form
+        const pendingToken = telegramTokenRef.current.trim();
+        if (!pluginStatus?.hasToken && !pendingToken) {
           Message.warning(t('settings.assistant.tokenRequired', 'Please enter a bot token first'));
           setEnableLoading(false);
           return;
@@ -194,7 +208,7 @@ const ChannelModalContent: React.FC = () => {
 
         const result = await channel.enablePlugin.invoke({
           pluginId: 'telegram_default',
-          config: {},
+          config: pendingToken ? { token: pendingToken } : {},
         });
 
         if (result.success) {
@@ -303,21 +317,30 @@ const ChannelModalContent: React.FC = () => {
   const channels: ChannelConfig[] = useMemo(() => {
     const telegramChannel: ChannelConfig = {
       id: 'telegram',
-      title: t('channels.telegramTitle', 'Telegram'),
-      description: t('channels.telegramDesc', 'Chat with AionUi assistant via Telegram'),
+      title: t('settings.channels.telegramTitle', 'Telegram'),
+      description: t('settings.channels.telegramDesc', 'Chat with AionUi assistant via Telegram'),
       status: 'active',
       enabled: pluginStatus?.enabled || false,
       disabled: enableLoading,
       isConnected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
       defaultModel: telegramModelSelection.currentModel?.useModel,
-      content: <TelegramConfigForm pluginStatus={pluginStatus} modelSelection={telegramModelSelection} onStatusChange={setPluginStatus} />,
+      content: (
+        <TelegramConfigForm
+          pluginStatus={pluginStatus}
+          modelSelection={telegramModelSelection}
+          onStatusChange={setPluginStatus}
+          onTokenChange={(token) => {
+            telegramTokenRef.current = token;
+          }}
+        />
+      ),
     };
 
     const larkChannel: ChannelConfig = {
       id: 'lark',
-      title: t('channels.larkTitle', 'Lark / Feishu'),
-      description: t('channels.larkDesc', 'Chat with AionUi assistant via Lark or Feishu'),
+      title: t('settings.channels.larkTitle', 'Lark / Feishu'),
+      description: t('settings.channels.larkDesc', 'Chat with AionUi assistant via Lark or Feishu'),
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
@@ -328,8 +351,8 @@ const ChannelModalContent: React.FC = () => {
 
     const dingtalkChannel: ChannelConfig = {
       id: 'dingtalk',
-      title: t('channels.dingtalkTitle', 'DingTalk'),
-      description: t('channels.dingtalkDesc', 'Chat with AionUi assistant via DingTalk'),
+      title: t('settings.channels.dingtalkTitle', 'DingTalk'),
+      description: t('settings.channels.dingtalkDesc', 'Chat with AionUi assistant via DingTalk'),
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
@@ -341,21 +364,21 @@ const ChannelModalContent: React.FC = () => {
     const comingSoonChannels: ChannelConfig[] = [
       {
         id: 'slack',
-        title: t('channels.slackTitle', 'Slack'),
-        description: t('channels.slackDesc', 'Chat with AionUi assistant via Slack'),
+        title: t('settings.channels.slackTitle', 'Slack'),
+        description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
         status: 'coming_soon',
         enabled: false,
         disabled: true,
-        content: <div className='text-14px text-t-secondary py-12px'>{t('channels.comingSoonDesc', 'Support for {{channel}} is coming soon', { channel: t('channels.slackTitle', 'Slack') })}</div>,
+        content: <div className='text-14px text-t-secondary py-12px'>{t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', { channel: t('settings.channels.slackTitle', 'Slack') })}</div>,
       },
       {
         id: 'discord',
-        title: t('channels.discordTitle', 'Discord'),
-        description: t('channels.discordDesc', 'Chat with AionUi assistant via Discord'),
+        title: t('settings.channels.discordTitle', 'Discord'),
+        description: t('settings.channels.discordDesc', 'Chat with AionUi assistant via Discord'),
         status: 'coming_soon',
         enabled: false,
         disabled: true,
-        content: <div className='text-14px text-t-secondary py-12px'>{t('channels.comingSoonDesc', 'Support for {{channel}} is coming soon', { channel: t('channels.discordTitle', 'Discord') })}</div>,
+        content: <div className='text-14px text-t-secondary py-12px'>{t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', { channel: t('settings.channels.discordTitle', 'Discord') })}</div>,
       },
     ];
 
@@ -369,13 +392,31 @@ const ChannelModalContent: React.FC = () => {
     if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
     return undefined;
   };
+  const channelGuideText = t('settings.webui.featureChannelsDesc', { defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps.' });
+  const channelSetupSteps = [t('settings.channels.selectFirst', { defaultValue: 'Select a channel and configure credentials.' }), t('settings.channels.enableAfterConfig', { defaultValue: 'Enable it and start chatting with your AI agent.' })];
 
   return (
     <AionScrollArea className={isPageMode ? 'h-full' : ''}>
-      <div className='flex flex-col gap-12px'>
-        {channels.map((channelConfig) => (
-          <ChannelItem key={channelConfig.id} channel={channelConfig} isCollapsed={collapseKeys[channelConfig.id] || false} onToggleCollapse={() => handleToggleCollapse(channelConfig.id)} onToggleEnabled={getToggleHandler(channelConfig.id)} />
-        ))}
+      <div className='px-[12px] md:px-[28px]'>
+        <h2 className='text-20px font-500 text-t-primary m-0'>{t('settings.channels.title', 'Channels')}</h2>
+        <div className='space-y-8px mt-10px'>
+          <div className='text-13px text-t-secondary leading-relaxed'>{channelGuideText}</div>
+          <div className='flex flex-wrap gap-x-12px gap-y-6px'>
+            {channelSetupSteps.map((stepLabel, idx) => (
+              <div key={stepLabel} className='inline-flex items-center gap-6px'>
+                <span className='inline-flex items-center justify-center w-16px h-16px rd-50% text-10px font-600 bg-[rgba(var(--primary-6),0.12)] text-[rgb(var(--primary-6))]'>{idx + 1}</span>
+                <CheckOne theme='outline' size='12' className='text-[rgb(var(--primary-6))]' />
+                <span className='text-12px text-t-secondary'>{stepLabel}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className='space-y-12px mt-12px'>
+          {channels.map((channelConfig) => (
+            <ChannelItem key={channelConfig.id} channel={channelConfig} isCollapsed={collapseKeys[channelConfig.id] || false} onToggleCollapse={() => handleToggleCollapse(channelConfig.id)} onToggleEnabled={getToggleHandler(channelConfig.id)} />
+          ))}
+        </div>
       </div>
     </AionScrollArea>
   );

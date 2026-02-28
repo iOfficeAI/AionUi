@@ -83,7 +83,7 @@ jobs:
         run: npm run postinstall || true
 
       - name: Run extension system tests
-        run: bunx vitest run tests
+        run: bunx vitest run
 
   # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
@@ -162,6 +162,15 @@ jobs:
           ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
+
+      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/.cache/electron-builder
+          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            electron-builder-binaries-${{ matrix.platform }}-
 
       - name: Rebuild native modules for Electron (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"

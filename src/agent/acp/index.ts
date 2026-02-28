@@ -1160,12 +1160,30 @@ export class AcpAgent {
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
-    const response = await this.connection.newSession(this.extra.workspace, {
-      resumeSessionId,
-      forkSession: false,
-    });
-    // Notify upper layer if session ID changed (new session or resume failed)
-    if (response.sessionId && response.sessionId !== resumeSessionId) {
+
+    // If we have a stored session ID, attempt to resume it.
+    // Resume can fail when the ACP bridge package changed (e.g. claude-code-acp → claude-agent-acp)
+    // or the session simply expired. In that case, fall back to creating a fresh session.
+    if (resumeSessionId) {
+      try {
+        const response = await this.connection.newSession(this.extra.workspace, {
+          resumeSessionId,
+          forkSession: false,
+        });
+        if (response.sessionId && response.sessionId !== resumeSessionId) {
+          this.extra.acpSessionId = response.sessionId;
+          this.onSessionIdUpdate?.(response.sessionId);
+        }
+        return;
+      } catch (resumeError) {
+        console.warn(`[AcpAgent] Failed to resume session ${resumeSessionId}, creating fresh session:`, resumeError instanceof Error ? resumeError.message : String(resumeError));
+      }
+    }
+
+    // No stored session or resume failed — create a brand new session
+    const response = await this.connection.newSession(this.extra.workspace);
+    if (response.sessionId) {
+      this.extra.acpSessionId = response.sessionId;
       this.onSessionIdUpdate?.(response.sessionId);
     }
   }

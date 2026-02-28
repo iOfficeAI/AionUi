@@ -6,7 +6,10 @@
 
 import { DEFAULT_IMAGE_EXTENSION, MIME_TO_EXT_MAP } from '@/common/constants';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
-import { executeToolCall, GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
+import { GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - executeToolCall is not re-exported from main entry but exists in subpath
+import { executeToolCall } from '@office-ai/aioncli-core/dist/src/core/nonInteractiveToolExecutor.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAndFormatApiError } from './cli/errorParsing';

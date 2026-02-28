@@ -147,6 +147,15 @@ jobs:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
 
+      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
+      - name: Cache electron-builder binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/.cache/electron-builder
+          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            electron-builder-binaries-${{ matrix.platform }}-
+
       - name: Print build configuration
         shell: bash
         run: |
@@ -200,7 +209,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
-      - name: Rebuild native modules for Electron
+      - name: Rebuild native modules for Electron (Windows)
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         continue-on-error: false
@@ -263,7 +272,6 @@ jobs:
           Write-Host "=========================================="
           Write-Host "✅ All critical native modules verified"
           Write-Host "=========================================="
-          # Reset exit code so the step succeeds when verification passes
           exit 0
         env:
           npm_config_runtime: electron
@@ -301,18 +309,19 @@ jobs:
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           # Node.js memory limit for vite bundling (prevents OOM during build)
+          # Node.js 内存限制，防止 vite 打包时内存不足
           NODE_OPTIONS: "--max-old-space-size=8192"
-          # Target arch
+          # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
-          # Native module compilation
+          # Native module compilation / 原生模块编译
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-          # Signing & IDs
+          # Signing & IDs / 签名与应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
           appleId: ${{ secrets.APPLE_ID }}
           appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -320,17 +329,17 @@ jobs:
           identity: ${{ secrets.IDENTITY }}
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Windows build flags
+          # Windows build flags / Windows 构建参数
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
           WindowsTargetPlatformVersion: 10.0.19041.0
           _WIN32_WINNT: 0x0A00
-          # CI flag & GitHub token
+          # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       # Clean up any stale disk images before DMG creation (macOS only)
-      # Prevents hdiutil "Device not configured" errors
+      # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
       - name: Clean up stale disk images (macOS only)
         if: startsWith(matrix.platform, 'macos')
         run: |
@@ -345,6 +354,7 @@ jobs:
           echo "Cleanup complete"
 
       # macOS: Build with notarization - DMG failure = CI failure, notarization failure = warning only
+      # macOS: 构建并公证 - DMG 失败 = CI 失败，公证失败 = 仅警告
       - name: Build with electron-builder (macOS)
         if: startsWith(matrix.platform, 'macos')
         id: macos-build
@@ -376,8 +386,8 @@ jobs:
             if grep -qiE "notariz|staple" "${RUNNER_TEMP}/build.log"; then
               echo "⚠️ DMG created but notarization failed"
               echo "notarization_status=failed" >> $GITHUB_OUTPUT
-              echo "::warning title=Notarization Failed::DMG was built successfully but notarization failed. Users may see Gatekeeper warnings."
-              # Write to job summary
+              echo "::warning title=Notarization Failed::DMG was built and signed successfully, but **notarization failed**."
+              echo "" >> $GITHUB_STEP_SUMMARY
               echo "## ⚠️ Notarization Warning" >> $GITHUB_STEP_SUMMARY
               echo "DMG was built and signed successfully, but **notarization failed**." >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
@@ -415,6 +425,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       # Linux: Standard build without special error handling
+      # Linux: 标准构建，无特殊错误处理
       - name: Build with electron-builder (Linux)
         if: matrix.platform == 'linux'
         uses: nick-fields/retry@v3
@@ -438,7 +449,9 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      # macOS keychain cleanup
+
+
+      # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
         if: startsWith(matrix.platform, 'macos') && always()
         run: |
@@ -447,6 +460,7 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
+      # macOS 构建失败通知
       # macOS build failure notification
       - name: Notify on macOS build failure
         if: startsWith(matrix.platform, 'macos') && failure()
@@ -477,7 +491,7 @@ jobs:
             ls -lh out/ || true
             echo "=========================================="
             echo "Total artifacts:"
-            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" -o -name "*.yml" -o -name "*.blockmap" \) -exec basename {} \; || true
           else
             echo "No out directory found!"
           fi
@@ -486,6 +500,10 @@ jobs:
       # - Build succeeded (all platforms)
       # - macOS: notarization timeout but artifacts exist (handled in build step)
       # - Windows: only if windows-build step succeeded
+      # 上传产物条件：
+      # - 构建成功（所有平台）
+      # - macOS: 公证超时但有产物（已在构建步骤中处理）
+      # - Windows: 仅当 windows-build 步骤成功
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
@@ -501,6 +519,8 @@ jobs:
             out/*.AppImage
             out/AionUi-*-win32-*.zip
             out/AionUi-*-mac-*.zip
+            out/*.yml
+            out/*.blockmap
           if-no-files-found: warn
           retention-days: 7
 

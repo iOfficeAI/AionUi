@@ -26,6 +26,22 @@ import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncR
  */
 export class McpService {
   private agents: Map<McpSource, IMcpProtocol>;
+
+  /**
+   * Service-level operation lock to serialize heavy MCP operations.
+   * Prevents concurrent getAgentMcpConfigs / syncMcpToAgents / removeMcpFromAgents
+   * which would otherwise spawn dozens of child processes simultaneously,
+   * causing resource exhaustion and potential system freezes.
+   */
+  private operationQueue: Promise<unknown> = Promise.resolve();
+
+  private withServiceLock<T>(operation: () => Promise<T>): Promise<T> {
+    const queued = this.operationQueue.then(operation, () => operation());
+    // Keep the queue moving even if the operation rejects
+    this.operationQueue = queued.catch(() => {});
+    return queued;
+  }
+
   private isCliAvailable(cliCommand: string): boolean {
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
@@ -95,76 +111,86 @@ export class McpService {
   }
 
   /**
+   * 确保原生 Gemini CLI 在 agent 列表中（如果已安装但不在列表中）
+   * AcpDetector 返回的是 fork Gemini (cliPath=undefined)，但 MCP 操作需要同时处理原生 Gemini CLI
+   *
+   * Ensure native Gemini CLI is in the agent list (if installed but not present).
+   * AcpDetector returns fork Gemini (cliPath=undefined), but MCP operations need native Gemini CLI too.
+   */
+  private addNativeGeminiIfNeeded(agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }>): Array<{ backend: AcpBackend; name: string; cliPath?: string }> {
+    const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cliPath === 'gemini');
+    if (hasNativeGemini) return agents;
+
+    try {
+      if (!this.isCliAvailable('gemini')) return agents;
+
+      const allAgents = [
+        ...agents,
+        {
+          backend: 'gemini' as AcpBackend,
+          name: 'Google Gemini CLI',
+          cliPath: 'gemini',
+        },
+      ];
+      console.log('[McpService] Added native Gemini CLI to agent list');
+      return allAgents;
+    } catch {
+      return agents;
+    }
+  }
+
+  /**
    * 从检测到的ACP agents中获取MCP配置（并发版本）
    *
    * 注意：此方法还会额外检测原生 Gemini CLI 的 MCP 配置，
    * 即使它在 ACP 配置中是禁用的（因为 fork 的 Gemini 用于 ACP）
    */
-  async getAgentMcpConfigs(
+  getAgentMcpConfigs(
     agents: Array<{
       backend: AcpBackend;
       name: string;
       cliPath?: string;
     }>
   ): Promise<DetectedMcpServer[]> {
-    // 创建完整的检测列表，包含 ACP agents 和额外的 MCP-only agents
-    const allAgentsToCheck = [...agents];
+    return this.withServiceLock(async () => {
+      // 创建完整的检测列表，包含 ACP agents 和额外的原生 Gemini CLI
+      const allAgentsToCheck = this.addNativeGeminiIfNeeded(agents);
 
-    // 检查是否需要添加原生 Gemini CLI（如果它不在 ACP agents 中）
-    const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cliPath === 'gemini');
-    if (!hasNativeGemini) {
-      // 检查系统中是否安装了原生 Gemini CLI
-      try {
-        if (!this.isCliAvailable('gemini')) {
-          throw new Error('gemini not found');
-        }
+      // 并发执行所有agent的MCP检测
+      const promises = allAgentsToCheck.map(async (agent) => {
+        try {
+          // 跳过 fork 的 Gemini（backend='gemini' 且 cliPath=undefined）
+          // fork 的 Gemini 的 MCP 配置应该由 AionuiMcpAgent 管理
+          if (agent.backend === 'gemini' && !agent.cliPath) {
+            console.log(`[McpService] Skipping fork Gemini (ACP only, MCP managed by AionuiMcpAgent)`);
+            return null;
+          }
 
-        // 如果找到了原生 Gemini CLI，添加到检测列表
-        allAgentsToCheck.push({
-          backend: 'gemini' as AcpBackend,
-          name: 'Google Gemini CLI',
-          cliPath: 'gemini',
-        });
-        console.log('[McpService] Added native Gemini CLI for MCP detection');
-      } catch {
-        // 原生 Gemini CLI 未安装，跳过
-      }
-    }
+          const agentInstance = this.getAgent(agent.backend);
+          if (!agentInstance) {
+            console.warn(`[McpService] No agent instance for backend: ${agent.backend}`);
+            return null;
+          }
 
-    // 并发执行所有agent的MCP检测
-    const promises = allAgentsToCheck.map(async (agent) => {
-      try {
-        // 跳过 fork 的 Gemini（backend='gemini' 且 cliPath=undefined）
-        // fork 的 Gemini 的 MCP 配置应该由 AionuiMcpAgent 管理
-        if (agent.backend === 'gemini' && !agent.cliPath) {
-          console.log(`[McpService] Skipping fork Gemini (ACP only, MCP managed by AionuiMcpAgent)`);
+          const servers = await agentInstance.detectMcpServers(agent.cliPath);
+          console.log(`[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cliPath: ${agent.cliPath || 'default'})`);
+
+          if (servers.length > 0) {
+            return {
+              source: agent.backend as McpSource,
+              servers,
+            };
+          }
+          return null;
+        } catch (error) {
+          console.warn(`[McpService] Failed to detect MCP servers for ${agent.backend}:`, error);
           return null;
         }
+      });
 
-        const agentInstance = this.getAgent(agent.backend);
-        if (!agentInstance) {
-          console.warn(`[McpService] No agent instance for backend: ${agent.backend}`);
-          return null;
-        }
-
-        const servers = await agentInstance.detectMcpServers(agent.cliPath);
-        console.log(`[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cliPath: ${agent.cliPath || 'default'})`);
-
-        if (servers.length > 0) {
-          return {
-            source: agent.backend as McpSource,
-            servers,
-          };
-        }
-        return null;
-      } catch (error) {
-        console.warn(`[McpService] Failed to detect MCP servers for ${agent.backend}:`, error);
-        return null;
-      }
+      const results = await Promise.all(promises);
+      return results.filter((result): result is DetectedMcpServer => result !== null);
     });
-
-    const results = await Promise.all(promises);
-    return results.filter((result): result is DetectedMcpServer => result !== null);
   }
 
   /**
@@ -191,7 +217,7 @@ export class McpService {
   /**
    * 将MCP配置同步到所有检测到的agent
    */
-  async syncMcpToAgents(
+  syncMcpToAgents(
     mcpServers: IMcpServer[],
     agents: Array<{
       backend: AcpBackend;
@@ -203,49 +229,55 @@ export class McpService {
     const enabledServers = mcpServers.filter((server) => server.enabled);
 
     if (enabledServers.length === 0) {
-      return { success: true, results: [] };
+      return Promise.resolve({ success: true, results: [] });
     }
 
-    // 并发执行所有agent的MCP同步
-    const promises = agents.map(async (agent) => {
-      try {
-        // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
-        // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
-        const agentInstance = this.getAgentForConfig(agent);
-        if (!agentInstance) {
-          console.warn(`[McpService] Skipping MCP sync for unsupported backend: ${agent.backend}`);
+    return this.withServiceLock(async () => {
+      // 确保原生 Gemini CLI 也在同步列表中
+      // Ensure native Gemini CLI is also in the sync list
+      const allAgents = this.addNativeGeminiIfNeeded(agents);
+
+      // 并发执行所有agent的MCP同步
+      const promises = allAgents.map(async (agent) => {
+        try {
+          // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
+          // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
+          const agentInstance = this.getAgentForConfig(agent);
+          if (!agentInstance) {
+            console.warn(`[McpService] Skipping MCP sync for unsupported backend: ${agent.backend}`);
+            return {
+              agent: agent.name,
+              success: true,
+            };
+          }
+
+          const result = await agentInstance.installMcpServers(enabledServers);
           return {
             agent: agent.name,
-            success: true,
+            success: result.success,
+            error: result.error,
+          };
+        } catch (error) {
+          return {
+            agent: agent.name,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
           };
         }
+      });
 
-        const result = await agentInstance.installMcpServers(enabledServers);
-        return {
-          agent: agent.name,
-          success: result.success,
-          error: result.error,
-        };
-      } catch (error) {
-        return {
-          agent: agent.name,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
+      const results = await Promise.all(promises);
+
+      const allSuccess = results.every((r) => r.success);
+
+      return { success: allSuccess, results };
     });
-
-    const results = await Promise.all(promises);
-
-    const allSuccess = results.every((r) => r.success);
-
-    return { success: allSuccess, results };
   }
 
   /**
    * 从所有检测到的agent中删除MCP配置
    */
-  async removeMcpFromAgents(
+  removeMcpFromAgents(
     mcpServerName: string,
     agents: Array<{
       backend: AcpBackend;
@@ -253,38 +285,44 @@ export class McpService {
       cliPath?: string;
     }>
   ): Promise<McpSyncResult> {
-    // 并发执行所有agent的MCP删除
-    const promises = agents.map(async (agent) => {
-      try {
-        // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
-        // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
-        const agentInstance = this.getAgentForConfig(agent);
-        if (!agentInstance) {
-          console.warn(`[McpService] Skipping MCP removal for unsupported backend: ${agent.backend}`);
+    return this.withServiceLock(async () => {
+      // 确保原生 Gemini CLI 也在删除列表中
+      // Ensure native Gemini CLI is also in the removal list
+      const allAgents = this.addNativeGeminiIfNeeded(agents);
+
+      // 并发执行所有agent的MCP删除
+      const promises = allAgents.map(async (agent) => {
+        try {
+          // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
+          // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
+          const agentInstance = this.getAgentForConfig(agent);
+          if (!agentInstance) {
+            console.warn(`[McpService] Skipping MCP removal for unsupported backend: ${agent.backend}`);
+            return {
+              agent: `${agent.backend}:${agent.name}`,
+              success: true,
+            };
+          }
+
+          const result = await agentInstance.removeMcpServer(mcpServerName);
           return {
             agent: `${agent.backend}:${agent.name}`,
-            success: true,
+            success: result.success,
+            error: result.error,
+          };
+        } catch (error) {
+          return {
+            agent: `${agent.backend}:${agent.name}`,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
           };
         }
+      });
 
-        const result = await agentInstance.removeMcpServer(mcpServerName);
-        return {
-          agent: `${agent.backend}:${agent.name}`,
-          success: result.success,
-          error: result.error,
-        };
-      } catch (error) {
-        return {
-          agent: `${agent.backend}:${agent.name}`,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
+      const results = await Promise.all(promises);
+
+      return { success: true, results };
     });
-
-    const results = await Promise.all(promises);
-
-    return { success: true, results };
   }
 }
 
