@@ -194,7 +194,7 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
 > **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
 
 <p align="center">
-  <a href="./resources/webui%20remoet.mp4">
+  <a href="./resources/webui_compressed.mp4">
     <img src="./resources/remote-telegram copy.png" alt="WebUI remote access demo (click to play video)" width="800">
   </a>
 </p>
