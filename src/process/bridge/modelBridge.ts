@@ -92,16 +92,6 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: minimaxModels } };
     }
 
-    // DashScope Coding Plan (coding.dashscope.aliyuncs.com) does not support /v1/models (returns 404).
-    // Coding Plan API keys (sk-sp-*) are incompatible with regular DashScope API keys (sk-*),
-    // so we cannot fall back to the regular endpoint. Return hardcoded model list from official docs.
-    // Ref: https://help.aliyun.com/zh/model-studio/coding-plan-quickstart
-    if (base_url && isDashScopeCodingAPI(base_url)) {
-      console.log('Using DashScope Coding Plan model list (hardcoded)');
-      const codingPlanModels = ['qwen3.5-plus', 'qwen3-coder-plus', 'qwen3-coder-next', 'qwen3-max-2026-01-23', 'kimi-k2.5', 'MiniMax-M2.5', 'glm-5', 'glm-4.7'];
-      return { success: true, data: { mode: codingPlanModels } };
-    }
-
     // 如果是 Anthropic/Claude 平台，使用 Anthropic API 获取模型列表
     // For Anthropic/Claude platform, use Anthropic API to fetch models
     if (platform?.includes('anthropic') || platform?.includes('claude')) {
@@ -970,20 +960,6 @@ function isMiniMaxAPI(baseUrl: string): boolean {
     // 精确匹配 minimaxi.com、minimax.io 或其子域名
     // Exact match minimaxi.com, minimax.io or their subdomains
     return hostname === 'minimaxi.com' || hostname.endsWith('.minimaxi.com') || hostname === 'minimax.io' || hostname.endsWith('.minimax.io');
-  } catch {
-    return false;
-  }
-}
-
-/**
- * DashScope Coding Plan (coding.dashscope.aliyuncs.com) does not implement /v1/models (returns 404).
- * Regular DashScope (dashscope.aliyuncs.com/compatible-mode/v1) does support /v1/models.
- * Used to trigger cross-domain fallback for model listing.
- */
-function isDashScopeCodingAPI(baseUrl: string): boolean {
-  try {
-    const hostname = new URL(baseUrl).hostname.toLowerCase();
-    return hostname === 'coding.dashscope.aliyuncs.com';
   } catch {
     return false;
   }
