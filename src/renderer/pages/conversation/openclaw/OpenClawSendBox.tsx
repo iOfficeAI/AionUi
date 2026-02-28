@@ -475,12 +475,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       <SendBox
         value={content}
         onChange={(val) => {
-          if (!aiProcessing) {
-            setContent(val);
-          }
+          setContent(val);
         }}
         loading={aiProcessing}
-        disabled={aiProcessing}
         className='z-10'
         placeholder={
           aiProcessing
