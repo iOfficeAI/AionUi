@@ -102,6 +102,7 @@ const SystemModalContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const initializingRef = useRef(true);
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
@@ -109,8 +110,12 @@ const SystemModalContent: React.FC = () => {
   // Initialize form data
   useEffect(() => {
     if (systemInfo) {
-      form.setFieldValue('cacheDir', systemInfo.cacheDir);
-      form.setFieldValue('workDir', systemInfo.workDir);
+      initializingRef.current = true;
+      form.setFieldsValue({ cacheDir: systemInfo.cacheDir, workDir: systemInfo.workDir });
+      // Allow onValuesChange to fire after initialization settles
+      requestAnimationFrame(() => {
+        initializingRef.current = false;
+      });
     }
   }, [systemInfo, form]);
 
@@ -134,7 +139,7 @@ const SystemModalContent: React.FC = () => {
 
   const handleValuesChange = useCallback(
     async (_changedValue: unknown, allValues: Record<string, string>) => {
-      if (savingRef.current || !systemInfo) return;
+      if (initializingRef.current || savingRef.current || !systemInfo) return;
       const { cacheDir, workDir } = allValues;
       const needsRestart = cacheDir !== systemInfo.cacheDir || workDir !== systemInfo.workDir;
       if (!needsRestart) return;
