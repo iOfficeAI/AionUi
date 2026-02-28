@@ -55,9 +55,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onK
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const { compositionHandlers, isComposing } = useCompositionInput();
-  const textareaAutoSize = isMobile
-    ? { minRows: 2, maxRows: 8 }
-    : { minRows: 3, maxRows: 20 };
+  const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 3, maxRows: 20 };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
