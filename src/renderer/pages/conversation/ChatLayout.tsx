@@ -382,12 +382,12 @@ const ChatLayout: React.FC<{
   const headerBlock = (
     <>
       <ConversationTabs />
-      <ArcoLayout.Header className={classNames('h-36px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
-        <div>{props.headerLeft}</div>
-        <FlexFullContainer className='h-full' containerClassName='flex items-center gap-16px'>
-          {!hasTabs && <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap shrink-0 max-w-[50%]'>{props.title}</span>}
+      <ArcoLayout.Header className={classNames('h-36px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header overflow-hidden')}>
+        <div className='shrink-0'>{props.headerLeft}</div>
+        <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
+          {!hasTabs && <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap max-w-full'>{props.title}</span>}
         </FlexFullContainer>
-        <div className='flex items-center gap-12px'>
+        <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
           {(backend || agentLogo) && <AgentModeSelector backend={backend} agentName={displayName} agentLogo={agentLogo} agentLogoIsEmoji={agentLogoIsEmoji} />}
           {isWindowsRuntime && workspaceEnabled && (

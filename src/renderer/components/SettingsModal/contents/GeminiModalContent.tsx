@@ -9,21 +9,15 @@ import { ConfigStorage } from '@/common/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import { Button, Divider, Form, Input, Message } from '@arco-design/web-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
-interface GeminiModalContentProps {
-  /** 请求关闭设置弹窗 / Request closing the settings modal */
-  onRequestClose?: () => void;
-}
-
-const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose }) => {
+const GeminiModalContent: React.FC = () => {
   const { t } = useTranslation();
   const { theme: _theme } = useThemeContext();
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [googleAccountLoading, setGoogleAccountLoading] = useState(false);
   const [userLoggedOut, setUserLoggedOut] = useState(false);
   const [currentAccountEmail, setCurrentAccountEmail] = useState<string | null>(null);
@@ -79,36 +73,31 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
       });
   };
 
-  const onSubmit = async () => {
-    try {
-      const values = await form.validate();
-      const { googleAccount: _googleAccount, customCss, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
-      setLoading(true);
+  // Auto-save logic
+  const readyRef = useRef(false);
+  const saveTimerRef = useRef<number | undefined>(undefined);
 
-      // 获取现有配置 / Get existing config
+  const saveConfig = useCallback(async () => {
+    try {
+      const values = form.getFieldsValue();
+      const { googleAccount: _googleAccount, customCss, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
+
       const existingConfig = ((await ConfigStorage.get('gemini.config')) || {}) as Record<string, unknown>;
       const accountProjects = (existingConfig.accountProjects as Record<string, string>) || {};
 
-      // 如果有当前账号，将项目 ID 存储到 accountProjects
-      // If logged in, store project ID to accountProjects
       if (currentAccountEmail && GOOGLE_CLOUD_PROJECT) {
         accountProjects[currentAccountEmail] = GOOGLE_CLOUD_PROJECT;
       } else if (currentAccountEmail && !GOOGLE_CLOUD_PROJECT) {
-        // 清空当前账号的项目配置 / Clear project config for current account
         delete accountProjects[currentAccountEmail];
       }
 
       const geminiConfig = {
         ...restConfig,
         accountProjects: Object.keys(accountProjects).length > 0 ? accountProjects : undefined,
-        // 不再保存顶层的 GOOGLE_CLOUD_PROJECT / No longer save top-level GOOGLE_CLOUD_PROJECT
       };
 
       await ConfigStorage.set('gemini.config', geminiConfig);
       await ConfigStorage.set('customCss', customCss || '');
-
-      message.success(t('common.saveSuccess'));
-      onRequestClose?.();
 
       window.dispatchEvent(
         new CustomEvent('custom-css-updated', {
@@ -116,15 +105,27 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
         })
       );
     } catch (error: unknown) {
-      message.error((error as Error)?.message || t('common.saveFailed'));
-    } finally {
-      setLoading(false);
+      console.error('[GeminiSettings] Auto-save failed:', error);
     }
-  };
+  }, [currentAccountEmail, form]);
 
-  const handleCancel = () => {
-    onRequestClose?.();
-  };
+  const debouncedSave = useCallback(() => {
+    if (!readyRef.current) return;
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = window.setTimeout(() => {
+      void saveConfig();
+    }, 500);
+  }, [saveConfig]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     Promise.all([ConfigStorage.get('gemini.config'), ConfigStorage.get('customCss')])
@@ -137,6 +138,7 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
           GOOGLE_CLOUD_PROJECT: '',
         };
         form.setFieldsValue(formData);
+        readyRef.current = true;
         loadGoogleAuthStatus(geminiConfig?.proxy, geminiConfig);
       })
       .catch((error) => {
@@ -152,7 +154,7 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
           <div className='px-[12px] py-[24px] md:px-[32px] bg-2 rd-12px md:rd-16px border border-border-2'>
-            <Form form={form} layout='horizontal' labelCol={{ flex: '140px' }} labelAlign='left' wrapperCol={{ flex: '1' }}>
+            <Form form={form} layout='horizontal' labelCol={{ flex: '140px' }} labelAlign='left' wrapperCol={{ flex: '1' }} onValuesChange={debouncedSave}>
               <Form.Item label={t('settings.personalAuth')} field='googleAccount' layout='horizontal'>
                 {(props) => (
                   <div
@@ -235,16 +237,6 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
           </div>
         </div>
       </AionScrollArea>
-
-      {/* Footer with Buttons */}
-      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 pl-24px py-16px', isPageMode ? 'border-none pl-0 pr-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
-        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
-          {t('common.cancel')}
-        </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
-          {t('common.save')}
-        </Button>
-      </div>
     </div>
   );
 };

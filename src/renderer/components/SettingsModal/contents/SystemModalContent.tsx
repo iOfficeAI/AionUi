@@ -9,11 +9,10 @@ import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 /**
@@ -96,15 +95,9 @@ const PreferenceRow: React.FC<{
  * - 高级设置：缓存目录、工作目录配置 / Advanced: cache directory, work directory configuration
  * - 配置变更自动保存 / Auto-save on configuration changes
  */
-interface SystemModalContentProps {
-  /** 关闭设置弹窗 / Close settings modal */
-  onRequestClose?: () => void;
-}
-
-const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose }) => {
+const SystemModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
   const viewMode = useSettingsViewMode();
@@ -136,63 +129,42 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
     });
   };
 
-  /**
-   * 保存目录配置 / Save directory configuration
-   * 如果目录发生变更，会提示用户确认并重启应用
-   * If directories are changed, will prompt user for confirmation and restart the app
-   */
-  const onSubmit = async () => {
-    let shouldClose = false;
-    try {
-      const values = await form.validate();
-      const { cacheDir, workDir } = values;
-      setLoading(true);
+  // Auto-save: when directory changes, prompt for restart
+  const savingRef = useRef(false);
+
+  const handleValuesChange = useCallback(
+    async (_changedValue: unknown, allValues: Record<string, string>) => {
+      if (savingRef.current || !systemInfo) return;
+      const { cacheDir, workDir } = allValues;
+      const needsRestart = cacheDir !== systemInfo.cacheDir || workDir !== systemInfo.workDir;
+      if (!needsRestart) return;
+
+      savingRef.current = true;
       setError(null);
-
-      // 检查目录是否被修改 / Check if directories are modified
-      const needsRestart = cacheDir !== systemInfo?.cacheDir || workDir !== systemInfo?.workDir;
-
-      if (needsRestart) {
-        try {
-          await saveDirConfigValidate(values);
-          const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
-          if (result.success) {
-            await ipcBridge.application.restart.invoke();
-            shouldClose = true;
-          } else {
-            setError(result.msg || 'Failed to update system info');
-          }
-        } catch (caughtError: unknown) {
-          if (caughtError) {
-            setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
-          }
+      try {
+        await saveDirConfigValidate({ cacheDir, workDir });
+        const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
+        if (result.success) {
+          await ipcBridge.application.restart.invoke();
+        } else {
+          setError(result.msg || 'Failed to update system info');
+          // Revert form to original values on failure
+          form.setFieldValue('cacheDir', systemInfo.cacheDir);
+          form.setFieldValue('workDir', systemInfo.workDir);
         }
-      } else {
-        shouldClose = true;
+      } catch (caughtError: unknown) {
+        // User cancelled the confirm dialog — revert
+        form.setFieldValue('cacheDir', systemInfo.cacheDir);
+        form.setFieldValue('workDir', systemInfo.workDir);
+        if (caughtError) {
+          setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
+        }
+      } finally {
+        savingRef.current = false;
       }
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Failed to save');
-    } finally {
-      setLoading(false);
-      if (shouldClose) {
-        onRequestClose?.();
-      }
-    }
-  };
-
-  // 重置表单到初始值 / Reset form to initial values
-  const onReset = () => {
-    if (systemInfo) {
-      form.setFieldValue('cacheDir', systemInfo.cacheDir);
-      form.setFieldValue('workDir', systemInfo.workDir);
-    }
-    setError(null);
-  };
-
-  const handleCancel = () => {
-    onReset();
-    onRequestClose?.();
-  };
+    },
+    [systemInfo, form, saveDirConfigValidate]
+  );
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -210,7 +182,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
                 </PreferenceRow>
               ))}
             </div>
-            <Form form={form} layout='vertical' className='space-y-16px'>
+            <Form form={form} layout='vertical' className='space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
@@ -218,16 +190,6 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
           </div>
         </div>
       </AionScrollArea>
-
-      {/* 底部操作栏 / Footer with action buttons */}
-      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 px-24px pt-10px', isPageMode ? 'border-none px-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
-        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
-          {t('common.cancel')}
-        </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
-          {t('common.save')}
-        </Button>
-      </div>
     </div>
   );
 };

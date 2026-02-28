@@ -265,6 +265,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     word-break: break-word;
     overflow-wrap: anywhere;
     color: var(--text-primary);
+    max-width: 100%;
   }
   .markdown-shadow-body>p:first-child
   {
@@ -300,8 +301,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   .markdown-shadow-body>p:last-child{
     margin-bottom:0px;
   }
-  ol {
+  ol, ul {
     padding-inline-start:20px;
+  }
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
   }
   img {
     max-width: 100%;

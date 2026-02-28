@@ -392,14 +392,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       <SendBox
         value={content}
-        onChange={(val) => {
-          // Only allow content changes when not waiting for session or thinking
-          if (!aiProcessing) {
-            setContent(val);
-          }
-        }}
+        onChange={setContent}
         loading={running || aiProcessing}
-        disabled={aiProcessing}
+        disabled={false}
         className='z-10'
         placeholder={
           aiProcessing
