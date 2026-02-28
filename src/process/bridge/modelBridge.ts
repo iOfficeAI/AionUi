@@ -92,6 +92,24 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: minimaxModels } };
     }
 
+    // DashScope Coding Plan (coding.dashscope.aliyuncs.com) does not support /v1/models (returns 404).
+    // Fall back to the regular DashScope endpoint which supports /v1/models for model listing only.
+    if (base_url && isDashScopeCodingAPI(base_url)) {
+      try {
+        const dashscopeClient = new OpenAI({
+          baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          apiKey: actualApiKey,
+          defaultHeaders: { 'User-Agent': 'AionUI/1.0' },
+        });
+        const res = await dashscopeClient.models.list();
+        if (res.data?.length > 0) {
+          return { success: true, data: { mode: res.data.map((v) => v.id) } };
+        }
+      } catch {
+        // Key may not work cross-domain, fall through to standard path
+      }
+    }
+
     // 如果是 Anthropic/Claude 平台，使用 Anthropic API 获取模型列表
     // For Anthropic/Claude platform, use Anthropic API to fetch models
     if (platform?.includes('anthropic') || platform?.includes('claude')) {
@@ -923,6 +941,20 @@ function isMiniMaxAPI(baseUrl: string): boolean {
     // 精确匹配 minimaxi.com、minimax.io 或其子域名
     // Exact match minimaxi.com, minimax.io or their subdomains
     return hostname === 'minimaxi.com' || hostname.endsWith('.minimaxi.com') || hostname === 'minimax.io' || hostname.endsWith('.minimax.io');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * DashScope Coding Plan (coding.dashscope.aliyuncs.com) does not implement /v1/models (returns 404).
+ * Regular DashScope (dashscope.aliyuncs.com/compatible-mode/v1) does support /v1/models.
+ * Used to trigger cross-domain fallback for model listing.
+ */
+function isDashScopeCodingAPI(baseUrl: string): boolean {
+  try {
+    const hostname = new URL(baseUrl).hostname.toLowerCase();
+    return hostname === 'coding.dashscope.aliyuncs.com';
   } catch {
     return false;
   }
