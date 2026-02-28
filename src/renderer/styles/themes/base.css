@@ -26,6 +26,17 @@
   -webkit-app-region: drag;
 }
 
+.app-titlebar--mobile {
+  height: 58px;
+  min-height: 58px;
+  padding: 6px 10px 0;
+}
+
+.app-titlebar--mobile-conversation {
+  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%) !important;
+  border-bottom: none !important;
+}
+
 .app-titlebar--mac {
   height: 45px;
   min-height: 36px;
@@ -35,13 +46,66 @@
 
 .app-titlebar__brand {
   font-weight: 600;
-  color: var(--text-primary);
   font-size: 13px;
   letter-spacing: 0.2px;
+  color: var(--text-primary);
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   pointer-events: none;
+}
+
+.app-titlebar__brand-logo {
+  width: 26px;
+  height: 26px;
+  display: block;
+  color: inherit;
+}
+
+.app-titlebar--mobile .app-titlebar__brand-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.app-titlebar--mobile .app-titlebar__brand {
+  position: absolute;
+  left: 50%;
+  transform: translateX(calc(-50% + var(--app-titlebar-mobile-center-offset, 0px)));
+  max-width: calc(100% - 180px);
+}
+
+.app-titlebar__brand-mobile {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.app-titlebar__brand-text {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42vw;
+}
+
+.chat-layout-header--mobile-unified {
+  height: 46px !important;
+  min-height: 46px;
+  padding: 0 12px !important;
+  background: linear-gradient(180deg, var(--bg-2) 0%, transparent 100%) !important;
+  border-bottom: none;
+  box-shadow: none;
 }
 
 .app-titlebar__menu {
@@ -80,6 +144,17 @@
 
 .app-titlebar__button:active {
   background-color: var(--bg-active);
+}
+
+.app-titlebar__button--mobile {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.app-titlebar__button--mobile svg {
+  width: 24px !important;
+  height: 24px !important;
 }
 
 .app-window-controls {
@@ -162,6 +237,175 @@ body,
   animation: bg-animate 1s alternate infinite;
 }
 
+/* Mobile typography tuning: conversation readability + sidebar legibility */
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Message body */
+  .message-item .markdown-shadow-body {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+
+  .message-item .markdown-shadow-body p,
+  .message-item .markdown-shadow-body li,
+  .message-item .markdown-shadow-body blockquote {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Sidebar conversation title + secondary timeline text */
+  .chat-history__item-name {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .chat-history__section {
+    font-size: 14px !important;
+    line-height: 20px !important;
+  }
+
+  /* Sendbox input */
+  .sendbox-input--mobile {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  /* Workspace panel mobile adaptation */
+  .chat-workspace .workspace-toolbar-search {
+    padding-bottom: 10px !important;
+  }
+
+  .chat-workspace .workspace-search-input .arco-input-inner-wrapper,
+  .chat-workspace .workspace-search-input .arco-input {
+    min-height: 40px;
+    font-size: 15px !important;
+    line-height: 22px !important;
+  }
+
+  .chat-workspace .workspace-toolbar-row {
+    min-height: 40px;
+    align-items: center;
+  }
+
+  .chat-workspace .workspace-title-label {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .chat-workspace .workspace-toolbar-actions {
+    gap: 10px !important;
+  }
+
+  .chat-workspace .workspace-toolbar-icon-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chat-workspace .workspace-tree .arco-tree-node-title {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .chat-workspace .workspace-tree .arco-tree-node-title-wrapper {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+  }
+
+  .chat-workspace .workspace-node-more-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 10px !important;
+  }
+
+  .chat-workspace .workspace-tree .arco-tree-node {
+    margin-bottom: 2px;
+  }
+
+  /* Settings mobile top nav */
+  .settings-mobile-top-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  .settings-mobile-top-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-mobile-top-nav__item {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-base);
+    background: var(--bg-1);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .settings-mobile-top-nav__item--active {
+    background: var(--bg-active);
+    color: var(--text-primary);
+    border-color: var(--border-base);
+  }
+
+  .settings-mobile-top-nav__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+
+  .settings-mobile-top-nav__label {
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  /* Conversation header pills on mobile */
+  .agent-mode-compact-pill {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+  }
+
+  .agent-mode-compact-pill .arco-btn-content {
+    line-height: 1;
+  }
+
+  .agent-mode-compact-pill--readonly,
+  .agent-mode-compact-pill--readonly:hover,
+  .agent-mode-compact-pill--readonly:active,
+  .agent-mode-compact-pill--readonly:focus,
+  .agent-mode-compact-pill--readonly:focus-visible {
+    cursor: default !important;
+    pointer-events: none !important;
+    background: var(--color-fill-2) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .chat-header-cron-pill {
+    margin-right: 4px;
+  }
+}
+
 @keyframes bg-animate {
   0% {
     background-color: var(--bg-2);
@@ -241,6 +485,13 @@ body,
     flex-shrink: 0 !important;
   }
 
+  .layout-sider-header--mobile {
+    min-height: 72px !important;
+    padding-top: 14px !important;
+    padding-bottom: 12px !important;
+    gap: 14px !important;
+  }
+
   /* 侧边栏内容区域填充剩余空间 */
   .layout-sider-content {
     flex: 1 !important;
@@ -256,6 +507,25 @@ body,
     /* 额外的 padding 作为 iOS Chrome 的回退方案 */
     /* Extra padding as fallback for iOS Chrome */
     padding-bottom: 20px;
+  }
+
+  .sider-action-btn-mobile {
+    height: 44px !important;
+    gap: 12px !important;
+    padding-inline: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .sider-action-icon-btn-mobile {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 10px !important;
+  }
+
+  .sider-footer-btn-mobile {
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
   }
 }
 
