@@ -770,7 +770,7 @@ async function testOpenAIProtocol(baseUrl: string, apiKey: string, signal: Abort
         return { success: false, confidence: 70, error: 'Invalid API key for OpenAI protocol' };
       }
 
-      const data = await response.json().catch(() => null);
+      const data = await response.json().catch((): null => null);
       if (data?.error && typeof data.error === 'object' && 'message' in data.error) {
         // OpenAI-style error response confirms the protocol
         return { success: true, confidence: 75, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
