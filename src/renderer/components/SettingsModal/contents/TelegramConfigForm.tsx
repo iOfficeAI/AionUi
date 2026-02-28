@@ -50,9 +50,10 @@ interface TelegramConfigFormProps {
   pluginStatus: IChannelPluginStatus | null;
   modelSelection: GeminiModelSelection;
   onStatusChange: (status: IChannelPluginStatus | null) => void;
+  onTokenChange?: (token: string) => void;
 }
 
-const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
+const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange, onTokenChange }) => {
   const { t } = useTranslation();
 
   const [telegramToken, setTelegramToken] = useState('');
@@ -229,6 +230,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     setTelegramToken(value);
     setTokenTested(false);
     setTestedBotUsername(null);
+    onTokenChange?.(value);
   };
 
   // Approve pairing

@@ -132,6 +132,9 @@ const ChannelModalContent: React.FC = () => {
   const [larkEnableLoading, setLarkEnableLoading] = useState(false);
   const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
 
+  // Track the token entered in TelegramConfigForm so the toggle handler can use it
+  const telegramTokenRef = React.useRef<string>('');
+
   // Collapse state - true means collapsed (closed), false means expanded (open)
   const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
     telegram: true, // Default to collapsed
@@ -195,8 +198,9 @@ const ChannelModalContent: React.FC = () => {
     setEnableLoading(true);
     try {
       if (enabled) {
-        // Check if we have a token - already saved in database
-        if (!pluginStatus?.hasToken) {
+        // Check if we have a token - either saved in database or entered in the form
+        const pendingToken = telegramTokenRef.current.trim();
+        if (!pluginStatus?.hasToken && !pendingToken) {
           Message.warning(t('settings.assistant.tokenRequired', 'Please enter a bot token first'));
           setEnableLoading(false);
           return;
@@ -204,7 +208,7 @@ const ChannelModalContent: React.FC = () => {
 
         const result = await channel.enablePlugin.invoke({
           pluginId: 'telegram_default',
-          config: {},
+          config: pendingToken ? { token: pendingToken } : {},
         });
 
         if (result.success) {
@@ -321,7 +325,7 @@ const ChannelModalContent: React.FC = () => {
       isConnected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
       defaultModel: telegramModelSelection.currentModel?.useModel,
-      content: <TelegramConfigForm pluginStatus={pluginStatus} modelSelection={telegramModelSelection} onStatusChange={setPluginStatus} />,
+      content: <TelegramConfigForm pluginStatus={pluginStatus} modelSelection={telegramModelSelection} onStatusChange={setPluginStatus} onTokenChange={(token) => { telegramTokenRef.current = token; }} />,
     };
 
     const larkChannel: ChannelConfig = {
