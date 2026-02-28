@@ -764,6 +764,43 @@ async function testOpenAIProtocol(baseUrl: string, apiKey: string, signal: Abort
     }
   }
 
+  // /models endpoints all failed (e.g. 404). Probe /chat/completions to confirm
+  // the endpoint is OpenAI-compatible even when it doesn't support model listing
+  // (DashScope Coding Plan, some proxies, etc.)
+  const chatProbeEndpoints = [
+    { url: `${baseUrl}/chat/completions`, path: '' },
+    { url: `${baseUrl}/v1/chat/completions`, path: '/v1' },
+  ];
+
+  for (const endpoint of chatProbeEndpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ model: '_probe', messages: [{ role: 'user', content: '' }], max_tokens: 1 }),
+      });
+
+      if (response.status === 401) {
+        return { success: false, confidence: 70, error: 'Invalid API key for OpenAI protocol' };
+      }
+
+      const data = await response.json().catch(() => null);
+      if (data?.error && typeof data.error === 'object' && 'message' in data.error) {
+        // OpenAI-style error response confirms the protocol
+        return { success: true, confidence: 75, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
+      }
+      if (data?.choices && Array.isArray(data.choices)) {
+        return { success: true, confidence: 85, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
+      }
+    } catch {
+      // Continue
+    }
+  }
+
   return { success: false, confidence: 0, error: 'Not an OpenAI-compatible API endpoint' };
 }
 
