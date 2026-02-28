@@ -71,7 +71,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <div className='mb-8px shrink-0 flex items-center gap-8px'>
               <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
                 <div
-                  className='h-40px flex-1 flex items-center justify-start gap-10px px-12px hover:bg-hover rd-0.5rem cursor-pointer group'
+                  className={classNames('h-40px flex-1 flex items-center justify-start gap-10px px-12px hover:bg-hover rd-0.5rem cursor-pointer group', isMobile && 'sider-action-btn-mobile')}
                   onClick={() => {
                     cleanupSiderTooltips();
                     blurActiveElement();
@@ -92,7 +92,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               </Tooltip>
               <Tooltip {...siderTooltipProps} content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')} position='right'>
                 <div
-                  className={classNames('h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent', {
+                  className={classNames('h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent', isMobile && 'sider-action-icon-btn-mobile', {
                     'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
                     'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary': isBatchMode,
                   })}
@@ -111,7 +111,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
             onClick={handleSettingsClick}
-            className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors', {
+            className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors', isMobile && 'sider-footer-btn-mobile', {
               'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
               'hover:bg-hover hover:shadow-sm active:bg-fill-2': !isSettings,
             })}

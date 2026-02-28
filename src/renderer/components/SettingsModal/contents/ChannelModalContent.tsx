@@ -325,7 +325,16 @@ const ChannelModalContent: React.FC = () => {
       isConnected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
       defaultModel: telegramModelSelection.currentModel?.useModel,
-      content: <TelegramConfigForm pluginStatus={pluginStatus} modelSelection={telegramModelSelection} onStatusChange={setPluginStatus} onTokenChange={(token) => { telegramTokenRef.current = token; }} />,
+      content: (
+        <TelegramConfigForm
+          pluginStatus={pluginStatus}
+          modelSelection={telegramModelSelection}
+          onStatusChange={setPluginStatus}
+          onTokenChange={(token) => {
+            telegramTokenRef.current = token;
+          }}
+        />
+      ),
     };
 
     const larkChannel: ChannelConfig = {

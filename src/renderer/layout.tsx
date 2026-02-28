@@ -52,16 +52,23 @@ const useDebug = () => {
 };
 
 const DEFAULT_SIDER_WIDTH = 250;
+const MOBILE_SIDER_WIDTH_RATIO = 0.67;
+const MOBILE_SIDER_MIN_WIDTH = 260;
+const MOBILE_SIDER_MAX_WIDTH = 420;
 
 const detectMobileViewportOrTouch = (): boolean => {
   if (typeof window === 'undefined') return false;
   if (isElectronDesktop()) {
     return window.innerWidth < 768;
   }
-  const byWidth = window.innerWidth < 768;
+  const width = window.innerWidth;
+  const byWidth = width < 768;
+  // 仅在小屏时才将 coarse/touch 视为移动端，避免触控笔记本被误判
+  // Treat touch/coarse pointer as mobile only on smaller viewports
+  const smallScreen = width < 1024;
   const byMedia = window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches;
   const byTouchPoints = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
-  return byWidth || byMedia || byTouchPoints;
+  return byWidth || (smallScreen && (byMedia || byTouchPoints));
 };
 
 const Layout: React.FC<{
@@ -70,6 +77,7 @@ const Layout: React.FC<{
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState<number>(() => (typeof window === 'undefined' ? 390 : window.innerWidth));
   const [customCss, setCustomCss] = useState<string>('');
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
@@ -162,6 +170,7 @@ const Layout: React.FC<{
     const checkMobile = () => {
       const mobile = detectMobileViewportOrTouch();
       setIsMobile(mobile);
+      setViewportWidth(window.innerWidth);
     };
 
     // 初始检测
@@ -185,6 +194,7 @@ const Layout: React.FC<{
     cleanupSiderTooltips();
   }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
 
+  const siderWidth = isMobile ? Math.max(MOBILE_SIDER_MIN_WIDTH, Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))) : DEFAULT_SIDER_WIDTH;
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
@@ -199,7 +209,7 @@ const Layout: React.FC<{
           <ArcoLayout.Sider
             collapsedWidth={isMobile ? 0 : 64}
             collapsed={collapsed}
-            width={DEFAULT_SIDER_WIDTH}
+            width={siderWidth}
             className={classNames('!bg-2 layout-sider', {
               collapsed: collapsed,
             })}
@@ -217,7 +227,7 @@ const Layout: React.FC<{
             }
           >
             <ArcoLayout.Header
-              className={classNames('flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header', {
+              className={classNames('flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header', isMobile && 'layout-sider-header--mobile', {
                 'cursor-pointer group ': collapsed,
               })}
             >

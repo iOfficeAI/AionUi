@@ -1,5 +1,6 @@
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React from 'react';
@@ -15,7 +16,9 @@ const GeminiModelSelector: React.FC<{
 }> = ({ selection, disabled = false, label: customLabel, variant = 'header' }) => {
   const { t } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
-  const compact = variant === 'header' && isPreviewOpen;
+  const layout = useLayoutContext();
+  const compact = variant === 'header' && (isPreviewOpen || layout?.isMobile);
+  const isMobileHeaderCompact = variant === 'header' && Boolean(layout?.isMobile);
 
   // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
   if (disabled || !selection) {
@@ -27,8 +30,10 @@ const GeminiModelSelector: React.FC<{
 
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small' style={{ cursor: 'default' }}>
-          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileHeaderCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+          <span className='flex items-center gap-6px min-w-0'>
+            <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+          </span>
         </Button>
       </Tooltip>
     );
@@ -47,8 +52,10 @@ const GeminiModelSelector: React.FC<{
         <Down theme='outline' size={14} />
       </Button>
     ) : (
-      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small'>
-        <span className={compact ? 'block truncate' : undefined}>{label}</span>
+      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileHeaderCompact && '!max-w-[160px]')} shape='round' size='small'>
+        <span className='flex items-center gap-6px min-w-0'>
+          <span className={compact ? 'block truncate' : undefined}>{label}</span>
+        </span>
       </Button>
     );
 
