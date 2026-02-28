@@ -49,24 +49,33 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
     const restore = async () => {
       try {
         const saved = (await ConfigStorage.get(configKey)) as { id: string; useModel: string } | undefined;
-        if (saved?.id && saved?.useModel) {
-          const provider = providers.find((p) => p.id === saved.id);
-          if (provider) {
-            // Google Auth provider's model array only contains top-level modes
-            // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
-            // 'gemini-2.5-flash' are also valid — skip strict membership check.
-            const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-            if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
-              setResolvedInitialModel({
-                ...provider,
-                useModel: saved.useModel,
-              } as TProviderWithModel);
-            }
-          }
+        if (!saved?.id || !saved?.useModel) {
+          // Nothing saved — mark restored so we don't keep retrying
+          setRestored(true);
+          return;
         }
+
+        const provider = providers.find((p) => p.id === saved.id);
+        if (!provider) {
+          // Provider not found in current list — don't mark as restored.
+          // The Google Auth provider may load after API-key providers;
+          // leaving restored=false lets this effect re-run when providers update.
+          return;
+        }
+
+        // Google Auth provider's model array only contains top-level modes
+        // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
+        // 'gemini-2.5-flash' are also valid — skip strict membership check.
+        const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+        if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
+          setResolvedInitialModel({
+            ...provider,
+            useModel: saved.useModel,
+          } as TProviderWithModel);
+        }
+        setRestored(true);
       } catch (error) {
         console.error(`[ChannelSettings] Failed to restore model for ${configKey}:`, error);
-      } finally {
         setRestored(true);
       }
     };
@@ -91,7 +100,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
             agent: (currentAgent as { backend: string; customAgentId?: string; name?: string }) || { backend: 'gemini' },
             model: modelRef,
           })
-          .catch(() => {});
+          .catch((err) => console.warn(`[ChannelSettings] syncChannelSettings failed for ${platform}:`, err));
 
         Message.success(t('settings.assistant.modelSwitched', 'Model switched successfully'));
         return true;

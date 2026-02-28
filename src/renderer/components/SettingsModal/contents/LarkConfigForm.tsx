@@ -149,7 +149,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.lark.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'lark', agent }).catch(() => {});
+      await channel.syncChannelSettings.invoke({ platform: 'lark', agent }).catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[LarkConfig] Failed to save agent:', error);
