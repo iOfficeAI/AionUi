@@ -1,0 +1,33 @@
+name: Sync Fork
+
+on:
+  schedule:
+    - cron: '0 18 * * *'  # 北京时间凌晨2点
+    - cron: '0 10 * * *'  # 北京时间晚上18点
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sync upstream
+        run: |
+          git remote add upstream https://github.com/i0fficeAI/AionUi.git
+          git fetch upstream main
+          LOCAL=$(git rev-parse HEAD)
+          UPSTREAM=$(git rev-parse upstream/main)
+          if [ "$LOCAL" != "$UPSTREAM" ]; then
+            echo "检测到上游更新，同步中..."
+            git reset --hard upstream/main
+            git push origin main --force
+          else
+            echo "已是最新，无需同步"
+          fi
