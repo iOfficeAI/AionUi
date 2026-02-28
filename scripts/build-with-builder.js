@@ -370,8 +370,8 @@ try {
 
   // 为 Windows 构建添加架构检测脚本
   // Add architecture detection scripts for Windows builds
-  // 使用 .onGUIInit 避免 .onInit 冲突
-  // Use .onGUIInit to avoid .onInit conflicts
+  // 使用 .onVerifyInstDir 避免与 electron-builder 冲突
+  // Use .onVerifyInstDir to avoid conflicts with electron-builder
   let nsisInclude = '';
   if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
     if (!multiArch) {
