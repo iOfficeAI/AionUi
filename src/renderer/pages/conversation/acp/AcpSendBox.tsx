@@ -439,9 +439,8 @@ const AcpSendBox: React.FC<{
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
-    // 立即清空输入框，避免用户误以为消息没发送
-    // Clear input immediately to avoid user thinking message wasn't sent
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     clearFiles();
 
     // Start AI processing loading state

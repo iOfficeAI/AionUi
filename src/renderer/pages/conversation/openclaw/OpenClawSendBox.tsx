@@ -352,7 +352,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     if (!runtimeOk) return;
 
     const msg_id = uuid();
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     emitter.emit('openclaw-gateway.selected.file.clear');
     const currentAtPath = [...atPath];
     const currentUploadFile = [...uploadFile];
