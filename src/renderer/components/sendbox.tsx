@@ -242,11 +242,12 @@ const SendBox: React.FC<{
       finalMessage = input + snippetsHtml;
     }
 
+    // Clear immediately to avoid async race overwriting newly typed content
+    // 立即清空，避免异步回调覆盖用户后续新输入
+    setInput('');
+    clearDomSnippets();
+
     onSend(finalMessage)
-      .then(() => {
-        setInput('');
-        clearDomSnippets(); // 发送后清除 DOM 片段 / Clear DOM snippets after sending
-      })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);
