@@ -348,6 +348,29 @@ export interface IProvider {
     // For profile method
     profile?: string;
   };
+  /**
+   * 供应商启用状态，默认为 true
+   * Provider enabled state, defaults to true
+   */
+  enabled?: boolean;
+  /**
+   * 各个模型的启用状态，默认全部为 true
+   * Individual model enabled states, defaults to all true
+   */
+  modelEnabled?: Record<string, boolean>;
+  /**
+   * 各个模型的健康检测结果（仅用于 UI 显示，不影响启用状态）
+   * Model health check results (for UI display only, does not affect enabled state)
+   */
+  modelHealth?: Record<
+    string,
+    {
+      status: 'unknown' | 'healthy' | 'unhealthy';
+      lastCheck?: number; // 时间戳 / timestamp
+      latency?: number; // 延迟时间（毫秒）/ latency in milliseconds
+      error?: string; // 错误信息 / error message
+    }
+  >;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };

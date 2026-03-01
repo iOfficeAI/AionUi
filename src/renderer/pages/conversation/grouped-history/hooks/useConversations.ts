@@ -39,7 +39,9 @@ export const useConversations = () => {
         .invoke({ page: 0, pageSize: 10000 })
         .then((data) => {
           if (data && Array.isArray(data)) {
-            setConversations(data);
+            // 过滤掉健康检测对话（名称以 [Health Check] 开头）
+            const filteredData = data.filter((conv) => !conv.name?.startsWith('[Health Check]'));
+            setConversations(filteredData);
           } else {
             setConversations([]);
           }

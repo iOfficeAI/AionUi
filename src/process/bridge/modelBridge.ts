@@ -1079,3 +1079,4 @@ function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl
     i18nParams: { protocol: displayName },
   };
 }
+
