@@ -3,6 +3,7 @@
 
 # Use PowerShell on all platforms for consistency
 set shell := ["pwsh", "-NoProfile", "-Command"]
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
 
 # Default recipe: show available commands
 default:

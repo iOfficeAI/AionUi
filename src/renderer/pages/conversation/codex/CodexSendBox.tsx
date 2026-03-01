@@ -258,8 +258,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    // 立即清空输入框和选择的文件，提升用户体验
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     emitter.emit('codex.selected.file.clear');
     const currentAtPath = [...atPath];
     const currentUploadFile = [...uploadFile];
@@ -392,14 +392,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       <SendBox
         value={content}
-        onChange={(val) => {
-          // Only allow content changes when not waiting for session or thinking
-          if (!aiProcessing) {
-            setContent(val);
-          }
-        }}
+        onChange={setContent}
         loading={running || aiProcessing}
-        disabled={aiProcessing}
+        disabled={false}
         className='z-10'
         placeholder={
           aiProcessing

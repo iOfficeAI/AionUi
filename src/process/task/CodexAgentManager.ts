@@ -12,7 +12,7 @@ import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager'
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { CodexAgentManagerData } from '@/common/codex/types';
 import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
@@ -36,6 +36,12 @@ const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
 const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
+/**
+ * @deprecated Legacy Codex agent manager. New Codex conversations are created
+ * through ACP protocol and handled by {@link AcpAgentManager}.
+ * This class is only kept for backward compatibility with existing sessions
+ * that were created before the ACP migration.
+ */
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
   agent!: CodexAgent; // Initialized in bootstrap promise
@@ -203,7 +209,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
@@ -219,10 +225,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           type: 'text',
           position: 'right',
           conversation_id: this.conversation_id,
-          content: { content: data.content },
+          content: {
+            content: data.content,
+            ...(data.cronMeta && { cronMeta: data.cronMeta }),
+          },
           createdAt: Date.now(),
         };
         addMessage(this.conversation_id, userMessage);
+        // Emit user_content IPC for cron messages so the frontend can display them
+        // even if the component mounts after the DB save but before the DB load completes.
+        if (data.cronMeta) {
+          const userResponseMessage: IResponseMessage = {
+            type: 'user_content',
+            conversation_id: this.conversation_id,
+            msg_id: data.msg_id,
+            data: { content: userMessage.content.content, cronMeta: data.cronMeta },
+          };
+          ipcBridge.codexConversation.responseStream.emit(userResponseMessage);
+        }
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理

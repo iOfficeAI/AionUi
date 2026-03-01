@@ -194,6 +194,12 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
 > **설정:** AionUi 설정 → WebUI 설정 → Channel, Bot Token을 구성하세요.
 
 <p align="center">
+  <video src="./resources/webui%20remoet.mp4" controls width="800">WebUI 원격 액세스 데모</video>
+</p>
+
+<p align="center"><em>에이전트 원격 감시 및 제어 — Claude, Gemini, Codex. 브라우저나 휴대폰에서 Claude Code remote처럼 사용하세요.</em></p>
+
+<p align="center">
   <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
 </p>
 

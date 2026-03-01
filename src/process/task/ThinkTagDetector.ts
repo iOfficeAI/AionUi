@@ -27,7 +27,7 @@ export function hasThinkTags(content: string): boolean {
   if (!content || typeof content !== 'string') {
     return false;
   }
-  return /<\/?think(?:ing)?>/i.test(content);
+  return /<\s*\/?\s*think(?:ing)?\s*>/i.test(content);
 }
 
 /**
@@ -48,16 +48,17 @@ export function stripThinkTags(content: string): string {
       .replace(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi, '')
       // Step 2: Remove complete <thinking>...</thinking> blocks (with optional spaces in tags)
       .replace(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi, '')
-      // Step 3: Handle MiniMax-style format: content before orphaned </think> without opening <think>
+      // Step 3: Handle MiniMax-style format: content before the FIRST orphaned </think>
       // Models like MiniMax M2.5 omit the opening tag: "thinking content...\n</think>\nresponse"
-      // After steps 1-2 removed complete blocks, any remaining </think> is orphaned.
-      // Everything before it is thinking content that should be removed.
       .replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '')
-      // Step 4: Remove any remaining orphaned opening tags
+      // Step 4: Remove any remaining orphaned closing tags (just the tags, preserve surrounding content)
+      // When text gets concatenated across tool calls, there may be additional </think> tags
+      .replace(/<\s*\/\s*think(?:ing)?\s*>/gi, '')
+      // Step 5: Remove any remaining orphaned opening tags
       .replace(/<\s*think(?:ing)?\s*>/gi, '')
-      // Step 5: Collapse multiple newlines
+      // Step 6: Collapse multiple newlines
       .replace(/\n{3,}/g, '\n\n')
-      // Step 6: Remove leading/trailing whitespace
+      // Step 7: Remove leading/trailing whitespace
       .trim()
   );
 }

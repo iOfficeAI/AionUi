@@ -98,6 +98,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   };
 };
 
+/** @deprecated Legacy Codex creation. New Codex conversations use ACP protocol via createAcpAgent. */
 export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);

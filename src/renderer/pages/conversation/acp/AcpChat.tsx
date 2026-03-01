@@ -24,7 +24,7 @@ const AcpChat: React.FC<{
 
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp' }}>
-      <div className='flex-1 flex flex-col px-20px'>
+      <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
