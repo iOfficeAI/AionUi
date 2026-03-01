@@ -194,14 +194,11 @@ _あなたの 24/7 AI アシスタント — あらゆるデバイス、どこ�
 > **設定：** AionUi 設定 → WebUI 設定 → Channel、Bot Token を設定します。
 
 <p align="center">
-  <video src="./resources/webui%20remoet.mp4" controls width="800">WebUI リモートアクセスデモ</video>
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
 <p align="center"><em>リモートでエージェントを監視・操作 — Claude、Gemini、Codex。ブラウザやスマホから、Claude Code remote のように使えます。</em></p>
 
-<p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
-</p>
 
 > [リモートインターネットアクセスのチュートリアル](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
