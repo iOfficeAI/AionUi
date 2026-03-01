@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中�?/a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本�?/a> | <a href="./readme_ko.md">한국�?/a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group3.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group3.png" target="_blank">微信 (中文�?</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -43,7 +43,7 @@
 
 <p align="center">
 
-[✨ Cowork Eylemde](#-cowork-eylemde) ·
+[�?Cowork Eylemde](#-cowork-eylemde) ·
 [🤔 Neden AionUi'yi Seçmelisiniz?](#-neden-aionui-claude-cowork-yerine) ·
 [🚀 Hızlı Başlangıç](#-hızlı-başlangıç) ·
 [💬 Topluluk](#-topluluk-ve-destek)
@@ -52,17 +52,17 @@
 
 ---
 
-## Cowork — Sizinle Çalışan AI Agents
+## Cowork �?Sizinle Çalışan AI Agents
 
-**AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
+**AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur �?dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
 |                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                 |
 | :------------------------------------- | :------------------------------- | :-------------------------------------------------------------------------------------------------- |
-| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                     |
-| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                         |
+| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet �?tam dosya erişimi ile yerleşik Agent**                                                     |
+| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet �?onayınızla özerk**                                                                         |
 | Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                              |
-| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                          |
-| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, OpenClaw, Qwen Code ve 12+ daha fazla — otomatik algılanan, birleşik arayüz** |
+| Zamanlanmış otomasyon                  | Hayır                            | **Cron �?7/24 gözetimsiz**                                                                          |
+| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, OpenClaw, Qwen Code ve 12+ daha fazla �?otomatik algılanan, birleşik arayüz** |
 | Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                         |
 
 <p align="center">
@@ -71,14 +71,14 @@
 
 ---
 
-## Yerleşik Agent — Kur ve Kullan, Sıfır Yapılandırma
+## Yerleşik Agent �?Kur ve Kullan, Sıfır Yapılandırma
 
 AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak kurmanızı gerektiren araçların aksine, **AionUi kurduğunuz anda çalışır**.
 
-- **Kurulacak CLI araçları yok** — Agent motoru yerleşiktir
-- **Karmaşık kurulum yok** — Google ile giriş yapın veya herhangi bir API anahtarı yapıştırın
-- **Tam Agent yetenekleri** — dosya okuma/yazma, web arama, görüntü oluşturma, MCP araçları
-- **Kullanıma hazır asistanlar** — 11+ yerleşik profesyonel asistan (Cowork, PPTX Oluşturucu, PDF'den PPT'ye, 3D Oyun, UI/UX Pro Max ve daha fazlası) hemen kullanıma hazır
+- **Kurulacak CLI araçları yok** �?Agent motoru yerleşiktir
+- **Karmaşık kurulum yok** �?Google ile giriş yapın veya herhangi bir API anahtarı yapıştırın
+- **Tam Agent yetenekleri** �?dosya okuma/yazma, web arama, görüntü oluşturma, MCP araçları
+- **Kullanıma hazır asistanlar** �?11+ yerleşik profesyonel asistan (Cowork, PPTX Oluşturucu, PDF'den PPT'ye, 3D Oyun, UI/UX Pro Max ve daha fazlası) hemen kullanıma hazır
 
 <p align="center">
   <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
@@ -86,20 +86,20 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 
 ---
 
-## Çoklu Agent Modu — Zaten CLI Agent'larınız var mı? Getirin
+## Çoklu Agent Modu �?Zaten CLI Agent'larınız var mı? Getirin
 
-Zaten Claude Code, Codex veya Qwen Code kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
+Zaten Claude Code, Codex veya Qwen Code kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir �?yerleşik Agent ile birlikte.
 
-**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot ve daha fazlası
+**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) �?Claude Code �?Codex �?Qwen Code �?Goose AI �?OpenClaw �?Augment Code �?iFlow CLI �?CodeBuddy �?Kimi CLI �?OpenCode �?Factory Droid �?GitHub Copilot �?Qoder CLI �?Mistral Vibe �?Nanobot ve daha fazlası
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
 </p>
 
-- **Otomatik Algılama** — kurulu CLI araçlarını otomatik olarak tanır
-- **Birleşik Arayüz** — tüm AI Agent'larınız için tek bir Cowork platformu
-- **Paralel Oturumlar** — bağımsız bağlam ile birden fazla Agent'ı aynı anda çalıştırın
-- **MCP Birleşik Yönetimi** — MCP (Model Context Protocol) araçlarını bir kez yapılandırın, tüm Agent'lara otomatik olarak senkronize edilir — her Agent'ı ayrı ayrı yapılandırmanıza gerek yok
+- **Otomatik Algılama** �?kurulu CLI araçlarını otomatik olarak tanır
+- **Birleşik Arayüz** �?tüm AI Agent'larınız için tek bir Cowork platformu
+- **Paralel Oturumlar** �?bağımsız bağlam ile birden fazla Agent'ı aynı anda çalıştırın
+- **MCP Birleşik Yönetimi** �?MCP (Model Context Protocol) araçlarını bir kez yapılandırın, tüm Agent'lara otomatik olarak senkronize edilir �?her Agent'ı ayrı ayrı yapılandırmanıza gerek yok
 
 ---
 
@@ -109,13 +109,13 @@ Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **Aion
 
 | API Anahtarınız                                     | Ne Alırsınız                 |
 | :-------------------------------------------------- | :--------------------------- |
-| Gemini API Anahtarı (veya Google girişi — ücretsiz) | Gemini destekli Cowork Agent |
+| Gemini API Anahtarı (veya Google girişi �?ücretsiz) | Gemini destekli Cowork Agent |
 | OpenAI API Anahtarı                                 | GPT destekli Cowork Agent    |
 | Anthropic API Anahtarı                              | Claude destekli Cowork Agent |
 | Ollama / LM Studio (yerel)                          | Yerel model Cowork Agent     |
 | NewAPI Gateway                                      | 20+ modele birleşik erişim   |
 
-Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **20+ AI platformunu** destekler.
+Aynı Agent yetenekleri �?dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı �?hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **20+ AI platformunu** destekler.
 
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -128,13 +128,13 @@ Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma,
 
 **Kapsamlı Platform Desteği:**
 
-- **Resmi Platformlar** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
-- **Bulut Sağlayıcıları** — AWS Bedrock, New API (birleşik AI model ağ geçidi)
-- **Çin Platformları** — Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
-- **Uluslararası Platformlar** — DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
-- **Yerel Modeller** — Ollama, LM Studio (yerel API uç noktası ile özel platform aracılığıyla)
+- **Resmi Platformlar** �?Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
+- **Bulut Sağlayıcıları** �?AWS Bedrock, New API (birleşik AI model ağ geçidi)
+- **Çin Platformları** �?Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
+- **Uluslararası Platformlar** �?DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Yerel Modeller** �?Ollama, LM Studio (yerel API uç noktası ile özel platform aracılığıyla)
 
-AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
+AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler �?çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
 
 </details>
 
@@ -144,8 +144,8 @@ AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizm
 
 _12 yerleşik profesyonel asistan ve özel beceri desteği ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
 
-- **Özel Asistanlar Oluştur** — Özel kurallar ve yeteneklerle kendi asistanlarınızı tanımlayın
-- **Becerileri Yönet** — AI yeteneklerini genişletmek için herhangi bir asistan için beceriler oluşturun, etkinleştirin ve devre dışı bırakın
+- **Özel Asistanlar Oluştur** �?Özel kurallar ve yeteneklerle kendi asistanlarınızı tanımlayın
+- **Becerileri Yönet** �?AI yeteneklerini genişletmek için herhangi bir asistan için beceriler oluşturun, etkinleştirin ve devre dışı bırakın
 
 <p align="center">
   <img src="./resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
@@ -158,18 +158,18 @@ _12 yerleşik profesyonel asistan ve özel beceri desteği ile genişletilebilir
 
 AionUi önceden tanımlanmış yeteneklere sahip **12 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
 
-- **🤝 Cowork** — Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
-- **📊 PPTX Oluşturucu** — PPTX sunumları oluşturur
-- **📄 PDF'den PPT'ye** — PDF'yi PPT'ye dönüştürür
-- **🎮 3D Oyun** — Tek dosya 3D oyun oluşturma
-- **🎨 UI/UX Pro Max** — Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
-- **📋 Dosyalarla Planlama** — Karmaşık görevler için dosya tabanlı planlama (Manus tarzı kalıcı Markdown planlama)
-- **🧭 HUMAN 3.0 Koçu** — Kişisel gelişim koçu
-- **📣 Sosyal İş Yayıncısı** — İş ilanı ve yayınlama
-- **🦞 moltbook** — Sıfır dağıtım AI Agent sosyal ağı
-- **📈 Beautiful Mermaid** — Akış şemaları, sıra diyagramları ve daha fazlası
-- **🔧 OpenClaw Kurulumu** — OpenClaw entegrasyonu için kurulum ve yapılandırma asistanı
-- **📖 Hikaye Rol Oynama** — Karakter kartları ve dünya bilgisi ile sürükleyici hikaye rol oynama (SillyTavern uyumlu)
+- **🤝 Cowork** �?Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
+- **📊 PPTX Oluşturucu** �?PPTX sunumları oluşturur
+- **📄 PDF'den PPT'ye** �?PDF'yi PPT'ye dönüştürür
+- **🎮 3D Oyun** �?Tek dosya 3D oyun oluşturma
+- **🎨 UI/UX Pro Max** �?Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
+- **📋 Dosyalarla Planlama** �?Karmaşık görevler için dosya tabanlı planlama (Manus tarzı kalıcı Markdown planlama)
+- **🧭 HUMAN 3.0 Koçu** �?Kişisel gelişim koçu
+- **📣 Sosyal İş Yayıncısı** �?İş ilanı ve yayınlama
+- **🦞 moltbook** �?Sıfır dağıtım AI Agent sosyal ağı
+- **📈 Beautiful Mermaid** �?Akış şemaları, sıra diyagramları ve daha fazlası
+- **🔧 OpenClaw Kurulumu** �?OpenClaw entegrasyonu için kurulum ve yapılandırma asistanı
+- **📖 Hikaye Rol Oynama** �?Karakter kartları ve dünya bilgisi ile sürükleyici hikaye rol oynama (SillyTavern uyumlu)
 
 **Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
 
@@ -181,38 +181,35 @@ AionUi önceden tanımlanmış yeteneklere sahip **12 profesyonel asistan** içe
 
 ## Her Yerden Cowork
 
-_7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
+_7/24 AI asistanınız �?AionUi'ye herhangi bir cihazdan, her yerden erişin._
 
-- **WebUI Modu** — telefondan, tabletten veya herhangi bir bilgisayardan tarayıcı aracılığıyla erişin. LAN, çapraz ağ ve sunucu dağıtımını destekler. QR kod veya şifre girişi.
+- **WebUI Modu** �?telefondan, tabletten veya herhangi bir bilgisayardan tarayıcı aracılığıyla erişin. LAN, çapraz ağ ve sunucu dağıtımını destekler. QR kod veya şifre girişi.
 
 - **Sohbet Platformu Entegrasyonu**
-  - **Telegram** — AI Agent'ınızla doğrudan Telegram'dan Cowork yapın
-  - **Lark (Feishu)** — Kurumsal işbirliği için Feishu botları aracılığıyla Cowork
-  - **DingTalk** — Otomatik geri dönüş ile AI Card akışı
+  - **Telegram** �?AI Agent'ınızla doğrudan Telegram'dan Cowork yapın
+  - **Lark (Feishu)** �?Kurumsal işbirliği için Feishu botları aracılığıyla Cowork
+  - **DingTalk** �?Otomatik geri dönüş ile AI Card akışı
   - **Slack** ve yakında daha fazla platform
 
-> **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
+> **Kurulum:** AionUi Ayarları �?WebUI Ayarları �?Kanal, Bot Token'ı yapılandırın.
 
 <p align="center">
-  <video src="./resources/webui%20remoet.mp4" controls width="800">WebUI uzaktan erişim tanıtımı</video>
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
-<p align="center"><em>Agent'ınızı uzaktan kontrol edin ve izleyin — Claude, Gemini, Codex. Tarayıcı veya telefondan, Claude Code remote gibi.</em></p>
+<p align="center"><em>Agent'ınızı uzaktan kontrol edin ve izleyin �?Claude, Gemini, Codex. Tarayıcı veya telefondan, Claude Code remote gibi.</em></p>
 
-<p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
-</p>
 
 > [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-## ✨ Cowork Eylemde
+## �?Cowork Eylemde
 
-### **Zamanlanmış Görevler — Otomatik Pilotta Cowork**
+### **Zamanlanmış Görevler �?Otomatik Pilotta Cowork**
 
-_Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — gerçek 7/24 gözetimsiz işlem._
+_Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır �?gerçek 7/24 gözetimsiz işlem._
 
-- **Doğal Dil** — Agent'a ne yapacağını söyleyin, sadece sohbet ediyormuş gibi
-- **Esnek Zamanlama** — günlük, haftalık, aylık veya özel cron ifadeleri
+- **Doğal Dil** �?Agent'a ne yapacağını söyleyin, sadece sohbet ediyormuş gibi
+- **Esnek Zamanlama** �?günlük, haftalık, aylık veya özel cron ifadeleri
 - **Kullanım Senaryoları:** zamanlanmış veri toplama, rapor oluşturma, dosya organizasyonu, hatırlatıcılar
 
 <p align="center">
@@ -224,9 +221,9 @@ _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — 
 
 <br>
 
-- **Konuşmaya Bağlı** — Her zamanlanmış görev bir konuşmaya bağlıdır, bağlamı ve geçmişi korur
-- **Otomatik Yürütme** — Görevler zamanlanmış saatlerde otomatik olarak çalışır, konuşmaya mesaj gönderir
-- **Kolay Yönetim** — Zamanlanmış görevleri istediğiniz zaman oluşturun, değiştirin, etkinleştirin/devre dışı bırakın, silin ve görüntüleyin
+- **Konuşmaya Bağlı** �?Her zamanlanmış görev bir konuşmaya bağlıdır, bağlamı ve geçmişi korur
+- **Otomatik Yürütme** �?Görevler zamanlanmış saatlerde otomatik olarak çalışır, konuşmaya mesaj gönderir
+- **Kolay Yönetim** �?Zamanlanmış görevleri istediğiniz zaman oluşturun, değiştirin, etkinleştirin/devre dışı bırakın, silin ve görüntüleyin
 
 **Gerçek Dünya Örnekleri:**
 
@@ -239,14 +236,14 @@ _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — 
 
 ---
 
-### **Önizleme Paneli — AI Tarafından Oluşturulan Sonuçları Anında Görüntüle**
+### **Önizleme Paneli �?AI Tarafından Oluşturulan Sonuçları Anında Görüntüle**
 
-_10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff — uygulamalar arasında geçiş yapmadan her şeyi görüntüleyin._
+_10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff �?uygulamalar arasında geçiş yapmadan her şeyi görüntüleyin._
 
-- **Anında Önizleme** — Agent dosyaları oluşturduktan sonra, uygulamalar arasında geçiş yapmadan sonuçları hemen görüntüleyin
-- **Gerçek Zamanlı Takip + Düzenlenebilir** — dosya değişikliklerini otomatik olarak takip eder; Markdown, kod, HTML'in canlı düzenlemesini destekler
-- **Çoklu Sekme Desteği** — birden fazla dosyayı aynı anda açın, her biri kendi sekmesinde
-- **Sürüm Geçmişi** — dosyaların geçmiş sürümlerini görüntüleyin ve geri yükleyin (Git tabanlı)
+- **Anında Önizleme** �?Agent dosyaları oluşturduktan sonra, uygulamalar arasında geçiş yapmadan sonuçları hemen görüntüleyin
+- **Gerçek Zamanlı Takip + Düzenlenebilir** �?dosya değişikliklerini otomatik olarak takip eder; Markdown, kod, HTML'in canlı düzenlemesini destekler
+- **Çoklu Sekme Desteği** �?birden fazla dosyayı aynı anda açın, her biri kendi sekmesinde
+- **Sürüm Geçmişi** �?dosyaların geçmiş sürümlerini görüntüleyin ve geri yükleyin (Git tabanlı)
 
 <p align="center">
   <img src="./resources/preview.gif" alt="Preview Panel" width="800">
@@ -259,19 +256,19 @@ _10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff —
 
 **Desteklenen Önizleme Formatları:**
 
-- **Belgeler** — PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
-- **Kod** — JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell betikleri ve 30+ programlama dili
-- **İşaretleme** — Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
-- **Görüntüler** — PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
-- **Diğer** — Diff dosyaları (`.diff`, `.patch`)
+- **Belgeler** �?PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
+- **Kod** �?JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell betikleri ve 30+ programlama dili
+- **İşaretleme** �?Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
+- **Görüntüler** �?PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
+- **Diğer** �?Diff dosyaları (`.diff`, `.patch`)
 
 </details>
 
 ---
 
-### **Akıllı Dosya Yönetimi — Otomatik Dosya İşlemleri**
+### **Akıllı Dosya Yönetimi �?Otomatik Dosya İşlemleri**
 
-_Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, dosya birleştirme — Cowork Agent sizin için halleder._
+_Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, dosya birleştirme �?Cowork Agent sizin için halleder._
 
 <p align="center">
   <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
@@ -282,9 +279,9 @@ _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, do
 
 <br>
 
-- **Otomatik Organize Et** — İçeriği akıllıca tanımlar ve otomatik olarak sınıflandırır, klasörleri düzenli tutar
-- **Verimli Toplu İşlem** — Tek tıkla yeniden adlandırma, dosya birleştirme, sıkıcı manuel görevlere veda edin
-- **Otomatik Yürütme** — AI Agent'lar bağımsız olarak dosya işlemlerini yürütebilir, dosyaları okuyup yazabilir ve görevleri otomatik olarak tamamlayabilir
+- **Otomatik Organize Et** �?İçeriği akıllıca tanımlar ve otomatik olarak sınıflandırır, klasörleri düzenli tutar
+- **Verimli Toplu İşlem** �?Tek tıkla yeniden adlandırma, dosya birleştirme, sıkıcı manuel görevlere veda edin
+- **Otomatik Yürütme** �?AI Agent'lar bağımsız olarak dosya işlemlerini yürütebilir, dosyaları okuyup yazabilir ve görevleri otomatik olarak tamamlayabilir
 
 **Kullanım Senaryoları:**
 
@@ -297,9 +294,9 @@ _Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, do
 
 ---
 
-### **Excel Veri İşleme — AI Destekli Analiz**
+### **Excel Veri İşleme �?AI Destekli Analiz**
 
-_Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelleştirin ve içgörüler oluşturun — hepsi AI Agent'lar tarafından desteklenir._
+_Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelleştirin ve içgörüler oluşturun �?hepsi AI Agent'lar tarafından desteklenir._
 
 <p align="center">
   <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
@@ -310,10 +307,10 @@ _Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelle
 
 <br>
 
-- **Akıllı Analiz** — AI veri kalıplarını analiz eder ve içgörüler oluşturur
-- **Otomatik Biçimlendirme** — Profesyonel stillendirme ile Excel raporlarını otomatik olarak güzelleştirir
-- **Veri Dönüşümü** — Doğal dil komutlarıyla verileri dönüştürün, birleştirin ve yeniden yapılandırın
-- **Rapor Oluşturma** — Ham verilerden kapsamlı raporlar oluşturun
+- **Akıllı Analiz** �?AI veri kalıplarını analiz eder ve içgörüler oluşturur
+- **Otomatik Biçimlendirme** �?Profesyonel stillendirme ile Excel raporlarını otomatik olarak güzelleştirir
+- **Veri Dönüşümü** �?Doğal dil komutlarıyla verileri dönüştürün, birleştirin ve yeniden yapılandırın
+- **Rapor Oluşturma** �?Ham verilerden kapsamlı raporlar oluşturun
 
 **Kullanım Senaryoları:**
 
@@ -340,10 +337,10 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 <br>
 
-- **Metinden Görüntüye** — Doğal dil açıklamalarından görüntüler oluşturun
-- **Görüntü Düzenleme** — Mevcut görüntüleri değiştirin ve geliştirin
-- **Görüntü Tanıma** — Görüntü içeriğini analiz edin ve açıklayın
-- **Toplu İşleme** — Aynı anda birden fazla görüntü oluşturun
+- **Metinden Görüntüye** �?Doğal dil açıklamalarından görüntüler oluşturun
+- **Görüntü Düzenleme** �?Mevcut görüntüleri değiştirin ve geliştirin
+- **Görüntü Tanıma** �?Görüntü içeriğini analiz edin ve açıklayın
+- **Toplu İşleme** �?Aynı anda birden fazla görüntü oluşturun
 
 </details>
 
@@ -351,9 +348,9 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 ---
 
-### **Belge Oluşturma — PPT, Word, Markdown**
+### **Belge Oluşturma �?PPT, Word, Markdown**
 
-_AI Agent'lar ile profesyonel belgeleri otomatik olarak oluşturun — sunumlar, raporlar ve daha fazlası._
+_AI Agent'lar ile profesyonel belgeleri otomatik olarak oluşturun �?sunumlar, raporlar ve daha fazlası._
 
 <p align="center">
   <img src="./resources/file_generation_preview.png" alt="Document Generation" width="800">
@@ -364,10 +361,10 @@ _AI Agent'lar ile profesyonel belgeleri otomatik olarak oluşturun — sunumlar,
 
 <br>
 
-- **PPTX Oluşturucu** — Anahatlar veya konulardan profesyonel sunumlar oluşturun
-- **Word Belgeleri** — Uygun yapıya sahip biçimlendirilmiş Word belgeleri oluşturun
-- **Markdown Dosyaları** — Dokümantasyon için Markdown belgeleri oluşturun ve biçimlendirin
-- **PDF Dönüşümü** — Çeşitli belge formatları arasında dönüştürün
+- **PPTX Oluşturucu** �?Anahatlar veya konulardan profesyonel sunumlar oluşturun
+- **Word Belgeleri** �?Uygun yapıya sahip biçimlendirilmiş Word belgeleri oluşturun
+- **Markdown Dosyaları** �?Dokümantasyon için Markdown belgeleri oluşturun ve biçimlendirin
+- **PDF Dönüşümü** �?Çeşitli belge formatları arasında dönüştürün
 
 **Kullanım Senaryoları:**
 
@@ -386,7 +383,7 @@ _Kendi CSS kodunuzla özelleştirin, arayüzünüzü tercihlerinize uygun hale g
   <img src="./resources/css with skin.gif" alt="CSS Customization" width="800">
 </p>
 
-- ✅ **Tamamen Özelleştirilebilir** — CSS kodu aracılığıyla arayüz renklerini, stillerini, düzenini özgürce özelleştirin, özel deneyiminizi oluşturun
+- �?**Tamamen Özelleştirilebilir** �?CSS kodu aracılığıyla arayüz renklerini, stillerini, düzenini özgürce özelleştirin, özel deneyiminizi oluşturun
 
 ---
 
@@ -398,9 +395,9 @@ _Birden fazla konuşma açın, görevler karışmaz, bağımsız bellek, verimli
   <img src="./resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
 </p>
 
-- ✅ **Bağımsız Bağlam** — Her konuşma kendi bağlamını ve geçmişini korur
-- ✅ **Paralel Yürütme** — Müdahale olmadan birden fazla görevi aynı anda çalıştırın
-- ✅ **Akıllı Yönetim** — Görsel göstergelerle konuşmalar arasında kolay geçiş
+- �?**Bağımsız Bağlam** �?Her konuşma kendi bağlamını ve geçmişini korur
+- �?**Paralel Yürütme** �?Müdahale olmadan birden fazla görevi aynı anda çalıştırın
+- �?**Akıllı Yönetim** �?Görsel göstergelerle konuşmalar arasında kolay geçiş
 
 ---
 
@@ -418,7 +415,7 @@ AionUi **ücretsiz ve açık kaynaklı bir Çoklu AI Agent Masaüstü** uygulama
 | İşletim Sistemi | Sadece macOS  | macOS / Windows / Linux                           |
 | Model Desteği   | Sadece Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
 | Etkileşim       | Masaüstü GUI  | Masaüstü GUI + WebUI + Telegram / Lark / DingTalk |
-| Otomasyon       | Sadece manuel | Cron zamanlanmış görevler — 7/24 gözetimsiz       |
+| Otomasyon       | Sadece manuel | Cron zamanlanmış görevler �?7/24 gözetimsiz       |
 | Maliyet         | $100/ay       | Ücretsiz ve Açık Kaynak                           |
 
 Derin AI Ofis Senaryosu Desteği:
@@ -473,9 +470,9 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 
 ### Topluluk Makaleleri
 
-- [Açık kaynak ücretsiz Cowork, tam model entegrasyonu + özerk dosya işlemleri](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Açık Kaynak AI Projesi Uygulaması
-- [Sıradan insanların Claude Code'u bir APP gibi kullanmasını sağlamak](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Tembel Kedi Balık Sever
-- [5500 Stars: Açık Kaynak Anthropic'in AI Araç Setini Nasıl Kırıyor](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silikon Anı
+- [Açık kaynak ücretsiz Cowork, tam model entegrasyonu + özerk dosya işlemleri](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) �?Açık Kaynak AI Projesi Uygulaması
+- [Sıradan insanların Claude Code'u bir APP gibi kullanmasını sağlamak](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) �?Tembel Kedi Balık Sever
+- [5500 Stars: Açık Kaynak Anthropic'in AI Araç Setini Nasıl Kırıyor](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) �?AI Silikon Anı
 
 > **AionUi hakkında bir video yaptınız mı?** [X'te bize bildirin](https://x.com/AionUi) ve burada öne çıkaralım!
 
@@ -508,7 +505,7 @@ brew install aionui
 
 1. **Kurun** AionUi
 2. **Giriş yapın** Google hesabı ile veya herhangi bir API anahtarı girin
-3. **Cowork'a başlayın** — yerleşik AI Agent kullanıma hazır
+3. **Cowork'a başlayın** �?yerleşik AI Agent kullanıma hazır
 
 ### 📖 Detaylı Kılavuzlar
 
@@ -519,23 +516,23 @@ brew install aionui
 
 **🚀 Hızlı Başlangıç**
 
-- [📖 Tam Kurulum Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — İndirmeden yapılandırmaya kadar detaylı adımlar
-- [⚙️ LLM Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Çoklu platform AI model yapılandırması
-- [🤖 Çoklu Agent Modu Kurulumu](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Terminal AI Agent'larını entegre edin
-- [🔌 MCP Araç Yapılandırması](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol sunucu kurulumu
-- [🌐 WebUI Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Tam WebUI kurulum ve yapılandırma öğreticisi
+- [📖 Tam Kurulum Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) �?İndirmeden yapılandırmaya kadar detaylı adımlar
+- [⚙️ LLM Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) �?Çoklu platform AI model yapılandırması
+- [🤖 Çoklu Agent Modu Kurulumu](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) �?Terminal AI Agent'larını entegre edin
+- [🔌 MCP Araç Yapılandırması](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) �?Model Context Protocol sunucu kurulumu
+- [🌐 WebUI Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) �?Tam WebUI kurulum ve yapılandırma öğreticisi
 
 **🎯 Kullanım Senaryoları**
 
-- [📁 Dosya Yönetimi](https://github.com/iOfficeAI/AionUi/wiki/file-management) — Akıllı dosya organizasyonu
-- [📊 Excel İşleme](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI destekli veri işleme
-- [🎨 Görüntü Oluşturma](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI görüntü oluşturma
+- [📁 Dosya Yönetimi](https://github.com/iOfficeAI/AionUi/wiki/file-management) �?Akıllı dosya organizasyonu
+- [📊 Excel İşleme](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) �?AI destekli veri işleme
+- [🎨 Görüntü Oluşturma](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) �?AI görüntü oluşturma
 - [📚 Daha Fazla Kullanım Senaryosu](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
 
-**❓ Destek ve Yardım**
+**�?Destek ve Yardım**
 
-- [❓ SSS](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — Sorular ve sorun giderme
-- [🔧 Yapılandırma ve Kullanım Öğreticileri](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — Tam yapılandırma dokümantasyonu
+- [�?SSS](https://github.com/iOfficeAI/AionUi/wiki/FAQ) �?Sorular ve sorun giderme
+- [🔧 Yapılandırma ve Kullanım Öğreticileri](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) �?Tam yapılandırma dokümantasyonu
 
 </details>
 
@@ -551,11 +548,11 @@ brew install aionui
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — fikirleri paylaşın ve ipuçları alışverişi yapın
-- [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
-- [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
-- [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](./resources/wechat_group3.png) — Çince topluluk
+- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) �?fikirleri paylaşın ve ipuçları alışverişi yapın
+- [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) �?hatalar ve özellik istekleri
+- [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) �?en son sürümü alın
+- [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) �?İngilizce topluluk
+- [WeChat Grubu](./resources/wechat_group3.png) �?Çince topluluk
 
 ### Geliştirme Kılavuzu
 
@@ -564,11 +561,7 @@ brew install aionui
 #### Ön Koşullar
 
 - **Node.js** 22 veya üzeri
-- **bun** — Paket yöneticisi & çalışma zamanı（[yükle](https://bun.sh)）
-- **just** — Komut çalıştırıcı（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`）
-- **Python** 3.11+（yerel modül derlemesi için）
-- **prek** — PR kod kontrol aracı（`npm install -g @j178/prek`）
-
+- **bun** �?Paket yöneticisi & çalışma zamanı（[yükle](https://bun.sh)�?- **just** �?Komut çalıştırıcı（macOS: `brew install just`，Windows: `choco install just`，Linux: `apt install just`�?- **Python** 3.11+（yerel modül derlemesi için�?- **prek** �?PR kod kontrol aracı（`npm install -g @j178/prek`�?
 #### Hızlı Başlangıç
 
 ```bash
@@ -583,8 +576,7 @@ just install
 just dev
 ```
 
-#### Kullanılabilir Komutlar（justfile aracılığıyla）
-
+#### Kullanılabilir Komutlar（justfile aracılığıyla�?
 ```bash
 # Geliştirme
 just dev              # HMR ile geliştirme sunucusu başlat
@@ -608,22 +600,18 @@ just rebuild-native   # Electron için yerel modülleri yeniden derle
 just setup            # Tam kurulum: yükle + yerel modülleri yeniden derle
 ```
 
-#### Kod Kontrolü（prek）
-
-Proje, kod kontrolü için [prek](https://github.com/j178/prek)（pre-commit'in Rust uygulaması）kullanır, `.pre-commit-config.yaml` dosyasında yapılandırılmıştır：
-
+#### Kod Kontrolü（prek�?
+Proje, kod kontrolü için [prek](https://github.com/j178/prek)（pre-commit'in Rust uygulaması）kullanır, `.pre-commit-config.yaml` dosyasında yapılandırılmıştır�?
 ```bash
 # prek'i yükleyin
 npm install -g @j178/prek
 
-# git hooks'ları yükleyin（isteğe bağlı, commit öncesi otomatik kontrol）
-prek install
+# git hooks'ları yükleyin（isteğe bağlı, commit öncesi otomatik kontrol�?prek install
 
 # Staged dosyalarda kontrol çalıştırın
 prek run
 
-# main dalıyla değişiklikleri kontrol edin（CI ile aynı）
-prek run --from-ref origin/main --to-ref HEAD
+# main dalıyla değişiklikleri kontrol edin（CI ile aynı�?prek run --from-ref origin/main --to-ref HEAD
 ```
 
 #### Derleme Sistemi
@@ -688,3 +676,4 @@ Bu proje [Apache-2.0](LICENSE) lisansı altında lisanslanmıştır.
 [Hata Bildir](https://github.com/iOfficeAI/AionUi/issues) · [Özellik İste](https://github.com/iOfficeAI/AionUi/issues)
 
 </div>
+
