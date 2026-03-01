@@ -194,14 +194,11 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
 > **設定：** AionUi 設定 → WebUI 設定 → Channel，配置 Bot Token。
 
 <p align="center">
-  <video src="./resources/webui%20remoet.mp4" controls width="800">WebUI 遠程存取示範</video>
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
 <p align="center"><em>遠程監管你的 Agent — Claude、Gemini、Codex，瀏覽器或手機即可遠程控制與查看，如同 Claude Code remote。</em></p>
 
-<p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
-</p>
 
 > [遠端網際網路存取教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
