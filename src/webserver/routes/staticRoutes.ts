@@ -53,8 +53,6 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
     res.removeHeader('X-Content-Type-Options');
     res.removeHeader('X-XSS-Protection');
 
-    console.log(`[ViteProxy] ${req.method} ${req.url}`);
-
     const options: http.RequestOptions = {
       hostname: 'localhost',
       port: VITE_DEV_PORT,

@@ -96,7 +96,6 @@ export function initModelBridge(): void {
     // DashScope Coding Plan does not provide /v1/models endpoint (returns 404)
     // Validate API key via /chat/completions probe, then return hardcoded list
     if (base_url && isDashScopeCodingAPI(base_url)) {
-      console.log('Using DashScope Coding Plan model list');
       const codingPlanModels = ['qwen3-coder-plus', 'qwen3-coder-next', 'qwen3.5-plus', 'qwen3-max-2026-01-23', 'glm-4.7', 'glm-5', 'MiniMax-M2.5', 'kimi-k2.5'];
 
       // Validate the API key by probing the chat/completions endpoint
