@@ -90,7 +90,14 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
   status?: 'finish' | 'pending' | 'error' | 'work';
 }
 
-export type IMessageText = IMessage<'text', { content: string }>;
+export type CronMessageMeta = {
+  source: 'cron';
+  cronJobId: string;
+  cronJobName: string;
+  triggeredAt: number;
+};
+
+export type IMessageText = IMessage<'text', { content: string; cronMeta?: CronMessageMeta }>;
 
 export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
 
@@ -317,15 +324,15 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     case 'content':
     case 'user_content': {
+      const data = message.data;
+      const isRichData = typeof data === 'object' && data !== null && 'content' in data;
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
         position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
-        content: {
-          content: message.data as string,
-        },
+        content: isRichData ? { content: (data as { content: string; cronMeta?: CronMessageMeta }).content, cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta } : { content: data as string },
       };
     }
     case 'tool_call': {
@@ -407,20 +414,15 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data as any,
       };
     }
-    case 'available_commands': {
-      return {
-        id: uuid(),
-        type: 'available_commands',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        content: message.data as any,
-      };
-    }
+    // Disabled: available_commands messages are too noisy and distracting in the chat UI
+    case 'available_commands':
+      break;
     case 'start':
     case 'finish':
     case 'thought':
     case 'system': // Cron system responses, ignored
+    case 'acp_model_info': // Model info updates, handled by AcpModelSelector
+    case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
       break;
     default: {
       throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
@@ -452,34 +454,47 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
   };
 
   if (message.type === 'tool_group') {
-    const tools = message.content.slice();
-    for (let i = 0, len = list.length; i < len; i++) {
-      const existingMessage = list[i];
-      if (existingMessage.type === 'tool_group') {
-        if (!existingMessage.content.length) continue;
-        // Create a new content array with merged tool data
-        let change = false;
-        const newContent = existingMessage.content.map((tool) => {
-          const newToolIndex = tools.findIndex((t) => t.callId === tool.callId);
-          if (newToolIndex === -1) return tool;
-          // Create new object instead of mutating original
-          const merged = { ...tool, ...tools[newToolIndex] };
-          change = true;
-          tools.splice(newToolIndex, 1);
-          return merged;
-        });
-        // Only return if we actually matched and merged some tools
-        // Otherwise continue checking other tool_groups
-        if (change) {
-          return updateMessage(i, { ...existingMessage, content: newContent }, true);
-        }
-      }
+    const remainingToolsMap = new Map(message.content.map((t) => [t.callId, t] as const));
+    if (remainingToolsMap.size === 0) return list;
+
+    const updatesToReport: TMessage[] = [];
+
+    const updatedList = list.map((existingMessage) => {
+      if (existingMessage.type !== 'tool_group') return existingMessage;
+      if (!existingMessage.content.length) return existingMessage;
+
+      let didMergeIntoThisMessage = false;
+      const newContent = existingMessage.content.map((tool) => {
+        const newToolData = remainingToolsMap.get(tool.callId);
+        if (!newToolData) return tool;
+        didMergeIntoThisMessage = true;
+        remainingToolsMap.delete(tool.callId);
+        // Create new object instead of mutating original
+        return { ...tool, ...newToolData };
+      });
+
+      if (!didMergeIntoThisMessage) return existingMessage;
+      const updatedMessage = { ...existingMessage, content: newContent } as TMessage;
+      updatesToReport.push(updatedMessage);
+      return updatedMessage;
+    });
+
+    const didUpdateExisting = updatesToReport.length > 0;
+    for (const updatedMessage of updatesToReport) {
+      messageHandler('update', updatedMessage);
     }
-    if (tools.length) {
-      message.content = tools;
-      return pushMessage(message);
+
+    const baseList = didUpdateExisting ? updatedList : list;
+
+    // If there are new tool calls, append them as a new tool_group message (without mutating inputs)
+    if (remainingToolsMap.size > 0) {
+      const newTools = Array.from(remainingToolsMap.values());
+      const insertMessage = { ...message, content: newTools } as TMessage;
+      messageHandler('insert', insertMessage);
+      return baseList.concat(insertMessage);
     }
-    return list;
+    // No new tools appended; return a new list only if something was updated
+    return didUpdateExisting ? baseList : list;
   }
 
   // Handle Gemini tool_call message merging

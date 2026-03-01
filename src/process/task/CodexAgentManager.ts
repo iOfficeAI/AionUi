@@ -10,10 +10,13 @@ import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
+import type { CodexAgentManagerData } from '@/common/codex/types';
+import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
+import type { AcpModelInfo } from '@/types/acpTypes';
 import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
 import { mapPermissionDecision } from '@/common/codex/utils';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
@@ -21,6 +24,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { getDatabase } from '@process/database';
 import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
@@ -32,12 +36,27 @@ const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
 const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
+/**
+ * @deprecated Legacy Codex agent manager. New Codex conversations are created
+ * through ACP protocol and handled by {@link AcpAgentManager}.
+ * This class is only kept for backward compatibility with existing sessions
+ * that were created before the ACP migration.
+ */
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
   agent!: CodexAgent; // Initialized in bootstrap promise
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
   private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
+
+  /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
+  private currentMode: string = 'default';
+
+  /** Cached model name from session_configured event */
+  private currentModelName: string | null = null;
+
+  /** User-selected model before session creation */
+  private selectedModel: string | null = null;
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
@@ -46,6 +65,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.workspace = data.workspace;
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
     this.status = 'pending';
+    this.currentMode = data.sessionMode || 'default';
+    this.selectedModel = data.codexModel || null;
 
     this.initAgent(data);
   }
@@ -88,7 +109,27 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // yoloMode priority: data.yoloMode (from CronService) > config setting
       // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
       const codexConfig = await ProcessConfig.get('codex.config');
-      const yoloMode = data.yoloMode ?? codexConfig?.yoloMode;
+      const legacyYoloMode = data.yoloMode ?? codexConfig?.yoloMode;
+
+      // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
+      // When old config has yoloMode=true and no explicit session mode was set,
+      // initialize currentMode to 'yolo' so the mode selector reflects the setting.
+      // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
+      if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+        this.currentMode = 'yolo';
+      }
+
+      // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
+      // on the Guid page, clear the legacy config so it won't re-activate next time.
+      if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+        void this.clearLegacyYoloConfig();
+      }
+
+      // Codex CLI hangs when approval_policy=never is set yet approval requests
+      // are still emitted — our respondElicitation collides with the CLI's own
+      // internal auto-approve. To avoid this dual-approval conflict, we never
+      // pass yoloMode to the CLI. All approval modes (Plan/Auto Edit/Full Auto)
+      // are handled uniformly at the Manager layer via addConfirmation().
 
       this.agent = new CodexAgent({
         id: data.conversation_id,
@@ -98,7 +139,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         sessionManager,
         fileOperationHandler,
         sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
-        yoloMode: yoloMode, // yoloMode from CronService or config
+        yoloMode: false, // Always false — approval handled by Manager, not CLI
         onNetworkError: (error) => {
           this.handleNetworkError(error);
         },
@@ -168,7 +209,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
@@ -184,10 +225,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           type: 'text',
           position: 'right',
           conversation_id: this.conversation_id,
-          content: { content: data.content },
+          content: {
+            content: data.content,
+            ...(data.cronMeta && { cronMeta: data.cronMeta }),
+          },
           createdAt: Date.now(),
         };
         addMessage(this.conversation_id, userMessage);
+        // Emit user_content IPC for cron messages so the frontend can display them
+        // even if the component mounts after the DB save but before the DB load completes.
+        if (data.cronMeta) {
+          const userResponseMessage: IResponseMessage = {
+            type: 'user_content',
+            conversation_id: this.conversation_id,
+            msg_id: data.msg_id,
+            data: { content: userMessage.content.content, cronMeta: data.cronMeta },
+          };
+          ipcBridge.codexConversation.responseStream.emit(userResponseMessage);
+        }
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
@@ -204,7 +259,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           enabledSkills: this.options.enabledSkills,
         });
 
-        const result = await this.agent.newSession(this.workspace, processedContent);
+        const result = await this.agent.newSession(this.workspace, processedContent, this.selectedModel || undefined);
 
         // Session created successfully - Codex will send session_configured event automatically
         // Note: setProcessing(false) is called in CodexMessageProcessor.processTaskComplete
@@ -256,6 +311,87 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   /**
+   * Get model info for UI display (always read-only).
+   * Model selection happens on the Guid page; the conversation page only displays the result.
+   * - Before session_configured: show selectedModel (from Guid page) or default
+   * - After session_configured: show the actual model returned by Codex CLI
+   */
+  getModelInfo(): AcpModelInfo | null {
+    if (this.currentModelName) {
+      // Post session_configured: show actual model from CLI
+      return {
+        source: 'models',
+        currentModelId: this.currentModelName,
+        currentModelLabel: this.currentModelName,
+        canSwitch: false,
+        availableModels: [],
+      };
+    }
+
+    // Pre session_configured: show the model selected on Guid page
+    const currentId = this.selectedModel || DEFAULT_CODEX_MODEL_ID;
+    const currentModel = DEFAULT_CODEX_MODELS.find((m) => m.id === currentId);
+    return {
+      source: 'models',
+      currentModelId: currentId,
+      currentModelLabel: currentModel?.label || currentId,
+      canSwitch: false,
+      availableModels: [],
+    };
+  }
+
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: true };
+  }
+
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    const prev = this.currentMode;
+    this.currentMode = mode;
+    this.saveSessionMode(mode);
+
+    // Sync legacy yoloMode config: when leaving yolo mode, clear the old
+    // SecurityModalContent setting to prevent it from re-activating on next session.
+    if (prev === 'yolo' && mode !== 'yolo') {
+      void this.clearLegacyYoloConfig();
+    }
+
+    return { success: true, data: { mode: this.currentMode } };
+  }
+
+  private saveSessionMode(mode: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'codex') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          sessionMode: mode,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[CodexAgentManager] Failed to save session mode:', error);
+    }
+  }
+
+  /**
+   * Clear legacy yoloMode in codex.config.
+   * This syncs back to the old SecurityModalContent config key so that
+   * switching away from YOLO mode persists across new sessions.
+   */
+  private async clearLegacyYoloConfig(): Promise<void> {
+    try {
+      const config = await ProcessConfig.get('codex.config');
+      if (config?.yoloMode) {
+        await ProcessConfig.set('codex.config', { ...config, yoloMode: false });
+      }
+    } catch (error) {
+      console.error('[CodexAgentManager] Failed to clear legacy yoloMode config:', error);
+    }
+  }
+
+  /**
    * 统一的确认方法 - 通过 addConfirmation 管理所有确认项
    * 参考 GeminiAgentManager 和 AcpAgentManager 的实现
    */
@@ -276,11 +412,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       this.storeApprovalDecision(callId, decision);
     }
 
-    // Apply patch changes if available and approved
-    const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(callId);
-    if (changes && isApproved) {
-      await this.applyPatchChanges(callId, changes);
-    }
+    // IMPORTANT: Codex CLI is the single writer for patch application.
+    // Do not apply patch changes locally before sending approval.
 
     // Normalize call id back to server's codex_call_id
     // Handle the new unified permission_ prefix as well as legacy prefixes
@@ -319,30 +452,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     if (patchChanges) {
       const files = Object.keys(patchChanges);
       this.agent.storePatchApproval(files, decision);
-    }
-  }
-
-  private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
-    try {
-      // 使用文件操作处理器来应用更改 - 参考 ACP 的批量操作
-      await this.agent.getFileOperationHandler().applyBatchChanges(changes);
-
-      // 发送成功事件
-      this.agent.getSessionManager().emitSessionEvent('patch_applied', {
-        callId,
-        changeCount: Object.keys(changes).length,
-        files: Object.keys(changes),
-      });
-
-      // Patch changes applied successfully
-    } catch (error) {
-      // 发送失败事件
-      this.agent.getSessionManager().emitSessionEvent('patch_failed', {
-        callId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      throw error;
     }
   }
 
@@ -423,6 +532,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Cleanup completed
   }
 
+  /**
+   * Check if yoloMode is already enabled for this Codex agent.
+   * Codex agents cannot change yoloMode at runtime,
+   * so this only returns true if the agent was started with yoloMode.
+   */
+  async ensureYoloMode(): Promise<boolean> {
+    return !!this.options.yoloMode;
+  }
+
   // Stop current Codex stream in-process (override ForkTask default which targets a worker)
   stop() {
     return this.agent?.stop?.() ?? Promise.resolve();
@@ -441,6 +559,17 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     message.conversation_id = this.conversation_id;
+
+    // Intercept codex_model_info: cache model name, emit to frontend, skip DB persistence
+    if (message.type === 'codex_model_info') {
+      const modelData = message.data as { model: string };
+      if (modelData?.model) {
+        this.currentModelName = modelData.model;
+      }
+      ipcBridge.codexConversation.responseStream.emit(message);
+      channelEventBus.emitAgentMessage(this.conversation_id, message);
+      return;
+    }
 
     // Mark as finished when content is output (visible to user)
     // Codex uses: content, agent_status, codex_tool_call
@@ -474,6 +603,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+
+    // Also emit to Channel global event bus (Telegram/Lark streaming)
+    channelEventBus.emitAgentMessage(this.conversation_id, message);
   }
 
   /**
@@ -481,6 +613,33 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
    * 委托给 BaseAgentManager 的 addConfirmation 进行统一管理
    */
   addConfirmation(data: IConfirmation): void {
+    // Codex confirmations use action='edit' for file patches and action='exec' for shell commands.
+    // yolo: auto-approve ALL operations
+    // autoEdit: auto-approve file edits only, shell commands still require confirmation
+    if (this.currentMode === 'yolo' || (this.currentMode === 'autoEdit' && data.action === 'edit')) {
+      // Direct synchronous approval — avoids the timing issue with async confirm().
+      // When auto-approving, we must respond to the CLI within the same event-handling
+      // call chain (handleIncoming → onEvent → addConfirmation). The async confirm()
+      // path defers via `await this.bootstrap` (microtask boundary), which can cause
+      // the CLI to hang waiting for a response that arrives too late.
+      // User-initiated approval (Plan mode) works because it runs in a separate
+      // event-loop tick triggered by the IPC bridge.
+      const origCallId = data.callId.startsWith('permission_') ? data.callId.substring(11) : data.callId;
+
+      // Clean up pending confirmation tracking
+      this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
+
+      // IMPORTANT: Do not apply patch changes locally in auto-approve mode.
+      // Let Codex CLI apply changes after approval response.
+
+      // Send approval response to CLI (synchronous write to stdin)
+      this.agent.respondElicitation(origCallId, 'approved');
+
+      // Unpause the connection and resume any queued requests
+      this.agent.resolvePermission(origCallId, true);
+
+      return;
+    }
     super.addConfirmation(data);
   }
 

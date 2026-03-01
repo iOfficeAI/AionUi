@@ -4,17 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '../../../../common/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { safeExec } from '@process/utils/safeExec';
 
-const execAsync = promisify(exec);
+/** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
 
 /**
  * iFlow CLI MCP代理实现
- * 注意：iFlow CLI 支持 stdio、SSE、HTTP 传输类型，支持 headers，不支持 streamable_http
+ * iFlow CLI 支持 stdio、SSE、HTTP 传输类型，支持 headers
  */
 export class IflowMcpAgent extends AbstractMcpAgent {
   constructor() {
@@ -22,7 +23,8 @@ export class IflowMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    return ['stdio', 'sse', 'http'];
+    // iFlow CLI 支持 stdio, sse, http 传输类型 (streamable_http maps to http)
+    return ['stdio', 'sse', 'http', 'streamable_http'];
   }
 
   /**
@@ -31,7 +33,7 @@ export class IflowMcpAgent extends AbstractMcpAgent {
   private async detectMcpServersInternal(_cliPath?: string): Promise<IMcpServer[]> {
     try {
       // 使用iFlow CLI list命令获取MCP配置
-      const { stdout: result } = await execAsync('iflow mcp list', { timeout: this.timeout });
+      const { stdout: result } = await safeExec('iflow mcp list', { timeout: this.timeout, ...getExecEnv() });
 
       // 如果没有配置任何MCP服务器，返回空数组
       if (result.trim() === 'No MCP servers configured.' || !result.trim()) {
@@ -160,11 +162,6 @@ export class IflowMcpAgent extends AbstractMcpAgent {
             continue;
           }
 
-          if (server.transport.type === 'streamable_http') {
-            console.warn(`Skipping ${server.name}: iFlow CLI does not support streamable_http transport type`);
-            continue;
-          }
-
           try {
             let addCommand = `iflow mcp add "${server.name}"`;
 
@@ -179,12 +176,15 @@ export class IflowMcpAgent extends AbstractMcpAgent {
               // 添加环境变量 (仅stdio支持)
               if (server.transport.env) {
                 for (const [key, value] of Object.entries(server.transport.env)) {
-                  addCommand += ` --env ${key}="${value}"`;
+                  // Quote env values to protect special characters
+                  addCommand += ` --env "${key}=${value}"`;
                 }
               }
-            } else if ((server.transport.type === 'sse' || server.transport.type === 'http') && 'url' in server.transport) {
+            } else if ((server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') && 'url' in server.transport) {
+              // iFlow CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
+              const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
               addCommand += ` "${server.transport.url}"`;
-              addCommand += ` --transport ${server.transport.type}`;
+              addCommand += ` --transport ${transportFlag}`;
 
               // 添加headers支持
               if (server.transport.headers) {
@@ -203,7 +203,7 @@ export class IflowMcpAgent extends AbstractMcpAgent {
             addCommand += ' -s user';
 
             // 执行添加命令
-            await execAsync(addCommand, { timeout: 10000 });
+            await safeExec(addCommand, { timeout: 10000, ...getExecEnv() });
           } catch (error) {
             console.warn(`Failed to add MCP server ${server.name} to iFlow:`, error);
             // 继续处理其他服务器，不要因为一个失败就停止整个过程
@@ -230,13 +230,13 @@ export class IflowMcpAgent extends AbstractMcpAgent {
         // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
         try {
           const removeCommand = `iflow mcp remove "${mcpServerName}" -s user`;
-          await execAsync(removeCommand, { timeout: 5000 });
+          await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
           return { success: true };
         } catch (userError) {
           // user作用域失败，尝试project作用域
           try {
             const removeCommand = `iflow mcp remove "${mcpServerName}" -s project`;
-            const { stdout } = await execAsync(removeCommand, { timeout: 5000 });
+            const { stdout } = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
             // 检查输出是否包含"not found"，如果是则继续尝试user作用域
             if (stdout && stdout.includes('not found')) {

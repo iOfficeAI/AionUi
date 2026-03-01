@@ -9,7 +9,7 @@ import { getDatabase } from '@/process/database';
 import { getChannelManager } from '@/channels/core/ChannelManager';
 import { getPairingService } from '@/channels/pairing/PairingService';
 import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
-import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
+import { hasPluginCredentials, rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 
 /**
  * Initialize Channel IPC Bridge
@@ -33,14 +33,6 @@ export function initChannelBridge(): void {
       }
 
       const statuses: IChannelPluginStatus[] = result.data.map((plugin) => {
-        // Check credentials based on plugin type
-        let hasToken = false;
-        if (plugin.type === 'lark') {
-          hasToken = !!(plugin.credentials?.appId && plugin.credentials?.appSecret);
-        } else {
-          hasToken = !!plugin.credentials?.token;
-        }
-
         return {
           id: plugin.id,
           type: plugin.type,
@@ -50,7 +42,7 @@ export function initChannelBridge(): void {
           status: plugin.status,
           lastConnected: plugin.lastConnected,
           activeUsers: 0, // Will be populated from PluginManager when implemented
-          hasToken,
+          hasToken: hasPluginCredentials(plugin.type, plugin.credentials),
         };
       });
 
@@ -236,6 +228,25 @@ export function initChannelBridge(): void {
       return { success: true, data: result.data };
     } catch (error: any) {
       console.error('[ChannelBridge] getActiveSessions error:', error);
+      return { success: false, msg: error.message };
+    }
+  });
+
+  // ==================== Settings Sync ====================
+
+  /**
+   * Sync channel settings after agent or model change
+   */
+  channel.syncChannelSettings.provider(async ({ platform, agent, model }) => {
+    try {
+      const manager = getChannelManager();
+      const result = await manager.syncChannelSettings(platform, agent, model);
+      if (!result.success) {
+        return { success: false, msg: result.error };
+      }
+      return { success: true };
+    } catch (error: any) {
+      console.error('[ChannelBridge] syncChannelSettings error:', error);
       return { success: false, msg: error.message };
     }
   });

@@ -4,20 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '../../../../common/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { safeExec } from '@process/utils/safeExec';
 
-const execAsync = promisify(exec);
+/** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
 
 /**
  * Qwen Code MCP代理实现
- * 注意：Qwen CLI 目前只支持 stdio 传输类型，不支持 SSE/HTTP/streamable_http
+ * Qwen CLI 支持 stdio, sse, http 传输类型
  */
 export class QwenMcpAgent extends AbstractMcpAgent {
   constructor() {
@@ -25,7 +26,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    return ['stdio'];
+    return ['stdio', 'sse', 'http'];
   }
 
   /**
@@ -35,7 +36,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
     const detectOperation = async () => {
       try {
         // 尝试通过Qwen CLI命令获取MCP配置
-        const { stdout: result } = await execAsync('qwen mcp list', { timeout: this.timeout });
+        const { stdout: result } = await safeExec('qwen mcp list', { timeout: this.timeout, ...getExecEnv() });
 
         // 如果没有配置任何MCP服务器，返回空数组
         if (result.trim() === 'No MCP servers configured.' || !result.trim()) {
@@ -149,16 +150,16 @@ export class QwenMcpAgent extends AbstractMcpAgent {
           if (server.transport.type === 'stdio') {
             // 使用Qwen CLI添加MCP服务器
             // 格式: qwen mcp add <name> <command> [args...]
-            const args = server.transport.args?.join(' ') || '';
-            const envArgs = Object.entries(server.transport.env || {})
-              .map(([key, value]) => `--env ${key}=${value}`)
-              .join(' ');
-
             let command = `qwen mcp add "${server.name}" "${server.transport.command}"`;
-            if (args) {
-              command += ` ${args}`;
+            if (server.transport.args?.length) {
+              // Quote each arg to protect URLs and special characters from shell interpretation
+              const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
+              command += ` ${quotedArgs}`;
             }
-            if (envArgs) {
+            const envEntries = Object.entries(server.transport.env || {});
+            if (envEntries.length) {
+              // Quote env values to protect special characters
+              const envArgs = envEntries.map(([key, value]) => `--env "${key}=${value}"`).join(' ');
               command += ` ${envArgs}`;
             }
 
@@ -166,12 +167,31 @@ export class QwenMcpAgent extends AbstractMcpAgent {
             command += ' -s user';
 
             try {
-              await execAsync(command, { timeout: 5000 });
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Qwen Code:`, error);
             }
-          } else {
-            console.warn(`Skipping ${server.name}: Qwen CLI only supports stdio transport type`);
+          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+            // 处理 SSE/HTTP/Streamable HTTP 传输类型
+            // Qwen CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
+            const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
+            let command = `qwen mcp add "${server.name}" "${server.transport.url}"`;
+            command += ` --transport ${transportFlag}`;
+
+            // 添加 headers
+            if (server.transport.headers) {
+              for (const [key, value] of Object.entries(server.transport.headers)) {
+                command += ` --header "${key}: ${value}"`;
+              }
+            }
+
+            command += ' -s user';
+
+            try {
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
+            } catch (error) {
+              console.warn(`Failed to add MCP ${server.name} to Qwen Code:`, error);
+            }
           }
         }
         return { success: true };
@@ -194,7 +214,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
         // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
         try {
           const removeCommand = `qwen mcp remove "${mcpServerName}" -s user`;
-          const result = await execAsync(removeCommand, { timeout: 5000 });
+          const result = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
           // 检查输出是否表示真正的成功删除
           if (result.stdout && result.stdout.includes('removed from user settings')) {
@@ -210,7 +230,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
           // user作用域失败，尝试project作用域
           try {
             const removeCommand = `qwen mcp remove "${mcpServerName}" -s project`;
-            const result = await execAsync(removeCommand, { timeout: 5000 });
+            const result = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
             // 检查输出是否表示真正的成功删除
             if (result.stdout && result.stdout.includes('removed from project settings')) {

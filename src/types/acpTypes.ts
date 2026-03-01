@@ -18,7 +18,7 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'opencode';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen';
 
 /**
  * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
@@ -27,7 +27,7 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'opencode';
  * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
  * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
  */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'opencode'] as const;
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex', 'qwen'] as const;
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
@@ -43,7 +43,8 @@ export type AcpBackendAll =
   | 'gemini' // Google Gemini ACP
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
-  | 'codex' // OpenAI Codex MCP
+  | 'codex' // OpenAI Codex ACP (via codex-acp bridge)
+  | 'codebuddy' // Tencent CodeBuddy Code CLI
   | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
   | 'auggie' // Augment Code CLI
@@ -52,6 +53,7 @@ export type AcpBackendAll =
   | 'copilot' // GitHub Copilot CLI
   | 'qoder' // Qoder CLI
   | 'openclaw-gateway' // OpenClaw Gateway WebSocket
+  | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
   | 'custom'; // User-configured custom ACP agent
 
@@ -318,11 +320,23 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   },
   codex: {
     id: 'codex',
-    name: 'Codex ',
-    cliCommand: 'codex',
-    authRequired: false,
-    enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
+    name: 'Codex',
+    cliCommand: 'codex', // Detect local codex CLI (codex-acp bridge invokes it)
+    defaultCliPath: 'npx @zed-industries/codex-acp@0.9.4',
+    authRequired: true, // Needs OPENAI_API_KEY or ChatGPT auth
+    enabled: true, // ✅ Codex via codex-acp ACP bridge
     supportsStreaming: false,
+    acpArgs: [], // codex-acp is ACP by default, no flag needed
+  },
+  codebuddy: {
+    id: 'codebuddy',
+    name: 'CodeBuddy',
+    cliCommand: 'codebuddy',
+    defaultCliPath: 'npx @tencent-ai/codebuddy-code',
+    authRequired: true,
+    enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['--acp'], // codebuddy 使用 --acp flag
   },
   goose: {
     id: 'goose',
@@ -376,7 +390,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'copilot',
     authRequired: false,
     enabled: true, // ✅ GitHub Copilot CLI，使用 `copilot --acp --stdio` 启动
-    supportsStreaming: true,
+    supportsStreaming: false,
     acpArgs: ['--acp', '--stdio'], // copilot 使用 --acp --stdio 启动 ACP mode
   },
   qoder: {
@@ -387,6 +401,15 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Qoder CLI，使用 `qodercli --acp` 启动
     supportsStreaming: false,
     acpArgs: ['--acp'], // qoder 使用 --acp flag
+  },
+  vibe: {
+    id: 'vibe',
+    name: 'Mistral Vibe',
+    cliCommand: 'vibe-acp',
+    authRequired: false,
+    enabled: true, // ✅ Mistral Vibe CLI，使用 `vibe-acp` 启动
+    supportsStreaming: false,
+    acpArgs: [],
   },
   'openclaw-gateway': {
     id: 'openclaw-gateway',
@@ -628,18 +651,71 @@ export interface UserMessageChunkUpdate extends BaseSessionUpdate {
   };
 }
 
-// 当前模式更新 / Current mode update
-export interface CurrentModeUpdate extends BaseSessionUpdate {
+// ===== ACP ConfigOption types (stable API) =====
+
+/** A single select option within a config option */
+export interface AcpConfigSelectOption {
+  value: string;
+  name?: string;
+  label?: string; // Some agents may use label instead of name
+}
+
+/** A configuration option returned by session/new */
+export interface AcpSessionConfigOption {
+  id: string;
+  name?: string;
+  label?: string; // Some agents may use label instead of name
+  description?: string;
+  category?: string;
+  type: 'select' | 'boolean' | 'string';
+  currentValue?: string;
+  selectedValue?: string; // Some agents may use selectedValue instead of currentValue
+  options?: AcpConfigSelectOption[];
+}
+
+/** Config options update notification (within session/update) */
+export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   update: {
-    sessionUpdate: 'current_mode_update';
-    mode: string;
-    description?: string;
+    sessionUpdate: 'config_option_update';
+    configOptions: AcpSessionConfigOption[];
   };
 }
 
+// ===== ACP Models types (unstable API) =====
+
+/** An available model returned by session/new (unstable API) */
+export interface AcpAvailableModel {
+  id?: string;
+  modelId?: string; // OpenCode uses modelId instead of id
+  name?: string;
+}
+
+/** Models info returned by session/new (unstable API) */
+export interface AcpSessionModels {
+  currentModelId?: string;
+  availableModels?: AcpAvailableModel[];
+}
+
+// ===== Unified model info for UI =====
+
+/** Unified model info that abstracts over both stable and unstable APIs */
+export interface AcpModelInfo {
+  /** Currently active model ID */
+  currentModelId: string | null;
+  /** Display label for the current model */
+  currentModelLabel: string | null;
+  /** Available models for switching */
+  availableModels: Array<{ id: string; label: string }>;
+  /** Whether the user can switch models */
+  canSwitch: boolean;
+  /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
+  source: 'configOption' | 'models';
+  /** Config option ID (only when source is 'configOption') */
+  configOptionId?: string;
+}
+
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate;
-// | CurrentModeUpdate;
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
@@ -719,6 +795,7 @@ export const ACP_METHODS = {
   REQUEST_PERMISSION: 'session/request_permission',
   READ_TEXT_FILE: 'fs/read_text_file',
   WRITE_TEXT_FILE: 'fs/write_text_file',
+  SET_CONFIG_OPTION: 'session/set_config_option',
 } as const;
 
 export type AcpMethod = (typeof ACP_METHODS)[keyof typeof ACP_METHODS];

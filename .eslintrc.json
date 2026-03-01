@@ -75,7 +75,7 @@
   },
   "overrides": [
     {
-      "files": ["*.js", "jest.config.js"],
+      "files": ["*.js"],
       "parser": "espree",
       "rules": {
         "@typescript-eslint/no-floating-promises": "off",
@@ -84,7 +84,7 @@
       }
     },
     {
-      "files": ["forge.config.ts", "tests/**/*.ts"],
+      "files": ["forge.config.ts", "vitest.config.ts", "tests/**/*.ts"],
       "parserOptions": {
         "project": null
       },

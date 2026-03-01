@@ -8,10 +8,10 @@ import type { IConfirmation } from '@/common/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
-import type { AcpBackend, AcpBackendAll, PresetAgentType } from '../types/acpTypes';
+import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
-import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
+import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 
 export const shell = {
@@ -63,6 +63,7 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
   systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
+  getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
@@ -80,6 +81,18 @@ export const update = {
   downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
 };
 
+// Auto-updater (electron-updater) API
+export const autoUpdate = {
+  /** Check for updates using electron-updater */
+  check: bridge.buildProvider<IBridgeResponse<{ updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }>, { includePrerelease?: boolean }>('auto-update.check'),
+  /** Download update using electron-updater */
+  download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
+  /** Quit and install the downloaded update */
+  quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
+  /** Auto-update status events */
+  status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
+};
+
 export const dialog = {
   showOpen: bridge.buildProvider<string[] | undefined, { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] } | undefined>('show-open'), // 打开文件/文件夹选择窗口
 };
@@ -91,6 +104,22 @@ export const fs = {
   readFileBuffer: bridge.buildProvider<ArrayBuffer, { path: string }>('read-file-buffer'), // 读取二进制文件为 ArrayBuffer
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
   writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array | string }>('write-file'), // 写入文件
+  createZip: bridge.buildProvider<
+    boolean,
+    {
+      path: string;
+      requestId?: string;
+      files: Array<{
+        /** Path inside zip (supports nested paths like "topic-1/workspace/a.txt") */
+        name: string;
+        /** Text or binary content to write into zip */
+        content?: string | Uint8Array;
+        /** Absolute file path on disk, zip bridge will read and pack it */
+        sourcePath?: string;
+      }>;
+    }
+  >('create-zip-file'), // 创建 zip 文件
+  cancelZip: bridge.buildProvider<boolean, { requestId: string }>('cancel-zip-file'), // 取消 zip 创建任务
   getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
   copyFilesToWorkspace: bridge.buildProvider<
     // 返回成功与部分失败的详细状态，便于前端提示用户 / Return details for successful and failed copies for better UI feedback
@@ -179,6 +208,7 @@ export const acpConversation = {
         context?: string;
         avatar?: string;
         presetAgentType?: PresetAgentType;
+        supportedTransports?: string[];
       }>
     >,
     void
@@ -186,7 +216,18 @@ export const acpConversation = {
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
   checkAgentHealth: bridge.buildProvider<IBridgeResponse<{ available: boolean; latency?: number; error?: string }>, { backend: AcpBackend }>('acp.check-agent-health'),
-  // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
+  // Set session mode for ACP agents (claude, qwen, etc.)
+  // 设置 ACP 代理的会话模式（claude、qwen 等）
+  setMode: bridge.buildProvider<IBridgeResponse<{ mode: string }>, { conversationId: string; mode: string }>('acp.set-mode'),
+  // Get current session mode for ACP agents
+  // 获取 ACP 代理的当前会话模式
+  getMode: bridge.buildProvider<IBridgeResponse<{ mode: string; initialized: boolean }>, { conversationId: string }>('acp.get-mode'),
+  // Get model info for ACP agents (model name and available models)
+  // 获取 ACP 代理的模型信息（模型名称和可用模型）
+  getModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>('acp.get-model-info'),
+  // Set model for ACP agents
+  // 设置 ACP 代理的模型
+  setModel: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string; modelId: string }>('acp.set-model'),
 };
 
 // MCP 服务相关接口
@@ -212,6 +253,32 @@ export const codexConversation = {
 export const openclawConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
+  getRuntime: bridge.buildProvider<
+    IBridgeResponse<{
+      conversationId: string;
+      runtime: {
+        workspace?: string;
+        backend?: string;
+        agentName?: string;
+        cliPath?: string;
+        model?: string;
+        sessionKey?: string | null;
+        isConnected?: boolean;
+        hasActiveSession?: boolean;
+        identityHash?: string | null;
+      };
+      expected?: {
+        expectedWorkspace?: string;
+        expectedBackend?: string;
+        expectedAgentName?: string;
+        expectedCliPath?: string;
+        expectedModel?: string;
+        expectedIdentityHash?: string | null;
+        switchedAt?: number;
+      };
+    }>,
+    { conversation_id: string }
+  >('openclaw.get-runtime'),
 };
 
 // Database operations
@@ -300,7 +367,7 @@ export const cron = {
   onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
   onJobRemoved: bridge.buildEmitter<{ jobId: string }>('cron.job-removed'),
-  onJobExecuted: bridge.buildEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped'; error?: string }>('cron.job-executed'),
+  onJobExecuted: bridge.buildEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped' | 'missed'; error?: string }>('cron.job-executed'),
 };
 
 // Cron job types for IPC
@@ -323,7 +390,7 @@ export interface ICronJob {
   state: {
     nextRunAtMs?: number;
     lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped';
+    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
     lastError?: string;
     runCount: number;
     retryCount: number;
@@ -366,7 +433,7 @@ export interface ICreateConversationParams {
     workspace?: string;
     customWorkspace?: boolean;
     defaultFiles?: string[];
-    backend?: AcpBackend;
+    backend?: AcpBackendAll;
     cliPath?: string;
     webSearchEngine?: 'google' | 'default';
     agentName?: string;
@@ -386,6 +453,22 @@ export interface ICreateConversationParams {
     presetContext?: string;
     /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
     presetAssistantId?: string;
+    /** Initial session mode selected on Guid page (from AgentModeSelector) */
+    sessionMode?: string;
+    /** User-selected Codex model from Guid page */
+    codexModel?: string;
+    /** Pre-selected ACP model from Guid page (cached model list) */
+    currentModelId?: string;
+    /** Runtime validation snapshot used for post-switch strong checks (OpenClaw) */
+    runtimeValidation?: {
+      expectedWorkspace?: string;
+      expectedBackend?: string;
+      expectedAgentName?: string;
+      expectedCliPath?: string;
+      expectedModel?: string;
+      expectedIdentityHash?: string | null;
+      switchedAt?: number;
+    };
   };
 }
 interface IResetConversationParams {
@@ -450,6 +533,9 @@ export const channel = {
 
   // Session Management (MVP: read-only view)
   getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
+
+  // Settings Sync
+  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: 'telegram' | 'lark' | 'dingtalk'; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
 
   // Events
   pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),

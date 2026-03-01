@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/types/acpTypes';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -31,6 +31,8 @@ export interface IConfigStorageRefer {
     /** 按 Google 账号存储的 GCP 项目 ID / GCP project IDs stored per Google account */
     accountProjects?: Record<string, string>;
     yoloMode?: boolean;
+    /** Preferred session mode for new conversations / 新会话的默认模式 */
+    preferredMode?: string;
   };
   'codex.config'?: {
     cliPath?: string;
@@ -43,9 +45,15 @@ export interface IConfigStorageRefer {
       lastAuthTime?: number;
       cliPath?: string;
       yoloMode?: boolean;
+      /** Preferred session mode for new conversations / 新会话的默认模式 */
+      preferredMode?: string;
+      /** Preferred model ID for new conversations / 新会话的默认模型 */
+      preferredModelId?: string;
     };
   };
   'acp.customAgents'?: AcpBackendConfig[];
+  // Cached model lists per ACP backend for Guid page pre-selection
+  'acp.cachedModels'?: Record<string, import('@/types/acpTypes').AcpModelInfo>;
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
@@ -70,15 +78,40 @@ export interface IConfigStorageRefer {
   'migration.coworkDefaultSkillsAdded'?: boolean;
   // 迁移标记：为所有内置助手添加默认启用的 skills / Migration flag: add default enabled skills for all builtin assistants
   'migration.builtinDefaultSkillsAdded_v2'?: boolean;
+  // 迁移标记：为所有内置助手添加 promptsI18n / Migration flag: add promptsI18n for all builtin assistants
+  'migration.promptsI18nAdded'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
     useModel: string;
   };
+  // Telegram assistant agent selection / Telegram 助手所使用的 Agent
+  'assistant.telegram.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
   // Lark assistant default model / Lark 助手默认模型
   'assistant.lark.defaultModel'?: {
     id: string;
     useModel: string;
+  };
+  // Lark assistant agent selection / Lark 助手所使用的 Agent
+  'assistant.lark.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
+  // DingTalk assistant default model / DingTalk 助手默认模型
+  'assistant.dingtalk.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
+  // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
+  'assistant.dingtalk.agent'?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
   };
 }
 
@@ -93,7 +126,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk';
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -107,6 +140,8 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
+  /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
+  channelChatId?: string;
 }
 
 // Token 使用统计数据类型
@@ -130,6 +165,12 @@ export type TChatConversation =
         enabledSkills?: string[];
         /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
         presetAssistantId?: string;
+        /** 是否置顶会话 / Whether this conversation is pinned */
+        pinned?: boolean;
+        /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+        pinnedAt?: number;
+        /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+        sessionMode?: string;
       }
     >
   | Omit<
@@ -147,10 +188,18 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
+          /** 是否置顶会话 / Whether this conversation is pinned */
+          pinned?: boolean;
+          /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+          pinnedAt?: number;
           /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
           acpSessionId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
+          /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+          sessionMode?: string;
+          /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
+          currentModelId?: string;
         }
       >,
       'model'
@@ -168,6 +217,14 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
+          /** 是否置顶会话 / Whether this conversation is pinned */
+          pinned?: boolean;
+          /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+          pinnedAt?: number;
+          /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
+          sessionMode?: string;
+          /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
+          codexModel?: string;
         }
       >,
       'model'
@@ -177,6 +234,8 @@ export type TChatConversation =
         'openclaw-gateway',
         {
           workspace?: string;
+          backend?: AcpBackendAll;
+          agentName?: string;
           customWorkspace?: boolean;
           /** Gateway configuration */
           gateway?: {
@@ -189,10 +248,24 @@ export type TChatConversation =
           };
           /** Session key for resume */
           sessionKey?: string;
+          /** Runtime validation snapshot used for post-switch strong checks */
+          runtimeValidation?: {
+            expectedWorkspace?: string;
+            expectedBackend?: string;
+            expectedAgentName?: string;
+            expectedCliPath?: string;
+            expectedModel?: string;
+            expectedIdentityHash?: string | null;
+            switchedAt?: number;
+          };
           /** 启用的 skills 列表 / Enabled skills list */
           enabledSkills?: string[];
           /** 预设助手 ID / Preset assistant ID */
           presetAssistantId?: string;
+          /** 是否置顶会话 / Whether this conversation is pinned */
+          pinned?: boolean;
+          /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+          pinnedAt?: number;
         }
       >,
       'model'
@@ -207,6 +280,10 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID / Preset assistant ID */
           presetAssistantId?: string;
+          /** 是否置顶会话 / Whether this conversation is pinned */
+          pinned?: boolean;
+          /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+          pinnedAt?: number;
         }
       >,
       'model'

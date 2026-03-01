@@ -87,12 +87,9 @@ export const handleCopy: ActionHandler = async (context, params) => {
  * Callback data format: confirm:{callId}:{value}
  */
 export const handleToolConfirm: ActionHandler = async (context, params) => {
-  console.log(`[ChatActions] handleToolConfirm called with params:`, params);
   const callId = params?.callId;
   const value = params?.value;
   const conversationId = context.conversationId;
-
-  console.log(`[ChatActions] Tool confirm - callId: ${callId}, value: ${value}, conversationId: ${conversationId}`);
 
   if (!callId || !value || !conversationId) {
     console.error(`[ChatActions] Missing params - callId: ${callId}, value: ${value}, conversationId: ${conversationId}`);
@@ -103,7 +100,6 @@ export const handleToolConfirm: ActionHandler = async (context, params) => {
     // 只调用 confirm，不发送消息
     // Only call confirm, don't send message - agent will continue and send updates
     await getChannelMessageService().confirm(conversationId, callId, value);
-    console.log(`[ChatActions] Tool confirmation sent successfully`);
 
     // 返回成功但不带消息，agent 会继续执行并通过流回调更新消息
     // Return success without message, agent will continue and update via stream callback

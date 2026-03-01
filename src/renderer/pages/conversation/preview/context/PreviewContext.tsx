@@ -269,6 +269,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsOpen(false);
     setTabs([]);
     setActiveTabId(null);
+    setDomSnippets([]);
   }, []);
 
   const closeTab = useCallback(

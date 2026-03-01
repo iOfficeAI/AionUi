@@ -14,6 +14,7 @@ import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion 
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import type { IChannelPluginConfig, IChannelUser, IChannelSession, IChannelPairingRequest, IChannelUserRow, IChannelSessionRow, IChannelPairingCodeRow, PluginType, PluginStatus } from '@/channels/types';
+import type { TProviderWithModel } from '@/common/storage';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 import { encryptCredentials, decryptCredentials } from '@/channels/utils/credentialCrypto';
 
@@ -386,11 +387,11 @@ export class AionUIDatabase {
       const row = conversationToRow(conversation, userId || this.defaultUserId);
 
       const stmt = this.db.prepare(`
-        INSERT INTO conversations (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO conversations (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(row.id, row.user_id, row.name, row.type, row.extra, row.model, row.status, row.source, row.created_at, row.updated_at);
+      stmt.run(row.id, row.user_id, row.name, row.type, row.extra, row.model, row.status, row.source, row.channel_chat_id ?? null, row.created_at, row.updated_at);
 
       return {
         success: true,
@@ -428,22 +429,41 @@ export class AionUIDatabase {
   }
 
   /**
-   * Get the latest conversation by source type
-   * 根据来源类型获取最新的会话
+   * Find the latest channel conversation by source, chat ID, type, and optionally backend.
+   * Used for per-chat conversation isolation in channel platforms.
+   *
+   * For ACP conversations, `backend` distinguishes between claude, iflow, codebuddy, etc.
+   * (stored in `extra.backend` JSON field).
    */
-  getLatestConversationBySource(source: 'aionui' | 'telegram' | 'lark', userId?: string): IQueryResult<TChatConversation | null> {
+  findChannelConversation(source: 'aionui' | 'telegram' | 'lark' | 'dingtalk', channelChatId: string, type: string, backend?: string, userId?: string): IQueryResult<TChatConversation | null> {
     try {
       const finalUserId = userId || this.defaultUserId;
-      const row = this.db
-        .prepare(
+
+      let row: IConversationRow | undefined;
+      if (backend) {
+        row = this.db
+          .prepare(
+            `
+            SELECT * FROM conversations
+            WHERE user_id = ? AND source = ? AND channel_chat_id = ? AND type = ?
+              AND json_extract(extra, '$.backend') = ?
+            ORDER BY updated_at DESC
+            LIMIT 1
           `
-          SELECT * FROM conversations
-          WHERE user_id = ? AND source = ?
-          ORDER BY updated_at DESC
-          LIMIT 1
-        `
-        )
-        .get(finalUserId, source) as IConversationRow | undefined;
+          )
+          .get(finalUserId, source, channelChatId, type, backend) as IConversationRow | undefined;
+      } else {
+        row = this.db
+          .prepare(
+            `
+            SELECT * FROM conversations
+            WHERE user_id = ? AND source = ? AND channel_chat_id = ? AND type = ?
+            ORDER BY updated_at DESC
+            LIMIT 1
+          `
+          )
+          .get(finalUserId, source, channelChatId, type) as IConversationRow | undefined;
+      }
 
       return {
         success: true,
@@ -454,6 +474,26 @@ export class AionUIDatabase {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  /**
+   * Batch-update the model field on channel conversations matching source + type.
+   * Used when channel settings change to propagate new model to existing conversations.
+   */
+  updateChannelConversationModel(source: 'telegram' | 'lark' | 'dingtalk', type: string, model: TProviderWithModel, userId?: string): IQueryResult<number> {
+    try {
+      const finalUserId = userId || this.defaultUserId;
+      const modelJson = JSON.stringify(model);
+      const now = Date.now();
+      const stmt = this.db.prepare(`
+        UPDATE conversations SET model = ?, updated_at = ?
+        WHERE user_id = ? AND source = ? AND type = ?
+      `);
+      const result = stmt.run(modelJson, now, finalUserId, source, type);
+      return { success: true, data: result.changes };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 
@@ -983,16 +1023,17 @@ export class AionUIDatabase {
     try {
       const now = Date.now();
       const stmt = this.db.prepare(`
-        INSERT INTO assistant_sessions (id, user_id, agent_type, conversation_id, workspace, created_at, last_activity)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO assistant_sessions (id, user_id, agent_type, conversation_id, workspace, chat_id, created_at, last_activity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           agent_type = excluded.agent_type,
           conversation_id = excluded.conversation_id,
           workspace = excluded.workspace,
+          chat_id = excluded.chat_id,
           last_activity = excluded.last_activity
       `);
 
-      stmt.run(session.id, session.userId, session.agentType, session.conversationId ?? null, session.workspace ?? null, session.createdAt || now, session.lastActivity || now);
+      stmt.run(session.id, session.userId, session.agentType, session.conversationId ?? null, session.workspace ?? null, session.chatId ?? null, session.createdAt || now, session.lastActivity || now);
 
       return { success: true, data: true };
     } catch (error: any) {

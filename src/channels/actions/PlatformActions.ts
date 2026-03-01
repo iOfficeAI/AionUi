@@ -9,6 +9,7 @@ import { PlatformActionNames, createSuccessResponse, createErrorResponse } from 
 import { getPairingService } from '../pairing/PairingService';
 import { createPairingCodeKeyboard, createPairingStatusKeyboard, createMainMenuKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { createPairingCard, createPairingStatusCard, createMainMenuCard, createPairingHelpCard } from '../plugins/lark/LarkCards';
+import { createMainMenuCard as createDingTalkMainMenuCard, createPairingCard as createDingTalkPairingCard, createPairingStatusCard as createDingTalkPairingStatusCard, createPairingHelpCard as createDingTalkPairingHelpCard } from '../plugins/dingtalk/DingTalkCards';
 
 /**
  * PlatformActions - Handlers for platform-specific actions
@@ -26,6 +27,9 @@ function getMainMenuMarkup(platform: string) {
   if (platform === 'lark') {
     return createMainMenuCard();
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkMainMenuCard();
+  }
   return createMainMenuKeyboard();
 }
 
@@ -35,6 +39,9 @@ function getMainMenuMarkup(platform: string) {
 function getPairingCodeMarkup(platform: string, code: string) {
   if (platform === 'lark') {
     return createPairingCard(code);
+  }
+  if (platform === 'dingtalk') {
+    return createDingTalkPairingCard(code);
   }
   return createPairingCodeKeyboard();
 }
@@ -46,6 +53,9 @@ function getPairingStatusMarkup(platform: string, code: string) {
   if (platform === 'lark') {
     return createPairingStatusCard(code);
   }
+  if (platform === 'dingtalk') {
+    return createDingTalkPairingStatusCard(code);
+  }
   return createPairingStatusKeyboard();
 }
 
@@ -55,6 +65,9 @@ function getPairingStatusMarkup(platform: string, code: string) {
 function getPairingHelpMarkup(platform: string) {
   if (platform === 'lark') {
     return createPairingHelpCard();
+  }
+  if (platform === 'dingtalk') {
+    return createDingTalkPairingHelpCard();
   }
   return createPairingCodeKeyboard();
 }
@@ -168,7 +181,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
  */
 export const handlePairingHelp: ActionHandler = async (context) => {
   const platform = context.platform;
-  const platformName = platform === 'lark' ? 'Lark/Feishu' : 'Telegram';
+  const platformName = platform === 'lark' ? 'Lark/Feishu' : platform === 'dingtalk' ? 'DingTalk' : 'Telegram';
 
   return createSuccessResponse({
     type: 'text',

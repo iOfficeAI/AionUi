@@ -28,6 +28,28 @@
   min-width: 0;
 }
 
+/* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
+.actionTools :global(.sendbox-model-btn) {
+  background-color: transparent !important;
+  border: 1px solid var(--border-base) !important;
+  color: var(--color-text-2) !important;
+}
+
+.actionTools :global(.sendbox-model-btn:hover) {
+  background-color: var(--color-fill-2) !important;
+  border-color: var(--color-border-2) !important;
+  color: var(--color-text-1) !important;
+}
+
+/* 暗色模式：边框用稍亮色，否则与背景融在一起看不见 */
+[data-theme='dark'] .actionTools :global(.sendbox-model-btn) {
+  border-color: var(--bg-4) !important;
+}
+
+[data-theme='dark'] .actionTools :global(.sendbox-model-btn:hover) {
+  border-color: var(--bg-5) !important;
+}
+
 .actionSubmit {
   display: flex;
   align-items: center;
@@ -36,8 +58,8 @@
 }
 
 .lightPlaceholder::placeholder {
-  color: var(--color-text-3);
-  opacity: 0.6;
+  color: #a1a2aa;
+  opacity: 1;
 }
 
 .plusButtonRotate {
@@ -51,6 +73,30 @@
   100% {
     transform: rotate(45deg);
   }
+}
+
+/* Skeleton shimmer animation */
+@keyframes guid-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-fill-2) 25%, var(--color-fill-3) 50%, var(--color-fill-2) 75%);
+  background-size: 200% 100%;
+  animation: guid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+.skeletonPill {
+  background: linear-gradient(90deg, var(--color-fill-2) 25%, var(--color-fill-3) 50%, var(--color-fill-2) 75%);
+  background-size: 200% 100%;
+  animation: guid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 100px;
 }
 
 /* 移动端优化 */
@@ -94,6 +140,37 @@
   position: relative;
 }
 
+/* 整体内容块略往上移，减轻「重心偏下」的感觉 */
+.guidContainer .guidLayout {
+  margin-top: -5vh;
+}
+
+/* Agent 选中时：先放大再回落至略大（pop 动效） */
+@keyframes agentSelectPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+.agentItemSelected {
+  background-color: var(--fill-0);
+  transition:
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    background-color 0.25s ease-out;
+  animation: agentSelectPop 0.4s ease-out forwards;
+}
+
+/* 底部快捷按钮：基础间距 + 安全区 */
+.guidQuickActions {
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
 @media (max-width: 768px) {
   .guidContainer {
     justify-content: flex-start;
@@ -102,11 +179,15 @@
     padding-top: 20px;
     -webkit-overflow-scrolling: touch;
   }
+
+  .guidContainer .guidLayout {
+    margin-top: 0;
+  }
 }
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: var(--text-disabled) !important;
+  color: #a1a2aa !important;
   opacity: 1 !important;
 }
 

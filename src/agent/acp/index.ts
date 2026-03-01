@@ -10,15 +10,19 @@ import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
+import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import { CLAUDE_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
+import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, IFLOW_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
+
+/** Enable ACP performance diagnostics via ACP_PERF=1 */
+const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 /**
  * Initialize response result interface
@@ -105,8 +109,18 @@ export class AcpAgent {
   private pendingNavigationTools = new Set<string>();
 
   // ApprovalStore for session-level "always allow" caching
-  // Workaround for claude-code-acp bug: it doesn't check suggestions to auto-approve
+  // Workaround for claude-agent-acp bug: it doesn't check suggestions to auto-approve
   private approvalStore = new AcpApprovalStore();
+
+  // Track user-initiated model override so we can re-assert before each prompt.
+  // Prevents model drift if the CLI subprocess loses the override state.
+  private userModelOverride: string | null = null;
+
+  // Pending model switch notice to inject into the next user prompt.
+  // Equivalent to the terminal's "/model" command output that appears in conversation,
+  // which lets the AI know its model identity has changed (since the env_info system
+  // prompt section is cached with cacheBreak:false and never refreshed on model switch).
+  private pendingModelSwitchNotice: string | null = null;
 
   // Store permission request metadata for later use in confirmMessage
   private permissionRequestMeta = new Map<string, { kind?: string; title?: string; rawInput?: Record<string, unknown> }>();
@@ -182,6 +196,7 @@ export class AcpAgent {
 
   // 启动ACP连接和会话
   async start(): Promise<void> {
+    const startTotal = Date.now();
     try {
       this.emitStatusMessage('connecting');
 
@@ -190,6 +205,7 @@ export class AcpAgent {
         connectTimeoutId = setTimeout(() => reject(new Error('Connection timeout after 70 seconds')), 70000);
       });
 
+      const connectStart = Date.now();
       try {
         await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
       } finally {
@@ -197,24 +213,36 @@ export class AcpAgent {
           clearTimeout(connectTimeoutId);
         }
       }
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
+
       this.emitStatusMessage('connected');
+
+      const authStart = Date.now();
       await this.performAuthentication();
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: authentication completed ${Date.now() - authStart}ms`);
+
       // 避免重复创建会话：仅当尚无活动会话时再创建
       // Create new session or resume existing one (if ACP backend supports it)
       if (!this.connection.hasActiveSession) {
+        const sessionStart = Date.now();
         await this.createOrResumeSession();
+        if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
       }
 
       // YOLO mode: bypass all permission checks for supported backends
       if (this.extra.yoloMode) {
         const yoloModeMap: Partial<Record<AcpBackend, string>> = {
           claude: CLAUDE_YOLO_SESSION_MODE,
+          codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
+          iflow: IFLOW_YOLO_SESSION_MODE,
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
           try {
+            const modeStart = Date.now();
             await this.connection.setSessionMode(sessionMode);
+            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             throw new Error(`[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`);
@@ -222,28 +250,158 @@ export class AcpAgent {
         }
       }
 
-      // Auto-set model from ~/.claude/settings.json for Claude backend
+      // Apply model from ~/.claude/settings.json for Claude backend.
+      // claude-agent-acp may default to a region-mismatched Bedrock model;
+      // explicitly setting the model from settings ensures correctness.
+      // Uses session/set_model (direct CLI control) for consistency with runtime switching.
       if (this.extra.backend === 'claude') {
         const configuredModel = getClaudeModel();
         if (configuredModel) {
           try {
+            const modelStart = Date.now();
             await this.connection.setModel(configuredModel);
+            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
-            // Log warning but don't fail - fallback to default model
             console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
           }
         }
       }
 
+      // Emit initial model info after session setup completes
+      this.emitModelInfo();
+
       this.emitStatusMessage('session_active');
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
     } catch (error) {
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
     }
   }
 
-  stop(): Promise<void> {
-    this.connection.disconnect();
+  /**
+   * Enable yoloMode on a running agent.
+   * If already enabled, this is a no-op. Otherwise, sets the session mode
+   * on the active connection (for backends that support it).
+   */
+  async enableYoloMode(): Promise<void> {
+    if (this.extra.yoloMode) return;
+    this.extra.yoloMode = true;
+
+    if (this.connection.isConnected && this.connection.hasActiveSession) {
+      const yoloModeMap: Partial<Record<AcpBackend, string>> = {
+        claude: CLAUDE_YOLO_SESSION_MODE,
+        qwen: QWEN_YOLO_SESSION_MODE,
+      };
+      const sessionMode = yoloModeMap[this.extra.backend];
+      if (sessionMode) {
+        await this.connection.setSessionMode(sessionMode);
+      }
+    }
+  }
+
+  /**
+   * Get unified model info from ACP connection.
+   * Prefers stable configOptions API, falls back to unstable models API.
+   */
+  getModelInfo(): AcpModelInfo | null {
+    // Try stable API first: configOptions with category 'model'
+    const configOptions = this.connection.getConfigOptions();
+    if (configOptions) {
+      const modelOption = configOptions.find((opt) => opt.category === 'model');
+      if (modelOption && modelOption.type === 'select' && modelOption.options) {
+        // Support both currentValue (ACP spec) and selectedValue (some agents)
+        const activeValue = modelOption.currentValue || modelOption.selectedValue || null;
+        return {
+          currentModelId: activeValue,
+          currentModelLabel: modelOption.options.find((o) => o.value === activeValue)?.name || modelOption.options.find((o) => o.value === activeValue)?.label || activeValue,
+          availableModels: modelOption.options.map((o) => ({ id: o.value, label: o.name || o.label || o.value })),
+          canSwitch: modelOption.options.length > 1,
+          source: 'configOption',
+          configOptionId: modelOption.id,
+        };
+      }
+    }
+
+    // Fallback to unstable models API
+    const models = this.connection.getModels();
+    if (models) {
+      const available = models.availableModels || [];
+      // Support both 'id' (spec) and 'modelId' (OpenCode) field names
+      const getModelId = (m: (typeof available)[0]) => m.id || m.modelId || '';
+      return {
+        currentModelId: models.currentModelId || null,
+        currentModelLabel: available.find((m) => getModelId(m) === models.currentModelId)?.name || models.currentModelId || null,
+        availableModels: available.map((m) => ({ id: getModelId(m), label: m.name || getModelId(m) })),
+        canSwitch: available.length > 1,
+        source: 'models',
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Switch model using session/set_model (preferred) with configOption fallback.
+   *
+   * session/set_model is preferred because it maps to unstable_setSessionModel()
+   * in claude-agent-acp which:
+   *   1. Calls query.setModel() → sends set_model control request to CLI
+   *   2. Calls updateConfigOption() → sends config_option_update notification
+   * This provides both the actual CLI model change AND a cache sync notification.
+   *
+   * session/set_config_option only returns updated configOptions in the response
+   * but does NOT send a separate notification, making it less robust for cache sync.
+   */
+  async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    const modelInfo = this.getModelInfo();
+    if (!modelInfo) {
+      throw new Error('No model info available');
+    }
+
+    // Always use session/set_model for direct CLI control.
+    // Falls back to session/set_config_option only for non-Claude backends
+    // that don't support the unstable_setSessionModel method.
+    try {
+      await this.connection.setModel(modelId);
+    } catch (setModelError) {
+      // Fallback to set_config_option if set_model is not supported
+      if (modelInfo.source === 'configOption' && modelInfo.configOptionId) {
+        await this.connection.setConfigOption(modelInfo.configOptionId, modelId);
+      } else {
+        throw setModelError;
+      }
+    }
+
+    this.userModelOverride = modelId;
+
+    // Queue a model switch notice for the next prompt.
+    // In terminal mode, "/model haiku" outputs "Set model to haiku" into the conversation,
+    // and the AI reads this to update its self-identification. In ACP mode, set_model is
+    // silent, so we inject an equivalent notice into the next user message.
+    this.pendingModelSwitchNotice = modelId;
+
+    // Return updated model info after switch
+    return this.getModelInfo();
+  }
+
+  /**
+   * Emit current model info to the stream event handler.
+   */
+  private emitModelInfo(): void {
+    const modelInfo = this.getModelInfo();
+    if (modelInfo) {
+      this.onStreamEvent({
+        type: 'acp_model_info',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: modelInfo,
+      });
+    }
+  }
+
+  async stop(): Promise<void> {
+    await this.connection.disconnect();
     this.emitStatusMessage('disconnected');
     // Clear session-scoped caches when session ends
     this.approvalStore.clear();
@@ -255,17 +413,20 @@ export class AcpAgent {
       msg_id: uuid(),
       data: null,
     });
-    return Promise.resolve();
   }
 
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
+    const sendStart = Date.now();
     try {
       // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+        const reconnectStart = Date.now();
         try {
           await this.start();
+          if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: auto-reconnect completed ${Date.now() - reconnectStart}ms`);
         } catch (reconnectError) {
+          if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: auto-reconnect failed ${Date.now() - reconnectStart}ms`);
           const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
           return {
             success: false,
@@ -306,9 +467,41 @@ export class AcpAgent {
 
       // Process @ file references in the message
       // 处理消息中的 @ 文件引用
+      const atFileStart = Date.now();
       processedContent = await this.processAtFileReferences(processedContent, data.files);
+      const atFileDuration = Date.now() - atFileStart;
+      if (atFileDuration > 10) {
+        if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
+      }
 
+      // Re-assert model override before sending prompt.
+      // This ensures the CLI subprocess uses the correct model even if it
+      // lost the override state (e.g., after internal compaction or restart).
+      if (this.userModelOverride) {
+        const currentInfo = this.getModelInfo();
+        const expected = this.userModelOverride;
+        if (currentInfo?.currentModelId !== expected) {
+          try {
+            await this.connection.setModel(expected);
+          } catch (err) {
+            console.warn(`[ACP] Pre-prompt model re-assert failed: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+      }
+
+      // Inject model switch notice for Claude backend.
+      // In terminal, "/model X" output appears in conversation so the AI knows about
+      // the switch. In ACP mode set_model is silent, so we prepend an equivalent notice.
+      if (this.pendingModelSwitchNotice && this.extra.backend === 'claude') {
+        const modelNotice = `<system-reminder>\n` + `Model switch: The active model has been changed to ${this.pendingModelSwitchNotice} via the /model command. ` + `You are now running as ${this.pendingModelSwitchNotice}. ` + `The ANTHROPIC_MODEL environment variable and the earlier "You are powered by" text in the system prompt are stale (cached from session start) and no longer reflect the actual model. ` + `When asked which model you are, answer ${this.pendingModelSwitchNotice}.\n` + `</system-reminder>\n\n`;
+        processedContent = modelNotice + processedContent;
+        this.pendingModelSwitchNotice = null;
+      }
+
+      const promptStart = Date.now();
       await this.connection.sendPrompt(processedContent);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: sendPrompt completed ${Date.now() - promptStart}ms (total send: ${Date.now() - sendStart}ms)`);
+
       this.statusMessageId = null;
       return { success: true, data: null };
     } catch (error) {
@@ -519,7 +712,7 @@ export class AcpAgent {
         this.pendingPermissions.delete(data.callId);
 
         // Store "allow_always" decision to ApprovalStore for future auto-approval
-        // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+        // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
         if (data.confirmKey === 'allow_always') {
           const meta = this.permissionRequestMeta.get(data.callId);
           if (meta) {
@@ -600,6 +793,11 @@ export class AcpAgent {
         }
       }
 
+      // Emit updated model info when config_option_update arrives
+      if (data.update?.sessionUpdate === 'config_option_update') {
+        this.emitModelInfo();
+      }
+
       const messages = this.adapter.convertSessionUpdate(data);
 
       for (let i = 0; i < messages.length; i++) {
@@ -622,7 +820,7 @@ export class AcpAgent {
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
       // Check ApprovalStore for cached "always allow" decision
-      // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+      // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
       const approvalKey = createAcpApprovalKey(data.toolCall);
       if (this.approvalStore.isApprovedForSession(approvalKey)) {
         // Auto-approve without showing dialog - no metadata storage needed
@@ -919,10 +1117,9 @@ export class AcpAgent {
           responseMessage.data = message.content;
         }
         break;
+      // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands':
-        responseMessage.type = 'available_commands';
-        responseMessage.data = message.content;
-        break;
+        return;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
@@ -963,12 +1160,30 @@ export class AcpAgent {
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
-    const response = await this.connection.newSession(this.extra.workspace, {
-      resumeSessionId,
-      forkSession: false,
-    });
-    // Notify upper layer if session ID changed (new session or resume failed)
-    if (response.sessionId && response.sessionId !== resumeSessionId) {
+
+    // If we have a stored session ID, attempt to resume it.
+    // Resume can fail when the ACP bridge package changed (e.g. claude-code-acp → claude-agent-acp)
+    // or the session simply expired. In that case, fall back to creating a fresh session.
+    if (resumeSessionId) {
+      try {
+        const response = await this.connection.newSession(this.extra.workspace, {
+          resumeSessionId,
+          forkSession: false,
+        });
+        if (response.sessionId && response.sessionId !== resumeSessionId) {
+          this.extra.acpSessionId = response.sessionId;
+          this.onSessionIdUpdate?.(response.sessionId);
+        }
+        return;
+      } catch (resumeError) {
+        console.warn(`[AcpAgent] Failed to resume session ${resumeSessionId}, creating fresh session:`, resumeError instanceof Error ? resumeError.message : String(resumeError));
+      }
+    }
+
+    // No stored session or resume failed — create a brand new session
+    const response = await this.connection.newSession(this.extra.workspace);
+    if (response.sessionId) {
+      this.extra.acpSessionId = response.sessionId;
       this.onSessionIdUpdate?.(response.sessionId);
     }
   }
@@ -978,6 +1193,27 @@ export class AcpAgent {
     this.stop().catch((error) => {
       console.error('Error stopping ACP agent:', error);
     });
+  }
+
+  /**
+   * Set the session mode for this agent (e.g., plan, default, bypassPermissions, yolo).
+   * 设置此代理的会话模式（如 plan、default、bypassPermissions、yolo）。
+   *
+   * @param mode - The mode ID to set
+   * @returns Promise that resolves when mode is set
+   */
+  async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
+    if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+      return { success: false, error: 'No active session. Please send a message first to establish a session.' };
+    }
+    try {
+      await this.connection.setSessionMode(mode);
+      return { success: true };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[AcpAgent] Failed to set mode:', errorMsg);
+      return { success: false, error: errorMsg };
+    }
   }
 
   private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {
@@ -990,14 +1226,14 @@ export class AcpAgent {
       }
 
       // 使用与 AcpConnection 相同的命令解析逻辑
+      const cleanEnv = getEnhancedEnv();
       let command: string;
       let args: string[];
 
       if (this.extra.cliPath.startsWith('npx ')) {
         // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
         const parts = this.extra.cliPath.split(' ');
-        const isWindows = process.platform === 'win32';
-        command = isWindows ? 'npx.cmd' : 'npx';
+        command = resolveNpxPath(cleanEnv);
         args = [...parts.slice(1), loginArg];
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
@@ -1006,8 +1242,9 @@ export class AcpAgent {
       }
 
       const loginProcess = spawn(command, args, {
-        stdio: 'pipe', // 避免干扰用户界面
+        stdio: 'pipe',
         timeout: 70000,
+        env: cleanEnv,
       });
 
       await new Promise<void>((resolve, reject) => {
@@ -1064,6 +1301,7 @@ export class AcpAgent {
       } else if (this.extra.backend === 'claude') {
         await this.ensureClaudeAuth();
       }
+      // Note: CodeBuddy does not have a CLI login command; auth is handled by the CLI itself
 
       // 预热后重试创建session（同时尝试恢复会话）
       // Retry creating/resuming session after warmup

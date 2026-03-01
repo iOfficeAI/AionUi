@@ -135,8 +135,7 @@ function mapCoreStatusToDisplayStatus(coreStatus: CoreStatus): ToolCallStatus {
     case 'scheduled':
       return ToolCallStatus.Pending;
     default: {
-      const exhaustiveCheck: never = coreStatus;
-      console.warn(`Unknown core status encountered: ${exhaustiveCheck}`);
+      console.warn(`Unknown core status encountered: ${coreStatus}`);
       return ToolCallStatus.Error;
     }
   }
@@ -155,7 +154,11 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
 
     if (trackedCall.status === 'error') {
       displayName = trackedCall.tool === undefined ? trackedCall.request.name : trackedCall.tool.displayName;
-      description = JSON.stringify(trackedCall.request.args);
+      // Include error message in description for better debugging visibility
+      // 在描述中包含错误信息，便于调试
+      const errorMsg = trackedCall.response.error?.message;
+      const argsStr = JSON.stringify(trackedCall.request.args);
+      description = errorMsg ? `${errorMsg}\n${argsStr}` : argsStr;
     } else {
       displayName = trackedCall.tool.displayName;
       description = trackedCall.invocation.getDescription();
@@ -177,13 +180,24 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
           resultDisplay: trackedCall.response.resultDisplay,
           confirmationDetails: undefined,
         };
-      case 'error':
+      case 'error': {
+        // Fallback: when resultDisplay is empty, construct from error info
+        // 兜底：当 resultDisplay 为空时，从错误信息中构造显示内容
+        let errorResultDisplay = trackedCall.response.resultDisplay;
+        if (!errorResultDisplay) {
+          const errMsg = trackedCall.response.error?.message;
+          const errType = trackedCall.response.errorType;
+          if (errMsg || errType) {
+            errorResultDisplay = [errType && `[${errType}]`, errMsg].filter(Boolean).join(' ');
+          }
+        }
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: trackedCall.response.resultDisplay,
+          resultDisplay: errorResultDisplay,
           confirmationDetails: undefined,
         };
+      }
       case 'cancelled':
         return {
           ...baseDisplayProperties,
@@ -214,9 +228,8 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
           confirmationDetails: undefined,
         };
       default: {
-        const exhaustiveCheck: never = trackedCall;
         return {
-          callId: (exhaustiveCheck as TrackedToolCall).request.callId,
+          callId: (trackedCall as TrackedToolCall).request.callId,
           name: 'Unknown Tool',
           description: 'Encountered an unknown tool call state.',
           status: ToolCallStatus.Error,

@@ -28,7 +28,7 @@ import { loadSettings } from './cli/settings';
 import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
-import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
+import { compactToolResponsesInHistory, getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 import path from 'path';
 import os from 'os';
 
@@ -336,6 +336,9 @@ export class GeminiAgent {
       const enabledSet = new Set(this.enabledSkills);
       this.config.getSkillManager().filterSkills((skill) => enabledSet.has(skill.name));
       console.log(`[GeminiAgent] Filtered skills after initialize: ${this.enabledSkills.join(', ')}`);
+    } else {
+      // Non-preset agent: clear all optional skills (cron is injected via system instructions)
+      this.config.getSkillManager().filterSkills(() => false);
     }
 
     // 对于 Google OAuth 认证，先检查凭证是否存在，避免触发浏览器授权弹窗
@@ -582,6 +585,13 @@ export class GeminiAgent {
           // Schedule ALL tool requests including chrome-devtools
           // 调度所有工具请求，包括 chrome-devtools
           await this.scheduler.schedule(toolCallRequests, abortController.signal);
+        } else {
+          // Agentic loop finished (no pending tool calls).
+          // Compact large functionResponse entries in history to prevent
+          // context window overflow on subsequent turns.
+          if (this.geminiClient) {
+            compactToolResponsesInHistory(this.geminiClient);
+          }
         }
       })
       .catch((e: unknown) => {

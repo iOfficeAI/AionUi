@@ -88,22 +88,29 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
 
   // 加载内置 skills 并创建虚拟 extension
   // Load builtin skills and create a virtual extension
+  // 仅在指定 enabledSkills 时加载，非 preset agent 不加载任何可选 skills
+  // Only load when enabledSkills is specified; non-preset agents get no optional skills
   let builtinSkills: SkillDefinition[] = [];
-  if (skillsDir) {
+  if (skillsDir && enabledSkills && enabledSkills.length > 0) {
     try {
-      builtinSkills = await loadSkillsFromDir(skillsDir);
-      console.log(`[Config] Loaded ${builtinSkills.length} builtin skills from ${skillsDir}`);
-
-      // 根据 enabledSkills 过滤 skills
-      // Filter skills based on enabledSkills
-      // 当 enabledSkills 是数组时（包括空数组），进行过滤
-      // When enabledSkills is an array (including empty), apply filtering
-      if (Array.isArray(enabledSkills)) {
-        const enabledSet = new Set(enabledSkills);
-        const originalCount = builtinSkills.length;
-        builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
-        console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ') || 'none'})`);
+      // Load skills from both top-level and _builtin/ subdirectory
+      // loadSkillsFromDir only scans direct children, so _builtin/cron is not found by default
+      const topLevelSkills = await loadSkillsFromDir(skillsDir);
+      const builtinDir = path.join(skillsDir, '_builtin');
+      let builtinDirSkills: SkillDefinition[] = [];
+      try {
+        builtinDirSkills = await loadSkillsFromDir(builtinDir);
+      } catch (e) {
+        // Only ignore "not found" errors; warn on unexpected failures
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
+          console.warn(`[Config] Failed to load skills from ${builtinDir}:`, e);
+        }
       }
+      const allSkills = [...topLevelSkills, ...builtinDirSkills];
+      const enabledSet = new Set(enabledSkills);
+      const originalCount = allSkills.length;
+      builtinSkills = allSkills.filter((skill) => enabledSet.has(skill.name));
+      console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
     }
@@ -263,12 +270,9 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
-    // 启用预览功能以支持 Gemini 3 等新模型
-    // Enable preview features to support Gemini 3 and other new models
-    previewFeatures: true,
-    // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
-    // skillsDir 有值时启用 / Enabled when skillsDir has value
-    skillsSupport: !!skillsDir,
+    // Disable native SkillManager to prevent XML <available_skills> injection into system prompt
+    // AionUi uses its own skill mechanism (AcpSkillManager) with plain-text index injection
+    skillsSupport: false,
     // 启用 fetch 错误重试，处理 "exception TypeError: fetch failed sending request" 错误
     // Enable retry on fetch errors to handle "exception TypeError: fetch failed sending request"
     // 这通常是由网络不稳定或代理问题导致的临时错误

@@ -8,7 +8,7 @@ import type { IMcpServer } from '@/common/storage';
  * MCP服务器CRUD操作Hook
  * 处理MCP服务器的增加、编辑、删除、启用/禁用等操作
  */
-export const useMcpServerCRUD = (mcpServers: IMcpServer[], saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>, syncMcpToAgents: (server: IMcpServer, skipRecheck?: boolean) => Promise<void>, removeMcpFromAgents: (serverName: string, successMessage?: string) => Promise<void>, checkSingleServerInstallStatus: (serverName: string) => Promise<void>, setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>, message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]) => {
+export const useMcpServerCRUD = (mcpServers: IMcpServer[], saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>, syncMcpToAgents: (server: IMcpServer, skipRecheck?: boolean) => Promise<void>, removeMcpFromAgents: (serverName: string, successMessage?: string, transportType?: string) => Promise<void>, checkSingleServerInstallStatus: (serverName: string) => Promise<void>, setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>, message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]) => {
   const { t } = useTranslation();
 
   // 添加MCP服务器
@@ -161,7 +161,7 @@ export const useMcpServerCRUD = (mcpServers: IMcpServer[], saveMcpServers: (serv
       try {
         // 如果服务器是启用状态，需要从所有agents中删除MCP配置
         if (targetServer.enabled) {
-          await removeMcpFromAgents(targetServer.name, t('settings.mcpDeletedWithCleanup'));
+          await removeMcpFromAgents(targetServer.name, t('settings.mcpDeletedWithCleanup'), targetServer.transport.type);
         } else {
           message.success(t('settings.mcpDeleted'));
         }
@@ -202,7 +202,7 @@ export const useMcpServerCRUD = (mcpServers: IMcpServer[], saveMcpServers: (serv
           setTimeout(() => void checkSingleServerInstallStatus(targetServer.name), 100);
         } else {
           // 如果禁用了MCP服务器，从所有agent中删除该配置
-          await removeMcpFromAgents(targetServer.name);
+          await removeMcpFromAgents(targetServer.name, undefined, targetServer.transport.type);
           // 禁用后直接更新UI状态，不需要重新检测
           setAgentInstallStatus((prev) => {
             const updated = { ...prev };

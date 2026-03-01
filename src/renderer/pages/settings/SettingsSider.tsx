@@ -1,13 +1,14 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Robot, Shield, System, Toolkit } from '@icon-park/react';
+import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Robot, System, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
+import { getSiderTooltipProps } from '@/renderer/utils/siderTooltip';
 
-const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
+const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }> = ({ collapsed = false, tooltipEnabled = false }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -38,11 +39,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         path: 'tools',
       },
       {
-        label: t('settings.security'),
-        icon: <Shield />,
-        path: 'security',
-      },
-      {
         label: t('settings.display'),
         icon: <Computer />,
         path: 'display',
@@ -71,12 +67,13 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
 
     return items;
   }, [t, isDesktop]);
+  const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   return (
     <div className={classNames('flex-1 settings-sider flex flex-col gap-2px', { 'settings-sider--collapsed': collapsed })}>
       {menus.map((item) => {
         const isSelected = pathname.includes(item.path);
         return (
-          <Tooltip key={item.path} disabled={!collapsed} content={item.label} position='right'>
+          <Tooltip key={item.path} {...siderTooltipProps} content={item.label} position='right'>
             <div
               className={classNames('settings-sider__item hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
                 '!bg-aou-2 ': isSelected,

@@ -248,7 +248,9 @@ export function initModelBridge(): void {
       try {
         // 使用自定义 base_url 或默认的 Gemini endpoint
         // Use custom base_url or default Gemini endpoint
-        const geminiUrl = base_url ? `${base_url}/models?key=${encodeURIComponent(actualApiKey)}` : `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
+        const geminiBaseUrlRaw = base_url?.replace(/\/+$/, '') || 'https://generativelanguage.googleapis.com';
+        const geminiBaseUrl = geminiBaseUrlRaw.replace(/\/(v1beta|v1)$/, '');
+        const geminiUrl = `${geminiBaseUrl}/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
 
         const response = await fetch(geminiUrl);
 
@@ -741,6 +743,43 @@ async function testOpenAIProtocol(baseUrl: string, apiKey: string, signal: Abort
       }
     } catch (e) {
       // 继续尝试下一个端点
+    }
+  }
+
+  // /models endpoints all failed (e.g. 404). Probe /chat/completions to confirm
+  // the endpoint is OpenAI-compatible even when it doesn't support model listing
+  // (DashScope Coding Plan, some proxies, etc.)
+  const chatProbeEndpoints = [
+    { url: `${baseUrl}/chat/completions`, path: '' },
+    { url: `${baseUrl}/v1/chat/completions`, path: '/v1' },
+  ];
+
+  for (const endpoint of chatProbeEndpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ model: '_probe', messages: [{ role: 'user', content: '' }], max_tokens: 1 }),
+      });
+
+      if (response.status === 401) {
+        return { success: false, confidence: 70, error: 'Invalid API key for OpenAI protocol' };
+      }
+
+      const data = await response.json().catch((): null => null);
+      if (data?.error && typeof data.error === 'object' && 'message' in data.error) {
+        // OpenAI-style error response confirms the protocol
+        return { success: true, confidence: 75, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
+      }
+      if (data?.choices && Array.isArray(data.choices)) {
+        return { success: true, confidence: 85, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
+      }
+    } catch {
+      // Continue
     }
   }
 

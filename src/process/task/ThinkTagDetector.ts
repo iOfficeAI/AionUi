@@ -15,8 +15,10 @@
  */
 
 /**
- * Check if content contains think tags
+ * Check if content contains think tags (opening or closing)
  * Supports: <think>...</think>, <thinking>...</thinking>
+ * Also detects orphaned closing tags like </think> without opening <think>
+ * (common with models like MiniMax M2.5)
  *
  * @param content - The text content to check
  * @returns True if think tags are present
@@ -25,7 +27,7 @@ export function hasThinkTags(content: string): boolean {
   if (!content || typeof content !== 'string') {
     return false;
   }
-  return /<think(?:ing)?>/i.test(content);
+  return /<\s*\/?\s*think(?:ing)?\s*>/i.test(content);
 }
 
 /**
@@ -46,14 +48,17 @@ export function stripThinkTags(content: string): string {
       .replace(/<\s*think\s*>([\s\S]*?)<\s*\/\s*think\s*>/gi, '')
       // Step 2: Remove complete <thinking>...</thinking> blocks (with optional spaces in tags)
       .replace(/<\s*thinking\s*>([\s\S]*?)<\s*\/\s*thinking\s*>/gi, '')
-      // Step 3: Remove orphaned closing tags BEFORE removing opening tags
-      // (this handles cases where tags are split during streaming)
+      // Step 3: Handle MiniMax-style format: content before the FIRST orphaned </think>
+      // Models like MiniMax M2.5 omit the opening tag: "thinking content...\n</think>\nresponse"
+      .replace(/^[\s\S]*?<\s*\/\s*think(?:ing)?\s*>/i, '')
+      // Step 4: Remove any remaining orphaned closing tags (just the tags, preserve surrounding content)
+      // When text gets concatenated across tool calls, there may be additional </think> tags
       .replace(/<\s*\/\s*think(?:ing)?\s*>/gi, '')
-      // Step 4: Remove orphaned opening tags
+      // Step 5: Remove any remaining orphaned opening tags
       .replace(/<\s*think(?:ing)?\s*>/gi, '')
-      // Step 5: Collapse multiple newlines
+      // Step 6: Collapse multiple newlines
       .replace(/\n{3,}/g, '\n\n')
-      // Step 6: Remove leading/trailing whitespace
+      // Step 7: Remove leading/trailing whitespace
       .trim()
   );
 }

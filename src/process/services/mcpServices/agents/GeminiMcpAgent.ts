@@ -4,13 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '../../../../common/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { safeExec } from '@process/utils/safeExec';
 
-const execAsync = promisify(exec);
+/** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
 
 /**
  * Google Gemini CLI MCP代理实现
@@ -24,8 +25,8 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    // Google Gemini CLI 支持 stdio, sse, http 传输类型
-    return ['stdio', 'sse', 'http'];
+    // Google Gemini CLI 支持 stdio, sse, http 传输类型 (streamable_http maps to http)
+    return ['stdio', 'sse', 'http', 'streamable_http'];
   }
 
   /**
@@ -47,7 +48,7 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
           }
 
           // 使用 Gemini CLI 命令获取 MCP 配置
-          const { stdout: result } = await execAsync('gemini mcp list', { timeout: this.timeout });
+          const { stdout: result } = await safeExec('gemini mcp list', { timeout: this.timeout, ...getExecEnv() });
 
           // 如果没有配置任何MCP服务器，返回空数组
           if (result.includes('No MCP servers configured') || !result.trim()) {
@@ -185,40 +186,41 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
           if (server.transport.type === 'stdio') {
             // 使用 Gemini CLI 添加 MCP 服务器
             // 格式: gemini mcp add <name> <command> [args...]
-            const args = server.transport.args?.join(' ') || '';
             let command = `gemini mcp add "${server.name}" "${server.transport.command}"`;
-            if (args) {
-              command += ` ${args}`;
+            if (server.transport.args?.length) {
+              // Quote each arg to protect URLs and special characters from shell interpretation
+              const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
+              command += ` ${quotedArgs}`;
             }
 
             // 添加 scope 参数（user 或 project）
             command += ' -s user';
 
             try {
-              await execAsync(command, { timeout: 5000 });
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
               console.log(`[GeminiMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
               // 继续处理其他服务器
             }
-          } else if (server.transport.type === 'sse' || server.transport.type === 'http') {
-            // 处理 SSE/HTTP 传输类型
+          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+            // 处理 SSE/HTTP/Streamable HTTP 传输类型
+            // Gemini CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
+            const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
             let command = `gemini mcp add "${server.name}" "${server.transport.url}"`;
 
             // 添加 transport 类型
-            command += ` --transport ${server.transport.type}`;
+            command += ` --transport ${transportFlag}`;
 
             // 添加 scope 参数
             command += ' -s user';
 
             try {
-              await execAsync(command, { timeout: 5000 });
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
               console.log(`[GeminiMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
             }
-          } else {
-            console.warn(`Skipping ${server.name}: Gemini CLI does not support ${server.transport.type} transport type`);
           }
         }
         return { success: true };
@@ -241,7 +243,7 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
         // 首先尝试 user scope
         try {
           const removeCommand = `gemini mcp remove "${mcpServerName}" -s user`;
-          const result = await execAsync(removeCommand, { timeout: 5000 });
+          const result = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
           if (result.stdout && result.stdout.includes('removed')) {
             console.log(`[GeminiMcpAgent] Removed MCP server: ${mcpServerName}`);
@@ -256,7 +258,7 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
           // 尝试 project scope
           try {
             const removeCommand = `gemini mcp remove "${mcpServerName}" -s project`;
-            const result = await execAsync(removeCommand, { timeout: 5000 });
+            const result = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
             if (result.stdout && result.stdout.includes('removed')) {
               console.log(`[GeminiMcpAgent] Removed MCP server from project: ${mcpServerName}`);

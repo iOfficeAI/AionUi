@@ -9,7 +9,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Tabs } from '@arco-design/web-react';
-import { Computer, Earth, Gemini, Info, LinkCloud, Shield, Toolkit } from '@icon-park/react';
+import { Computer, Earth, Gemini, Info, LinkCloud, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,6 @@ import AboutModalContent from './contents/AboutModalContent';
 import AgentModalContent from './contents/AgentModalContent';
 import GeminiModalContent from './contents/GeminiModalContent';
 import ModelModalContent from './contents/ModelModalContent';
-import SecurityModalContent from './contents/SecurityModalContent';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
@@ -52,7 +51,7 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 设置标签页类型 / Settings tab type
  */
-export type SettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'security' | 'webui' | 'system' | 'about';
+export type SettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'webui' | 'system' | 'about';
 
 /**
  * 设置弹窗组件属性 / Settings modal component props
@@ -175,11 +174,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.tools'),
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
       },
-      {
-        key: 'security',
-        label: t('settings.security'),
-        icon: <Shield theme='outline' size='20' fill={iconColors.secondary} />,
-      },
     ];
 
     // 仅在桌面端添加 WebUI 选项（包含 Assistant 配置）/ Only add WebUI option on desktop (includes Assistant config)
@@ -213,19 +207,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const renderContent = () => {
     switch (activeTab) {
       case 'gemini':
-        return <GeminiModalContent onRequestClose={onCancel} />;
+        return <GeminiModalContent />;
       case 'model':
         return <ModelModalContent />;
       case 'agent':
         return <AgentModalContent />;
       case 'tools':
         return <ToolsModalContent />;
-      case 'security':
-        return <SecurityModalContent />;
       case 'webui':
         return <WebuiModalContent />;
       case 'system':
-        return <SystemModalContent onRequestClose={onCancel} />;
+        return <SystemModalContent />;
       case 'about':
         return <AboutModalContent />;
       default:
@@ -243,7 +235,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
 
   // 移动端菜单（Tabs切换）/ Mobile menu (Tabs)
   const mobileMenu = (
-    <div className='mt-16px mb-20px'>
+    <div className='mt-16px mb-20px overflow-x-auto'>
       <Tabs activeTab={activeTab} onChange={handleTabChange} type='line' size='default' className='settings-mobile-tabs [&_.arco-tabs-nav]:border-b-0'>
         {menuItems.map((item) => (
           <Tabs.TabPane key={item.key} title={item.label} />
@@ -281,8 +273,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         footer={null}
         className='settings-modal'
         style={{
-          width: isMobile ? `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
-          minWidth: 'var(--app-min-width, 360px)',
+          width: isMobile ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
           maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
           borderRadius: '16px',
         }}

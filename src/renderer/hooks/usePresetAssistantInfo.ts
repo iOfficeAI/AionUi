@@ -29,22 +29,25 @@ export interface PresetAssistantInfo {
  */
 function resolvePresetId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
-    presetAssistantId?: string;
-    customAgentId?: string;
-    enabledSkills?: string[];
+    presetAssistantId?: unknown;
+    customAgentId?: unknown;
+    enabledSkills?: unknown;
   };
+  const presetAssistantId = typeof extra?.presetAssistantId === 'string' ? extra.presetAssistantId.trim() : '';
+  const customAgentId = typeof extra?.customAgentId === 'string' ? extra.customAgentId.trim() : '';
+  const enabledSkills = Array.isArray(extra?.enabledSkills) ? extra.enabledSkills : [];
 
   // 1. 优先使用 presetAssistantId（新会话）
   // Priority: use presetAssistantId (new conversations)
-  if (extra?.presetAssistantId && extra.presetAssistantId.trim()) {
-    const resolved = extra.presetAssistantId.replace('builtin-', '');
+  if (presetAssistantId) {
+    const resolved = presetAssistantId.replace('builtin-', '');
     return resolved;
   }
 
   // 2. 向后兼容：customAgentId（ACP/Codex 旧会话）
   // Backward compatible: customAgentId (ACP/Codex old conversations)
-  if (extra?.customAgentId && extra.customAgentId.trim()) {
-    const resolved = extra.customAgentId.replace('builtin-', '');
+  if (customAgentId) {
+    const resolved = customAgentId.replace('builtin-', '');
     return resolved;
   }
 
@@ -52,7 +55,7 @@ function resolvePresetId(conversation: TChatConversation): string | null {
   // Backward compatible: enabledSkills means Cowork conversation (Gemini old conversations)
   // 只有在既没有 presetAssistantId 也没有 customAgentId 时才使用此逻辑
   // Only use this logic when both presetAssistantId and customAgentId are absent (including empty strings)
-  if (conversation.type === 'gemini' && !extra?.presetAssistantId?.trim() && !extra?.customAgentId?.trim() && extra?.enabledSkills && extra.enabledSkills.length > 0) {
+  if (conversation.type === 'gemini' && !presetAssistantId && !customAgentId && enabledSkills.length > 0) {
     return 'cowork';
   }
 
@@ -70,11 +73,12 @@ function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo 
   const name = preset.nameI18n[locale] || preset.nameI18n['en-US'] || preset.id;
 
   // avatar 可能是 emoji 或 svg 文件名 / avatar can be emoji or svg filename
-  const isEmoji = !preset.avatar.endsWith('.svg');
+  const avatar = typeof preset.avatar === 'string' ? preset.avatar : '';
+  const isEmoji = avatar ? !avatar.endsWith('.svg') : true;
   let logo: string;
 
   if (isEmoji) {
-    logo = preset.avatar;
+    logo = avatar || '🤖';
   } else if (preset.id === 'cowork') {
     logo = CoworkLogo;
   } else {
@@ -93,23 +97,29 @@ function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo 
  * @param conversation - 会话对象 / Conversation object
  * @returns 预设助手信息或 null / Preset assistant info or null
  */
-export function usePresetAssistantInfo(conversation: TChatConversation | undefined): PresetAssistantInfo | null {
+export function usePresetAssistantInfo(conversation: TChatConversation | undefined): {
+  info: PresetAssistantInfo | null;
+  isLoading: boolean;
+} {
   const { i18n } = useTranslation();
 
   // Fetch custom agents to support custom preset assistants
-  const { data: customAgents } = useSWR('acp.customAgents', () => ConfigStorage.get('acp.customAgents'));
+  const { data: customAgents, isLoading: isLoadingCustomAgents } = useSWR('acp.customAgents', () => ConfigStorage.get('acp.customAgents'));
 
   return useMemo(() => {
-    if (!conversation) return null;
+    if (!conversation) return { info: null, isLoading: false };
 
     const presetId = resolvePresetId(conversation);
-    if (!presetId) return null;
+    if (!presetId) return { info: null, isLoading: false };
 
-    // First try to find in built-in presets
+    // First try to find in built-in presets (synchronous, no loading needed)
     const builtinInfo = buildPresetInfo(presetId, i18n.language || 'en-US');
     if (builtinInfo) {
-      return builtinInfo;
+      return { info: builtinInfo, isLoading: false };
     }
+
+    // Custom agents data still loading — don't fall through to fallback yet
+    if (isLoadingCustomAgents) return { info: null as PresetAssistantInfo | null, isLoading: true };
 
     // If not found in built-in presets, try to find in custom agents
     if (customAgents && Array.isArray(customAgents)) {
@@ -123,14 +133,15 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         const localeKey = resolveLocaleKey(locale);
 
         // Handle avatar: could be emoji or svg filename
-        let logo = customAgent.avatar || '🤖';
+        const avatar = typeof customAgent.avatar === 'string' ? customAgent.avatar : '';
+        let logo = avatar || '🤖';
         let isEmoji = true;
 
-        if (customAgent.avatar) {
-          if (customAgent.avatar.endsWith('.svg')) {
+        if (avatar) {
+          if (avatar.endsWith('.svg')) {
             isEmoji = false;
             // For cowork.svg, use the imported logo; for others, use emoji fallback
-            if (customAgent.avatar === 'cowork.svg') {
+            if (avatar === 'cowork.svg') {
               logo = CoworkLogo;
             } else {
               // Other svgs not yet supported, fallback to emoji
@@ -144,13 +155,16 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         }
 
         return {
-          name: customAgent.nameI18n?.[localeKey] || customAgent.name || presetId,
-          logo,
-          isEmoji,
+          info: {
+            name: customAgent.nameI18n?.[localeKey] || customAgent.name || presetId,
+            logo,
+            isEmoji,
+          },
+          isLoading: false,
         };
       }
     }
 
-    return null;
-  }, [conversation, i18n.language, customAgents]);
+    return { info: null, isLoading: false };
+  }, [conversation, i18n.language, customAgents, isLoadingCustomAgents]);
 }

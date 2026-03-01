@@ -2,7 +2,7 @@ const { execSync } = require('child_process');
 
 exports.default = async function afterSign(context) {
   const { electronPlatformName, appOutDir } = context;
-  
+
   if (electronPlatformName !== 'darwin') {
     return;
   }

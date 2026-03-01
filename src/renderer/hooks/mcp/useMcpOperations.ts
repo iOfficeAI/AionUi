@@ -87,12 +87,15 @@ export const useMcpOperations = (mcpServers: IMcpServer[], message: ReturnType<t
 
   // 从agents中删除MCP配置
   const removeMcpFromAgents = useCallback(
-    async (serverName: string, successMessage?: string) => {
+    async (serverName: string, successMessage?: string, transportType?: string) => {
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
       if (agentsResponse.success && agentsResponse.data) {
+        // Filter agents by transport type support if transport type is known
+        const compatibleCount = transportType ? agentsResponse.data.filter((a) => a.supportedTransports?.includes(transportType)).length : agentsResponse.data.length;
+
         // 显示开始移除的消息（通过队列）
         await globalMessageQueue.add(() => {
-          message.info(t('settings.mcpRemoveStarted', { count: agentsResponse.data.length }));
+          message.info(t('settings.mcpRemoveStarted', { count: compatibleCount }));
         });
 
         const removeResponse = await mcpService.removeMcpFromAgents.invoke({
@@ -110,9 +113,12 @@ export const useMcpOperations = (mcpServers: IMcpServer[], message: ReturnType<t
     async (server: IMcpServer, skipRecheck = false) => {
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
       if (agentsResponse.success && agentsResponse.data) {
+        // Filter agents by transport type support to show accurate count
+        const compatibleCount = agentsResponse.data.filter((a) => a.supportedTransports?.includes(server.transport.type)).length;
+
         // 显示开始同步的消息（通过队列）
         await globalMessageQueue.add(() => {
-          message.info(t('settings.mcpSyncStarted', { count: agentsResponse.data.length }));
+          message.info(t('settings.mcpSyncStarted', { count: compatibleCount }));
         });
 
         const syncResponse = await mcpService.syncMcpToAgents.invoke({

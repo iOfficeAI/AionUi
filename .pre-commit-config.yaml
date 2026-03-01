@@ -1,0 +1,78 @@
+# Pre-commit configuration for AionUi
+# Ensures local checks match CI checks (TypeScript, ESLint, Prettier)
+#
+# Installation:
+#   pip install pre-commit  (or: brew install pre-commit / choco install pre-commit)
+#   prek install            (or: pre-commit install)
+#
+# Run manually on staged files (same as CI pre-commit):
+#   prek run
+#
+# Run on changed files vs main (same as CI PR check):
+#   prek run --from-ref origin/main --to-ref HEAD
+#
+# Run on all files:
+#   prek run --all-files
+
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: end-of-file-fixer
+        # Only fix text files, exclude binary files and special OS files
+        exclude: '^(\.DS_Store|Thumbs\.db|.*\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|pdf|zip|tar|gz|bz2|7z|exe|dll|so|dylib|node|bin))$'
+      - id: trailing-whitespace
+        # Auto-fix trailing whitespace in text files
+        # Excludes binary files (matching end-of-file-fixer pattern)
+        exclude: '^(\.DS_Store|Thumbs\.db|.*\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|pdf|zip|tar|gz|bz2|7z|exe|dll|so|dylib|node|bin|patch))$'
+
+  # TypeScript type checking (full project check required)
+  - repo: local
+    hooks:
+      - id: typecheck
+        name: TypeScript Check
+        entry: bunx tsc --noEmit
+        language: system
+        files: \.(ts|tsx)$
+        pass_filenames: false
+
+  # ESLint (checks staged files only)
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint
+        entry: bun run lint
+        language: system
+        files: \.(ts|tsx)$
+        pass_filenames: false
+
+  # Prettier (checks staged files only)
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Prettier
+        entry: bun run format:check
+        language: system
+        files: \.(ts|tsx|js|jsx|json|css|md)$
+        pass_filenames: false
+
+  # Commit message format (Conventional Commits)
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--strict, --force-scope, feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]

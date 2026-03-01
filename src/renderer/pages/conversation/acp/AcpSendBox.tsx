@@ -21,6 +21,7 @@ import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -173,6 +174,13 @@ const useAcpMessage = (conversation_id: string) => {
               setRunning(false);
               runningRef.current = false;
             }
+            // Reset all loading states on error or disconnect so UI doesn't stay stuck
+            if (['error', 'disconnected'].includes(agentData.status)) {
+              setRunning(false);
+              runningRef.current = false;
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
+            }
           }
           addOrUpdateMessage(transformedMessage);
           break;
@@ -188,8 +196,13 @@ const useAcpMessage = (conversation_id: string) => {
           }
           addOrUpdateMessage(transformedMessage);
           break;
+        case 'acp_model_info':
+          // Model info updates are handled by AcpModelSelector, no action needed here
+          break;
         case 'error':
-          // Stop AI processing state when error occurs
+          // Stop all loading states when error occurs
+          setRunning(false);
+          runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
           addOrUpdateMessage(transformedMessage);
@@ -300,7 +313,8 @@ const useSendBoxDraft = (conversation_id: string) => {
 const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
-}> = ({ conversation_id, backend }) => {
+  sessionMode?: string;
+}> = ({ conversation_id, backend, sessionMode }) => {
   const { thought, running, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
@@ -425,9 +439,8 @@ const AcpSendBox: React.FC<{
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
-    // 立即清空输入框，避免用户误以为消息没发送
-    // Clear input immediately to avoid user thinking message wasn't sent
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     clearFiles();
 
     // Start AI processing loading state
@@ -513,19 +526,24 @@ const AcpSendBox: React.FC<{
         className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
         tools={
-          <Button
-            type='secondary'
-            shape='circle'
-            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-            onClick={() => {
-              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                if (files && files.length > 0) {
-                  setUploadFile([...uploadFile, ...files]);
-                }
-              });
-            }}
-          />
+          <div className='flex items-center gap-4px'>
+            <Button
+              type='secondary'
+              shape='circle'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              onClick={() => {
+                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                  if (files && files.length > 0) {
+                    setUploadFile([...uploadFile, ...files]);
+                  }
+                });
+              }}
+            />
+            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} />
+          </div>
         }
         prefix={
           <>

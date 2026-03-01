@@ -14,6 +14,10 @@ import LocalImageView from '../../../components/LocalImageView';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import CodexSendBox from './CodexSendBox';
 
+/**
+ * @deprecated Legacy Codex chat component. New Codex conversations use ACP
+ * protocol and render via AcpChat. Kept for existing sessions only.
+ */
 const CodexChat: React.FC<{
   conversation_id: string;
   workspace: string;
@@ -25,7 +29,7 @@ const CodexChat: React.FC<{
   }, [workspace]);
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'codex' }}>
-      <div className='flex-1 flex flex-col px-20px'>
+      <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>

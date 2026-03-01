@@ -1,45 +1,14 @@
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import GitHubLogo from '@/renderer/assets/logos/github.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
-import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { iconColors } from '@/renderer/theme/colors';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
 import React from 'react';
-import { iconColors } from '@/renderer/theme/colors';
 
 interface McpAgentStatusDisplayProps {
   serverName: string;
   agentInstallStatus: Record<string, string[]>;
   isLoadingAgentStatus: boolean;
 }
-
-const AGENT_LOGO_MAP: Record<string, string> = {
-  claude: ClaudeLogo,
-  gemini: GeminiLogo,
-  qwen: QwenLogo,
-  iflow: IflowLogo,
-  codex: CodexLogo,
-  goose: GooseLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  opencode: OpenCodeLogo,
-  copilot: GitHubLogo,
-  openclaw: OpenClawLogo,
-  'openclaw-gateway': OpenClawLogo,
-  nanobot: NanobotLogo,
-};
-
-const getAgentLogo = (agent: string): string | null => {
-  return AGENT_LOGO_MAP[agent.toLowerCase()] || null;
-};
 
 const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus }) => {
   const agents = agentInstallStatus[serverName] || [];

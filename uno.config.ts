@@ -9,6 +9,7 @@ const textColors = {
   // 自定义语义化文字色 / Custom semantic text colors
   't-primary': 'var(--text-primary)', // text-t-primary - 主要文字
   't-secondary': 'var(--text-secondary)', // text-t-secondary - 次要文字
+  't-tertiary': 'var(--bg-6)', // text-t-tertiary - 三级说明/提示文字
   't-disabled': 'var(--text-disabled)', // text-t-disabled - 禁用文字
 };
 
@@ -91,13 +92,16 @@ const specialColors = {
 };
 
 export default defineConfig({
-  envMode: 'build',
   presets: [presetMini(), presetExtra(), presetWind3()],
   transformers: [transformerVariantGroup(), transformerDirectives({ enforce: 'pre' })],
   content: {
     pipeline: {
-      include: ['src/**/*.{ts,tsx,vue,css}'],
-      exclude: [/\.html($|\?)/],
+      // Use RegExp instead of glob strings so patterns match against absolute
+      // module IDs regardless of the Vite root directory.  electron-vite sets
+      // the renderer root to src/renderer/, which causes glob patterns like
+      // 'src/**/*.tsx' to resolve to the non-existent src/renderer/src/ path.
+      include: [/\.[jt]sx?($|\?)/, /\.vue($|\?)/, /\.css($|\?)/],
+      exclude: [/[\\/]node_modules[\\/]/, /\.html($|\?)/],
     },
   },
   // 自定义规则 / Custom rules

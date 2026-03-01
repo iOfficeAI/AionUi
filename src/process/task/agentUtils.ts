@@ -137,3 +137,46 @@ For example:
   const systemInstructions = instructions.join('\n\n');
   return `[Assistant Rules - You MUST follow these instructions]\n${systemInstructions}\n\n[User Request]\n${content}`;
 }
+
+/**
+ * 构建系统指令（仅 skills 索引，不注入全文 - 用于 Gemini）
+ * Build system instructions with skills INDEX only (no full content - for Gemini)
+ *
+ * Gemini 没有文件读取工具，无法自行读取 SKILL.md 文件。
+ * 当 Gemini 需要某个 skill 的详细指令时，输出 [LOAD_SKILL: skill-name]，
+ * 由系统截获并将 skill 全文作为 [System Response] 发回。
+ *
+ * Gemini has no file read tool and cannot read SKILL.md files on its own.
+ * When Gemini needs detailed instructions for a skill, it outputs [LOAD_SKILL: skill-name],
+ * and the system intercepts it and sends back the full skill content as [System Response].
+ *
+ * @param config - 首次消息配置 / First message configuration
+ * @returns 系统指令字符串或 undefined / System instructions string or undefined
+ */
+export async function buildSystemInstructionsWithSkillsIndex(config: FirstMessageConfig): Promise<string | undefined> {
+  const instructions: string[] = [];
+
+  // 添加预设上下文 / Add preset context
+  if (config.presetContext) {
+    instructions.push(config.presetContext);
+  }
+
+  // 加载 skills 索引（包括内置 skills + 可选 skills）
+  // Load skills INDEX (including builtin skills + optional skills)
+  const skillManager = AcpSkillManager.getInstance(config.enabledSkills);
+  await skillManager.discoverSkills(config.enabledSkills);
+
+  if (skillManager.hasAnySkills()) {
+    const skillsIndex = skillManager.getSkillsIndex();
+    if (skillsIndex.length > 0) {
+      const indexText = buildSkillsIndexText(skillsIndex);
+      instructions.push(indexText);
+    }
+  }
+
+  if (instructions.length === 0) {
+    return undefined;
+  }
+
+  return instructions.join('\n\n');
+}

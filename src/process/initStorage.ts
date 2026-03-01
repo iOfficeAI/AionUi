@@ -13,7 +13,7 @@ import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { copyDirectoryRecursively, ensureDirectory, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
 // Platform and architecture types (moved from deleted updateConfig)
@@ -523,7 +523,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
-    const enabledByDefault = preset.id === 'cowork';
+    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -541,6 +541,8 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       presetAgentType: preset.presetAgentType || 'gemini',
       // Cowork 默认启用所有内置技能 / Cowork enables all builtin skills by default
       enabledSkills: defaultEnabledSkills,
+      // 复制快捷提示词 / Copy quick prompts
+      promptsI18n: preset.promptsI18n,
     });
   }
 
@@ -584,12 +586,9 @@ const initStorage = async () => {
   await migrateLegacyData();
 
   // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
-  if (!existsSync(getHomePage())) {
-    mkdirSync(getHomePage());
-  }
-  if (!existsSync(getDataPath())) {
-    mkdirSync(getDataPath());
-  }
+  // Use ensureDirectory to handle cases where a regular file blocks the path (#841)
+  ensureDirectory(getHomePage());
+  ensureDirectory(getDataPath());
 
   // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);
@@ -633,6 +632,12 @@ const initStorage = async () => {
     const builtinSkillsMigrationDone = await configFile.get(BUILTIN_SKILLS_MIGRATION_KEY).catch(() => false);
     const needsBuiltinSkillsMigration = !builtinSkillsMigrationDone;
 
+    // 5.2.3 检查是否需要迁移：为内置助手添加 promptsI18n
+    // Check if migration needed: add promptsI18n for builtin assistants
+    const PROMPTS_I18N_MIGRATION_KEY = 'migration.promptsI18nAdded';
+    const promptsI18nMigrationDone = await configFile.get(PROMPTS_I18N_MIGRATION_KEY).catch(() => false);
+    const needsPromptsI18nMigration = !promptsI18nMigrationDone;
+
     // 更新或添加内置助手配置
     // Update or add built-in assistant configurations
     const updatedAgents = [...existingAgents];
@@ -648,7 +653,12 @@ const initStorage = async () => {
         // Update only if key fields are different to avoid unnecessary writes
         // 注意：enabled 和 presetAgentType 字段由用户控制，不参与 shouldUpdate 判断
         // Note: enabled and presetAgentType are user-controlled, not included in shouldUpdate check
-        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin;
+        // 检查 promptsI18n 是否需要更新（如果不存在或已更改，或需要迁移）
+        // Check if promptsI18n needs update (if missing, changed, or migration needed)
+        const promptsI18nMissing = !existing.promptsI18n && builtin.promptsI18n;
+        const promptsI18nChanged = existing.promptsI18n && builtin.promptsI18n && JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
+        const needsPromptsI18nUpdate = needsPromptsI18nMigration || promptsI18nMissing || promptsI18nChanged;
+        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || needsPromptsI18nUpdate;
         // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
         const needsEnabledFix = existing.enabled === undefined || needsMigration;
@@ -667,7 +677,7 @@ const initStorage = async () => {
           resolvedEnabledSkills = builtin.enabledSkills;
         }
 
-        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills)) {
+        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) || needsPromptsI18nUpdate) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,
@@ -675,6 +685,8 @@ const initStorage = async () => {
             enabled: resolvedEnabled,
             presetAgentType: resolvedPresetAgentType,
             enabledSkills: resolvedEnabledSkills,
+            // 确保 promptsI18n 被更新 / Ensure promptsI18n is updated
+            promptsI18n: builtin.promptsI18n,
           };
           hasChanges = true;
         }
@@ -696,6 +708,9 @@ const initStorage = async () => {
     }
     if (needsBuiltinSkillsMigration) {
       await configFile.set(BUILTIN_SKILLS_MIGRATION_KEY, true);
+    }
+    if (needsPromptsI18nMigration) {
+      await configFile.set(PROMPTS_I18N_MIGRATION_KEY, true);
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);

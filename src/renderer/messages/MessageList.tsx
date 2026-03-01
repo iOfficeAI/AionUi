@@ -10,7 +10,6 @@ import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
-import MessageAvailableCommands from '@renderer/messages/acp/MessageAvailableCommands';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
 import React, { createContext, useMemo } from 'react';
@@ -50,7 +49,7 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
     const { message } = props as { message: TMessage };
     return (
       <div
-        className={classNames('flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
+        className={classNames('min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
           'justify-center': message.position === 'center',
           'justify-end': message.position === 'right',
           'justify-start': message.position === 'left',
@@ -84,7 +83,7 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'available_commands':
-        return <MessageAvailableCommands message={message}></MessageAvailableCommands>;
+        return null;
       default:
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }
@@ -119,6 +118,8 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
+      // Skip available_commands messages
+      if (message.type === 'available_commands') continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
         pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff));
         continue;
@@ -146,7 +147,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   }, [list]);
 
   // Use auto-scroll hook
-  const { virtuosoRef, handleScroll, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
+  const { virtuosoRef, handleScroll, handleAtBottomStateChange, handleFollowOutput, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
     messages: list,
     itemCount: processedList.length,
   });
@@ -160,7 +161,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
-        <div key={item.id} className={'w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}>
+        <div key={item.id} className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}>
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
           {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
         </div>
@@ -182,7 +183,9 @@ const MessageList: React.FC<{ className?: string }> = () => {
             atBottomThreshold={100}
             increaseViewportBy={200}
             itemContent={renderItem}
+            followOutput={handleFollowOutput}
             onScroll={handleScroll}
+            atBottomStateChange={handleAtBottomStateChange}
             components={{
               Header: () => <div className='h-10px' />,
               Footer: () => <div className='h-20px' />,

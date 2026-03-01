@@ -20,6 +20,7 @@ import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
+import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -173,6 +174,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
           break;
+        case 'codex_model_info':
+          // Handled by AcpModelSelector, ignore here
+          break;
         case 'finish':
           // Only reset when current turn has content output
           // Tool-only turns (no content) should not reset aiProcessing
@@ -254,8 +258,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    // 立即清空输入框和选择的文件，提升用户体验
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     emitter.emit('codex.selected.file.clear');
     const currentAtPath = [...atPath];
     const currentUploadFile = [...uploadFile];
@@ -388,14 +392,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       <SendBox
         value={content}
-        onChange={(val) => {
-          // Only allow content changes when not waiting for session or thinking
-          if (!aiProcessing) {
-            setContent(val);
-          }
-        }}
+        onChange={setContent}
         loading={running || aiProcessing}
-        disabled={aiProcessing}
+        disabled={false}
         className='z-10'
         placeholder={
           aiProcessing
@@ -408,19 +407,24 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         onStop={handleStop}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
         tools={
-          <Button
-            type='secondary'
-            shape='circle'
-            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-            onClick={() => {
-              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                if (files && files.length > 0) {
-                  setUploadFile([...uploadFile, ...files]);
-                }
-              });
-            }}
-          />
+          <div className='flex items-center gap-4px'>
+            <Button
+              type='secondary'
+              shape='circle'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              onClick={() => {
+                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                  if (files && files.length > 0) {
+                    setUploadFile([...uploadFile, ...files]);
+                  }
+                });
+              }}
+            />
+            <AgentModeSelector backend='codex' conversationId={conversation_id} compact />
+          </div>
         }
         prefix={
           <>

@@ -1,0 +1,389 @@
+name: '📋 GPT PR Assessment'
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'PR number to assess'
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to assess'
+        required: true
+        type: string
+
+concurrency:
+  group: 'gpt-pr-assessment-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}'
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  assess:
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 10
+    permissions:
+      contents: 'read'
+      pull-requests: 'write'
+      issues: 'read'
+    steps:
+      - name: 'Checkout repository'
+        uses: 'actions/checkout@v4'
+
+      - name: 'Gather PR diff and changed files'
+        id: 'gather'
+        uses: './.github/actions/gather-pr-diff'
+        with:
+          pr_number: '${{ inputs.pr_number }}'
+
+      - name: 'Fetch PR metadata and linked issues'
+        id: 'metadata'
+        if: steps.gather.outputs.skip != 'true'
+        uses: 'actions/github-script@v7'
+        env:
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            const prNumber = context.payload.pull_request?.number
+              || Number(process.env.INPUT_PR_NUMBER);
+
+            // Fetch full PR data via API (needed for manual triggers too)
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const prMeta = {
+              title: pr.title || '',
+              body: pr.body || '',
+              author: pr.user.login || '',
+              labels: (pr.labels || []).map(l => l.name),
+              head_branch: pr.head.ref || '',
+              base_branch: pr.base.ref || '',
+              state: pr.state,
+              created_at: pr.created_at,
+              updated_at: pr.updated_at,
+            };
+
+            fs.writeFileSync(`${tmpDir}/pr_meta.json`, JSON.stringify(prMeta));
+
+            // Parse linked issues from PR body
+            const prBody = prMeta.body;
+            const linkedIssueNumbers = new Set();
+            const referencedIssueNumbers = new Set();
+
+            // Explicit linking keywords: Fixes #N, Closes #N, Resolves #N
+            const explicitPatterns = [
+              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*#(\d+)/gi,
+              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/(\d+)/gi,
+            ];
+            for (const pattern of explicitPatterns) {
+              let match;
+              while ((match = pattern.exec(prBody)) !== null) {
+                linkedIssueNumbers.add(Number(match[1]));
+              }
+            }
+
+            // General #N references (not already captured)
+            const refPattern = /#(\d+)/g;
+            let refMatch;
+            while ((refMatch = refPattern.exec(prBody)) !== null) {
+              const num = Number(refMatch[1]);
+              if (!linkedIssueNumbers.has(num)) {
+                referencedIssueNumbers.add(num);
+              }
+            }
+
+            // Fetch issue details, filtering out PRs
+            const EXPLICIT_BODY_LIMIT = 5000;
+            const REFERENCE_BODY_LIMIT = 3000;
+
+            async function fetchIssue(issueNum, bodyLimit) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNum,
+                });
+
+                // Skip if this is actually a PR (issues API returns PRs too)
+                if (issue.pull_request) {
+                  return null;
+                }
+
+                const body = (issue.body || '').substring(0, bodyLimit);
+                const truncated = (issue.body || '').length > bodyLimit;
+
+                return {
+                  number: issue.number,
+                  title: issue.title,
+                  state: issue.state,
+                  labels: (issue.labels || []).map(l => typeof l === 'string' ? l : l.name),
+                  body: truncated ? body + '\n... [truncated]' : body,
+                };
+              } catch (err) {
+                core.warning(`Failed to fetch issue #${issueNum}: ${err.message}`);
+                return null;
+              }
+            }
+
+            const linkedIssues = [];
+            for (const num of linkedIssueNumbers) {
+              const issue = await fetchIssue(num, EXPLICIT_BODY_LIMIT);
+              if (issue) linkedIssues.push({ ...issue, relation: 'explicit' });
+            }
+
+            for (const num of referencedIssueNumbers) {
+              const issue = await fetchIssue(num, REFERENCE_BODY_LIMIT);
+              if (issue) linkedIssues.push({ ...issue, relation: 'referenced' });
+            }
+
+            fs.writeFileSync(`${tmpDir}/linked_issues.json`, JSON.stringify(linkedIssues));
+            core.info(`Found ${linkedIssues.length} linked issue(s)`);
+
+      - name: 'Read changed file contents'
+        id: 'read_contents'
+        if: steps.gather.outputs.skip != 'true'
+        uses: './.github/actions/read-file-contents'
+
+      - name: 'Construct GPT prompts'
+        if: steps.gather.outputs.skip != 'true'
+        uses: 'actions/github-script@v7'
+        env:
+          FILE_COUNT: '${{ steps.gather.outputs.file_count }}'
+          ADDITIONS: '${{ steps.gather.outputs.additions }}'
+          DELETIONS: '${{ steps.gather.outputs.deletions }}'
+          TOTAL_LINES: '${{ steps.gather.outputs.total_lines }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            const prMeta = JSON.parse(fs.readFileSync(`${tmpDir}/pr_meta.json`, 'utf-8'));
+            const linkedIssues = JSON.parse(fs.readFileSync(`${tmpDir}/linked_issues.json`, 'utf-8'));
+            const diff = fs.readFileSync(`${tmpDir}/pr_diff.txt`, 'utf-8');
+            const fileListRaw = fs.readFileSync(`${tmpDir}/file_list.json`, 'utf-8');
+
+            let fileContents = '';
+            try {
+              fileContents = fs.readFileSync(`${tmpDir}/file_contents.txt`, 'utf-8');
+            } catch {
+              core.warning('Could not read file contents, proceeding with diff only');
+            }
+
+            const fileCount = process.env.FILE_COUNT || '0';
+            const additions = process.env.ADDITIONS || '0';
+            const deletions = process.env.DELETIONS || '0';
+            const totalLines = process.env.TOTAL_LINES || '0';
+
+            // Build linked issues section for user prompt
+            let issuesSection = '';
+            if (linkedIssues.length > 0) {
+              const issueTexts = linkedIssues.map(issue => {
+                const relation = issue.relation === 'explicit' ? 'Explicitly linked' : 'Referenced';
+                return [
+                  `### Issue #${issue.number}: ${issue.title}`,
+                  `- **Relation**: ${relation}`,
+                  `- **State**: ${issue.state}`,
+                  `- **Labels**: ${issue.labels.length > 0 ? issue.labels.join(', ') : 'None'}`,
+                  '',
+                  '**Body**:',
+                  issue.body || '(No body)',
+                ].join('\n');
+              });
+              issuesSection = [
+                '## Linked Issues',
+                '',
+                ...issueTexts,
+              ].join('\n');
+            } else {
+              issuesSection = [
+                '## Linked Issues',
+                '',
+                'No linked issues found. The PR does not reference any issues via "Fixes #N", "Closes #N", "Resolves #N", or "#N" patterns.',
+                'Please assess the PR based on its title, description, and code changes.',
+              ].join('\n');
+            }
+
+            const systemPrompt = [
+              'You are a senior project maintainer and technical lead for the AionUi project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
+              '',
+              'Your role is to provide a structured PR assessment to help maintainers quickly evaluate the value, correctness, and merge priority of pull requests.',
+              '',
+              '## Tech Stack',
+              '- Electron 37.x + React 19.x + TypeScript 5.8.x (strict mode)',
+              '- Express 5.x (WebUI server), Better SQLite3 (local DB)',
+              '- Arco Design 2.x (UI), UnoCSS 66.x (atomic CSS), Monaco Editor 4.x',
+              '- Anthropic SDK, Google GenAI, OpenAI SDK, MCP SDK',
+              '- Webpack 6.x, Electron Forge 7.8.x',
+              '',
+              '## Architecture',
+              '- Multi-process: Main (Electron + DB + IPC), Renderer (React UI), Worker (background AI tasks)',
+              '- IPC via secure contextBridge isolation',
+              '- WebUI: Express + WebSocket + JWT auth',
+              '- Agent system: channels/, agent/ directories',
+              '',
+              '## Priority Definitions',
+              '',
+              '| Priority | Meaning | Examples |',
+              '|----------|---------|----------|',
+              '| P0 Critical | Must merge immediately | Crash fix, data loss, security vulnerability |',
+              '| P1 High | Should merge within days | Core bug fix, urgently needed feature |',
+              '| P2 Medium | Merge in regular cycle | Enhancement, minor bug, UX improvement |',
+              '| P3 Low | Merge when convenient | Cosmetic, docs, minor refactor |',
+              '',
+              '## Output Format',
+              '',
+              '**CRITICAL: Detect the language of the PR title and body. Write your ENTIRE assessment in that same language.** If the PR is in Chinese, write in Chinese. If in English, write in English. If mixed or unclear, default to English.',
+              '',
+              'Use this EXACT structure:',
+              '',
+              '# PR Assessment',
+              '',
+              '## Change Overview',
+              '[2-4 sentences summarizing what this PR does and why]',
+              '',
+              '## Linked Issue Analysis',
+              '[If linked issues exist]:',
+              '| Issue | Status | Addressed? |',
+              '|-------|--------|------------|',
+              '| #N: [title] | Open/Closed | Yes/Partially/No |',
+              '',
+              '[For each issue, analyze whether the PR actually solves the problem described]',
+              '',
+              '[If no linked issues]:',
+              'State that no issues are linked, then infer the PR\'s purpose and motivation from its title, description, and code changes.',
+              '',
+              '## Change Type',
+              '- **Type**: Bug Fix / New Feature / Enhancement / Refactor / Docs / Build / Test / ...',
+              '- **Scope**: Core / UI / Backend / Build / Config / ...',
+              '- **Breaking Changes**: Yes/No [explain if yes]',
+              '',
+              '## Merge Recommendation',
+              'One of: ✅ Recommend Merge / ⚠️ Conditional Merge / ❌ Do Not Merge',
+              '',
+              '**Rationale**: [Specific reasons for the recommendation]',
+              '',
+              '## Merge Priority',
+              '**Priority**: P0-P3 — Critical/High/Medium/Low',
+              '',
+              '**Rationale**: [Why this priority level]',
+              '',
+              '## Risk Assessment',
+              '| Risk | Level | Details |',
+              '|------|-------|---------|',
+              '| Regression risk | Low/Medium/High | ... |',
+              '| Security impact | None/Low/Medium/High | ... |',
+              '| Performance impact | None/Low/Medium/High | ... |',
+              '| Compatibility | None/Low/Medium/High | ... |',
+              '',
+              '## Reviewer Tips',
+              '- [Advice for human reviewers]',
+              '- [Key files or logic to focus on]',
+              '',
+              '## Rules',
+              '- Be objective and evidence-based. Base your assessment on actual code changes and issue content.',
+              '- Do NOT inflate risk or severity. If the PR is straightforward and safe, say so.',
+              '- Do NOT fabricate concerns. It is fine to have a short, positive assessment for clean PRs.',
+              '- For Linked Issue Analysis, carefully compare the issue description with the actual code changes to determine if the problem is truly addressed.',
+              '- Be specific in Reviewer Tips — point to exact files, functions, or patterns that need attention.',
+              '',
+              '## Footer',
+              'After the Reviewer Tips section, ALWAYS append this exact footer:',
+              '',
+              '---',
+              '',
+              '*🤖 This assessment was generated by AI and serves as a reference for maintainers. Please use your own judgment for final merge decisions.*',
+            ].join('\n');
+
+            const userPrompt = [
+              '## Pull Request',
+              '',
+              `**Title**: ${prMeta.title}`,
+              `**Author**: ${prMeta.author}`,
+              `**Labels**: ${prMeta.labels.length > 0 ? prMeta.labels.join(', ') : 'None'}`,
+              `**Branch**: ${prMeta.head_branch} → ${prMeta.base_branch}`,
+              `**Stats**: ${fileCount} files changed, +${additions} -${deletions} (${totalLines} total lines)`,
+              '',
+              '**Description**:',
+              prMeta.body || '(No description provided)',
+              '',
+              issuesSection,
+              '',
+              '**Changed Files**:',
+              fileListRaw,
+              '',
+              '## Diff',
+              '',
+              diff,
+              '',
+              '## Full File Contents (for cross-file analysis)',
+              '',
+              fileContents || '(No file contents available)',
+            ].join('\n');
+
+            fs.writeFileSync(`${tmpDir}/system_prompt.txt`, systemPrompt);
+            fs.writeFileSync(`${tmpDir}/user_prompt.txt`, userPrompt);
+
+      - name: 'Call GPT for PR assessment'
+        if: steps.gather.outputs.skip != 'true'
+        uses: './.github/actions/call-openai'
+        with:
+          openai_api_key: '${{ secrets.OPENAI_API_KEY }}'
+          output_file: 'assessment_body.txt'
+          diff_truncated: '${{ steps.gather.outputs.diff_truncated }}'
+          contents_truncated: '${{ steps.read_contents.outputs.contents_truncated }}'
+
+      - name: 'Post or update assessment comment'
+        if: steps.gather.outputs.skip != 'true' && success()
+        uses: 'actions/github-script@v7'
+        env:
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            const assessmentBody = fs.readFileSync(`${tmpDir}/assessment_body.txt`, 'utf-8');
+            const prNumber = context.payload.pull_request?.number
+              || Number(process.env.INPUT_PR_NUMBER);
+
+            const MARKER = '<!-- gpt-pr-assessment-bot -->';
+            const fullBody = `${MARKER}\n\n${assessmentBody}`;
+
+            // Check for existing assessment comment to update
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const existingComment = comments.data.find(comment =>
+              comment.body.includes(MARKER)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: fullBody,
+              });
+              core.info(`Updated existing assessment comment (id: ${existingComment.id}) on PR #${prNumber}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: fullBody,
+              });
+              core.info(`Created new assessment comment on PR #${prNumber}`);
+            }

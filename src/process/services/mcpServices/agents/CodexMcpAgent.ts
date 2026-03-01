@@ -4,19 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '@/common/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { safeExec } from '@process/utils/safeExec';
 
-const execAsync = promisify(exec);
+/** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
+const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
 
 /**
  * Codex CLI MCP代理实现
  *
  * 使用 Codex CLI 的 mcp 子命令管理 MCP 服务器配置
- * 注意：Codex CLI 目前只支持 stdio 传输类型
+ * Codex CLI 支持 stdio 和 streamable HTTP (via --url) 传输类型
  */
 export class CodexMcpAgent extends AbstractMcpAgent {
   constructor() {
@@ -24,8 +25,8 @@ export class CodexMcpAgent extends AbstractMcpAgent {
   }
 
   getSupportedTransports(): string[] {
-    // Codex CLI 目前只支持 stdio 传输类型
-    return ['stdio'];
+    // Codex CLI supports stdio and streamable HTTP (via --url flag)
+    return ['stdio', 'http', 'streamable_http'];
   }
 
   /**
@@ -35,7 +36,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
     const detectOperation = async () => {
       try {
         // 使用 Codex CLI 命令获取 MCP 配置
-        const { stdout: result } = await execAsync('codex mcp list', { timeout: this.timeout });
+        const { stdout: result } = await safeExec('codex mcp list', { timeout: this.timeout, ...getExecEnv() });
 
         // 如果没有配置任何MCP服务器，返回空数组
         if (result.includes('No MCP servers configured') || !result.trim()) {
@@ -160,14 +161,38 @@ export class CodexMcpAgent extends AbstractMcpAgent {
             const command = commandParts.map((part) => `"${part}"`).join(' ');
 
             try {
-              await execAsync(command, { timeout: 5000 });
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
               console.log(`[CodexMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Codex:`, error);
               // 继续处理其他服务器，不要因为一个失败就停止
             }
+          } else if (server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+            // Codex CLI uses --url flag for streamable HTTP servers
+            // Format: codex mcp add <NAME> --url <URL>
+            const url = 'url' in server.transport ? server.transport.url : '';
+            const commandParts = ['codex', 'mcp', 'add', server.name, '--url', url];
+
+            // Add bearer token env var if available in headers
+            if ('headers' in server.transport && server.transport.headers) {
+              const authHeader = Object.entries(server.transport.headers).find(([key]) => key.toLowerCase() === 'authorization');
+              if (authHeader) {
+                // Codex expects --bearer-token-env-var, not direct token
+                // For now, just log a warning
+                console.warn(`[CodexMcpAgent] ${server.name}: Codex CLI uses --bearer-token-env-var for auth, manual header not supported`);
+              }
+            }
+
+            const command = commandParts.map((part) => `"${part}"`).join(' ');
+
+            try {
+              await safeExec(command, { timeout: 5000, ...getExecEnv() });
+              console.log(`[CodexMcpAgent] Added MCP server: ${server.name}`);
+            } catch (error) {
+              console.warn(`Failed to add MCP ${server.name} to Codex:`, error);
+            }
           } else {
-            console.warn(`Skipping ${server.name}: Codex CLI only supports stdio transport type`);
+            console.warn(`Skipping ${server.name}: Codex CLI does not support ${server.transport.type} transport type`);
           }
         }
         return { success: true };
@@ -190,7 +215,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
         const removeCommand = `codex mcp remove "${mcpServerName}"`;
 
         try {
-          const result = await execAsync(removeCommand, { timeout: 5000 });
+          const result = await safeExec(removeCommand, { timeout: 5000, ...getExecEnv() });
 
           // 检查输出确认删除成功
           if (result.stdout && (result.stdout.includes('removed') || result.stdout.includes('Removed'))) {
