@@ -284,15 +284,9 @@ const WebuiModalContent: React.FC = () => {
     if (wasRunning) {
       setStartLoading(true);
       try {
-        // 1. 先停止服务器 / First stop the server
-        try {
-          await Promise.race([webui.stop.invoke(), new Promise((resolve) => setTimeout(resolve, 1500))]);
-        } catch (err) {
-          console.error('WebUI stop error:', err);
-        }
-
-        // 2. 立即重新启动（服务器停止很快）/ Restart immediately (server stops quickly)
-        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote: checked }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
+        // Bridge 端会自动处理 stop + restart（原子操作，不再需要分步 stop/start）
+        // Bridge handles stop + restart atomically (no need for separate stop/start)
+        const startResult = await webui.start.invoke({ port, allowRemote: checked });
 
         if (startResult && startResult.success && startResult.data) {
           const responseIP = startResult.data.lanIP;
@@ -315,28 +309,8 @@ const WebuiModalContent: React.FC = () => {
 
           Message.success(t('settings.webui.restartSuccess'));
         } else {
-          // 响应为空或失败，但服务器可能已启动，检查状态
-          // Response is null or failed, but server might have started, check status
-          let statusResult: { success: boolean; data?: IWebUIStatus } | null = null;
-          if (window.electronAPI?.webuiGetStatus) {
-            statusResult = await window.electronAPI.webuiGetStatus();
-          } else {
-            statusResult = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500))]);
-          }
-
-          if (statusResult?.success && statusResult?.data?.running) {
-            // 服务器实际上已启动 / Server actually started
-            const responseIP = statusResult.data.lanIP;
-            if (responseIP) setCachedIP(responseIP);
-
-            setAllowRemote(checked);
-            setStatus(statusResult.data);
-            Message.success(t('settings.webui.restartSuccess'));
-          } else {
-            // 真的启动失败 / Really failed to start
-            Message.error(t('settings.webui.operationFailed'));
-            setStatus((prev) => (prev ? { ...prev, running: false } : null));
-          }
+          Message.error(startResult?.msg || t('settings.webui.operationFailed'));
+          setStatus((prev) => (prev ? { ...prev, running: false } : null));
         }
       } catch (error) {
         console.error('[WebuiModal] Restart error:', error);

@@ -209,15 +209,32 @@ export function initWebuiBridge(): void {
   // 启动 WebUI / Start WebUI
   webui.start.provider(async ({ port: requestedPort, allowRemote }) => {
     try {
-      if (webServerInstance) {
+      const port = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
+      const remote = allowRemote ?? false;
+
+      // 如果已在运行且配置相同，直接返回
+      // If already running with same config, return immediately
+      if (webServerInstance && webServerInstance.port === port && webServerInstance.allowRemote === remote) {
         return {
           success: false,
           msg: 'WebUI is already running',
         };
       }
 
-      const port = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
-      const remote = allowRemote ?? false;
+      // 如果已在运行但配置不同（如 allowRemote 变更），先停止再重启
+      // If already running with different config (e.g. allowRemote changed), stop then restart
+      if (webServerInstance) {
+        console.log(`[WebUI Bridge] Restarting server (allowRemote: ${webServerInstance.allowRemote} → ${remote})`);
+        const { server: oldServer, wss: oldWss } = webServerInstance;
+        oldWss.clients.forEach((client) => client.close(1000, 'Server restarting'));
+        await new Promise<void>((resolve) => {
+          oldServer.close(() => resolve());
+          // 强制 5s 超时 / Force 5s timeout
+          setTimeout(resolve, 5000);
+        });
+        cleanupWebAdapter();
+        webServerInstance = null;
+      }
 
       // 使用预加载的模块 / Use preloaded module
       const instance = await startWebServerWithInstance(port, remote);
