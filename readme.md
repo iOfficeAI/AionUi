@@ -194,9 +194,7 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
 > **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
 
 <p align="center">
-  <a href="./resources/webui_compressed.mp4">
-    <img src="./resources/remote-telegram copy.png" alt="WebUI remote access demo (click to play video)" width="800">
-  </a>
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
 <p align="center"><em>Remote control &amp; monitor your agent — Claude, Gemini, Codex. Use from browser or phone, same as Claude Code remote.</em></p>
