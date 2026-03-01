@@ -242,11 +242,12 @@ const SendBox: React.FC<{
       finalMessage = input + snippetsHtml;
     }
 
+    // 立即清空输入框，避免异步 onSend 完成后覆盖用户新输入
+    // Clear input immediately to prevent async onSend completion from overwriting new user input
+    setInput('');
+    clearDomSnippets();
+
     onSend(finalMessage)
-      .then(() => {
-        setInput('');
-        clearDomSnippets(); // 发送后清除 DOM 片段 / Clear DOM snippets after sending
-      })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);
@@ -326,7 +327,7 @@ const SendBox: React.FC<{
             disabled={disabled}
             value={input}
             placeholder={placeholder}
-            className='pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px'
+            className={`pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
