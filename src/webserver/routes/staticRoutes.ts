@@ -84,7 +84,7 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
     proxyReq.on('error', (err) => {
       console.error(`[ViteProxy] Error proxying ${req.method} ${req.url}: ${err.message}`);
       if (!res.headersSent) {
-        res.status(502).send(`<!DOCTYPE html><html><head><title>WebUI Dev - Vite Unavailable</title></head>` + `<body style="font-family:system-ui;max-width:600px;margin:80px auto;padding:0 20px">` + `<h1>Vite Dev Server Unavailable</h1>` + `<p>The Vite dev server at <code>localhost:${VITE_DEV_PORT}</code> is not responding.</p>` + `<p><strong>Error:</strong> ${err.message}</p>` + `<h3>How to fix:</h3>` + `<ol>` + `<li>Stop the current process (<code>Ctrl+C</code>)</li>` + `<li>Re-run <code>npm run webui</code> or <code>npm run webui:remote</code></li>` + `<li>Wait for "Vite dev server running" in the terminal output</li>` + `</ol>` + `</body></html>`);
+        res.status(502).send(`[WebUI] Vite dev server (localhost:${VITE_DEV_PORT}) unavailable: ${err.message}`);
       }
     });
 
