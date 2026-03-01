@@ -6,6 +6,7 @@
 
 import type { Express, Request, Response } from 'express';
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
@@ -14,22 +15,20 @@ import { AUTH_CONFIG } from '../config/constants';
 import { createRateLimiter } from '../middleware/security';
 
 /**
- * 注册静态资源和页面路由
- * Register static assets and page routes
+ * Vite dev server port (electron-vite default)
  */
-const resolveRendererPath = () => {
-  // Webpack assets are always inside app.asar in production or project directory in development
-  // app.getAppPath() returns the correct path for both cases
+const VITE_DEV_PORT = 5173;
+
+/**
+ * Try to resolve built renderer assets path, return null if not found
+ */
+const resolveRendererPath = (): { staticRoot: string; indexHtml: string } | null => {
   const appPath = app.getAppPath();
 
   const candidates = [
     {
       staticRoot: path.join(appPath, 'out', 'renderer'),
       indexHtml: path.join(appPath, 'out', 'renderer', 'index.html'),
-    },
-    {
-      staticRoot: path.join(appPath, '.webpack', 'renderer'),
-      indexHtml: path.join(appPath, '.webpack', 'renderer', 'main_window', 'index.html'),
     },
   ];
 
@@ -39,19 +38,67 @@ const resolveRendererPath = () => {
     }
   }
 
-  const triedPaths = candidates.map((candidate) => candidate.indexHtml).join('; ');
-  throw new Error(`Renderer assets not found. Tried: ${triedPaths}`);
+  return null;
 };
 
-export function registerStaticRoutes(app: Express): void {
-  const { staticRoot, indexHtml } = resolveRendererPath();
-  const indexHtmlPath = indexHtml;
+/**
+ * Create a proxy middleware that forwards requests to the Vite dev server
+ */
+function createViteDevProxy(): (req: Request, res: Response) => void {
+  return (req: Request, res: Response) => {
+    // Remove ALL restrictive security headers set by Express middleware -
+    // Vite dev server content doesn't need them and they block HMR/inline scripts
+    res.removeHeader('Content-Security-Policy');
+    res.removeHeader('X-Frame-Options');
+    res.removeHeader('X-Content-Type-Options');
+    res.removeHeader('X-XSS-Protection');
 
-  // Create a lenient rate limiter for static page requests to prevent DDoS
-  // 为静态页面请求创建宽松的速率限制器以防止 DDoS 攻击
+    console.log(`[ViteProxy] ${req.method} ${req.url}`);
+
+    const options: http.RequestOptions = {
+      hostname: 'localhost',
+      port: VITE_DEV_PORT,
+      path: req.url,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: `localhost:${VITE_DEV_PORT}`,
+      },
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+      const headers = proxyRes.headers;
+      for (const [key, value] of Object.entries(headers)) {
+        if (value !== undefined) {
+          try {
+            res.setHeader(key, value);
+          } catch {
+            // Ignore invalid header errors
+          }
+        }
+      }
+      res.status(proxyRes.statusCode || 200);
+      proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', (err) => {
+      console.error(`[ViteProxy] Error proxying ${req.method} ${req.url}: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(502).send(`<!DOCTYPE html><html><head><title>WebUI Dev - Vite Unavailable</title></head>` + `<body style="font-family:system-ui;max-width:600px;margin:80px auto;padding:0 20px">` + `<h1>Vite Dev Server Unavailable</h1>` + `<p>The Vite dev server at <code>localhost:${VITE_DEV_PORT}</code> is not responding.</p>` + `<p><strong>Error:</strong> ${err.message}</p>` + `<h3>How to fix:</h3>` + `<ol>` + `<li>Stop the current process (<code>Ctrl+C</code>)</li>` + `<li>Re-run <code>npm run webui</code> or <code>npm run webui:remote</code></li>` + `<li>Wait for "Vite dev server running" in the terminal output</li>` + `</ol>` + `</body></html>`);
+      }
+    });
+
+    req.pipe(proxyReq);
+  };
+}
+
+/**
+ * Register static asset routes for production mode
+ */
+function registerProductionStaticRoutes(expressApp: Express, staticRoot: string, indexHtmlPath: string): void {
   const pageRateLimiter = createRateLimiter({
-    windowMs: 60 * 1000, // 1 minute / 1分钟
-    max: 300, // 300 requests per minute (very lenient) / 每分钟300次请求（非常宽松）
+    windowMs: 60 * 1000,
+    max: 300,
     message: 'Too many requests, please try again later',
   });
 
@@ -75,63 +122,43 @@ export function registerStaticRoutes(app: Express): void {
     }
   };
 
-  /**
-   * 主页路由
-   * Homepage
-   * GET /
-   */
-  app.get('/', pageRateLimiter, serveApplication);
+  expressApp.get('/', pageRateLimiter, serveApplication);
 
-  /**
-   * 处理 favicon 请求
-   * Handle favicon requests
-   * GET /favicon.ico
-   */
-  app.get('/favicon.ico', (_req: Request, res: Response) => {
-    res.status(204).end(); // No Content
+  expressApp.get('/favicon.ico', (_req: Request, res: Response) => {
+    res.status(204).end();
   });
 
-  /**
-   * 处理子路径路由 (React Router)
-   * Handle SPA sub-routes (React Router)
-   * Exclude: api, static, main_window, and webpack chunk directories (react, arco, vendors, etc.)
-   * Also exclude files with extensions (.js, .css, .map, etc.)
-   */
-  app.get(/^\/(?!api|static|main_window|assets|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
+  // SPA sub-routes (React Router)
+  expressApp.get(/^\/(?!api|static|assets)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
 
-  /**
-   * 静态资源
-   * Static assets
-   */
-  // 直接挂载编译输出目录，让 webpack 在写出文件后即可被访问
-  app.use(express.static(staticRoot));
-
-  const mainWindowDir = path.join(staticRoot, 'main_window');
-  if (fs.existsSync(mainWindowDir) && fs.statSync(mainWindowDir).isDirectory()) {
-    app.use('/main_window', express.static(mainWindowDir));
-  }
+  // Static assets
+  expressApp.use(express.static(staticRoot));
 
   const staticDir = path.join(staticRoot, 'static');
   if (fs.existsSync(staticDir) && fs.statSync(staticDir).isDirectory()) {
-    app.use('/static', express.static(staticDir));
+    expressApp.use('/static', express.static(staticDir));
+  }
+}
+
+/**
+ * Register static assets and page routes
+ *
+ * In production: serve built files from out/renderer/
+ * In development: proxy to Vite dev server (localhost:5173)
+ */
+export function registerStaticRoutes(expressApp: Express): void {
+  const resolved = resolveRendererPath();
+
+  if (resolved) {
+    console.log(`[WebUI] Serving renderer from: ${resolved.staticRoot}`);
+    registerProductionStaticRoutes(expressApp, resolved.staticRoot, resolved.indexHtml);
+    return;
   }
 
-  /**
-   * React Syntax Highlighter 语言包
-   * React Syntax Highlighter language packs
-   */
-  if (fs.existsSync(staticRoot)) {
-    app.use(
-      '/react-syntax-highlighter_languages_highlight_',
-      express.static(staticRoot, {
-        setHeaders: (res, filePath) => {
-          if (filePath.includes('react-syntax-highlighter_languages_highlight_')) {
-            res.setHeader('Content-Type', 'application/javascript');
-          }
-        },
-      })
-    );
-  }
+  // No built assets - proxy to Vite dev server in development mode
+  console.log(`[WebUI] No renderer build found, proxying to Vite dev server at http://localhost:${VITE_DEV_PORT}`);
+  const proxy = createViteDevProxy();
+  expressApp.use(proxy);
 }
 
 export default registerStaticRoutes;
