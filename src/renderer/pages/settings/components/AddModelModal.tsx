@@ -5,7 +5,7 @@ import { Button, Select, Tag } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
-import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS, NEW_API_RECOMMENDED_MODELS, detectNewApiProtocol } from '@/renderer/config/modelPlatforms';
+import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS, detectNewApiProtocol } from '@/renderer/config/modelPlatforms';
 
 const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(({ modalProps, data, onSubmit, modalCtrl }) => {
   const { t } = useTranslation();
@@ -45,7 +45,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
           <div className='text-13px font-500 text-t-secondary'>{t('settings.addModelPlaceholder')}</div>
           <Select
             showSearch
-            options={isNewApi && !optionsList?.length ? NEW_API_RECOMMENDED_MODELS : optionsList}
+            options={optionsList}
             loading={isLoading}
             onChange={(value: string) => {
               setModel(value);
