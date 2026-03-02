@@ -22,9 +22,11 @@ const mockControl: MockControl = {
   autoTriggerOnStart: true,
 };
 
-let latestBotInstance: any = null;
+
+let latestBotStopSpy: ReturnType<typeof vi.fn> | null = null;
 
 function createConfig() {
+
   const now = Date.now();
   return {
     id: 'telegram-1',
@@ -74,8 +76,9 @@ async function loadPluginClass() {
       public stop = vi.fn(() => mockControl.stopPromiseFactory());
 
       constructor(_token: string) {
-        latestBotInstance = this;
+        latestBotStopSpy = this.stop;
       }
+
     }
 
     return {
@@ -93,8 +96,9 @@ describe('TelegramPlugin polling lifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
-    latestBotInstance = null;
+    latestBotStopSpy = null;
     mockControl.autoTriggerOnStart = true;
+
     mockControl.startPromiseFactory = () => Promise.resolve();
     mockControl.stopPromiseFactory = () => Promise.resolve();
   });
@@ -121,9 +125,10 @@ describe('TelegramPlugin polling lifecycle', () => {
 
     await Promise.resolve();
     expect(isStopped).toBe(false);
-    expect(latestBotInstance.stop).toHaveBeenCalledTimes(1);
+    expect(latestBotStopSpy).toHaveBeenCalledTimes(1);
 
     resolvePolling();
+
     await stopPromise;
 
     expect(plugin.status).toBe('stopped');
