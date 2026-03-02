@@ -531,7 +531,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         this.status = 'running';
         const traceData = {
           agentType: 'gemini' as const,
-          provider: this.model.provider,
+          provider: this.model.name,
           modelId: this.model.useModel,
           baseUrl: this.model.baseUrl,
           platform: this.model.platform,

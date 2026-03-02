@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IProvider } from '@/common/storage';
+import { uuid } from '@/common/utils';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useState } from 'react';
@@ -276,7 +277,8 @@ const ModelModalContent: React.FC = () => {
       // 3. 发送测试消息
       await ipcBridge.conversation.sendMessage.invoke({
         conversation_id: tempConversationId,
-        content: t('settings.healthCheckProbePrompt'),
+        input: t('settings.healthCheckProbePrompt'),
+        msg_id: uuid(),
       });
 
       // 4. 等待响应
@@ -380,9 +382,9 @@ const ModelModalContent: React.FC = () => {
 
   const clearAllHealthData = () => {
     if (!data) return;
-    const newData = data.map((platform) => ({
+    const newData: IProvider[] = data.map((platform: IProvider) => ({
       ...platform,
-      modelHealth: undefined,
+      modelHealth: undefined as IProvider['modelHealth'],
     }));
     saveModelConfig(newData, () => {
       Message.success({
