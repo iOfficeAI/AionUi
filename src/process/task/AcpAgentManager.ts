@@ -2,6 +2,7 @@ import { AcpAgent } from '@/agent/acp';
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chatLib';
+import type { SlashCommandItem } from '@/common/slash/types';
 import { transformMessage } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
@@ -55,6 +56,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+  private acpAvailableSlashCommands: SlashCommandItem[] = [];
+  private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
@@ -165,6 +168,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // Save ACP session ID to database for resume support
           // 保存 ACP session ID 到数据库以支持会话恢复
           this.saveAcpSessionId(sessionId);
+        },
+        onAvailableCommandsUpdate: (commands) => {
+          const nextCommands: SlashCommandItem[] = [];
+          const seen = new Set<string>();
+          for (const command of commands) {
+            const name = command.name.trim();
+            if (!name || seen.has(name)) continue;
+            seen.add(name);
+            nextCommands.push({
+              name,
+              description: command.description || name,
+              hint: command.hint,
+              kind: 'template',
+              source: 'acp',
+            });
+          }
+          this.acpAvailableSlashCommands = nextCommands;
+          const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+          for (const resolve of waiters) {
+            resolve(this.getAcpSlashCommands());
+          }
         },
         onStreamEvent: (message) => {
           const pipelineStart = Date.now();
@@ -464,6 +488,52 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
   }
 
+  getAcpSlashCommands(): SlashCommandItem[] {
+    return this.acpAvailableSlashCommands.map((item) => ({ ...item }));
+  }
+
+  async loadAcpSlashCommands(timeoutMs: number = 6000): Promise<SlashCommandItem[]> {
+    // Return cached commands immediately if available
+    if (this.acpAvailableSlashCommands.length > 0) {
+      return this.getAcpSlashCommands();
+    }
+
+    // Don't start agent process just to load slash commands.
+    // The frontend (useSlashCommands) re-fetches when agentStatus changes,
+    // so commands will be loaded once the agent is naturally initialized.
+    if (!this.bootstrap) {
+      return [];
+    }
+
+    // Wait for ongoing initialization to complete
+    try {
+      await this.bootstrap;
+    } catch (error) {
+      console.warn('[AcpAgentManager] Agent initialization failed while loading ACP slash commands:', error);
+      return this.getAcpSlashCommands();
+    }
+
+    if (this.acpAvailableSlashCommands.length > 0) {
+      return this.getAcpSlashCommands();
+    }
+
+    return await new Promise<SlashCommandItem[]>((resolve) => {
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const wrappedResolve = (commands: SlashCommandItem[]) => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+        resolve(commands);
+      };
+      timer = setTimeout(() => {
+        this.acpAvailableSlashWaiters = this.acpAvailableSlashWaiters.filter((waiter) => waiter !== wrappedResolve);
+        resolve(this.getAcpSlashCommands());
+      }, timeoutMs);
+
+      this.acpAvailableSlashWaiters.push(wrappedResolve);
+    });
+  }
+
   async confirm(id: string, callId: string, data: AcpPermissionOption) {
     super.confirm(id, callId, data);
     await this.bootstrap;
@@ -722,6 +792,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     let killed = false;
     const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
     const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs
+
+    // Clear pending slash command waiters to prevent memory leaks
+    // 清除待处理的斜杠命令等待者，防止内存泄漏
+    const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+    for (const resolve of waiters) {
+      resolve([]);
+    }
+    this.acpAvailableSlashCommands = [];
 
     const doKill = () => {
       if (killed) return;

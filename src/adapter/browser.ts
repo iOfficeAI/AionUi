@@ -133,6 +133,12 @@ if (win.electronAPI) {
           // Close the socket and redirect to login page
           socket?.close();
 
+          // 已在登录页则不再重定向，防止无限刷新循环
+          // Skip redirect if already on login page to prevent infinite reload loop
+          if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
+            return;
+          }
+
           // 短暂延迟后跳转到登录页，以便显示 UI 反馈
           // Redirect to login page after a short delay to show any UI feedback
           setTimeout(() => {
@@ -148,8 +154,33 @@ if (win.electronAPI) {
       }
     });
 
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event: CloseEvent) => {
       socket = null;
+
+      // Detect auth failure from close code (server sends 1008 for token issues).
+      // This acts as a fallback in case the auth-expired message was not received
+      // (e.g., socket not yet ready for sending during initial handshake).
+      if (event.code === 1008 && !shouldReconnect) {
+        return; // Already handled by auth-expired message handler
+      }
+      if (event.code === 1008) {
+        console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
+        shouldReconnect = false;
+        if (reconnectTimer !== null) {
+          window.clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        // 已在登录页则不再重定向，防止无限刷新循环
+        // Skip redirect if already on login page to prevent infinite reload loop
+        if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
+          return;
+        }
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 500);
+        return;
+      }
+
       scheduleReconnect();
     });
 
