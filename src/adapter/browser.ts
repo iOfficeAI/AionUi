@@ -148,8 +148,28 @@ if (win.electronAPI) {
       }
     });
 
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event: CloseEvent) => {
       socket = null;
+
+      // Detect auth failure from close code (server sends 1008 for token issues).
+      // This acts as a fallback in case the auth-expired message was not received
+      // (e.g., socket not yet ready for sending during initial handshake).
+      if (event.code === 1008 && !shouldReconnect) {
+        return; // Already handled by auth-expired message handler
+      }
+      if (event.code === 1008) {
+        console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
+        shouldReconnect = false;
+        if (reconnectTimer !== null) {
+          window.clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 500);
+        return;
+      }
+
       scheduleReconnect();
     });
 
