@@ -142,11 +142,7 @@ describe('configureChromium CDP', () => {
     const mod = await import('@/utils/configureChromium');
     mod.saveCdpConfig({ enabled: true, port: 9333 });
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      CONFIG_PATH,
-      JSON.stringify({ enabled: true, port: 9333 }, null, 2),
-      'utf-8'
-    );
+    expect(writeFileSync).toHaveBeenCalledWith(CONFIG_PATH, JSON.stringify({ enabled: true, port: 9333 }, null, 2), 'utf-8');
   });
 
   it('updateCdpConfig 会合并现有配置', async () => {
