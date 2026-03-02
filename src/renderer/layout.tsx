@@ -14,6 +14,7 @@ import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
+import { useDeepLink } from './hooks/useDeepLink';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
@@ -82,6 +83,7 @@ const Layout: React.FC<{
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+  useDeepLink();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);

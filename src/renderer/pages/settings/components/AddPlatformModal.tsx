@@ -13,6 +13,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
 import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, NEW_API_RECOMMENDED_MODELS, detectNewApiProtocol, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
+import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
 
 /**
  * 供应商 Logo 组件
@@ -46,7 +47,8 @@ const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => str
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
-}>(({ modalProps, onSubmit, modalCtrl }) => {
+  deepLinkData?: DeepLinkAddProviderDetail;
+}>(({ modalProps, onSubmit, modalCtrl, deepLinkData }) => {
   const [message, messageContext] = Message.useMessage();
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -126,12 +128,21 @@ const AddPlatformModal = ModalHOC<{
   useEffect(() => {
     if (modalProps.visible) {
       form.resetFields();
-      form.setFieldValue('platform', 'gemini');
       form.setFieldValue('bedrockAuthMethod', 'accessKey');
       form.setFieldValue('bedrockRegion', 'us-east-1');
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
+
+      // Pre-fill from deep link data (aionui:// protocol)
+      if (deepLinkData?.baseUrl || deepLinkData?.apiKey) {
+        // Default to new-api platform for deep links (typical one-api/new-api usage)
+        form.setFieldValue('platform', deepLinkData.platform || 'new-api');
+        if (deepLinkData.baseUrl) form.setFieldValue('baseUrl', deepLinkData.baseUrl);
+        if (deepLinkData.apiKey) form.setFieldValue('apiKey', deepLinkData.apiKey);
+      } else {
+        form.setFieldValue('platform', 'gemini');
+      }
     }
   }, [modalProps.visible]);
 

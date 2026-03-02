@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/storage';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
@@ -17,6 +17,7 @@ import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/mo
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { DEEP_LINK_ADD_PROVIDER_EVENT, type DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
 
 /**
  * 获取协议显示标签颜色
@@ -110,6 +111,17 @@ const ModelModalContent: React.FC = () => {
       updatePlatform(platform, () => addPlatformModalCtrl.close());
     },
   });
+
+  // Listen for deep-link add-provider events
+  useEffect(() => {
+    const handleDeepLink = (event: CustomEvent<DeepLinkAddProviderDetail>) => {
+      addPlatformModalCtrl.open({ deepLinkData: event.detail });
+    };
+    window.addEventListener(DEEP_LINK_ADD_PROVIDER_EVENT, handleDeepLink as EventListener);
+    return () => {
+      window.removeEventListener(DEEP_LINK_ADD_PROVIDER_EVENT, handleDeepLink as EventListener);
+    };
+  }, [addPlatformModalCtrl]);
 
   const [addModelModalCtrl, addModelModalContext] = AddModelModal.useModal({
     onSubmit(platform) {
