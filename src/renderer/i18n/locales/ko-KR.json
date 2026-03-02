@@ -834,6 +834,9 @@
       "yesAlwaysAllowTool": "예, 서버 \"{{serverName}}\"의 도구 \"{{toolName}}\" 항상 허용",
       "yesAlwaysAllowServer": "예, 서버 \"{{serverName}}\"의 모든 도구 항상 허용",
       "no": "아니요 (esc)"
+    },
+    "slash": {
+      "openFile": "파일 선택기 열기"
     }
   },
   "mcp": {

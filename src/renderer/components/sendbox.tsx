@@ -5,12 +5,14 @@
  */
 
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { getScrollTopForActiveItem, useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { SlashCommandItem } from '@/common/slash/types';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
@@ -40,7 +42,9 @@ const SendBox: React.FC<{
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix }) => {
+  slashCommands?: SlashCommandItem[];
+  onSlashBuiltinCommand?: (name: string) => void;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix, slashCommands = [], onSlashBuiltinCommand }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
@@ -50,6 +54,8 @@ const SendBox: React.FC<{
   const isInputActive = isInputFocused;
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
+  const slashDropdownRef = useRef<HTMLDivElement>(null);
+  const slashItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const mobileUserFocusIntentUntilRef = useRef(0);
@@ -176,6 +182,65 @@ const SendBox: React.FC<{
 
   const [message, context] = Message.useMessage();
 
+  const builtinSlashCommands = useMemo<SlashCommandItem[]>(() => {
+    if (!onSlashBuiltinCommand) {
+      return [];
+    }
+    return [
+      {
+        name: 'open',
+        description: t('messages.slash.openFile', { defaultValue: 'Open file picker' }),
+        kind: 'builtin',
+        source: 'builtin',
+      },
+    ];
+  }, [onSlashBuiltinCommand, t]);
+
+  const mergedSlashCommands = useMemo(() => {
+    const map = new Map<string, SlashCommandItem>();
+    for (const command of builtinSlashCommands) {
+      map.set(command.name, command);
+    }
+    for (const command of slashCommands) {
+      if (!map.has(command.name)) {
+        map.set(command.name, command);
+      }
+    }
+    return Array.from(map.values());
+  }, [builtinSlashCommands, slashCommands]);
+
+  const slashController = useSlashCommandController({
+    input,
+    commands: mergedSlashCommands,
+    onExecuteBuiltin: (name) => {
+      onSlashBuiltinCommand?.(name);
+      setInput('');
+    },
+    onSelectTemplate: (name) => {
+      setInput(`/${name} `);
+    },
+  });
+
+  useEffect(() => {
+    if (!slashController.isOpen) {
+      return;
+    }
+    const container = slashDropdownRef.current;
+    const activeItem = slashItemRefs.current[slashController.activeIndex];
+    if (!container || !activeItem) {
+      return;
+    }
+    const nextScrollTop = getScrollTopForActiveItem({
+      containerScrollTop: container.scrollTop,
+      containerHeight: container.clientHeight,
+      itemOffsetTop: activeItem.offsetTop,
+      itemOffsetHeight: activeItem.offsetHeight,
+    });
+    if (nextScrollTop !== container.scrollTop) {
+      container.scrollTop = nextScrollTop;
+    }
+  }, [slashController.activeIndex, slashController.isOpen, slashController.filteredCommands.length]);
+
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
@@ -289,7 +354,7 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col overflow-hidden ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${slashController.isOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging
@@ -306,6 +371,31 @@ const SendBox: React.FC<{
         }}
         {...dragHandlers}
       >
+        {slashController.isOpen && (
+          <div ref={slashDropdownRef} className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-50 max-h-220px overflow-auto rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] shadow-lg p-6px'>
+            {slashController.filteredCommands.map((command, index) => (
+              <button
+                key={command.name}
+                type='button'
+                ref={(el) => {
+                  slashItemRefs.current[index] = el;
+                }}
+                className={`w-full text-left px-10px py-8px rounded-8px transition-all border border-solid ${slashController.activeIndex === index ? 'bg-fill-2 b-color-border-3 shadow-sm' : 'b-transparent hover:bg-fill-1 hover:b-color-border-2'}`}
+                onMouseEnter={() => slashController.setActiveIndex(index)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  slashController.onSelectByIndex(index);
+                }}
+              >
+                <div className='flex items-center justify-between gap-8px'>
+                  <div className='text-13px text-t-primary font-600'>/{command.name}</div>
+                  {command.hint && <div className='text-11px text-t-tertiary'>{command.hint}</div>}
+                </div>
+                <div className='text-12px text-t-secondary mt-2px'>{command.description}</div>
+              </button>
+            ))}
+          </div>
+        )}
         <div style={{ width: '100%' }}>
           {prefix}
           {context}
@@ -355,7 +445,7 @@ const SendBox: React.FC<{
             onBlur={handleInputBlur}
             {...compositionHandlers}
             autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-            onKeyDown={createKeyDownHandler(sendMessageHandler)}
+            onKeyDown={createKeyDownHandler(sendMessageHandler, slashController.onKeyDown)}
           ></Input.TextArea>
           {isSingleLine && (
             <div className='flex items-center gap-2'>

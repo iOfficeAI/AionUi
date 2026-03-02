@@ -1009,6 +1009,9 @@
       "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
       "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
       "no": "No (esc)"
+    },
+    "slash": {
+      "openFile": "Open file picker"
     }
   },
   "mcp": {
