@@ -4,6 +4,7 @@ import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
+import { createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -35,6 +36,9 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   content: '',
   uploadFile: [],
 });
+
+const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
+const EMPTY_UPLOAD_FILES: string[] = [];
 
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
@@ -104,21 +108,26 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   }, []);
 
-  const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
-    const { data, mutate } = useCodexSendBoxDraft(conversation_id);
-    const EMPTY: Array<string | FileOrFolderItem> = [];
-    const atPath = data?.atPath ?? EMPTY;
-    const uploadFile = data?.uploadFile ?? [];
-    const content = data?.content ?? '';
-    return {
-      atPath,
-      uploadFile,
-      content,
-      setAtPath: (val: Array<string | FileOrFolderItem>) => mutate((prev) => ({ ...(prev as CodexDraftData), atPath: val })),
-      setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), uploadFile: val })),
-      setContent: (val: string) => mutate((prev) => ({ ...(prev as CodexDraftData), content: val })),
-    };
-  })();
+  const { data: draftData, mutate: mutateDraft } = useCodexSendBoxDraft(conversation_id);
+  const atPath = draftData?.atPath ?? EMPTY_AT_PATH;
+  const uploadFile = draftData?.uploadFile ?? EMPTY_UPLOAD_FILES;
+  const content = draftData?.content ?? '';
+
+  const setAtPath = useCallback(
+    (val: Array<string | FileOrFolderItem>) => {
+      mutateDraft((prev) => ({ ...(prev as CodexDraftData), atPath: val }));
+    },
+    [draftData, mutateDraft]
+  );
+
+  const setUploadFile = createSetUploadFile(mutateDraft, draftData);
+
+  const setContent = useCallback(
+    (val: string) => {
+      mutateDraft((prev) => ({ ...(prev as CodexDraftData), content: val }));
+    },
+    [draftData, mutateDraft]
+  );
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
