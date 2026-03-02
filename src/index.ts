@@ -257,12 +257,10 @@ const createWindow = (): void => {
 
   // Listen to DevTools state changes and notify Renderer
   mainWindow.webContents.on('devtools-opened', () => {
-    console.log('[Main] DevTools opened event');
     ipcBridge.application.devToolsStateChanged.emit({ isOpen: true });
   });
 
   mainWindow.webContents.on('devtools-closed', () => {
-    console.log('[Main] DevTools closed event');
     ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
   });
 };
@@ -279,7 +277,6 @@ ipcBridge.application.isDevToolsOpened.provider(() => {
 ipcBridge.application.openDevTools.provider(() => {
   if (mainWindow) {
     const wasOpen = mainWindow.webContents.isDevToolsOpened();
-    console.log('[Main] DevTools before toggle:', wasOpen);
 
     if (wasOpen) {
       mainWindow.webContents.closeDevTools();
@@ -289,7 +286,6 @@ ipcBridge.application.openDevTools.provider(() => {
       // Open is async, wait for the event
       return new Promise((resolve) => {
         const onOpened = () => {
-          console.log('[Main] DevTools opened event fired');
           mainWindow.webContents.off('devtools-opened', onOpened);
           resolve(true);
         };
@@ -301,7 +297,6 @@ ipcBridge.application.openDevTools.provider(() => {
         setTimeout(() => {
           mainWindow.webContents.off('devtools-opened', onOpened);
           const isNowOpen = mainWindow.webContents.isDevToolsOpened();
-          console.log('[Main] DevTools after toggle (timeout):', isNowOpen);
           resolve(isNowOpen);
         }, 500);
       });

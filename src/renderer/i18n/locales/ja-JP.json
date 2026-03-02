@@ -564,6 +564,8 @@
     "lastCheck": "最終チェック",
     "healthCheckFailed": "ヘルスチェック失敗",
     "clearHealthStatus": "ヘルス状態をクリア",
+    "healthDataCleared": "ヘルス状態をクリアしました",
+    "healthCheckProbePrompt": "OK と返信してください",
     "responseTime": "応答時間",
     "apiKeyPlaceholder": "APIキーを入力、複数の場合は1行に1つずつ",
     "editApiKey": "API キーを編集",

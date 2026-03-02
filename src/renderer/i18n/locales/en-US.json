@@ -532,6 +532,8 @@
     "lastCheck": "Last Check",
     "healthCheckFailed": "Health Check Failed",
     "clearHealthStatus": "Clear Health Status",
+    "healthDataCleared": "Health data cleared",
+    "healthCheckProbePrompt": "Please reply with: OK",
     "responseTime": "Response Time",
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
     "pleaseEnterApiKey": "Please enter API Key",

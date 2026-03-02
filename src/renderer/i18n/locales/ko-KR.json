@@ -517,6 +517,8 @@
     "lastCheck": "마지막 확인",
     "healthCheckFailed": "상태 확인 실패",
     "clearHealthStatus": "상태 지우기",
+    "healthDataCleared": "상태 확인 데이터가 지워졌습니다",
+    "healthCheckProbePrompt": "OK로 응답해 주세요",
     "responseTime": "응답 시간",
     "pleaseEnterBaseUrlAndApiKey": "기본 URL과 API 키를 입력하세요",
     "pleaseEnterApiKey": "API 키를 입력하세요",

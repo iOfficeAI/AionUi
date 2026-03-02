@@ -535,6 +535,8 @@
     "lastCheck": "上次檢測",
     "healthCheckFailed": "健康檢測失敗",
     "clearHealthStatus": "清理測活狀態",
+    "healthDataCleared": "測活狀態已清理",
+    "healthCheckProbePrompt": "請回覆：OK",
     "responseTime": "耗時",
     "apiKeyPlaceholder": "請輸入 API Key，多個 Key 請每行一個",
     "editApiKey": "編輯 API Key",

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IProvider } from '@/common/storage';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
@@ -89,6 +90,8 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
   return platform.modelEnabled[model] !== false;
 };
 
+const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
+
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
@@ -105,24 +108,24 @@ const ModelModalContent: React.FC = () => {
 
   const saveModelConfig = (newData: IProvider[], success?: () => void) => {
     // 乐观更新：立即更新 UI
-    mutate(newData, false);
+    void mutate(newData, false);
 
     ipcBridge.mode.saveModelConfig
       .invoke(newData)
       .then((data) => {
         if (data.success) {
           // 保存成功后重新验证数据
-          mutate();
+          void mutate();
           success?.();
         } else {
           // 保存失败，回滚到服务器数据
-          mutate();
+          void mutate();
           message.error(data.msg);
         }
       })
       .catch((error) => {
         // 保存失败，回滚到服务器数据
-        mutate();
+        void mutate();
         console.error('Failed to save model config:', error);
         message.error(t('settings.saveModelConfigFailed'));
       });
@@ -184,24 +187,12 @@ const ModelModalContent: React.FC = () => {
     let unsubscribe: (() => void) | null = null;
 
     try {
-      // 确定对话类型和对应的 responseStream
-      let conversationType: 'gemini' | 'acp' | 'codex' = 'gemini';
-      let responseStream: any;
-
-      if (platform.platform?.includes('acp') || platform.platform?.includes('claude')) {
-        conversationType = 'acp';
-        responseStream = ipcBridge.acpConversation.responseStream;
-      } else if (platform.platform?.includes('codex') || platform.platform?.includes('openai')) {
-        conversationType = 'codex';
-        responseStream = ipcBridge.codexConversation.responseStream;
-      } else {
-        conversationType = 'gemini';
-        responseStream = ipcBridge.geminiConversation.responseStream;
-      }
+      // 测活走统一对话链路，与常规请求路径保持一致
+      const responseStream = ipcBridge.conversation.responseStream;
 
       // 1. 创建临时对话
       const conversation = await ipcBridge.conversation.create.invoke({
-        type: conversationType,
+        type: 'gemini',
         name: `[Health Check] ${platform.name} - ${modelName}`,
         model: {
           ...platform,
@@ -216,11 +207,17 @@ const ModelModalContent: React.FC = () => {
       tempConversationId = conversation.id;
 
       // 2. 设置响应监听器
-      const responsePromise = new Promise<{ success: boolean; error?: string }>((resolve, reject) => {
-        let hasResponse = false;
+      const responsePromise = new Promise<{ success: boolean; error?: string; latency: number }>((resolve, reject) => {
+        let hasResolved = false;
         let requestTraceData: { backend?: string; modelId?: string; provider?: string } | null = null;
 
-        const responseListener = (msg: any) => {
+        const resolveOnce = (result: { success: boolean; error?: string; latency: number }) => {
+          if (hasResolved) return;
+          hasResolved = true;
+          resolve(result);
+        };
+
+        const responseListener = (msg: IResponseMessage) => {
           if (msg.conversation_id !== tempConversationId) return;
 
           // 输出 request_trace 到 console（使用与对话相同的格式）
@@ -236,62 +233,57 @@ const ModelModalContent: React.FC = () => {
           }
 
           // 监听完成事件
-          if (msg.type === 'finish' || msg.type === 'local_finish') {
-            if (!hasResponse) {
-              hasResponse = true;
-              // 输出响应链路到 console
-              if (requestTraceData) {
-                const duration = Date.now() - startTime;
-                const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
-                console.log(`%c[Health Check]%c ✅ FINISH | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
-              }
-              resolve({ success: true });
+          if (msg.type === 'error') {
+            const duration = Date.now() - startTime;
+            // 输出错误链路到 console
+            if (requestTraceData) {
+              const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
+              console.log(`%c[Health Check]%c ❌ ERROR | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', msg.data);
             }
+            resolveOnce({ success: false, error: (msg.data as { error?: string } | undefined)?.error || 'Unknown error', latency: duration });
+            return;
           }
 
-          // 监听错误事件
-          if (msg.type === 'error') {
-            if (!hasResponse) {
-              hasResponse = true;
-              // 输出错误链路到 console
-              if (requestTraceData) {
-                const duration = Date.now() - startTime;
-                const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
-                console.log(`%c[Health Check]%c ❌ ERROR | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', msg.data);
-              }
-              resolve({ success: false, error: msg.data?.error || 'Unknown error' });
-            }
+          if (msg.type === 'start') {
+            return;
           }
+
+          // 以“首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
+          const duration = Date.now() - startTime;
+          if (requestTraceData) {
+            const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
+            console.log(`%c[Health Check]%c ✅ FIRST_RESPONSE | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
+          }
+          resolveOnce({ success: true, latency: duration });
         };
 
         unsubscribe = responseStream.on(responseListener);
 
-        // 3 分钟超时
+        // 首个响应超时（默认 30s）
         timeoutId = setTimeout(() => {
-          if (!hasResponse) {
-            hasResponse = true;
-            // 输出超时错误到 console
+          if (!hasResolved) {
+            hasResolved = true;
             if (requestTraceData) {
               const duration = Date.now() - startTime;
               const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
-              console.log(`%c[Health Check]%c ⏱️ TIMEOUT | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #faad14; font-weight: bold', 'color: inherit');
+              console.log(`%c[Health Check]%c ⏱️ FIRST_RESPONSE_TIMEOUT | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #faad14; font-weight: bold', 'color: inherit');
             }
-            reject(new Error('Health check timeout (3 minutes)'));
+            reject(new Error(`Health check timeout (${HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS / 1000}s to first response)`));
           }
-        }, 180000);
+        }, HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS);
       });
 
       // 3. 发送测试消息
       await ipcBridge.conversation.sendMessage.invoke({
         conversation_id: tempConversationId,
-        content: '介绍下你自己',
+        content: t('settings.healthCheckProbePrompt'),
       });
 
       // 4. 等待响应
       const result = await responsePromise;
 
       // 5. 更新健康状态
-      const latency = Date.now() - startTime;
+      const latency = result.latency;
 
       // 直接保存，不使用乐观更新，避免并发时互相覆盖
       try {
@@ -339,10 +331,11 @@ const ModelModalContent: React.FC = () => {
           duration: 3000,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
       Message.error({
-        content: `${platform.name} - ${modelName}: ${t('settings.healthCheckFailed')} - ${error.message || String(error)}`,
+        content: `${platform.name} - ${modelName}: ${t('settings.healthCheckFailed')} - ${errorMessage}`,
         duration: 5000,
       });
 
@@ -357,7 +350,7 @@ const ModelModalContent: React.FC = () => {
               status: 'unhealthy',
               lastCheck: Date.now(),
               latency,
-              error: error.message || String(error),
+              error: errorMessage,
             };
             return { ...item, modelHealth };
           }
@@ -393,7 +386,7 @@ const ModelModalContent: React.FC = () => {
     }));
     saveModelConfig(newData, () => {
       Message.success({
-        content: t('settings.healthDataCleared') || 'Health data cleared',
+        content: t('settings.healthDataCleared'),
         duration: 2000,
       });
     });
@@ -498,11 +491,7 @@ const ModelModalContent: React.FC = () => {
                             </span>
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
-                          <Switch
-                            size='small'
-                            checked={getProviderState(platform).checked}
-                            onChange={() => toggleProviderEnabled(platform)}
-                          />
+                          <Switch size='small' checked={getProviderState(platform).checked} onChange={() => toggleProviderEnabled(platform)} />
                           <Button size='mini' icon={<Plus size='14' />} onClick={() => addModelModalCtrl.open({ data: platform })} />
                           <Popconfirm title={t('settings.deleteAllModelConfirm')} onOk={() => removePlatform(platform.id)}>
                             <Button size='mini' icon={<Minus size='14' />} />
@@ -531,9 +520,17 @@ const ModelModalContent: React.FC = () => {
                                         <span>{healthStatus === 'healthy' ? '✅' : '❌'}</span>
                                         <span>{healthStatus === 'healthy' ? t('settings.modelHealthy') : t('settings.modelUnhealthy')}</span>
                                       </div>
-                                      {modelHealth?.latency && <div className='text-12px mt-4px'>{t('settings.responseTime')}: {modelHealth.latency}ms</div>}
+                                      {modelHealth?.latency && (
+                                        <div className='text-12px mt-4px'>
+                                          {t('settings.responseTime')}: {modelHealth.latency}ms
+                                        </div>
+                                      )}
                                       {modelHealth?.error && <div className='text-12px mt-4px'>{modelHealth.error}</div>}
-                                      {modelHealth?.lastCheck && <div className='text-12px mt-4px'>{t('settings.lastCheck')}: {new Date(modelHealth.lastCheck).toLocaleString()}</div>}
+                                      {modelHealth?.lastCheck && (
+                                        <div className='text-12px mt-4px'>
+                                          {t('settings.lastCheck')}: {new Date(modelHealth.lastCheck).toLocaleString()}
+                                        </div>
+                                      )}
                                     </div>
                                   }
                                 >
@@ -567,12 +564,7 @@ const ModelModalContent: React.FC = () => {
                             <div className='flex items-center gap-4px'>
                               {/* 心跳检测按钮 / Health check button */}
                               <Tooltip content={t('settings.healthCheck')}>
-                                <Button
-                                  size='mini'
-                                  icon={<Heartbeat theme='outline' size='16' />}
-                                  loading={healthCheckLoading[`${platform.id}-${model}`]}
-                                  onClick={() => performHealthCheck(platform, model)}
-                                />
+                                <Button size='mini' icon={<Heartbeat theme='outline' size='16' />} loading={healthCheckLoading[`${platform.id}-${model}`]} onClick={() => performHealthCheck(platform, model)} />
                               </Tooltip>
 
                               <Popconfirm

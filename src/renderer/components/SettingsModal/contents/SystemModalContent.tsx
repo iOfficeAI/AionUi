@@ -121,7 +121,6 @@ const SystemModalContent: React.FC = () => {
 
     // Listen to DevTools state changes
     const unsubscribe = ipcBridge.application.devToolsStateChanged.on((event) => {
-      console.log('[Renderer] DevTools state changed:', event.isOpen);
       setIsDevToolsOpen(event.isOpen);
     });
 
@@ -144,7 +143,6 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.application.openDevTools
       .invoke()
       .then((isOpen) => {
-        console.log('[DevTools] Toggle result:', isOpen, 'Type:', typeof isOpen);
         setIsDevToolsOpen(Boolean(isOpen));
       })
       .catch((error) => {
@@ -227,12 +225,7 @@ const SystemModalContent: React.FC = () => {
             </Form>
             <div className='w-full flex flex-col divide-y divide-border-2'>
               <PreferenceRow label={t('settings.devTools')}>
-                <Button
-                  size='small'
-                  type={isDevToolsOpen ? 'primary' : 'secondary'}
-                  onClick={handleToggleDevTools}
-                  className='shadow-md border-2 hover:shadow-lg transition-all'
-                >
+                <Button size='small' type={isDevToolsOpen ? 'primary' : 'secondary'} onClick={handleToggleDevTools} className='shadow-md border-2 hover:shadow-lg transition-all'>
                   {isDevToolsOpen ? t('settings.closeDevTools') : t('settings.openDevTools')}
                 </Button>
               </PreferenceRow>
