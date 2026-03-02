@@ -94,7 +94,10 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
 
   const handleGoUp = () => {
     if (directoryData.parentPath !== undefined) {
-      loadDirectory(directoryData.parentPath).catch((error) => console.error('Failed to load parent directory:', error));
+      // Handle '__ROOT__' as empty path to show drive list on Windows
+      // 处理 '__ROOT__' 为空路径，在 Windows 上显示驱动器列表
+      const targetPath = directoryData.parentPath === '__ROOT__' ? '' : directoryData.parentPath;
+      loadDirectory(targetPath).catch((error) => console.error('Failed to load parent directory:', error));
     }
   };
 
