@@ -881,6 +881,9 @@
       "yesAlwaysAllowTool": "是，始終允許來自伺服器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
       "yesAlwaysAllowServer": "是，始終允許來自伺服器 \"{{serverName}}\" 的所有工具",
       "no": "否 (esc)"
+    },
+    "slash": {
+      "openFile": "開啟檔案選擇器"
     }
   },
   "mcp": {

@@ -1006,6 +1006,9 @@
       "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
       "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
       "no": "否 (esc)"
+    },
+    "slash": {
+      "openFile": "打开文件选择器"
     }
   },
   "mcp": {

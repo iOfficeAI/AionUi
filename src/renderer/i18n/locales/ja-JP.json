@@ -910,6 +910,9 @@
       "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
       "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
       "no": "いいえ (esc)"
+    },
+    "slash": {
+      "openFile": "ファイル選択を開く"
     }
   },
   "mcp": {

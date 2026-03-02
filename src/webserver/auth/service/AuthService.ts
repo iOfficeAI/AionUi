@@ -310,6 +310,11 @@ export class AuthService {
         userId: this.normalizeUserId(decoded.userId),
       };
     } catch (error) {
+      // TokenExpiredError is expected when sessions naturally expire (24h TTL).
+      // Only log unexpected verification failures at error level.
+      if (error instanceof jwt.TokenExpiredError) {
+        return null;
+      }
       console.error('WebSocket token verification failed:', error);
       return null;
     }
