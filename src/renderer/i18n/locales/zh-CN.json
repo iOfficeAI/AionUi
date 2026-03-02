@@ -1006,6 +1006,9 @@
       "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
       "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
       "no": "否 (esc)"
+    },
+    "slash": {
+      "openFile": "打开文件选择器"
     }
   },
   "mcp": {
@@ -1284,7 +1287,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "让 Gemini CLI 决定最佳模型: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "让 Gemini CLI 决定最佳模型: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "让 Gemini CLI 决定最佳模型: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手动选择模型"
     }

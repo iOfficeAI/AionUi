@@ -28,6 +28,7 @@ export class TelegramPlugin extends BasePlugin {
   private readonly maxReconnectAttempts: number = 10;
   private readonly baseReconnectDelay: number = 1000; // 1 second
   private isPollingActive: boolean = false;
+  private pollingPromise: Promise<void> | null = null;
 
   // Track active users for status reporting
   private activeUsers: Set<string> = new Set();
@@ -470,7 +471,7 @@ export class TelegramPlugin extends BasePlugin {
       // - Webhook deletion (via deleteWebhook)
       // - Offset management for getUpdates
       // - AbortController for graceful shutdown
-      this.bot!.start({
+      this.pollingPromise = this.bot!.start({
         onStart: (botInfo) => {
           started = true;
           this.isPollingActive = true;
@@ -516,13 +517,56 @@ export class TelegramPlugin extends BasePlugin {
     }
 
     console.log('[TelegramPlugin] Stopping polling...');
+
+    // Create a timeout promise to prevent hanging
+    const shutdownTimeout = 5000; // 5 seconds
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    let timedOut = false;
+    const timeoutPromise = new Promise<void>((resolve) => {
+      timeoutId = setTimeout(() => {
+        timedOut = true;
+        this.isPollingActive = false;
+        this.pollingPromise = null;
+        console.warn('[TelegramPlugin] Stop polling timeout, forcing cleanup');
+        resolve();
+      }, shutdownTimeout);
+    });
+
     try {
-      await this.bot.stop();
-      this.isPollingActive = false;
-      console.log('[TelegramPlugin] Polling stopped successfully');
+      // Race between stop and timeout
+      await Promise.race([
+        (async () => {
+          // Call bot.stop() to signal grammY to stop
+          await this.bot!.stop();
+          this.isPollingActive = false;
+
+          // Wait for the polling promise to complete (bot.start() to resolve)
+          // This ensures all internal cleanup in grammY is finished
+          if (this.pollingPromise) {
+            await this.pollingPromise;
+            this.pollingPromise = null;
+          }
+        })(),
+        timeoutPromise,
+      ]);
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      if (timedOut) {
+        console.warn('[TelegramPlugin] Polling stop completed by timeout fallback');
+      } else {
+        console.log('[TelegramPlugin] Polling stopped successfully');
+      }
     } catch (error) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       console.error('[TelegramPlugin] Error stopping polling:', error);
       this.isPollingActive = false;
+      this.pollingPromise = null;
     }
   }
 

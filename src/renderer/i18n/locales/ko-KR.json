@@ -834,6 +834,9 @@
       "yesAlwaysAllowTool": "예, 서버 \"{{serverName}}\"의 도구 \"{{toolName}}\" 항상 허용",
       "yesAlwaysAllowServer": "예, 서버 \"{{serverName}}\"의 모든 도구 항상 허용",
       "no": "아니요 (esc)"
+    },
+    "slash": {
+      "openFile": "파일 선택기 열기"
     }
   },
   "mcp": {
@@ -1112,7 +1115,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "수동으로 모델 선택"
     }

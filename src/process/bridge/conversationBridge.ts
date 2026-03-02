@@ -401,6 +401,31 @@ export function initConversationBridge(): void {
     return { success: true };
   });
 
+  ipcBridge.conversation.getSlashCommands.provider(async ({ conversation_id }) => {
+    try {
+      const db = getDatabase();
+      const convResult = db.getConversation(conversation_id);
+      if (!convResult.success || !convResult.data) {
+        return { success: true, data: { commands: [] } };
+      }
+
+      const conversation = convResult.data;
+      if (conversation.type !== 'acp') {
+        return { success: true, data: { commands: [] } };
+      }
+
+      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager | undefined;
+      if (task?.type !== 'acp') {
+        return { success: true, data: { commands: [] } };
+      }
+
+      const commands = await task.loadAcpSlashCommands();
+      return { success: true, data: { commands } };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
   // 通用 sendMessage 实现 - 自动根据 conversation 类型分发
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
     console.log(`[conversationBridge] sendMessage called: conversation_id=${conversation_id}, msg_id=${other.msg_id}`);

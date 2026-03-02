@@ -1009,6 +1009,9 @@
       "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
       "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
       "no": "No (esc)"
+    },
+    "slash": {
+      "openFile": "Open file picker"
     }
   },
   "mcp": {
@@ -1287,7 +1290,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "Let Gemini CLI decide the best model for the task: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "Manually select a model"
     }
