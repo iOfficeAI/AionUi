@@ -89,6 +89,29 @@ const handleDeepLinkUrl = (url: string) => {
   ipcBridge.deepLink.received.emit(parsed);
 };
 
+// ============ Single Instance Lock ============
+// Acquire lock early so the second instance quits before doing unnecessary work.
+// When a second instance starts (e.g. from protocol URL), it sends its data
+// to the first instance via second-instance event, then quits.
+const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+const gotTheLock = app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
+    // Prefer additionalData (reliable on all platforms), fallback to argv scan
+    const deepLinkUrl = (additionalData as { deepLinkUrl?: string })?.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+    if (deepLinkUrl) {
+      handleDeepLinkUrl(deepLinkUrl);
+    }
+    // Focus existing window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
 if (process.platform === 'darwin' || process.platform === 'linux') {
@@ -429,7 +452,7 @@ const handleAppReady = async (): Promise<void> => {
   });
 };
 
-// ============ Protocol Registration & Single Instance ============
+// ============ Protocol Registration ============
 // Register aionui:// as the default protocol client
 if (process.defaultApp) {
   // Dev mode: need to pass execPath explicitly
@@ -449,28 +472,6 @@ app.on('open-url', (event, url) => {
     mainWindow.focus();
   }
 });
-
-// Single instance lock: ensure only one AionUI instance runs.
-// When a second instance starts (e.g. from protocol URL), it sends its data
-// to the first instance via second-instance event, then quits.
-const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
-    // Prefer additionalData (reliable on all platforms), fallback to argv scan
-    const deepLinkUrl = (additionalData as { deepLinkUrl?: string })?.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-    if (deepLinkUrl) {
-      handleDeepLinkUrl(deepLinkUrl);
-    }
-    // Focus existing window
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-}
 
 // Ensure we don't miss the ready event when running in CLI/WebUI mode
 void app

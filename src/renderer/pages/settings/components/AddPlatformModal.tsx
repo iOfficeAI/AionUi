@@ -60,6 +60,7 @@ const AddPlatformModal = ModalHOC<{
   const platformValue = Form.useWatch('platform', form);
   const baseUrl = Form.useWatch('baseUrl', form);
   const apiKey = Form.useWatch('apiKey', form);
+  const modelValue = Form.useWatch('model', form);
   const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
   const _bedrockRegion = Form.useWatch('bedrockRegion', form);
 
@@ -75,6 +76,13 @@ const AddPlatformModal = ModalHOC<{
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
+
+  // Auto-detect protocol when model changes (for new-api platforms)
+  useEffect(() => {
+    if (isNewApi && modelValue) {
+      setModelProtocol(detectNewApiProtocol(modelValue));
+    }
+  }, [modelValue, isNewApi]);
 
   // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
   // Calculate actual baseUrl (prefer user input, fallback to platform preset)
@@ -144,7 +152,7 @@ const AddPlatformModal = ModalHOC<{
         form.setFieldValue('platform', 'gemini');
       }
     }
-  }, [modalProps.visible]);
+  }, [modalProps.visible, deepLinkData]);
 
   useEffect(() => {
     if (platform?.includes('gemini')) {
@@ -392,15 +400,6 @@ const AddPlatformModal = ModalHOC<{
                 />
               }
               options={modelListState.data?.models || []}
-              onChange={
-                isNewApi
-                  ? (value: string) => {
-                      form.setFieldValue('model', value);
-                      // Auto-detect protocol based on model name
-                      setModelProtocol(detectNewApiProtocol(value));
-                    }
-                  : undefined
-              }
             />
           </Form.Item>
 

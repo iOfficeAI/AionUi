@@ -17,7 +17,7 @@ import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/mo
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { DEEP_LINK_ADD_PROVIDER_EVENT, type DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
+import { consumePendingDeepLink } from '@/renderer/hooks/useDeepLink';
 
 /**
  * 获取协议显示标签颜色
@@ -112,15 +112,12 @@ const ModelModalContent: React.FC = () => {
     },
   });
 
-  // Listen for deep-link add-provider events
+  // Consume pending deep-link data on mount (set by useDeepLink hook before navigation)
   useEffect(() => {
-    const handleDeepLink = (event: CustomEvent<DeepLinkAddProviderDetail>) => {
-      addPlatformModalCtrl.open({ deepLinkData: event.detail });
-    };
-    window.addEventListener(DEEP_LINK_ADD_PROVIDER_EVENT, handleDeepLink as EventListener);
-    return () => {
-      window.removeEventListener(DEEP_LINK_ADD_PROVIDER_EVENT, handleDeepLink as EventListener);
-    };
+    const pending = consumePendingDeepLink();
+    if (pending) {
+      addPlatformModalCtrl.open({ deepLinkData: pending });
+    }
   }, [addPlatformModalCtrl]);
 
   const [addModelModalCtrl, addModelModalContext] = AddModelModal.useModal({
