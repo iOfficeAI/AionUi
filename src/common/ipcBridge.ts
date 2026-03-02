@@ -310,6 +310,15 @@ export const document = {
   convert: bridge.buildProvider<import('./types/conversion').DocumentConversionResponse, import('./types/conversion').DocumentConversionRequest>('document.convert'),
 };
 
+// Deep link protocol handling / 深度链接协议处理
+export const deepLink = {
+  /** Emitted when app is opened via aionui:// protocol URL */
+  received: bridge.buildEmitter<{
+    action: string; // e.g. 'add-provider'
+    params: Record<string, string>; // parsed query params
+  }>('deep-link.received'),
+};
+
 // 窗口控制相关接口 / Window controls API
 export const windowControls = {
   minimize: bridge.buildProvider<void, void>('window-controls:minimize'),
