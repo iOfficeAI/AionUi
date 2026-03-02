@@ -17,8 +17,9 @@ const ChatConversationIndex: React.FC = () => {
     if (!id) return;
 
     // 切换会话时自动关闭预览面板，避免跨会话残留
-    // Ensure preview panel closes when switching conversations
-    if (previousConversationIdRef.current && previousConversationIdRef.current !== id) {
+    // Close preview on every conversation change, including initial mount
+    // (component may remount via React Router, resetting the ref to undefined)
+    if (previousConversationIdRef.current !== id) {
       closePreview();
     }
 

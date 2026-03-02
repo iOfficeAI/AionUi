@@ -270,9 +270,6 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
-    // 启用预览功能以支持 Gemini 3 等新模型
-    // Enable preview features to support Gemini 3 and other new models
-    previewFeatures: true,
     // Disable native SkillManager to prevent XML <available_skills> injection into system prompt
     // AionUi uses its own skill mechanism (AcpSkillManager) with plain-text index injection
     skillsSupport: false,

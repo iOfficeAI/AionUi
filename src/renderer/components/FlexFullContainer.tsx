@@ -16,7 +16,7 @@ const FlexFullContainer: React.FC<
   }>
 > = (props) => {
   return (
-    <div className={classNames('flex-1 relative', props.className)}>
+    <div className={classNames('flex-1 relative min-h-0', props.className)}>
       <div className={classNames('absolute size-full', props.containerClassName)}>{props.children}</div>
     </div>
   );

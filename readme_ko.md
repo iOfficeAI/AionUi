@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group3.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-group4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -194,8 +194,11 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
 > **설정:** AionUi 설정 → WebUI 설정 → Channel, Bot Token을 구성하세요.
 
 <p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
+
+<p align="center"><em>에이전트 원격 감시 및 제어 — Claude, Gemini, Codex. 브라우저나 휴대폰에서 Claude Code remote처럼 사용하세요.</em></p>
+
 
 > [원격 인터넷 접근 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
@@ -549,7 +552,7 @@ brew install aionui
 - [문제 보고](https://github.com/iOfficeAI/AionUi/issues) — 버그 및 기능 요청
 - [릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) — 최신 버전 받기
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
-- [WeChat 그룹](./resources/wechat_group3.png) — 중국어 커뮤니티
+- [WeChat 그룹](./resources/wx-group4.png) — 중국어 커뮤니티
 
 ### 개발 가이드
 

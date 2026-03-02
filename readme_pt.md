@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group3.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-group4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -194,8 +194,11 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
 > **Configuração:** AionUi Settings → WebUI Settings → Channel, configure o Bot Token.
 
 <p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
+
+<p align="center"><em>Controle e monitore seu agente remotamente — Claude, Gemini, Codex. Pelo navegador ou celular, como o Claude Code remote.</em></p>
+
 
 > [Tutorial de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
@@ -549,7 +552,7 @@ brew install aionui
 - [Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) — bugs e solicitações de recursos
 - [Atualizações de lançamento](https://github.com/iOfficeAI/AionUi/releases) — obtenha a última versão
 - [Comunidade Discord](https://discord.gg/2QAwJn7Egx) — comunidade em inglês
-- [Grupo WeChat](./resources/wechat_group3.png) — comunidade chinesa
+- [Grupo WeChat](./resources/wx-group4.png) — comunidade chinesa
 
 ### Guia de Desenvolvimento
 
