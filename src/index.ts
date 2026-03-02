@@ -58,6 +58,8 @@ const parseDeepLinkUrl = (url: string): { action: string; params: Record<string,
       } catch {
         // Ignore decode errors
       }
+      // Remove raw base64 blob so it isn't forwarded to the renderer
+      delete params.data;
     }
 
     return { action, params };
@@ -74,21 +76,16 @@ let pendingDeepLinkUrl: string | null = process.argv.find((arg) => arg.startsWit
  * If the window isn't ready yet, queue it.
  */
 const handleDeepLinkUrl = (url: string) => {
-  console.log('[DeepLink] handleDeepLinkUrl called with:', url);
   const parsed = parseDeepLinkUrl(url);
-  if (!parsed) {
-    console.log('[DeepLink] Failed to parse URL');
-    return;
-  }
-  console.log('[DeepLink] Parsed:', JSON.stringify(parsed));
+  if (!parsed) return;
 
   if (!mainWindow || mainWindow.isDestroyed()) {
-    console.log('[DeepLink] Window not ready, queuing URL');
+    // Window not ready yet – last-write-wins: only the most recent deep link is kept,
+    // which is intentional since the user can only act on one at a time.
     pendingDeepLinkUrl = url;
     return;
   }
 
-  console.log('[DeepLink] Emitting to renderer');
   ipcBridge.deepLink.received.emit(parsed);
 };
 
@@ -266,6 +263,8 @@ const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
+    show: false, // Hide until CSS is loaded to prevent FOUC
+    backgroundColor: '#ffffff',
     autoHideMenuBar: true,
     // Set icon for Windows/Linux in development mode
     ...(devIcon && process.platform !== 'darwin' ? { icon: devIcon } : {}),
@@ -281,6 +280,18 @@ const createWindow = (): void => {
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
+
+  // Show window after page and CSS are fully loaded to prevent FOUC
+  const showWindow = () => {
+    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  };
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(showWindow, 200);
+  });
+  // Fallback: show window after 3s even if did-finish-load doesn't fire
+  setTimeout(showWindow, 3000);
 
   initMainAdapterWithWindow(mainWindow);
   setupApplicationMenu();
@@ -429,7 +440,6 @@ if (process.defaultApp) {
 
 // macOS: handle aionui:// URLs via the open-url event
 app.on('open-url', (event, url) => {
-  console.log('[DeepLink] open-url event fired:', url);
   event.preventDefault();
   handleDeepLinkUrl(url);
   // Focus existing window so user sees the result
@@ -449,7 +459,6 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
-    console.log('[DeepLink] second-instance event fired, argv:', argv.slice(-2), 'additionalData:', additionalData);
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
     const deepLinkUrl = (additionalData as { deepLinkUrl?: string })?.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
     if (deepLinkUrl) {
