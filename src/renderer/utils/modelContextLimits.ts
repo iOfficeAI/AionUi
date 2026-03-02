@@ -9,6 +9,7 @@
  */
 const MODEL_CONTEXT_LIMITS: Record<string, number> = {
   // Gemini 系列
+  'gemini-3.1-pro-preview': 1_048_576,
   'gemini-3-pro-preview': 1_048_576,
   'gemini-3-flash-preview': 1_048_576,
   'gemini-3-pro-image-preview': 65_536,
