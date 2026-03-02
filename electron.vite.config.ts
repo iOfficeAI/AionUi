@@ -99,6 +99,14 @@ export default defineConfig(({ mode }) => {
 
     renderer: {
       base: './',
+      server: {
+        // Explicit HMR config so Vite client connects directly to the Vite dev server,
+        // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload)
+        hmr: {
+          host: 'localhost',
+          port: 5173,
+        },
+      },
       resolve: {
         alias: {
           '@': resolve('src'),

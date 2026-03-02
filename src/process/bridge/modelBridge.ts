@@ -92,6 +92,34 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: minimaxModels } };
     }
 
+    // 如果是 DashScope Coding Plan，验证 API Key 后返回支持的模型列表
+    // DashScope Coding Plan does not provide /v1/models endpoint (returns 404)
+    // Validate API key via /chat/completions probe, then return hardcoded list
+    if (base_url && isDashScopeCodingAPI(base_url)) {
+      const codingPlanModels = ['qwen3-coder-plus', 'qwen3-coder-next', 'qwen3.5-plus', 'qwen3-max-2026-01-23', 'glm-4.7', 'glm-5', 'MiniMax-M2.5', 'kimi-k2.5'];
+
+      // Validate the API key by probing the chat/completions endpoint
+      if (actualApiKey) {
+        try {
+          const probeUrl = `${base_url.replace(/\/+$/, '')}/chat/completions`;
+          const probeResponse = await fetch(probeUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${actualApiKey}` },
+            body: JSON.stringify({ model: codingPlanModels[0], messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }),
+          });
+          if (probeResponse.status === 401) {
+            const errorData = await probeResponse.json().catch(() => ({}));
+            const errorMsg = errorData?.error?.message || errorData?.message || 'Invalid API key or token expired';
+            return { success: false, msg: errorMsg };
+          }
+        } catch {
+          // Network error during probe - still return model list, user will see error when chatting
+        }
+      }
+
+      return { success: true, data: { mode: codingPlanModels } };
+    }
+
     // 如果是 Anthropic/Claude 平台，使用 Anthropic API 获取模型列表
     // For Anthropic/Claude platform, use Anthropic API to fetch models
     if (platform?.includes('anthropic') || platform?.includes('claude')) {
@@ -960,6 +988,23 @@ function isMiniMaxAPI(baseUrl: string): boolean {
     // 精确匹配 minimaxi.com、minimax.io 或其子域名
     // Exact match minimaxi.com, minimax.io or their subdomains
     return hostname === 'minimaxi.com' || hostname.endsWith('.minimaxi.com') || hostname === 'minimax.io' || hostname.endsWith('.minimax.io');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 检测是否为 DashScope Coding Plan API
+ * Check if it's DashScope Coding Plan API (coding.dashscope.aliyuncs.com or coding-intl.dashscope.aliyuncs.com)
+ *
+ * DashScope Coding Plan 不提供 /v1/models 端点（返回 404），需要使用预设模型列表
+ * DashScope Coding Plan does not provide /v1/models endpoint (returns 404), needs hardcoded model list
+ */
+function isDashScopeCodingAPI(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    const hostname = url.hostname.toLowerCase();
+    return hostname === 'coding.dashscope.aliyuncs.com' || hostname === 'coding-intl.dashscope.aliyuncs.com';
   } catch {
     return false;
   }
