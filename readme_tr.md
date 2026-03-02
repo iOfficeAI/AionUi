@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group3.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-group4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -194,8 +194,11 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
 > **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
 
 <p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
+
+<p align="center"><em>Agent'ınızı uzaktan kontrol edin ve izleyin — Claude, Gemini, Codex. Tarayıcı veya telefondan, Claude Code remote gibi.</em></p>
+
 
 > [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
@@ -549,7 +552,7 @@ brew install aionui
 - [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
 - [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](./resources/wechat_group3.png) — Çince topluluk
+- [WeChat Grubu](./resources/wx-group4.png) — Çince topluluk
 
 ### Geliştirme Kılavuzu
 

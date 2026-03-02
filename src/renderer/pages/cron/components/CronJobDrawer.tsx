@@ -5,6 +5,7 @@
  */
 
 import type { ICronJob } from '@/common/ipcBridge';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { Drawer, Form, Input, Switch, Message, Button, Popconfirm } from '@arco-design/web-react';
 import { AlarmClock, DeleteOne } from '@icon-park/react';
 import React, { useState, useEffect, useMemo } from 'react';
@@ -24,6 +25,8 @@ interface CronJobDrawerProps {
 
 const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, onSave, onDelete }) => {
   const { t } = useTranslation();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -85,7 +88,9 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
 
   return (
     <Drawer
-      width={400}
+      placement={isMobile ? 'bottom' : 'right'}
+      width={isMobile ? 'calc(100vw - 12px)' : 400}
+      height={isMobile ? 'min(84vh, 760px)' : undefined}
       title={
         <div className='inline-flex items-center gap-8px'>
           <AlarmClock theme='outline' size={18} strokeWidth={4} fill='currentColor' className='flex items-center' />
@@ -94,6 +99,11 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
       }
       visible={visible}
       onCancel={onClose}
+      bodyStyle={{
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: isMobile ? '14px 14px 18px' : undefined,
+      }}
       footer={
         <div className='flex justify-between'>
           <Button type='primary' shape='round' loading={saving} onClick={handleSave}>
@@ -112,7 +122,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
         <div className='bg-2 rd-16px px-16px py-16px'>
           <div className='flex items-center justify-between'>
             <span className='text-14px'>{t('cron.drawer.name')}</span>
-            <span className='text-14px font-medium'>{job.name}</span>
+            <span className='text-14px font-medium max-w-[60%] text-right break-words'>{job.name}</span>
           </div>
         </div>
 
@@ -142,12 +152,12 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
         <div className='bg-2 rd-16px px-16px py-16px space-y-12px'>
           <div className='flex items-center justify-between'>
             <span className='text-14px'>{t('cron.drawer.schedule')}</span>
-            <span className='text-14px font-medium'>{job.schedule.description}</span>
+            <span className='text-14px font-medium max-w-[62%] text-right break-words'>{job.schedule.description}</span>
           </div>
           {nextRunTime && (
             <div className='flex items-center justify-between'>
               <span className='text-14px'>{t('cron.drawer.nextRun')}</span>
-              <span className='text-14px font-medium'>{nextRunTime}</span>
+              <span className='text-14px font-medium max-w-[62%] text-right break-words'>{nextRunTime}</span>
             </div>
           )}
         </div>

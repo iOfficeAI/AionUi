@@ -47,6 +47,7 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
 
   const handleConversationClick = useCallback(
     (conversation: TChatConversation) => {
+      setDropdownVisibleId(null);
       if (batchMode) {
         toggleSelectedConversation(conversation);
         return;
@@ -238,15 +239,9 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
     setDropdownVisibleId(visible ? conversationId : null);
   }, []);
 
-  const handleOpenMenu = useCallback(
-    (conversation: TChatConversation) => {
-      if (id !== conversation.id) {
-        handleConversationClick(conversation);
-      }
-      setDropdownVisibleId(conversation.id);
-    },
-    [handleConversationClick, id]
-  );
+  const handleOpenMenu = useCallback((conversation: TChatConversation) => {
+    setDropdownVisibleId(conversation.id);
+  }, []);
 
   return {
     renameModalVisible,

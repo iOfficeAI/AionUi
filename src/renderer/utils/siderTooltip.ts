@@ -1,3 +1,5 @@
+import type { TooltipProps } from '@arco-design/web-react';
+
 /**
  * 侧边栏内 Tooltip 的挂载容器：将 popup 挂到左侧边栏根节点，
  * 这样在收起/关闭侧边栏时 tooltip 会随侧边栏一起隐藏，避免残留在屏幕遮挡内容。
@@ -18,11 +20,13 @@ export const cleanupSiderTooltips = () => {
   document.querySelectorAll(`.${SIDER_TOOLTIP_CLASS}, .arco-tooltip-popup`).forEach((node) => node.remove());
 };
 
-export const getSiderTooltipProps = (enabled = false) => {
+type SiderTooltipProps = Pick<TooltipProps, 'className' | 'trigger' | 'disabled' | 'unmountOnExit' | 'popupHoverStay' | 'popupVisible' | 'getPopupContainer'>;
+
+export const getSiderTooltipProps = (enabled = false): SiderTooltipProps => {
   const disabled = !enabled || isNoHoverDevice();
   return {
     className: SIDER_TOOLTIP_CLASS,
-    trigger: disabled ? [] : 'hover',
+    trigger: 'hover',
     disabled,
     unmountOnExit: true,
     popupHoverStay: false,
