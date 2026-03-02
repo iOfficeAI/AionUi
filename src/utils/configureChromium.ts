@@ -7,7 +7,6 @@
 import { app } from 'electron';
 import http from 'http';
 import * as fs from 'fs';
-import * as net from 'net';
 import * as path from 'path';
 import os from 'os';
 
@@ -39,7 +38,7 @@ if (isWebUI || isResetPassword) {
 // Chrome DevTools Protocol (CDP) — enable remote debugging
 // so chrome-devtools-mcp and other CDP clients can connect to this Electron app.
 //
-// Default port: 9223 (avoids conflict with common CDP port 9222).
+// Default port: 9230 (avoids conflict with common CDP ports).
 // Override via AIONUI_CDP_PORT env variable. Set to "0" to disable.
 //
 // Configuration file: userData/cdp.config.json
@@ -51,9 +50,9 @@ if (isWebUI || isResetPassword) {
 // Registry file: ~/.aionui-cdp-registry.json
 // ---------------------------------------------------------------------------
 
-const DEFAULT_CDP_PORT = 9230;
-const CDP_PORT_RANGE_START = 9230;
-const CDP_PORT_RANGE_END = 9250;
+export const DEFAULT_CDP_PORT = 9230;
+export const CDP_PORT_RANGE_START = 9230;
+export const CDP_PORT_RANGE_END = 9250;
 const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
@@ -61,7 +60,7 @@ const CDP_CONFIG_FILE = 'cdp.config.json';
 export interface CdpConfig {
   /** Whether CDP is enabled (default: true in dev mode, false in production) */
   enabled?: boolean;
-  /** Preferred port number (default: 9223) */
+  /** Preferred port number (default: 9230) */
   port?: number;
 }
 
@@ -129,102 +128,25 @@ function pruneRegistry(): CdpRegistryEntry[] {
   return alive;
 }
 
-/**
- * Check if a port has an existing TCP listener (async version).
- * Uses net.connect with immediate error handling.
- * Returns true if the port is available (no listener).
- * @deprecated Use isPortAvailableSync for pre-app.ready usage
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isPortAvailable(port: number): boolean {
-  return new Promise<boolean>((resolve) => {
-    const socket = new net.Socket();
-    const timeout = setTimeout(() => {
-      socket.destroy();
-      resolve(true); // Timeout = port available
-    }, 200);
-
-    socket.once('connect', () => {
-      clearTimeout(timeout);
-      socket.destroy();
-      resolve(false); // Connected = port in use
-    });
-
-    socket.once('error', () => {
-      clearTimeout(timeout);
-      socket.destroy();
-      resolve(true); // Error = port available
-    });
-
-    socket.connect(port, '127.0.0.1');
-  }) as unknown as boolean; // Sync cast for pre-app.ready usage
-}
-
-/**
- * Synchronous version for use before app.ready when event loop isn't fully operational.
- * Uses a blocking approach with net.Socket.
- */
-function isPortAvailableSync(port: number): boolean {
-  let available = true;
-  const socket = new net.Socket();
-
-  // Set very short timeout
-  socket.setTimeout(100);
-
-  socket.once('connect', () => {
-    available = false;
-    socket.destroy();
-  });
-
-  socket.once('error', () => {
-    available = true;
-  });
-
-  socket.once('timeout', () => {
-    socket.destroy();
-  });
-
-  try {
-    socket.connect(port, '127.0.0.1');
-    // Give it a brief moment to determine availability
-    const start = Date.now();
-    while (Date.now() - start < 150) {
-      // Spin briefly to allow the connection attempt to complete
-    }
-    socket.destroy();
-  } catch {
-    available = true;
-  }
-
-  return available;
-}
-
-/** Find the first available port not occupied by a live registry entry or system-level process. */
+/** Find the first available port not occupied by a live registry entry. */
 function findAvailablePort(preferredPort: number): number {
   const liveEntries = pruneRegistry();
   const usedPorts = new Set(liveEntries.map((e) => e.port));
 
-  console.log(`[CDP] Checking port availability, preferred: ${preferredPort}`);
-
-  // Try the preferred port first
-  if (!usedPorts.has(preferredPort) && isPortAvailableSync(preferredPort)) {
-    console.log(`[CDP] Port ${preferredPort} is available`);
+  if (!usedPorts.has(preferredPort)) {
     return preferredPort;
   }
 
-  console.log(`[CDP] Port ${preferredPort} is occupied, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
+  console.log(`[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
 
-  // Scan the port range for an available one
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
-    if (p === preferredPort) continue; // Already checked
-    if (!usedPorts.has(p) && isPortAvailableSync(p)) {
-      console.log(`[CDP] Found available port: ${p}`);
+    if (!usedPorts.has(p)) {
+      console.log(`[CDP] Found available port from registry: ${p}`);
       return p;
     }
   }
 
-  // All ports in range occupied — fall back to preferred and let Electron handle the conflict
-  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are occupied, trying ${preferredPort}`);
+  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`);
   return preferredPort;
 }
 
@@ -295,14 +217,14 @@ export function saveCdpConfig(config: CdpConfig): void {
  * Resolve CDP port from environment variable.
  * Returns null if explicitly disabled via env.
  */
-function resolveCdpPortFromEnv(): number | null {
+function resolveCdpPortFromEnv(): number | null | undefined {
   const envVal = process.env.AIONUI_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return null;
   if (envVal) {
     const parsed = Number(envVal);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
-  return undefined as unknown as number | null; // undefined means "not set"
+  return undefined;
 }
 
 /**
@@ -310,23 +232,24 @@ function resolveCdpPortFromEnv(): number | null {
  * Priority: env variable > config file > default (dev mode: true, production: false)
  */
 function shouldEnableCdp(config: CdpConfig): boolean {
-  // Environment variable takes highest priority
   const envVal = process.env.AIONUI_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return false;
   if (envVal) return true;
 
-  // Config file setting
+  if (app.isPackaged) {
+    return false;
+  }
+
   if (config.enabled !== undefined) {
     return config.enabled;
   }
 
-  // Default: enabled in dev mode, disabled in production
-  return !app.isPackaged;
+  return true;
 }
 
 /**
  * Determine preferred CDP port.
- * Priority: env variable > config file > default (9223)
+ * Priority: env variable > config file > default (9230)
  */
 function getPreferredPort(config: CdpConfig): number {
   // Environment variable takes highest priority

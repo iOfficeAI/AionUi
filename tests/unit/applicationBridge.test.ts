@@ -95,11 +95,8 @@ describe('applicationBridge CDP functionality', () => {
 
   describe('CDP IPC handlers', () => {
     it('should register getCdpStatus handler', async () => {
-      // Import and initialize
-      await import('@/process/bridge/applicationBridge');
-
-      // The handler should be registered (we test that the module loads without error)
-      expect(true).toBe(true);
+      const mod = await import('@/process/bridge/applicationBridge');
+      expect(mod.initApplicationBridge).toBeTypeOf('function');
     });
   });
 });
