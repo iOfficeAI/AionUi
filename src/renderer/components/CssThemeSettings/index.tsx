@@ -37,6 +37,10 @@ const normalizeUserThemes = (themes: ICssTheme[]): { normalized: ICssTheme[]; up
   return { normalized, updated };
 };
 
+const dispatchCustomCssUpdated = (css: string) => {
+  window.dispatchEvent(new CustomEvent('custom-css-updated', { detail: { customCss: css } }));
+};
+
 /**
  * CSS 主题设置组件 / CSS Theme Settings Component
  * 用于管理和切换 CSS 皮肤主题 / For managing and switching CSS skin themes
@@ -70,9 +74,21 @@ const CssThemeSettings: React.FC = () => {
         // 合并预设主题和用户主题 / Merge preset themes with user themes
         const allThemes = [...normalizedPresets, ...normalized.filter((t) => !t.isPreset)];
 
+        const resolvedActiveId = activeId || DEFAULT_THEME_ID;
+        const activeTheme = allThemes.find((theme) => theme.id === resolvedActiveId);
+        const expectedCss = activeTheme?.css || '';
+
         setThemes(allThemes);
         // 如果没有保存的主题 ID，默认选择 default-theme / Default to default-theme if no saved theme ID
-        setActiveThemeId(activeId || DEFAULT_THEME_ID);
+        setActiveThemeId(resolvedActiveId);
+
+        // Self-heal potential split-brain state (activeThemeId != customCss) caused by partial IPC write failures.
+        const savedCustomCss = (await ConfigStorage.get('customCss')) || '';
+        if (savedCustomCss !== expectedCss) {
+          await ConfigStorage.set('customCss', expectedCss);
+        }
+        // Ensure current page visuals always align with the selected theme after loading settings.
+        dispatchCustomCssUpdated(expectedCss);
       } catch (error) {
         console.error('Failed to load CSS themes:', error);
       }
@@ -83,30 +99,51 @@ const CssThemeSettings: React.FC = () => {
   /**
    * 应用主题 CSS / Apply theme CSS
    */
-  const applyThemeCss = useCallback((css: string) => {
-    // 更新 customCss 存储并触发事件 / Update customCss storage and dispatch event
-    void ConfigStorage.set('customCss', css).catch((err) => {
-      console.error('Failed to save custom CSS:', err);
-    });
-    window.dispatchEvent(
-      new CustomEvent('custom-css-updated', {
-        detail: { customCss: css },
-      })
-    );
-  }, []);
+  // Serial queue to process theme changes in strict order without drops
+  const applyQueue = React.useRef<Promise<void>>(Promise.resolve());
 
+  const applyThemeCss = useCallback((css: string, themeId: string) => {
+    const task = async () => {
+      try {
+        // Queued Concurrent Writes: Not strictly atomic, but eliminates client-side async interleaving.
+        // True atomicity would require a single RPC/key batch in the main process.
+        await Promise.all([ConfigStorage.set('customCss', css), ConfigStorage.set('css.activeThemeId', themeId)]);
+
+        // Pessimistic UI Update - only updates if backend storage succeeded completely
+        setActiveThemeId(themeId);
+        dispatchCustomCssUpdated(css);
+      } catch (error) {
+        console.error('Failed to apply theme (IPC/Storage Error). Initiating source-of-truth recovery:', error);
+
+        // Recover state unconditionally from what is actually in storage
+        try {
+          const realId = (await ConfigStorage.get('css.activeThemeId')) || DEFAULT_THEME_ID;
+          const realCss = (await ConfigStorage.get('customCss')) || '';
+
+          // Unconditionally align UI state with the real storage state
+          setActiveThemeId(realId);
+          dispatchCustomCssUpdated(realCss);
+        } catch (syncError) {
+          console.error('Fallback sync failed:', syncError);
+        }
+        throw error;
+      }
+    };
+
+    applyQueue.current = applyQueue.current.then(task, task);
+    return applyQueue.current;
+  }, []);
   /**
    * 选择主题 / Select theme
    */
   const handleSelectTheme = useCallback(
     async (theme: ICssTheme) => {
       try {
-        setActiveThemeId(theme.id);
-        await ConfigStorage.set('css.activeThemeId', theme.id);
-        applyThemeCss(theme.css);
+        // Use queued, best-effort write function
+        await applyThemeCss(theme.css, theme.id);
         Message.success(t('settings.cssTheme.applied', { name: theme.name }));
       } catch (error) {
-        console.error('Failed to apply theme:', error);
+        // applyThemeCss internally handles the UI state recovery now.
         Message.error(t('settings.cssTheme.applyFailed'));
       }
     },
@@ -188,9 +225,8 @@ const CssThemeSettings: React.FC = () => {
 
             // 如果删除的是当前激活主题，清除激活状态 / If deleting active theme, clear active state
             if (activeThemeId === themeId) {
-              await ConfigStorage.set('css.activeThemeId', '');
-              setActiveThemeId('');
-              applyThemeCss('');
+              // 删除操作也使用强一致性的状态重置 / Use strongly consistent state reset for delete too
+              await applyThemeCss('', '');
             }
 
             setThemes(updatedThemes);

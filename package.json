@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.8.19",
+  "version": "1.8.20",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": "./out/main/index.js",
   "engines": {
@@ -26,6 +26,8 @@
     "build-deb": "node scripts/build-with-builder.js auto --linux",
     "build-mac:arm64": "node scripts/build-with-builder.js arm64 --mac --arm64",
     "build-mac:x64": "node scripts/build-with-builder.js x64 --mac --x64",
+    "build-win:arm64": "node scripts/build-with-builder.js arm64 --win --arm64",
+    "build-win:x64": "node scripts/build-with-builder.js x64 --win --x64",
     "build": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
     "lint": "eslint --quiet --ext .ts,.tsx .",
     "lint:fix": "eslint --ext .ts,.tsx . --fix",

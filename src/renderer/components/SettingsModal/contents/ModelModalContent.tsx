@@ -10,7 +10,7 @@ import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
@@ -19,6 +19,7 @@ import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/mo
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { consumePendingDeepLink } from '@/renderer/hooks/useDeepLink';
 
 /**
  * 获取协议显示标签颜色
@@ -399,6 +400,14 @@ const ModelModalContent: React.FC = () => {
       updatePlatform(platform, () => addPlatformModalCtrl.close());
     },
   });
+
+  // Consume pending deep-link data on mount (set by useDeepLink hook before navigation)
+  useEffect(() => {
+    const pending = consumePendingDeepLink();
+    if (pending) {
+      addPlatformModalCtrl.open({ deepLinkData: pending });
+    }
+  }, [addPlatformModalCtrl]);
 
   const [addModelModalCtrl, addModelModalContext] = AddModelModal.useModal({
     onSubmit(platform) {

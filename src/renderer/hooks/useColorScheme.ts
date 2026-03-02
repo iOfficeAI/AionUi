@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from 'react';
 export type ColorScheme = 'default';
 
 const DEFAULT_COLOR_SCHEME: ColorScheme = 'default';
+const COLOR_SCHEME_CACHE_KEY = '__aionui_colorScheme';
 
 /**
  * Initialize color scheme immediately when module loads
@@ -22,6 +23,11 @@ const initColorScheme = async () => {
     const scheme = (await ConfigStorage.get('colorScheme')) as ColorScheme;
     const initialScheme = scheme || DEFAULT_COLOR_SCHEME;
     document.documentElement.setAttribute('data-color-scheme', initialScheme);
+    try {
+      localStorage.setItem(COLOR_SCHEME_CACHE_KEY, initialScheme);
+    } catch (_e) {
+      /* noop */
+    }
     return initialScheme;
   } catch (error) {
     console.error('Failed to load initial color scheme:', error);
@@ -49,6 +55,11 @@ const useColorScheme = (): [ColorScheme, (scheme: ColorScheme) => Promise<void>]
    */
   const applyColorScheme = useCallback((newScheme: ColorScheme) => {
     document.documentElement.setAttribute('data-color-scheme', newScheme);
+    try {
+      localStorage.setItem(COLOR_SCHEME_CACHE_KEY, newScheme);
+    } catch (_e) {
+      /* noop */
+    }
   }, []);
 
   /**
