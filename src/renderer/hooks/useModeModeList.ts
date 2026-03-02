@@ -21,7 +21,7 @@ type GeminiModeListOptions = {
 };
 
 const defaultGeminiModeDescriptions: GeminiModeDescriptions = {
-  autoGemini3: 'Let Gemini CLI decide the best model for the task: gemini-3.1-pro, gemini-3-flash',
+  autoGemini3: 'Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash',
   autoGemini25: 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash',
   manual: 'Manually select a model',
 };
@@ -38,7 +38,7 @@ export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOp
       label: 'Auto (Gemini 3)',
       value: 'auto', // Maps to PREVIEW_GEMINI_MODEL_AUTO in config.ts
       description: descriptions.autoGemini3,
-      modelHint: 'gemini-3.1-pro, gemini-3-flash',
+      modelHint: 'gemini-3.1-pro-preview, gemini-3-flash',
     },
     {
       label: 'Auto (Gemini 2.5)',
