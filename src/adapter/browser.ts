@@ -133,6 +133,12 @@ if (win.electronAPI) {
           // Close the socket and redirect to login page
           socket?.close();
 
+          // 已在登录页则不再重定向，防止无限刷新循环
+          // Skip redirect if already on login page to prevent infinite reload loop
+          if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
+            return;
+          }
+
           // 短暂延迟后跳转到登录页，以便显示 UI 反馈
           // Redirect to login page after a short delay to show any UI feedback
           setTimeout(() => {
@@ -163,6 +169,11 @@ if (win.electronAPI) {
         if (reconnectTimer !== null) {
           window.clearTimeout(reconnectTimer);
           reconnectTimer = null;
+        }
+        // 已在登录页则不再重定向，防止无限刷新循环
+        // Skip redirect if already on login page to prevent infinite reload loop
+        if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
+          return;
         }
         setTimeout(() => {
           window.location.href = '/login';
