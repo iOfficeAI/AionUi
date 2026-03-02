@@ -29,7 +29,7 @@ const CodexChat: React.FC<{
   }, [workspace]);
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'codex' }}>
-      <div className='flex-1 flex flex-col px-20px'>
+      <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>

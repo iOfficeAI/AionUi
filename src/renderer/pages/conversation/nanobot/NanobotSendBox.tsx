@@ -197,7 +197,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     emitter.emit('nanobot.selected.file.clear');
     const currentAtPath = [...atPath];
     const currentUploadFile = [...uploadFile];
@@ -295,13 +296,9 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
       <SendBox
         value={content}
-        onChange={(val) => {
-          if (!aiProcessing) {
-            setContent(val);
-          }
-        }}
+        onChange={setContent}
         loading={aiProcessing}
-        disabled={aiProcessing}
+        disabled={false}
         className='z-10'
         placeholder={
           aiProcessing

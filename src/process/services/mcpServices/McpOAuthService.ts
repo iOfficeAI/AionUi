@@ -144,7 +144,7 @@ export class McpOAuthService {
       }
 
       // 执行 OAuth 认证流程
-      await this.oauthProvider.authenticate(server.name, config, url, this.eventEmitter);
+      await this.oauthProvider.authenticate(server.name, config, url);
 
       console.log(`[McpOAuthService] OAuth login successful for ${server.name}`);
       return { success: true };

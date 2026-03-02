@@ -5,7 +5,9 @@
  */
 
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -39,6 +41,8 @@ const SendBox: React.FC<{
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
 }> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix }) => {
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
@@ -48,6 +52,7 @@ const SendBox: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mobileUserFocusIntentUntilRef = useRef(0);
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
 
@@ -82,6 +87,15 @@ const SendBox: React.FC<{
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // 移动端挂载后主动清除焦点，拦截路由切换导致的非用户触发聚焦
+  useEffect(() => {
+    if (!isMobile) return;
+    const timer = setTimeout(() => {
+      blurActiveElement();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isMobile]);
 
   // 检测是否单行
   // Detect whether to use single-line or multi-line mode
@@ -189,10 +203,24 @@ const SendBox: React.FC<{
       }
     },
   });
+  const markMobileFocusIntent = useCallback(() => {
+    if (!isMobile) return;
+    mobileUserFocusIntentUntilRef.current = Date.now() + 1500;
+  }, [isMobile]);
+
   const handleInputFocus = useCallback(() => {
+    if (isMobile && Date.now() > mobileUserFocusIntentUntilRef.current) {
+      blurActiveElement();
+      return;
+    }
+    if (isMobile && shouldBlockMobileInputFocus()) {
+      blurActiveElement();
+      return;
+    }
+    mobileUserFocusIntentUntilRef.current = 0;
     handlePasteFocus();
     setIsInputFocused(true);
-  }, [handlePasteFocus]);
+  }, [handlePasteFocus, isMobile]);
   const handleInputBlur = useCallback(() => {
     setIsInputFocused(false);
   }, []);
@@ -214,11 +242,12 @@ const SendBox: React.FC<{
       finalMessage = input + snippetsHtml;
     }
 
+    // 立即清空输入框，避免异步 onSend 完成后覆盖用户新输入
+    // Clear input immediately to prevent async onSend completion from overwriting new user input
+    setInput('');
+    clearDomSnippets();
+
     onSend(finalMessage)
-      .then(() => {
-        setInput('');
-        clearDomSnippets(); // 发送后清除 DOM 片段 / Clear DOM snippets after sending
-      })
       .catch(() => {})
       .finally(() => {
         setIsLoading(false);
@@ -294,11 +323,11 @@ const SendBox: React.FC<{
         <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
           {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
           <Input.TextArea
-            autoFocus
+            autoFocus={!isMobile}
             disabled={disabled}
             value={input}
             placeholder={placeholder}
-            className='pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px'
+            className={`pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
@@ -320,6 +349,8 @@ const SendBox: React.FC<{
               setInput(v);
             }}
             onPaste={onPaste}
+            onTouchStart={markMobileFocusIntent}
+            onMouseDown={markMobileFocusIntent}
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
             {...compositionHandlers}

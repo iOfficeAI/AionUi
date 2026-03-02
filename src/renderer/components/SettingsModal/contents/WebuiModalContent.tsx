@@ -26,15 +26,15 @@ import ChannelModalContent from './ChannelModalContent';
  * Preference row component
  */
 const PreferenceRow: React.FC<{ label: string; description?: React.ReactNode; extra?: React.ReactNode; children: React.ReactNode }> = ({ label, description, extra, children }) => (
-  <div className='flex items-center justify-between gap-24px py-12px'>
-    <div className='flex-1'>
+  <div className='flex items-center justify-between gap-12px py-12px'>
+    <div className='min-w-0 flex-1'>
       <div className='flex items-center gap-8px'>
         <span className='text-14px text-t-primary'>{label}</span>
         {extra}
       </div>
       {description && <div className='text-12px text-t-tertiary mt-2px'>{description}</div>}
     </div>
-    <div className='flex items-center'>{children}</div>
+    <div className='flex items-center shrink-0'>{children}</div>
   </div>
 );
 
@@ -579,8 +579,8 @@ const WebuiModalContent: React.FC = () => {
           {/* 访问地址（仅运行时显示）/ Access URL (only when running) */}
           {status?.running && (
             <PreferenceRow label={t('settings.webui.accessUrl')}>
-              <div className='flex items-center gap-8px'>
-                <button className='text-14px text-primary font-mono hover:underline cursor-pointer bg-transparent border-none p-0' onClick={() => shell.openExternal.invoke(getDisplayUrl()).catch(console.error)}>
+              <div className='flex items-center gap-8px min-w-0'>
+                <button className='text-14px text-primary font-mono hover:underline cursor-pointer bg-transparent border-none p-0 truncate' onClick={() => shell.openExternal.invoke(getDisplayUrl()).catch(console.error)}>
                   {getDisplayUrl()}
                 </button>
                 <Tooltip content={t('common.copy')}>
@@ -614,10 +614,10 @@ const WebuiModalContent: React.FC = () => {
           <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.loginInfo')}</div>
 
           {/* 账号 / Account */}
-          <div className='flex items-center justify-between py-12px'>
-            <span className='text-14px text-t-secondary'>{t('settings.webui.username')}:</span>
-            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px whitespace-nowrap'>
-              <span className='text-14px text-t-primary'>{status?.adminUsername || 'admin'}</span>
+          <div className='flex items-center justify-between gap-12px py-12px'>
+            <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.username')}:</span>
+            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
+              <span className='text-14px text-t-primary truncate'>{status?.adminUsername || 'admin'}</span>
               <Tooltip content={t('common.copy')}>
                 <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={() => handleCopy(status?.adminUsername || 'admin')}>
                   <Copy size={14} />
@@ -627,10 +627,10 @@ const WebuiModalContent: React.FC = () => {
           </div>
 
           {/* 密码 / Password */}
-          <div className='flex items-center justify-between py-12px'>
-            <span className='text-14px text-t-secondary'>{t('settings.webui.initialPassword')}:</span>
-            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px whitespace-nowrap'>
-              <span className='text-14px text-t-primary'>{displayPassword}</span>
+          <div className='flex items-center justify-between gap-12px py-12px'>
+            <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.initialPassword')}:</span>
+            <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
+              <span className='text-14px text-t-primary truncate'>{displayPassword}</span>
               <Tooltip content={t('settings.webui.resetPasswordTooltip')}>
                 <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={handleResetPassword} disabled={resetLoading}>
                   <EditTwo size={14} />

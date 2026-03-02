@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { emitter } from '@/renderer/utils/emitter';
+import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/focus';
 import { Message, Modal } from '@arco-design/web-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -46,10 +47,13 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
 
   const handleConversationClick = useCallback(
     (conversation: TChatConversation) => {
+      setDropdownVisibleId(null);
       if (batchMode) {
         toggleSelectedConversation(conversation);
         return;
       }
+      blockMobileInputFocus();
+      blurActiveElement();
 
       const customWorkspace = conversation.extra?.customWorkspace;
       const newWorkspace = conversation.extra?.workspace;
@@ -235,15 +239,9 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
     setDropdownVisibleId(visible ? conversationId : null);
   }, []);
 
-  const handleOpenMenu = useCallback(
-    (conversation: TChatConversation) => {
-      if (id !== conversation.id) {
-        handleConversationClick(conversation);
-      }
-      setDropdownVisibleId(conversation.id);
-    },
-    [handleConversationClick, id]
-  );
+  const handleOpenMenu = useCallback((conversation: TChatConversation) => {
+    setDropdownVisibleId(conversation.id);
+  }, []);
 
   return {
     renameModalVisible,
