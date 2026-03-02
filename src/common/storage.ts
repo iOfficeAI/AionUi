@@ -171,6 +171,8 @@ export type TChatConversation =
         pinnedAt?: number;
         /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
         sessionMode?: string;
+        /** Explicit marker for temporary health-check conversations */
+        isHealthCheck?: boolean;
       }
     >
   | Omit<
@@ -200,6 +202,8 @@ export type TChatConversation =
           sessionMode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
           currentModelId?: string;
+          /** Explicit marker for temporary health-check conversations */
+          isHealthCheck?: boolean;
         }
       >,
       'model'
@@ -225,6 +229,8 @@ export type TChatConversation =
           sessionMode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
+          /** Explicit marker for temporary health-check conversations */
+          isHealthCheck?: boolean;
         }
       >,
       'model'
@@ -266,6 +272,8 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinnedAt?: number;
+          /** Explicit marker for temporary health-check conversations */
+          isHealthCheck?: boolean;
         }
       >,
       'model'
@@ -284,6 +292,8 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinnedAt?: number;
+          /** Explicit marker for temporary health-check conversations */
+          isHealthCheck?: boolean;
         }
       >,
       'model'

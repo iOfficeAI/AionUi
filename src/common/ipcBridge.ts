@@ -474,6 +474,8 @@ export interface ICreateConversationParams {
       expectedIdentityHash?: string | null;
       switchedAt?: number;
     };
+    /** Explicit marker for temporary health-check conversations */
+    isHealthCheck?: boolean;
   };
 }
 interface IResetConversationParams {

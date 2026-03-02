@@ -209,6 +209,7 @@ const ModelModalContent: React.FC = () => {
         },
         extra: {
           workspace: '',
+          isHealthCheck: true,
         },
       });
 
@@ -578,10 +579,25 @@ const ModelModalContent: React.FC = () => {
                                 title={t('settings.deleteModelConfirm')}
                                 onOk={() => {
                                   const newModels = platform.model.filter((item: string) => item !== model);
-                                  // 同时清理 modelProtocols 中对应的条目 / Also clean up corresponding modelProtocols entry
+                                  // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
+                                  // Clean all per-model state to avoid stale state on re-add.
                                   const newProtocols = { ...(platform.modelProtocols || {}) };
+                                  const newModelEnabled = { ...(platform.modelEnabled || {}) };
+                                  const newModelHealth = { ...(platform.modelHealth || {}) };
                                   delete newProtocols[model];
-                                  updatePlatform({ ...platform, model: newModels, modelProtocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined }, () => {});
+                                  delete newModelEnabled[model];
+                                  delete newModelHealth[model];
+
+                                  updatePlatform(
+                                    {
+                                      ...platform,
+                                      model: newModels,
+                                      modelProtocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
+                                      modelEnabled: Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
+                                      modelHealth: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
+                                    },
+                                    () => {}
+                                  );
                                 }}
                               >
                                 <Button size='mini' icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />} />
