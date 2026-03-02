@@ -522,8 +522,12 @@ export class TelegramPlugin extends BasePlugin {
     const shutdownTimeout = 5000; // 5 seconds
     let timeoutId: NodeJS.Timeout | null = null;
 
+    let timedOut = false;
     const timeoutPromise = new Promise<void>((resolve) => {
       timeoutId = setTimeout(() => {
+        timedOut = true;
+        this.isPollingActive = false;
+        this.pollingPromise = null;
         console.warn('[TelegramPlugin] Stop polling timeout, forcing cleanup');
         resolve();
       }, shutdownTimeout);
@@ -551,7 +555,11 @@ export class TelegramPlugin extends BasePlugin {
         clearTimeout(timeoutId);
       }
 
-      console.log('[TelegramPlugin] Polling stopped successfully');
+      if (timedOut) {
+        console.warn('[TelegramPlugin] Polling stop completed by timeout fallback');
+      } else {
+        console.log('[TelegramPlugin] Polling stopped successfully');
+      }
     } catch (error) {
       if (timeoutId) {
         clearTimeout(timeoutId);
