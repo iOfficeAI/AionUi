@@ -22,11 +22,9 @@ const mockControl: MockControl = {
   autoTriggerOnStart: true,
 };
 
-
 let latestBotStopSpy: ReturnType<typeof vi.fn> | null = null;
 
 function createConfig() {
-
   const now = Date.now();
   return {
     id: 'telegram-1',
@@ -78,7 +76,6 @@ async function loadPluginClass() {
       constructor(_token: string) {
         latestBotStopSpy = this.stop;
       }
-
     }
 
     return {
