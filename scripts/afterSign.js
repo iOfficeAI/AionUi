@@ -19,7 +19,13 @@ exports.default = async function afterSign(context) {
     execSync(`codesign --verify --verbose "${appPath}"`, { stdio: 'pipe' });
     console.log(`App ${appName} is properly code signed`);
   } catch (error) {
-    console.log(`App ${appName} is not code signed, skipping notarization`);
+    console.log(`App ${appName} is not code signed, applying ad-hoc signature...`);
+    try {
+      execSync(`codesign --force --deep --sign - "${appPath}"`, { stdio: 'inherit' });
+      console.log(`Ad-hoc signature applied successfully to ${appName}`);
+    } catch (adHocError) {
+      console.error('Ad-hoc signing failed:', adHocError.message);
+    }
     return;
   }
 

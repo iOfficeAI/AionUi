@@ -226,6 +226,22 @@ const Layout: React.FC<{
     cleanupSiderTooltips();
   }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
 
+  // Bridge Main Process logs to F12 Console
+  useEffect(() => {
+    const unsubscribe = ipcBridge.application.logStream.on((entry) => {
+      const prefix = `%c[Main:${entry.tag}]%c ${entry.message}`;
+      const style = 'color:#7c3aed;font-weight:bold';
+      if (entry.level === 'error') {
+        console.error(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
+      } else if (entry.level === 'warn') {
+        console.warn(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
+      } else {
+        console.log(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const siderWidth = isMobile ? Math.max(MOBILE_SIDER_MIN_WIDTH, Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))) : DEFAULT_SIDER_WIDTH;
   useEffect(() => {
     collapsedRef.current = collapsed;
