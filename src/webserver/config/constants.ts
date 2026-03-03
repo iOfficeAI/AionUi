@@ -80,8 +80,8 @@ export const SERVER_CONFIG = {
   DEFAULT_HOST: '127.0.0.1' as const,
   // 远程模式监听地址（Remote mode listen host）
   REMOTE_HOST: '0.0.0.0' as const,
-  // 默认端口（Default port）
-  DEFAULT_PORT: 25808,
+  // 默认端口（Default port: 25808 for prod, 25809 for dev）
+  DEFAULT_PORT: process.env.NODE_ENV === 'production' ? 25808 : 25809,
   // 请求体大小限制（Request body size limit）
   BODY_LIMIT: '10mb' as const,
 
