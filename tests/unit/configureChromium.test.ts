@@ -4,120 +4,137 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const REGISTRY_PATH = path.join(os.homedir(), '.aionui-cdp-registry.json');
-const CONFIG_PATH = path.join('/mock/userData', 'cdp.config.json');
+const originalEnv = { ...process.env };
 
-function normalizePath(targetPath: string): string {
-  return path.normalize(targetPath).replace(/\\/g, '/');
+function createSandbox(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-cdp-test-'));
 }
 
-type MockOptions = {
+function removeSandbox(dir: string): void {
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+type SetupOptions = {
   isPackaged?: boolean;
-  config?: Record<string, unknown> | null;
+  envPort?: string;
+  config?: Record<string, unknown>;
   registry?: Array<Record<string, unknown>>;
 };
 
-function setupModuleMocks(options: MockOptions = {}) {
-  const { isPackaged = false, config = null, registry = [] } = options;
+async function loadConfigureChromium(options: SetupOptions = {}) {
+  const sandbox = createSandbox();
+  const userDataDir = path.join(sandbox, 'userData');
+  fs.mkdirSync(userDataDir, { recursive: true });
+
+  const configPath = path.join(userDataDir, 'cdp.config.json');
+  const registryPath = path.join(sandbox, '.aionui-cdp-registry.json');
+
+  if (options.config) {
+    fs.writeFileSync(configPath, JSON.stringify(options.config, null, 2), 'utf-8');
+  }
+
+  if (options.registry) {
+    fs.writeFileSync(registryPath, JSON.stringify(options.registry, null, 2), 'utf-8');
+  }
+
+  process.env = { ...originalEnv };
+  delete process.env.AIONUI_CDP_PORT;
+  if (options.envPort !== undefined) {
+    process.env.AIONUI_CDP_PORT = options.envPort;
+  }
 
   const appendSwitch = vi.fn();
-  const writeFileSync = vi.fn();
+  const processOnSpy = vi.spyOn(process, 'on').mockImplementation(() => process);
+
+  vi.resetModules();
+
+  vi.doMock('os', async () => {
+    const actual = await vi.importActual<typeof import('os')>('os');
+    return {
+      ...actual,
+      homedir: () => sandbox,
+    };
+  });
 
   vi.doMock('electron', () => ({
     app: {
-      isPackaged,
-      getPath: vi.fn((name: string) => (name === 'userData' ? '/mock/userData' : '/mock/path')),
+      isPackaged: options.isPackaged ?? false,
+      getPath: vi.fn((name: string) => (name === 'userData' ? userDataDir : sandbox)),
       commandLine: {
         appendSwitch,
       },
     },
   }));
 
-  vi.doMock('fs', () => ({
-    existsSync: vi.fn((targetPath: string) => {
-      const normalized = normalizePath(targetPath);
-      if (normalized === normalizePath(CONFIG_PATH)) return config !== null;
-      if (normalized === normalizePath(REGISTRY_PATH)) return registry.length > 0;
-      return false;
-    }),
-    readFileSync: vi.fn((targetPath: string) => {
-      const normalized = normalizePath(targetPath);
-      if (normalized === normalizePath(CONFIG_PATH)) return JSON.stringify(config ?? {});
-      if (normalized === normalizePath(REGISTRY_PATH)) return JSON.stringify(registry);
-      return '{}';
-    }),
-    writeFileSync,
-  }));
+  const mod = await import('@/utils/configureChromium');
 
-  vi.doMock('http', () => ({
-    default: {
-      get: vi.fn(),
+  return {
+    mod,
+    appendSwitch,
+    sandbox,
+    configPath,
+    registryPath,
+    restore: () => {
+      processOnSpy.mockRestore();
+      vi.doUnmock('os');
+      vi.doUnmock('electron');
+      removeSandbox(sandbox);
     },
-  }));
-
-  return { appendSwitch, writeFileSync };
+  };
 }
 
-describe('configureChromium CDP', () => {
-  const originalEnv = { ...process.env };
-  const processOnSpy = vi.spyOn(process, 'on').mockImplementation(() => process as any);
+describe('configureChromium CDP（轻量 mock + 文件沙箱）', () => {
+  const restores: Array<() => void> = [];
 
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
-    process.env = { ...originalEnv };
-    delete process.env.AIONUI_CDP_PORT;
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    while (restores.length) {
+      const restore = restores.pop();
+      restore?.();
+    }
+    process.env = { ...originalEnv };
   });
 
-  afterAll(() => {
-    processOnSpy.mockRestore();
-  });
-
-  it('在打包环境中忽略 config.enabled=true', async () => {
-    const { appendSwitch } = setupModuleMocks({
+  it('打包环境默认禁用（即使 config.enabled=true）', async () => {
+    const ctx = await loadConfigureChromium({
       isPackaged: true,
       config: { enabled: true, port: 9300 },
     });
+    restores.push(ctx.restore);
 
-    const mod = await import('@/utils/configureChromium');
-
-    expect(mod.cdpStartupEnabled).toBe(false);
-    expect(mod.cdpPort).toBeNull();
-    expect(appendSwitch).not.toHaveBeenCalled();
+    expect(ctx.mod.cdpStartupEnabled).toBe(false);
+    expect(ctx.mod.cdpPort).toBeNull();
+    expect(ctx.appendSwitch).not.toHaveBeenCalled();
   });
 
-  it('在打包环境中允许环境变量显式开启 CDP', async () => {
-    process.env.AIONUI_CDP_PORT = '9301';
-    const { appendSwitch } = setupModuleMocks({ isPackaged: true });
+  it('打包环境可通过环境变量显式启用 CDP', async () => {
+    const ctx = await loadConfigureChromium({ isPackaged: true, envPort: '9301' });
+    restores.push(ctx.restore);
 
-    const mod = await import('@/utils/configureChromium');
-
-    expect(mod.cdpStartupEnabled).toBe(true);
-    expect(mod.cdpPort).toBe(9301);
-    expect(appendSwitch).toHaveBeenCalledWith('remote-debugging-port', '9301');
+    expect(ctx.mod.cdpStartupEnabled).toBe(true);
+    expect(ctx.mod.cdpPort).toBe(9301);
+    expect(ctx.appendSwitch).toHaveBeenCalledWith('remote-debugging-port', '9301');
   });
 
   it('无效环境变量时回退到默认端口常量', async () => {
-    process.env.AIONUI_CDP_PORT = 'invalid';
-    const { appendSwitch } = setupModuleMocks({ isPackaged: false });
+    const ctx = await loadConfigureChromium({ isPackaged: false, envPort: 'invalid' });
+    restores.push(ctx.restore);
 
-    const mod = await import('@/utils/configureChromium');
-
-    expect(mod.cdpStartupEnabled).toBe(true);
-    expect(mod.cdpPort).toBe(mod.DEFAULT_CDP_PORT);
-    expect(appendSwitch).toHaveBeenCalledWith('remote-debugging-port', String(mod.DEFAULT_CDP_PORT));
+    expect(ctx.mod.cdpStartupEnabled).toBe(true);
+    expect(ctx.mod.cdpPort).toBe(ctx.mod.DEFAULT_CDP_PORT);
+    expect(ctx.appendSwitch).toHaveBeenCalledWith('remote-debugging-port', String(ctx.mod.DEFAULT_CDP_PORT));
   });
 
-  it('端口被 registry 占用时选择下一个端口', async () => {
-    const { appendSwitch } = setupModuleMocks({
+  it('registry 中端口占用时会选择下一个可用端口', async () => {
+    const ctx = await loadConfigureChromium({
       isPackaged: false,
       config: { enabled: true, port: 9230 },
       registry: [
@@ -129,31 +146,34 @@ describe('configureChromium CDP', () => {
         },
       ],
     });
+    restores.push(ctx.restore);
 
-    const mod = await import('@/utils/configureChromium');
-
-    expect(mod.cdpPort).toBe(9231);
-    expect(appendSwitch).toHaveBeenCalledWith('remote-debugging-port', '9231');
+    expect(ctx.mod.cdpPort).toBe(9231);
+    expect(ctx.appendSwitch).toHaveBeenCalledWith('remote-debugging-port', '9231');
   });
 
-  it('saveCdpConfig 写入正确的配置文件', async () => {
-    const { writeFileSync } = setupModuleMocks({ isPackaged: false });
+  it('saveCdpConfig 会写入 userData/cdp.config.json', async () => {
+    const ctx = await loadConfigureChromium({ isPackaged: false });
+    restores.push(ctx.restore);
 
-    const mod = await import('@/utils/configureChromium');
-    mod.saveCdpConfig({ enabled: true, port: 9333 });
+    ctx.mod.saveCdpConfig({ enabled: true, port: 9333 });
 
-    expect(writeFileSync).toHaveBeenCalledWith(CONFIG_PATH, JSON.stringify({ enabled: true, port: 9333 }, null, 2), 'utf-8');
+    const raw = fs.readFileSync(ctx.configPath, 'utf-8');
+    expect(JSON.parse(raw)).toEqual({ enabled: true, port: 9333 });
   });
 
-  it('updateCdpConfig 会合并现有配置', async () => {
-    setupModuleMocks({
+  it('updateCdpConfig 会在已有配置上做合并', async () => {
+    const ctx = await loadConfigureChromium({
       isPackaged: false,
       config: { enabled: false, port: 9235 },
     });
+    restores.push(ctx.restore);
 
-    const mod = await import('@/utils/configureChromium');
-    const updated = mod.updateCdpConfig({ enabled: true });
+    const updated = ctx.mod.updateCdpConfig({ enabled: true });
 
     expect(updated).toEqual({ enabled: true, port: 9235 });
+
+    const raw = fs.readFileSync(ctx.configPath, 'utf-8');
+    expect(JSON.parse(raw)).toEqual({ enabled: true, port: 9235 });
   });
 });
