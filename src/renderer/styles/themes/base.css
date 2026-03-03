@@ -864,3 +864,12 @@ body,
 ::placeholder {
   color: #a1a2aa !important;
 }
+
+/* Sendbox tools buttons - prevent layout jitter from theme hover transforms (#1075) */
+/* 发送框工具按钮 - 防止主题 hover 变换导致的布局抖动 */
+.sendbox-tools .arco-btn,
+.sendbox-tools .arco-btn:hover,
+.sendbox-tools .arco-btn:active,
+.sendbox-tools .arco-btn:focus {
+  transform: none !important;
+}

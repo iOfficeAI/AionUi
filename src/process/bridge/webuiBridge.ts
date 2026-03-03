@@ -209,11 +209,22 @@ export function initWebuiBridge(): void {
   // 启动 WebUI / Start WebUI
   webui.start.provider(async ({ port: requestedPort, allowRemote }) => {
     try {
+      // If server is already running, stop it first (supports restart for config changes)
+      // 如果服务器已在运行，先停止（支持配置变更时的重启）
       if (webServerInstance) {
-        return {
-          success: false,
-          msg: 'WebUI is already running',
-        };
+        try {
+          const { server: oldServer, wss: oldWss } = webServerInstance;
+          oldWss.clients.forEach((client) => client.close(1000, 'Server restarting'));
+          await new Promise<void>((resolve) => {
+            oldServer.close(() => resolve());
+            // Force resolve after 2s to avoid hanging
+            setTimeout(resolve, 2000);
+          });
+          cleanupWebAdapter();
+        } catch (err) {
+          console.warn('[WebUI Bridge] Error stopping previous server:', err);
+        }
+        webServerInstance = null;
       }
 
       const port = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
