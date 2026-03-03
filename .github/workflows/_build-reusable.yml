@@ -107,15 +107,22 @@ jobs:
 
       # Restore Electron/Electron-Builder caches before any build-related install
       - name: Cache Electron artifacts
+        id: electron-cache
         uses: actions/cache@v4
         with:
           path: |
             ${{ runner.temp }}/.cache/electron
             ${{ runner.temp }}/.cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
           key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
             electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
             electron-cache-${{ matrix.platform }}-
+
+      - name: Cache status
+        run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
 
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
