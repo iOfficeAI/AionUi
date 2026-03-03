@@ -15,6 +15,7 @@
   "downloadFailed": "İndirme başarısız",
   "imageLoadFailed": "Görüntü yüklenemedi",
   "scrollToBottom": "Aşağı kaydır",
+  "availableCommands": "{{count}} Kullanılabilir Komut",
   "unknownMessageType": "Bilinmeyen mesaj türü: {{type}}",
   "permissionRequest": "İzin İsteği",
   "agentRequestingPermission": "Ajan izin istiyor.",

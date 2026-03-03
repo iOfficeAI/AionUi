@@ -49,5 +49,6 @@
   "browse": "Gözat",
   "remove": "Kaldır",
   "show": "Göster",
-  "hide": "Gizle"
+  "hide": "Gizle",
+  "goToSettings": "Ayarlara Git"
 }

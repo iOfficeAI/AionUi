@@ -1,7 +1,5 @@
 {
   "scheduledTasks": "スケジュールタスク",
-  "allScheduledTasks": "すべてのスケジュールタスク",
-  "noTasks": "スケジュールタスクがありません",
   "taskCount": "{{count}} 件のタスク",
   "schedule": "スケジュール",
   "nextRun": "次回実行",
@@ -23,12 +21,27 @@
     "goTo": "チャットを表示",
     "pause": "一時停止",
     "resume": "再開",
-    "runNow": "今すぐ実行",
-    "delete": "削除"
+    "delete": "削除",
+    "runNow": "今すぐ実行"
   },
   "confirmDelete": "このスケジュールタスクを削除しますか？",
   "deleteSuccess": "タスクを削除しました",
   "pauseSuccess": "タスクを一時停止しました",
   "resumeSuccess": "タスクを再開しました",
+  "drawer.title": "Scheduled Task Details",
+  "drawer.name": "Name",
+  "drawer.namePlaceholder": "Enter task name",
+  "drawer.taskStatus": "Task Status",
+  "drawer.enabled": "Enabled",
+  "drawer.disabled": "Disabled",
+  "drawer.command": "Command",
+  "drawer.commandPlaceholder": "Enter command to execute",
+  "drawer.schedule": "Schedule",
+  "drawer.nextRun": "Next Run",
+  "drawer.save": "Save",
+  "drawer.saveSuccess": "Saved successfully",
+  "message.badge": "Scheduled",
+  "allScheduledTasks": "すべてのスケジュールタスク",
+  "noTasks": "スケジュールタスクがありません",
   "runNowSuccess": "タスクの実行をトリガーしました"
 }

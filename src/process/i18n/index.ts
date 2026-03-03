@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import i18n from 'i18next';
 import { ConfigStorage } from '@/common/storage';
 
@@ -38,17 +40,30 @@ function normalizeLanguageCode(language: string): SupportedLanguage {
 // Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mergeWithFallback(fallback: Record<string, unknown>, target: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...fallback };
+
+  for (const [key, value] of Object.entries(target)) {
+    const fallbackValue = merged[key];
+    if (isPlainObject(fallbackValue) && isPlainObject(value)) {
+      merged[key] = mergeWithFallback(fallbackValue, value);
+    } else {
+      merged[key] = value;
+    }
+  }
+
+  return merged;
+}
+
 // Synchronously load locale modules (for main process)
 function loadLocaleModules(locale: string): Record<string, unknown> {
-  // Check cache first
   if (loadedTranslations.has(locale)) {
     return loadedTranslations.get(locale)!;
   }
-
-  // In main process, we need to use require for synchronous loading
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const path = require('path');
-  const fs = require('fs');
 
   const modules: Record<string, unknown> = {};
 
@@ -58,15 +73,17 @@ function loadLocaleModules(locale: string): Record<string, unknown> {
     for (const moduleName of MODULES) {
       const moduleFile = path.join(localeDir, `${moduleName}.json`);
       if (fs.existsSync(moduleFile)) {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const content = require(moduleFile);
-        modules[moduleName] = content;
+        const content = fs.readFileSync(moduleFile, 'utf-8');
+        modules[moduleName] = JSON.parse(content);
+      } else {
+        modules[moduleName] = {};
       }
     }
 
-    // Cache the loaded translation
-    loadedTranslations.set(locale, modules);
-    return modules;
+    const finalModules = locale === 'en-US' ? modules : mergeWithFallback(loadLocaleModules('en-US'), modules);
+
+    loadedTranslations.set(locale, finalModules);
+    return finalModules;
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error);
     if (locale !== 'en-US') {

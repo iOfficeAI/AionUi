@@ -4,6 +4,8 @@ import { initReactI18next } from 'react-i18next';
 
 import { ConfigStorage } from '@/common/storage';
 
+export type { I18nKey, I18nModule } from './i18n-keys';
+
 // Supported languages
 export const supportedLanguages = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -14,42 +16,55 @@ const loadedTranslations = new Map<string, Record<string, unknown>>();
 // Module names for each locale
 const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mergeWithFallback(fallback: Record<string, unknown>, target: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...fallback };
+
+  for (const [key, value] of Object.entries(target)) {
+    const fallbackValue = merged[key];
+    if (isPlainObject(fallbackValue) && isPlainObject(value)) {
+      merged[key] = mergeWithFallback(fallbackValue, value);
+    } else {
+      merged[key] = value;
+    }
+  }
+
+  return merged;
+}
+
 // Import function to dynamically load locale modules
 async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
-  // Check cache first
   if (loadedTranslations.has(locale)) {
     return loadedTranslations.get(locale)!;
   }
 
-  // Dynamic import based on locale - all languages now use modular structure
   const modules: Record<string, unknown> = {};
 
   try {
-    // Import all modules dynamically
     const importPromises = MODULES.map(async (moduleName) => {
       try {
         const module = await import(`./locales/${locale}/${moduleName}.json`);
-        return [moduleName, module.default || {}];
+        return [moduleName, (module.default || {}) as Record<string, unknown>] as const;
       } catch {
-        return [moduleName, {}];
+        return [moduleName, {} as Record<string, unknown>] as const;
       }
     });
 
     const results = await Promise.all(importPromises);
 
-    // Merge all modules with namespace (moduleName as key)
     for (const [moduleName, content] of results) {
-      if (Object.keys(content as Record<string, unknown>).length > 0) {
-        modules[moduleName as string] = content;
-      }
+      modules[moduleName] = content;
     }
 
-    // Cache the loaded translation
-    loadedTranslations.set(locale, modules);
-    return modules;
+    const finalModules = locale === 'en-US' ? modules : mergeWithFallback(await loadLocaleModules('en-US'), modules);
+
+    loadedTranslations.set(locale, finalModules);
+    return finalModules;
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error);
-    // Fallback to en-US if loading fails
     if (locale !== 'en-US') {
       return loadLocaleModules('en-US');
     }

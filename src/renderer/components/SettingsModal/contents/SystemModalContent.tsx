@@ -141,7 +141,7 @@ const CdpSettings: React.FC = () => {
     if (status?.port) {
       const url = `http://127.0.0.1:${status.port}`;
       void navigator.clipboard.writeText(url).then(() => {
-        Message.success(t('common.copied'));
+        Message.success(t('common.copySuccess'));
       });
     }
   };
@@ -162,7 +162,7 @@ const CdpSettings: React.FC = () => {
   }
 }`;
       void navigator.clipboard.writeText(config).then(() => {
-        Message.success(t('common.copied'));
+        Message.success(t('common.copySuccess'));
       });
     }
   };

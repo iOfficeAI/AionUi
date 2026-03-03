@@ -2,48 +2,27 @@
   "sendbox": {},
   "network": {
     "cloudflare_blocked": "Cloudflareの保護により{{service}}へのアクセスがブロックされました。対処: 1) VPN を利用 2) ネットワークを切替 3) 時間をおいて再試行 4) 別の AI サービスへ切替",
-    "cloudflare_blocked_title": "🚫 Cloudflare の保護により {{service}} へのアクセスがブロック",
-    "connection_refused": "接続が拒否されました。Codex サービスが正常に稼働しているか確認してください。",
-    "connection_refused_title": "❌ サービス接続が拒否されました",
-    "error_details": "エラー詳細",
-    "error_type": "エラー種別",
     "network_timeout": "ネットワークがタイムアウトしました。接続を自動的に再試行しています...",
+    "connection_refused": "接続が拒否されました。Codex サービスが正常に稼働しているか確認してください。",
+    "unknown_error": "ネットワーク接続エラーです。ネットワーク設定を確認してください。",
+    "retry_attempt": "再試行中 {{current}} 回目...",
+    "cloudflare_blocked_title": "🚫 Cloudflare の保護により {{service}} へのアクセスがブロック",
     "network_timeout_title": "⏱️ ネットワーク接続がタイムアウト",
+    "connection_refused_title": "❌ サービス接続が拒否されました",
+    "unknown_error_title": "🔌 ネットワーク接続エラー",
+    "recovery_suggestions": "**推奨対処：**",
+    "technical_info": "**技術情報：**",
+    "error_type": "エラー種別",
+    "retry_count": "再試行回数",
+    "error_details": "エラー詳細",
+    "quick_switch_title": "💡 **すぐに切り替えるには：**",
     "quick_switch_content": "現在のサービスでネットワーク制限が発生した場合は：\n\n1. **AIアシスタントを即時切替**：左側パネルから他のアシスタントを選択\n2. **サービス状況を確認**：地域により可用性が異なる場合があります\n3. **ネットワーク最適化**：安定したネットワーク環境を使用\n4. **後で再試行**：制限は一時的な場合が多いです\n\n**ヒント**：業務継続のため、代替の AI サービスを複数設定しておくことをおすすめします。",
     "recovery_actions": {
-      "cloudflare_blocked": [
-        "• VPN やプロキシサービスを利用",
-        "• ネットワーク環境を切替（モバイルホットスポットなど）",
-        "• 10-30分待ってから再試行",
-        "• ブラウザのキャッシュとクッキーをクリア",
-        "• 他の利用可能なサービスに切替：ChatGPT、Claude、Qwen、Gemini"
-      ],
-      "network_timeout": [
-        "• ネットワーク接続が安定しているか確認",
-        "• 接続操作を再試行",
-        "• より安定したネットワーク環境に切替",
-        "• ファイアウォールの設定を確認"
-      ],
-      "connection_refused": [
-        "• Codex CLI が正しくインストールされているか確認",
-        "• サービス設定とAPIキーを確認",
-        "• アプリケーションを再起動",
-        "• ローカルポートが占有されていないか確認"
-      ],
-      "unknown": [
-        "• ネットワーク接続状態を確認",
-        "• 現在の操作を再試行",
-        "• ネットワーク環境を切替",
-        "• 技術サポートに連絡"
-      ]
-    },
-    "quick_switch_title": "💡 **すぐに切り替えるには：**",
-    "recovery_suggestions": "**推奨対処：**",
-    "retry_attempt": "再試行中 {{current}} 回目...",
-    "retry_count": "再試行回数",
-    "technical_info": "**技術情報：**",
-    "unknown_error": "ネットワーク接続エラーです。ネットワーク設定を確認してください。",
-    "unknown_error_title": "🔌 ネットワーク接続エラー"
+      "cloudflare_blocked": ["• VPN やプロキシサービスを利用", "• ネットワーク環境を切替（モバイルホットスポットなど）", "• 10-30分待ってから再試行", "• ブラウザのキャッシュとクッキーをクリア", "• 他の利用可能なサービスに切替：ChatGPT、Claude、Qwen、Gemini"],
+      "network_timeout": ["• ネットワーク接続が安定しているか確認", "• 接続操作を再試行", "• より安定したネットワーク環境に切替", "• ファイアウォールの設定を確認"],
+      "connection_refused": ["• Codex CLI が正しくインストールされているか確認", "• サービス設定とAPIキーを確認", "• アプリケーションを再起動", "• ローカルポートが占有されていないか確認"],
+      "unknown": ["• ネットワーク接続状態を確認", "• 現在の操作を再試行", "• ネットワーク環境を切替", "• 技術サポートに連絡"]
+    }
   },
   "thinking": {
     "processing": "🤔 Codex が思考中...",

@@ -1,7 +1,5 @@
 {
   "scheduledTasks": "定时任务",
-  "allScheduledTasks": "全部定时任务",
-  "noTasks": "暂无定时任务",
   "taskCount": "{{count}} 个任务",
   "schedule": "调度规则",
   "nextRun": "下次执行",
@@ -23,14 +21,13 @@
     "goTo": "查看会话",
     "pause": "暂停",
     "resume": "恢复",
-    "runNow": "立即执行",
-    "delete": "删除"
+    "delete": "删除",
+    "runNow": "立即执行"
   },
   "confirmDelete": "确定要删除此定时任务吗？",
   "deleteSuccess": "任务已删除",
   "pauseSuccess": "任务已暂停",
   "resumeSuccess": "任务已恢复",
-  "runNowSuccess": "任务已触发执行",
   "drawer.title": "定时任务详细",
   "drawer.name": "名称",
   "drawer.namePlaceholder": "请输入任务名称",
@@ -43,5 +40,8 @@
   "drawer.nextRun": "下次执行",
   "drawer.save": "保存",
   "drawer.saveSuccess": "保存成功",
-  "message.badge": "定时任务"
+  "message.badge": "定时任务",
+  "allScheduledTasks": "全部定时任务",
+  "noTasks": "暂无定时任务",
+  "runNowSuccess": "任务已触发执行"
 }

@@ -299,7 +299,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   // Copy to clipboard
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
-    Message.success(t('common.copied', 'Copied to clipboard'));
+    Message.success(t('common.copySuccess', 'Copied'));
   };
 
   // Format timestamp
@@ -513,7 +513,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
               <Button size='mini' type='text' icon={<Refresh size={14} />} loading={pairingLoading} onClick={loadPendingPairings}>
-                {t('common.refresh', 'Refresh')}
+                {t('conversation.workspace.refresh', 'Refresh')}
               </Button>
             }
           />
@@ -565,7 +565,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={
               <Button size='mini' type='text' icon={<Refresh size={14} />} loading={usersLoading} onClick={loadAuthorizedUsers}>
-                {t('common.refresh', 'Refresh')}
+                {t('conversation.workspace.refresh', 'Refresh')}
               </Button>
             }
           />

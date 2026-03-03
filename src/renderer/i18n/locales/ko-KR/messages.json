@@ -15,6 +15,7 @@
   "downloadFailed": "다운로드 실패",
   "imageLoadFailed": "이미지 로드 실패",
   "scrollToBottom": "맨 아래로 스크롤",
+  "availableCommands": "{{count}}개의 사용 가능한 명령어",
   "unknownMessageType": "알 수 없는 메시지 유형: {{type}}",
   "permissionRequest": "권한 요청",
   "agentRequestingPermission": "에이전트가 권한을 요청하고 있습니다.",

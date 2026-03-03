@@ -49,5 +49,6 @@
   "browse": "찾아보기",
   "remove": "제거",
   "show": "표시",
-  "hide": "숨기기"
+  "hide": "숨기기",
+  "goToSettings": "설정으로 이동"
 }

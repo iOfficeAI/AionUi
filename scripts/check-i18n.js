@@ -1,35 +1,19 @@
 #!/usr/bin/env node
 /**
- * i18n 检查脚本
- * 用于 pre-commit 钩子，检查 i18n 翻译文件的完整性和一致性
+ * i18n validation script
+ * Used by pre-commit hooks to validate i18n translation completeness and consistency.
  *
- * 用法: node scripts/check-i18n.js
+ * Usage: node scripts/check-i18n.js
  */
 
 const fs = require('fs');
 const path = require('path');
+const { REQUIRED_MODULES, collectReferenceKeys, getAllKeys } = require('./generate-i18n-types');
 
 const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/i18n/locales');
+const I18N_KEYS_DTS = path.resolve(__dirname, '../src/renderer/i18n/i18n-keys.d.ts');
+const RENDERER_DIR = path.resolve(__dirname, '../src/renderer');
 const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'];
-const REQUIRED_MODULES = [
-  'common',
-  'agentMode',
-  'update',
-  'login',
-  'fileSelection',
-  'preview',
-  'conversation',
-  'settings',
-  'messages',
-  'mcp',
-  'acp',
-  'codex',
-  'tools',
-  'gemini',
-  'cron',
-  'guid',
-  'agent',
-];
 
 let hasErrors = false;
 let hasWarnings = false;
@@ -52,130 +36,206 @@ function logInfo(message) {
   console.log(`ℹ️  ${message}`);
 }
 
-// 检查目录结构
-function checkDirectoryStructure() {
-  console.log('\n📁 检查目录结构...\n');
+function extractTypeUnionValues(content, typeName) {
+  const match = content.match(new RegExp(`export type ${typeName} =([\\s\\S]*?);`));
+  if (!match) {
+    return [];
+  }
 
-  // 检查每个语言的目录
+  const values = [];
+  const valueRegex = /'([^']+)'/g;
+  for (const item of match[1].matchAll(valueRegex)) {
+    values.push(item[1]);
+  }
+
+  return values;
+}
+
+function isSameSet(a, b) {
+  if (a.size !== b.size) {
+    return false;
+  }
+
+  for (const item of a) {
+    if (!b.has(item)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function checkI18nTypeDefinitionInSync() {
+  console.log('\n🧩 Checking i18n key type definition sync...\n');
+
+  if (!fs.existsSync(I18N_KEYS_DTS)) {
+    logError(`Missing i18n key type file: ${path.relative(process.cwd(), I18N_KEYS_DTS)}`);
+    logError('Run: vx node scripts/generate-i18n-types.js');
+    return;
+  }
+
+  const actual = fs.readFileSync(I18N_KEYS_DTS, 'utf-8');
+  const actualKeys = new Set(extractTypeUnionValues(actual, 'I18nKey'));
+  const expectedKeys = new Set(collectReferenceKeys());
+
+  if (!isSameSet(actualKeys, expectedKeys)) {
+    logError(`Outdated i18n key type file: ${path.relative(process.cwd(), I18N_KEYS_DTS)}`);
+    logError('Run: vx node scripts/generate-i18n-types.js');
+    return;
+  }
+
+  const actualModules = new Set(extractTypeUnionValues(actual, 'I18nModule'));
+  const expectedModules = new Set(REQUIRED_MODULES);
+  if (!isSameSet(actualModules, expectedModules)) {
+    logError(`Outdated i18n module type file: ${path.relative(process.cwd(), I18N_KEYS_DTS)}`);
+    logError('Run: vx node scripts/generate-i18n-types.js');
+    return;
+  }
+
+  logSuccess('i18n key type definition is in sync');
+}
+
+// Validate directory and file structure
+function checkDirectoryStructure() {
+  console.log('\n📁 Checking directory structure...\n');
+
+  // Validate each locale directory
   for (const lang of SUPPORTED_LANGUAGES) {
     const langDir = path.join(LOCALES_DIR, lang);
 
     if (!fs.existsSync(langDir)) {
-      logError(`缺少语言目录: ${lang}`);
+      logError(`Missing locale directory: ${lang}`);
       continue;
     }
 
-    logSuccess(`语言目录存在: ${lang}`);
+    logSuccess(`Locale directory exists: ${lang}`);
 
-    // 检查模块文件
-    for (const module of REQUIRED_MODULES) {
-      const moduleFile = path.join(langDir, `${module}.json`);
+    // Validate required module files
+    for (const moduleName of REQUIRED_MODULES) {
+      const moduleFile = path.join(langDir, `${moduleName}.json`);
 
       if (!fs.existsSync(moduleFile)) {
-        logError(`缺少模块文件: ${lang}/${module}.json`);
+        logError(`Missing module file: ${lang}/${moduleName}.json`);
         continue;
       }
 
-      // 检查 JSON 有效性
+      // Validate JSON syntax
       try {
         const content = fs.readFileSync(moduleFile, 'utf-8');
         JSON.parse(content);
-      } catch (e) {
-        logError(`无效的 JSON: ${lang}/${module}.json - ${e.message}`);
+      } catch (error) {
+        logError(`Invalid JSON: ${lang}/${moduleName}.json - ${error.message}`);
       }
     }
 
-    // 检查 index.ts
+    // Validate index.ts
     const indexFile = path.join(langDir, 'index.ts');
     if (!fs.existsSync(indexFile)) {
-      logWarning(`缺少索引文件: ${lang}/index.ts`);
+      logWarning(`Missing index file: ${lang}/index.ts`);
     }
   }
 
-  // 检查不应该存在的旧 JSON 文件
+  // Validate legacy single JSON files are removed
   for (const lang of SUPPORTED_LANGUAGES) {
     const oldFile = path.join(LOCALES_DIR, `${lang}.json`);
     if (fs.existsSync(oldFile)) {
-      logError(`发现旧的 JSON 文件，请删除: ${lang}.json`);
+      logError(`Found legacy JSON file, please remove: ${lang}.json`);
     }
   }
 }
 
-// 检查翻译键一致性
+// Validate translation key consistency across locales
 function checkTranslationKeys() {
-  console.log('\n🔑 检查翻译键一致性...\n');
+  console.log('\n🔑 Checking translation key consistency...\n');
 
   const referenceLang = 'en-US';
   const referenceKeys = {};
 
-  // 收集参考语言的键
-  for (const module of REQUIRED_MODULES) {
-    const moduleFile = path.join(LOCALES_DIR, referenceLang, `${module}.json`);
+  // Collect baseline keys from reference locale
+  for (const moduleName of REQUIRED_MODULES) {
+    const moduleFile = path.join(LOCALES_DIR, referenceLang, `${moduleName}.json`);
     if (fs.existsSync(moduleFile)) {
       try {
         const content = JSON.parse(fs.readFileSync(moduleFile, 'utf-8'));
-        referenceKeys[module] = getAllKeys(content);
-      } catch (e) {
-        logError(`无法读取参考模块: ${referenceLang}/${module}.json`);
+        referenceKeys[moduleName] = getAllKeys(content);
+      } catch {
+        logError(`Failed to read reference module: ${referenceLang}/${moduleName}.json`);
       }
     }
   }
 
-  // 检查其他语言
+  // Validate other locales against baseline
   for (const lang of SUPPORTED_LANGUAGES) {
     if (lang === referenceLang) continue;
 
-    logInfo(`检查 ${lang}...`);
+    logInfo(`Checking ${lang}...`);
 
     let missingCount = 0;
-    let extraCount = 0;
 
-    for (const module of REQUIRED_MODULES) {
-      const moduleFile = path.join(LOCALES_DIR, lang, `${module}.json`);
-      const expectedKeys = referenceKeys[module] || [];
+    for (const moduleName of REQUIRED_MODULES) {
+      const moduleFile = path.join(LOCALES_DIR, lang, `${moduleName}.json`);
+      const expectedKeys = referenceKeys[moduleName] || [];
 
       if (fs.existsSync(moduleFile)) {
         try {
           const content = JSON.parse(fs.readFileSync(moduleFile, 'utf-8'));
           const actualKeys = getAllKeys(content);
 
-          // 找出缺失的键
-          const missing = expectedKeys.filter((k) => !actualKeys.includes(k));
+          const missing = expectedKeys.filter((key) => !actualKeys.includes(key));
           missingCount += missing.length;
 
-          // 找出多余的键
-          const extra = actualKeys.filter((k) => !expectedKeys.includes(k));
-          extraCount += extra.length;
-
           if (missing.length > 0) {
-            logWarning(
-              `${lang}/${module}.json 缺少 ${missing.length} 个键: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`
+            logError(
+              `${lang}/${moduleName}.json is missing ${missing.length} keys: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`
             );
           }
-        } catch (e) {
-          logError(`无法读取模块: ${lang}/${module}.json`);
+        } catch {
+          logError(`Failed to read module: ${lang}/${moduleName}.json`);
         }
       }
     }
 
     const totalKeys = Object.values(referenceKeys).flat().length;
-    const missingPercent = ((missingCount / totalKeys) * 100).toFixed(1);
+    const missingPercent = totalKeys > 0 ? ((missingCount / totalKeys) * 100).toFixed(1) : '0.0';
 
     if (missingCount > 0) {
-      logWarning(`${lang} 缺少 ${missingCount} 个键 (${missingPercent}%)`);
+      logError(`${lang} is missing ${missingCount} keys (${missingPercent}%)`);
     } else {
-      logSuccess(`${lang} 翻译完整`);
+      logSuccess(`${lang} translations are complete`);
     }
   }
 }
 
-// 检查空翻译
+function collectEmptyValuePaths(obj, prefix = '') {
+  const emptyPaths = [];
+
+  if (typeof obj !== 'object' || obj === null) {
+    return emptyPaths;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof value === 'object' && value !== null) {
+      emptyPaths.push(...collectEmptyValuePaths(value, fullKey));
+      continue;
+    }
+
+    if (typeof value === 'string' && value.trim() === '') {
+      emptyPaths.push(fullKey);
+    }
+  }
+
+  return emptyPaths;
+}
+
+// Validate empty translation modules and empty string values
 function checkEmptyTranslations() {
-  console.log('\n📭 检查空翻译...\n');
+  console.log('\n📭 Checking for empty translations...\n');
 
   for (const lang of SUPPORTED_LANGUAGES) {
-    for (const module of REQUIRED_MODULES) {
-      const moduleFile = path.join(LOCALES_DIR, lang, `${module}.json`);
+    for (const moduleName of REQUIRED_MODULES) {
+      const moduleFile = path.join(LOCALES_DIR, lang, `${moduleName}.json`);
 
       if (fs.existsSync(moduleFile)) {
         try {
@@ -183,87 +243,166 @@ function checkEmptyTranslations() {
           const data = JSON.parse(content);
 
           if (Object.keys(data).length === 0) {
-            logWarning(`空模块: ${lang}/${module}.json`);
+            logError(`Empty module: ${lang}/${moduleName}.json`);
+            continue;
           }
-        } catch (e) {
-          // 已在其他地方报告
+
+          const emptyValuePaths = collectEmptyValuePaths(data);
+          if (emptyValuePaths.length > 0) {
+            logError(
+              `${lang}/${moduleName}.json has ${emptyValuePaths.length} empty values: ${emptyValuePaths.slice(0, 3).join(', ')}${emptyValuePaths.length > 3 ? '...' : ''}`
+            );
+          }
+        } catch {
+          // Already reported by other checks
         }
       }
     }
   }
 }
 
-// 检查 index.ts 配置
+function collectAllCodeFiles(dir) {
+  const files = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.name === 'i18n-keys.d.ts') {
+      continue;
+    }
+
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'out') {
+        continue;
+      }
+      files.push(...collectAllCodeFiles(fullPath));
+      continue;
+    }
+
+    if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function stripComments(code) {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+function buildReferenceKeySet() {
+  const keySet = new Set();
+
+  for (const moduleName of REQUIRED_MODULES) {
+    const moduleFile = path.join(LOCALES_DIR, 'en-US', `${moduleName}.json`);
+    if (!fs.existsSync(moduleFile)) {
+      continue;
+    }
+
+    const content = JSON.parse(fs.readFileSync(moduleFile, 'utf-8'));
+    const keys = getAllKeys(content);
+    for (const key of keys) {
+      keySet.add(`${moduleName}.${key}`);
+    }
+  }
+
+  return keySet;
+}
+
+function checkLiteralKeyUsages() {
+  console.log('\n🧪 Checking literal t() key usages...\n');
+
+  const referenceKeySet = buildReferenceKeySet();
+  const files = collectAllCodeFiles(RENDERER_DIR);
+  const keyRegex = /\b(?:i18n\.)?t\(\s*(['"`])([^'"`]+)\1/g;
+
+  let invalidCount = 0;
+
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf-8');
+    const code = stripComments(content);
+
+    for (const match of code.matchAll(keyRegex)) {
+      const key = match[2].trim();
+
+      if (!key || key.includes('${') || key.startsWith('http://') || key.startsWith('https://')) {
+        continue;
+      }
+
+      if (!key.includes('.')) {
+        continue;
+      }
+
+      if (!referenceKeySet.has(key)) {
+        invalidCount += 1;
+        logWarning(`Unknown i18n key: ${key} (${path.relative(process.cwd(), file)})`);
+      }
+    }
+  }
+
+  if (invalidCount === 0) {
+    logSuccess('No invalid literal i18n keys found in renderer code');
+  } else {
+    logInfo(`Found ${invalidCount} unknown literal i18n keys (warning only)`);
+  }
+}
+
+// Validate i18n runtime config
 function checkIndexConfig() {
-  console.log('\n⚙️  检查 i18n 配置...\n');
+  console.log('\n⚙️  Checking i18n configuration...\n');
 
   const indexFile = path.join(__dirname, '../src/renderer/i18n/index.ts');
 
   if (!fs.existsSync(indexFile)) {
-    logError('缺少 i18n 配置文件: src/renderer/i18n/index.ts');
+    logError('Missing i18n config file: src/renderer/i18n/index.ts');
     return;
   }
 
   const content = fs.readFileSync(indexFile, 'utf-8');
 
-  // 检查是否包含所有支持的语言
+  // Ensure all supported languages are configured
   for (const lang of SUPPORTED_LANGUAGES) {
     if (!content.includes(`'${lang}'`) && !content.includes(`"${lang}"`)) {
-      logError(`i18n 配置缺少语言: ${lang}`);
+      logError(`i18n config is missing language: ${lang}`);
     }
   }
 
-  // 检查是否有懒加载支持
+  // Ensure lazy loading support exists
   if (!content.includes('loadLocaleModules') && !content.includes('import(')) {
-    logWarning('i18n 配置可能未使用懒加载');
+    logWarning('i18n config may not be using lazy loading');
   }
 
-  logSuccess('i18n 配置检查通过');
+  logSuccess('i18n configuration check passed');
 }
 
-// 辅助函数：递归获取所有键
-function getAllKeys(obj, prefix = '') {
-  const keys = [];
-
-  if (typeof obj !== 'object' || obj === null) {
-    return keys;
-  }
-
-  for (const [key, value] of Object.entries(obj)) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === 'object' && value !== null) {
-      keys.push(...getAllKeys(value, fullKey));
-    } else {
-      keys.push(fullKey);
-    }
-  }
-
-  return keys;
-}
-
-// 主函数
 function main() {
-  console.log('\n🔍 i18n 检查开始\n');
+  console.log('\n🔍 i18n validation started\n');
   console.log('========================================');
 
   checkDirectoryStructure();
   checkTranslationKeys();
   checkEmptyTranslations();
+  checkLiteralKeyUsages();
+  checkI18nTypeDefinitionInSync();
   checkIndexConfig();
 
   console.log('\n========================================');
-  console.log('\n📊 检查结果:\n');
+  console.log('\n📊 Validation summary:\n');
 
   if (hasErrors) {
-    console.log('❌ 发现错误，请修复后再提交');
+    console.log('❌ Validation failed. Please fix the issues before committing.');
     process.exit(1);
   }
 
   if (hasWarnings) {
-    console.log('⚠️  有警告，但不影响提交');
+    console.log('⚠️  Warnings found.');
   }
 
-  console.log('✅ i18n 检查通过\n');
+  console.log('✅ i18n validation passed\n');
   process.exit(0);
 }
 
