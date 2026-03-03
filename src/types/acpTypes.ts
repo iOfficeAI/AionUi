@@ -601,6 +601,9 @@ export interface ToolCallUpdateStatus extends BaseSessionUpdate {
     sessionUpdate: 'tool_call_update';
     toolCallId: string;
     status: 'completed' | 'failed';
+    // rawInput may arrive in tool_call_update with complete data (after streaming completes)
+    // This happens when input_json_delta finishes and the full input is available
+    rawInput?: Record<string, unknown>;
     content?: Array<{
       type: 'content';
       content: {
