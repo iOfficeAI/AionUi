@@ -43,10 +43,21 @@ export const uuid = (length = 8) => {
   return (base + base).slice(0, length);
 };
 
-export const parseError = (error: any): string => {
+export const parseError = (error: unknown): string => {
   if (typeof error === 'string') return error;
   if (error instanceof Error) return error.message;
-  return error.msg || error.message || JSON.stringify(error);
+
+  if (typeof error === 'object' && error !== null) {
+    const err = error as { msg?: unknown; message?: unknown };
+    if (typeof err.msg === 'string') return err.msg;
+    if (typeof err.message === 'string') return err.message;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 };
 
 /**
