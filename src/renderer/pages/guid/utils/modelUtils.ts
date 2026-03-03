@@ -14,11 +14,14 @@ const availableModelsCache = new Map<string, string[]>();
 
 /**
  * Get all available primary models for a provider (with cache).
+ * Filters out disabled models based on modelEnabled state.
  * @param provider - Provider configuration
  * @returns Array of available primary model names
  */
 export const getAvailableModels = (provider: IProvider): string[] => {
-  const cacheKey = `${provider.id}-${(provider.model || []).join(',')}`;
+  // 包含 modelEnabled 状态到缓存 key 中
+  const modelEnabledKey = provider.modelEnabled ? JSON.stringify(provider.modelEnabled) : 'all-enabled';
+  const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${modelEnabledKey}`;
 
   if (availableModelsCache.has(cacheKey)) {
     return availableModelsCache.get(cacheKey)!;
@@ -26,6 +29,10 @@ export const getAvailableModels = (provider: IProvider): string[] => {
 
   const result: string[] = [];
   for (const modelName of provider.model || []) {
+    // 检查模型是否被禁用（默认为启用）
+    const isModelEnabled = provider.modelEnabled?.[modelName] !== false;
+    if (!isModelEnabled) continue;
+
     const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
     const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
 

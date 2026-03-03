@@ -61,6 +61,13 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // Track whether current turn has content output
   // Only reset waitingResponse when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Track request trace state for displaying complete request lifecycle
+  const requestTraceRef = useRef<{
+    startTime: number;
+    provider: string;
+    modelId: string;
+  } | null>(null);
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
   }, [hasActiveTools]);
@@ -186,6 +193,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
               (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = timeoutId;
             }
             hasContentInTurnRef.current = false;
+            // Log request completion
+            if (requestTraceRef.current) {
+              const duration = Date.now() - requestTraceRef.current.startTime;
+              console.log(`%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
+              requestTraceRef.current = null;
+            }
           }
           break;
         case 'tool_group':
@@ -286,10 +299,27 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             // 只有 'finish' 事件才应该重置流状态
           }
           break;
+        case 'request_trace':
+          {
+            const trace = message.data as Record<string, unknown>;
+            requestTraceRef.current = {
+              startTime: Number(trace.timestamp) || Date.now(),
+              provider: String(trace.platform || trace.provider || 'unknown'),
+              modelId: String(trace.modelId || 'unknown'),
+            };
+            console.log(`%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.modelId} | ${new Date().toISOString()}`, 'color: #1890ff; font-weight: bold', 'color: inherit', trace);
+          }
+          break;
         default: {
           if (message.type === 'error') {
             setWaitingResponse(false);
             onError?.(message as IResponseMessage);
+            // Log request error
+            if (requestTraceRef.current) {
+              const duration = Date.now() - requestTraceRef.current.startTime;
+              console.log(`%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', message.data);
+              requestTraceRef.current = null;
+            }
           } else {
             // Mark that current turn has content output (exclude error type)
             hasContentInTurnRef.current = true;

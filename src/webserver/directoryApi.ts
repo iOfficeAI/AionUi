@@ -10,17 +10,62 @@ import fs from 'fs';
 import os from 'os';
 import { fileOperationLimiter } from './middleware/security';
 
-// Allow browsing within the running workspace and the current user's home directory only
-// 仅允许在工作目录与当前用户主目录中浏览
-const DEFAULT_ALLOWED_DIRECTORIES = [process.cwd(), os.homedir()]
-  .map((dir) => {
-    try {
-      return fs.realpathSync(dir);
-    } catch {
-      return path.resolve(dir);
+// Allow browsing within the running workspace, current user's home directory,
+// WSL mount points (/mnt/*) on Linux, and all drive letters on Windows
+// 允许在工作目录、用户主目录、WSL 挂载点（/mnt/*），以及 Windows 所有盘符中浏览
+const DEFAULT_ALLOWED_DIRECTORIES = (() => {
+  const baseDirs = [process.cwd(), os.homedir()];
+
+  // On Windows, add all available drive letters (C:, D:, E:, etc.)
+  // 在 Windows 上，添加所有可用的驱动器盘符
+  if (process.platform === 'win32') {
+    // Check common drive letters A-Z
+    for (let charCode = 65; charCode <= 90; charCode++) {
+      const driveLetter = String.fromCharCode(charCode);
+      const drivePath = `${driveLetter}:\\`;
+      try {
+        if (fs.existsSync(drivePath) && fs.statSync(drivePath).isDirectory()) {
+          baseDirs.push(drivePath);
+        }
+      } catch {
+        // Skip inaccessible drives
+      }
     }
-  })
-  .filter((dir, index, arr) => dir && arr.indexOf(dir) === index);
+  }
+
+  // On Linux (WSL), add /mnt to allow browsing Windows drives
+  // 在 Linux（WSL）环境中，添加 /mnt 以允许浏览 Windows 驱动器
+  if (process.platform === 'linux' && fs.existsSync('/mnt')) {
+    try {
+      const mntEntries = fs.readdirSync('/mnt');
+      for (const entry of mntEntries) {
+        const mountPath = path.join('/mnt', entry);
+        try {
+          if (fs.statSync(mountPath).isDirectory()) {
+            baseDirs.push(mountPath);
+          }
+        } catch {
+          // Skip inaccessible mount points
+        }
+      }
+    } catch {
+      // /mnt exists but not readable
+    }
+  }
+
+  return baseDirs
+    .map((dir) => {
+      try {
+        return fs.realpathSync(dir);
+      } catch {
+        return path.resolve(dir);
+      }
+    })
+    .filter((dir, index, arr) => dir && arr.indexOf(dir) === index);
+})();
+
+// Maximum number of items to return per directory listing
+const MAX_DIRECTORY_ITEMS = 500;
 
 const router = Router();
 
@@ -107,14 +152,54 @@ function validatePath(userPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIREC
 }
 
 /**
+ * Get available Windows drive letters
+ * 获取 Windows 可用的驱动器盘符列表
+ */
+function getWindowsDrives(): Array<{ name: string; path: string; isDirectory: boolean; isFile: boolean }> {
+  const drives: Array<{ name: string; path: string; isDirectory: boolean; isFile: boolean }> = [];
+  for (let charCode = 65; charCode <= 90; charCode++) {
+    const driveLetter = String.fromCharCode(charCode);
+    const drivePath = `${driveLetter}:\\`;
+    try {
+      if (fs.existsSync(drivePath) && fs.statSync(drivePath).isDirectory()) {
+        drives.push({
+          name: `${driveLetter}:`,
+          path: drivePath,
+          isDirectory: true,
+          isFile: false,
+        });
+      }
+    } catch {
+      // Skip inaccessible drives
+    }
+  }
+  return drives;
+}
+
+/**
  * 获取目录列表
  */
 // Rate limit directory browsing to mitigate brute-force scanning
 // 为目录浏览接口增加限流，避免暴力扫描
 router.get('/browse', fileOperationLimiter, (req, res) => {
   try {
+    const queryPath = req.query.path as string;
+
+    // On Windows, when path is empty or '__ROOT__', return drive list
+    // 在 Windows 上，当路径为空或 '__ROOT__' 时，返回驱动器列表
+    if (process.platform === 'win32' && (!queryPath || queryPath === '__ROOT__')) {
+      const drives = getWindowsDrives();
+      return res.json({
+        currentPath: '',
+        parentPath: undefined,
+        items: drives,
+        canGoUp: false,
+        isRoot: true,
+      });
+    }
+
     // 默认打开 AionUi 运行目录，而不是用户 home 目录
-    const rawPath = (req.query.path as string) || process.cwd();
+    const rawPath = queryPath || process.cwd();
 
     // Validate path to prevent directory traversal / 验证路径以防止目录遍历
     const validatedPath = validatePath(rawPath);
@@ -193,11 +278,24 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
       return a.name.localeCompare(b.name);
     });
 
+    // Limit items to prevent browser freeze with very large directories
+    const truncated = items.length > MAX_DIRECTORY_ITEMS;
+    const limitedItems = truncated ? items.slice(0, MAX_DIRECTORY_ITEMS) : items;
+
+    // On Windows, check if we're at a drive root (e.g., C:\)
+    // 在 Windows 上，检查是否在驱动器根目录
+    const parentDir = path.dirname(safeDir);
+    const isAtDriveRoot = process.platform === 'win32' && parentDir === safeDir;
+    const canGoUp = isAtDriveRoot || (parentDir !== safeDir && isPathAllowed(parentDir));
+
     res.json({
       currentPath: safeDir,
-      parentPath: path.dirname(safeDir),
-      items,
-      canGoUp: path.dirname(safeDir) !== safeDir && isPathAllowed(path.dirname(safeDir)),
+      // On Windows drive root, parent should be '__ROOT__' to show drive list
+      // 在 Windows 驱动器根目录，父目录应为 '__ROOT__' 以显示驱动器列表
+      parentPath: isAtDriveRoot ? '__ROOT__' : parentDir,
+      items: limitedItems,
+      canGoUp,
+      truncated,
     });
   } catch (error) {
     console.error('Directory browse error:', error);

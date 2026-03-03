@@ -18,8 +18,8 @@ import katex from 'katex';
 // Import KaTeX CSS to make it available in the document
 import 'katex/dist/katex.min.css';
 
-import { ipcBridge } from '@/common';
 import { diffColors } from '@/renderer/theme/colors';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
@@ -582,13 +582,9 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
                     e.preventDefault();
                     e.stopPropagation();
                     if (!props.href) return;
-                    try {
-                      ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
-                        console.error(t('messages.openLinkFailed'), error);
-                      });
-                    } catch (error) {
+                    openExternalUrl(props.href).catch((error) => {
                       console.error(t('messages.openLinkFailed'), error);
-                    }
+                    });
                   }}
                 />
               ),

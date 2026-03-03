@@ -254,6 +254,9 @@ const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
 
+// Flag to distinguish intentional quit from unexpected exit in WebUI mode
+let isExplicitQuit = false;
+
 let mainWindow: BrowserWindow;
 
 const createWindow = (): void => {
@@ -357,15 +360,55 @@ const createWindow = (): void => {
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Listen to DevTools state changes and notify Renderer
+  mainWindow.webContents.on('devtools-opened', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: true });
+  });
+
+  mainWindow.webContents.on('devtools-closed', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
+  });
 };
 
 // Menu.setApplicationMenu(null);
 
+ipcBridge.application.isDevToolsOpened.provider(() => {
+  if (mainWindow) {
+    return Promise.resolve(mainWindow.webContents.isDevToolsOpened());
+  }
+  return Promise.resolve(false);
+});
+
 ipcBridge.application.openDevTools.provider(() => {
   if (mainWindow) {
-    mainWindow.webContents.openDevTools();
+    const wasOpen = mainWindow.webContents.isDevToolsOpened();
+
+    if (wasOpen) {
+      mainWindow.webContents.closeDevTools();
+      // Close is synchronous, return immediately
+      return Promise.resolve(false);
+    } else {
+      // Open is async, wait for the event
+      return new Promise((resolve) => {
+        const onOpened = () => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          resolve(true);
+        };
+
+        mainWindow.webContents.once('devtools-opened', onOpened);
+        mainWindow.webContents.openDevTools();
+
+        // Fallback timeout in case event doesn't fire
+        setTimeout(() => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          const isNowOpen = mainWindow.webContents.isDevToolsOpened();
+          resolve(isNowOpen);
+        }, 500);
+      });
+    }
   }
-  return Promise.resolve();
+  return Promise.resolve(false);
 });
 
 const handleAppReady = async (): Promise<void> => {
@@ -418,6 +461,17 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config);
     await startWebServer(resolvedPort, allowRemote);
+
+    // Keep the process alive in WebUI mode by preventing default quit behavior.
+    // On Linux headless (systemd), Electron may attempt to quit when no windows exist.
+    app.on('will-quit', (event) => {
+      // Only prevent quit if this is an unexpected exit (server still running).
+      // Explicit app.exit() calls bypass will-quit, so they are unaffected.
+      if (!isExplicitQuit) {
+        event.preventDefault();
+        console.warn('[WebUI] Prevented unexpected quit — server is still running');
+      }
+    });
   } else {
     createWindow();
 
@@ -437,6 +491,18 @@ const handleAppReady = async (): Promise<void> => {
     await initializeAcpDetector();
     // Preload shell environment in background for faster ACP connections
     void loadShellEnvironmentAsync();
+  }
+
+  // Verify CDP is ready and log status
+  const { cdpPort, verifyCdpReady } = await import('./utils/configureChromium');
+  if (cdpPort) {
+    const cdpReady = await verifyCdpReady(cdpPort);
+    if (cdpReady) {
+      console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
+      console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
+    } else {
+      console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
+    }
   }
 
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
@@ -501,6 +567,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', async () => {
+  isExplicitQuit = true;
   // 在应用退出前清理工作进程
   WorkerManage.clear();
 

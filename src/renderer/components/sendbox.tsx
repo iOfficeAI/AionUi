@@ -372,7 +372,7 @@ const SendBox: React.FC<{
         {...dragHandlers}
       >
         {slashController.isOpen && (
-          <div ref={slashDropdownRef} className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-50 max-h-220px overflow-auto rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] shadow-lg p-6px'>
+          <div ref={slashDropdownRef} className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-50 max-h-220px overflow-auto rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] shadow-lg p-6px flex flex-col gap-4px'>
             {slashController.filteredCommands.map((command, index) => (
               <button
                 key={command.name}

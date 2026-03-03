@@ -7,11 +7,11 @@
 import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { Alert, Button, Form, Modal, Switch, Tooltip, Message } from '@arco-design/web-react';
+import { FolderOpen, Link } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -77,12 +77,176 @@ const PreferenceRow: React.FC<{
   label: string;
   /** 控件元素 / Control element */
   children: React.ReactNode;
-}> = ({ label, children }) => (
+  /** 描述文本 / Description text */
+  description?: string;
+}> = ({ label, children, description }) => (
   <div className='flex items-center justify-between gap-24px py-12px'>
-    <div className='text-14px text-2'>{label}</div>
-    <div className='flex-1 flex justify-end'>{children}</div>
+    <div className='flex-1'>
+      <div className='text-14px text-2'>{label}</div>
+      {description && <div className='text-12px text-t-tertiary mt-4px'>{description}</div>}
+    </div>
+    <div className='flex-shrink-0'>{children}</div>
   </div>
 );
+
+/**
+ * CDP 设置组件 / CDP Settings Component
+ * 用于配置 Chrome DevTools Protocol 远程调试
+ */
+const CdpSettings: React.FC = () => {
+  const { t } = useTranslation();
+  const { data: cdpStatus, isLoading } = useSWR('cdp.status', () => ipcBridge.application.getCdpStatus.invoke());
+  const [switchLoading, setSwitchLoading] = useState(false);
+
+  const status = cdpStatus?.data;
+
+  // Track the pending state (config saved but not yet applied)
+  const hasPendingChange = status?.startupEnabled !== status?.enabled;
+
+  const handleToggle = async (checked: boolean) => {
+    setSwitchLoading(true);
+    try {
+      const result = await ipcBridge.application.updateCdpConfig.invoke({ enabled: checked });
+      if (result.success) {
+        Message.success(t('settings.cdp.configSaved'));
+        // Refresh status
+        await mutate('cdp.status');
+      } else {
+        Message.error(result.msg || t('settings.cdp.configFailed'));
+      }
+    } catch (error) {
+      Message.error(t('settings.cdp.configFailed'));
+    } finally {
+      setSwitchLoading(false);
+    }
+  };
+
+  const handleRestart = async () => {
+    try {
+      await ipcBridge.application.restart.invoke();
+    } catch (error) {
+      Message.error(t('common.error'));
+    }
+  };
+
+  const openCdpUrl = () => {
+    if (status?.port) {
+      // Open the CDP JSON list page which shows all inspectable pages
+      const url = `http://127.0.0.1:${status.port}/json`;
+      ipcBridge.shell.openExternal.invoke(url).catch(console.error);
+    }
+  };
+
+  const copyCdpUrl = () => {
+    if (status?.port) {
+      const url = `http://127.0.0.1:${status.port}`;
+      void navigator.clipboard.writeText(url).then(() => {
+        Message.success(t('common.copied'));
+      });
+    }
+  };
+
+  const copyMcpConfig = () => {
+    if (status?.port) {
+      // Include complete MCP configuration with mcpServers wrapper
+      const config = `{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--browser-url=http://127.0.0.1:${status.port}"
+      ]
+    }
+  }
+}`;
+      void navigator.clipboard.writeText(config).then(() => {
+        Message.success(t('common.copied'));
+      });
+    }
+  };
+
+  // Only show CDP settings in development mode
+  if (!isLoading && status?.isDevMode === false) {
+    return null;
+  }
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
+      <div className='text-14px font-medium text-t-primary mb-8px'>{t('settings.cdp.title')}</div>
+      <div className='space-y-12px'>
+        <PreferenceRow label={t('settings.cdp.enable')} description={t('settings.cdp.enableDesc')}>
+          {/* Use startupEnabled for the switch state (config value), not runtime enabled status */}
+          <Switch checked={status?.startupEnabled ?? false} loading={switchLoading} onChange={handleToggle} />
+        </PreferenceRow>
+
+        {/* Show current status if port is available */}
+        {status?.port && (
+          <div className='space-y-8px'>
+            <div className='flex items-center gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
+              <div className='flex-1'>
+                <div className='text-12px text-t-tertiary'>{t('settings.cdp.currentPort')}</div>
+                <div className='text-14px text-t-primary font-medium'>http://127.0.0.1:{status.port}</div>
+              </div>
+              <Tooltip content={t('settings.cdp.openInBrowser')}>
+                <Button type='text' size='small' icon={<Link theme='outline' size='16' />} onClick={openCdpUrl} />
+              </Tooltip>
+              <Tooltip content={t('common.copy')}>
+                <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyCdpUrl} />
+              </Tooltip>
+            </div>
+            {/* MCP configuration hint */}
+            <div className='space-y-4px'>
+              <div className='text-12px text-t-tertiary'>{t('settings.cdp.mcpConfig')}</div>
+              <div className='flex items-start gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
+                <pre className='flex-1 text-11px text-t-secondary font-mono overflow-x-auto whitespace-pre-wrap break-all m-0 leading-relaxed'>{`{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--browser-url=http://127.0.0.1:${status.port}"
+      ]
+    }
+  }
+}`}</pre>
+                <Tooltip content={t('settings.cdp.copyMcpConfig')}>
+                  <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyMcpConfig} />
+                </Tooltip>
+              </div>
+              <div className='text-11px text-t-tertiary'>{t('settings.cdp.mcpConfigHint')}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Show hint when CDP is disabled */}
+        {status && !status.port && !status.startupEnabled && <div className='text-12px text-t-tertiary py-8px'>{t('settings.cdp.disabledHint')}</div>}
+
+        {/* Restart hint with action button when config changed */}
+        {hasPendingChange && (
+          <Alert
+            type='warning'
+            content={
+              <div className='flex items-center justify-between gap-12px'>
+                <span>{t('settings.cdp.restartRequired')}</span>
+                <Button size='small' type='primary' onClick={handleRestart}>
+                  {t('settings.restartNow')}
+                </Button>
+              </div>
+            }
+            className='mt-8px'
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 /**
  * 系统设置内容组件 / System settings content component
@@ -100,12 +264,32 @@ const SystemModalContent: React.FC = () => {
   const [form] = Form.useForm();
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
+  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const initializingRef = useRef(true);
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
+
+  // Initialize DevTools state from Main Process
+  useEffect(() => {
+    ipcBridge.application.isDevToolsOpened
+      .invoke()
+      .then((isOpen) => {
+        setIsDevToolsOpen(isOpen);
+      })
+      .catch((error) => {
+        console.error('Failed to get DevTools state:', error);
+      });
+
+    // Listen to DevTools state changes
+    const unsubscribe = ipcBridge.application.devToolsStateChanged.on((event) => {
+      setIsDevToolsOpen(event.isOpen);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Initialize form data
   useEffect(() => {
@@ -118,6 +302,17 @@ const SystemModalContent: React.FC = () => {
       });
     }
   }, [systemInfo, form]);
+
+  const handleToggleDevTools = () => {
+    ipcBridge.application.openDevTools
+      .invoke()
+      .then((isOpen) => {
+        setIsDevToolsOpen(Boolean(isOpen));
+      })
+      .catch((error) => {
+        console.error('Failed to toggle dev tools:', error);
+      });
+  };
 
   // 偏好设置项配置 / Preference items configuration
   const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
@@ -192,7 +387,17 @@ const SystemModalContent: React.FC = () => {
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
             </Form>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('settings.devTools')}>
+                <Button size='small' type={isDevToolsOpen ? 'primary' : 'secondary'} onClick={handleToggleDevTools} className='shadow-md border-2 hover:shadow-lg transition-all'>
+                  {isDevToolsOpen ? t('settings.closeDevTools') : t('settings.openDevTools')}
+                </Button>
+              </PreferenceRow>
+            </div>
           </div>
+
+          {/* CDP 开发者设置 / CDP Developer Settings (only visible in dev mode) */}
+          <CdpSettings />
         </div>
       </AionScrollArea>
     </div>

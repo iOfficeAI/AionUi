@@ -273,7 +273,15 @@ export class AcpAgent {
             await this.connection.setModel(configuredModel);
             if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
-            console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
+            const errMsg = error instanceof Error ? error.message : String(error);
+            console.warn(`[ACP] Failed to set model from settings: ${errMsg}`);
+            // Detect third-party relay/proxy errors (e.g., NewAPI/OneAPI "model_not_found").
+            // These services route by model name and may not have channels configured for
+            // specific model IDs like "claude-sonnet-4-6". Emit a visible warning so the
+            // user knows to update their relay's model configuration.
+            if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
+              this.emitErrorMessage(`Model "${configuredModel}" is not available on your API relay service. ` + `Please add this model to your relay's channel configuration, ` + `or update ANTHROPIC_MODEL in ~/.claude/settings.json to a supported model name. ` + `Falling back to the relay's default model.`);
+            }
           }
         }
       }
