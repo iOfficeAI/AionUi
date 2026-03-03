@@ -100,12 +100,32 @@ const SystemModalContent: React.FC = () => {
   const [form] = Form.useForm();
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
+  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const initializingRef = useRef(true);
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
+
+  // Initialize DevTools state from Main Process
+  useEffect(() => {
+    ipcBridge.application.isDevToolsOpened
+      .invoke()
+      .then((isOpen) => {
+        setIsDevToolsOpen(isOpen);
+      })
+      .catch((error) => {
+        console.error('Failed to get DevTools state:', error);
+      });
+
+    // Listen to DevTools state changes
+    const unsubscribe = ipcBridge.application.devToolsStateChanged.on((event) => {
+      setIsDevToolsOpen(event.isOpen);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Initialize form data
   useEffect(() => {
@@ -118,6 +138,17 @@ const SystemModalContent: React.FC = () => {
       });
     }
   }, [systemInfo, form]);
+
+  const handleToggleDevTools = () => {
+    ipcBridge.application.openDevTools
+      .invoke()
+      .then((isOpen) => {
+        setIsDevToolsOpen(Boolean(isOpen));
+      })
+      .catch((error) => {
+        console.error('Failed to toggle dev tools:', error);
+      });
+  };
 
   // 偏好设置项配置 / Preference items configuration
   const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
@@ -192,6 +223,13 @@ const SystemModalContent: React.FC = () => {
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
             </Form>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('settings.devTools')}>
+                <Button size='small' type={isDevToolsOpen ? 'primary' : 'secondary'} onClick={handleToggleDevTools} className='shadow-md border-2 hover:shadow-lg transition-all'>
+                  {isDevToolsOpen ? t('settings.closeDevTools') : t('settings.openDevTools')}
+                </Button>
+              </PreferenceRow>
+            </div>
           </div>
         </div>
       </AionScrollArea>

@@ -357,15 +357,55 @@ const createWindow = (): void => {
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Listen to DevTools state changes and notify Renderer
+  mainWindow.webContents.on('devtools-opened', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: true });
+  });
+
+  mainWindow.webContents.on('devtools-closed', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
+  });
 };
 
 // Menu.setApplicationMenu(null);
 
+ipcBridge.application.isDevToolsOpened.provider(() => {
+  if (mainWindow) {
+    return Promise.resolve(mainWindow.webContents.isDevToolsOpened());
+  }
+  return Promise.resolve(false);
+});
+
 ipcBridge.application.openDevTools.provider(() => {
   if (mainWindow) {
-    mainWindow.webContents.openDevTools();
+    const wasOpen = mainWindow.webContents.isDevToolsOpened();
+
+    if (wasOpen) {
+      mainWindow.webContents.closeDevTools();
+      // Close is synchronous, return immediately
+      return Promise.resolve(false);
+    } else {
+      // Open is async, wait for the event
+      return new Promise((resolve) => {
+        const onOpened = () => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          resolve(true);
+        };
+
+        mainWindow.webContents.once('devtools-opened', onOpened);
+        mainWindow.webContents.openDevTools();
+
+        // Fallback timeout in case event doesn't fire
+        setTimeout(() => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          const isNowOpen = mainWindow.webContents.isDevToolsOpened();
+          resolve(isNowOpen);
+        }, 500);
+      });
+    }
   }
-  return Promise.resolve();
+  return Promise.resolve(false);
 });
 
 const handleAppReady = async (): Promise<void> => {

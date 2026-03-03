@@ -63,12 +63,17 @@ export const geminiConversation = {
 
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
-  openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
+  openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
+  isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
   systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+  // Bridge Main Process logs to Renderer F12 Console
+  logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>('app.log-stream'),
+  // DevTools state change notification
+  devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
 };
 
 // Manual (opt-in) updates via GitHub Releases
@@ -480,6 +485,8 @@ export interface ICreateConversationParams {
       expectedIdentityHash?: string | null;
       switchedAt?: number;
     };
+    /** Explicit marker for temporary health-check conversations */
+    isHealthCheck?: boolean;
   };
 }
 interface IResetConversationParams {

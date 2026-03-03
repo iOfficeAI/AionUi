@@ -44,7 +44,7 @@ export function initApplicationBridge(): void {
 
   ipcBridge.application.openDevTools.provider(() => {
     // This will be handled by the main window when needed
-    return Promise.resolve();
+    return Promise.resolve(false);
   });
 
   ipcBridge.application.getZoomFactor.provider(() => Promise.resolve(getZoomFactor()));
