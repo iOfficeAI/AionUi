@@ -531,9 +531,9 @@ const AcpSendBox: React.FC<{
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile([...uploadFile, ...files]);
+      setUploadFile((prev) => [...prev, ...files]);
     },
-    [setUploadFile, uploadFile]
+    [setUploadFile]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,

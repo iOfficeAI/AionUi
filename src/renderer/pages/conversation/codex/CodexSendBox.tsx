@@ -123,7 +123,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     (val: Array<string | FileOrFolderItem>) => {
       mutateDraft((prev) => ({ ...(prev as CodexDraftData), atPath: val }));
     },
-    [draftData, mutateDraft]
+    [mutateDraft]
   );
 
   const setUploadFile = createSetUploadFile(mutateDraft, draftData);
@@ -132,7 +132,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     (val: string) => {
       mutateDraft((prev) => ({ ...(prev as CodexDraftData), content: val }));
     },
-    [draftData, mutateDraft]
+    [mutateDraft]
   );
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
@@ -246,11 +246,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   // 处理粘贴的文件 - Codex专用逻辑
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
-      // 将粘贴的文件添加到uploadFile中
       const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile([...uploadFile, ...filePaths]);
+      setUploadFile((prev) => [...prev, ...filePaths]);
     },
-    [uploadFile, setUploadFile]
+    [setUploadFile]
   );
 
   // 监听从工作空间选择的文件/文件夹（接收对象或路径数组）
@@ -317,9 +316,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile([...uploadFile, ...files]);
+      setUploadFile((prev) => [...prev, ...files]);
     },
-    [setUploadFile, uploadFile]
+    [setUploadFile]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,

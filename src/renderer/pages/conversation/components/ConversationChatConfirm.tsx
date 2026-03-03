@@ -105,13 +105,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       }),
       ipcBridge.conversation.confirmation.update.on(({ ...data }) => {
         if (conversation_id !== data.conversation_id) return;
-        setConfirmations((list) => {
-          const original = list.find((p) => p.id === data.id);
-          if (original) {
-            Object.assign(original, data);
-          }
-          return list.slice();
-        });
+        setConfirmations((list) => list.map((p) => (p.id === data.id ? { ...p, ...data } : p)));
       })
     );
   }, [conversation_id, checkAndAutoConfirm]);
