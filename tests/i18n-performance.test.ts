@@ -48,7 +48,7 @@ describe('i18n 性能测试', () => {
 
       // 验证所有模块都正确加载
       expect(results).toHaveLength(MODULES.length);
-      for (const { module, data } of results) {
+      for (const { data } of results) {
         expect(data).toBeDefined();
         expect(typeof data).toBe('object');
       }

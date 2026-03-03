@@ -12,6 +12,28 @@ const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'pre
 
 // Supported languages
 const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
+type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+function normalizeLanguageCode(language: string): SupportedLanguage {
+  const normalized = language.replace('_', '-');
+  if (SUPPORTED_LANGUAGES.includes(normalized as SupportedLanguage)) {
+    return normalized as SupportedLanguage;
+  }
+
+  const langOnly = normalized.toLowerCase().split('-')[0];
+  switch (langOnly) {
+    case 'zh':
+      return 'zh-CN';
+    case 'ja':
+      return 'ja-JP';
+    case 'ko':
+      return 'ko-KR';
+    case 'tr':
+      return 'tr-TR';
+    default:
+      return 'en-US';
+  }
+}
 
 // Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
@@ -78,12 +100,13 @@ i18n
 ConfigStorage.get('language')
   .then((language) => {
     if (language) {
+      const normalizedLanguage = normalizeLanguageCode(language);
       // Load the language if not already loaded
-      if (!i18n.hasResourceBundle(language, 'translation')) {
-        const translation = loadLocaleModules(language);
-        i18n.addResourceBundle(language, 'translation', translation, true, true);
+      if (!i18n.hasResourceBundle(normalizedLanguage, 'translation')) {
+        const translation = loadLocaleModules(normalizedLanguage);
+        i18n.addResourceBundle(normalizedLanguage, 'translation', translation, true, true);
       }
-      i18n.changeLanguage(language).catch((error) => {
+      i18n.changeLanguage(normalizedLanguage).catch((error) => {
         console.error('[Main Process] Failed to change language:', error);
       });
     }
@@ -100,12 +123,14 @@ ConfigStorage.get('language')
  * Can be called from elsewhere to change the main process language
  */
 export async function changeLanguage(language: string): Promise<void> {
+  const normalizedLanguage = normalizeLanguageCode(language);
+
   // Load the language if not already loaded
-  if (!i18n.hasResourceBundle(language, 'translation')) {
-    const translation = loadLocaleModules(language);
-    i18n.addResourceBundle(language, 'translation', translation, true, true);
+  if (!i18n.hasResourceBundle(normalizedLanguage, 'translation')) {
+    const translation = loadLocaleModules(normalizedLanguage);
+    i18n.addResourceBundle(normalizedLanguage, 'translation', translation, true, true);
   }
-  await i18n.changeLanguage(language);
+  await i18n.changeLanguage(normalizedLanguage);
 }
 
 export default i18n;
