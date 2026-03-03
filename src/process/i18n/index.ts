@@ -82,8 +82,7 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
       modules[moduleName] = content;
     }
 
-    const finalModules =
-      locale === DEFAULT_LANGUAGE ? modules : mergeWithFallback(await loadLocaleModules(DEFAULT_LANGUAGE), modules);
+    const finalModules = locale === DEFAULT_LANGUAGE ? modules : mergeWithFallback(await loadLocaleModules(DEFAULT_LANGUAGE), modules);
 
     loadedTranslations.set(locale, finalModules);
     return finalModules;
