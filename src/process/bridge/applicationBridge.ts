@@ -10,6 +10,7 @@ import { getSystemDir, ProcessEnv } from '../initStorage';
 import { copyDirectoryRecursively } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { getZoomFactor, setZoomFactor } from '../utils/zoom';
+import { getCdpStatus, updateCdpConfig, verifyCdpReady } from '../../utils/configureChromium';
 
 export function initApplicationBridge(): void {
   ipcBridge.application.restart.provider(() => {
@@ -51,5 +52,25 @@ export function initApplicationBridge(): void {
 
   ipcBridge.application.setZoomFactor.provider(({ factor }) => {
     return Promise.resolve(setZoomFactor(factor));
+  });
+
+  // CDP status and configuration
+  ipcBridge.application.getCdpStatus.provider(async () => {
+    try {
+      const status = getCdpStatus();
+      // If port is set, CDP is considered enabled (verification is optional)
+      return { success: true, data: status };
+    } catch (e) {
+      return { success: false, msg: e.message || e.toString() };
+    }
+  });
+
+  ipcBridge.application.updateCdpConfig.provider(async (config) => {
+    try {
+      const updatedConfig = updateCdpConfig(config);
+      return { success: true, data: updatedConfig };
+    } catch (e) {
+      return { success: false, msg: e.message || e.toString() };
+    }
   });
 }
