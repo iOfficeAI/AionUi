@@ -4,20 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { Divider, Typography, Button, Switch } from '@arco-design/web-react';
 import { Github, Right } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import packageJson from '../../../../../package.json';
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
-  const isElectron = typeof (window as any).electronAPI !== 'undefined';
+  const isElectron = isElectronDesktop();
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
 
@@ -33,7 +33,7 @@ const AboutModalContent: React.FC = () => {
 
   const openLink = async (url: string) => {
     try {
-      await ipcBridge.shell.openExternal.invoke(url);
+      await openExternalUrl(url);
     } catch (error) {
       console.log('Failed to open link:', error);
     }

@@ -5,8 +5,9 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { acpConversation, channel, shell } from '@/common/ipcBridge';
+import { acpConversation, channel } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -339,7 +340,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
               href={LARK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
@@ -392,7 +393,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
               href={LARK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
