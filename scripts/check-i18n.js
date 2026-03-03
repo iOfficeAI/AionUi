@@ -9,11 +9,13 @@
 const fs = require('fs');
 const path = require('path');
 const { REQUIRED_MODULES, collectReferenceKeys, getAllKeys } = require('./generate-i18n-types');
+const i18nConfig = require('../src/shared/i18n-config.json');
 
 const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/i18n/locales');
 const I18N_KEYS_DTS = path.resolve(__dirname, '../src/renderer/i18n/i18n-keys.d.ts');
 const RENDERER_DIR = path.resolve(__dirname, '../src/renderer');
-const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'];
+const SUPPORTED_LANGUAGES = i18nConfig.supportedLanguages;
+const REFERENCE_LANGUAGE = i18nConfig.referenceLanguage;
 
 let hasErrors = false;
 let hasWarnings = false;
@@ -148,7 +150,7 @@ function checkDirectoryStructure() {
 function checkTranslationKeys() {
   console.log('\n🔑 Checking translation key consistency...\n');
 
-  const referenceLang = 'en-US';
+  const referenceLang = REFERENCE_LANGUAGE;
   const referenceKeys = {};
 
   // Collect baseline keys from reference locale
@@ -179,9 +181,9 @@ function checkTranslationKeys() {
       if (fs.existsSync(moduleFile)) {
         try {
           const content = JSON.parse(fs.readFileSync(moduleFile, 'utf-8'));
-          const actualKeys = getAllKeys(content);
+          const actualKeySet = new Set(getAllKeys(content));
 
-          const missing = expectedKeys.filter((key) => !actualKeys.includes(key));
+          const missing = expectedKeys.filter((key) => !actualKeySet.has(key));
           missingCount += missing.length;
 
           if (missing.length > 0) {
@@ -298,7 +300,7 @@ function buildReferenceKeySet() {
   const keySet = new Set();
 
   for (const moduleName of REQUIRED_MODULES) {
-    const moduleFile = path.join(LOCALES_DIR, 'en-US', `${moduleName}.json`);
+    const moduleFile = path.join(LOCALES_DIR, REFERENCE_LANGUAGE, `${moduleName}.json`);
     if (!fs.existsSync(moduleFile)) {
       continue;
     }
@@ -364,11 +366,12 @@ function checkIndexConfig() {
 
   const content = fs.readFileSync(indexFile, 'utf-8');
 
-  // Ensure all supported languages are configured
-  for (const lang of SUPPORTED_LANGUAGES) {
-    if (!content.includes(`'${lang}'`) && !content.includes(`"${lang}"`)) {
-      logError(`i18n config is missing language: ${lang}`);
-    }
+  if (!content.includes('i18n-config.json')) {
+    logError('i18n config should load shared constants from src/shared/i18n-config.json');
+  }
+
+  if (!content.includes('export const supportedLanguages')) {
+    logError('i18n config should export supportedLanguages');
   }
 
   // Ensure lazy loading support exists

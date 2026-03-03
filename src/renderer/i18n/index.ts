@@ -3,18 +3,21 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import { ConfigStorage } from '@/common/storage';
+import i18nConfig from '@/shared/i18n-config.json';
 
 export type { I18nKey, I18nModule } from './i18n-keys';
 
+const DEFAULT_LANGUAGE = i18nConfig.fallbackLanguage;
+
 // Supported languages
-export const supportedLanguages = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
+export const supportedLanguages = i18nConfig.supportedLanguages;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 // Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
 
 // Module names for each locale
-const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
+const MODULES = i18nConfig.modules;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -59,14 +62,14 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
       modules[moduleName] = content;
     }
 
-    const finalModules = locale === 'en-US' ? modules : mergeWithFallback(await loadLocaleModules('en-US'), modules);
+    const finalModules = locale === DEFAULT_LANGUAGE ? modules : mergeWithFallback(await loadLocaleModules(DEFAULT_LANGUAGE), modules);
 
     loadedTranslations.set(locale, finalModules);
     return finalModules;
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error);
-    if (locale !== 'en-US') {
-      return loadLocaleModules('en-US');
+    if (locale !== DEFAULT_LANGUAGE) {
+      return loadLocaleModules(DEFAULT_LANGUAGE);
     }
     throw error;
   }
@@ -78,7 +81,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {}, // Start with empty resources, will be loaded on demand
-    fallbackLng: 'en-US',
+    fallbackLng: DEFAULT_LANGUAGE,
     debug: false,
     interpolation: {
       escapeValue: false,
@@ -96,7 +99,7 @@ i18n
 async function initLanguage(): Promise<void> {
   try {
     const savedLanguage = await ConfigStorage.get('language');
-    const language = savedLanguage || i18n.language || 'en-US';
+    const language = savedLanguage || i18n.language || DEFAULT_LANGUAGE;
 
     // Normalize language code
     const normalizedLang = normalizeLanguageCode(language);
@@ -120,7 +123,7 @@ function normalizeLanguageCode(lang: string): SupportedLanguage {
   }
 
   // Handle language-only codes (e.g., 'zh' -> 'zh-CN')
-  const langOnly = normalized.split('-')[0];
+  const langOnly = normalized.toLowerCase().split('-')[0];
   switch (langOnly) {
     case 'zh':
       return 'zh-CN';
@@ -131,7 +134,7 @@ function normalizeLanguageCode(lang: string): SupportedLanguage {
     case 'tr':
       return 'tr-TR';
     default:
-      return 'en-US';
+      return DEFAULT_LANGUAGE;
   }
 }
 

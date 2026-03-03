@@ -11,26 +11,9 @@ const path = require('path');
 
 const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/i18n/locales');
 const OUTPUT_FILE = path.resolve(__dirname, '../src/renderer/i18n/i18n-keys.d.ts');
-const REFERENCE_LANGUAGE = 'en-US';
-const REQUIRED_MODULES = [
-  'common',
-  'agentMode',
-  'update',
-  'login',
-  'fileSelection',
-  'preview',
-  'conversation',
-  'settings',
-  'messages',
-  'mcp',
-  'acp',
-  'codex',
-  'tools',
-  'gemini',
-  'cron',
-  'guid',
-  'agent',
-];
+const i18nConfig = require('../src/shared/i18n-config.json');
+const REFERENCE_LANGUAGE = i18nConfig.referenceLanguage;
+const REQUIRED_MODULES = i18nConfig.modules;
 
 function getAllKeys(obj, prefix = '') {
   const keys = [];

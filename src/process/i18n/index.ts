@@ -8,12 +8,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import i18n from 'i18next';
 import { ConfigStorage } from '@/common/storage';
+import i18nConfig from '@/shared/i18n-config.json';
 
-// Module names for each locale
-const MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
-
-// Supported languages
-const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
+const MODULES = i18nConfig.modules;
+const SUPPORTED_LANGUAGES = i18nConfig.supportedLanguages;
+const DEFAULT_LANGUAGE = i18nConfig.fallbackLanguage;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 function normalizeLanguageCode(language: string): SupportedLanguage {
@@ -33,11 +32,10 @@ function normalizeLanguageCode(language: string): SupportedLanguage {
     case 'tr':
       return 'tr-TR';
     default:
-      return 'en-US';
+      return DEFAULT_LANGUAGE;
   }
 }
 
-// Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -59,78 +57,74 @@ function mergeWithFallback(fallback: Record<string, unknown>, target: Record<str
   return merged;
 }
 
-// Synchronously load locale modules (for main process)
-function loadLocaleModules(locale: string): Record<string, unknown> {
+async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
   if (loadedTranslations.has(locale)) {
     return loadedTranslations.get(locale)!;
   }
 
+  const localeDir = path.resolve(__dirname, '../../../renderer/i18n/locales', locale);
   const modules: Record<string, unknown> = {};
 
   try {
-    const localeDir = path.resolve(__dirname, '../../../renderer/i18n/locales', locale);
+    const entries = await Promise.all(
+      MODULES.map(async (moduleName) => {
+        const moduleFile = path.join(localeDir, `${moduleName}.json`);
+        try {
+          const content = await fs.promises.readFile(moduleFile, 'utf-8');
+          return [moduleName, JSON.parse(content) as Record<string, unknown>] as const;
+        } catch {
+          return [moduleName, {} as Record<string, unknown>] as const;
+        }
+      })
+    );
 
-    for (const moduleName of MODULES) {
-      const moduleFile = path.join(localeDir, `${moduleName}.json`);
-      if (fs.existsSync(moduleFile)) {
-        const content = fs.readFileSync(moduleFile, 'utf-8');
-        modules[moduleName] = JSON.parse(content);
-      } else {
-        modules[moduleName] = {};
-      }
+    for (const [moduleName, content] of entries) {
+      modules[moduleName] = content;
     }
 
-    const finalModules = locale === 'en-US' ? modules : mergeWithFallback(loadLocaleModules('en-US'), modules);
+    const finalModules =
+      locale === DEFAULT_LANGUAGE ? modules : mergeWithFallback(await loadLocaleModules(DEFAULT_LANGUAGE), modules);
 
     loadedTranslations.set(locale, finalModules);
     return finalModules;
   } catch (error) {
     console.error(`Failed to load locale ${locale}:`, error);
-    if (locale !== 'en-US') {
-      return loadLocaleModules('en-US');
+    if (locale !== DEFAULT_LANGUAGE) {
+      return loadLocaleModules(DEFAULT_LANGUAGE);
     }
     return {};
   }
 }
 
-// Initialize resources with loaded translations
-const resources: Record<string, { translation: Record<string, unknown> }> = {};
+const initPromise = (async (): Promise<void> => {
+  const resources: Record<string, { translation: Record<string, unknown> }> = {
+    [DEFAULT_LANGUAGE]: { translation: await loadLocaleModules(DEFAULT_LANGUAGE) },
+  };
 
-// Pre-load default language (en-US)
-resources['en-US'] = { translation: loadLocaleModules('en-US') };
-
-// Initialize i18next for main process
-i18n
-  .init({
+  await i18n.init({
     resources,
-    fallbackLng: 'en-US',
+    fallbackLng: DEFAULT_LANGUAGE,
     debug: false,
     interpolation: {
       escapeValue: false,
     },
-  })
-  .catch((error) => {
-    console.error('[Main Process] Failed to initialize i18n:', error);
   });
 
-// Load language setting from storage and apply
-ConfigStorage.get('language')
-  .then((language) => {
-    if (language) {
-      const normalizedLanguage = normalizeLanguageCode(language);
-      // Load the language if not already loaded
-      if (!i18n.hasResourceBundle(normalizedLanguage, 'translation')) {
-        const translation = loadLocaleModules(normalizedLanguage);
-        i18n.addResourceBundle(normalizedLanguage, 'translation', translation, true, true);
-      }
-      i18n.changeLanguage(normalizedLanguage).catch((error) => {
-        console.error('[Main Process] Failed to change language:', error);
-      });
-    }
-  })
-  .catch((error) => {
-    console.error('[Main Process] Failed to load language setting:', error);
-  });
+  const language = await ConfigStorage.get('language');
+  if (!language) {
+    return;
+  }
+
+  const normalizedLanguage = normalizeLanguageCode(language);
+  if (!i18n.hasResourceBundle(normalizedLanguage, 'translation')) {
+    const translation = await loadLocaleModules(normalizedLanguage);
+    i18n.addResourceBundle(normalizedLanguage, 'translation', translation, true, true);
+  }
+
+  await i18n.changeLanguage(normalizedLanguage);
+})().catch((error) => {
+  console.error('[Main Process] Failed to initialize i18n:', error);
+});
 
 /**
  * 切换语言
@@ -140,13 +134,14 @@ ConfigStorage.get('language')
  * Can be called from elsewhere to change the main process language
  */
 export async function changeLanguage(language: string): Promise<void> {
-  const normalizedLanguage = normalizeLanguageCode(language);
+  await initPromise;
 
-  // Load the language if not already loaded
+  const normalizedLanguage = normalizeLanguageCode(language);
   if (!i18n.hasResourceBundle(normalizedLanguage, 'translation')) {
-    const translation = loadLocaleModules(normalizedLanguage);
+    const translation = await loadLocaleModules(normalizedLanguage);
     i18n.addResourceBundle(normalizedLanguage, 'translation', translation, true, true);
   }
+
   await i18n.changeLanguage(normalizedLanguage);
 }
 

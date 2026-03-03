@@ -4,11 +4,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import i18nConfig from '../../src/shared/i18n-config.json';
 
 // Test constants using __dirname-relative paths
-const LOCALES_DIR = path.resolve(__dirname, '../src/renderer/i18n/locales');
-const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP', 'zh-TW', 'ko-KR', 'tr-TR'] as const;
-const REQUIRED_MODULES = ['common', 'agentMode', 'update', 'login', 'fileSelection', 'preview', 'conversation', 'settings', 'messages', 'mcp', 'acp', 'codex', 'tools', 'gemini', 'cron', 'guid', 'agent'] as const;
+const LOCALES_DIR = path.resolve(__dirname, '../../src/renderer/i18n/locales');
+const SUPPORTED_LANGUAGES = i18nConfig.supportedLanguages;
+const REQUIRED_MODULES = i18nConfig.modules;
 
 // Helper: recursively collect all translation keys
 function getAllKeys(obj: unknown, prefix = ''): string[] {
@@ -79,7 +80,7 @@ describe('i18n Modular Structure Tests', () => {
 
   describe('Translation Key Consistency', () => {
     // Use en-US as the baseline
-    const referenceLang = 'en-US';
+    const referenceLang = i18nConfig.referenceLanguage;
     const referenceModules: Record<string, string[]> = {};
 
     beforeAll(() => {
@@ -123,21 +124,20 @@ describe('i18n Modular Structure Tests', () => {
 
 describe('i18n Configuration Tests', () => {
   it('index.ts should exist', () => {
-    const indexFile = path.resolve(__dirname, '../src/renderer/i18n/index.ts');
+    const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
     expect(fs.existsSync(indexFile)).toBe(true);
   });
 
-  it('index.ts should include supported languages', () => {
-    const indexFile = path.resolve(__dirname, '../src/renderer/i18n/index.ts');
+  it('index.ts should use shared i18n config', () => {
+    const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
     const content = fs.readFileSync(indexFile, 'utf-8');
 
-    expect(content).toContain('zh-CN');
-    expect(content).toContain('en-US');
-    expect(content).toContain('ja-JP');
+    expect(content).toContain('i18n-config.json');
+    expect(content).toContain('export const supportedLanguages');
   });
 
   it('index.ts should export changeLanguage function', () => {
-    const indexFile = path.resolve(__dirname, '../src/renderer/i18n/index.ts');
+    const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
     const content = fs.readFileSync(indexFile, 'utf-8');
 
     expect(content).toContain('export async function changeLanguage');
