@@ -106,6 +106,14 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   useAddEventListener(
     `${eventPrefix}.selected.file`,
     (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      // 处理空选择 - 完全清空所有状态 (#1083)
+      if (!items || items.length === 0) {
+        setSelected([]);
+        selectedKeysRef.current = [];
+        selectedNodeRef.current = null;
+        return;
+      }
+
       // Extract relative paths from items, filter out files (only keep folders in tree selection)
       // 从 items 中提取相对路径，过滤掉文件（树选中状态只保留文件夹）
       const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
