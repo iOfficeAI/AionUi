@@ -207,11 +207,16 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
    * 清空选中状态
    * Clear selection state
    */
-  const clearSelection = useCallback(() => {
+  const clearSelection = useCallback((emitEvent = true) => {
     setSelected([]);
     selectedKeysRef.current = [];
     selectedNodeRef.current = null;
-  }, []);
+
+    // 发送事件以与 SendBox 同步 (#1083)
+    if (emitEvent) {
+      emitter.emit(`${eventPrefix}.selected.file`, []);
+    }
+  }, [eventPrefix]);
 
   return {
     // State / 状态
