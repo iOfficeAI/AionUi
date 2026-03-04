@@ -92,12 +92,49 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
     setSelectedPath(path);
   };
 
+  // Windows 驱动器列表状态
+  const [drives, setDrives] = useState<string[]>([]);
+  const [isWindows, setIsWindows] = useState(false);
+
+  // 检测 Windows 系统和加载驱动器列表 (#1082)
+  useEffect(() => {
+    const win = /win/i.test(navigator.userAgent) || currentPath.includes('\\');
+    setIsWindows(win);
+    
+    if (win && currentPath === '') {
+      // 尝试从 API 加载驱动器列表，或使用默认值
+      fetch('/api/directory/drives', { credentials: 'include' })
+        .then(r => {
+          if (!r.ok) throw new Error('Drive API not available');
+          return r.json();
+        })
+        .then(data => setDrives(data.drives || ['C:', 'D:']))
+        .catch(() => {
+          // 回退：使用常见的 Windows 驱动器
+          setDrives(['C:', 'D:']);
+        });
+    } else {
+      setDrives([]);
+    }
+  }, [currentPath]);
+
   const handleGoUp = () => {
-    if (directoryData.parentPath !== undefined) {
-      // Handle '__ROOT__' as empty path to show drive list on Windows
-      // 处理 '__ROOT__' 为空路径，在 Windows 上显示驱动器列表
+    if (directoryData.parentPath !== undefined && directoryData.parentPath !== '') {
+      // 优先使用 API 返回的父路径
       const targetPath = directoryData.parentPath === '__ROOT__' ? '' : directoryData.parentPath;
       loadDirectory(targetPath).catch((error) => console.error('Failed to load parent directory:', error));
+    } else if (currentPath && currentPath !== '') {
+      // 回退方案：从当前路径计算父目录 (#1082)
+      const separator = currentPath.includes('\\') ? '\\' : '/';
+      const parts = currentPath.split(separator).filter(Boolean);
+      if (parts.length > 1) {
+        parts.pop();
+        const parentPath = parts.join(separator);
+        loadDirectory(parentPath).catch((error) => console.error('Failed to load parent:', error));
+      } else {
+        // 到达根目录，显示驱动器列表（Windows）或空路径
+        loadDirectory('').catch((error) => console.error('Failed to load root:', error));
+      }
     }
   };
 
@@ -173,6 +210,24 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
                 )}
               </div>
             ))}
+            
+            {/* Windows 驱动器选择区域 (#1082) */}
+            {isWindows && currentPath === '' && drives.length > 0 && (
+              <div className='p-10px border-t border-t-light mt-10px'>
+                <div className='text-12px text-t-secondary mb-8px'>{t('fileSelection.selectDrive', { defaultValue: 'Select Drive' })}</div>
+                <div className='flex flex-wrap gap-8px'>
+                  {drives.map((drive) => (
+                    <Button
+                      key={drive}
+                      size='mini'
+                      onClick={() => loadDirectory(drive + '\\')}
+                    >
+                      {drive}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Spin>
