@@ -67,6 +67,14 @@ export class WebSocketManager {
     }
 
     if (!TokenMiddleware.validateWebSocketToken(token)) {
+      // Send auth-expired before closing so the client can redirect to login
+      // instead of entering an infinite reconnection loop.
+      // This mirrors the behavior in checkClients() heartbeat check.
+      try {
+        ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
+      } catch {
+        // Socket may not be ready for sending yet; close will still fire on client
+      }
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Invalid or expired token');
       return false;
     }

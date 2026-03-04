@@ -498,6 +498,9 @@
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
     "workDir": "工作目录",
+    "devTools": "开发者工具",
+    "openDevTools": "打开 DevTools",
+    "closeDevTools": "关闭 DevTools",
     "dirNotConfigured": "尚未配置目录",
     "cacheClean": "缓存清理",
     "clean": "清理",
@@ -521,6 +524,15 @@
     "deleteAllModelConfirm": "是否删除所有模型？",
     "modelCount": "模型",
     "apiKeyCount": "API Key",
+    "healthCheck": "健康检测",
+    "modelHealthy": "模型可用",
+    "modelUnhealthy": "模型不可用",
+    "lastCheck": "上次检测",
+    "healthCheckFailed": "健康检测失败",
+    "clearHealthStatus": "清理测活状态",
+    "healthDataCleared": "测活状态已清理",
+    "healthCheckProbePrompt": "请回复：OK",
+    "responseTime": "耗时",
     "pleaseEnterBaseUrlAndApiKey": "请输入base url和api key",
     "pleaseEnterApiKey": "请输入 API Key",
     "pleaseEnterBaseUrl": "请输入 Base URL",
@@ -648,6 +660,19 @@
     "webui.featureChannelsTitle": "Messaging Control",
     "webui.featureChannelsDesc": "连接 Telegram、Lark、钉钉，在即时通讯软件中与 AionUi 交互。",
     "webui.goToChannels": "前往 Channels",
+    "cdp.title": "开发者调试",
+    "cdp.enable": "启用远程调试 (CDP)",
+    "cdp.enableDesc": "启用 Chrome DevTools Protocol，允许外部工具连接调试",
+    "cdp.currentPort": "调试端口",
+    "cdp.openInBrowser": "在浏览器中打开",
+    "cdp.configSaved": "配置已保存，重启应用后生效",
+    "cdp.configFailed": "保存配置失败",
+    "cdp.restartRequired": "配置已更改，需要重启应用才能生效",
+    "cdp.disabledHint": "CDP 远程调试已禁用，启用后可在开发工具中使用",
+    "cdp.mcpConfig": "MCP 配置",
+    "cdp.copyMcpConfig": "复制 MCP 配置",
+    "cdp.mcpConfigHint": "将此配置添加到您的 IDE MCP 设置文件中（如 ~/.cursor/mcp.json 或 ~/.claude/settings.json）",
+    "restartNow": "立即重启",
     "assistant.telegramConfig": "Telegram 机器人配置",
     "assistant.botToken": "Bot Token",
     "assistant.botTokenDesc": "打开 Telegram，找到 @BotFather 发送 /newbot，以获取你的 Bot Token。",
@@ -1006,6 +1031,9 @@
       "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
       "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
       "no": "否 (esc)"
+    },
+    "slash": {
+      "openFile": "打开文件选择器"
     }
   },
   "mcp": {
@@ -1284,7 +1312,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "让 Gemini CLI 决定最佳模型: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "让 Gemini CLI 决定最佳模型: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "让 Gemini CLI 决定最佳模型: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手动选择模型"
     }

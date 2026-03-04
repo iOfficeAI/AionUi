@@ -88,7 +88,7 @@ const GeminiModalContent: React.FC = () => {
   const saveConfig = useCallback(async () => {
     try {
       const values = form.getFieldsValue();
-      const { googleAccount: _googleAccount, customCss, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
+      const { googleAccount: _googleAccount, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
 
       const existingConfig = ((await ConfigStorage.get('gemini.config')) || {}) as Record<string, unknown>;
       const accountProjects = (existingConfig.accountProjects as Record<string, string>) || {};
@@ -102,13 +102,6 @@ const GeminiModalContent: React.FC = () => {
       const geminiConfig = toGeminiConfig(restConfig, accountProjects);
 
       await ConfigStorage.set('gemini.config', geminiConfig);
-      await ConfigStorage.set('customCss', customCss || '');
-
-      window.dispatchEvent(
-        new CustomEvent('custom-css-updated', {
-          detail: { customCss: customCss || '' },
-        })
-      );
     } catch (error: unknown) {
       console.error('[GeminiSettings] Auto-save failed:', error);
     }
@@ -133,11 +126,10 @@ const GeminiModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    Promise.all([ConfigStorage.get('gemini.config'), ConfigStorage.get('customCss')])
-      .then(([geminiConfig, customCss]) => {
+    Promise.all([ConfigStorage.get('gemini.config')])
+      .then(([geminiConfig]) => {
         const formData = {
           ...geminiConfig,
-          customCss: customCss || '',
           // 先不设置 GOOGLE_CLOUD_PROJECT，等账号加载完再设置
           // Don't set GOOGLE_CLOUD_PROJECT yet, wait for account to load
           GOOGLE_CLOUD_PROJECT: '',

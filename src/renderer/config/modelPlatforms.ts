@@ -118,6 +118,18 @@ export const NEW_API_PROTOCOL_OPTIONS = [
   { label: 'Anthropic', value: 'anthropic' },
 ];
 
+/**
+ * 根据模型名称自动推断 New API 协议类型
+ * Auto-detect New API protocol type based on model name
+ */
+export const detectNewApiProtocol = (modelName: string): string => {
+  const name = modelName.toLowerCase();
+  if (name.startsWith('claude') || name.startsWith('anthropic')) return 'anthropic';
+  if (name.startsWith('gemini') || name.startsWith('models/gemini')) return 'gemini';
+  // Default to openai (covers gpt, deepseek, qwen, o1, o3, etc.)
+  return 'openai';
+};
+
 // ============ 工具函数 / Utility Functions ============
 
 /**

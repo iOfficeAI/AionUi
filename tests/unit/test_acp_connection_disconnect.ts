@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChildProcess } from 'child_process';
 import { spawn, spawnSync } from 'child_process';
 import { once } from 'events';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { AcpConnection } from '../../src/agent/acp/AcpConnection';
@@ -17,10 +17,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForPidFile(pidFile: string, timeoutMs: number): Promise<number> {
+async function waitForPidFile(pidFile: string, timeoutMs: number, shellProcess?: ChildProcess): Promise<number> {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
+    if (shellProcess && (shellProcess.exitCode !== null || shellProcess.signalCode !== null)) {
+      throw new Error(`Shell process exited early before PID file was created: code=${shellProcess.exitCode}, signal=${shellProcess.signalCode}`);
+    }
+
     try {
       const pid = Number(readFileSync(pidFile, 'utf-8').trim());
       if (Number.isInteger(pid) && pid > 0) {
@@ -90,17 +94,17 @@ describe('AcpConnection disconnect', () => {
   itWindows(
     'kills shell-spawned ACP CLI process tree on Windows',
     async () => {
-      const tempDir = join(tmpdir(), `acp-disconnect-${process.pid}`);
-      rmSync(tempDir, { recursive: true, force: true });
-      mkdirSync(tempDir, { recursive: true });
+      const tempDir = mkdtempSync(join(tmpdir(), 'acp-disconnect-'));
       const pidFile = join(tempDir, 'cli.pid');
       const cliScriptPath = join(tempDir, 'keepalive.js');
 
       const cliScript = `const fs=require('fs');fs.writeFileSync(${JSON.stringify(pidFile)},String(process.pid));setInterval(()=>{},1000);`;
       writeFileSync(cliScriptPath, cliScript, 'utf-8');
 
-      const shellProcess = spawn(process.execPath, [cliScriptPath], {
-        shell: true,
+      const powershellCmd = `& '${process.execPath.replace(/'/g, "''")}' '${cliScriptPath.replace(/'/g, "''")}'`;
+      const shellProcess = spawn('powershell.exe', ['-NoProfile', '-Command', powershellCmd], {
+        shell: false,
+        windowsHide: true,
         stdio: ['ignore', 'ignore', 'ignore'],
       });
 
@@ -108,7 +112,7 @@ describe('AcpConnection disconnect', () => {
       let cliPid: number | null = null;
 
       try {
-        cliPid = await waitForPidFile(pidFile, 10000);
+        cliPid = await waitForPidFile(pidFile, 20000, shellProcess);
 
         (connection as unknown as { child: ChildProcess | null }).child = shellProcess;
         await connection.disconnect();

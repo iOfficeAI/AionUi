@@ -9,8 +9,9 @@ import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/a
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
+import type { SlashCommandItem } from '@/common/slash/types';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -35,6 +36,12 @@ interface InitializeResult {
   }>;
   [key: string]: unknown;
 }
+
+/**
+ * ACP available command type - subset of SlashCommandItem for ACP protocol layer
+ * ACP 可用命令类型 - SlashCommandItem 的子集，用于 ACP 协议层
+ */
+export type AcpAvailableCommand = Pick<SlashCommandItem, 'name' | 'description' | 'hint'>;
 
 /**
  * Helper function to normalize tool call status
@@ -78,6 +85,8 @@ export interface AcpAgentConfig {
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
   /** Callback when ACP session ID is updated / 当 ACP session ID 更新时的回调 */
   onSessionIdUpdate?: (sessionId: string) => void;
+  /** Callback when ACP agent updates available slash commands / ACP 可用斜杠命令更新回调 */
+  onAvailableCommandsUpdate?: (commands: AcpAvailableCommand[]) => void;
 }
 
 // ACP agent任务类
@@ -103,6 +112,7 @@ export class AcpAgent {
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
   private readonly onSessionIdUpdate?: (sessionId: string) => void;
+  private readonly onAvailableCommandsUpdate?: (commands: AcpAvailableCommand[]) => void;
 
   // Track pending navigation tool calls for URL extraction from results
   // 跟踪待处理的导航工具调用，以便从结果中提取 URL
@@ -130,6 +140,7 @@ export class AcpAgent {
     this.onStreamEvent = config.onStreamEvent;
     this.onSignalEvent = config.onSignalEvent;
     this.onSessionIdUpdate = config.onSessionIdUpdate;
+    this.onAvailableCommandsUpdate = config.onAvailableCommandsUpdate;
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
@@ -746,6 +757,22 @@ export class AcpAgent {
 
   private handleSessionUpdate(data: AcpSessionUpdate): void {
     try {
+      if (data.update?.sessionUpdate === 'available_commands_update') {
+        const commandUpdate = data as AvailableCommandsUpdate;
+        const commands: AcpAvailableCommand[] = [];
+        for (const command of commandUpdate.update?.availableCommands || []) {
+          const name = command.name?.trim();
+          if (!name) continue;
+          const description = (command.description || command.name || '').trim();
+          commands.push({
+            name,
+            description: description || name,
+            hint: command.input?.hint?.trim(),
+          });
+        }
+        this.onAvailableCommandsUpdate?.(commands);
+      }
+
       // Intercept chrome-devtools navigation tools from session updates
       // 从会话更新中拦截 chrome-devtools 导航工具
       if (data.update?.sessionUpdate === 'tool_call') {

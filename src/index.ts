@@ -23,6 +23,95 @@ import { applyZoomToWindow } from './process/utils/zoom';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
+// ============ Deep Link Protocol ============
+// Register aionui:// protocol scheme for external app integration (e.g., New API token quick-add)
+const PROTOCOL_SCHEME = 'aionui';
+
+/**
+ * Parse an aionui:// URL into action and params.
+ * Supports two formats:
+ *   1. aionui://add-provider?baseUrl=xxx&apiKey=xxx
+ *   2. aionui://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
+ */
+const parseDeepLinkUrl = (url: string): { action: string; params: Record<string, string> } | null => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== `${PROTOCOL_SCHEME}:`) return null;
+
+    // Build action from hostname + pathname, e.g. "provider/add" or "add-provider"
+    const hostname = parsed.hostname || '';
+    const pathname = parsed.pathname.replace(/^\/+/, '');
+    const action = pathname ? `${hostname}/${pathname}` : hostname;
+
+    const params: Record<string, string> = {};
+    parsed.searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+
+    // If data param exists, decode base64 JSON and merge into params
+    if (params.data) {
+      try {
+        const json = JSON.parse(Buffer.from(params.data, 'base64').toString('utf-8'));
+        if (json && typeof json === 'object') {
+          Object.assign(params, json);
+        }
+      } catch {
+        // Ignore decode errors
+      }
+      // Remove raw base64 blob so it isn't forwarded to the renderer
+      delete params.data;
+    }
+
+    return { action, params };
+  } catch {
+    return null;
+  }
+};
+
+/** Pending deep-link URL received before the window was ready */
+let pendingDeepLinkUrl: string | null = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`)) || null;
+
+/**
+ * Send the deep-link payload to the renderer via IPC bridge.
+ * If the window isn't ready yet, queue it.
+ */
+const handleDeepLinkUrl = (url: string) => {
+  const parsed = parseDeepLinkUrl(url);
+  if (!parsed) return;
+
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    // Window not ready yet – last-write-wins: only the most recent deep link is kept,
+    // which is intentional since the user can only act on one at a time.
+    pendingDeepLinkUrl = url;
+    return;
+  }
+
+  ipcBridge.deepLink.received.emit(parsed);
+};
+
+// ============ Single Instance Lock ============
+// Acquire lock early so the second instance quits before doing unnecessary work.
+// When a second instance starts (e.g. from protocol URL), it sends its data
+// to the first instance via second-instance event, then quits.
+const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+const gotTheLock = app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
+    // Prefer additionalData (reliable on all platforms), fallback to argv scan
+    const deepLinkUrl = (additionalData as { deepLinkUrl?: string })?.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+    if (deepLinkUrl) {
+      handleDeepLinkUrl(deepLinkUrl);
+    }
+    // Focus existing window
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
 if (process.platform === 'darwin' || process.platform === 'linux') {
@@ -200,6 +289,8 @@ const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
+    show: false, // Hide until CSS is loaded to prevent FOUC
+    backgroundColor: '#ffffff',
     autoHideMenuBar: true,
     // Set icon for Windows/Linux in development mode
     ...(devIcon && process.platform !== 'darwin' ? { icon: devIcon } : {}),
@@ -215,6 +306,18 @@ const createWindow = (): void => {
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
+
+  // Show window after page and CSS are fully loaded to prevent FOUC
+  const showWindow = () => {
+    if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  };
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(showWindow, 200);
+  });
+  // Fallback: show window after 3s even if did-finish-load doesn't fire
+  setTimeout(showWindow, 3000);
 
   initMainAdapterWithWindow(mainWindow);
   setupApplicationMenu();
@@ -257,15 +360,55 @@ const createWindow = (): void => {
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Listen to DevTools state changes and notify Renderer
+  mainWindow.webContents.on('devtools-opened', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: true });
+  });
+
+  mainWindow.webContents.on('devtools-closed', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
+  });
 };
 
 // Menu.setApplicationMenu(null);
 
+ipcBridge.application.isDevToolsOpened.provider(() => {
+  if (mainWindow) {
+    return Promise.resolve(mainWindow.webContents.isDevToolsOpened());
+  }
+  return Promise.resolve(false);
+});
+
 ipcBridge.application.openDevTools.provider(() => {
   if (mainWindow) {
-    mainWindow.webContents.openDevTools();
+    const wasOpen = mainWindow.webContents.isDevToolsOpened();
+
+    if (wasOpen) {
+      mainWindow.webContents.closeDevTools();
+      // Close is synchronous, return immediately
+      return Promise.resolve(false);
+    } else {
+      // Open is async, wait for the event
+      return new Promise((resolve) => {
+        const onOpened = () => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          resolve(true);
+        };
+
+        mainWindow.webContents.once('devtools-opened', onOpened);
+        mainWindow.webContents.openDevTools();
+
+        // Fallback timeout in case event doesn't fire
+        setTimeout(() => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          const isNowOpen = mainWindow.webContents.isDevToolsOpened();
+          resolve(isNowOpen);
+        }, 500);
+      });
+    }
   }
-  return Promise.resolve();
+  return Promise.resolve(false);
 });
 
 const handleAppReady = async (): Promise<void> => {
@@ -331,6 +474,16 @@ const handleAppReady = async (): Promise<void> => {
     });
   } else {
     createWindow();
+
+    // Flush pending deep-link URL (received before window was ready)
+    if (pendingDeepLinkUrl) {
+      const url = pendingDeepLinkUrl;
+      pendingDeepLinkUrl = null;
+      // Wait for renderer to be ready before sending
+      mainWindow.webContents.once('did-finish-load', () => {
+        handleDeepLinkUrl(url);
+      });
+    }
   }
 
   // 启动时初始化ACP检测器 (skip in --resetpass mode)
@@ -338,6 +491,18 @@ const handleAppReady = async (): Promise<void> => {
     await initializeAcpDetector();
     // Preload shell environment in background for faster ACP connections
     void loadShellEnvironmentAsync();
+  }
+
+  // Verify CDP is ready and log status
+  const { cdpPort, verifyCdpReady } = await import('./utils/configureChromium');
+  if (cdpPort) {
+    const cdpReady = await verifyCdpReady(cdpPort);
+    if (cdpReady) {
+      console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
+      console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
+    } else {
+      console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
+    }
   }
 
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
@@ -352,6 +517,27 @@ const handleAppReady = async (): Promise<void> => {
       });
   });
 };
+
+// ============ Protocol Registration ============
+// Register aionui:// as the default protocol client
+if (process.defaultApp) {
+  // Dev mode: need to pass execPath explicitly
+  app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, [path.resolve(process.argv[1])]);
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
+}
+
+// macOS: handle aionui:// URLs via the open-url event
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLinkUrl(url);
+  // Focus existing window so user sees the result
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
 
 // Ensure we don't miss the ready event when running in CLI/WebUI mode
 void app

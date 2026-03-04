@@ -8,6 +8,7 @@ import { execSync } from 'child_process';
 import type { AcpBackendAll, PresetAgentType } from '@/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/types/acpTypes';
 import { ProcessConfig } from '@/process/initStorage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 interface DetectedAgent {
   backend: AcpBackendAll;
@@ -78,6 +79,10 @@ class AcpDetector {
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 
+    // Get enhanced environment with user's shell PATH (includes ~/.local/bin, etc.)
+    // 获取增强的环境变量，包含用户 shell 的 PATH（如 ~/.local/bin 等）
+    const enhancedEnv = getEnhancedEnv();
+
     const isCliAvailable = (cliCommand: string): boolean => {
       // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
       // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
@@ -86,6 +91,7 @@ class AcpDetector {
           encoding: 'utf-8',
           stdio: 'pipe',
           timeout: 1000,
+          env: enhancedEnv,
         });
         return true;
       } catch {
@@ -100,6 +106,7 @@ class AcpDetector {
             encoding: 'utf-8',
             stdio: 'pipe',
             timeout: 1000,
+            env: enhancedEnv,
           });
           return true;
         } catch {

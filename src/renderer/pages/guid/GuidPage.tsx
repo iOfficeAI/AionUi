@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -41,7 +41,7 @@ const GuidPage: React.FC = () => {
   // Open external link
   const openLink = useCallback(async (url: string) => {
     try {
-      await ipcBridge.shell.openExternal.invoke(url);
+      await openExternalUrl(url);
     } catch (error) {
       console.error('Failed to open external link:', error);
     }

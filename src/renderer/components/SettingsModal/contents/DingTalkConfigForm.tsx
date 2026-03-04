@@ -5,8 +5,9 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { acpConversation, channel, shell } from '@/common/ipcBridge';
+import { acpConversation, channel } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -328,7 +329,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               href={DINGTALK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(DINGTALK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
@@ -381,7 +382,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               href={DINGTALK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(DINGTALK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
