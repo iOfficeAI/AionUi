@@ -1,14 +1,14 @@
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
-import React from 'react';
+import React, { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/storage';
+import { PreviewContext } from '@/renderer/pages/conversation/preview/context/PreviewContext';
 
 // Unified model dropdown for chat header, send box, and channel settings
 const GeminiModelSelector: React.FC<{
@@ -18,7 +18,10 @@ const GeminiModelSelector: React.FC<{
   variant?: 'header' | 'settings';
 }> = ({ selection, disabled = false, label: customLabel, variant = 'header' }) => {
   const { t } = useTranslation();
-  const { isOpen: isPreviewOpen } = usePreviewContext();
+  // 安全获取 PreviewContext，Settings 页面等不在 PreviewProvider 内的场景返回 null
+  // Safely get PreviewContext, return null for scenes like Settings page not wrapped in PreviewProvider
+  const previewContext = useContext(PreviewContext);
+  const isPreviewOpen = previewContext?.isOpen ?? false;
   const layout = useLayoutContext();
   const compact = variant === 'header' && (isPreviewOpen || layout?.isMobile);
   const isMobileHeaderCompact = variant === 'header' && Boolean(layout?.isMobile);
