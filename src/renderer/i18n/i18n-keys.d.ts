@@ -794,6 +794,7 @@ export type I18nKey =
   | 'settings.clearStatus'
   | 'settings.clickToValidate'
   | 'settings.closeDevTools'
+  | 'settings.closeToTray'
   | 'settings.command'
   | 'settings.configGuide'
   | 'settings.configGuideSuffix'
