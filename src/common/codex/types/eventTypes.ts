@@ -357,4 +357,41 @@ export enum CodexAgentEventType {
    * payload: { reason: TurnAbortReason }
    */
   TURN_ABORTED = 'turn_aborted',
+
+  // Multi-agent events (Codex multi-agent mode)
+  /**
+   * 生成子 Agent 开始事件 - 表示正在生成子 Agent
+   * payload: { call_id: string, name: string, instructions: string, model?: string }
+   */
+  SPAWN_AGENT_BEGIN = 'spawn_agent_begin',
+
+  /**
+   * 生成子 Agent 结束事件 - 子 Agent 生成完成
+   * payload: { call_id: string, agent_id: string, result?: unknown }
+   */
+  SPAWN_AGENT_END = 'spawn_agent_end',
+
+  /**
+   * 等待 Agent 开始事件 - 开始等待子 Agent 完成
+   * payload: { call_id: string, agent_ids: string[] }
+   */
+  WAIT_BEGIN = 'wait_begin',
+
+  /**
+   * 等待 Agent 结束事件 - 子 Agent 等待完成
+   * payload: { call_id: string, results: unknown[] }
+   */
+  WAIT_END = 'wait_end',
+
+  /**
+   * CSV 批量生成 Agent 开始事件
+   * payload: { call_id: string, csv_path: string, row_count: number }
+   */
+  SPAWN_AGENTS_ON_CSV_BEGIN = 'spawn_agents_on_csv_begin',
+
+  /**
+   * CSV 批量生成 Agent 结束事件
+   * payload: { call_id: string, results: unknown[] }
+   */
+  SPAWN_AGENTS_ON_CSV_END = 'spawn_agents_on_csv_end',
 }

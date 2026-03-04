@@ -153,6 +153,40 @@ export class CodexEventHandler {
       this.toolHandlers.handleTurnDiff(msg);
       return;
     }
+
+    // Multi-agent events
+    if (this.isMessageType(msg, 'spawn_agent_begin')) {
+      this.toolHandlers.handleSpawnAgentBegin(msg);
+      return;
+    }
+
+    if (this.isMessageType(msg, 'spawn_agent_end')) {
+      this.toolHandlers.handleSpawnAgentEnd(msg);
+      return;
+    }
+
+    if (this.isMessageType(msg, 'wait_begin')) {
+      this.toolHandlers.handleWaitBegin(msg);
+      return;
+    }
+
+    if (this.isMessageType(msg, 'wait_end')) {
+      this.toolHandlers.handleWaitEnd(msg);
+      return;
+    }
+
+    if (this.isMessageType(msg, 'spawn_agents_on_csv_begin')) {
+      this.toolHandlers.handleSpawnAgentsOnCsvBegin(msg);
+      return;
+    }
+
+    if (this.isMessageType(msg, 'spawn_agents_on_csv_end')) {
+      this.toolHandlers.handleSpawnAgentsOnCsvEnd(msg);
+      return;
+    }
+
+    // Log unhandled event types for debugging
+    console.log(`[CodexEventHandler] Unhandled event type: ${type}`);
   }
 
   /**

@@ -51,7 +51,14 @@ export type CodexEventMsg =
   | ({ type: 'list_custom_prompts_response' } & ListCustomPromptsResponseData)
   | ({ type: 'conversation_path' } & ConversationPathResponseData)
   | { type: 'background_event'; message: string }
-  | ({ type: 'turn_aborted' } & TurnAbortedData);
+  | ({ type: 'turn_aborted' } & TurnAbortedData)
+  // Multi-agent events
+  | ({ type: 'spawn_agent_begin' } & SpawnAgentBeginData)
+  | ({ type: 'spawn_agent_end' } & SpawnAgentEndData)
+  | ({ type: 'wait_begin' } & WaitBeginData)
+  | ({ type: 'wait_end' } & WaitEndData)
+  | ({ type: 'spawn_agents_on_csv_begin' } & SpawnAgentsOnCsvBeginData)
+  | ({ type: 'spawn_agents_on_csv_end' } & SpawnAgentsOnCsvEndData);
 
 // Session / lifecycle events
 export interface SessionConfiguredData {
@@ -312,6 +319,51 @@ export interface TurnAbortedData {
   reason: 'interrupted' | 'replaced';
 }
 
+// Multi-agent event data interfaces
+export interface SpawnAgentBeginData {
+  call_id: string;
+  name?: string;
+  instructions?: string;
+  model?: string;
+  agent_id?: string;
+}
+
+export interface SpawnAgentEndData {
+  call_id: string;
+  agent_id?: string;
+  result?: unknown;
+  success?: boolean;
+  error?: string;
+}
+
+export interface WaitBeginData {
+  call_id: string;
+  agent_ids?: string[];
+  timeout?: number;
+}
+
+export interface WaitEndData {
+  call_id: string;
+  results?: unknown[];
+  success?: boolean;
+  error?: string;
+}
+
+export interface SpawnAgentsOnCsvBeginData {
+  call_id: string;
+  csv_path?: string;
+  row_count?: number;
+  instruction?: string;
+}
+
+export interface SpawnAgentsOnCsvEndData {
+  call_id: string;
+  results?: unknown[];
+  output_csv_path?: string;
+  success?: boolean;
+  error?: string;
+}
+
 // Type aliases for better naming consistency
 export type ApplyPatchApprovalRequestData = PatchApprovalData;
 
@@ -354,4 +406,11 @@ export type EventDataMap = {
   [CodexAgentEventType.MCP_TOOL_CALL_END]: Extract<CodexEventMsg, { type: 'mcp_tool_call_end' }>;
   [CodexAgentEventType.WEB_SEARCH_BEGIN]: Extract<CodexEventMsg, { type: 'web_search_begin' }>;
   [CodexAgentEventType.WEB_SEARCH_END]: Extract<CodexEventMsg, { type: 'web_search_end' }>;
+  // Multi-agent events
+  [CodexAgentEventType.SPAWN_AGENT_BEGIN]: Extract<CodexEventMsg, { type: 'spawn_agent_begin' }>;
+  [CodexAgentEventType.SPAWN_AGENT_END]: Extract<CodexEventMsg, { type: 'spawn_agent_end' }>;
+  [CodexAgentEventType.WAIT_BEGIN]: Extract<CodexEventMsg, { type: 'wait_begin' }>;
+  [CodexAgentEventType.WAIT_END]: Extract<CodexEventMsg, { type: 'wait_end' }>;
+  [CodexAgentEventType.SPAWN_AGENTS_ON_CSV_BEGIN]: Extract<CodexEventMsg, { type: 'spawn_agents_on_csv_begin' }>;
+  [CodexAgentEventType.SPAWN_AGENTS_ON_CSV_END]: Extract<CodexEventMsg, { type: 'spawn_agents_on_csv_end' }>;
 };

@@ -343,6 +343,102 @@ export class CodexToolHandlers {
     });
   }
 
+  // Multi-agent event handlers
+  handleSpawnAgentBegin(msg: Extract<CodexEventMsg, { type: 'spawn_agent_begin' }>) {
+    const callId = msg.call_id;
+    const agentName = msg.name || 'Sub-agent';
+    this.pendingConfirmations.add(callId);
+
+    this.emitCodexToolCall(callId, {
+      status: 'executing',
+      kind: 'execute',
+      subtype: 'spawn_agent_begin',
+      data: msg,
+      description: `Spawning agent: ${agentName}`,
+      startTime: Date.now(),
+    });
+  }
+
+  handleSpawnAgentEnd(msg: Extract<CodexEventMsg, { type: 'spawn_agent_end' }>) {
+    const callId = msg.call_id;
+    const success = msg.success ?? true;
+
+    this.emitCodexToolCall(callId, {
+      status: success ? 'success' : 'error',
+      kind: 'execute',
+      subtype: 'spawn_agent_end',
+      data: msg,
+      description: success ? 'Agent spawned successfully' : `Failed to spawn agent: ${msg.error || 'Unknown error'}`,
+      endTime: Date.now(),
+    });
+
+    this.pendingConfirmations.delete(callId);
+  }
+
+  handleWaitBegin(msg: Extract<CodexEventMsg, { type: 'wait_begin' }>) {
+    const callId = msg.call_id;
+    const agentCount = msg.agent_ids?.length || 0;
+    this.pendingConfirmations.add(callId);
+
+    this.emitCodexToolCall(callId, {
+      status: 'executing',
+      kind: 'execute',
+      subtype: 'wait_begin',
+      data: msg,
+      description: `Waiting for ${agentCount} agent(s)`,
+      startTime: Date.now(),
+    });
+  }
+
+  handleWaitEnd(msg: Extract<CodexEventMsg, { type: 'wait_end' }>) {
+    const callId = msg.call_id;
+    const success = msg.success ?? true;
+    const resultCount = msg.results?.length || 0;
+
+    this.emitCodexToolCall(callId, {
+      status: success ? 'success' : 'error',
+      kind: 'execute',
+      subtype: 'wait_end',
+      data: msg,
+      description: success ? `Wait completed: ${resultCount} result(s)` : `Wait failed: ${msg.error || 'Unknown error'}`,
+      endTime: Date.now(),
+    });
+
+    this.pendingConfirmations.delete(callId);
+  }
+
+  handleSpawnAgentsOnCsvBegin(msg: Extract<CodexEventMsg, { type: 'spawn_agents_on_csv_begin' }>) {
+    const callId = msg.call_id;
+    const rowCount = msg.row_count || 0;
+    this.pendingConfirmations.add(callId);
+
+    this.emitCodexToolCall(callId, {
+      status: 'executing',
+      kind: 'execute',
+      subtype: 'spawn_agents_on_csv_begin',
+      data: msg,
+      description: `Spawning agents from CSV: ${rowCount} row(s)`,
+      startTime: Date.now(),
+    });
+  }
+
+  handleSpawnAgentsOnCsvEnd(msg: Extract<CodexEventMsg, { type: 'spawn_agents_on_csv_end' }>) {
+    const callId = msg.call_id;
+    const success = msg.success ?? true;
+    const resultCount = msg.results?.length || 0;
+
+    this.emitCodexToolCall(callId, {
+      status: success ? 'success' : 'error',
+      kind: 'execute',
+      subtype: 'spawn_agents_on_csv_end',
+      data: msg,
+      description: success ? `CSV batch completed: ${resultCount} result(s)` : `CSV batch failed: ${msg.error || 'Unknown error'}`,
+      endTime: Date.now(),
+    });
+
+    this.pendingConfirmations.delete(callId);
+  }
+
   private formatMcpInvocation(inv: McpInvocation | Record<string, unknown>): string {
     const name = inv.method || inv.name || 'unknown';
     return `MCP Tool: ${name}`;
