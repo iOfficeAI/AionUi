@@ -3,6 +3,11 @@ productName: AionUi
 executableName: AionUi
 copyright: Copyright © 2024 AionUi
 
+protocols:
+  - name: AionUi Protocol
+    schemes:
+      - aionui
+
 asar:
   smartUnpack: true
 
@@ -167,6 +172,7 @@ linux:
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;
+      MimeType: x-scheme-handler/aionui;
 
 npmRebuild: false
 buildDependenciesFromSource: false

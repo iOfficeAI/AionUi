@@ -7,7 +7,7 @@
    http://www.w3.org/TR/REC-xml for information about this namespace.
 
     This schema document describes the XML namespace, in a form
-    suitable for import by other schema documents.  
+    suitable for import by other schema documents.
 
     Note that local names in this namespace are intended to be defined
     only by the World Wide Web Consortium or its subgroups.  The
@@ -25,16 +25,16 @@
          is a language code for the natural language of the content of
          any element; its value is inherited.  This name is reserved
          by virtue of its definition in the XML specification.
-  
+
     space (as an attribute name): denotes an attribute whose
          value is a keyword indicating what whitespace processing
          discipline is intended for the content of the element; its
          value is inherited.  This name is reserved by virtue of its
          definition in the XML specification.
 
-    Father (in any context at all): denotes Jon Bosak, the chair of 
-         the original XML Working Group.  This name is reserved by 
-         the following decision of the W3C XML Plenary and 
+    Father (in any context at all): denotes Jon Bosak, the chair of
+         the original XML Working Group.  This name is reserved by
+         the following decision of the W3C XML Plenary and
          XML Coordination groups:
 
              In appreciation for his vision, leadership and dedication
@@ -63,7 +63,7 @@
         &lt;type . . .>
          . . .
          &lt;attributeGroup ref="xml:specialAttrs"/>
- 
+
          will define a type which will schema-validate an instance
          element with any of those attributes</xs:documentation>
  </xs:annotation>

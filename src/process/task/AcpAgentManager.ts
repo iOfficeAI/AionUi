@@ -3,6 +3,7 @@ import { AcpAgent } from '@/agent/acp';
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chatLib';
+import type { SlashCommandItem } from '@/common/slash/types';
 import { transformMessage } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
@@ -17,6 +18,7 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { findSessionFile } from '@process/services/devtools/sessionDiscovery';
 import { prepareFirstMessageWithSkillsIndex, runAgentResponseHooks, runQueueInitHooks } from './agentUtils';
 import { AcpMessageQueue, type QueuedMessageSource, type QueuedMessagePriority, type QueueEvent } from './AcpMessageQueue';
+import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
@@ -72,6 +74,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
   /** Message queue for sequential auto-prompting */
   readonly messageQueue: AcpMessageQueue;
+
+  private acpAvailableSlashCommands: SlashCommandItem[] = [];
+  private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
@@ -186,7 +191,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       } else {
         // backend === 'custom' but no customAgentId - this is an invalid state
         // 自定义后端但缺少 customAgentId - 这是无效状态
-        console.warn('[AcpAgentManager] Custom backend specified but customAgentId is missing');
+        mainWarn('[AcpAgentManager]', 'Custom backend specified but customAgentId is missing');
       }
 
       this.agent = new AcpAgent({
@@ -219,6 +224,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             void this.writeQueueOperationsToSession(pending);
           }
         },
+        onAvailableCommandsUpdate: (commands) => {
+          const nextCommands: SlashCommandItem[] = [];
+          const seen = new Set<string>();
+          for (const command of commands) {
+            const name = command.name.trim();
+            if (!name || seen.has(name)) continue;
+            seen.add(name);
+            nextCommands.push({
+              name,
+              description: command.description || name,
+              hint: command.hint,
+              kind: 'template',
+              source: 'acp',
+            });
+          }
+          this.acpAvailableSlashCommands = nextCommands;
+          const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+          for (const resolve of waiters) {
+            resolve(this.getAcpSlashCommands());
+          }
+        },
         onStreamEvent: (message) => {
           const pipelineStart = Date.now();
 
@@ -233,6 +259,25 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
           if (contentTypes.includes(message.type)) {
             this.status = 'finished';
+          }
+
+          // Emit request trace on each model generation start
+          if (message.type === 'start') {
+            const modelInfo = this.agent?.getModelInfo();
+            const traceData = {
+              agentType: 'acp' as const,
+              backend: data.backend,
+              modelId: modelInfo?.currentModelId || this.persistedModelId || 'unknown',
+              cliPath: this.options?.cliPath,
+              sessionMode: this.currentMode,
+              timestamp: Date.now(),
+            };
+            ipcBridge.acpConversation.responseStream.emit({
+              type: 'request_trace',
+              conversation_id: this.conversation_id,
+              msg_id: uuid(),
+              data: traceData,
+            });
           }
 
           if (message.type !== 'thought' && message.type !== 'acp_model_info') {
@@ -392,9 +437,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (this.currentMode && this.currentMode !== 'default') {
           try {
             await this.agent.setMode(this.currentMode);
-            console.log(`[AcpAgentManager] Re-applied persisted mode: ${this.currentMode}`);
+            mainLog('[AcpAgentManager]', `Re-applied persisted mode: ${this.currentMode}`);
           } catch (error) {
-            console.warn(`[AcpAgentManager] Failed to re-apply mode ${this.currentMode}:`, error);
+            mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
           }
         }
         // Re-apply persisted model if current model differs from persisted one
@@ -405,13 +450,23 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // Stale cache may reference models that no longer exist (e.g., gpt-5.3-codex).
           const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
           if (!isModelAvailable) {
-            console.warn(`[AcpAgentManager] Persisted model ${this.persistedModelId} is not in available models, clearing`);
+            mainWarn('[AcpAgentManager]', `Persisted model ${this.persistedModelId} is not in available models, clearing`);
             this.persistedModelId = null;
           } else if (currentInfo?.currentModelId !== this.persistedModelId) {
             try {
               await this.agent.setModelByConfigOption(this.persistedModelId);
             } catch (error) {
-              console.warn(`[AcpAgentManager] Failed to re-apply model ${this.persistedModelId}:`, error);
+              const errMsg = error instanceof Error ? error.message : String(error);
+              mainWarn('[AcpAgentManager]', `Failed to re-apply model ${this.persistedModelId}`, error);
+              // Emit visible error for relay/proxy compatibility issues
+              if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
+                ipcBridge.acpConversation.responseStream.emit({
+                  type: 'error',
+                  conversation_id: this.conversation_id,
+                  msg_id: `model_error_${Date.now()}`,
+                  data: `Model "${this.persistedModelId}" is not available on your API relay service. ` + `Please add this model to your relay's channel configuration. Falling back to the default model.`,
+                });
+              }
               this.persistedModelId = null;
             }
           }
@@ -598,6 +653,52 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
   }
 
+  getAcpSlashCommands(): SlashCommandItem[] {
+    return this.acpAvailableSlashCommands.map((item) => ({ ...item }));
+  }
+
+  async loadAcpSlashCommands(timeoutMs: number = 6000): Promise<SlashCommandItem[]> {
+    // Return cached commands immediately if available
+    if (this.acpAvailableSlashCommands.length > 0) {
+      return this.getAcpSlashCommands();
+    }
+
+    // Don't start agent process just to load slash commands.
+    // The frontend (useSlashCommands) re-fetches when agentStatus changes,
+    // so commands will be loaded once the agent is naturally initialized.
+    if (!this.bootstrap) {
+      return [];
+    }
+
+    // Wait for ongoing initialization to complete
+    try {
+      await this.bootstrap;
+    } catch (error) {
+      console.warn('[AcpAgentManager] Agent initialization failed while loading ACP slash commands:', error);
+      return this.getAcpSlashCommands();
+    }
+
+    if (this.acpAvailableSlashCommands.length > 0) {
+      return this.getAcpSlashCommands();
+    }
+
+    return await new Promise<SlashCommandItem[]>((resolve) => {
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const wrappedResolve = (commands: SlashCommandItem[]) => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+        resolve(commands);
+      };
+      timer = setTimeout(() => {
+        this.acpAvailableSlashWaiters = this.acpAvailableSlashWaiters.filter((waiter) => waiter !== wrappedResolve);
+        resolve(this.getAcpSlashCommands());
+      }, timeoutMs);
+
+      this.acpAvailableSlashWaiters.push(wrappedResolve);
+    });
+  }
+
   async confirm(id: string, callId: string, data: AcpPermissionOption) {
     super.confirm(id, callId, data);
     await this.bootstrap;
@@ -734,7 +835,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         await this.agent.enableYoloMode();
         return true;
       } catch (error) {
-        console.error('[AcpAgentManager] Failed to enable yoloMode dynamically:', error);
+        mainError('[AcpAgentManager]', 'Failed to enable yoloMode dynamically', error);
         return false;
       }
     }
@@ -874,7 +975,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         });
       }
     } catch (error) {
-      console.error('[AcpAgentManager] Failed to clear legacy yoloMode config:', error);
+      mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
     }
   }
 
@@ -895,7 +996,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
       }
     } catch (error) {
-      console.warn('[AcpAgentManager] Failed to save model ID:', error);
+      mainWarn('[AcpAgentManager]', 'Failed to save model ID', error);
     }
   }
 
@@ -916,7 +1017,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
       }
     } catch (error) {
-      console.error('[AcpAgentManager] Failed to save session mode:', error);
+      mainError('[AcpAgentManager]', 'Failed to save session mode', error);
     }
   }
 
@@ -940,6 +1041,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
     const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs
 
+    // Clear pending slash command waiters to prevent memory leaks
+    // 清除待处理的斜杠命令等待者，防止内存泄漏
+    const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+    for (const resolve of waiters) {
+      resolve([]);
+    }
+    this.acpAvailableSlashCommands = [];
+
     const doKill = () => {
       if (killed) return;
       killed = true;
@@ -953,7 +1062,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Graceful path: stop → grace period → kill
     void (this.agent?.stop?.() || Promise.resolve())
       .catch((err) => {
-        console.warn('[AcpAgentManager] agent.stop() failed during kill:', err);
+        mainWarn('[AcpAgentManager]', 'agent.stop() failed during kill', err);
       })
       .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
       .finally(doKill);
@@ -979,7 +1088,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         },
       });
     } catch (error) {
-      console.warn('[AcpAgentManager] Failed to cache model list:', error);
+      mainWarn('[AcpAgentManager]', 'Failed to cache model list', error);
     }
   }
 
@@ -999,10 +1108,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           acpSessionUpdatedAt: Date.now(),
         };
         db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
-        console.log(`[AcpAgentManager] Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
+        mainLog('[AcpAgentManager]', `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
       }
     } catch (error) {
-      console.error('[AcpAgentManager] Failed to save ACP session ID:', error);
+      mainError('[AcpAgentManager]', 'Failed to save ACP session ID', error);
     }
   }
 }

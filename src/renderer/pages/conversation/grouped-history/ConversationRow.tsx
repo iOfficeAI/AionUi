@@ -9,6 +9,8 @@ import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/siderTooltip';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, EditOne, Export, MessageOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
@@ -20,13 +22,17 @@ import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import { isConversationPinned } from './utils/groupingHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
-  const { conversation, collapsed, batchMode, checked, selected, menuVisible } = props;
+  const { conversation, collapsed, tooltipEnabled, batchMode, checked, selected, menuVisible } = props;
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { onToggleChecked, onConversationClick, onOpenMenu, onMenuVisibleChange, onEditStart, onDelete, onExport, onTogglePin } = props;
   const { t } = useTranslation();
   const { getJobStatus } = useCronJobsMap();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const isPinned = isConversationPinned(conversation);
   const cronStatus = getJobStatus(conversation.id);
+  const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
+  const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
 
   const renderLeadingIcon = () => {
     if (cronStatus !== 'none') {
@@ -50,6 +56,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   };
 
   const handleRowClick = () => {
+    cleanupSiderTooltips();
     if (batchMode) {
       onToggleChecked(conversation);
       return;
@@ -58,7 +65,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   };
 
   return (
-    <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
+    <Tooltip key={conversation.id} {...siderTooltipProps} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
       <div
         id={'c-' + conversation.id}
         className={classNames('chat-history__item px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors', {
@@ -81,7 +88,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         )}
         {renderLeadingIcon()}
         <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>
-          <Tooltip content={conversation.name} disabled={collapsed || !conversation.name} position='top'>
+          <Tooltip content={conversation.name} disabled={!inlineNameTooltipEnabled} trigger='hover' popupVisible={inlineNameTooltipEnabled ? undefined : false} unmountOnExit popupHoverStay={false} position='top'>
             <div className={classNames('chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 group-hover:text-1', selected && !batchMode ? 'text-1 font-medium' : 'text-2')}>{conversation.name}</div>
           </Tooltip>
         </FlexFullContainer>
@@ -89,8 +96,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         {!batchMode && (
           <div
             className={classNames('absolute right-0px top-0px h-full items-center justify-end !collapsed-hidden pr-8px', {
-              flex: isPinned || menuVisible,
-              'hidden group-hover:flex': !isPinned && !menuVisible,
+              flex: isMobile || isPinned || menuVisible,
+              'hidden group-hover:flex': !isMobile && !isPinned && !menuVisible,
             })}
             style={{
               backgroundImage: selected ? `linear-gradient(to right, transparent, var(--aou-2) 50%)` : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
@@ -160,8 +167,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             >
               <span
                 className={classNames('flex-center cursor-pointer hover:bg-fill-2 rd-4px p-4px transition-colors relative text-t-primary', {
-                  flex: menuVisible,
-                  'hidden group-hover:flex': !menuVisible,
+                  flex: isMobile || menuVisible,
+                  'hidden group-hover:flex': !isMobile && !menuVisible,
                 })}
                 onClick={(event) => {
                   event.stopPropagation();

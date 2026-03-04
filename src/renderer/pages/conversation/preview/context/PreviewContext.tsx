@@ -275,6 +275,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setTabs([]);
     setActiveTabId(null);
     setIsMaximized(false); // 关闭预览时退出全屏 / Exit fullscreen when closing preview
+    setDomSnippets([]);
   }, []);
 
   const closeTab = useCallback(

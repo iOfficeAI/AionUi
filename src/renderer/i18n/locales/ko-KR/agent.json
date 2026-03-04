@@ -1,0 +1,30 @@
+{
+  "health": {
+    "detectedError": "현재 에이전트 ({{agent}})에서 오류 감지됨",
+    "autoSwitching": ". 시스템이 자동으로 전환을 시도합니다.",
+    "evaluating": "네트워크 지연 및 모델 가용성 평가 중...",
+    "checking": "{{agent}} 엔드포인트 확인 중...",
+    "foundBest": "최적의 대안을 찾았습니다",
+    "recommendSwitch": "추천",
+    "available": "사용 가능",
+    "lowLatency": "낮은 지연",
+    "mediumLatency": "중간 지연",
+    "highLatency": "높은 지연",
+    "bestMatch": "최적 일치",
+    "noAvailable": "현재 환경에서 사용 가능한 에이전트 없음",
+    "checkConfig": "설정을 확인하거나 나중에 다시 시도하세요"
+  },
+  "setup": {
+    "connectionError": "연결 오류",
+    "notConfigured": "{{agent}}이(가) 설정되지 않았습니다",
+    "authRequired": "이 에이전트를 사용하려면 인증 또는 API 키가 필요합니다.",
+    "findingAlternatives": "사용 가능한 대안을 찾는 중...",
+    "checkingAgent": "{{agent}} 확인 중...",
+    "alternativesFound": "{{count}}개의 사용 가능한 대안을 찾았습니다",
+    "autoSwitching": "최적의 에이전트로 자동 전환 중...",
+    "configError": "설정 오류. 설정을 확인하거나 다른 에이전트를 선택하세요:",
+    "noAlternatives": "사용 가능한 에이전트가 없습니다",
+    "configureFirst": "먼저 설정에서 에이전트를 구성하세요.",
+    "switching": "에이전트 전환 중..."
+  }
+}

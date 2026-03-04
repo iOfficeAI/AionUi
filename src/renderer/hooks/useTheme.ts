@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 export type Theme = 'light' | 'dark';
 
 const DEFAULT_THEME: Theme = 'light';
+const THEME_CACHE_KEY = '__aionui_theme';
 
 // Initialize theme immediately when module loads
 const initTheme = async () => {
@@ -13,6 +14,11 @@ const initTheme = async () => {
     const initialTheme = theme || DEFAULT_THEME;
     document.documentElement.setAttribute('data-theme', initialTheme);
     document.body.setAttribute('arco-theme', initialTheme);
+    try {
+      localStorage.setItem(THEME_CACHE_KEY, initialTheme);
+    } catch (_e) {
+      /* noop */
+    }
     return initialTheme;
   } catch (error) {
     console.error('Failed to load initial theme:', error);
@@ -35,6 +41,11 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
   const applyTheme = useCallback((newTheme: Theme) => {
     document.documentElement.setAttribute('data-theme', newTheme);
     document.body.setAttribute('arco-theme', newTheme);
+    try {
+      localStorage.setItem(THEME_CACHE_KEY, newTheme);
+    } catch (_e) {
+      /* noop */
+    }
   }, []);
 
   // Set theme with persistence

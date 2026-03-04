@@ -100,6 +100,37 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   useAddEventListener(`${eventPrefix}.selected.file.clear`, () => clearSelection(), [clearSelection]);
 
   /**
+   * 监听选中文件变化事件（sendbox 中关闭标签时同步状态）(#1083)
+   * Listen to selected files change event (sync state when closing tags in sendbox)
+   */
+  useAddEventListener(
+    `${eventPrefix}.selected.file`,
+    (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      // Extract relative paths from items, filter out files (only keep folders in tree selection)
+      // 从 items 中提取相对路径，过滤掉文件（树选中状态只保留文件夹）
+      const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
+      setSelected(newKeys);
+      selectedKeysRef.current = newKeys;
+
+      // Update selectedNodeRef based on items
+      // 根据 items 更新 selectedNodeRef
+      const folders = items.filter((item) => !item.isFile);
+      if (folders.length > 0) {
+        const lastFolder = folders[folders.length - 1];
+        selectedNodeRef.current = lastFolder.relativePath
+          ? {
+              relativePath: lastFolder.relativePath,
+              fullPath: lastFolder.path,
+            }
+          : null;
+      } else {
+        selectedNodeRef.current = null;
+      }
+    },
+    [setSelected, selectedKeysRef, selectedNodeRef]
+  );
+
+  /**
    * 监听搜索工作空间响应
    * Listen to search workspace response
    */

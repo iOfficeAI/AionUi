@@ -187,7 +187,7 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace, defaultAgent, assistantHooksPath, preview };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string, isHealthCheck?: boolean): Promise<TChatConversation> => {
   // Use presetAssistantId as workspace template source (resolves automatically)
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace, presetAssistantId);
 
@@ -210,6 +210,8 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
       presetAssistantId,
       // Initial session mode from Guid page mode selector
       sessionMode,
+      // Explicit marker for temporary health-check conversations
+      isHealthCheck,
     },
     desc: finalCustomWorkspace ? newWorkspace : '',
     createTime: Date.now(),
@@ -245,6 +247,7 @@ export const createAcpAgent = async (options: ICreateConversationParams, assista
   if (defaultAgent !== undefined) conversationExtra.defaultAgent = defaultAgent;
   if (assistantHooksPath !== undefined) conversationExtra.assistantHooksPath = assistantHooksPath;
   if (preview) conversationExtra.preview = preview;
+  if (extra.isHealthCheck !== undefined) conversationExtra.isHealthCheck = extra.isHealthCheck;
 
   return {
     type: 'acp' as const,
@@ -278,6 +281,8 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       sessionMode: extra.sessionMode,
       // User-selected Codex model from Guid page
       codexModel: extra.codexModel,
+      // Explicit marker for temporary health-check conversations
+      isHealthCheck: extra.isHealthCheck,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

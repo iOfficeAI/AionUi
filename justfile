@@ -3,6 +3,7 @@
 
 # Use PowerShell on all platforms for consistency
 set shell := ["pwsh", "-NoProfile", "-Command"]
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
 
 # Default recipe: show available commands
 default:
@@ -328,6 +329,10 @@ test-contract:
 # Run integration tests
 test-integration:
     bun run test:integration
+
+# Verify packaged artifact contains complete renderer assets (i18n safety)
+test-packaged-i18n:
+    bun run test:packaged:i18n
 
 # ============================================================
 # Extension System (RFC-001)

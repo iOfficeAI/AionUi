@@ -65,7 +65,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
             if (!result.success || failedFiles.length > 0) {
               // 部分或全部失败时给出显式提示 / Surface warning when any copy operation fails
               const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
-              messageApi.warning(fallback || t('messages.unknownError') || 'Copy failed');
+              messageApi.warning(fallback || t('common.unknownError') || 'Copy failed');
             }
           });
         }
@@ -110,10 +110,10 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
           if (!res.success || failedFiles.length > 0) {
             // 如果有文件粘贴失败则通知用户 / Notify user when any paste fails
             const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
-            messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
+            messageApi.warning(fallback || t('common.unknownError') || 'Paste failed');
           }
         } catch (error) {
-          messageApi.error(t('messages.unknownError') || 'Paste failed');
+          messageApi.error(t('common.unknownError') || 'Paste failed');
         } finally {
           // 操作完成后重置粘贴目标文件夹（成功或失败都重置）
           // Reset paste target folder after operation completes (success or failure)
@@ -163,12 +163,12 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
 
       if (!res.success || failedFiles.length > 0) {
         const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
-        messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
+        messageApi.warning(fallback || t('common.unknownError') || 'Paste failed');
       }
 
       closePasteConfirm();
     } catch (error) {
-      messageApi.error(t('messages.unknownError') || 'Paste failed');
+      messageApi.error(t('common.unknownError') || 'Paste failed');
     } finally {
       setPasteTargetFolder(null);
     }

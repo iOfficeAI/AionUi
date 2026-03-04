@@ -4,6 +4,7 @@ import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
+import { createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -20,8 +21,10 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -37,6 +40,9 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   uploadFile: [],
 });
 
+const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
+const EMPTY_UPLOAD_FILES: string[] = [];
+
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -47,6 +53,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
+  const slashCommands = useSlashCommands(conversation_id, {
+    conversationType: 'codex',
+    codexStatus,
+  });
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -105,21 +115,26 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   }, []);
 
-  const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
-    const { data, mutate } = useCodexSendBoxDraft(conversation_id);
-    const EMPTY: Array<string | FileOrFolderItem> = [];
-    const atPath = data?.atPath ?? EMPTY;
-    const uploadFile = data?.uploadFile ?? [];
-    const content = data?.content ?? '';
-    return {
-      atPath,
-      uploadFile,
-      content,
-      setAtPath: (val: Array<string | FileOrFolderItem>) => mutate((prev) => ({ ...(prev as CodexDraftData), atPath: val })),
-      setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), uploadFile: val })),
-      setContent: (val: string) => mutate((prev) => ({ ...(prev as CodexDraftData), content: val })),
-    };
-  })();
+  const { data: draftData, mutate: mutateDraft } = useCodexSendBoxDraft(conversation_id);
+  const atPath = draftData?.atPath ?? EMPTY_AT_PATH;
+  const uploadFile = draftData?.uploadFile ?? EMPTY_UPLOAD_FILES;
+  const content = draftData?.content ?? '';
+
+  const setAtPath = useCallback(
+    (val: Array<string | FileOrFolderItem>) => {
+      mutateDraft((prev) => ({ ...(prev as CodexDraftData), atPath: val }));
+    },
+    [mutateDraft]
+  );
+
+  const setUploadFile = createSetUploadFile(mutateDraft, draftData);
+
+  const setContent = useCallback(
+    (val: string) => {
+      mutateDraft((prev) => ({ ...(prev as CodexDraftData), content: val }));
+    },
+    [mutateDraft]
+  );
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -232,11 +247,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   // 处理粘贴的文件 - Codex专用逻辑
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
-      // 将粘贴的文件添加到uploadFile中
       const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile([...uploadFile, ...filePaths]);
+      setUploadFile((prev) => [...prev, ...filePaths]);
     },
-    [uploadFile, setUploadFile]
+    [setUploadFile]
   );
 
   // 监听从工作空间选择的文件/文件夹（接收对象或路径数组）
@@ -259,8 +273,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    // 立即清空输入框和选择的文件，提升用户体验
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     emitter.emit('codex.selected.file.clear');
     const currentAtPath = [...atPath];
     const currentUploadFile = [...uploadFile];
@@ -300,6 +314,16 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       throw error;
     }
   };
+
+  const appendSelectedFiles = useCallback(
+    (files: string[]) => {
+      setUploadFile((prev) => [...prev, ...files]);
+    },
+    [setUploadFile]
+  );
+  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+    onFilesSelected: appendSelectedFiles,
+  });
 
   // 处理从引导页带过来的 initial message
   // Note: We don't wait for codexStatus because:
@@ -393,14 +417,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       <SendBox
         value={content}
-        onChange={(val) => {
-          // Only allow content changes when not waiting for session or thinking
-          if (!aiProcessing) {
-            setContent(val);
-          }
-        }}
+        onChange={setContent}
         loading={running || aiProcessing}
-        disabled={aiProcessing}
+        disabled={false}
         className='z-10'
         placeholder={
           aiProcessing
@@ -417,18 +436,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                  if (files && files.length > 0) {
-                    setUploadFile([...uploadFile, ...files]);
-                  }
-                });
-              }}
-            />
+            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <SkillsWidget conversationId={conversation_id} />
             <AgentModeSelector backend='codex' conversationId={conversation_id} compact />
           </div>
@@ -489,6 +497,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           </>
         }
         onSend={onSendHandler}
+        slashCommands={slashCommands}
+        onSlashBuiltinCommand={onSlashBuiltinCommand}
       ></SendBox>
     </div>
   );

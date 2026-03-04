@@ -116,11 +116,24 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     // User sent a message - force scroll regardless of userScrolled state
     if (lastMessage?.position === 'right') {
       userScrolledRef.current = false;
+      // Use double RAF to ensure DOM is updated before scrolling (#977)
+      // 使用双 RAF 确保 DOM 更新后再滚动
       requestAnimationFrame(() => {
-        scrollToBottom('auto');
+        requestAnimationFrame(() => {
+          if (virtuosoRef.current) {
+            lastProgrammaticScrollTimeRef.current = Date.now();
+            // Use scrollTo with bottom alignment for reliable scroll to end
+            // 使用 scrollTo 并设置 bottom 对齐以确保可靠滚动到底部
+            virtuosoRef.current.scrollToIndex({
+              index: 'LAST',
+              behavior: 'auto',
+              align: 'end',
+            });
+          }
+        });
       });
     }
-  }, [messages, scrollToBottom]);
+  }, [messages]);
 
   // Hide scroll button handler
   const hideScrollButton = useCallback(() => {
