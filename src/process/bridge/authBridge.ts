@@ -54,6 +54,18 @@ export function initAuthBridge(): void {
   // Google OAuth login handler
   ipcBridge.googleAuth.login.provider(async ({ proxy }) => {
     try {
+      // 验证代理设置（如果提供）
+      // Validate proxy settings if provided
+      if (proxy) {
+        console.log('[Auth] Using proxy for Google OAuth:', proxy);
+        // 设置环境变量以便底层OAuth库使用
+        // Set environment variables for underlying OAuth library
+        process.env.HTTPS_PROXY = proxy;
+        process.env.https_proxy = proxy;
+        process.env.HTTP_PROXY = proxy;
+        process.env.http_proxy = proxy;
+      }
+
       // 创建配置对象，包含代理设置
       // Create config object with proxy settings
       const config = new Config({
@@ -69,7 +81,7 @@ export function initAuthBridge(): void {
       // Execute OAuth login flow
       // 添加超时机制，防止用户未完成登录导致一直卡住 / Add timeout to prevent hanging if user doesn't complete login
       const timeoutPromise = new Promise<null>((_, reject) => {
-        setTimeout(() => reject(new Error('Login timed out after 2 minutes')), 2 * 60 * 1000);
+        setTimeout(() => reject(new Error('Login timed out after 2 minutes. If you are using a proxy, please ensure it is properly configured and try again.')), 2 * 60 * 1000);
       });
 
       const client = await Promise.race([loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config), timeoutPromise]);
@@ -106,12 +118,38 @@ export function initAuthBridge(): void {
 
       // 登录失败，返回错误信息
       // Login failed, return error message
-      return { success: false, msg: 'Login failed: No client returned' };
+      return { success: false, msg: 'Login failed: No client returned. Please check your network connection and proxy settings.' };
     } catch (error) {
       // 捕获登录过程中的所有异常，避免未处理的错误导致应用弹窗
       // Catch all exceptions during login to prevent unhandled errors from showing error dialogs
       console.error('[Auth] Login error:', error);
-      return { success: false, msg: error.message || error.toString() };
+      const errorMsg = error.message || error.toString();
+
+      // 提供更友好的错误提示
+      // Provide more user-friendly error messages
+      if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('ETIMEDOUT') || errorMsg.includes('socket hang up')) {
+        return {
+          success: false,
+          msg: 'Network connection failed. Please check your internet connection and proxy settings.',
+        };
+      }
+      if (errorMsg.includes('redirect_uri_mismatch')) {
+        return {
+          success: false,
+          msg: 'OAuth redirect failed. This may be caused by proxy settings. Please try disabling proxy or use API key authentication instead.',
+        };
+      }
+
+      return { success: false, msg: errorMsg };
+    } finally {
+      // 清理代理环境变量（如果设置了）
+      // Clean up proxy environment variables
+      if (proxy) {
+        delete process.env.HTTPS_PROXY;
+        delete process.env.https_proxy;
+        delete process.env.HTTP_PROXY;
+        delete process.env.http_proxy;
+      }
     }
   });
 
