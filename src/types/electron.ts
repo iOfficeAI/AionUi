@@ -51,7 +51,7 @@ export interface ElectronBridgeAPI {
   webuiGetStatus?: () => Promise<WebUIGetStatusResult>;
   // 修改密码（不需要当前密码）/ Change password (no current password required)
   webuiChangePassword?: (newPassword: string) => Promise<WebUIChangePasswordResult>;
-  // 生成二维码 token / Generate QR token
+  // 生成二维��� token / Generate QR token
   webuiGenerateQRToken?: () => Promise<WebUIGenerateQRTokenResult>;
 }
 

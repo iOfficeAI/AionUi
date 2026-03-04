@@ -5,16 +5,18 @@
  */
 
 import './utils/configureChromium';
-import { app, BrowserWindow, nativeImage, powerMonitor, screen } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, powerMonitor, screen, Tray } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
+import { ConfigStorage } from './common/storage';
 import { initializeProcess } from './process';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
+import { onCloseToTrayChanged } from './process/bridge/systemSettingsBridge';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
@@ -258,6 +260,82 @@ const isResetPasswordMode = hasCommand('--resetpass');
 let isExplicitQuit = false;
 
 let mainWindow: BrowserWindow;
+let tray: Tray | null = null;
+let isQuitting = false;
+let closeToTrayEnabled = false;
+
+/**
+ * 获取托盘图标 / Get tray icon
+ * macOS 使用 Template 图标以适配深色/浅色菜单栏
+ * macOS uses Template image to adapt to dark/light menu bar
+ */
+const getTrayIcon = (): Electron.NativeImage => {
+  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  if (process.platform === 'darwin') {
+    // macOS: 使用 16x16 的彩色应用图标 / Use 16x16 colored app icon
+    const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
+    return icon.resize({ width: 16, height: 16 });
+  }
+  // Windows/Linux: 使用标准图标 / Use standard icon
+  const iconFile = process.platform === 'win32' ? 'app.ico' : 'app.png';
+  return nativeImage.createFromPath(path.join(resourcesPath, iconFile));
+};
+
+/**
+ * 创建系统托盘 / Create system tray
+ */
+const createOrUpdateTray = (): void => {
+  if (tray) {
+    return;
+  }
+  try {
+    const icon = getTrayIcon();
+    tray = new Tray(icon);
+    tray.setToolTip('AionUi');
+
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Show AionUi',
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]);
+
+    tray.setContextMenu(contextMenu);
+
+    // 双击托盘图标显示窗口（Windows/Linux）/ Double-click tray icon to show window (Windows/Linux)
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (err) {
+    console.error('[Tray] Failed to create tray:', err);
+  }
+};
+
+/**
+ * 销毁系统托盘 / Destroy system tray
+ */
+const destroyTray = (): void => {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+};
 
 const createWindow = (): void => {
   // Get primary display size
@@ -369,6 +447,15 @@ const createWindow = (): void => {
   mainWindow.webContents.on('devtools-closed', () => {
     ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
   });
+
+  // 关闭拦截：当启用"关闭到托盘"时，隐藏窗口而非关闭
+  // Close interception: hide window instead of closing when "close to tray" is enabled
+  mainWindow.on('close', (event) => {
+    if (closeToTrayEnabled && !isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
 };
 
 // Menu.setApplicationMenu(null);
@@ -473,6 +560,27 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
+    // 初始化关闭到托盘设置 / Initialize close-to-tray setting
+    try {
+      const savedCloseToTray = await ConfigStorage.get('system.closeToTray');
+      closeToTrayEnabled = savedCloseToTray ?? false;
+      if (closeToTrayEnabled) {
+        createOrUpdateTray();
+      }
+    } catch {
+      // Ignore storage read errors, default to false
+    }
+
+    // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
+    onCloseToTrayChanged((enabled) => {
+      closeToTrayEnabled = enabled;
+      if (enabled) {
+        createOrUpdateTray();
+      } else {
+        destroyTray();
+      }
+    });
+
     createWindow();
 
     // Flush pending deep-link URL (received before window was ready)
@@ -564,6 +672,10 @@ void app
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  // 当关闭到托盘启用时，不退出应用 / Don't quit when close-to-tray is enabled
+  if (closeToTrayEnabled) {
+    return;
+  }
   // In WebUI mode, don't quit when windows are closed since we're running a web server
   if (!isWebUIMode && process.platform !== 'darwin') {
     app.quit();
@@ -573,13 +685,24 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (!isWebUIMode && app.isReady() && BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+  if (!isWebUIMode && app.isReady()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
+      mainWindow.show();
+      mainWindow.focus();
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.show();
+      }
+    } else if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
   }
 });
 
 app.on('before-quit', async () => {
+  isQuitting = true;
   isExplicitQuit = true;
+  destroyTray();
   // 在应用退出前清理工作进程
   WorkerManage.clear();
 

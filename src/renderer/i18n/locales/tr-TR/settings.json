@@ -104,6 +104,7 @@
   "cacheClearSuccess": "Önbellek başarıyla temizlendi",
   "cacheClearFailed": "Önbellek temizlenemedi",
   "language": "Dil",
+  "closeToTray": "Tepsiye Kapat",
   "gemini": "Gemini",
   "model": "Model",
   "system": "Sistem",
