@@ -41,5 +41,4 @@ export function initSystemSettingsBridge(): void {
     // 然后通知主进程更新托盘状态
     _changeListener?.(enabled);
   });
-
 }

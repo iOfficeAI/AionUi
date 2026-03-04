@@ -12,6 +12,8 @@
   "downloadStartFailed": "다운로드를 시작하지 못했습니다",
   "downloadFailed": "다운로드에 실패했습니다",
   "noCompatibleAsset": "이 플랫폼에 호환되는 다운로드를 찾을 수 없습니다",
+  "noCompatibleAssetManual": "현재 시스템 아키텍처에 맞는 패키지가 없습니다. Releases 페이지에서 수동으로 다운로드하세요.",
+  "goToRelease": "Releases 열기",
   "downloadCompleteTitle": "다운로드 완료",
   "readyToInstall": "설치 준비 완료",
   "readyToInstallDesc": "업데이트가 다운로드되었습니다. 아래 버튼을 클릭하여 재시작하고 업데이트를 설치하세요.",
