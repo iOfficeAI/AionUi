@@ -83,7 +83,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
           <span className='flex items-center cursor-default'>{statusIcon}</span>
         </Tooltip>
         {needsLogin && onOAuthLogin && (
-          <Button size='mini' type='primary' icon={<Login size={'14'} />} title={t('settings.mcpOAuthLogin') || 'Login'} loading={isLoggingIn} onClick={() => onOAuthLogin(server)}>
+          <Button size='mini' type='primary' icon={<Login size={'14'} />} title={t('settings.mcpLogin') || 'Login'} loading={isLoggingIn} onClick={() => onOAuthLogin(server)}>
             {t('settings.mcpLogin') || 'Login'}
           </Button>
         )}

@@ -25,7 +25,7 @@ const AionLogoMark: React.FC = () => (
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
-  const appTitle = useMemo(() => t('app.name', { defaultValue: 'AionUi' }), [t]);
+  const appTitle = useMemo(() => 'AionUi', []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
@@ -61,7 +61,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   // WebUI 和 macOS 桌面都需要在标题栏放工作区开关
   const showWorkspaceButton = workspaceAvailable && (!isDesktopRuntime || isMacRuntime);
 
-  const workspaceTooltip = workspaceCollapsed ? t('conversation.workspace.expand', { defaultValue: 'Expand workspace' }) : t('conversation.workspace.collapse', { defaultValue: 'Collapse workspace' });
+  const workspaceTooltip = workspaceCollapsed ? t('common.expandMore', { defaultValue: 'Expand workspace' }) : t('common.collapse', { defaultValue: 'Collapse workspace' });
   const newConversationTooltip = t('conversation.workspace.createNewConversation');
   const backToChatTooltip = t('common.back', { defaultValue: 'Back to Chat' });
   const isSettingsRoute = location.pathname.startsWith('/settings');
@@ -70,7 +70,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const showSiderToggle = Boolean(layout?.setSiderCollapsed) && !(layout?.isMobile && isSettingsRoute);
   const showBackToChatButton = Boolean(layout?.isMobile && isSettingsRoute);
   const showNewConversationButton = Boolean(layout?.isMobile && workspaceAvailable);
-  const siderTooltip = layout?.siderCollapsed ? t('sidebar.expand', { defaultValue: '展开侧栏' }) : t('sidebar.collapse', { defaultValue: '收起侧栏' });
+  const siderTooltip = layout?.siderCollapsed ? t('common.expandMore', { defaultValue: 'Expand sidebar' }) : t('common.collapse', { defaultValue: 'Collapse sidebar' });
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;

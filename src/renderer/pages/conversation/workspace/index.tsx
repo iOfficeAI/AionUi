@@ -888,7 +888,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                         <button
                           type='button'
                           className='workspace-header__toggle workspace-node-more-btn h-28px w-28px rd-8px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
-                          aria-label={t('common.more', { defaultValue: 'More' })}
+                          aria-label={t('common.more')}
                           onMouseDown={(event) => {
                             event.stopPropagation();
                           }}

@@ -1,0 +1,7 @@
+{
+  "mode": {
+    "autoGemini3Desc": "讓 Gemini CLI 決定最佳模型: gemini-3-pro, gemini-3-flash",
+    "autoGemini25Desc": "讓 Gemini CLI 決定最佳模型: gemini-2.5-pro, gemini-2.5-flash",
+    "manualDesc": "手動選擇模型"
+  }
+}

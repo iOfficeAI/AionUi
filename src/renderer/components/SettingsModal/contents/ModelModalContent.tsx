@@ -278,7 +278,7 @@ const ModelModalContent: React.FC = () => {
       // 3. 发送测试消息
       await ipcBridge.conversation.sendMessage.invoke({
         conversation_id: tempConversationId,
-        input: t('settings.healthCheckProbePrompt'),
+        input: 'ping',
         msg_id: uuid(),
       });
 
@@ -312,12 +312,12 @@ const ModelModalContent: React.FC = () => {
           await mutate();
           if (result.success) {
             Message.success({
-              content: `${platform.name} - ${modelName}: ${t('settings.modelHealthy')} (${latency}ms)`,
+              content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
               duration: 3000,
             });
           } else {
             Message.error({
-              content: `${platform.name} - ${modelName}: ${t('settings.modelUnhealthy')} - ${result.error}`,
+              content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${result.error}`,
               duration: 5000,
             });
           }
@@ -338,7 +338,7 @@ const ModelModalContent: React.FC = () => {
       const latency = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
       Message.error({
-        content: `${platform.name} - ${modelName}: ${t('settings.healthCheckFailed')} - ${errorMessage}`,
+        content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
         duration: 5000,
       });
 
@@ -389,7 +389,7 @@ const ModelModalContent: React.FC = () => {
     }));
     saveModelConfig(newData, () => {
       Message.success({
-        content: t('settings.healthDataCleared'),
+        content: t('settings.healthStatusCleared'),
         duration: 2000,
       });
     });
@@ -435,7 +435,7 @@ const ModelModalContent: React.FC = () => {
         <div className='text-14px text-t-primary'>{t('settings.model')}</div>
         <div className='flex items-center gap-8px'>
           <Button type='outline' shape='round' size='small' onClick={clearAllHealthData} className='rd-100px border-1 border-t-secondary'>
-            {t('settings.clearHealthStatus')}
+            {t('settings.clearStatus')}
           </Button>
           <Button type='outline' shape='round' icon={<Plus size='16' />} onClick={() => addPlatformModalCtrl.open()} className='rd-100px border-1 border-t-secondary'>
             {t('settings.addModel')}
@@ -529,17 +529,17 @@ const ModelModalContent: React.FC = () => {
                                     <div>
                                       <div className='flex items-center gap-4px'>
                                         <span>{healthStatus === 'healthy' ? '✅' : '❌'}</span>
-                                        <span>{healthStatus === 'healthy' ? t('settings.modelHealthy') : t('settings.modelUnhealthy')}</span>
+                                        <span>{healthStatus === 'healthy' ? t('common.success') : t('common.failed')}</span>
                                       </div>
                                       {modelHealth?.latency && (
                                         <div className='text-12px mt-4px'>
-                                          {t('settings.responseTime')}: {modelHealth.latency}ms
+                                          {t('settings.latency')}: {modelHealth.latency}ms
                                         </div>
                                       )}
                                       {modelHealth?.error && <div className='text-12px mt-4px'>{modelHealth.error}</div>}
                                       {modelHealth?.lastCheck && (
                                         <div className='text-12px mt-4px'>
-                                          {t('settings.lastCheck')}: {new Date(modelHealth.lastCheck).toLocaleString()}
+                                          {t('mcp.lastCheck')}: {new Date(modelHealth.lastCheck).toLocaleString()}
                                         </div>
                                       )}
                                     </div>

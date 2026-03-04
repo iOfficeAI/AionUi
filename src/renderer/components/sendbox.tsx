@@ -189,7 +189,7 @@ const SendBox: React.FC<{
     return [
       {
         name: 'open',
-        description: t('messages.slash.openFile', { defaultValue: 'Open file picker' }),
+        description: t('conversation.workspace.addFile', { defaultValue: 'Add File' }),
         kind: 'builtin',
         source: 'builtin',
       },

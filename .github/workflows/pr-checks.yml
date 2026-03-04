@@ -163,14 +163,24 @@ jobs:
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
 
-      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
-      - name: Cache electron-builder binaries
+      # Restore Electron/Electron-Builder caches before install-app-deps
+      - name: Cache Electron artifacts
+        id: electron-cache
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.cache/electron-builder
-          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
-            electron-builder-binaries-${{ matrix.platform }}-
+            electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-cache-${{ matrix.platform }}-
+
+      - name: Cache status
+        run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
 
       - name: Rebuild native modules for Electron (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
@@ -178,6 +188,8 @@ jobs:
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Setup MSBuild (Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -234,6 +246,9 @@ jobs:
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_disturl: https://electronjs.org/headers
           CI: true
+
+      - name: Verify packaged i18n assets
+        run: bun run test:packaged:i18n
 
   # Job 4: Trigger GPT AI review (only on first PR submission)
   review:
