@@ -12,6 +12,8 @@
   "downloadStartFailed": "Failed to start download",
   "downloadFailed": "Download failed",
   "noCompatibleAsset": "No compatible download found for this platform",
+  "noCompatibleAssetManual": "No package matches your current system architecture. Please download the correct installer from Releases.",
+  "goToRelease": "Open Releases",
   "downloadCompleteTitle": "Download complete",
   "readyToInstall": "Ready to install",
   "readyToInstallDesc": "Update has been downloaded. Click the button below to restart and install the update.",

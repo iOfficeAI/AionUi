@@ -12,6 +12,8 @@
   "downloadStartFailed": "İndirme başlatılamadı",
   "downloadFailed": "İndirme başarısız",
   "noCompatibleAsset": "Bu platform için uyumlu indirme bulunamadı",
+  "noCompatibleAssetManual": "Mevcut sistem mimariniz için uygun paket yok. Lütfen Releases sayfasından manuel indirin.",
+  "goToRelease": "Releases'i aç",
   "downloadCompleteTitle": "İndirme tamamlandı",
   "readyToInstall": "Yüklemeye hazır",
   "readyToInstallDesc": "Güncelleme indirildi. Yeniden başlatmak ve güncellemeyi yüklemek için aşağıdaki düğmeye tıklayın.",

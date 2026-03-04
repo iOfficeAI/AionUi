@@ -12,6 +12,8 @@
   "downloadStartFailed": "启动下载失败",
   "downloadFailed": "下载失败",
   "noCompatibleAsset": "未找到适用于当前平台的安装包",
+  "noCompatibleAssetManual": "当前系统架构没有匹配的安装包，请前往 Release 页面手动下载对应版本。",
+  "goToRelease": "前往 Release",
   "downloadCompleteTitle": "下载完成",
   "readyToInstall": "准备安装",
   "readyToInstallDesc": "更新已下载完成，点击下方按钮重启应用并安装更新。",
