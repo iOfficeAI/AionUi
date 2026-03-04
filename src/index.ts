@@ -162,6 +162,34 @@ process.on('unhandledRejection', (_reason, _promise) => {
 });
 
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
+
+// ============ Headless Mode Detection (#1137) ============
+// Auto-enable headless mode for Linux WebUI when no display is available
+// Fixes: https://github.com/iOfficeAI/AionUi/issues/1137
+function setupHeadlessMode() {
+  if (process.platform === 'linux' && (hasSwitch('webui') || hasSwitch('cli'))) {
+    const isHeadless = !process.env.DISPLAY && !process.env.WAYLAND_DISPLAY;
+    const isSystemdService = process.env.SYSTEMD_SERVICE === '1' || 
+                             __dirname.startsWith('/usr/lib') || 
+                             __dirname.startsWith('/opt');
+    
+    if (isHeadless || isSystemdService) {
+      console.log('[Headless] Detected headless environment, enabling headless mode');
+      app.commandLine.appendSwitch('headless');
+      app.commandLine.appendSwitch('disable-gpu');
+      app.commandLine.appendSwitch('disable-software-rasterizer');
+      app.commandLine.appendSwitch('disable-dev-shm-usage');
+      
+      // Set virtual DISPLAY to avoid X11 errors
+      if (!process.env.DISPLAY) {
+        process.env.DISPLAY = ':99';
+      }
+    }
+  }
+}
+
+setupHeadlessMode();
+
 const getSwitchValue = (flag: string): string | undefined => {
   const withEqualsPrefix = `--${flag}=`;
   const equalsArg = process.argv.find((arg) => arg.startsWith(withEqualsPrefix));
