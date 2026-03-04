@@ -12,6 +12,8 @@
   "downloadStartFailed": "ダウンロードを開始できませんでした",
   "downloadFailed": "ダウンロードに失敗しました",
   "noCompatibleAsset": "このプラットフォームに対応するファイルが見つかりません",
+  "noCompatibleAssetManual": "現在のシステムアーキテクチャに対応するパッケージがありません。Release ページから手動でダウンロードしてください。",
+  "goToRelease": "Release を開く",
   "downloadCompleteTitle": "ダウンロード完了",
   "readyToInstall": "インストール準備完了",
   "readyToInstallDesc": "更新のダウンロードが完了しました。下のボタンをクリックして再起動し、更新をインストールしてください。",
