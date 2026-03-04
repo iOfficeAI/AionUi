@@ -8,6 +8,7 @@ import { autoUpdater } from 'electron-updater';
 import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import os from 'os';
 
 export interface AutoUpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
@@ -58,11 +59,40 @@ class AutoUpdaterService extends EventEmitter {
     this._statusBroadcastCallback = statusBroadcastCallback ?? null;
     this._isInitialized = true;
 
+    // Configure architecture-specific update channel
+    // This ensures Windows x64 and arm64 users get the correct installer
+    this.configureArchitectureSpecificChannel();
+
     // Setup event handlers only once
     if (!this._eventHandlersSetup) {
       this.setupEventHandlers();
       this._eventHandlersSetup = true;
     }
+  }
+
+  /**
+   * Configure architecture-specific update channel to prevent
+   * downloading wrong architecture installer (e.g., x64 getting arm64).
+   * 
+   * For Windows, electron-updater looks for:
+   * - latest.yml (default, for x64)
+   * - latest-{channel}.yml (for specific architectures like arm64)
+   * 
+   * @see https://github.com/iOfficeAI/AionUi/issues/1134
+   */
+  private configureArchitectureSpecificChannel(): void {
+    const arch = process.arch;
+    const platform = process.platform;
+
+    log.info(`AutoUpdater: Detected platform=${platform}, arch=${arch}`);
+
+    // Only configure channel for Windows arm64 - x64 uses default
+    if (platform === 'win32' && arch === 'arm64') {
+      autoUpdater.channel = 'arm64';
+      log.info('AutoUpdater: Set channel to "arm64" for Windows ARM64 updates');
+    }
+    // For Windows x64, use default channel (latest.yml)
+    // For macOS, electron-updater handles universal/x64/arm64 automatically via latest-mac.yml
   }
 
   /**
