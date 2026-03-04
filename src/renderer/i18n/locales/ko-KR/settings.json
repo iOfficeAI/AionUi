@@ -104,6 +104,7 @@
   "cacheClearSuccess": "캐시가 성공적으로 정리되었습니다",
   "cacheClearFailed": "캐시 정리 실패",
   "language": "언어",
+  "closeToTray": "트레이로 닫기",
   "gemini": "Gemini",
   "model": "모델",
   "system": "시스템",
