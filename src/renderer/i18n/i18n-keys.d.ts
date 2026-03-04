@@ -1242,4 +1242,21 @@ export type I18nKey =
   | 'update.showInFolder'
   | 'update.upToDateTitle';
 
-export type I18nModule = 'common' | 'agentMode' | 'update' | 'login' | 'fileSelection' | 'preview' | 'conversation' | 'settings' | 'messages' | 'mcp' | 'acp' | 'codex' | 'tools' | 'gemini' | 'cron' | 'guid' | 'agent';
+export type I18nModule =
+  | 'common'
+  | 'agentMode'
+  | 'update'
+  | 'login'
+  | 'fileSelection'
+  | 'preview'
+  | 'conversation'
+  | 'settings'
+  | 'messages'
+  | 'mcp'
+  | 'acp'
+  | 'codex'
+  | 'tools'
+  | 'gemini'
+  | 'cron'
+  | 'guid'
+  | 'agent';
