@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
+import path from 'path';
 
 // Mock fs and os modules
 vi.mock('fs');
@@ -109,5 +110,20 @@ describe('directoryApi - canGoUp logic (#1082)', () => {
 
     const canGoUp = isAtDriveRoot || parentDir !== safeDir;
     expect(canGoUp).toBe(true);
+  });
+});
+
+describe('directoryApi - Windows path relative checks', () => {
+  it('path.win32.relative should return correct values for Windows paths', () => {
+    expect(path.win32.relative('C:\\', 'C:\\Users')).toBe('Users');
+    expect(path.win32.relative('C:\\Users\\cocoon-break', 'C:\\Users')).toBe('..');
+    expect(path.win32.relative('C:\\', 'C:\\')).toBe('');
+  });
+
+  it('should correctly identify subdirectories using win32 path api', () => {
+    const relative = path.win32.relative('C:\\', 'C:\\Users');
+    expect(relative).toBe('Users');
+    expect(relative.startsWith('..')).toBe(false);
+    expect(path.win32.isAbsolute(relative)).toBe(false);
   });
 });
