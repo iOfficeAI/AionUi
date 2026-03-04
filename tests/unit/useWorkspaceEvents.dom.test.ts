@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { emitter } from '../../src/renderer/utils/emitter';
 
 // Mock ipcBridge
@@ -61,9 +61,7 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath
-            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
-            : null;
+          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -101,9 +99,7 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath
-            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
-            : null;
+          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -134,9 +130,7 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath
-            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
-            : null;
+          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -171,9 +165,7 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath
-            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
-            : null;
+          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -209,9 +201,7 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       emitter.on('acp.selected.file', handleSelectedFile);
 
       act(() => {
-        emitter.emit('acp.selected.file', [
-          { path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' },
-        ]);
+        emitter.emit('acp.selected.file', [{ path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' }]);
       });
 
       expect(setSelected).toHaveBeenCalledWith(['folder1']);
@@ -232,9 +222,7 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       emitter.on('codex.selected.file', handleSelectedFile);
 
       act(() => {
-        emitter.emit('codex.selected.file', [
-          { path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' },
-        ]);
+        emitter.emit('codex.selected.file', [{ path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' }]);
       });
 
       expect(setSelected).toHaveBeenCalledWith(['folder1']);
