@@ -10,6 +10,7 @@ import { getWorkspaceDisplayName } from '@/renderer/utils/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspaceHistory';
 
 import type { GroupedHistoryResult, TimelineItem, TimelineSection, WorkspaceGroup } from '../types';
+import { getConversationSortOrder } from './sortOrderHelpers';
 
 export const getConversationTimelineLabel = (conversation: TChatConversation, t: (key: string) => string): string => {
   const time = getActivityTime(conversation);
@@ -50,7 +51,14 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
   const workspaceGroupsByTimeline = new Map<string, WorkspaceGroup[]>();
 
   allWorkspaceGroups.forEach((convList, workspace) => {
-    const sortedConvs = [...convList].sort((a, b) => getActivityTime(b) - getActivityTime(a));
+    const sortedConvs = [...convList].sort((a, b) => {
+      const orderA = getConversationSortOrder(a);
+      const orderB = getConversationSortOrder(b);
+      if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
+      if (orderA !== undefined) return -1;
+      if (orderB !== undefined) return 1;
+      return getActivityTime(b) - getActivityTime(a);
+    });
     const latestConv = sortedConvs[0];
     const timeline = getConversationTimelineLabel(latestConv, t);
 
@@ -105,7 +113,14 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
       });
     });
 
-    items.sort((a, b) => b.time - a.time);
+    items.sort((a, b) => {
+      const orderA = a.type === 'conversation' && a.conversation ? getConversationSortOrder(a.conversation) : undefined;
+      const orderB = b.type === 'conversation' && b.conversation ? getConversationSortOrder(b.conversation) : undefined;
+      if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
+      if (orderA !== undefined) return -1;
+      if (orderB !== undefined) return 1;
+      return b.time - a.time;
+    });
 
     sections.push({
       timeline,
@@ -117,7 +132,14 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
 };
 
 export const buildGroupedHistory = (conversations: TChatConversation[], t: (key: string) => string): GroupedHistoryResult => {
-  const pinnedConversations = conversations.filter((conversation) => isConversationPinned(conversation)).sort((a, b) => getConversationPinnedAt(b) - getConversationPinnedAt(a));
+  const pinnedConversations = conversations.filter((conversation) => isConversationPinned(conversation)).sort((a, b) => {
+    const orderA = getConversationSortOrder(a);
+    const orderB = getConversationSortOrder(b);
+    if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
+    if (orderA !== undefined) return -1;
+    if (orderB !== undefined) return 1;
+    return getConversationPinnedAt(b) - getConversationPinnedAt(a);
+  });
 
   const normalConversations = conversations.filter((conversation) => !isConversationPinned(conversation));
 

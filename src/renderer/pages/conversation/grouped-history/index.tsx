@@ -7,18 +7,25 @@
 import type { TChatConversation } from '@/common/storage';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Empty, Input, Modal } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
+import DragOverlayContent from './DragOverlayContent';
+import DroppableSection from './DroppableSection';
+import SortableConversationRow from './SortableConversationRow';
+import SortableWorkspaceGroup from './SortableWorkspaceGroup';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
+import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
@@ -46,8 +53,16 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
     onBatchModeChange,
   });
 
-  const renderConversation = (conversation: TChatConversation) => {
-    const rowProps: ConversationRowProps = {
+  const { sensors, activeId, activeItem, handleDragStart, handleDragEnd, handleDragCancel, isDragEnabled } = useDragAndDrop({
+    conversations,
+    pinnedConversations,
+    timelineSections,
+    batchMode,
+    collapsed,
+  });
+
+  const getConversationRowProps = useCallback(
+    (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
       collapsed,
       tooltipEnabled,
@@ -63,10 +78,41 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
       onDelete: handleDeleteClick,
       onExport: handleExportConversation,
       onTogglePin: handleTogglePin,
-    };
+    }),
+    [collapsed, tooltipEnabled, batchMode, selectedConversationIds, id, dropdownVisibleId, toggleSelectedConversation, handleConversationClick, handleOpenMenu, handleMenuVisibleChange, handleEditStart, handleDeleteClick, handleExportConversation, handleTogglePin]
+  );
 
+  const renderConversation = (conversation: TChatConversation) => {
+    const rowProps = getConversationRowProps(conversation);
     return <ConversationRow key={conversation.id} {...rowProps} />;
   };
+
+  // For SortableWorkspaceGroup: lookup props by conversation id
+  const renderConversationProps = useCallback(
+    (conversationId: string): ConversationRowProps | undefined => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (!conversation) return undefined;
+      return getConversationRowProps(conversation);
+    },
+    [conversations, getConversationRowProps]
+  );
+
+  // Collect all sortable IDs for the pinned section
+  const pinnedIds = useMemo(() => pinnedConversations.map((c) => c.id), [pinnedConversations]);
+
+  // Collect all top-level sortable IDs for each timeline section
+  const sectionSortableIds = useMemo(
+    () =>
+      timelineSections.map((section) => ({
+        timeline: section.timeline,
+        ids: section.items.map((item) => {
+          if (item.type === 'workspace' && item.workspaceGroup) return `workspace:${item.workspaceGroup.workspace}`;
+          if (item.type === 'conversation' && item.conversation) return item.conversation.id;
+          return '';
+        }).filter(Boolean),
+      })),
+    [timelineSections]
+  );
 
   if (timelineSections.length === 0 && pinnedConversations.length === 0) {
     return (
@@ -182,48 +228,78 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
         </div>
       )}
 
-      <div className='size-full overflow-y-auto overflow-x-hidden'>
-        {pinnedConversations.length > 0 && (
-          <div className='mb-8px min-w-0'>
-            {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{t('conversation.history.pinnedSection')}</div>}
-            <div className='min-w-0'>{pinnedConversations.map((conversation) => renderConversation(conversation))}</div>
-          </div>
-        )}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+        <div className='size-full overflow-y-auto overflow-x-hidden'>
+          {pinnedConversations.length > 0 && (
+            <DroppableSection id='droppable:pinned' className='mb-8px min-w-0'>
+              {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{t('conversation.history.pinnedSection')}</div>}
+              <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
+                <div className='min-w-0'>
+                  {pinnedConversations.map((conversation) => {
+                    const props = getConversationRowProps(conversation);
+                    return isDragEnabled ? <SortableConversationRow key={conversation.id} {...props} /> : <ConversationRow key={conversation.id} {...props} />;
+                  })}
+                </div>
+              </SortableContext>
+            </DroppableSection>
+          )}
 
-        {timelineSections.map((section) => (
-          <div key={section.timeline} className='mb-8px min-w-0'>
-            {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{section.timeline}</div>}
+          {timelineSections.map((section, sectionIndex) => {
+            const sortableIds = sectionSortableIds[sectionIndex]?.ids ?? [];
+            return (
+              <DroppableSection key={section.timeline} id={`droppable:${section.timeline}`} className='mb-8px min-w-0'>
+                {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{section.timeline}</div>}
 
-            {section.items.map((item) => {
-              if (item.type === 'workspace' && item.workspaceGroup) {
-                const group = item.workspaceGroup;
-                return (
-                  <div key={group.workspace} className={classNames('min-w-0', { 'px-8px': !collapsed })}>
-                    <WorkspaceCollapse
-                      expanded={expandedWorkspaces.includes(group.workspace)}
-                      onToggle={() => handleToggleWorkspace(group.workspace)}
-                      siderCollapsed={collapsed}
-                      header={
-                        <div className='flex items-center gap-8px text-14px min-w-0'>
-                          <span className='font-medium truncate flex-1 text-t-primary min-w-0'>{group.displayName}</span>
+                <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                  {section.items.map((item) => {
+                    if (item.type === 'workspace' && item.workspaceGroup) {
+                      const group = item.workspaceGroup;
+                      return isDragEnabled ? (
+                        <SortableWorkspaceGroup
+                          key={group.workspace}
+                          group={group}
+                          collapsed={collapsed}
+                          expanded={expandedWorkspaces.includes(group.workspace)}
+                          onToggle={() => handleToggleWorkspace(group.workspace)}
+                          batchMode={batchMode}
+                          isDragEnabled={isDragEnabled}
+                          renderConversationProps={renderConversationProps}
+                        />
+                      ) : (
+                        <div key={group.workspace} className={classNames('min-w-0', { 'px-8px': !collapsed })}>
+                          <WorkspaceCollapse
+                            expanded={expandedWorkspaces.includes(group.workspace)}
+                            onToggle={() => handleToggleWorkspace(group.workspace)}
+                            siderCollapsed={collapsed}
+                            header={
+                              <div className='flex items-center gap-8px text-14px min-w-0'>
+                                <span className='font-medium truncate flex-1 text-t-primary min-w-0'>{group.displayName}</span>
+                              </div>
+                            }
+                          >
+                            <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>{group.conversations.map((conversation) => renderConversation(conversation))}</div>
+                          </WorkspaceCollapse>
                         </div>
-                      }
-                    >
-                      <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>{group.conversations.map((conversation) => renderConversation(conversation))}</div>
-                    </WorkspaceCollapse>
-                  </div>
-                );
-              }
+                      );
+                    }
 
-              if (item.type === 'conversation' && item.conversation) {
-                return renderConversation(item.conversation);
-              }
+                    if (item.type === 'conversation' && item.conversation) {
+                      const props = getConversationRowProps(item.conversation);
+                      return isDragEnabled ? <SortableConversationRow key={item.conversation.id} {...props} /> : <ConversationRow key={item.conversation.id} {...props} />;
+                    }
 
-              return null;
-            })}
-          </div>
-        ))}
-      </div>
+                    return null;
+                  })}
+                </SortableContext>
+              </DroppableSection>
+            );
+          })}
+        </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeId && activeItem ? <DragOverlayContent conversation={activeItem.conversation} workspaceGroup={activeItem.workspaceGroup} /> : null}
+        </DragOverlay>
+      </DndContext>
     </FlexFullContainer>
   );
 };
