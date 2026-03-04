@@ -247,6 +247,9 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           CI: true
 
+      - name: Verify packaged i18n assets
+        run: bun run test:packaged:i18n
+
   # Job 4: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review

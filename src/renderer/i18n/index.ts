@@ -8,10 +8,16 @@ import {
   normalizeLanguageCode,
   mergeWithFallback,
   ensureAndSwitch,
+  type LocaleData,
 } from '@/common/i18n';
 
-// Synchronous import of fallback locale so t() never returns raw keys on startup
-import fallbackLocale from './locales/en-US/index';
+// Static imports for all locales to ensure packaged app can always switch language.
+import enUS from './locales/en-US/index';
+import zhCN from './locales/zh-CN/index';
+import jaJP from './locales/ja-JP/index';
+import zhTW from './locales/zh-TW/index';
+import koKR from './locales/ko-KR/index';
+import trTR from './locales/tr-TR/index';
 
 export type { I18nKey, I18nModule } from './i18n-keys';
 
@@ -19,39 +25,38 @@ export type { I18nKey, I18nModule } from './i18n-keys';
 export { normalizeLanguageCode, SUPPORTED_LANGUAGES as supportedLanguages } from '@/common/i18n';
 export type { SupportedLanguage } from '@/common/i18n';
 
+const localeData: LocaleData = {
+  'en-US': enUS,
+  'zh-CN': zhCN,
+  'ja-JP': jaJP,
+  'zh-TW': zhTW,
+  'ko-KR': koKR,
+  'tr-TR': trTR,
+};
+
+const fallbackLocale = localeData[DEFAULT_LANGUAGE] ?? {};
+
 // Cache for loaded translations
 const loadedTranslations = new Map<string, Record<string, unknown>>();
 
 // Pre-populate cache with the synchronously loaded fallback locale
 loadedTranslations.set(DEFAULT_LANGUAGE, fallbackLocale as Record<string, unknown>);
 
-/**
- * Dynamically load a locale by importing its index barrel.
- * Each locale directory has an `index.ts` that re-exports all JSON modules,
- * so one dynamic import is enough (no need to iterate over module names).
- */
+function getLocaleModules(locale: string): Record<string, unknown> {
+  const normalized = normalizeLanguageCode(locale);
+  const modules = localeData[normalized] ?? fallbackLocale;
+  if (normalized === DEFAULT_LANGUAGE) return modules;
+  return mergeWithFallback(fallbackLocale, modules);
+}
+
 async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
-  const cached = loadedTranslations.get(locale);
+  const normalized = normalizeLanguageCode(locale);
+  const cached = loadedTranslations.get(normalized);
   if (cached) return cached;
 
-  try {
-    const mod = await import(`./locales/${locale}/index`);
-    const modules = (mod.default ?? mod) as Record<string, unknown>;
-
-    const finalModules =
-      locale === DEFAULT_LANGUAGE
-        ? modules
-        : mergeWithFallback(await loadLocaleModules(DEFAULT_LANGUAGE), modules);
-
-    loadedTranslations.set(locale, finalModules);
-    return finalModules;
-  } catch (error) {
-    console.error(`Failed to load locale ${locale}:`, error);
-    if (locale !== DEFAULT_LANGUAGE) {
-      return loadLocaleModules(DEFAULT_LANGUAGE);
-    }
-    throw error;
-  }
+  const modules = getLocaleModules(normalized);
+  loadedTranslations.set(normalized, modules);
+  return modules;
 }
 
 // Initialize i18n with fallback locale loaded synchronously to avoid FOUC
@@ -61,7 +66,7 @@ i18n
   .init({
     resources: {
       [DEFAULT_LANGUAGE]: {
-        translation: fallbackLocale as Record<string, unknown>,
+        translation: fallbackLocale,
       },
     },
     fallbackLng: DEFAULT_LANGUAGE,
