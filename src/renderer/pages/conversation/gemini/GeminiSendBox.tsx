@@ -886,10 +886,10 @@ const GeminiSendBox: React.FC<{
                 })}
               </HorizontalFileList>
             )}
-            {/* Folder tags below */}
+            {/* Folder tags below (#1083 修复：移除时正确同步状态) */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
-                {atPath.map((item) => {
+                {atPath.map((item, index) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {
                     return (
@@ -898,9 +898,16 @@ const GeminiSendBox: React.FC<{
                         color='blue'
                         closable
                         onClose={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
-                          emitter.emit('gemini.selected.file', newAtPath);
+                          // 从 atPath 中移除当前文件夹 (#1083)
+                          const newAtPath = atPath.filter((_, i) => i !== index);
                           setAtPath(newAtPath);
+                          
+                          // 同步到 Workspace：发送更新后的文件夹列表
+                          // 如果全部移除，发送空数组以清空 Workspace 选择状态
+                          const folderItems = newAtPath.filter((v): v is FileOrFolderItem => 
+                            typeof v !== 'string' && !v.isFile
+                          );
+                          emitter.emit('gemini.selected.file', folderItems);
                         }}
                       >
                         {item.name}
