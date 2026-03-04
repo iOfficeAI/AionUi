@@ -13,7 +13,8 @@ import { fileOperationLimiter } from './middleware/security';
 // Allow browsing within the running workspace, current user's home directory,
 // WSL mount points (/mnt/*) on Linux, and all drive letters on Windows
 // 允许在工作目录、用户主目录、WSL 挂载点（/mnt/*），以及 Windows 所有盘符中浏览
-const DEFAULT_ALLOWED_DIRECTORIES = (() => {
+// @exported for testing
+export const DEFAULT_ALLOWED_DIRECTORIES = (() => {
   const baseDirs = [process.cwd(), os.homedir()];
 
   // On Windows, add all available drive letters (C:, D:, E:, etc.)
@@ -71,8 +72,9 @@ const router = Router();
 
 /**
  * Check if a path falls within the allowed directory trees
+ * @exported for testing
  */
-function isPathAllowed(targetPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIRECTORIES): boolean {
+export function isPathAllowed(targetPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIRECTORIES): boolean {
   let resolved = path.resolve(targetPath);
   try {
     resolved = fs.realpathSync(resolved);
