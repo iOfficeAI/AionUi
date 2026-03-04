@@ -116,10 +116,10 @@ describe('directoryApi - canGoUp logic (#1082)', () => {
 describe('directoryApi - isPathAllowed function (#1082)', () => {
   // Simulate isPathAllowed function logic
   function isPathAllowed(targetPath: string, allowedBasePaths: string[]): boolean {
-    const resolved = path.resolve(targetPath);
+    const resolved = path.win32.resolve(targetPath);
     return allowedBasePaths.some((basePath: string) => {
-      const relative = path.relative(basePath, resolved);
-      return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+      const relative = path.win32.relative(basePath, resolved);
+      return relative === '' || (!relative.startsWith('..') && !path.win32.isAbsolute(relative));
     });
   }
 
@@ -152,17 +152,16 @@ describe('directoryApi - isPathAllowed function (#1082)', () => {
     expect(isPathAllowed('C:\\', allowedPaths)).toBe(true);
   });
 
-  it('path.relative should return correct values for Windows paths', () => {
-    // Verify path.relative behavior
-    expect(path.relative('C:\\', 'C:\\Users')).toBe('Users');
-    expect(path.relative('C:\\Users\\cocoon-break', 'C:\\Users')).toBe('..');
-    expect(path.relative('C:\\', 'C:\\')).toBe('');
+  it('path.win32.relative should return correct values for Windows paths', () => {
+    expect(path.win32.relative('C:\\', 'C:\\Users')).toBe('Users');
+    expect(path.win32.relative('C:\\Users\\cocoon-break', 'C:\\Users')).toBe('..');
+    expect(path.win32.relative('C:\\', 'C:\\')).toBe('');
   });
 
-  it('should correctly identify subdirectories', () => {
-    const relative = path.relative('C:\\', 'C:\\Users');
+  it('should correctly identify subdirectories using win32 path api', () => {
+    const relative = path.win32.relative('C:\\', 'C:\\Users');
     expect(relative).toBe('Users');
     expect(relative.startsWith('..')).toBe(false);
-    expect(path.isAbsolute(relative)).toBe(false);
+    expect(path.win32.isAbsolute(relative)).toBe(false);
   });
 });

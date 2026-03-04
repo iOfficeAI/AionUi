@@ -260,13 +260,13 @@ jobs:
 
           case "${{ matrix.platform }}" in
             windows-*)
-              ls out/*.exe out/*-latest.yml >/dev/null
+              ls out/*.exe out/*latest*.yml >/dev/null
               ;;
             macos-*)
-              ls out/*.dmg out/*.zip out/*-latest.yml >/dev/null
+              ls out/*.dmg out/*.zip out/*latest*.yml >/dev/null
               ;;
             linux)
-              ls out/*.AppImage out/*.deb out/*-latest.yml >/dev/null
+              ls out/*.AppImage out/*.deb out/*latest*.yml >/dev/null
               ;;
           esac
 

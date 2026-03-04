@@ -54,7 +54,6 @@ vi.mock('electron-log', () => ({
 
 import { pickRecommendedAsset } from '@/process/bridge/updateBridge';
 
-
 const asset = (name: string) => ({
   name,
   url: `https://github.com/iOfficeAI/AionUi/releases/download/v1.0.0/${name}`,
