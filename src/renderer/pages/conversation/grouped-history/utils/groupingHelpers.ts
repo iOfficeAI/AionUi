@@ -27,7 +27,7 @@ export const getConversationPinnedAt = (conversation: TChatConversation): number
   if (typeof extra?.pinnedAt === 'number') {
     return extra.pinnedAt;
   }
-  return getActivityTime(conversation);
+  return 0;
 };
 
 export const groupConversationsByTimelineAndWorkspace = (conversations: TChatConversation[], t: (key: string) => string): TimelineSection[] => {
@@ -51,14 +51,7 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
   const workspaceGroupsByTimeline = new Map<string, WorkspaceGroup[]>();
 
   allWorkspaceGroups.forEach((convList, workspace) => {
-    const sortedConvs = [...convList].sort((a, b) => {
-      const orderA = getConversationSortOrder(a);
-      const orderB = getConversationSortOrder(b);
-      if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
-      if (orderA !== undefined) return -1;
-      if (orderB !== undefined) return 1;
-      return getActivityTime(b) - getActivityTime(a);
-    });
+    const sortedConvs = [...convList].sort((a, b) => getActivityTime(b) - getActivityTime(a));
     const latestConv = sortedConvs[0];
     const timeline = getConversationTimelineLabel(latestConv, t);
 
@@ -113,14 +106,7 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
       });
     });
 
-    items.sort((a, b) => {
-      const orderA = a.type === 'conversation' && a.conversation ? getConversationSortOrder(a.conversation) : undefined;
-      const orderB = b.type === 'conversation' && b.conversation ? getConversationSortOrder(b.conversation) : undefined;
-      if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
-      if (orderA !== undefined) return -1;
-      if (orderB !== undefined) return 1;
-      return b.time - a.time;
-    });
+    items.sort((a, b) => b.time - a.time);
 
     sections.push({
       timeline,

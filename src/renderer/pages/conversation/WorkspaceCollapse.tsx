@@ -21,14 +21,12 @@ interface WorkspaceCollapseProps {
   className?: string;
   /** 侧栏是否折叠 - 折叠时隐藏组标题并移除缩进 */
   siderCollapsed?: boolean;
-  /** 拖拽句柄属性 - 由 SortableWorkspaceGroup 传入 */
-  dragHandleProps?: Record<string, unknown>;
 }
 
 /**
  * 工作空间折叠组件 - 简单的折叠面板，用于工作空间分组
  */
-const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({ expanded, onToggle, header, children, className, siderCollapsed = false, dragHandleProps }) => {
+const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({ expanded, onToggle, header, children, className, siderCollapsed = false }) => {
   // 侧栏折叠时，强制展开内容并隐藏头部
   const showContent = siderCollapsed || expanded;
 
@@ -36,7 +34,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({ expanded, onToggl
     <div className={classNames('workspace-collapse min-w-0', className)}>
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
-        <div className='flex items-center ml-2px gap-8px h-32px p-4px cursor-pointer hover:bg-hover rd-4px transition-colors min-w-0' onClick={onToggle} {...dragHandleProps}>
+        <div className='flex items-center ml-2px gap-8px h-32px p-4px cursor-pointer hover:bg-hover rd-4px transition-colors min-w-0' onClick={onToggle}>
           {/* 展开/收起箭头 */}
           <Down size={16} className={classNames('line-height-0 transition-transform duration-200 flex-shrink-0', expanded ? 'rotate-0' : '-rotate-90')} />
 
