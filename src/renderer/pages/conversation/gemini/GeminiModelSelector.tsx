@@ -26,6 +26,16 @@ const GeminiModelSelector: React.FC<{
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
 
+  // 获取当前模型的健康状态 (must be called before any early return to keep hooks count stable)
+  const currentModel = selection?.currentModel;
+  const currentModelHealth = React.useMemo(() => {
+    if (!currentModel || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
+    const matchedProvider = modelConfig.find((p) => p.id === currentModel.id);
+    const healthStatus = matchedProvider?.modelHealth?.[currentModel.useModel]?.status || 'unknown';
+    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+    return { status: healthStatus, color: healthColor };
+  }, [currentModel, modelConfig]);
+
   // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
   if (disabled || !selection) {
     const displayLabel = customLabel || t('conversation.welcome.useCliModel');
@@ -45,20 +55,11 @@ const GeminiModelSelector: React.FC<{
     );
   }
 
-  const { currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
+  const { providers, geminiModeLookup, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
 
   // formatModelLabel returns the friendly label for known modes (e.g. 'Auto (Gemini 3)')
   // and falls back to the raw model name for manual sub-model selections.
   const label = customLabel || (currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel'));
-
-  // 获取当前模型的健康状态
-  const currentModelHealth = React.useMemo(() => {
-    if (!currentModel || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
-    const matchedProvider = modelConfig.find((p) => p.id === currentModel.id);
-    const healthStatus = matchedProvider?.modelHealth?.[currentModel.useModel]?.status || 'unknown';
-    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
-    return { status: healthStatus, color: healthColor };
-  }, [currentModel, modelConfig]);
 
   const triggerButton =
     variant === 'settings' ? (
