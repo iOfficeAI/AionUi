@@ -62,7 +62,7 @@ function getAsarEntries(asarPath: string): Set<string> {
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => toPosixPath(line).replace(/^\//, '')),
+      .map((line) => toPosixPath(line).replace(/^\//, ''))
   );
 }
 
