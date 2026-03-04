@@ -655,7 +655,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={
               <Button size='mini' type='text' icon={<Refresh size={14} />} loading={usersLoading} onClick={loadAuthorizedUsers}>
-                {t('conversation.workspace.refresh', 'Refresh')}
+                {t('common.refresh', 'Refresh')}
               </Button>
             }
           />

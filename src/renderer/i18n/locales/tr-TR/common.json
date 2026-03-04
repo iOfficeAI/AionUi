@@ -50,5 +50,8 @@
   "remove": "Kaldır",
   "show": "Göster",
   "hide": "Gizle",
-  "goToSettings": "Ayarlara Git"
+  "goToSettings": "Ayarlara Git",
+  "forward": "İleri",
+  "more": "Daha Fazla",
+  "refresh": "Yenile"
 }

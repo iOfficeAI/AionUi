@@ -50,5 +50,8 @@
   "remove": "Remove",
   "show": "Show",
   "hide": "Hide",
-  "goToSettings": "Go to Settings"
+  "goToSettings": "Go to Settings",
+  "forward": "Forward",
+  "more": "More",
+  "refresh": "Refresh"
 }

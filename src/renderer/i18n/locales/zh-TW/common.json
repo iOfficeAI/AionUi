@@ -50,5 +50,8 @@
   "remove": "移除",
   "show": "顯示",
   "hide": "隱藏",
-  "goToSettings": "前往設定"
+  "goToSettings": "前往設定",
+  "forward": "前進",
+  "more": "更多",
+  "refresh": "重新整理"
 }

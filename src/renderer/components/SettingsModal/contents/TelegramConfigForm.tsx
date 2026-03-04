@@ -404,7 +404,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
               <Button size='mini' type='text' icon={<Refresh size={14} />} loading={pairingLoading} onClick={loadPendingPairings}>
-                {t('conversation.workspace.refresh', 'Refresh')}
+                {t('common.refresh', 'Refresh')}
               </Button>
             }
           />
@@ -456,7 +456,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={
               <Button size='mini' type='text' icon={<Refresh size={14} />} loading={usersLoading} onClick={loadAuthorizedUsers}>
-                {t('conversation.workspace.refresh', 'Refresh')}
+                {t('common.refresh', 'Refresh')}
               </Button>
             }
           />

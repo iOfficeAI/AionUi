@@ -334,7 +334,7 @@ const URLViewer: React.FC<URLViewerProps> = ({ url }) => {
         </button>
 
         {/* 前进按钮 / Forward button */}
-        <button onClick={handleGoForward} disabled={!canGoForward} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title={'Forward'}>
+        <button onClick={handleGoForward} disabled={!canGoForward} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title={t('common.forward')}>
           <Right theme='outline' size={16} />
         </button>
 

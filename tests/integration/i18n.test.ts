@@ -128,12 +128,13 @@ describe('i18n Configuration Tests', () => {
     expect(fs.existsSync(indexFile)).toBe(true);
   });
 
-  it('index.ts should use shared i18n config', () => {
+  it('index.ts should use shared i18n module and re-export supportedLanguages', () => {
     const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
     const content = fs.readFileSync(indexFile, 'utf-8');
 
-    expect(content).toContain('i18n-config.json');
-    expect(content).toContain('export const supportedLanguages');
+    // Config is now consumed via @/common/i18n (single source of truth)
+    expect(content).toContain('@/common/i18n');
+    expect(content).toMatch(/export\s+.*supportedLanguages/);
   });
 
   it('index.ts should export changeLanguage function', () => {
@@ -141,5 +142,100 @@ describe('i18n Configuration Tests', () => {
     const content = fs.readFileSync(indexFile, 'utf-8');
 
     expect(content).toContain('export async function changeLanguage');
+  });
+});
+
+describe('i18n Build Safety Tests', () => {
+  const mainI18nFile = path.resolve(__dirname, '../../src/process/i18n/index.ts');
+  const rendererI18nFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
+
+  it('main process i18n should NOT use fs.readFile for locale loading', () => {
+    const content = fs.readFileSync(mainI18nFile, 'utf-8');
+    // fs.readFile / fs.promises.readFile with locale paths will break in production
+    // because Vite bundles renderer assets and the JSON files won't exist on disk.
+    expect(content).not.toMatch(/fs\.promises\.readFile/);
+    expect(content).not.toMatch(/fs\.readFileSync/);
+    expect(content).not.toMatch(/fs\.readFile\(/);
+  });
+
+  it('main process i18n should NOT use __dirname-relative path to resolve locale files', () => {
+    const content = fs.readFileSync(mainI18nFile, 'utf-8');
+    // path.resolve(__dirname, '../../renderer/i18n/locales') breaks after bundling
+    expect(content).not.toMatch(/path\.resolve\(__dirname.*locales/);
+    expect(content).not.toMatch(/path\.join\(.*locales.*\.json/);
+  });
+
+  it('main process i18n should use static imports for locale data', () => {
+    const content = fs.readFileSync(mainI18nFile, 'utf-8');
+    // Verify it imports from locale index files (static import)
+    expect(content).toMatch(/import\s+\w+\s+from\s+['"]@renderer\/i18n\/locales\//);
+  });
+
+  it('main process i18n should NOT import node:fs', () => {
+    const content = fs.readFileSync(mainI18nFile, 'utf-8');
+    expect(content).not.toContain("from 'node:fs'");
+    expect(content).not.toContain("require('fs')");
+  });
+
+  it('main process i18n should use shared utility functions', () => {
+    const content = fs.readFileSync(mainI18nFile, 'utf-8');
+    expect(content).toContain('@/common/i18n');
+  });
+
+  it('renderer i18n should use shared utility functions', () => {
+    const content = fs.readFileSync(rendererI18nFile, 'utf-8');
+    expect(content).toContain('@/common/i18n');
+  });
+
+  it('renderer i18n should synchronously load fallback locale to prevent FOUC', () => {
+    const content = fs.readFileSync(rendererI18nFile, 'utf-8');
+    // Should have a synchronous import of the fallback locale
+    expect(content).toMatch(/import\s+\w+\s+from\s+['"]\.\/locales\/en-US\/index['"]/);
+    // The init() call should include pre-loaded resources, not empty {}
+    expect(content).not.toMatch(/resources:\s*\{\s*\}/);
+  });
+
+  it('should not have duplicate normalizeLanguageCode implementations', () => {
+    const mainContent = fs.readFileSync(mainI18nFile, 'utf-8');
+    const rendererContent = fs.readFileSync(rendererI18nFile, 'utf-8');
+
+    // Neither file should define normalizeLanguageCode locally
+    expect(mainContent).not.toMatch(/^function normalizeLanguageCode/m);
+    expect(rendererContent).not.toMatch(/^function normalizeLanguageCode/m);
+  });
+
+  it('should not have duplicate isPlainObject implementations', () => {
+    const mainContent = fs.readFileSync(mainI18nFile, 'utf-8');
+    const rendererContent = fs.readFileSync(rendererI18nFile, 'utf-8');
+
+    // Neither file should define isPlainObject locally
+    expect(mainContent).not.toMatch(/^function isPlainObject/m);
+    expect(rendererContent).not.toMatch(/^function isPlainObject/m);
+  });
+
+  it('hardcoded English strings should not exist in TSX component files', () => {
+    // Check known files that previously had hardcoded strings
+    const filesToCheck = [
+      path.resolve(__dirname, '../../src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/preview/components/viewers/URLViewer.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/workspace/index.tsx'),
+    ];
+
+    const hardcodedPatterns = [
+      /\{'Health status cleared'\}/,
+      /\{'Clear status'\}/,
+      /\{'Latency'\}/,
+      /\{'Health Check'\}/,
+      /title=\{'Forward'\}/,
+      /aria-label=\{'More'\}/,
+    ];
+
+    for (const file of filesToCheck) {
+      if (!fs.existsSync(file)) continue;
+      const content = fs.readFileSync(file, 'utf-8');
+      for (const pattern of hardcodedPatterns) {
+        expect(content).not.toMatch(pattern);
+      }
+    }
   });
 });

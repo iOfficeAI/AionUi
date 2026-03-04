@@ -50,5 +50,8 @@
   "remove": "제거",
   "show": "표시",
   "hide": "숨기기",
-  "goToSettings": "설정으로 이동"
+  "goToSettings": "설정으로 이동",
+  "forward": "앞으로",
+  "more": "더보기",
+  "refresh": "새로고침"
 }

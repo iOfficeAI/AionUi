@@ -389,7 +389,7 @@ const ModelModalContent: React.FC = () => {
     }));
     saveModelConfig(newData, () => {
       Message.success({
-        content: 'Health status cleared',
+        content: t('settings.healthStatusCleared'),
         duration: 2000,
       });
     });
@@ -435,7 +435,7 @@ const ModelModalContent: React.FC = () => {
         <div className='text-14px text-t-primary'>{t('settings.model')}</div>
         <div className='flex items-center gap-8px'>
           <Button type='outline' shape='round' size='small' onClick={clearAllHealthData} className='rd-100px border-1 border-t-secondary'>
-            {'Clear status'}
+            {t('settings.clearStatus')}
           </Button>
           <Button type='outline' shape='round' icon={<Plus size='16' />} onClick={() => addPlatformModalCtrl.open()} className='rd-100px border-1 border-t-secondary'>
             {t('settings.addModel')}
@@ -533,7 +533,7 @@ const ModelModalContent: React.FC = () => {
                                       </div>
                                       {modelHealth?.latency && (
                                         <div className='text-12px mt-4px'>
-                                          {'Latency'}: {modelHealth.latency}ms
+                                          {t('settings.latency')}: {modelHealth.latency}ms
                                         </div>
                                       )}
                                       {modelHealth?.error && <div className='text-12px mt-4px'>{modelHealth.error}</div>}
@@ -574,7 +574,7 @@ const ModelModalContent: React.FC = () => {
 
                             <div className='flex items-center gap-4px'>
                               {/* 心跳检测按钮 / Health check button */}
-                              <Tooltip content={'Health Check'}>
+                              <Tooltip content={t('settings.healthCheck')}>
                                 <Button size='mini' icon={<Heartbeat theme='outline' size='16' />} loading={healthCheckLoading[`${platform.id}-${model}`]} onClick={() => performHealthCheck(platform, model)} />
                               </Tooltip>
 
