@@ -11,7 +11,7 @@ import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/siderTooltip';
-import { Dropdown, Menu } from '@arco-design/web-react';
+import { Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Close, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -113,57 +113,76 @@ const ConversationTabs: React.FC = () => {
     [closeTab, openTabs.length, activeTabId, navigate]
   );
 
-  // 新建会话 - 在当前工作空间分组下创建新会话
-  const handleNewConversation = useCallback(() => {
-    cleanupSiderTooltips();
-    const currentTab = openTabs.find((tab) => tab.id === activeTabId);
-    if (!currentTab || !currentTab.workspace) {
-      // 没有活动tab或没有workspace，跳转到欢迎页
-      void navigate('/guid');
-      return;
-    }
+  // 新建会话 - 在当前工作空间分组下创建新会话，支持选择不同的 Agent 类型
+  const handleNewConversation = useCallback(
+    async (targetAgentType?: 'gemini' | 'acp' | 'codex') => {
+      cleanupSiderTooltips();
+      const currentTab = openTabs.find((tab) => tab.id === activeTabId);
+      if (!currentTab || !currentTab.workspace) {
+        // 没有活动tab或没有workspace，跳转到欢迎页
+        void navigate('/guid');
+        return;
+      }
 
-    // 从数据库获取当前会话的完整信息
-    void ipcBridge.database.getUserConversations
-      .invoke({ page: 0, pageSize: 10000 })
-      .then((conversations) => {
+      try {
+        // 从数据库获取当前会话的完整信息
+        const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
         const currentConversation = conversations?.find((conv: TChatConversation) => conv.id === currentTab.id);
         if (!currentConversation) {
           void navigate('/guid');
           return;
         }
 
-        // 创建新会话，复制当前会话的配置和标题
+        // 确定要使用的 Agent 类型
+        const agentType = targetAgentType || currentConversation.type;
+
+        // 创建新会话，保留工作目录但使用指定的 Agent 类型
         const newId = uuid();
-        const newConversation = {
+        const newConversation: TChatConversation = {
           ...currentConversation,
           id: newId,
+          type: agentType,
           name: t('conversation.welcome.newConversation'), // Default title for new session
           createTime: Date.now(),
           modifyTime: Date.now(),
         };
 
-        void ipcBridge.conversation.createWithConversation
-          .invoke({
-            conversation: newConversation,
-          })
-          .then(() => {
-            // 将新会话添加到 tabs
-            openTab(newConversation);
-            // 导航到新会话
-            void navigate(`/conversation/${newId}`);
-            // 刷新历史列表
-            emitter.emit('chat.history.refresh');
-          })
-          .catch((error) => {
-            console.error('Failed to create conversation:', error);
-          });
-      })
-      .catch((error) => {
-        console.error('Failed to load conversations:', error);
-        void navigate('/guid');
-      });
-  }, [navigate, openTabs, activeTabId, openTab]);
+        // 如果切换了 Agent 类型，需要更新 extra 中的相关配置
+        if (agentType !== currentConversation.type) {
+          // 保留 workspace，但清除特定于原 Agent 的配置
+          newConversation.extra = {
+            ...currentConversation.extra,
+            workspace: currentTab.workspace, // 保留工作目录
+          };
+        }
+
+        await ipcBridge.conversation.createWithConversation.invoke({
+          conversation: newConversation,
+        });
+
+        // 将新会话添加到 tabs
+        openTab(newConversation);
+        // 导航到新会话
+        void navigate(`/conversation/${newId}`);
+        // 刷新历史列表
+        emitter.emit('chat.history.refresh');
+
+        // 显示切换提示
+        if (agentType !== currentConversation.type) {
+          const agentNames: Record<string, string> = {
+            gemini: 'Gemini',
+            acp: 'Claude Code',
+            codex: 'Codex',
+          };
+          Message.success(t('conversation.workspace.switchedAgent', { agent: agentNames[agentType] || agentType, defaultValue: `已切换到 ${agentNames[agentType] || agentType} 模式` }));
+        }
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        Message.error(t('conversation.workspace.createFailed', { defaultValue: '创建会话失败' }));
+      }
+    },
+    [navigate, openTabs, activeTabId, openTab, t]
+  );
 
   // 生成右键菜单内容
   const getContextMenu = useCallback(
@@ -210,6 +229,38 @@ const ConversationTabs: React.FC = () => {
     [openTabs, closeAllTabs, closeTabsToLeft, closeTabsToRight, closeOtherTabs, navigate, t]
   );
 
+  // 生成新建会话的下拉菜单 - 支持切换 Agent 类型
+  const getNewConversationMenu = useCallback(() => {
+    const currentTab = openTabs.find((tab) => tab.id === activeTabId);
+    const currentType = currentTab?.type || 'gemini';
+
+    const agentOptions = [
+      { key: 'gemini', label: 'Gemini', icon: '🤖' },
+      { key: 'acp', label: 'Claude Code', icon: '👤' },
+      { key: 'codex', label: 'Codex', icon: '⚡' },
+    ];
+
+    return (
+      <Menu
+        onClickMenuItem={(key) => {
+          void handleNewConversation(key as 'gemini' | 'acp' | 'codex');
+        }}
+      >
+        <Menu.ItemGroup title={t('conversation.workspace.newConversationWithAgent', { defaultValue: '新建对话使用' })}>
+          {agentOptions.map((option) => (
+            <Menu.Item key={option.key} className={currentType === option.key ? '!bg-2' : ''}>
+              <div className='flex items-center gap-8px'>
+                <span>{option.icon}</span>
+                <span>{option.label}</span>
+                {currentType === option.key && <span className='text-12px text-t-secondary ml-8px'>({t('conversation.workspace.current', { defaultValue: '当前' })})</span>}
+              </div>
+            </Menu.Item>
+          ))}
+        </Menu.ItemGroup>
+      </Menu>
+    );
+  }, [openTabs, activeTabId, handleNewConversation, t]);
+
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
   // 检查当前激活的 tab 是否在 openTabs 中
   // Check if current active tab is in openTabs
@@ -245,10 +296,12 @@ const ConversationTabs: React.FC = () => {
           ))}
         </div>
 
-        {/* 新建会话按钮 */}
-        <div className='flex items-center justify-center w-40px h-40px shrink-0 cursor-pointer transition-colors duration-200 hover:bg-[var(--fill-2)] ' style={{ borderLeft: '1px solid var(--border-base)' }} onClick={handleNewConversation} title={t('conversation.workspace.createNewConversation')}>
-          <Plus theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />
-        </div>
+        {/* 新建会话按钮 - 支持下拉选择 Agent 类型 */}
+        <Dropdown trigger='click' droplist={getNewConversationMenu()}>
+          <div className='flex items-center justify-center w-40px h-40px shrink-0 cursor-pointer transition-colors duration-200 hover:bg-[var(--fill-2)] ' style={{ borderLeft: '1px solid var(--border-base)' }} title={t('conversation.workspace.createNewConversation')}>
+            <Plus theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />
+          </div>
+        </Dropdown>
 
         {/* 左侧渐变指示器 */}
         {showLeftFade && <div className='pointer-events-none absolute left-0 top-0 bottom-0 w-32px [background:linear-gradient(90deg,var(--bg-2)_0%,transparent_100%)]' />}
