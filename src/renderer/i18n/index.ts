@@ -3,6 +3,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import { ConfigStorage } from '@/common/storage';
+import i18nConfig from '@/shared/i18n-config.json';
 import {
   DEFAULT_LANGUAGE,
   normalizeLanguageCode,
@@ -22,8 +23,10 @@ import trTR from './locales/tr-TR/index';
 export type { I18nKey, I18nModule } from './i18n-keys';
 
 // Re-exports
-export { normalizeLanguageCode, SUPPORTED_LANGUAGES as supportedLanguages } from '@/common/i18n';
+export { normalizeLanguageCode } from '@/common/i18n';
 export type { SupportedLanguage } from '@/common/i18n';
+
+export const supportedLanguages = i18nConfig.supportedLanguages;
 
 const localeData: LocaleData = {
   'en-US': enUS,
