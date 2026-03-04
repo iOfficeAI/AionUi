@@ -581,6 +581,11 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
 
+    // Initialize ACP detector BEFORE creating the window to prevent a race
+    // condition where the renderer fetches getAvailableAgents before detection
+    // finishes, caching an empty result via SWR.
+    await initializeAcpDetector();
+
     createWindow();
 
     // Flush pending deep-link URL (received before window was ready)
@@ -594,9 +599,12 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  // 启动时初始化ACP检测器 (skip in --resetpass mode)
-  if (!isResetPasswordMode) {
+  // WebUI mode also needs ACP detection for remote agent access
+  if (isWebUIMode) {
     await initializeAcpDetector();
+  }
+
+  if (!isResetPasswordMode) {
     // Preload shell environment and apply it to process.env so workers forked
     // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
     // This ensures custom skills that depend on globally installed tools work correctly.
