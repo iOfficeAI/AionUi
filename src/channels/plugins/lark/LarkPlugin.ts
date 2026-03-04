@@ -328,7 +328,7 @@ export class LarkPlugin extends BasePlugin {
     this.eventDispatcher.register({
       // Handle incoming messages
       'im.message.receive_v1': async (data: Record<string, unknown>) => {
-        await this.handleMessageEvent({ event: data });
+        await this.handleMessageEvent(data);
       },
 
       // Handle card action callbacks (button clicks)
@@ -336,7 +336,7 @@ export class LarkPlugin extends BasePlugin {
       'card.action.trigger': async (data: Record<string, unknown>) => {
         // Don't await - process in background to avoid 200340 timeout
         // Lark requires immediate response within 3 seconds
-        void this.handleCardAction({ event: data });
+        void this.handleCardAction(data);
         // Return immediately to acknowledge the callback
         return {};
       },
@@ -344,7 +344,7 @@ export class LarkPlugin extends BasePlugin {
       // Handle bot menu clicks (custom menu in chat)
       // Event name: application.bot.menu_v6
       'application.bot.menu_v6': async (data: Record<string, unknown>) => {
-        await this.handleBotMenuEvent({ event: data });
+        await this.handleBotMenuEvent(data);
       },
     });
   }
@@ -354,8 +354,9 @@ export class LarkPlugin extends BasePlugin {
    */
   private async handleMessageEvent(event: any): Promise<void> {
     try {
-      const message = event?.event?.message;
-      const sender = event?.event?.sender;
+      const payload = this.normalizePayload(event);
+      const message = payload?.message ?? payload?.event?.message;
+      const sender = payload?.sender ?? payload?.event?.sender;
 
       if (!message || !sender) {
         console.warn('[LarkPlugin] Invalid message event:', event);
@@ -371,14 +372,24 @@ export class LarkPlugin extends BasePlugin {
         this.markEventProcessed(eventId);
       }
 
-      const userId = sender.sender_id?.user_id || sender.sender_id?.open_id;
-      if (!userId) return;
+      const userId = sender.sender_id?.user_id || sender.sender_id?.open_id || sender.sender_id?.union_id;
+      if (!userId) {
+        console.warn('[LarkPlugin] Missing sender ID (user_id/open_id/union_id) in message event:', sender?.sender_id);
+        return;
+      }
+
+      console.log(`[LarkPlugin] Incoming event messageId=${message.message_id ?? 'unknown'} chatId=${message.chat_id ?? 'unknown'} messageType=${message.message_type ?? 'unknown'} userId=${userId}`);
 
       // Track user
       this.activeUsers.add(userId);
 
       // Convert to unified message
-      const unifiedMessage = toUnifiedIncomingMessage(event);
+      const unifiedMessage = toUnifiedIncomingMessage({
+        event: {
+          message,
+          sender,
+        },
+      });
       if (unifiedMessage && this.messageHandler) {
         // Check for menu button commands first
         if (unifiedMessage.content.type === 'text' && unifiedMessage.content.text) {
@@ -424,9 +435,10 @@ export class LarkPlugin extends BasePlugin {
    */
   private async handleBotMenuEvent(event: any): Promise<void> {
     try {
-      const operator = event?.event?.operator;
-      const eventKey = event?.event?.event_key;
-      const timestamp = event?.event?.timestamp;
+      const payload = this.normalizePayload(event);
+      const operator = payload?.operator ?? payload?.event?.operator;
+      const eventKey = payload?.event_key ?? payload?.event?.event_key;
+      const timestamp = payload?.timestamp ?? payload?.event?.timestamp;
 
       if (!operator || !eventKey) {
         console.warn('[LarkPlugin] Invalid bot menu event:', event);
@@ -440,7 +452,7 @@ export class LarkPlugin extends BasePlugin {
       }
       this.markEventProcessed(eventId);
 
-      const userId = operator.operator_id?.user_id || operator.operator_id?.open_id;
+      const userId = operator.operator_id?.user_id || operator.operator_id?.open_id || operator.operator_id?.union_id || operator.user_id || operator.open_id || operator.union_id;
       if (!userId) {
         console.warn('[LarkPlugin] No user ID in bot menu event');
         return;
@@ -450,7 +462,7 @@ export class LarkPlugin extends BasePlugin {
       this.activeUsers.add(userId);
 
       // Get chat_id from event (for sending response)
-      const chatId = event?.event?.chat_id || userId;
+      const chatId = payload?.chat_id ?? payload?.event?.chat_id ?? userId;
 
       // Map event_key to action
       const buttonAction = this.getMenuButtonAction(eventKey);
@@ -477,7 +489,7 @@ export class LarkPlugin extends BasePlugin {
           name: buttonAction.action,
         },
         timestamp: timestamp ? parseInt(timestamp, 10) : Date.now(),
-        raw: event,
+        raw: payload,
       };
 
       if (this.messageHandler) {
@@ -493,11 +505,12 @@ export class LarkPlugin extends BasePlugin {
    */
   private async handleCardAction(event: any): Promise<void> {
     try {
-      const action = event?.event?.action;
-      const operator = event?.event?.operator;
-      const eventToken = event?.event?.token;
+      const payload = this.normalizePayload(event);
+      const action = payload?.action ?? payload?.event?.action;
+      const operator = payload?.operator ?? payload?.event?.operator;
+      const eventToken = payload?.token ?? payload?.event?.token;
 
-      if (!action || !operator) {
+      if (!action) {
         console.warn('[LarkPlugin] Invalid card action event:', event);
         return;
       }
@@ -510,8 +523,11 @@ export class LarkPlugin extends BasePlugin {
         this.markEventProcessed(eventToken);
       }
 
-      const userId = operator.user_id || operator.open_id;
-      if (!userId) return;
+      const userId = operator?.user_id || operator?.open_id || operator?.union_id || operator?.operator_id?.user_id || operator?.operator_id?.open_id || operator?.operator_id?.union_id || payload?.user_id || payload?.open_id || payload?.union_id;
+      if (!userId) {
+        console.warn('[LarkPlugin] Missing operator ID (user_id/open_id/union_id) in card action event');
+        return;
+      }
 
       // Track user
       this.activeUsers.add(userId);
@@ -521,13 +537,47 @@ export class LarkPlugin extends BasePlugin {
       if (!actionInfo) return;
 
       // Convert to unified message with action
-      const unifiedMessage = toUnifiedIncomingMessage(event, actionInfo);
+      const unifiedMessage = toUnifiedIncomingMessage(
+        {
+          event: {
+            action,
+            operator: {
+              user_id: userId,
+              open_id: operator?.open_id ?? operator?.operator_id?.open_id ?? payload?.open_id,
+              union_id: operator?.union_id ?? operator?.operator_id?.union_id ?? payload?.union_id,
+            },
+            token: eventToken,
+            open_message_id: payload?.open_message_id ?? payload?.event?.open_message_id,
+            open_chat_id: payload?.open_chat_id ?? payload?.event?.open_chat_id,
+          },
+        },
+        actionInfo
+      );
       if (unifiedMessage && this.messageHandler) {
         void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling card action:`, error));
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing card action:', error);
     }
+  }
+
+  /**
+   * Normalize SDK callback payloads.
+   * Supports both flattened payloads and wrapped { event: ... } payloads.
+   */
+  private normalizePayload(payload: any): any {
+    if (!payload || typeof payload !== 'object') {
+      return payload;
+    }
+
+    if (payload.event && typeof payload.event === 'object') {
+      const nested = payload.event;
+      if (nested.message || nested.sender || nested.action || nested.operator || nested.event_key || nested.chat_id || nested.user_id || nested.open_id || nested.union_id) {
+        return nested;
+      }
+    }
+
+    return payload;
   }
 
   /**

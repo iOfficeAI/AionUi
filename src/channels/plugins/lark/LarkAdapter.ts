@@ -63,6 +63,7 @@ interface LarkCardActionEvent {
     operator?: {
       user_id?: string;
       open_id?: string;
+      union_id?: string;
     };
     token?: string;
     open_message_id?: string;
@@ -81,7 +82,7 @@ export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActio
 
     if (!operator) return null;
 
-    const userId = operator.user_id || operator.open_id || '';
+    const userId = operator.user_id || operator.open_id || operator.union_id || '';
     const chatId = cardEvent.event?.open_chat_id || userId;
 
     return {
@@ -109,7 +110,7 @@ export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActio
 
   if (!message || !sender) return null;
 
-  const userId = sender.sender_id?.user_id || sender.sender_id?.open_id || '';
+  const userId = sender.sender_id?.user_id || sender.sender_id?.open_id || sender.sender_id?.union_id || '';
   if (!userId) return null;
 
   const user = toUnifiedUser(sender);
@@ -134,7 +135,7 @@ export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActio
 export function toUnifiedUser(sender: LarkMessageEvent['event']['sender']): IUnifiedUser | null {
   if (!sender?.sender_id) return null;
 
-  const userId = sender.sender_id.user_id || sender.sender_id.open_id || '';
+  const userId = sender.sender_id.user_id || sender.sender_id.open_id || sender.sender_id.union_id || '';
   if (!userId) return null;
 
   return {
