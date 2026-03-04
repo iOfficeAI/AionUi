@@ -12,7 +12,7 @@ import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
-import { loadShellEnvironmentAsync } from './process/utils/shellEnv';
+import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import WorkerManage from './process/WorkerManage';
@@ -489,8 +489,20 @@ const handleAppReady = async (): Promise<void> => {
   // 启动时初始化ACP检测器 (skip in --resetpass mode)
   if (!isResetPasswordMode) {
     await initializeAcpDetector();
-    // Preload shell environment in background for faster ACP connections
-    void loadShellEnvironmentAsync();
+    // Preload shell environment and apply it to process.env so workers forked
+    // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
+    // This ensures custom skills that depend on globally installed tools work correctly.
+    void loadShellEnvironmentAsync().then((shellEnv) => {
+      if (shellEnv.PATH) {
+        process.env.PATH = mergePaths(process.env.PATH, shellEnv.PATH);
+      }
+      // Apply other shell env vars (SSL certs, auth tokens) that may be missing
+      for (const [key, value] of Object.entries(shellEnv)) {
+        if (key !== 'PATH' && !process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    });
   }
 
   // Verify CDP is ready and log status

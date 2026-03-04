@@ -13,6 +13,7 @@
 import { uuid } from '@/renderer/utils/common';
 import type { UtilityProcess } from 'electron';
 import { app, utilityProcess } from 'electron';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { Pipe } from './pipe';
 
 /**
@@ -64,8 +65,13 @@ export class ForkTask<Data> extends Pipe {
     // 传递 cwd 确保 worker 可以正确解析 node_modules 路径 (用于加载 WASM 文件等)
     // Pass cwd to ensure worker can correctly resolve node_modules paths (for WASM files etc.)
     const workerCwd = getWorkerCwd();
+    // Pass enhanced shell environment so workers inherit the full PATH (nvm, npm globals, etc.)
+    // This is critical for skills that depend on globally installed tools (node, npm, playwright, etc.)
+    // Without this, workers only get Electron's limited env, missing paths set in .zshrc/.bashrc
+    const workerEnv = getEnhancedEnv();
     const fcp = utilityProcess.fork(this.path, [], {
       cwd: workerCwd,
+      env: workerEnv,
     });
     // 接受子进程发送的消息
     fcp.on('message', (e: IForkData) => {
