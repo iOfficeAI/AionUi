@@ -12,8 +12,10 @@ import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtD
 import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
+import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -59,6 +61,13 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // Track whether current turn has content output
   // Only reset waitingResponse when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Track request trace state for displaying complete request lifecycle
+  const requestTraceRef = useRef<{
+    startTime: number;
+    provider: string;
+    modelId: string;
+  } | null>(null);
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
   }, [hasActiveTools]);
@@ -184,6 +193,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
               (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = timeoutId;
             }
             hasContentInTurnRef.current = false;
+            // Log request completion
+            if (requestTraceRef.current) {
+              const duration = Date.now() - requestTraceRef.current.startTime;
+              console.log(`%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
+              requestTraceRef.current = null;
+            }
           }
           break;
         case 'tool_group':
@@ -284,10 +299,27 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             // 只有 'finish' 事件才应该重置流状态
           }
           break;
+        case 'request_trace':
+          {
+            const trace = message.data as Record<string, unknown>;
+            requestTraceRef.current = {
+              startTime: Number(trace.timestamp) || Date.now(),
+              provider: String(trace.platform || trace.provider || 'unknown'),
+              modelId: String(trace.modelId || 'unknown'),
+            };
+            console.log(`%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.modelId} | ${new Date().toISOString()}`, 'color: #1890ff; font-weight: bold', 'color: inherit', trace);
+          }
+          break;
         default: {
           if (message.type === 'error') {
             setWaitingResponse(false);
             onError?.(message as IResponseMessage);
+            // Log request error
+            if (requestTraceRef.current) {
+              const duration = Date.now() - requestTraceRef.current.startTime;
+              console.log(`%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', message.data);
+              requestTraceRef.current = null;
+            }
           } else {
             // Mark that current turn has content output (exclude error type)
             hasContentInTurnRef.current = true;
@@ -605,6 +637,7 @@ const GeminiSendBox: React.FC<{
   }, [performFullCheck]);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+  const slashCommands = useSlashCommands(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
@@ -732,9 +765,8 @@ const GeminiSendBox: React.FC<{
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     const hasFiles = filesToSend.length > 0;
 
-    // 立即清空输入框，避免用户误以为消息没发送
-    // Clear input immediately to avoid user thinking message wasn't sent
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     clearFiles();
 
     // User message: Display in UI immediately (Backend will persist when receiving from IPC)
@@ -768,6 +800,16 @@ const GeminiSendBox: React.FC<{
       emitter.emit('gemini.workspace.refresh');
     }
   };
+
+  const appendSelectedFiles = useCallback(
+    (files: string[]) => {
+      setUploadFile((prev) => [...prev, ...files]);
+    },
+    [setUploadFile]
+  );
+  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+    onFilesSelected: appendSelectedFiles,
+  });
 
   useAddEventListener('gemini.selected.file', setAtPath);
   useAddEventListener('gemini.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
@@ -811,18 +853,7 @@ const GeminiSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                  if (files && files.length > 0) {
-                    setUploadFile([...uploadFile, ...files]);
-                  }
-                });
-              }}
-            />
+            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <AgentModeSelector backend='gemini' conversationId={conversation_id} compact />
           </div>
         }
@@ -883,6 +914,8 @@ const GeminiSendBox: React.FC<{
           </>
         }
         onSend={onSendHandler}
+        slashCommands={slashCommands}
+        onSlashBuiltinCommand={onSlashBuiltinCommand}
       ></SendBox>
     </div>
   );

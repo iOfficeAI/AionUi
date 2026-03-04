@@ -18,7 +18,7 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen';
 
 /**
  * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
@@ -27,7 +27,7 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'ope
  * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
  * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
  */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex'] as const;
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex', 'qwen'] as const;
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
@@ -601,6 +601,9 @@ export interface ToolCallUpdateStatus extends BaseSessionUpdate {
     sessionUpdate: 'tool_call_update';
     toolCallId: string;
     status: 'completed' | 'failed';
+    // rawInput may arrive in tool_call_update with complete data (after streaming completes)
+    // This happens when input_json_delta finishes and the full input is available
+    rawInput?: Record<string, unknown>;
     content?: Array<{
       type: 'content';
       content: {

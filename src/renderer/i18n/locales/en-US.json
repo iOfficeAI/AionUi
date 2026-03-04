@@ -500,6 +500,9 @@
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
     "workDir": "Work Directory",
+    "devTools": "Developer Tools",
+    "openDevTools": "Open DevTools",
+    "closeDevTools": "Close DevTools",
     "dirNotConfigured": "Not configured yet",
     "cacheClean": "Cache Cleanup",
     "clean": "Clean",
@@ -523,6 +526,15 @@
     "deleteAllModelConfirm": "Are you sure you want to delete all models?",
     "modelCount": "Model",
     "apiKeyCount": "API Key",
+    "healthCheck": "Health Check",
+    "modelHealthy": "Model Available",
+    "modelUnhealthy": "Model Unavailable",
+    "lastCheck": "Last Check",
+    "healthCheckFailed": "Health Check Failed",
+    "clearHealthStatus": "Clear Health Status",
+    "healthDataCleared": "Health data cleared",
+    "healthCheckProbePrompt": "Please reply with: OK",
+    "responseTime": "Response Time",
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
     "pleaseEnterApiKey": "Please enter API Key",
     "pleaseEnterBaseUrl": "Please enter Base URL",
@@ -650,6 +662,19 @@
     "webui.featureChannelsTitle": "Messaging Control",
     "webui.featureChannelsDesc": "Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps.",
     "webui.goToChannels": "Go to Channels",
+    "cdp.title": "Developer Debug",
+    "cdp.enable": "Enable Remote Debugging (CDP)",
+    "cdp.enableDesc": "Enable Chrome DevTools Protocol for external debugging tools",
+    "cdp.currentPort": "Debug Port",
+    "cdp.openInBrowser": "Open in browser",
+    "cdp.configSaved": "Configuration saved, restart required to take effect",
+    "cdp.configFailed": "Failed to save configuration",
+    "cdp.restartRequired": "Configuration changed, restart required to take effect",
+    "cdp.disabledHint": "CDP remote debugging is disabled. Enable to use with development tools",
+    "cdp.mcpConfig": "MCP Config",
+    "cdp.copyMcpConfig": "Copy MCP config",
+    "cdp.mcpConfigHint": "Add this config to your IDE MCP settings (e.g., ~/.cursor/mcp.json or ~/.claude/settings.json)",
+    "restartNow": "Restart Now",
     "assistant.telegramConfig": "Telegram Bot Configuration",
     "assistant.botToken": "Bot Token",
     "assistant.botTokenDesc": "Open Telegram, find @BotFather and send /newbot to get your Bot Token.",
@@ -1009,6 +1034,9 @@
       "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
       "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
       "no": "No (esc)"
+    },
+    "slash": {
+      "openFile": "Open file picker"
     }
   },
   "mcp": {
@@ -1045,6 +1073,8 @@
     "filterByStatus": "Filter by status",
     "transport": "Transport",
     "lastCheck": "Last Check",
+    "healthCheckFailed": "Health Check Failed",
+    "responseTime": "Response Time",
     "capabilities": "Capabilities",
     "noCapabilities": "No capabilities reported",
     "never": "Never",
@@ -1287,7 +1317,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "Let Gemini CLI decide the best model for the task: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "Manually select a model"
     }

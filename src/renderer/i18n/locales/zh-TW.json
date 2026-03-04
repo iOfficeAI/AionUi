@@ -529,6 +529,15 @@
     "addModelTips": "支援直接輸入模型名稱，建議與服務商主控台保持一致。",
     "apiKey": "API Key",
     "apiKeyCount": "API Key",
+    "healthCheck": "健康檢測",
+    "modelHealthy": "模型可用",
+    "modelUnhealthy": "模型不可用",
+    "lastCheck": "上次檢測",
+    "healthCheckFailed": "健康檢測失敗",
+    "clearHealthStatus": "清理測活狀態",
+    "healthDataCleared": "測活狀態已清理",
+    "healthCheckProbePrompt": "請回覆：OK",
+    "responseTime": "耗時",
     "apiKeyPlaceholder": "請輸入 API Key，多個 Key 請每行一個",
     "editApiKey": "編輯 API Key",
     "testKey": "測試金鑰",
@@ -540,6 +549,9 @@
     "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
     "cacheDir": "緩存目錄",
     "workDir": "工作目錄",
+    "devTools": "開發者工具",
+    "openDevTools": "開啟 DevTools",
+    "closeDevTools": "關閉 DevTools",
     "dirNotConfigured": "尚未設定目錄",
     "customOpenAI": "自定義(相容OpenAI)",
     "platformCustom": "自定義",
@@ -678,6 +690,19 @@
     "channels.guide": "連接 Telegram、飛書、釘釘等訊息應用，讓你的 AI Agent 隨時在線可控。",
     "channels.selectFirst": "選擇一個渠道並完成憑證配置。",
     "channels.enableAfterConfig": "啟用該渠道後，即可開始與 AI Agent 對話。",
+    "cdp.title": "開發者除錯",
+    "cdp.enable": "啟用遠端除錯 (CDP)",
+    "cdp.enableDesc": "啟用 Chrome DevTools Protocol 供外部除錯工具使用",
+    "cdp.currentPort": "除錯連接埠",
+    "cdp.openInBrowser": "在瀏覽器中開啟",
+    "cdp.configSaved": "設定已儲存，重啟應用程式後生效",
+    "cdp.configFailed": "儲存設定失敗",
+    "cdp.restartRequired": "設定已變更，重啟應用程式後生效",
+    "cdp.disabledHint": "CDP 遠端除錯已停用。啟用後可在開發工具中使用",
+    "cdp.mcpConfig": "MCP 設定",
+    "cdp.copyMcpConfig": "複製 MCP 設定",
+    "cdp.mcpConfigHint": "將此設定新增至您的 IDE MCP 設定檔中（如 ~/.cursor/mcp.json 或 ~/.claude/settings.json）",
+    "restartNow": "立即重啟",
     "display": "顯示",
     "imageGeneration": "圖像生成",
     "imageGenerationToggle": "啟用圖像生成工具",
@@ -881,6 +906,9 @@
       "yesAlwaysAllowTool": "是，始終允許來自伺服器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
       "yesAlwaysAllowServer": "是，始終允許來自伺服器 \"{{serverName}}\" 的所有工具",
       "no": "否 (esc)"
+    },
+    "slash": {
+      "openFile": "開啟檔案選擇器"
     }
   },
   "mcp": {
@@ -1028,7 +1056,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "讓 Gemini CLI 決定最佳模型: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "讓 Gemini CLI 決定最佳模型: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "讓 Gemini CLI 決定最佳模型: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手動選擇模型"
     }

@@ -65,12 +65,28 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
    * 加载工作空间文件树
    * Load workspace file tree
    */
+  // Track the latest request to ignore stale/aborted responses
+  const loadSeqRef = useRef(0);
+
   const loadWorkspace = useCallback(
     (path: string, search?: string) => {
+      const seq = ++loadSeqRef.current;
+      console.warn('[WS_DEBUG] loadWorkspace called', { seq, path, workspace, conversation_id, search });
       setLoadingHandler(true);
       return ipcBridge.conversation.getWorkspace
         .invoke({ path, workspace, conversation_id, search: search || '' })
         .then((res) => {
+          const childCount = res?.[0]?.children?.length ?? 0;
+          console.warn('[WS_DEBUG] getWorkspace returned', { seq, current: loadSeqRef.current, resLength: res?.length, childCount, rootName: res?.[0]?.name });
+
+          // Ignore stale responses from aborted requests:
+          // The backend aborts previous getWorkspace calls, returning [].
+          // Only apply the result from the latest request.
+          if (seq !== loadSeqRef.current) {
+            console.warn('[WS_DEBUG] ignoring stale response', { seq, current: loadSeqRef.current });
+            return res;
+          }
+
           setFiles(res);
           // 只在搜索时才重置 Tree key，否则保持选中状态
           // Only reset Tree key when searching, otherwise keep selection state

@@ -22,7 +22,7 @@ import { useConversations } from './hooks/useConversations';
 import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
-const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSessionClick, collapsed = false, batchMode = false, onBatchModeChange }) => {
+const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSessionClick, collapsed = false, tooltipEnabled = false, batchMode = false, onBatchModeChange }) => {
   const { id } = useParams();
   const { t } = useTranslation();
 
@@ -50,6 +50,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
     const rowProps: ConversationRowProps = {
       conversation,
       collapsed,
+      tooltipEnabled,
       batchMode,
       checked: selectedConversationIds.has(conversation.id),
       selected: id === conversation.id,

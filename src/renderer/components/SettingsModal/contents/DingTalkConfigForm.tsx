@@ -5,8 +5,9 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { acpConversation, channel, shell } from '@/common/ipcBridge';
+import { acpConversation, channel } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -144,7 +145,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.dingtalk.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'dingtalk', agent }).catch(() => {});
+      await channel.syncChannelSettings.invoke({ platform: 'dingtalk', agent }).catch((err) => console.warn('[DingTalkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[DingTalkConfig] Failed to save agent:', error);
@@ -328,7 +329,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               href={DINGTALK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(DINGTALK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}
@@ -381,7 +382,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               href={DINGTALK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(DINGTALK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(DINGTALK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.dingtalk.devConsoleLink', 'DingTalk Open Platform')}

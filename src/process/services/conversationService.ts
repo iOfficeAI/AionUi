@@ -26,6 +26,7 @@ export interface ICreateGeminiConversationParams {
   presetRules?: string;
   enabledSkills?: string[];
   presetAssistantId?: string;
+  isHealthCheck?: boolean;
   /** 会话来源 / Conversation source */
   source?: ConversationSource;
   /** 自定义会话 ID / Custom conversation ID */
@@ -78,7 +79,7 @@ export class ConversationService {
       }
 
       // Create conversation object
-      const conversation = await createGeminiAgent(params.model, params.workspace, params.defaultFiles, params.webSearchEngine, params.customWorkspace, contextFileName, params.presetRules, params.enabledSkills, params.presetAssistantId);
+      const conversation = await createGeminiAgent(params.model, params.workspace, params.defaultFiles, params.webSearchEngine, params.customWorkspace, contextFileName, params.presetRules, params.enabledSkills, params.presetAssistantId, undefined, params.isHealthCheck);
 
       // Apply custom ID and name if provided
       if (params.id) {
@@ -142,7 +143,7 @@ export class ConversationService {
         const enabledSkills = extraWithPresets.enabledSkills;
         const presetAssistantId = extraWithPresets.presetAssistantId;
 
-        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode);
+        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode, extra.isHealthCheck);
       } else if (type === 'acp') {
         conversation = await createAcpAgent(params);
       } else if (type === 'codex') {

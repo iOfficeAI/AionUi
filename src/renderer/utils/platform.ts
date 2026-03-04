@@ -56,3 +56,23 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
   const absPath = url.slice('aion-asset://asset/'.length);
   return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
 };
+
+/**
+ * Open external URL in the appropriate context
+ * - Electron: uses shell.openExternal via IPC (opens on local machine)
+ * - WebUI: uses window.open in client browser (opens on remote client)
+ *
+ * 在适当的环境中打开外部链接
+ * - Electron: 通过 IPC 调用 shell.openExternal（在本地机器打开）
+ * - WebUI: 使用 window.open 在客户端浏览器打开（在远程客户端打开）
+ */
+export const openExternalUrl = async (url: string): Promise<void> => {
+  if (!url) return;
+
+  if (isElectronDesktop()) {
+    const { ipcBridge } = await import('@/common');
+    await ipcBridge.shell.openExternal.invoke(url);
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};

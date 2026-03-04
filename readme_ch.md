@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group3.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-group4.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -194,8 +194,11 @@ _你的 24/7 AI 助手 — 手机、平板、电脑，随时随地都能用。_
 > **设置：** AionUi 设置 → WebUI 设置 → Channel，配置 Bot Token。
 
 <p align="center">
-  <img src="./resources/remote-telegram copy.png" alt="Cowork from Anywhere" width="800">
+  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
+
+<p align="center"><em>远程监管你的 Agent — Claude、Gemini、Codex，浏览器或手机即可远程控制与查看，如同 Claude Code remote。</em></p>
+
 
 > [远程互联网访问教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
@@ -549,7 +552,7 @@ brew install aionui
 - [报告问题](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告诉我们
 - [发布更新](https://github.com/iOfficeAI/AionUi/releases) — 获取最新版本
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
-- [微信群](./resources/wechat_group3.png) — 中文社区
+- [微信群](./resources/wx-group4.png) — 中文社区
 
 ### 开发指南
 

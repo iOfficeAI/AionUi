@@ -147,7 +147,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   }, [list]);
 
   // Use auto-scroll hook
-  const { virtuosoRef, handleScroll, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
+  const { virtuosoRef, handleScroll, handleAtBottomStateChange, handleFollowOutput, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
     messages: list,
     itemCount: processedList.length,
   });
@@ -183,7 +183,9 @@ const MessageList: React.FC<{ className?: string }> = () => {
             atBottomThreshold={100}
             increaseViewportBy={200}
             itemContent={renderItem}
+            followOutput={handleFollowOutput}
             onScroll={handleScroll}
+            atBottomStateChange={handleAtBottomStateChange}
             components={{
               Header: () => <div className='h-10px' />,
               Footer: () => <div className='h-20px' />,

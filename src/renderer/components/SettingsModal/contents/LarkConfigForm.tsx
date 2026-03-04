@@ -5,8 +5,9 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { acpConversation, channel, shell } from '@/common/ipcBridge';
+import { acpConversation, channel } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -149,7 +150,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.lark.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'lark', agent }).catch(() => {});
+      await channel.syncChannelSettings.invoke({ platform: 'lark', agent }).catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[LarkConfig] Failed to save agent:', error);
@@ -339,7 +340,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
               href={LARK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
@@ -392,7 +393,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
               href={LARK_DEV_DOCS_URL}
               onClick={(e) => {
                 e.preventDefault();
-                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+                openExternalUrl(LARK_DEV_DOCS_URL).catch(console.error);
               }}
             >
               {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}

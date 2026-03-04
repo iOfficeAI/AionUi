@@ -29,52 +29,62 @@ import type { AcpBackend } from '@/types/acpTypes';
 
 export async function getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel> {
   try {
+    const providers = await ProcessConfig.get('model.config');
+    const providerList = providers && Array.isArray(providers) ? providers : [];
+
+    // Helper: find a provider with a valid API key
+    const findProviderWithApiKey = (providerId: string, modelName: string): TProviderWithModel | null => {
+      const provider = providerList.find((p) => p.id === providerId);
+      if (provider?.apiKey && provider.model?.includes(modelName)) {
+        return { ...provider, useModel: modelName } as TProviderWithModel;
+      }
+      return null;
+    };
+
     // Try to get saved model selection
     const savedModel = platform === 'lark' ? await ProcessConfig.get('assistant.lark.defaultModel') : platform === 'dingtalk' ? await ProcessConfig.get('assistant.dingtalk.defaultModel') : await ProcessConfig.get('assistant.telegram.defaultModel');
     if (savedModel?.id && savedModel?.useModel) {
-      // Google Auth provider is a frontend-only virtual provider — it has no
-      // entry in model.config. For Google Auth, return a minimal config that
-      // lets the Gemini CLI use the selected model via Google authentication.
+      // Google Auth is frontend-only (OAuth browser flow), not usable in channels.
+      // Fall through to find a provider with a valid API key instead.
       if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
-        return {
-          id: GOOGLE_AUTH_PROVIDER_ID,
-          platform: 'gemini-with-google-auth',
-          name: 'Gemini Google Auth',
-          baseUrl: '',
-          apiKey: '',
-          useModel: savedModel.useModel,
-        } as TProviderWithModel;
-      }
-
-      // For regular (API-key-based) providers, look up full config
-      const providers = await ProcessConfig.get('model.config');
-      if (providers && Array.isArray(providers)) {
-        const provider = providers.find((p) => p.id === savedModel.id);
-        if (provider && provider.model?.includes(savedModel.useModel)) {
-          return {
-            ...provider,
-            useModel: savedModel.useModel,
-          } as TProviderWithModel;
+        console.warn(`[SystemActions] Google Auth is not supported in channel mode (${platform}), falling back to API key provider`);
+        // Try to find any Gemini provider with API key for the same model
+        const fallback = providerList.find((p) => p.platform === 'gemini' && p.apiKey && p.model?.includes(savedModel.useModel));
+        if (fallback) {
+          return { ...fallback, useModel: savedModel.useModel } as TProviderWithModel;
         }
+        // Otherwise fall through to general fallback below
+      } else {
+        // For regular (API-key-based) providers, look up full config
+        const result = findProviderWithApiKey(savedModel.id, savedModel.useModel);
+        if (result) return result;
       }
     }
 
-    // Fallback: try to get any Gemini provider
-    const providers = await ProcessConfig.get('model.config');
-    if (providers && Array.isArray(providers)) {
-      const geminiProvider = providers.find((p) => p.platform === 'gemini');
-      if (geminiProvider && geminiProvider.model?.length > 0) {
-        return {
-          ...geminiProvider,
-          useModel: geminiProvider.model[0],
-        } as TProviderWithModel;
-      }
+    // Fallback: try to get any Gemini provider with a valid API key
+    const geminiProvider = providerList.find((p) => p.platform === 'gemini' && p.apiKey && p.model?.length);
+    if (geminiProvider) {
+      return {
+        ...geminiProvider,
+        useModel: geminiProvider.model[0],
+      } as TProviderWithModel;
+    }
+
+    // Last resort: any provider with a valid API key
+    const anyProvider = providerList.find((p) => p.apiKey && p.model?.length);
+    if (anyProvider) {
+      console.warn(`[SystemActions] No Gemini provider with API key, using ${anyProvider.platform} provider`);
+      return {
+        ...anyProvider,
+        useModel: anyProvider.model[0],
+      } as TProviderWithModel;
     }
   } catch (error) {
     console.warn('[SystemActions] Failed to get saved model, using default:', error);
   }
 
-  // Default fallback - minimal config for Gemini
+  // Default fallback - minimal config for Gemini (no API key — will fail with clear error)
+  console.error('[SystemActions] No provider with valid API key found. Channel messages will fail.');
   return {
     id: 'gemini_default',
     platform: 'gemini',

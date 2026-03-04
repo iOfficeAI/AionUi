@@ -39,7 +39,9 @@ export const useConversations = () => {
         .invoke({ page: 0, pageSize: 10000 })
         .then((data) => {
           if (data && Array.isArray(data)) {
-            setConversations(data);
+            // 只过滤显式标记的健康检测临时会话，避免误伤用户自定义同名前缀会话
+            const filteredData = data.filter((conv) => (conv.extra as { isHealthCheck?: boolean } | undefined)?.isHealthCheck !== true);
+            setConversations(filteredData);
           } else {
             setConversations([]);
           }

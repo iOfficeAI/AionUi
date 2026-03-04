@@ -12,7 +12,8 @@ import useProtocolDetection from '../../../hooks/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
-import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
+import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, detectNewApiProtocol, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
+import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
 
 /**
  * 供应商 Logo 组件
@@ -46,7 +47,8 @@ const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => str
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
-}>(({ modalProps, onSubmit, modalCtrl }) => {
+  deepLinkData?: DeepLinkAddProviderDetail;
+}>(({ modalProps, onSubmit, modalCtrl, deepLinkData }) => {
   const [message, messageContext] = Message.useMessage();
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -58,6 +60,7 @@ const AddPlatformModal = ModalHOC<{
   const platformValue = Form.useWatch('platform', form);
   const baseUrl = Form.useWatch('baseUrl', form);
   const apiKey = Form.useWatch('apiKey', form);
+  const modelValue = Form.useWatch('model', form);
   const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
   const _bedrockRegion = Form.useWatch('bedrockRegion', form);
 
@@ -73,6 +76,13 @@ const AddPlatformModal = ModalHOC<{
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
+
+  // Auto-detect protocol when model changes (for new-api platforms)
+  useEffect(() => {
+    if (isNewApi && modelValue) {
+      setModelProtocol(detectNewApiProtocol(modelValue));
+    }
+  }, [modelValue, isNewApi]);
 
   // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
   // Calculate actual baseUrl (prefer user input, fallback to platform preset)
@@ -126,14 +136,23 @@ const AddPlatformModal = ModalHOC<{
   useEffect(() => {
     if (modalProps.visible) {
       form.resetFields();
-      form.setFieldValue('platform', 'gemini');
       form.setFieldValue('bedrockAuthMethod', 'accessKey');
       form.setFieldValue('bedrockRegion', 'us-east-1');
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
+
+      // Pre-fill from deep link data (aionui:// protocol)
+      if (deepLinkData?.baseUrl || deepLinkData?.apiKey) {
+        // Default to new-api platform for deep links (typical one-api/new-api usage)
+        form.setFieldValue('platform', deepLinkData.platform || 'new-api');
+        if (deepLinkData.baseUrl) form.setFieldValue('baseUrl', deepLinkData.baseUrl);
+        if (deepLinkData.apiKey) form.setFieldValue('apiKey', deepLinkData.apiKey);
+      } else {
+        form.setFieldValue('platform', 'gemini');
+      }
     }
-  }, [modalProps.visible]);
+  }, [modalProps.visible, deepLinkData]);
 
   useEffect(() => {
     if (platform?.includes('gemini')) {

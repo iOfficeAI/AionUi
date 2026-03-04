@@ -485,6 +485,9 @@
     "geminiBaseUrl": "Gemini API 기본 URL",
     "cacheDir": "캐시 디렉토리",
     "workDir": "작업 디렉토리",
+    "devTools": "개발자 도구",
+    "openDevTools": "DevTools 열기",
+    "closeDevTools": "DevTools 닫기",
     "dirNotConfigured": "아직 구성되지 않음",
     "cacheClean": "캐시 정리",
     "clean": "정리",
@@ -508,6 +511,15 @@
     "deleteAllModelConfirm": "모든 모델을 삭제하시겠습니까?",
     "modelCount": "모델",
     "apiKeyCount": "API 키",
+    "healthCheck": "상태 확인",
+    "modelHealthy": "모델 사용 가능",
+    "modelUnhealthy": "모델 사용 불가",
+    "lastCheck": "마지막 확인",
+    "healthCheckFailed": "상태 확인 실패",
+    "clearHealthStatus": "상태 지우기",
+    "healthDataCleared": "상태 확인 데이터가 지워졌습니다",
+    "healthCheckProbePrompt": "OK로 응답해 주세요",
+    "responseTime": "응답 시간",
     "pleaseEnterBaseUrlAndApiKey": "기본 URL과 API 키를 입력하세요",
     "pleaseEnterApiKey": "API 키를 입력하세요",
     "pleaseEnterBaseUrl": "기본 URL을 입력하세요",
@@ -621,6 +633,19 @@
     "channels.guide": "메신저 앱을 연결해 언제든 AionUi와 대화하세요.",
     "channels.selectFirst": "채널을 선택하고 인증 정보를 설정하세요.",
     "channels.enableAfterConfig": "설정 후 채널을 활성화하면 AI Agent와 대화를 시작할 수 있습니다.",
+    "cdp.title": "개발자 디버그",
+    "cdp.enable": "원격 디버깅 (CDP) 활성화",
+    "cdp.enableDesc": "외부 디버깅 도구를 위한 Chrome DevTools Protocol 활성화",
+    "cdp.currentPort": "디버그 포트",
+    "cdp.openInBrowser": "브라우저에서 열기",
+    "cdp.configSaved": "설정이 저장되었습니다. 재시작 후 적용됩니다",
+    "cdp.configFailed": "설정 저장 실패",
+    "cdp.restartRequired": "설정이 변경되었습니다. 재시작 후 적용됩니다",
+    "cdp.disabledHint": "CDP 원격 디버깅이 비활성화되어 있습니다. 개발 도구에서 사용하려면 활성화하세요",
+    "cdp.mcpConfig": "MCP 설정",
+    "cdp.copyMcpConfig": "MCP 설정 복사",
+    "cdp.mcpConfigHint": "이 설정을 IDE MCP 설정 파일에 추가하세요 (예: ~/.cursor/mcp.json 또는 ~/.claude/settings.json)",
+    "restartNow": "지금 재시작",
     "display": "디스플레이",
     "imageGeneration": "이미지 생성",
     "imageGenerationToggle": "이미지 생성 도구 활성화",
@@ -834,6 +859,9 @@
       "yesAlwaysAllowTool": "예, 서버 \"{{serverName}}\"의 도구 \"{{toolName}}\" 항상 허용",
       "yesAlwaysAllowServer": "예, 서버 \"{{serverName}}\"의 모든 도구 항상 허용",
       "no": "아니요 (esc)"
+    },
+    "slash": {
+      "openFile": "파일 선택기 열기"
     }
   },
   "mcp": {
@@ -870,6 +898,8 @@
     "filterByStatus": "상태별 필터링",
     "transport": "전송",
     "lastCheck": "마지막 확인",
+    "healthCheckFailed": "상태 확인 실패",
+    "responseTime": "응답 시간",
     "capabilities": "기능",
     "noCapabilities": "보고된 기능 없음",
     "never": "없음",
@@ -1112,7 +1142,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "수동으로 모델 선택"
     }

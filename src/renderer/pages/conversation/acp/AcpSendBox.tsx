@@ -20,8 +20,10 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -48,6 +50,14 @@ const useAcpMessage = (conversation_id: string) => {
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Track request trace state for displaying complete request lifecycle
+  const requestTraceRef = useRef<{
+    startTime: number;
+    backend: string;
+    modelId: string;
+    sessionMode?: string;
+  } | null>(null);
 
   // Think 消息节流：限制更新频率，减少渲染次数
   // Throttle thought updates to reduce render frequency
@@ -142,6 +152,12 @@ const useAcpMessage = (conversation_id: string) => {
             }, 1000);
             (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
             hasContentInTurnRef.current = false;
+            // Log request completion
+            if (requestTraceRef.current) {
+              const duration = Date.now() - requestTraceRef.current.startTime;
+              console.log(`%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
+              requestTraceRef.current = null;
+            }
           }
           break;
         case 'content':
@@ -199,6 +215,18 @@ const useAcpMessage = (conversation_id: string) => {
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
           break;
+        case 'request_trace':
+          {
+            const trace = message.data as Record<string, unknown>;
+            requestTraceRef.current = {
+              startTime: Number(trace.timestamp) || Date.now(),
+              backend: String(trace.backend || 'unknown'),
+              modelId: String(trace.modelId || 'unknown'),
+              sessionMode: trace.sessionMode as string | undefined,
+            };
+            console.log(`%c[RequestTrace]%c ➡️ START | ${trace.backend} → ${trace.modelId} | ${new Date().toISOString()}`, 'color: #1890ff; font-weight: bold', 'color: inherit', trace);
+          }
+          break;
         case 'error':
           // Stop all loading states when error occurs
           setRunning(false);
@@ -206,6 +234,12 @@ const useAcpMessage = (conversation_id: string) => {
           setAiProcessing(false);
           aiProcessingRef.current = false;
           addOrUpdateMessage(transformedMessage);
+          // Log request error
+          if (requestTraceRef.current) {
+            const duration = Date.now() - requestTraceRef.current.startTime;
+            console.log(`%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', message.data);
+            requestTraceRef.current = null;
+          }
           break;
         default:
           // Auto-recover running state if other messages arrive after finish
@@ -315,9 +349,10 @@ const AcpSendBox: React.FC<{
   backend: AcpBackend;
   sessionMode?: string;
 }> = ({ conversation_id, backend, sessionMode }) => {
-  const { thought, running, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
+  const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
@@ -439,9 +474,8 @@ const AcpSendBox: React.FC<{
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
-    // 立即清空输入框，避免用户误以为消息没发送
-    // Clear input immediately to avoid user thinking message wasn't sent
-    setContent('');
+    // Content is already cleared by the shared SendBox component (setInput(''))
+    // before calling onSend — no need to clear again here.
     clearFiles();
 
     // Start AI processing loading state
@@ -495,6 +529,16 @@ const AcpSendBox: React.FC<{
     }
   };
 
+  const appendSelectedFiles = useCallback(
+    (files: string[]) => {
+      setUploadFile((prev) => [...prev, ...files]);
+    },
+    [setUploadFile]
+  );
+  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+    onFilesSelected: appendSelectedFiles,
+  });
+
   useAddEventListener('acp.selected.file', setAtPath);
   useAddEventListener('acp.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
     const merged = mergeFileSelectionItems(atPathRef.current, items);
@@ -531,18 +575,7 @@ const AcpSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                  if (files && files.length > 0) {
-                    setUploadFile([...uploadFile, ...files]);
-                  }
-                });
-              }}
-            />
+            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} />
           </div>
         }
@@ -602,6 +635,8 @@ const AcpSendBox: React.FC<{
           </>
         }
         onSend={onSendHandler}
+        slashCommands={slashCommands}
+        onSlashBuiltinCommand={onSlashBuiltinCommand}
       ></SendBox>
     </div>
   );

@@ -35,27 +35,33 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
   const [directoryData, setDirectoryData] = useState<DirectoryData>({ items: [], canGoUp: false });
   const [selectedPath, setSelectedPath] = useState<string>('');
   const [currentPath, setCurrentPath] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
 
   const loadDirectory = useCallback(
-    async (path = '') => {
+    async (dirPath = '') => {
       setLoading(true);
+      setError(null);
       try {
         const showFiles = isFileMode ? 'true' : 'false';
-        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}`, {
+        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`, {
           method: 'GET',
           credentials: 'include',
         });
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          setError(errorData.error || `HTTP ${response.status}`);
           return;
         }
         const data = await response.json();
         if (!data || !Array.isArray(data.items)) {
+          setError('Invalid response from server');
           return;
         }
         setDirectoryData(data);
-        setCurrentPath(path);
-      } catch (error) {
-        console.error('Failed to load directory:', error);
+        setCurrentPath(dirPath);
+      } catch (err) {
+        console.error('Failed to load directory:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load directory');
       } finally {
         setLoading(false);
       }
@@ -88,7 +94,10 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
 
   const handleGoUp = () => {
     if (directoryData.parentPath !== undefined) {
-      loadDirectory(directoryData.parentPath).catch((error) => console.error('Failed to load parent directory:', error));
+      // Handle '__ROOT__' as empty path to show drive list on Windows
+      // 处理 '__ROOT__' 为空路径，在 Windows 上显示驱动器列表
+      const targetPath = directoryData.parentPath === '__ROOT__' ? '' : directoryData.parentPath;
+      loadDirectory(targetPath).catch((error) => console.error('Failed to load parent directory:', error));
     }
   };
 
@@ -134,6 +143,14 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
               <div className='flex items-center p-10px border-b border-b-light cursor-pointer hover:bg-hover transition' onClick={handleGoUp}>
                 <IconUp className='mr-10px text-t-secondary' />
                 <span>..</span>
+              </div>
+            )}
+            {error && (
+              <div className='p-16px text-center text-danger text-13px'>
+                <div>{error}</div>
+                <Button size='mini' className='mt-8px' onClick={() => loadDirectory(currentPath).catch(() => {})}>
+                  {t('common.retry', { defaultValue: 'Retry' })}
+                </Button>
               </div>
             )}
             {directoryData.items.map((item, index) => (

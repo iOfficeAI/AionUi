@@ -9,6 +9,7 @@ import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
+import type { SlashCommandItem } from './slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
@@ -31,6 +32,7 @@ export const conversation = {
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
   sendMessage: bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message'), // 发送消息（统一接口）
+  getSlashCommands: bridge.buildProvider<IBridgeResponse<{ commands: SlashCommandItem[] }>, { conversation_id: string }>('conversation.get-slash-commands'),
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
   responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
   getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>('conversation.get-workspace'),
@@ -59,14 +61,49 @@ export const geminiConversation = {
   responseStream: conversation.responseStream,
 };
 
+// CDP status interface
+export interface ICdpStatus {
+  /** Whether CDP is currently enabled */
+  enabled: boolean;
+  /** Current CDP port (null if disabled or not started) */
+  port: number | null;
+  /** Whether CDP was enabled at startup (requires restart to change) */
+  startupEnabled: boolean;
+  /** All active CDP instances from registry */
+  instances: Array<{
+    pid: number;
+    port: number;
+    cwd: string;
+    startTime: number;
+  }>;
+  /** Whether the app is running in development mode */
+  isDevMode: boolean;
+}
+
+// CDP config interface
+export interface ICdpConfig {
+  /** Whether CDP is enabled */
+  enabled?: boolean;
+  /** Preferred port number */
+  port?: number;
+}
+
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
-  openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
+  openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
+  isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
   systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+  // CDP (Chrome DevTools Protocol) management
+  getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
+  updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
+  // Bridge Main Process logs to Renderer F12 Console
+  logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>('app.log-stream'),
+  // DevTools state change notification
+  devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
 };
 
 // Manual (opt-in) updates via GitHub Releases
@@ -174,7 +211,7 @@ export const googleAuth = {
   status: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.status'),
 };
 
-// 订阅状态查询：用于动态决定是否展示 gemini-3-pro-preview / subscription check for Gemini models
+// 订阅状态查询：用于动态决定是否展示 gemini-3.1-pro-preview / subscription check for Gemini models
 export const gemini = {
   subscriptionStatus: bridge.buildProvider<IBridgeResponse<{ isSubscriber: boolean; tier?: string; lastChecked: number; message?: string }>, { proxy?: string }>('gemini.subscription-status'),
 };
@@ -308,6 +345,15 @@ export const preview = {
 
 export const document = {
   convert: bridge.buildProvider<import('./types/conversion').DocumentConversionResponse, import('./types/conversion').DocumentConversionRequest>('document.convert'),
+};
+
+// Deep link protocol handling / 深度链接协议处理
+export const deepLink = {
+  /** Emitted when app is opened via aionui:// protocol URL */
+  received: bridge.buildEmitter<{
+    action: string; // e.g. 'add-provider'
+    params: Record<string, string>; // parsed query params
+  }>('deep-link.received'),
 };
 
 // 窗口控制相关接口 / Window controls API
@@ -469,6 +515,8 @@ export interface ICreateConversationParams {
       expectedIdentityHash?: string | null;
       switchedAt?: number;
     };
+    /** Explicit marker for temporary health-check conversations */
+    isHealthCheck?: boolean;
   };
 }
 interface IResetConversationParams {

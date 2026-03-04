@@ -558,6 +558,15 @@
     "addModelTips": "モデル名を直接入力できます。プロバイダー側と同じ名前にすると互換性が高まります。",
     "apiKey": "API キー",
     "apiKeyCount": "API キー",
+    "healthCheck": "ヘルスチェック",
+    "modelHealthy": "モデル利用可能",
+    "modelUnhealthy": "モデル利用不可",
+    "lastCheck": "最終チェック",
+    "healthCheckFailed": "ヘルスチェック失敗",
+    "clearHealthStatus": "ヘルス状態をクリア",
+    "healthDataCleared": "ヘルス状態をクリアしました",
+    "healthCheckProbePrompt": "OK と返信してください",
+    "responseTime": "応答時間",
     "apiKeyPlaceholder": "APIキーを入力、複数の場合は1行に1つずつ",
     "editApiKey": "API キーを編集",
     "testKey": "キーをテスト",
@@ -569,6 +578,9 @@
     "baseUrlAutoFix": "base_url を自動修復しました：{{base_url}}",
     "cacheDir": "キャッシュディレクトリ",
     "workDir": "作業ディレクトリ",
+    "devTools": "開発者ツール",
+    "openDevTools": "DevTools を開く",
+    "closeDevTools": "DevTools を閉じる",
     "dirNotConfigured": "まだ設定されていません",
     "customOpenAI": "カスタム（OpenAI互換）",
     "platformCustom": "カスタム",
@@ -707,6 +719,19 @@
     "channels.guide": "メッセージアプリを接続して、いつでも AionUi と会話できます。",
     "channels.selectFirst": "チャンネルを選択して認証情報を設定します。",
     "channels.enableAfterConfig": "設定後にチャンネルを有効化すると、AI Agent とのチャットを開始できます。",
+    "cdp.title": "開発者デバッグ",
+    "cdp.enable": "リモートデバッグ (CDP) を有効化",
+    "cdp.enableDesc": "外部デバッグツール用に Chrome DevTools Protocol を有効化",
+    "cdp.currentPort": "デバッグポート",
+    "cdp.openInBrowser": "ブラウザで開く",
+    "cdp.configSaved": "設定を保存しました。再起動後に有効になります",
+    "cdp.configFailed": "設定の保存に失敗しました",
+    "cdp.restartRequired": "設定が変更されました。再起動後に有効になります",
+    "cdp.disabledHint": "CDPリモートデバッグは無効です。開発ツールで使用するには有効にしてください",
+    "cdp.mcpConfig": "MCP設定",
+    "cdp.copyMcpConfig": "MCP設定をコピー",
+    "cdp.mcpConfigHint": "この設定をIDEのMCP設定ファイルに追加してください（例：~/.cursor/mcp.json または ~/.claude/settings.json）",
+    "restartNow": "今すぐ再起動",
     "display": "表示",
     "imageGeneration": "画像生成",
     "imageGenerationToggle": "画像生成ツールを有効にする",
@@ -910,6 +935,9 @@
       "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
       "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
       "no": "いいえ (esc)"
+    },
+    "slash": {
+      "openFile": "ファイル選択を開く"
     }
   },
   "mcp": {
@@ -1057,7 +1085,7 @@
   },
   "gemini": {
     "mode": {
-      "autoGemini3Desc": "Gemini CLI が最適なモデルを決定します: gemini-3-pro, gemini-3-flash",
+      "autoGemini3Desc": "Gemini CLI が最適なモデルを決定します: gemini-3.1-pro-preview, gemini-3-flash",
       "autoGemini25Desc": "Gemini CLI が最適なモデルを決定します: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手動でモデルを選択"
     }

@@ -7,13 +7,12 @@
 import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import { Alert, Button, Form, Modal, Switch, Tooltip, Message } from '@arco-design/web-react';
+import { FolderOpen, Link } from '@icon-park/react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 /**
@@ -78,12 +77,176 @@ const PreferenceRow: React.FC<{
   label: string;
   /** 控件元素 / Control element */
   children: React.ReactNode;
-}> = ({ label, children }) => (
+  /** 描述文本 / Description text */
+  description?: string;
+}> = ({ label, children, description }) => (
   <div className='flex items-center justify-between gap-24px py-12px'>
-    <div className='text-14px text-2'>{label}</div>
-    <div className='flex-1 flex justify-end'>{children}</div>
+    <div className='flex-1'>
+      <div className='text-14px text-2'>{label}</div>
+      {description && <div className='text-12px text-t-tertiary mt-4px'>{description}</div>}
+    </div>
+    <div className='flex-shrink-0'>{children}</div>
   </div>
 );
+
+/**
+ * CDP 设置组件 / CDP Settings Component
+ * 用于配置 Chrome DevTools Protocol 远程调试
+ */
+const CdpSettings: React.FC = () => {
+  const { t } = useTranslation();
+  const { data: cdpStatus, isLoading } = useSWR('cdp.status', () => ipcBridge.application.getCdpStatus.invoke());
+  const [switchLoading, setSwitchLoading] = useState(false);
+
+  const status = cdpStatus?.data;
+
+  // Track the pending state (config saved but not yet applied)
+  const hasPendingChange = status?.startupEnabled !== status?.enabled;
+
+  const handleToggle = async (checked: boolean) => {
+    setSwitchLoading(true);
+    try {
+      const result = await ipcBridge.application.updateCdpConfig.invoke({ enabled: checked });
+      if (result.success) {
+        Message.success(t('settings.cdp.configSaved'));
+        // Refresh status
+        await mutate('cdp.status');
+      } else {
+        Message.error(result.msg || t('settings.cdp.configFailed'));
+      }
+    } catch (error) {
+      Message.error(t('settings.cdp.configFailed'));
+    } finally {
+      setSwitchLoading(false);
+    }
+  };
+
+  const handleRestart = async () => {
+    try {
+      await ipcBridge.application.restart.invoke();
+    } catch (error) {
+      Message.error(t('common.error'));
+    }
+  };
+
+  const openCdpUrl = () => {
+    if (status?.port) {
+      // Open the CDP JSON list page which shows all inspectable pages
+      const url = `http://127.0.0.1:${status.port}/json`;
+      ipcBridge.shell.openExternal.invoke(url).catch(console.error);
+    }
+  };
+
+  const copyCdpUrl = () => {
+    if (status?.port) {
+      const url = `http://127.0.0.1:${status.port}`;
+      void navigator.clipboard.writeText(url).then(() => {
+        Message.success(t('common.copied'));
+      });
+    }
+  };
+
+  const copyMcpConfig = () => {
+    if (status?.port) {
+      // Include complete MCP configuration with mcpServers wrapper
+      const config = `{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--browser-url=http://127.0.0.1:${status.port}"
+      ]
+    }
+  }
+}`;
+      void navigator.clipboard.writeText(config).then(() => {
+        Message.success(t('common.copied'));
+      });
+    }
+  };
+
+  // Only show CDP settings in development mode
+  if (!isLoading && status?.isDevMode === false) {
+    return null;
+  }
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
+      <div className='text-14px font-medium text-t-primary mb-8px'>{t('settings.cdp.title')}</div>
+      <div className='space-y-12px'>
+        <PreferenceRow label={t('settings.cdp.enable')} description={t('settings.cdp.enableDesc')}>
+          {/* Use startupEnabled for the switch state (config value), not runtime enabled status */}
+          <Switch checked={status?.startupEnabled ?? false} loading={switchLoading} onChange={handleToggle} />
+        </PreferenceRow>
+
+        {/* Show current status if port is available */}
+        {status?.port && (
+          <div className='space-y-8px'>
+            <div className='flex items-center gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
+              <div className='flex-1'>
+                <div className='text-12px text-t-tertiary'>{t('settings.cdp.currentPort')}</div>
+                <div className='text-14px text-t-primary font-medium'>http://127.0.0.1:{status.port}</div>
+              </div>
+              <Tooltip content={t('settings.cdp.openInBrowser')}>
+                <Button type='text' size='small' icon={<Link theme='outline' size='16' />} onClick={openCdpUrl} />
+              </Tooltip>
+              <Tooltip content={t('common.copy')}>
+                <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyCdpUrl} />
+              </Tooltip>
+            </div>
+            {/* MCP configuration hint */}
+            <div className='space-y-4px'>
+              <div className='text-12px text-t-tertiary'>{t('settings.cdp.mcpConfig')}</div>
+              <div className='flex items-start gap-8px py-8px px-12px bg-[var(--fill-1)] rounded-8px'>
+                <pre className='flex-1 text-11px text-t-secondary font-mono overflow-x-auto whitespace-pre-wrap break-all m-0 leading-relaxed'>{`{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--browser-url=http://127.0.0.1:${status.port}"
+      ]
+    }
+  }
+}`}</pre>
+                <Tooltip content={t('settings.cdp.copyMcpConfig')}>
+                  <Button type='text' size='small' icon={<span className='i-carbon:copy text-16px' />} onClick={copyMcpConfig} />
+                </Tooltip>
+              </div>
+              <div className='text-11px text-t-tertiary'>{t('settings.cdp.mcpConfigHint')}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Show hint when CDP is disabled */}
+        {status && !status.port && !status.startupEnabled && <div className='text-12px text-t-tertiary py-8px'>{t('settings.cdp.disabledHint')}</div>}
+
+        {/* Restart hint with action button when config changed */}
+        {hasPendingChange && (
+          <Alert
+            type='warning'
+            content={
+              <div className='flex items-center justify-between gap-12px'>
+                <span>{t('settings.cdp.restartRequired')}</span>
+                <Button size='small' type='primary' onClick={handleRestart}>
+                  {t('settings.restartNow')}
+                </Button>
+              </div>
+            }
+            className='mt-8px'
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 /**
  * 系统设置内容组件 / System settings content component
@@ -96,30 +259,60 @@ const PreferenceRow: React.FC<{
  * - 高级设置：缓存目录、工作目录配置 / Advanced: cache directory, work directory configuration
  * - 配置变更自动保存 / Auto-save on configuration changes
  */
-interface SystemModalContentProps {
-  /** 关闭设置弹窗 / Close settings modal */
-  onRequestClose?: () => void;
-}
-
-const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose }) => {
+const SystemModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
+  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const initializingRef = useRef(true);
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
+  // Initialize DevTools state from Main Process
+  useEffect(() => {
+    ipcBridge.application.isDevToolsOpened
+      .invoke()
+      .then((isOpen) => {
+        setIsDevToolsOpen(isOpen);
+      })
+      .catch((error) => {
+        console.error('Failed to get DevTools state:', error);
+      });
+
+    // Listen to DevTools state changes
+    const unsubscribe = ipcBridge.application.devToolsStateChanged.on((event) => {
+      setIsDevToolsOpen(event.isOpen);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // Initialize form data
   useEffect(() => {
     if (systemInfo) {
-      form.setFieldValue('cacheDir', systemInfo.cacheDir);
-      form.setFieldValue('workDir', systemInfo.workDir);
+      initializingRef.current = true;
+      form.setFieldsValue({ cacheDir: systemInfo.cacheDir, workDir: systemInfo.workDir });
+      // Allow onValuesChange to fire after initialization settles
+      requestAnimationFrame(() => {
+        initializingRef.current = false;
+      });
     }
   }, [systemInfo, form]);
+
+  const handleToggleDevTools = () => {
+    ipcBridge.application.openDevTools
+      .invoke()
+      .then((isOpen) => {
+        setIsDevToolsOpen(Boolean(isOpen));
+      })
+      .catch((error) => {
+        console.error('Failed to toggle dev tools:', error);
+      });
+  };
 
   // 偏好设置项配置 / Preference items configuration
   const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
@@ -136,63 +329,42 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
     });
   };
 
-  /**
-   * 保存目录配置 / Save directory configuration
-   * 如果目录发生变更，会提示用户确认并重启应用
-   * If directories are changed, will prompt user for confirmation and restart the app
-   */
-  const onSubmit = async () => {
-    let shouldClose = false;
-    try {
-      const values = await form.validate();
-      const { cacheDir, workDir } = values;
-      setLoading(true);
+  // Auto-save: when directory changes, prompt for restart
+  const savingRef = useRef(false);
+
+  const handleValuesChange = useCallback(
+    async (_changedValue: unknown, allValues: Record<string, string>) => {
+      if (initializingRef.current || savingRef.current || !systemInfo) return;
+      const { cacheDir, workDir } = allValues;
+      const needsRestart = cacheDir !== systemInfo.cacheDir || workDir !== systemInfo.workDir;
+      if (!needsRestart) return;
+
+      savingRef.current = true;
       setError(null);
-
-      // 检查目录是否被修改 / Check if directories are modified
-      const needsRestart = cacheDir !== systemInfo?.cacheDir || workDir !== systemInfo?.workDir;
-
-      if (needsRestart) {
-        try {
-          await saveDirConfigValidate(values);
-          const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
-          if (result.success) {
-            await ipcBridge.application.restart.invoke();
-            shouldClose = true;
-          } else {
-            setError(result.msg || 'Failed to update system info');
-          }
-        } catch (caughtError: unknown) {
-          if (caughtError) {
-            setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
-          }
+      try {
+        await saveDirConfigValidate({ cacheDir, workDir });
+        const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
+        if (result.success) {
+          await ipcBridge.application.restart.invoke();
+        } else {
+          setError(result.msg || 'Failed to update system info');
+          // Revert form to original values on failure
+          form.setFieldValue('cacheDir', systemInfo.cacheDir);
+          form.setFieldValue('workDir', systemInfo.workDir);
         }
-      } else {
-        shouldClose = true;
+      } catch (caughtError: unknown) {
+        // User cancelled the confirm dialog — revert
+        form.setFieldValue('cacheDir', systemInfo.cacheDir);
+        form.setFieldValue('workDir', systemInfo.workDir);
+        if (caughtError) {
+          setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
+        }
+      } finally {
+        savingRef.current = false;
       }
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Failed to save');
-    } finally {
-      setLoading(false);
-      if (shouldClose) {
-        onRequestClose?.();
-      }
-    }
-  };
-
-  // 重置表单到初始值 / Reset form to initial values
-  const onReset = () => {
-    if (systemInfo) {
-      form.setFieldValue('cacheDir', systemInfo.cacheDir);
-      form.setFieldValue('workDir', systemInfo.workDir);
-    }
-    setError(null);
-  };
-
-  const handleCancel = () => {
-    onReset();
-    onRequestClose?.();
-  };
+    },
+    [systemInfo, form, saveDirConfigValidate]
+  );
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -210,24 +382,24 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
                 </PreferenceRow>
               ))}
             </div>
-            <Form form={form} layout='vertical' className='space-y-16px'>
+            <Form form={form} layout='vertical' className='space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
             </Form>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('settings.devTools')}>
+                <Button size='small' type={isDevToolsOpen ? 'primary' : 'secondary'} onClick={handleToggleDevTools} className='shadow-md border-2 hover:shadow-lg transition-all'>
+                  {isDevToolsOpen ? t('settings.closeDevTools') : t('settings.openDevTools')}
+                </Button>
+              </PreferenceRow>
+            </div>
           </div>
+
+          {/* CDP 开发者设置 / CDP Developer Settings (only visible in dev mode) */}
+          <CdpSettings />
         </div>
       </AionScrollArea>
-
-      {/* 底部操作栏 / Footer with action buttons */}
-      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 px-24px pt-10px', isPageMode ? 'border-none px-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
-        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
-          {t('common.cancel')}
-        </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
-          {t('common.save')}
-        </Button>
-      </div>
     </div>
   );
 };

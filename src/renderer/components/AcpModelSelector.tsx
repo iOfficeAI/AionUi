@@ -7,12 +7,15 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import type { IProvider } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
 
 /**
  * Model selector for ACP-based agents.
@@ -35,6 +38,7 @@ const AcpModelSelector: React.FC<{
 }> = ({ conversationId, backend, initialModelId }) => {
   const { t } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
+  const layout = useLayoutContext();
   const [modelInfo, setModelInfo] = useState<AcpModelInfo | null>(null);
   const modelInfoRef = useRef(modelInfo);
   modelInfoRef.current = modelInfo;
@@ -150,14 +154,29 @@ const AcpModelSelector: React.FC<{
   );
 
   const displayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || t('conversation.welcome.useCliModel');
-  const compact = isPreviewOpen;
+  const compact = isPreviewOpen || layout?.isMobile;
+  const isMobileCompact = Boolean(layout?.isMobile);
+
+  // 获取模型配置数据（包含健康状态）
+  const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
+
+  // 获取当前模型的健康状态
+  const currentModelHealth = React.useMemo(() => {
+    if (!modelInfo?.currentModelId || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
+    const providerConfig = modelConfig.find((p) => p.platform?.includes(backend || ''));
+    const healthStatus = providerConfig?.modelHealth?.[modelInfo.currentModelId]?.status || 'unknown';
+    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+    return { status: healthStatus, color: healthColor };
+  }, [modelInfo?.currentModelId, modelConfig, backend]);
 
   // State 1: No model info — show disabled "Use CLI model" button
   if (!modelInfo) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small' style={{ cursor: 'default' }}>
-          <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
+        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+          <span className='flex items-center gap-6px min-w-0'>
+            <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
+          </span>
         </Button>
       </Tooltip>
     );
@@ -167,8 +186,11 @@ const AcpModelSelector: React.FC<{
   if (!modelInfo.canSwitch) {
     return (
       <Tooltip content={displayLabel} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small' style={{ cursor: 'default' }}>
-          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+          <span className='flex items-center gap-6px min-w-0'>
+            {currentModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />}
+            <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+          </span>
         </Button>
       </Tooltip>
     );
@@ -180,16 +202,29 @@ const AcpModelSelector: React.FC<{
       trigger='click'
       droplist={
         <Menu>
-          {modelInfo.availableModels.map((model) => (
-            <Menu.Item key={model.id} className={model.id === modelInfo.currentModelId ? '!bg-2' : ''} onClick={() => handleSelectModel(model.id)}>
-              {model.label}
-            </Menu.Item>
-          ))}
+          {modelInfo.availableModels.map((model) => {
+            // 获取模型健康状态
+            const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
+            const healthStatus = providerConfig?.modelHealth?.[model.id]?.status || 'unknown';
+            const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+
+            return (
+              <Menu.Item key={model.id} className={model.id === modelInfo.currentModelId ? 'bg-2!' : ''} onClick={() => handleSelectModel(model.id)}>
+                <div className='flex items-center gap-8px w-full'>
+                  {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
+                  <span>{model.label}</span>
+                </div>
+              </Menu.Item>
+            );
+          })}
         </Menu>
       }
     >
-      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]')} shape='round' size='small'>
-        <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small'>
+        <span className='flex items-center gap-6px min-w-0'>
+          {currentModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />}
+          <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+        </span>
       </Button>
     </Dropdown>
   );
