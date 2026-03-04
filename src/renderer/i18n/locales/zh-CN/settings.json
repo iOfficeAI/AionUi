@@ -104,6 +104,7 @@
   "cacheClearSuccess": "缓存清理成功",
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
+  "closeToTray": "关闭到托盘",
   "gemini": "Gemini",
   "model": "模型",
   "system": "系统",

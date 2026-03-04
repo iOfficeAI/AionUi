@@ -366,6 +366,12 @@ export const windowControls = {
   maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
 };
 
+// 系统设置接口 / System settings API
+export const systemSettings = {
+  getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
+  setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+};
+
 // WebUI 服务管理接口 / WebUI service management API
 export interface IWebUIStatus {
   running: boolean;

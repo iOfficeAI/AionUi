@@ -104,6 +104,7 @@
   "cacheClearSuccess": "Cache cleared successfully",
   "cacheClearFailed": "Failed to clear cache",
   "language": "語言",
+  "closeToTray": "關閉到托盤",
   "gemini": "Gemini",
   "model": "模型",
   "system": "系統",
