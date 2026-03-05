@@ -443,7 +443,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           position: 'right',
           conversation_id: this.conversation_id,
           content: {
-            content: data.content, // Save original content to history
+            // Include files marker in display content so UI can render file previews
+            content: data.files?.length ? `${data.content}\n\n${AIONUI_FILES_MARKER}\n${data.files.join('\n')}` : data.content,
             ...(data.cronMeta && { cronMeta: data.cronMeta }),
           },
           createdAt: Date.now(),

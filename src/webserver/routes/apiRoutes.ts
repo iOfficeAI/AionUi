@@ -13,6 +13,9 @@ import path from 'path';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import { getSystemDir } from '@/process/initStorage';
 
+/** Max upload size in bytes (should align with express.json limit) */
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+
 interface UploadTempFileRequest {
   fileName: string;
   data: string; // base64 encoded
@@ -20,7 +23,11 @@ interface UploadTempFileRequest {
 }
 
 function sanitizeFileName(fileName: string): string {
-  return fileName.replace(/[<>:"/\\|?*]/g, '_');
+  // Extract basename to strip any directory components (path traversal defense)
+  const basename = path.basename(fileName);
+  const safe = basename.replace(/[<>:"/\\|?*]/g, '_');
+  if (!safe || safe === '.' || safe === '..') return `file_${Date.now()}`;
+  return safe;
 }
 
 async function getTempDir(): Promise<string> {
@@ -77,8 +84,21 @@ export function registerApiRoutes(app: Express): void {
         // File doesn't exist, proceed with original name
       }
 
+      // Verify path is still within tempDir (defense in depth)
+      if (!tempFilePath.startsWith(tempDir + path.sep) && tempFilePath !== tempDir) {
+        res.status(400).json({ success: false, msg: 'Invalid file name' });
+        return;
+      }
+
       // Decode base64 and write file
       const buffer = Buffer.from(data, 'base64');
+
+      // Server-side size check
+      if (buffer.length > MAX_UPLOAD_SIZE) {
+        res.status(413).json({ success: false, msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)` });
+        return;
+      }
+
       await fs.writeFile(tempFilePath, buffer);
 
       res.json({ success: true, data: { path: tempFilePath, name: path.basename(tempFilePath), size: buffer.length, type: contentType || 'application/octet-stream' } });

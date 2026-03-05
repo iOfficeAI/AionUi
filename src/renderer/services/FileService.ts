@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { withCsrfToken } from '@/webserver/middleware/csrfClient';
 
 export async function createTempFileViaHttp(fileName: string, data: Uint8Array, contentType: string): Promise<string> {
   let binary = '';
@@ -19,7 +18,7 @@ export async function createTempFileViaHttp(fileName: string, data: Uint8Array, 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(withCsrfToken({ fileName, data: base64, contentType })),
+    body: JSON.stringify({ fileName, data: base64, contentType }),
   });
   if (!response.ok) {
     if (response.status === 413) {
