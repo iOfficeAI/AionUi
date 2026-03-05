@@ -5,6 +5,35 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { withCsrfToken } from '@/webserver/middleware/csrfClient';
+
+export async function createTempFileViaHttp(fileName: string, data: Uint8Array, contentType: string): Promise<string> {
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < data.length; i += chunkSize) {
+    binary += String.fromCharCode(...data.subarray(i, i + chunkSize));
+  }
+  const base64 = btoa(binary);
+  const response = await fetch('/api/upload-temp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(withCsrfToken({ fileName, data: base64, contentType })),
+  });
+  if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error('FILE_TOO_LARGE');
+    }
+    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+  }
+  const result = (await response.json()) as { success: boolean; data?: { path: string } };
+  if (!result.success || !result.data) {
+    throw new Error('Upload failed: server returned unsuccessful response');
+  }
+  return result.data.path;
+}
+
 // Simple formatBytes implementation moved from deleted updateConfig
 function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 Bytes';
@@ -176,10 +205,18 @@ class FileServiceClass {
           const arrayBuffer = await file.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
 
-          // Create temporary file
-          const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName: file.name });
+          // Create temporary file (Electron uses IPC, WebUI uses HTTP API)
+          let tempPath: string | null = null;
+          if (isElectronDesktop()) {
+            tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName: file.name });
+            if (tempPath) {
+              await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
+            }
+          } else {
+            tempPath = await createTempFileViaHttp(file.name, uint8Array, file.type || 'application/octet-stream');
+          }
+
           if (tempPath) {
-            await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
             filePath = tempPath;
           }
         } catch (error) {

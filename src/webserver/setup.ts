@@ -82,13 +82,13 @@ export function setupBasicMiddleware(app: Express): void {
   app.use(cookieParser('cookie-parser-secret'));
   // P1 安全修复：登录接口启用 CSRF 保护（前端已添加 withCsrfToken）
   // P1 Security fix: Enable CSRF for login (frontend already uses withCsrfToken)
-  // 仅排除 QR 登录（有独立的一次性 token 保护机制）
-  // Only exclude QR login (has its own one-time token protection)
+  // 排除有独立认证机制的端点：QR 登录（一次性 token）和临时文件上传（API token auth + rate limit）
+  // Exclude endpoints with their own auth: QR login (one-time token) and temp upload (API token + rate limit)
   app.use(
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      ['/login', '/api/auth/qr-login'], // Excluded: login form and QR login
+      ['/login', '/api/auth/qr-login', '/api/upload-temp'], // Excluded: have their own auth mechanisms
       [] // No service worker URLs
     )
   );

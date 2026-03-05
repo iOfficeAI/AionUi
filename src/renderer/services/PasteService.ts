@@ -6,7 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
-import { getFileExtension } from './FileService';
+import { getFileExtension, createTempFileViaHttp } from './FileService';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 
 type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
 
@@ -133,10 +134,15 @@ class PasteServiceClass {
               const isSystemGenerated = file.name && /^[a-zA-Z]?_?\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/.test(file.name);
               const fileName = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
 
-              // 创建临时文件并写入数据
-              const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
-              if (tempPath) {
-                await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
+              // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
+              let tempPath: string | null = null;
+              if (isElectronDesktop()) {
+                tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
+                if (tempPath) {
+                  await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
+                }
+              } else {
+                tempPath = await createTempFileViaHttp(fileName, uint8Array, file.type);
               }
 
               if (tempPath) {
@@ -150,6 +156,7 @@ class PasteServiceClass {
               }
             } catch (error) {
               console.error('创建临时文件失败:', error);
+              throw error;
             }
           } else {
             // 不支持的文件类型，跳过但不报错（让后续过滤处理）
@@ -185,11 +192,18 @@ class PasteServiceClass {
               // 使用原文件名
               const fileName = file.name;
 
-              // 创建临时文件并写入数据
-              const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
-              if (tempPath) {
-                await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
+              // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
+              let tempPath: string | null = null;
+              if (isElectronDesktop()) {
+                tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
+                if (tempPath) {
+                  await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
+                }
+              } else {
+                tempPath = await createTempFileViaHttp(fileName, uint8Array, file.type || 'application/octet-stream');
+              }
 
+              if (tempPath) {
                 fileList.push({
                   name: fileName,
                   path: tempPath,
@@ -200,6 +214,7 @@ class PasteServiceClass {
               }
             } catch (error) {
               console.error('创建临时文件失败:', error);
+              throw error;
             }
           } else {
             console.warn(`Unsupported file type: ${file.name}, extension: ${fileExt}`);

@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
-import { ProcessConfig } from './process/initStorage';
+import { ConfigStorage } from './common/storage';
 import { initializeProcess } from './process';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
@@ -573,16 +573,9 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    // Initialize ACP detector BEFORE creating the window to prevent a race
-    // condition where the renderer fetches getAvailableAgents before detection
-    // finishes, caching an empty result via SWR.
-    await initializeAcpDetector();
-
-    createWindow();
-
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     try {
-      const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
+      const savedCloseToTray = await ConfigStorage.get('system.closeToTray');
       closeToTrayEnabled = savedCloseToTray ?? false;
       if (closeToTrayEnabled) {
         createOrUpdateTray();
@@ -617,12 +610,9 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  // WebUI mode also needs ACP detection for remote agent access
-  if (isWebUIMode) {
-    await initializeAcpDetector();
-  }
-
+  // 启动时初始化ACP检测器 (skip in --resetpass mode)
   if (!isResetPasswordMode) {
+    await initializeAcpDetector();
     // Preload shell environment and apply it to process.env so workers forked
     // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
     // This ensures custom skills that depend on globally installed tools work correctly.

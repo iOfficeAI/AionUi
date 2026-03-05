@@ -8,6 +8,27 @@ import type { Express, Request, Response } from 'express';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
+import fs from 'fs/promises';
+import path from 'path';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { getSystemDir } from '@/process/initStorage';
+
+interface UploadTempFileRequest {
+  fileName: string;
+  data: string; // base64 encoded
+  contentType?: string;
+}
+
+function sanitizeFileName(fileName: string): string {
+  return fileName.replace(/[<>:"/\\|?*]/g, '_');
+}
+
+async function getTempDir(): Promise<string> {
+  const { cacheDir } = getSystemDir();
+  const tempDir = path.join(cacheDir, 'temp');
+  await fs.mkdir(tempDir, { recursive: true });
+  return tempDir;
+}
 
 /**
  * 注册 API 路由
@@ -21,6 +42,51 @@ export function registerApiRoutes(app: Express): void {
    * /api/directory/*
    */
   app.use('/api/directory', apiRateLimiter, validateApiAccess, directoryApi);
+
+  /**
+   * 上传临时文件 - Upload temporary file
+   * POST /api/upload-temp
+   * 用于 WebUI 模式下粘贴/拖拽文件时创建临时文件
+   * Used in WebUI mode for paste/drag files to create temp files
+   *
+   * Must be registered BEFORE the catch-all /api route below
+   */
+  app.post('/api/upload-temp', apiRateLimiter, validateApiAccess, async (req: Request, res: Response) => {
+    try {
+      const { fileName, data, contentType } = req.body as UploadTempFileRequest;
+
+      if (!fileName || !data) {
+        res.status(400).json({ success: false, msg: 'Missing fileName or data' });
+        return;
+      }
+
+      const tempDir = await getTempDir();
+      const safeFileName = sanitizeFileName(fileName);
+      let tempFilePath = path.join(tempDir, safeFileName);
+
+      // Check for duplicate and append timestamp if needed
+      try {
+        await fs.access(tempFilePath);
+        // File exists, append timestamp
+        const timestamp = Date.now();
+        const ext = path.extname(safeFileName);
+        const name = path.basename(safeFileName, ext);
+        const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+        tempFilePath = path.join(tempDir, newFileName);
+      } catch {
+        // File doesn't exist, proceed with original name
+      }
+
+      // Decode base64 and write file
+      const buffer = Buffer.from(data, 'base64');
+      await fs.writeFile(tempFilePath, buffer);
+
+      res.json({ success: true, data: { path: tempFilePath, name: path.basename(tempFilePath), size: buffer.length, type: contentType || 'application/octet-stream' } });
+    } catch (error) {
+      console.error('[API] Upload temp file error:', error);
+      res.status(500).json({ success: false, msg: error instanceof Error ? error.message : 'Failed to upload temp file' });
+    }
+  });
 
   /**
    * 通用 API 端点 - Generic API endpoint

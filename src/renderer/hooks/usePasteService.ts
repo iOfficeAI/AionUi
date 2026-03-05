@@ -1,3 +1,4 @@
+import { Message } from '@arco-design/web-react';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { PasteService } from '@/renderer/services/PasteService';
 import { useCallback, useEffect, useRef } from 'react';
@@ -25,13 +26,23 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste }: Us
         event.stopPropagation();
       }
 
-      const handled = await PasteService.handlePaste(event, supportedExts, onFilesAdded || (() => {}), onTextPaste);
-      if (handled && (!files || files.length === 0)) {
-        // 如果不是文件粘贴但被处理了（比如纯文本粘贴），也阻止默认行为
-        event.preventDefault();
-        event.stopPropagation();
+      try {
+        const handled = await PasteService.handlePaste(event, supportedExts, onFilesAdded || (() => {}), onTextPaste);
+        if (handled && (!files || files.length === 0)) {
+          // 如果不是文件粘贴但被处理了（比如纯文本粘贴），也阻止默认行为
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        return handled;
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : '';
+        if (msg === 'FILE_TOO_LARGE') {
+          Message.error('File is too large to upload (max ~7.5 MB)');
+        } else {
+          Message.error('Failed to upload file. Please try again.');
+        }
+        return false;
       }
-      return handled;
     },
     [supportedExts, onFilesAdded, onTextPaste]
   );
