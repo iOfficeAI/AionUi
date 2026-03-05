@@ -276,12 +276,59 @@ jobs:
               ;;
           esac
 
+      # Detect the actual unpacked directory name produced by electron-builder.
+      # On macOS, cross-compiling for a different arch may produce 'mac-x64'
+      # instead of 'mac', so we probe all known candidates.
+      - name: Detect unpacked directory
+        id: detect-unpacked
+        shell: bash
+        run: |
+          EXPECTED="out/${{ matrix.unpacked_dir }}"
+          if [ -d "$EXPECTED" ]; then
+            echo "dir=$EXPECTED" >> $GITHUB_OUTPUT
+            echo "Found expected unpacked dir: $EXPECTED"
+          else
+            echo "Expected dir '$EXPECTED' not found, scanning candidates..."
+            ls -la out/
+            case "${{ matrix.platform }}" in
+              macos-*)
+                for d in mac mac-arm64 mac-x64 mac-universal; do
+                  if [ -d "out/$d" ]; then
+                    echo "dir=out/$d" >> $GITHUB_OUTPUT
+                    echo "Found unpacked dir: out/$d"
+                    exit 0
+                  fi
+                done
+                ;;
+              windows-*)
+                for d in win-unpacked win-x64-unpacked win-arm64-unpacked; do
+                  if [ -d "out/$d" ]; then
+                    echo "dir=out/$d" >> $GITHUB_OUTPUT
+                    echo "Found unpacked dir: out/$d"
+                    exit 0
+                  fi
+                done
+                ;;
+              linux)
+                for d in linux-unpacked linux-x64-unpacked linux-arm64-unpacked; do
+                  if [ -d "out/$d" ]; then
+                    echo "dir=out/$d" >> $GITHUB_OUTPUT
+                    echo "Found unpacked dir: out/$d"
+                    exit 0
+                  fi
+                done
+                ;;
+            esac
+            echo "::error::No unpacked directory found for ${{ matrix.platform }}"
+            exit 1
+          fi
+
       # Upload the unpacked directory for downstream jobs (e2e-tests, build-verify)
       - name: Upload unpacked app artifact
         uses: actions/upload-artifact@v6
         with:
           name: unpacked-${{ matrix.platform }}
-          path: out/${{ matrix.unpacked_dir }}/
+          path: ${{ steps.detect-unpacked.outputs.dir }}/
           retention-days: 1
           if-no-files-found: error
 
