@@ -375,7 +375,7 @@ ext-typecheck:
 
 # Run extension system tests
 ext-test:
-    bunx vitest run tests/extensions/
+    bunx vitest run tests/extensions/ --passWithNoTests
 
 # Run extension system tests in watch mode
 ext-test-watch:

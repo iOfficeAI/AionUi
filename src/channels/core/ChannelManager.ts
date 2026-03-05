@@ -14,7 +14,7 @@ import { PairingService } from '../pairing/PairingService';
 import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
-import { resolveChannelConvType } from '../types';
+import { isBuiltinChannelPlatform, resolveChannelConvType } from '../types';
 import type { ChannelPlatform, IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
 
@@ -433,11 +433,16 @@ export class ChannelManager {
 
       // For gemini + model info: update existing conversations' model field
       if (newType === 'gemini' && model?.id && model?.useModel) {
-        const fullModel = await getChannelDefaultModel(platform);
-        const db = getDatabase();
-        const result = db.updateChannelConversationModel(platform, 'gemini', fullModel);
-        if (result.success) {
-          console.log(`[ChannelManager] Updated ${result.data} gemini conversation(s) for ${platform}`);
+        if (isBuiltinChannelPlatform(platform)) {
+          const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' = platform;
+          const fullModel = await getChannelDefaultModel(builtinPlatform);
+          const db = getDatabase();
+          const result = db.updateChannelConversationModel(builtinPlatform, 'gemini', fullModel);
+          if (result.success) {
+            console.log(`[ChannelManager] Updated ${result.data} gemini conversation(s) for ${builtinPlatform}`);
+          }
+        } else {
+          console.log(`[ChannelManager] Skip conversation model sync for extension platform: ${platform}`);
         }
       }
 

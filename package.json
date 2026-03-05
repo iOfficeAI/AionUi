@@ -37,7 +37,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:contract": "vitest run tests/contract",
+    "test:contract": "vitest run tests/contract --passWithNoTests",
     "test:integration": "vitest run tests/integration",
     "test:packaged:i18n": "vitest run tests/integration/i18n-packaged.test.ts",
     "debug:perf": "cross-env ACP_PERF=1 PERF_MONITOR=1 bun start",

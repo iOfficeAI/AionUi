@@ -110,6 +110,25 @@ export class AcpConnection {
   // Track if child process was spawned with detached: true (needs process group kill)
   private isDetached = false;
 
+  private isProcessAlive(pid: number): boolean {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async waitForProcessExit(pid: number, timeoutMs: number): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (!this.isProcessAlive(pid)) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+
   /**
    * Kill the current child process (if any) and clear process-related state.
    * Handles platform differences: Windows taskkill tree kill, POSIX detached
@@ -142,6 +161,10 @@ export class AcpConnection {
       }
     } else {
       this.child.kill('SIGTERM');
+    }
+
+    if (pid) {
+      await this.waitForProcessExit(pid, 3000);
     }
 
     this.child = null;
