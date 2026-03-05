@@ -11,8 +11,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
-import { ProcessConfig } from './process/initStorage';
 import { initializeProcess } from './process';
+import { ProcessConfig } from './process/initStorage';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
@@ -96,8 +96,9 @@ const handleDeepLinkUrl = (url: string) => {
 // Acquire lock early so the second instance quits before doing unnecessary work.
 // When a second instance starts (e.g. from protocol URL), it sends its data
 // to the first instance via second-instance event, then quits.
+const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+const gotTheLock = isE2ETestMode ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
 if (!gotTheLock) {
   app.quit();
 } else {
@@ -398,17 +399,24 @@ const createWindow = (): void => {
     },
   });
 
-  // Show window after page and CSS are fully loaded to prevent FOUC
+  // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
+  // Use 'ready-to-show' which fires when renderer has painted first frame,
+  // combined with 'did-finish-load' as belt-and-suspenders approach.
   const showWindow = () => {
     if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
       mainWindow.show();
+      mainWindow.focus();
     }
   };
-  mainWindow.webContents.once('did-finish-load', () => {
-    setTimeout(showWindow, 200);
+  mainWindow.once('ready-to-show', () => {
+    showWindow();
   });
-  // Fallback: show window after 3s even if did-finish-load doesn't fire
-  setTimeout(showWindow, 3000);
+  // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
+  mainWindow.webContents.once('did-finish-load', () => {
+    showWindow();
+  });
+  // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
+  setTimeout(showWindow, 5000);
 
   initMainAdapterWithWindow(mainWindow);
   setupApplicationMenu();
@@ -432,23 +440,30 @@ const createWindow = (): void => {
       console.error('[App] Failed to initialize autoUpdaterService:', error);
     });
 
-  // and load the index.html of the app.
-  // electron-vite: In development, use ELECTRON_RENDERER_URL for HMR
-  // In production, load the built HTML file
-  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']).catch((_error) => {
-      // Error loading main window URL
+  // Load the renderer: dev server URL in development, built HTML file in production
+  const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
+  const fallbackFile = path.join(__dirname, '../renderer/index.html');
+
+  if (!app.isPackaged && rendererUrl) {
+    console.log(`[AionUi] Loading renderer URL: ${rendererUrl}`);
+    mainWindow.loadURL(rendererUrl).catch((error) => {
+      console.error('[AionUi] loadURL failed, falling back to file:', error.message || error);
+      mainWindow.loadFile(fallbackFile).catch((e2) => {
+        console.error('[AionUi] loadFile fallback also failed:', e2.message || e2);
+      });
     });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html')).catch((_error) => {
-      // Error loading main window file
+    console.log(`[AionUi] Loading renderer file: ${fallbackFile}`);
+    mainWindow.loadFile(fallbackFile).catch((error) => {
+      console.error('[AionUi] loadFile failed:', error.message || error);
     });
   }
 
   // 只在开发环境自动打开 DevTools / Only auto-open DevTools in development
   // 使用 app.isPackaged 判断更可靠，打包后的应用不会自动打开 DevTools
   // Using app.isPackaged is more reliable, packaged apps won't auto-open DevTools
-  if (!app.isPackaged) {
+  const disableDevToolsByEnv = process.env.AIONUI_DISABLE_DEVTOOLS === '1' || process.env.AIONUI_E2E_TEST === '1';
+  if (!app.isPackaged && !disableDevToolsByEnv) {
     mainWindow.webContents.openDevTools();
   }
 
@@ -581,25 +596,30 @@ const handleAppReady = async (): Promise<void> => {
     createWindow();
 
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
-    try {
-      const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
-      closeToTrayEnabled = savedCloseToTray ?? false;
-      if (closeToTrayEnabled) {
-        createOrUpdateTray();
+    if (isE2ETestMode) {
+      closeToTrayEnabled = false;
+      destroyTray();
+    } else {
+      try {
+        const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
+        closeToTrayEnabled = savedCloseToTray ?? false;
+        if (closeToTrayEnabled) {
+          createOrUpdateTray();
+        }
+      } catch {
+        // Ignore storage read errors, default to false
       }
-    } catch {
-      // Ignore storage read errors, default to false
-    }
 
-    // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
-    onCloseToTrayChanged((enabled) => {
-      closeToTrayEnabled = enabled;
-      if (enabled) {
-        createOrUpdateTray();
-      } else {
-        destroyTray();
-      }
-    });
+      // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
+      onCloseToTrayChanged((enabled) => {
+        closeToTrayEnabled = enabled;
+        if (enabled) {
+          createOrUpdateTray();
+        } else {
+          destroyTray();
+        }
+      });
+    }
 
     // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
     onLanguageChanged(() => {

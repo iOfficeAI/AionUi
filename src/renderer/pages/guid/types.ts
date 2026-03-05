@@ -18,6 +18,8 @@ export type AvailableAgent = {
   context?: string;
   avatar?: string;
   presetAgentType?: PresetAgentType;
+  isExtension?: boolean;
+  extensionName?: string;
 };
 
 /**
@@ -30,6 +32,7 @@ export type MentionOption = {
   avatar: string | undefined;
   avatarImage: string | undefined;
   logo: string | undefined;
+  isExtension?: boolean;
 };
 
 /**

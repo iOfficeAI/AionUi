@@ -51,10 +51,27 @@ export const isLinux = (): boolean => {
  */
 export const resolveExtensionAssetUrl = (url: string | undefined): string | undefined => {
   if (!url) return url;
-  if (!url.startsWith('aion-asset://asset/')) return url;
-  if (isElectronDesktop()) return url; // native protocol works in Electron renderer
-  const absPath = url.slice('aion-asset://asset/'.length);
-  return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
+
+  // Electron renderer can directly consume file:// and custom protocols.
+  if (isElectronDesktop()) return url;
+
+  // WebUI: aion-asset://asset/{absPath} -> /api/ext-asset
+  if (url.startsWith('aion-asset://asset/')) {
+    const absPath = url.slice('aion-asset://asset/'.length);
+    return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
+  }
+
+  // WebUI: file:///{absPath} -> /api/ext-asset
+  if (url.startsWith('file://')) {
+    let filePath = decodeURIComponent(url.replace(/^file:\/\/\/?/, ''));
+    // On Windows, file:///C:/path → C:/path (strip leading / before drive letter)
+    if (/^\/[A-Za-z]:/.test(filePath)) {
+      filePath = filePath.slice(1);
+    }
+    return `/api/ext-asset?path=${encodeURIComponent(filePath)}`;
+  }
+
+  return url;
 };
 
 /**

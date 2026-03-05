@@ -1,0 +1,134 @@
+{
+  "name": "e2e-full-extension",
+  "displayName": "E2E Full Test Extension",
+  "displayNameI18n": {
+    "zh": "E2E 全功能测试扩展"
+  },
+  "version": "1.0.0",
+  "description": "A comprehensive test extension covering all contribute types for E2E testing",
+  "descriptionI18n": {
+    "zh": "覆盖所有贡献类型的综合 E2E 测试扩展"
+  },
+  "author": "AionUI E2E Tests",
+  "contributes": {
+    "acpAdapters": [
+      {
+        "id": "e2e-cli-agent",
+        "name": "E2E CLI Agent",
+        "nameI18n": { "zh": "E2E CLI 测试 Agent" },
+        "description": "CLI-based agent for E2E testing",
+        "connectionType": "cli",
+        "cliCommand": "echo",
+        "defaultCliPath": "echo",
+        "acpArgs": ["--test"],
+        "supportsStreaming": true,
+        "models": ["test-model-a", "test-model-b"],
+        "healthCheck": {
+          "versionCommand": "echo 1.0.0",
+          "timeout": 3000
+        }
+      },
+      {
+        "id": "e2e-http-agent",
+        "name": "E2E HTTP Agent",
+        "nameI18n": { "zh": "E2E HTTP 测试 Agent" },
+        "description": "HTTP-based agent for E2E testing",
+        "connectionType": "http",
+        "endpoint": "http://localhost:19999/acp",
+        "supportsStreaming": false,
+        "models": ["test-http-model"]
+      }
+    ],
+    "skills": [
+      {
+        "name": "e2e-test-skill",
+        "description": "A test skill for E2E validation",
+        "file": "skills/test-skill.md"
+      },
+      {
+        "name": "e2e-coding-skill",
+        "description": "A coding assistant skill for E2E",
+        "file": "skills/coding-skill.md"
+      }
+    ],
+    "mcpServers": [
+      {
+        "name": "e2e-echo-server",
+        "description": "An echo MCP server for E2E testing (stdio)",
+        "transport": {
+          "type": "stdio",
+          "command": "echo",
+          "args": ["mcp-test"]
+        },
+        "enabled": true
+      },
+      {
+        "name": "e2e-http-mcp",
+        "description": "An HTTP MCP server for E2E testing",
+        "transport": {
+          "type": "http",
+          "url": "http://localhost:19998/mcp"
+        },
+        "enabled": false
+      }
+    ],
+    "channelPlugins": [
+      {
+        "type": "e2e-test-channel",
+        "name": "E2E Test Channel",
+        "nameI18n": { "zh": "E2E 测试频道" },
+        "description": "A mock channel plugin for E2E testing",
+        "entryPoint": "channels/test-channel.js",
+        "credentialFields": [
+          {
+            "key": "apiToken",
+            "label": "API Token",
+            "type": "password",
+            "required": true
+          }
+        ],
+        "configFields": [
+          {
+            "key": "pollingInterval",
+            "label": "Polling Interval (ms)",
+            "type": "number",
+            "required": false,
+            "default": 5000
+          },
+          {
+            "key": "enableDebug",
+            "label": "Enable Debug",
+            "type": "boolean",
+            "required": false,
+            "default": false
+          }
+        ]
+      }
+    ],
+    "themes": [
+      {
+        "id": "e2e-dark-theme",
+        "name": "E2E Dark Theme",
+        "file": "themes/e2e-dark.css"
+      },
+      {
+        "id": "e2e-light-theme",
+        "name": "E2E Light Theme",
+        "file": "themes/e2e-light.css"
+      }
+    ],
+    "assistants": [
+      {
+        "id": "e2e-test-assistant",
+        "name": "E2E Test Assistant",
+        "nameI18n": { "zh": "E2E 测试助手" },
+        "description": "A test assistant preset for E2E validation",
+        "presetAgentType": "gemini",
+        "contextFile": "assistants/test-assistant-context.md",
+        "models": ["gemini-2.0-flash"],
+        "enabledSkills": ["e2e-test-skill"],
+        "prompts": ["You are an E2E test assistant."]
+      }
+    ]
+  }
+}

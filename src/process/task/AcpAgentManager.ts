@@ -9,6 +9,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import type { AcpBackend, AcpModelInfo, AcpPermissionOption, AcpPermissionRequest } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
+import { ExtensionRegistry } from '@/extensions';
 import { getDatabase } from '@process/database';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
@@ -78,12 +79,35 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       let customEnv: Record<string, string> | undefined;
       let yoloMode: boolean | undefined;
 
-      // 处理自定义后端：从 acp.customAgents 配置数组中读取
-      // Handle custom backend: read from acp.customAgents config array
+      // 处理自定义后端：优先读 acp.customAgents；若未命中则尝试扩展贡献的 adapter
+      // Handle custom backend: prefer acp.customAgents; fallback to extension-contributed adapters
       if (data.backend === 'custom' && data.customAgentId) {
         const customAgents = await ProcessConfig.get('acp.customAgents');
         // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
-        const customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+        let customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+
+        // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
+        if (!customAgentConfig && data.customAgentId.startsWith('ext:')) {
+          const [, extensionName, ...idParts] = data.customAgentId.split(':');
+          const adapterId = idParts.join(':');
+          const adapter = ExtensionRegistry.getInstance()
+            .getAcpAdapters()
+            .find((item) => {
+              const record = item as Record<string, unknown>;
+              return record._extensionName === extensionName && record.id === adapterId;
+            }) as Record<string, unknown> | undefined;
+
+          if (adapter) {
+            customAgentConfig = {
+              id: data.customAgentId,
+              name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
+              defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
+              acpArgs: Array.isArray(adapter.acpArgs) ? (adapter.acpArgs.filter((v): v is string => typeof v === 'string')) : undefined,
+              env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
+            } as any;
+          }
+        }
+
         if (customAgentConfig?.defaultCliPath) {
           // Parse defaultCliPath which may contain command + args (e.g., "node /path/to/file.js" or "goose acp")
           const parts = customAgentConfig.defaultCliPath.trim().split(/\s+/);

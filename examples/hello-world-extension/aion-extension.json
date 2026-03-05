@@ -1,0 +1,22 @@
+{
+  "$schema": "../../schemas/aion-extension-v1.json",
+  "name": "hello-world-theme",
+  "displayName": "Hello World Theme Extension",
+  "version": "1.0.0",
+  "description": "A sample extension demonstrating how to contribute CSS themes to AionUI",
+  "author": "AionUI Contributors",
+  "contributes": {
+    "themes": [
+      {
+        "id": "ocean-breeze",
+        "name": "Ocean Breeze",
+        "file": "themes/ocean-breeze.css"
+      },
+      {
+        "id": "sunset-glow",
+        "name": "Sunset Glow",
+        "file": "themes/sunset-glow.css"
+      }
+    ]
+  }
+}

@@ -246,6 +246,8 @@ export const acpConversation = {
         avatar?: string;
         presetAgentType?: PresetAgentType;
         supportedTransports?: string[];
+        isExtension?: boolean;
+        extensionName?: string;
       }>
     >,
     void
@@ -569,6 +571,26 @@ interface IBridgeResponse<D = {}> {
   msg?: string;
 }
 
+// ==================== Extensions API ====================
+
+import type { ICssTheme } from './storage';
+
+export interface IExtensionInfo {
+  name: string;
+  displayName: string;
+  version: string;
+  description?: string;
+  source: string;
+  directory: string;
+}
+
+export const extensions = {
+  /** Get all extension-contributed CSS themes */
+  getThemes: bridge.buildProvider<ICssTheme[], void>('extensions.get-themes'),
+  /** Get summary of all loaded extensions */
+  getLoadedExtensions: bridge.buildProvider<IExtensionInfo[], void>('extensions.get-loaded-extensions'),
+};
+
 // ==================== Channel API ====================
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@/channels/types';
@@ -593,7 +615,7 @@ export const channel = {
   getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
 
   // Settings Sync
-  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: 'telegram' | 'lark' | 'dingtalk'; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
+  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: string; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
 
   // Events
   pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),

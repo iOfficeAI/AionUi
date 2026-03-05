@@ -8,6 +8,7 @@ import { channel } from '@/common/ipcBridge';
 import { getDatabase } from '@/process/database';
 import { getChannelManager } from '@/channels/core/ChannelManager';
 import { getPairingService } from '@/channels/pairing/PairingService';
+import { ExtensionRegistry } from '@/extensions';
 import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
 import { hasPluginCredentials, rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 
@@ -21,7 +22,7 @@ export function initChannelBridge(): void {
   // ==================== Plugin Management ====================
 
   /**
-   * Get status of all plugins
+   * Get status of all plugins (including extension plugin metadata)
    */
   channel.getPluginStatus.provider(async () => {
     try {
@@ -32,8 +33,13 @@ export function initChannelBridge(): void {
         return { success: false, msg: result.error };
       }
 
+      // Pre-fetch extension plugin metadata (lazy, cached by registry)
+      const registry = ExtensionRegistry.getInstance();
+      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
+
       const statuses: IChannelPluginStatus[] = result.data.map((plugin) => {
-        return {
+        const isExtension = !BUILTIN_TYPES.has(plugin.type);
+        const status: IChannelPluginStatus = {
           id: plugin.id,
           type: plugin.type,
           name: plugin.name,
@@ -41,9 +47,37 @@ export function initChannelBridge(): void {
           connected: plugin.status === 'running',
           status: plugin.status,
           lastConnected: plugin.lastConnected,
-          activeUsers: 0, // Will be populated from PluginManager when implemented
+          activeUsers: 0,
           hasToken: hasPluginCredentials(plugin.type, plugin.credentials),
+          isExtension,
         };
+
+        // Enrich extension plugins with metadata for dynamic Settings UI
+        if (isExtension) {
+          try {
+            const meta = registry.getChannelPluginMeta(plugin.type);
+            if (meta && typeof meta === 'object') {
+              const m = meta as Record<string, unknown>;
+              status.extensionMeta = {
+                credentialFields: Array.isArray(m.credentialFields) ? m.credentialFields : undefined,
+                configFields: Array.isArray(m.configFields) ? m.configFields : undefined,
+                description: typeof m.description === 'string' ? m.description : undefined,
+              };
+              // Try to find extension name from loaded extensions
+              const extensions = registry.getLoadedExtensions();
+              const ext = extensions.find((e) =>
+                e.manifest.contributes.channelPlugins?.some((cp) => cp.type === plugin.type)
+              );
+              if (ext) {
+                status.extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
+              }
+            }
+          } catch {
+            // Extension registry may not have meta for this type
+          }
+        }
+
+        return status;
       });
 
       return { success: true, data: statuses };

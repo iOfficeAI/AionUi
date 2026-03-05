@@ -167,6 +167,11 @@ wiki/
 # Local design docs and screenshots
 desdoc/
 
+# E2E test artifacts (Playwright)
+tests/e2e/screenshots/
+tests/e2e/results/
+tests/e2e/report/
+
 # PowerShell accidentally creates a literal file named '$null' when a command
 # redirects output to $null (e.g. `cmd > $null`) on Windows runners.
 # This file has no meaning and should never be committed.

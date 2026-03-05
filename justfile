@@ -334,6 +334,18 @@ test-integration:
 test-packaged-i18n:
     bun run test:packaged:i18n
 
+# Run E2E tests (Playwright + Electron — auto-launches app)
+e2e-test:
+    bunx playwright test --config playwright.config.ts
+
+# Run E2E tests with headed browser (for debugging)
+e2e-test-headed:
+    bunx playwright test --config playwright.config.ts --headed
+
+# Open Playwright HTML report after test run
+e2e-report:
+    bunx playwright show-report tests/e2e/report
+
 # ============================================================
 # Extension System (RFC-001)
 # ============================================================

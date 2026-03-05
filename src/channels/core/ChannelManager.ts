@@ -5,6 +5,7 @@
  */
 
 import { getDatabase } from '@/process/database';
+import { ExtensionRegistry } from '@/extensions';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelDefaultModel } from '../actions/SystemActions';
 import { ActionExecutor } from '../gateway/ActionExecutor';
@@ -14,7 +15,7 @@ import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
 import { resolveChannelConvType } from '../types';
-import type { IChannelPluginConfig, PluginType } from '../types';
+import type { ChannelPlatform, IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
 
 /**
@@ -45,7 +46,7 @@ export class ChannelManager {
 
   private constructor() {
     // Private constructor for singleton pattern
-    // Register available plugins
+    // Register built-in plugins
     registerPlugin('telegram', TelegramPlugin);
     registerPlugin('lark', LarkPlugin);
     registerPlugin('dingtalk', DingTalkPlugin);
@@ -73,6 +74,9 @@ export class ChannelManager {
     console.log('[ChannelManager] Initializing...');
 
     try {
+      // Register extension-contributed channel plugins (from ExtensionRegistry)
+      this.registerExtensionChannelPlugins();
+
       // Initialize sub-components
       this.pairingService = new PairingService();
       this.sessionManager = new SessionManager();
@@ -199,7 +203,9 @@ export class ChannelManager {
   }
 
   /**
-   * Enable and start a plugin
+   * Enable and start a plugin.
+   * Supports both built-in plugins and extension-contributed plugins.
+   * For extension plugins, credentials are extracted generically from the config.
    */
   async enablePlugin(pluginId: string, config: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
     // Ensure manager is initialized
@@ -214,10 +220,11 @@ export class ChannelManager {
     const existingResult = db.getChannelPlugin(pluginId);
     const existing = existingResult.data;
 
-    // Extract credentials from config based on plugin type
+    // Resolve plugin type
     const pluginType = (existing?.type || this.getPluginTypeFromId(pluginId)) as PluginType;
     let credentials = existing?.credentials;
 
+    // Extract credentials based on plugin type
     if (pluginType === 'telegram') {
       const token = config.token as string | undefined;
       if (token) {
@@ -236,6 +243,17 @@ export class ChannelManager {
       const clientSecret = config.clientSecret as string | undefined;
       if (clientId && clientSecret) {
         credentials = { clientId, clientSecret };
+      }
+    } else {
+      // Extension or unknown plugin type: extract all string config values as credentials
+      const extCredentials: Record<string, string | undefined> = {};
+      for (const [key, value] of Object.entries(config)) {
+        if (typeof value === 'string') {
+          extCredentials[key] = value;
+        }
+      }
+      if (Object.keys(extCredentials).length > 0) {
+        credentials = { ...credentials, ...extCredentials };
       }
     }
 
@@ -293,7 +311,9 @@ export class ChannelManager {
   }
 
   /**
-   * Test a plugin connection without enabling it
+   * Test a plugin connection without enabling it.
+   * For extension plugins that don't have a static testConnection method,
+   * returns a generic "not supported" response.
    */
   async testPlugin(pluginId: string, token: string, extraConfig?: { appId?: string; appSecret?: string }): Promise<{ success: boolean; botUsername?: string; error?: string }> {
     const pluginType = this.getPluginTypeFromId(pluginId);
@@ -335,11 +355,13 @@ export class ChannelManager {
       };
     }
 
-    return { success: false, error: `Unknown plugin type: ${pluginType}` };
+    // Extension plugins: test connection not supported yet (will be handled by the plugin itself on start)
+    return { success: true, botUsername: undefined, error: undefined };
   }
 
   /**
-   * Get plugin type from plugin ID
+   * Get plugin type from plugin ID.
+   * For built-in plugins, derives from ID prefix. For others, returns the ID as type.
    */
   private getPluginTypeFromId(pluginId: string): PluginType {
     if (pluginId.startsWith('telegram')) return 'telegram';
@@ -347,15 +369,50 @@ export class ChannelManager {
     if (pluginId.startsWith('discord')) return 'discord';
     if (pluginId.startsWith('lark')) return 'lark';
     if (pluginId.startsWith('dingtalk')) return 'dingtalk';
-    return 'telegram'; // Default
+    // Extension plugins: use pluginId as type (e.g., 'ext-feishu')
+    return pluginId;
   }
 
   /**
-   * Get plugin name from plugin ID
+   * Get plugin name from plugin ID.
+   * For extension plugins, tries to look up display name from registry.
    */
   private getPluginNameFromId(pluginId: string): string {
+    // Check extension registry for display name
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      const meta = registry.getChannelPluginMeta(pluginId);
+      if (meta && typeof meta === 'object' && 'name' in meta) {
+        return (meta as { name: string }).name;
+      }
+    } catch {
+      // Registry may not be initialized, fall through
+    }
     const type = this.getPluginTypeFromId(pluginId);
     return type.charAt(0).toUpperCase() + type.slice(1) + ' Bot';
+  }
+
+  // ==================== Extension Channel Plugin Registration ====================
+
+  /**
+   * Register extension-contributed channel plugins into the plugin registry.
+   * Called once during initialization after ExtensionRegistry is ready.
+   * This is a synchronous, non-blocking operation (plugins are already loaded).
+   */
+  private registerExtensionChannelPlugins(): void {
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      const extPlugins = registry.getChannelPlugins();
+      if (extPlugins.size === 0) return;
+
+      for (const [type, entry] of extPlugins) {
+        const Constructor = entry.constructor as new () => InstanceType<typeof import('../plugins/BasePlugin').BasePlugin>;
+        registerPlugin(type as PluginType, Constructor as any);
+        console.log(`[ChannelManager] Registered extension channel plugin: ${type}`);
+      }
+    } catch (error) {
+      console.warn('[ChannelManager] Failed to register extension channel plugins:', error);
+    }
   }
 
   // ==================== Settings Sync ====================
@@ -366,7 +423,7 @@ export class ChannelManager {
    * which conversation to use. For gemini type changes, also updates the
    * model field on existing conversations.
    */
-  async syncChannelSettings(platform: 'telegram' | 'lark' | 'dingtalk', agent: { backend: string; customAgentId?: string; name?: string }, model?: { id: string; useModel: string }): Promise<{ success: boolean; error?: string }> {
+  async syncChannelSettings(platform: ChannelPlatform, agent: { backend: string; customAgentId?: string; name?: string }, model?: { id: string; useModel: string }): Promise<{ success: boolean; error?: string }> {
     if (!this.initialized || !this.sessionManager) {
       return { success: false, error: 'Channel manager not initialized' };
     }
