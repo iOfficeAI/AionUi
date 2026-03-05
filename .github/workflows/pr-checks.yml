@@ -12,7 +12,7 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
-  issues: read
+  issues: write
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -388,12 +388,31 @@ jobs:
         shell: bash
         run: bash scripts/verify-release-assets.sh release-assets
 
-  # Job 5: E2E Tests (Playwright + Electron)
+  # Job 5: E2E Tests (Playwright + packaged Electron) – all three platforms
+  # Builds the app with --pack-only (vite build + electron-builder pack, no installer),
+  # then launches from the unpacked directory to validate packaged resources.
   e2e-tests:
-    name: E2E Tests
+    name: E2E Tests (${{ matrix.platform }})
     if: github.event.action != 'edited'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-latest
+            arch: x64
+            build_args: '--linux --x64'
+          - platform: macos-arm64
+            os: macos-14
+            arch: arm64
+            build_args: '--mac --arm64'
+          - platform: windows-x64
+            os: windows-2022
+            arch: x64
+            build_args: '--win --x64'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -414,22 +433,107 @@ jobs:
       - name: Run postinstall
         run: npm run postinstall || true
 
-      - name: Install Linux dependencies for Electron
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev xvfb
+          sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev xvfb
 
-      - name: Run E2E tests
+      - name: Cache Electron artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: e2e-electron-${{ matrix.platform }}-${{ hashFiles('package.json', 'bun.lock') }}
+          restore-keys: |
+            e2e-electron-${{ matrix.platform }}-
+
+      - name: Rebuild native modules for Electron (non-Windows)
+        if: "!startsWith(matrix.platform, 'windows')"
+        run: bunx electron-builder install-app-deps
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+
+      - name: Setup MSBuild (Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
+      - name: Build packaged app (--pack-only, no installer)
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "Building packaged app for E2E: ${{ matrix.platform }}"
+          echo "=========================================="
+          node scripts/build-with-builder.js auto ${{ matrix.build_args }} --pack-only
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          CI: true
+
+      - name: Verify packaged app exists
+        shell: bash
+        run: |
+          echo "Packaged output:"
+          ls -la out/ || true
+          case "${{ matrix.platform }}" in
+            linux)
+              ls out/linux-unpacked/ && echo "✅ linux-unpacked found"
+              ;;
+            macos-*)
+              ls out/mac-arm64/ || ls out/mac/ && echo "✅ mac unpacked found"
+              ;;
+            windows-*)
+              ls out/win-unpacked/ && echo "✅ win-unpacked found"
+              ;;
+          esac
+
+      - name: Verify packaged i18n assets
+        run: bun run test:packaged:i18n
+
+      - name: Run E2E tests (Linux)
+        if: matrix.platform == 'linux'
         run: xvfb-run --auto-servernum bunx playwright test --config playwright.config.ts
         env:
           CI: true
+          E2E_PACKAGED: '1'
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Run E2E tests (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        run: bunx playwright test --config playwright.config.ts
+        env:
+          CI: true
+          E2E_PACKAGED: '1'
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Run E2E tests (Windows)
+        if: startsWith(matrix.platform, 'windows')
+        shell: pwsh
+        run: bunx playwright test --config playwright.config.ts
+        env:
+          CI: true
+          E2E_PACKAGED: '1'
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
       - name: Upload E2E report
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: e2e-report
+          name: e2e-report-${{ matrix.platform }}
           path: tests/e2e/report/
           retention-days: 14
 
@@ -437,45 +541,60 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: e2e-screenshots
+          name: e2e-screenshots-${{ matrix.platform }}
           path: tests/e2e/screenshots/
           retention-days: 14
           if-no-files-found: ignore
 
+  # Job 4b: Aggregate E2E results and comment on PR
+  e2e-summary:
+    name: E2E Summary
+    needs: [e2e-tests]
+    if: always() && github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    steps:
       - name: Comment E2E results on PR
-        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request.number;
             const runId = context.runId;
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 
-            // Read Playwright exit status from job outcome
-            const jobStatus = '${{ steps.run-e2e.outcome }}' || (process.exitCode === 0 ? 'success' : 'failure');
-            const statusEmoji = jobStatus === 'success' ? '✅' : '❌';
-
+            const e2eResult = '${{ needs.e2e-tests.result }}';
+            const allPassed = e2eResult === 'success';
+            const statusEmoji = allPassed ? '✅' : '❌';
             const artifactUrl = `${runUrl}#artifacts`;
+
+            const platforms = [
+              { name: 'Linux (ubuntu)', key: 'linux' },
+              { name: 'macOS (arm64)', key: 'macos-arm64' },
+              { name: 'Windows (x64)', key: 'windows-x64' },
+            ];
 
             const body = [
               `<!-- e2e-report-bot -->`,
-              `## ${statusEmoji} E2E Test Report`,
+              `## ${statusEmoji} E2E Test Report (Packaged Mode)`,
+              ``,
+              `Tests run against **packaged app** (electron-builder \`--pack-only\`) to validate resource integrity.`,
+              ``,
+              `| Platform | Status |`,
+              `|----------|--------|`,
+              ...platforms.map(p => `| ${p.name} | ${allPassed ? '✅ Passed' : '⚠️ See logs'} |`),
               ``,
               `| Item | Detail |`,
               `|------|--------|`,
-              `| **Status** | ${statusEmoji} ${jobStatus === 'success' ? 'All tests passed' : 'Some tests failed'} |`,
-              `| **Report** | [Download HTML Report](${artifactUrl}) |`,
+              `| **Overall** | ${statusEmoji} ${allPassed ? 'All platforms passed' : 'Some platforms failed'} |`,
+              `| **Reports** | [Download HTML Reports](${artifactUrl}) |`,
               `| **Run** | [View Workflow Run](${runUrl}) |`,
               ``,
-              `> 📥 Download the \`e2e-report\` artifact from the workflow run to view the interactive Playwright HTML report locally:`,
+              `> 📥 Download the \`e2e-report-*\` artifacts to view interactive Playwright HTML reports:`,
               `> \`\`\``,
-              `> npx playwright show-report path/to/downloaded/e2e-report`,
+              `> npx playwright show-report path/to/downloaded/e2e-report-linux`,
               `> \`\`\``,
             ].join('\n');
 
-            // Find existing comment to update (idempotent)
             const { data: comments } = await github.rest.issues.listComments({
               owner, repo, issue_number: prNumber,
             });
