@@ -27,19 +27,32 @@ export type SettingsTab = keyof typeof ROUTES.settings;
 // ── Navigation helpers ───────────────────────────────────────────────────────
 
 /** Navigate to a hash route and wait for the page to settle. */
-export async function navigateTo(page: Page, hash: string, waitMs = 2000): Promise<void> {
+export async function navigateTo(page: Page, hash: string): Promise<void> {
   // Guard against stale page references
   if (page.isClosed()) {
     throw new Error('Cannot navigate: page is already closed. The page fixture should re-resolve the window.');
   }
   await page.evaluate((h) => window.location.assign(h), hash);
-  // Wait for DOM to settle before checking content
-  await page.waitForTimeout(waitMs);
-  // Ensure body has meaningful content (not just the shell)
+  // Give React a tick to begin re-rendering after hash change
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // Wait for body to have meaningful content (event-driven, no fixed sleep)
   try {
     await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: 10_000 });
   } catch {
     // Best-effort: if content doesn't appear, continue with the test
+  }
+}
+
+/**
+ * Wait for a condition instead of using a fixed timeout.
+ * Falls back to a short 300ms sleep if the condition is not met within timeout.
+ */
+export async function waitForSettle(page: Page, timeoutMs = 3000): Promise<void> {
+  try {
+    await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: timeoutMs });
+  } catch {
+    // Best-effort fallback
+    await page.waitForTimeout(300);
   }
 }
 

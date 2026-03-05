@@ -5,7 +5,7 @@
  * critical console errors are thrown on startup.
  */
 import { test, expect } from '../fixtures';
-import { createErrorCollector } from '../helpers';
+import { createErrorCollector, waitForSettle } from '../helpers';
 
 test.describe('App Launch', () => {
   test('window opens and has a title', async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('App Launch', () => {
 
   test('no uncaught console errors on load', async ({ page }) => {
     const collector = createErrorCollector(page);
-    await page.waitForTimeout(2000);
+    await waitForSettle(page);
     expect(collector.critical()).toHaveLength(0);
   });
 });

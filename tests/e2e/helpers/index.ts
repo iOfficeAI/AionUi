@@ -1,4 +1,4 @@
-export { navigateTo, goToGuid, goToSettings, ROUTES, type SettingsTab } from './navigation';
+export { navigateTo, goToGuid, goToSettings, waitForSettle, ROUTES, type SettingsTab } from './navigation';
 export {
   CHAT_INPUT,
   SETTINGS_SIDER,

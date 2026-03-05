@@ -98,10 +98,20 @@ test.describe('WebUI Service', () => {
     // Toggle on
     if (!wasRunning) {
       await enableSwitch.click();
-      await page.waitForTimeout(3000); // Give the server time to start
+      // Wait for server startup: observe class change or running indicator
+      try {
+        await page.waitForFunction(
+          () => {
+            const text = document.body.textContent || '';
+            return text.includes('✓') || text.includes('Running') || text.includes('运行中') || text.includes('running');
+          },
+          { timeout: 5000 },
+        );
+      } catch {
+        // Server may not start in test env – continue
+      }
 
       const body = await page.locator('body').textContent();
-      // After starting, should show running indicator or success
       const isRunning =
         body?.includes('✓') ||
         body?.includes('Running') ||
@@ -111,22 +121,41 @@ test.describe('WebUI Service', () => {
       // If it started, toggle off to clean up
       if (isRunning) {
         await enableSwitch.click();
-        await page.waitForTimeout(1000);
+        await enableSwitch.evaluate((el) =>
+          new Promise<void>((resolve) => {
+            const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
+            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            setTimeout(() => { observer.disconnect(); resolve(); }, 2000);
+          }),
+        );
       }
     } else {
       // Was already running – toggle off then back on
       await enableSwitch.click();
-      await page.waitForTimeout(1000);
+      await enableSwitch.evaluate((el) =>
+        new Promise<void>((resolve) => {
+          const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
+          observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+          setTimeout(() => { observer.disconnect(); resolve(); }, 2000);
+        }),
+      );
 
       // Toggle back on to restore
       await enableSwitch.click();
-      await page.waitForTimeout(2000);
+      await enableSwitch.evaluate((el) =>
+        new Promise<void>((resolve) => {
+          const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
+          observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+          setTimeout(() => { observer.disconnect(); resolve(); }, 2000);
+        }),
+      );
     }
   });
 
   // ── Screenshot ─────────────────────────────────────────────────────────
 
   test('screenshot: webui settings', async ({ page }) => {
+    test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     await goToWebui(page);
     await takeScreenshot(page, 'webui-settings');
   });

@@ -388,10 +388,113 @@ jobs:
         shell: bash
         run: bash scripts/verify-release-assets.sh release-assets
 
-  # Job 5: Trigger GPT AI review (only on first PR submission)
+  # Job 5: E2E Tests (Playwright + Electron)
+  e2e-tests:
+    name: E2E Tests
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Install Linux dependencies for Electron
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev xvfb
+
+      - name: Run E2E tests
+        run: xvfb-run --auto-servernum bunx playwright test --config playwright.config.ts
+        env:
+          CI: true
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-report
+          path: tests/e2e/report/
+          retention-days: 14
+
+      - name: Upload E2E screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-screenshots
+          path: tests/e2e/screenshots/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Comment E2E results on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const runId = context.runId;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            // Read Playwright exit status from job outcome
+            const jobStatus = '${{ steps.run-e2e.outcome }}' || (process.exitCode === 0 ? 'success' : 'failure');
+            const statusEmoji = jobStatus === 'success' ? '✅' : '❌';
+
+            const artifactUrl = `${runUrl}#artifacts`;
+
+            const body = [
+              `<!-- e2e-report-bot -->`,
+              `## ${statusEmoji} E2E Test Report`,
+              ``,
+              `| Item | Detail |`,
+              `|------|--------|`,
+              `| **Status** | ${statusEmoji} ${jobStatus === 'success' ? 'All tests passed' : 'Some tests failed'} |`,
+              `| **Report** | [Download HTML Report](${artifactUrl}) |`,
+              `| **Run** | [View Workflow Run](${runUrl}) |`,
+              ``,
+              `> 📥 Download the \`e2e-report\` artifact from the workflow run to view the interactive Playwright HTML report locally:`,
+              `> \`\`\``,
+              `> npx playwright show-report path/to/downloaded/e2e-report`,
+              `> \`\`\``,
+            ].join('\n');
+
+            // Find existing comment to update (idempotent)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: prNumber,
+            });
+            const existing = comments.find(c => c.body?.includes('<!-- e2e-report-bot -->'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: prNumber, body,
+              });
+            }
+
+  # Job 6: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality, unit-tests, build-test, release-script-test]
+    needs: [code-quality, unit-tests, build-test, release-script-test, e2e-tests]
     if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
@@ -401,10 +504,10 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 6: Check if PR author is an external contributor
+  # Job 7: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality, unit-tests, build-test, release-script-test]
+    needs: [code-quality, unit-tests, build-test, release-script-test, e2e-tests]
     if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
@@ -431,7 +534,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 7: Trigger GPT PR assessment for external contributors
+  # Job 8: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]

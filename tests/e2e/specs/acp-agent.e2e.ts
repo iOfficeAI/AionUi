@@ -35,6 +35,7 @@ test.describe('ACP Agent', () => {
   });
 
   test('screenshot: agent settings', async ({ page }) => {
+    test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     await goToSettings(page, 'agent');
     await takeScreenshot(page, 'agent-settings');
   });
@@ -90,21 +91,21 @@ test.describe('ACP Agent', () => {
       const secondAgent = logos.nth(1);
       const secondAlt = await secondAgent.getAttribute('alt');
       await secondAgent.click();
-      await page.waitForTimeout(500);
 
-      // The clicked agent's parent should now have the selected style
-      // (opacity-100 and agentItemSelected class)
+      // Wait for selection state to settle (class change)
       const parent = secondAgent.locator('..');
       const grandparent = parent.locator('..');
-      const classes = await grandparent.getAttribute('class');
+      await expect(grandparent).toBeVisible();
       // We just verify the click didn't throw and the page is still stable
       expect(secondAlt).toBeTruthy();
     }
   });
 
   test('screenshot: agent pill bar', async ({ page }) => {
+    test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     await goToGuid(page);
-    await page.waitForTimeout(1000);
+    const logos = page.locator('img[alt$=" logo"]');
+    await expect(logos.first()).toBeVisible({ timeout: 10000 });
     await takeScreenshot(page, 'agent-pill-bar');
   });
 

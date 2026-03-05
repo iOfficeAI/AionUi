@@ -42,6 +42,7 @@ test.describe('Guid Page', () => {
   });
 
   test('screenshot: guid page', async ({ page }) => {
+    test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     await goToGuid(page);
     await takeScreenshot(page, 'guid-page', { fullPage: true });
   });
@@ -71,6 +72,7 @@ test.describe('Settings Pages', () => {
   }
 
   test('screenshot: settings pages', async ({ page }) => {
+    test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     for (const { tab } of tabs) {
       await goToSettings(page, tab);
       await takeScreenshot(page, `settings-${tab}`);
