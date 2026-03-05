@@ -7,11 +7,12 @@
 import type { IMessageText } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Tooltip } from '@arco-design/web-react';
+import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { copyText } from '@/renderer/utils/clipboard';
 import CollapsibleContent from '../components/CollapsibleContent';
 import FilePreview from '../components/FilePreview';
 import HorizontalFileList from '../components/HorizontalFileList';
@@ -76,14 +77,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     const baseText = json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     const textToCopy = fileList + baseText;
-    navigator.clipboard
-      .writeText(textToCopy)
+    copyText(textToCopy)
       .then(() => {
         setShowCopyAlert(true);
         setTimeout(() => setShowCopyAlert(false), 2000);
       })
-      .catch((error) => {
-        console.error('Copy failed:', error);
+      .catch(() => {
+        Message.error(t('common.copyFailed'));
       });
   };
 

@@ -234,8 +234,8 @@ const ImageDisplay: React.FC<{
     try {
       const blob = await getImageBlob();
 
-      // Try using Clipboard API with blob
-      if (navigator.clipboard && typeof navigator.clipboard.write === 'function') {
+      // Try using Clipboard API with blob (requires secure context in WebUI)
+      if (navigator.clipboard && window.isSecureContext && typeof navigator.clipboard.write === 'function') {
         try {
           await navigator.clipboard.write([
             new ClipboardItem({
@@ -266,6 +266,10 @@ const ImageDisplay: React.FC<{
       ctx.drawImage(img, 0, 0);
       canvas.toBlob(async (canvasBlob) => {
         if (!canvasBlob) {
+          messageApi.error(t('messages.copyFailed', { defaultValue: 'Failed to copy' }));
+          return;
+        }
+        if (!navigator.clipboard || !window.isSecureContext || typeof navigator.clipboard.write !== 'function') {
           messageApi.error(t('messages.copyFailed', { defaultValue: 'Failed to copy' }));
           return;
         }
