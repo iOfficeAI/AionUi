@@ -65,9 +65,7 @@ export function initChannelBridge(): void {
               };
               // Try to find extension name from loaded extensions
               const extensions = registry.getLoadedExtensions();
-              const ext = extensions.find((e) =>
-                e.manifest.contributes.channelPlugins?.some((cp) => cp.type === plugin.type)
-              );
+              const ext = extensions.find((e) => e.manifest.contributes.channelPlugins?.some((cp) => cp.type === plugin.type));
               if (ext) {
                 status.extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
               }

@@ -5,14 +5,7 @@
  * settings sub-pages without errors.
  */
 import { test, expect } from '../fixtures';
-import {
-  goToGuid,
-  goToSettings,
-  ROUTES,
-  expectUrlContains,
-  takeScreenshot,
-  type SettingsTab,
-} from '../helpers';
+import { goToGuid, goToSettings, ROUTES, expectUrlContains, takeScreenshot, type SettingsTab } from '../helpers';
 
 // ── Guid Page ────────────────────────────────────────────────────────────────
 
@@ -24,17 +17,13 @@ test.describe('Guid Page', () => {
 
   test('chat input area is present', async ({ page }) => {
     await goToGuid(page);
-    const textarea = page
-      .locator('textarea, [contenteditable="true"], [role="textbox"]')
-      .first();
+    const textarea = page.locator('textarea, [contenteditable="true"], [role="textbox"]').first();
     await expect(textarea).toBeVisible({ timeout: 5000 });
   });
 
   test('can type in chat input', async ({ page }) => {
     await goToGuid(page);
-    const input = page
-      .locator('textarea, [contenteditable="true"], [role="textbox"]')
-      .first();
+    const input = page.locator('textarea, [contenteditable="true"], [role="textbox"]').first();
     await input.click();
     await input.fill('E2E test message');
     const value = await input.inputValue().catch(() => input.textContent());

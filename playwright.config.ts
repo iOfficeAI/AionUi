@@ -8,9 +8,7 @@ export default defineConfig({
   fullyParallel: false, // Electron tests share one app instance
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : 2,
-  reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never', outputFolder: 'tests/e2e/report' }]]
-    : [['list'], ['html', { open: 'never', outputFolder: 'tests/e2e/report' }]],
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never', outputFolder: 'tests/e2e/report' }]] : [['list'], ['html', { open: 'never', outputFolder: 'tests/e2e/report' }]],
   use: {
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

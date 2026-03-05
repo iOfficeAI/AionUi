@@ -10,13 +10,7 @@ export { ExtensionWatcher } from './hotReload';
 
 export { resolveThemes } from './resolvers/ThemeResolver';
 
-export {
-  resolveEnvTemplates,
-  resolveEnvInObject,
-  isGlobalStrictMode,
-  clearStrictModeCache,
-  UndefinedEnvVariableError,
-} from './envResolver';
+export { resolveEnvTemplates, resolveEnvInObject, isGlobalStrictMode, clearStrictModeCache, UndefinedEnvVariableError } from './envResolver';
 
 export { resolveFileRefs } from './fileResolver';
 
@@ -24,17 +18,4 @@ export { validateDependencies, sortByDependencyOrder } from './dependencyResolve
 
 export { RESERVED_NAME_PREFIXES, PRESET_AGENT_TYPES } from './types';
 
-export type {
-  ExtensionManifest,
-  ExtContributes,
-  ExtAcpAdapter,
-  ExtMcpServer,
-  ExtAssistant,
-  ExtSkill,
-  ExtChannelPlugin,
-  ExtTheme,
-  ExtWebui,
-  ExtensionSource,
-  LoadedExtension,
-  ExtensionState,
-} from './types';
+export type { ExtensionManifest, ExtContributes, ExtAcpAdapter, ExtMcpServer, ExtAssistant, ExtSkill, ExtChannelPlugin, ExtTheme, ExtWebui, ExtensionSource, LoadedExtension, ExtensionState } from './types';

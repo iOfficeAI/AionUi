@@ -6,12 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  getUserExtensionsDir,
-  getAppDataExtensionsDir,
-  getEnvExtensionsDirs,
-  EXTENSION_MANIFEST_FILE,
-} from './constants';
+import { getUserExtensionsDir, getAppDataExtensionsDir, getEnvExtensionsDirs, EXTENSION_MANIFEST_FILE } from './constants';
 import { ExtensionRegistry } from './ExtensionRegistry';
 
 const DEBOUNCE_MS = 1000;
@@ -35,10 +30,7 @@ export class ExtensionWatcher {
         this.watchers.push(watcher);
         console.log(`[Extensions] Watching for changes: ${dir}`);
       } catch (error) {
-        console.warn(
-          `[Extensions] Failed to watch directory ${dir}:`,
-          error instanceof Error ? error.message : error
-        );
+        console.warn(`[Extensions] Failed to watch directory ${dir}:`, error instanceof Error ? error.message : error);
       }
     }
   }

@@ -48,7 +48,7 @@ class AcpDetector {
         const id = typeof adapter.id === 'string' ? adapter.id : '';
         const name = typeof adapter.name === 'string' ? adapter.name : id;
         const defaultCliPath = typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined;
-        const acpArgs = Array.isArray(adapter.acpArgs) ? (adapter.acpArgs.filter((v): v is string => typeof v === 'string')) : undefined;
+        const acpArgs = Array.isArray(adapter.acpArgs) ? adapter.acpArgs.filter((v): v is string => typeof v === 'string') : undefined;
         const avatar = typeof adapter.avatar === 'string' ? adapter.avatar : undefined;
         const extensionName = typeof adapter._extensionName === 'string' ? adapter._extensionName : 'unknown-extension';
 

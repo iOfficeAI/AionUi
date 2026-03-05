@@ -4,11 +4,7 @@
  * Validates extension-contributed skills on the agent settings page.
  */
 import { test, expect } from '../fixtures';
-import {
-  goToSettings,
-  takeScreenshot,
-  waitForSettle,
-} from '../helpers';
+import { goToSettings, takeScreenshot, waitForSettle } from '../helpers';
 
 test.describe('Extension: Skills', () => {
   test('agent settings page can show skill configuration', async ({ page }) => {

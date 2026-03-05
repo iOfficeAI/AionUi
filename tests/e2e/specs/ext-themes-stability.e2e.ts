@@ -5,12 +5,7 @@
  * stability when navigating settings pages with extensions loaded.
  */
 import { test, expect } from '../fixtures';
-import {
-  goToGuid,
-  goToSettings,
-  takeScreenshot,
-  waitForSettle,
-} from '../helpers';
+import { goToGuid, goToSettings, takeScreenshot, waitForSettle } from '../helpers';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Themes from Extensions
@@ -103,12 +98,7 @@ test.describe('Extension System Stability', () => {
     }
 
     // Filter for extension-specific errors
-    const extErrors = errors.filter(
-      (e) =>
-        e.toLowerCase().includes('extension') ||
-        e.toLowerCase().includes('manifest') ||
-        e.toLowerCase().includes('contribute'),
-    );
+    const extErrors = errors.filter((e) => e.toLowerCase().includes('extension') || e.toLowerCase().includes('manifest') || e.toLowerCase().includes('contribute'));
 
     expect(extErrors).toHaveLength(0);
   });

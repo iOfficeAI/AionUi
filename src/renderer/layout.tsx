@@ -115,10 +115,7 @@ const Layout: React.FC<{
         const defaultCss = resolveCssByActiveTheme('default-theme', (savedThemes || []) as ICssTheme[]);
         effectiveCss = defaultCss;
         // Persist the fallback so Layout doesn't keep retrying
-        await Promise.all([
-          ConfigStorage.set('css.activeThemeId', 'default-theme'),
-          ConfigStorage.set('customCss', effectiveCss),
-        ]).catch((error) => {
+        await Promise.all([ConfigStorage.set('css.activeThemeId', 'default-theme'), ConfigStorage.set('customCss', effectiveCss)]).catch((error) => {
           console.warn('Failed to persist theme fallback:', error);
         });
       } else if (decision.shouldHealStorage) {

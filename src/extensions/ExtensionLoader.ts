@@ -8,12 +8,7 @@ import fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
-import {
-  getUserExtensionsDir,
-  getAppDataExtensionsDir,
-  getEnvExtensionsDirs,
-  EXTENSION_MANIFEST_FILE,
-} from './constants';
+import { getUserExtensionsDir, getAppDataExtensionsDir, getEnvExtensionsDirs, EXTENSION_MANIFEST_FILE } from './constants';
 import { ExtensionManifestSchema, type LoadedExtension, type ExtensionSource } from './types';
 import { resolveEnvInObject, UndefinedEnvVariableError } from './envResolver';
 import { resolveFileRefs } from './fileResolver';
@@ -42,9 +37,7 @@ export class ExtensionLoader {
       const extensions = await this.scanDirectory(dir, source);
       for (const ext of extensions) {
         if (seenNames.has(ext.manifest.name)) {
-          console.warn(
-            `[Extensions] Skipping duplicate extension "${ext.manifest.name}" from ${ext.directory} (already loaded)`
-          );
+          console.warn(`[Extensions] Skipping duplicate extension "${ext.manifest.name}" from ${ext.directory} (already loaded)`);
           continue;
         }
         seenNames.add(ext.manifest.name);
@@ -98,32 +91,20 @@ export class ExtensionLoader {
             if (!this.options.continueOnError) {
               throw error;
             }
-            console.error(
-              `[Extensions] Failed to load extension from ${extensionDir}: ${error.message}`
-            );
+            console.error(`[Extensions] Failed to load extension from ${extensionDir}: ${error.message}`);
           } else {
-            console.warn(
-              `[Extensions] Failed to load extension from ${extensionDir}:`,
-              error instanceof Error ? error.message : error
-            );
+            console.warn(`[Extensions] Failed to load extension from ${extensionDir}:`, error instanceof Error ? error.message : error);
           }
         }
       }
     } catch (error) {
-      console.warn(
-        `[Extensions] Failed to scan directory ${baseDir}:`,
-        error instanceof Error ? error.message : error
-      );
+      console.warn(`[Extensions] Failed to scan directory ${baseDir}:`, error instanceof Error ? error.message : error);
     }
 
     return extensions;
   }
 
-  private async loadManifest(
-    extensionDir: string,
-    manifestPath: string,
-    source: ExtensionSource
-  ): Promise<LoadedExtension | null> {
+  private async loadManifest(extensionDir: string, manifestPath: string, source: ExtensionSource): Promise<LoadedExtension | null> {
     const raw = await fs.readFile(manifestPath, 'utf-8');
     const jsonStr = stripJsonComments(raw);
     let parsed: unknown;
@@ -131,10 +112,7 @@ export class ExtensionLoader {
     try {
       parsed = JSON.parse(jsonStr);
     } catch (error) {
-      console.warn(
-        `[Extensions] Invalid JSON in ${manifestPath}:`,
-        error instanceof Error ? error.message : error
-      );
+      console.warn(`[Extensions] Invalid JSON in ${manifestPath}:`, error instanceof Error ? error.message : error);
       return null;
     }
 

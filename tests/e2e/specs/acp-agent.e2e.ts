@@ -9,29 +9,14 @@
  *  - MCP tools page loads
  */
 import { test, expect } from '../fixtures';
-import {
-  goToGuid,
-  goToSettings,
-  expectBodyContainsAny,
-  expectUrlContains,
-  agentLogoByBackend,
-  takeScreenshot,
-} from '../helpers';
+import { goToGuid, goToSettings, expectBodyContainsAny, expectUrlContains, agentLogoByBackend, takeScreenshot } from '../helpers';
 
 test.describe('ACP Agent', () => {
   // ── Settings page ────────────────────────────────────────────────────────
 
   test('agent settings page has management UI', async ({ page }) => {
     await goToSettings(page, 'agent');
-    await expectBodyContainsAny(page, [
-      'Agent',
-      'agent',
-      '助手',
-      '预设',
-      'Preset',
-      'Custom',
-      'Assistants',
-    ]);
+    await expectBodyContainsAny(page, ['Agent', 'agent', '助手', '预设', 'Preset', 'Custom', 'Assistants']);
   });
 
   test('screenshot: agent settings', async ({ page }) => {
@@ -47,7 +32,7 @@ test.describe('ACP Agent', () => {
 
     // At least one agent logo should be visible (any backend)
     const logos = page.locator(
-      'img[alt$=" logo"]', // matches "claude logo", "gemini logo", etc.
+      'img[alt$=" logo"]' // matches "claude logo", "gemini logo", etc.
     );
     await expect(logos.first()).toBeVisible({ timeout: 10000 });
 
@@ -76,7 +61,6 @@ test.describe('ACP Agent', () => {
     }
     expect(foundBackends.length).toBeGreaterThanOrEqual(1);
   });
-
 
   test('clicking an agent pill selects it', async ({ page }) => {
     await goToGuid(page);
@@ -114,16 +98,7 @@ test.describe('ACP Agent', () => {
   test('MCP tools page has server management UI', async ({ page }) => {
     await goToSettings(page, 'tools');
     await expectUrlContains(page, 'tools');
-    await expectBodyContainsAny(page, [
-      'MCP',
-      'mcp',
-      'Server',
-      'server',
-      '工具',
-      '配置',
-      '添加',
-      'Add',
-    ]);
+    await expectBodyContainsAny(page, ['MCP', 'mcp', 'Server', 'server', '工具', '配置', '添加', 'Add']);
   });
 
   // ── IPC: available agents ────────────────────────────────────────────────
@@ -136,5 +111,4 @@ test.describe('ACP Agent', () => {
     });
     expect(windowCount).toBeGreaterThanOrEqual(1);
   });
-
 });

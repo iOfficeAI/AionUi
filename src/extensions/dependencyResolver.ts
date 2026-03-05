@@ -22,26 +22,13 @@ function satisfiesVersion(version: string, range: string): boolean {
   if (range === version) return true;
 
   if (range.startsWith('^')) {
-    return (
-      parsedVersion.major === parsedRange.major &&
-      (parsedVersion.minor > parsedRange.minor ||
-        (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch))
-    );
+    return parsedVersion.major === parsedRange.major && (parsedVersion.minor > parsedRange.minor || (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch));
   }
   if (range.startsWith('~')) {
-    return (
-      parsedVersion.major === parsedRange.major &&
-      parsedVersion.minor === parsedRange.minor &&
-      parsedVersion.patch >= parsedRange.patch
-    );
+    return parsedVersion.major === parsedRange.major && parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch;
   }
 
-  return (
-    parsedVersion.major > parsedRange.major ||
-    (parsedVersion.major === parsedRange.major &&
-      (parsedVersion.minor > parsedRange.minor ||
-        (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch)))
-  );
+  return parsedVersion.major > parsedRange.major || (parsedVersion.major === parsedRange.major && (parsedVersion.minor > parsedRange.minor || (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch)));
 }
 
 type ExtensionMeta = {
@@ -59,12 +46,7 @@ type DependencyIssue = {
   message: string;
 };
 
-function detectCircularDependencies(
-  graph: Map<string, Set<string>>,
-  start: string,
-  visited: Set<string>,
-  currentPath: Set<string>
-): [string, string] | null {
+function detectCircularDependencies(graph: Map<string, Set<string>>, start: string, visited: Set<string>, currentPath: Set<string>): [string, string] | null {
   visited.add(start);
   currentPath.add(start);
   const deps = graph.get(start);
@@ -102,9 +84,7 @@ function topologicalSort(graph: Map<string, Set<string>>, nodes: string[]): stri
   return result;
 }
 
-export function validateDependencies(
-  extensions: ExtensionMeta[]
-): { valid: boolean; issues: DependencyIssue[]; loadOrder: string[] } {
+export function validateDependencies(extensions: ExtensionMeta[]): { valid: boolean; issues: DependencyIssue[]; loadOrder: string[] } {
   const issues: DependencyIssue[] = [];
   const extensionMap = new Map<string, ExtensionMeta>();
   const dependencyGraph = new Map<string, Set<string>>();
@@ -174,10 +154,7 @@ export function validateDependencies(
   };
 }
 
-export function sortByDependencyOrder(
-  extensions: ExtensionMeta[],
-  loadOrder: string[]
-): ExtensionMeta[] {
+export function sortByDependencyOrder(extensions: ExtensionMeta[], loadOrder: string[]): ExtensionMeta[] {
   const orderMap = new Map(loadOrder.map((name, idx) => [name, idx]));
   return [...extensions].sort((a, b) => {
     const orderA = orderMap.get(a.name) ?? Infinity;

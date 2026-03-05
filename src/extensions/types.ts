@@ -36,10 +36,7 @@ export const ExtensionMetaSchema = z
     homepage: z.string().url().optional(),
     /** P2: Extension dependencies */
     dependencies: z
-      .record(
-        z.string(),
-        z.string().regex(/^\^?\d+\.\d+\.\d+(-[\w.]+)?$/, 'Dependency version must be semver format')
-      )
+      .record(z.string(), z.string().regex(/^\^?\d+\.\d+\.\d+(-[\w.]+)?$/, 'Dependency version must be semver format'))
       .optional()
       .describe('Extension dependencies: { extensionName: versionRange }'),
     /** P2: AIONUI core version compatibility */

@@ -19,20 +19,14 @@ export async function resolveAssistants(extensions: LoadedExtension[]): Promise<
         const config = await convertAssistant(assistant, ext);
         assistants.push(config);
       } catch (error) {
-        console.warn(
-          `[Extensions] Failed to resolve assistant "${assistant.id}" from ${ext.manifest.name}:`,
-          error instanceof Error ? error.message : error
-        );
+        console.warn(`[Extensions] Failed to resolve assistant "${assistant.id}" from ${ext.manifest.name}:`, error instanceof Error ? error.message : error);
       }
     }
   }
   return assistants;
 }
 
-async function convertAssistant(
-  assistant: ExtAssistant,
-  ext: LoadedExtension
-): Promise<Record<string, unknown>> {
+async function convertAssistant(assistant: ExtAssistant, ext: LoadedExtension): Promise<Record<string, unknown>> {
   const context = await readContextFile(assistant.contextFile, ext.directory);
   let contextI18n: Record<string, string> | undefined;
 
@@ -84,10 +78,7 @@ async function readContextFile(relativePath: string, extensionDir: string): Prom
   try {
     return await fs.readFile(absolutePath, 'utf-8');
   } catch (error) {
-    console.warn(
-      `[Extensions] Failed to read context file ${absolutePath}:`,
-      error instanceof Error ? error.message : error
-    );
+    console.warn(`[Extensions] Failed to read context file ${absolutePath}:`, error instanceof Error ? error.message : error);
     return null;
   }
 }

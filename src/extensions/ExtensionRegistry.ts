@@ -57,17 +57,7 @@ export class ExtensionRegistry {
       await this.resolveContributions();
       this.initialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(
-        `[Extensions] Registry initialized in ${elapsed}ms: ` +
-          `${this.extensions.length} extension(s), ` +
-          `${this._acpAdapters.length} adapter(s), ` +
-          `${this._mcpServers.length} MCP server(s), ` +
-          `${this._assistants.length} assistant(s), ` +
-          `${this._skills.length} skill(s), ` +
-          `${this._themes.length} theme(s), ` +
-          `${this._channelPlugins.size} channel plugin(s), ` +
-          `${this._webuiContributions.length} webui contribution(s)`
-      );
+      console.log(`[Extensions] Registry initialized in ${elapsed}ms: ` + `${this.extensions.length} extension(s), ` + `${this._acpAdapters.length} adapter(s), ` + `${this._mcpServers.length} MCP server(s), ` + `${this._assistants.length} assistant(s), ` + `${this._skills.length} skill(s), ` + `${this._themes.length} theme(s), ` + `${this._channelPlugins.size} channel plugin(s), ` + `${this._webuiContributions.length} webui contribution(s)`);
     } catch (error) {
       console.error('[Extensions] Failed to initialize registry:', error);
       this.initialized = true;
@@ -142,18 +132,13 @@ export class ExtensionRegistry {
 
   /** Internal: Resolve all contributions from enabled extensions. */
   private async resolveContributions(): Promise<void> {
-    const enabledExtensions = this.extensions.filter((ext) =>
-      this.isExtensionEnabled(ext.manifest.name)
-    );
+    const enabledExtensions = this.extensions.filter((ext) => this.isExtensionEnabled(ext.manifest.name));
     this._acpAdapters = resolveAcpAdapters(enabledExtensions);
     this._mcpServers = resolveMcpServers(enabledExtensions);
     this._assistants = await resolveAssistants(enabledExtensions);
     this._skills = resolveSkills(enabledExtensions);
     this._themes = resolveThemes(enabledExtensions);
-    this._channelPlugins = resolveChannelPlugins(enabledExtensions) as Map<
-      string,
-      { constructor: unknown; meta: unknown }
-    >;
+    this._channelPlugins = resolveChannelPlugins(enabledExtensions) as Map<string, { constructor: unknown; meta: unknown }>;
     this._webuiContributions = resolveWebuiContributions(enabledExtensions);
   }
 

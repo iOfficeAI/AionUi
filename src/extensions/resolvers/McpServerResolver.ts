@@ -19,11 +19,7 @@ export function resolveMcpServers(extensions: LoadedExtension[]): Record<string,
   return servers;
 }
 
-function convertMcpServer(
-  server: ExtMcpServer,
-  ext: LoadedExtension,
-  timestamp: number
-): Record<string, unknown> {
+function convertMcpServer(server: ExtMcpServer, ext: LoadedExtension, timestamp: number): Record<string, unknown> {
   return {
     id: `ext-${ext.manifest.name}-${server.name}`,
     name: server.name,

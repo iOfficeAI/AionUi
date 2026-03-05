@@ -4,23 +4,19 @@
  * Validates extension-contributed channel plugins on the channels settings page.
  */
 import { test, expect } from '../fixtures';
-import {
-  goToSettings,
-  expectBodyContainsAny,
-  takeScreenshot,
-  waitForSettle,
-  ARCO_SWITCH,
-  ARCO_TABS_HEADER_TITLE,
-} from '../helpers';
+import { goToSettings, expectBodyContainsAny, takeScreenshot, waitForSettle, ARCO_SWITCH, ARCO_TABS_HEADER_TITLE } from '../helpers';
 
 test.describe('Extension: Channel Plugins', () => {
   /** Navigate to the channels tab inside webui settings. */
   async function goToChannelsTab(page: import('@playwright/test').Page): Promise<void> {
     await goToSettings(page, 'webui');
 
-    const channelTab = page.locator(ARCO_TABS_HEADER_TITLE).filter({
-      hasText: /channel|频道|渠道/i,
-    }).first();
+    const channelTab = page
+      .locator(ARCO_TABS_HEADER_TITLE)
+      .filter({
+        hasText: /channel|频道|渠道/i,
+      })
+      .first();
 
     try {
       await channelTab.waitFor({ state: 'visible', timeout: 15_000 });
@@ -30,7 +26,7 @@ test.describe('Extension: Channel Plugins', () => {
           const t = document.body.textContent || '';
           return t.includes('Telegram') || t.includes('Lark') || t.includes('DingTalk') || t.includes('Channel') || t.includes('频道');
         },
-        { timeout: 10_000 },
+        { timeout: 10_000 }
       );
     } catch {
       // Best-effort
@@ -39,13 +35,7 @@ test.describe('Extension: Channel Plugins', () => {
 
   test('channels page renders', async ({ page }) => {
     await goToChannelsTab(page);
-    await expectBodyContainsAny(page, [
-      'Telegram',
-      'Lark',
-      'DingTalk',
-      'Channel',
-      '频道',
-    ]);
+    await expectBodyContainsAny(page, ['Telegram', 'Lark', 'DingTalk', 'Channel', '频道']);
   });
 
   test('built-in channels still visible alongside extension channels', async ({ page }) => {
@@ -90,12 +80,19 @@ test.describe('Extension: Channel Plugins', () => {
 
       const wasBefore = cls?.includes('arco-switch-checked');
       await sw.click();
-      await sw.evaluate((el) =>
-        new Promise<void>((resolve) => {
-          const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-          observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-          setTimeout(() => { observer.disconnect(); resolve(); }, 1500);
-        }),
+      await sw.evaluate(
+        (el) =>
+          new Promise<void>((resolve) => {
+            const observer = new MutationObserver(() => {
+              observer.disconnect();
+              resolve();
+            });
+            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            setTimeout(() => {
+              observer.disconnect();
+              resolve();
+            }, 1500);
+          })
       );
 
       const clsAfter = await sw.getAttribute('class');
@@ -106,12 +103,19 @@ test.describe('Extension: Channel Plugins', () => {
       // Toggle back if state changed
       if (wasBefore !== isAfter) {
         await sw.click();
-        await sw.evaluate((el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => { observer.disconnect(); resolve(); }, 1000);
-          }),
+        await sw.evaluate(
+          (el) =>
+            new Promise<void>((resolve) => {
+              const observer = new MutationObserver(() => {
+                observer.disconnect();
+                resolve();
+              });
+              observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+              setTimeout(() => {
+                observer.disconnect();
+                resolve();
+              }, 1000);
+            })
         );
       }
       break;
@@ -129,9 +133,7 @@ test.describe('Extension: Channel Plugins', () => {
     if (hasComingSoon) {
       const disabledSwitches = page.locator('.arco-switch.arco-switch-disabled, .arco-switch[aria-disabled="true"]');
       const disabledCount = await disabledSwitches.count();
-      const hasComingSoonBadge =
-        body?.includes('Coming Soon') ||
-        body?.includes('即将上线');
+      const hasComingSoonBadge = body?.includes('Coming Soon') || body?.includes('即将上线');
 
       expect(disabledCount > 0 || hasComingSoonBadge).toBeTruthy();
     }

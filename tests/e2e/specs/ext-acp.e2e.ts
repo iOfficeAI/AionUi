@@ -5,25 +5,12 @@
  * and guid pages.
  */
 import { test, expect } from '../fixtures';
-import {
-  goToGuid,
-  goToSettings,
-  expectBodyContainsAny,
-  takeScreenshot,
-  waitForSettle,
-} from '../helpers';
+import { goToGuid, goToSettings, expectBodyContainsAny, takeScreenshot, waitForSettle } from '../helpers';
 
 test.describe('Extension: ACP Adapters', () => {
   test('agent settings page loads with extension agents', async ({ page }) => {
     await goToSettings(page, 'agent');
-    await expectBodyContainsAny(page, [
-      'Agent',
-      'agent',
-      '助手',
-      'Assistants',
-      'Custom',
-      'Preset',
-    ]);
+    await expectBodyContainsAny(page, ['Agent', 'agent', '助手', 'Assistants', 'Custom', 'Preset']);
   });
 
   test('extension-contributed agents visible or page functional', async ({ page }) => {

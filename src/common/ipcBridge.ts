@@ -10,7 +10,7 @@ import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { SlashCommandItem } from './slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
+import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
@@ -572,8 +572,6 @@ interface IBridgeResponse<D = {}> {
 }
 
 // ==================== Extensions API ====================
-
-import type { ICssTheme } from './storage';
 
 export interface IExtensionInfo {
   name: string;

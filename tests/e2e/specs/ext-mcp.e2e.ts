@@ -4,27 +4,12 @@
  * Validates extension-contributed MCP servers on the tools settings page.
  */
 import { test, expect } from '../fixtures';
-import {
-  goToSettings,
-  expectBodyContainsAny,
-  takeScreenshot,
-  waitForSettle,
-  ARCO_SWITCH,
-} from '../helpers';
+import { goToSettings, expectBodyContainsAny, takeScreenshot, waitForSettle, ARCO_SWITCH } from '../helpers';
 
 test.describe('Extension: MCP Servers', () => {
   test('MCP tools page loads', async ({ page }) => {
     await goToSettings(page, 'tools');
-    await expectBodyContainsAny(page, [
-      'MCP',
-      'mcp',
-      'Server',
-      'server',
-      '工具',
-      '配置',
-      '添加',
-      'Add',
-    ]);
+    await expectBodyContainsAny(page, ['MCP', 'mcp', 'Server', 'server', '工具', '配置', '添加', 'Add']);
   });
 
   test('extension MCP servers registered (page functional)', async ({ page }) => {

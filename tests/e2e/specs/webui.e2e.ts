@@ -9,12 +9,7 @@
  *  - Start / stop lifecycle (via the Switch toggle)
  */
 import { test, expect } from '../fixtures';
-import {
-  goToSettings,
-  expectBodyContainsAny,
-  ARCO_SWITCH,
-  takeScreenshot,
-} from '../helpers';
+import { goToSettings, expectBodyContainsAny, ARCO_SWITCH, takeScreenshot } from '../helpers';
 
 test.describe('WebUI Service', () => {
   /** Navigate to the WebUI settings tab. */
@@ -26,13 +21,7 @@ test.describe('WebUI Service', () => {
 
   test('webui settings page renders', async ({ page }) => {
     await goToWebui(page);
-    await expectBodyContainsAny(page, [
-      'WebUI',
-      'Web UI',
-      'Enable',
-      '启用',
-      'webui',
-    ]);
+    await expectBodyContainsAny(page, ['WebUI', 'Web UI', 'Enable', '启用', 'webui']);
   });
 
   // ── Enable toggle ──────────────────────────────────────────────────────
@@ -65,10 +54,7 @@ test.describe('WebUI Service', () => {
     // In test environment, the service may not be started, so just verify
     // the WebUI page renders properly with relevant content.
     const hasUrl = body?.includes('localhost');
-    const hasWebUIContent =
-      body?.includes('WebUI') ||
-      body?.includes('Enable') ||
-      body?.includes('启用');
+    const hasWebUIContent = body?.includes('WebUI') || body?.includes('Enable') || body?.includes('启用');
     expect(hasUrl || hasWebUIContent).toBeTruthy();
   });
 
@@ -105,49 +91,66 @@ test.describe('WebUI Service', () => {
             const text = document.body.textContent || '';
             return text.includes('✓') || text.includes('Running') || text.includes('运行中') || text.includes('running');
           },
-          { timeout: 5000 },
+          { timeout: 5000 }
         );
       } catch {
         // Server may not start in test env – continue
       }
 
       const body = await page.locator('body').textContent();
-      const isRunning =
-        body?.includes('✓') ||
-        body?.includes('Running') ||
-        body?.includes('运行中') ||
-        body?.includes('running');
+      const isRunning = body?.includes('✓') || body?.includes('Running') || body?.includes('运行中') || body?.includes('running');
 
       // If it started, toggle off to clean up
       if (isRunning) {
         await enableSwitch.click();
-        await enableSwitch.evaluate((el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => { observer.disconnect(); resolve(); }, 2000);
-          }),
+        await enableSwitch.evaluate(
+          (el) =>
+            new Promise<void>((resolve) => {
+              const observer = new MutationObserver(() => {
+                observer.disconnect();
+                resolve();
+              });
+              observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+              setTimeout(() => {
+                observer.disconnect();
+                resolve();
+              }, 2000);
+            })
         );
       }
     } else {
       // Was already running – toggle off then back on
       await enableSwitch.click();
-      await enableSwitch.evaluate((el) =>
-        new Promise<void>((resolve) => {
-          const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-          observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-          setTimeout(() => { observer.disconnect(); resolve(); }, 2000);
-        }),
+      await enableSwitch.evaluate(
+        (el) =>
+          new Promise<void>((resolve) => {
+            const observer = new MutationObserver(() => {
+              observer.disconnect();
+              resolve();
+            });
+            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            setTimeout(() => {
+              observer.disconnect();
+              resolve();
+            }, 2000);
+          })
       );
 
       // Toggle back on to restore
       await enableSwitch.click();
-      await enableSwitch.evaluate((el) =>
-        new Promise<void>((resolve) => {
-          const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-          observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-          setTimeout(() => { observer.disconnect(); resolve(); }, 2000);
-        }),
+      await enableSwitch.evaluate(
+        (el) =>
+          new Promise<void>((resolve) => {
+            const observer = new MutationObserver(() => {
+              observer.disconnect();
+              resolve();
+            });
+            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            setTimeout(() => {
+              observer.disconnect();
+              resolve();
+            }, 2000);
+          })
       );
     }
   });

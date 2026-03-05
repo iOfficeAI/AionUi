@@ -20,11 +20,7 @@ function extractFilePath(ref: string): string {
   return ref.slice(FILE_REF_PREFIX.length).trim();
 }
 
-export async function resolveFileRefs(
-  obj: unknown,
-  extensionDir: string,
-  resolvedPaths?: Set<string>
-): Promise<unknown> {
+export async function resolveFileRefs(obj: unknown, extensionDir: string, resolvedPaths?: Set<string>): Promise<unknown> {
   const visited = resolvedPaths ?? new Set<string>();
 
   if (isFileRef(obj)) {
@@ -36,19 +32,13 @@ export async function resolveFileRefs(
   }
   if (obj !== null && typeof obj === 'object') {
     const entries = Object.entries(obj as Record<string, unknown>);
-    const resolved = await Promise.all(
-      entries.map(async ([key, value]) => [key, await resolveFileRefs(value, extensionDir, visited)])
-    );
+    const resolved = await Promise.all(entries.map(async ([key, value]) => [key, await resolveFileRefs(value, extensionDir, visited)]));
     return Object.fromEntries(resolved);
   }
   return obj;
 }
 
-async function resolveFileRefValue(
-  ref: string,
-  extensionDir: string,
-  visited: Set<string>
-): Promise<unknown> {
+async function resolveFileRefValue(ref: string, extensionDir: string, visited: Set<string>): Promise<unknown> {
   const relativePath = extractFilePath(ref);
   const absolutePath = path.resolve(extensionDir, relativePath);
 
@@ -72,10 +62,7 @@ async function resolveFileRefValue(
     }
     return content.replace(/\n$/, '');
   } catch (error) {
-    console.warn(
-      `[Extensions] Failed to resolve $file:${relativePath}:`,
-      error instanceof Error ? error.message : error
-    );
+    console.warn(`[Extensions] Failed to resolve $file:${relativePath}:`, error instanceof Error ? error.message : error);
     return ref;
   }
 }

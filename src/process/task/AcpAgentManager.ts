@@ -102,7 +102,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               id: data.customAgentId,
               name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
               defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
-              acpArgs: Array.isArray(adapter.acpArgs) ? (adapter.acpArgs.filter((v): v is string => typeof v === 'string')) : undefined,
+              acpArgs: Array.isArray(adapter.acpArgs) ? adapter.acpArgs.filter((v): v is string => typeof v === 'string') : undefined,
               env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
             } as any;
           }

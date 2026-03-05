@@ -8,13 +8,7 @@
  *  - "Coming soon" channels have disabled toggles
  */
 import { test, expect } from '../fixtures';
-import {
-  goToSettings,
-  expectBodyContainsAny,
-  ARCO_SWITCH,
-  ARCO_TABS_HEADER_TITLE,
-  takeScreenshot,
-} from '../helpers';
+import { goToSettings, expectBodyContainsAny, ARCO_SWITCH, ARCO_TABS_HEADER_TITLE, takeScreenshot } from '../helpers';
 
 test.describe('Channels', () => {
   /** Navigate to the channels tab inside the webui settings page. */
@@ -23,9 +17,12 @@ test.describe('Channels', () => {
 
     // Wait for and click the channels tab using text-based matching
     // This is more robust than counting tabs which may not all be rendered yet
-    const channelTab = page.locator(ARCO_TABS_HEADER_TITLE).filter({
-      hasText: /channel|频道|渠道/i,
-    }).first();
+    const channelTab = page
+      .locator(ARCO_TABS_HEADER_TITLE)
+      .filter({
+        hasText: /channel|频道|渠道/i,
+      })
+      .first();
 
     try {
       await channelTab.waitFor({ state: 'visible', timeout: 15_000 });
@@ -36,7 +33,7 @@ test.describe('Channels', () => {
           const t = document.body.textContent || '';
           return t.includes('Telegram') || t.includes('Lark') || t.includes('DingTalk') || t.includes('Channel') || t.includes('频道');
         },
-        { timeout: 10_000 },
+        { timeout: 10_000 }
       );
     } catch {
       // Best-effort: if channels tab not found, page may show channels directly
@@ -47,15 +44,7 @@ test.describe('Channels', () => {
 
   test('channels settings page renders', async ({ page }) => {
     await goToChannelsTab(page);
-    await expectBodyContainsAny(page, [
-      'Telegram',
-      'Lark',
-      'DingTalk',
-      'Slack',
-      'Discord',
-      '频道',
-      'Channel',
-    ]);
+    await expectBodyContainsAny(page, ['Telegram', 'Lark', 'DingTalk', 'Slack', 'Discord', '频道', 'Channel']);
   });
 
   test('known channels are listed', async ({ page }) => {
@@ -98,12 +87,19 @@ test.describe('Channels', () => {
       await sw.click();
 
       // Wait for class to change (state transition) instead of fixed sleep
-      await sw.evaluate((el) =>
-        new Promise<void>((resolve) => {
-          const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-          observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-          setTimeout(() => { observer.disconnect(); resolve(); }, 1500);
-        }),
+      await sw.evaluate(
+        (el) =>
+          new Promise<void>((resolve) => {
+            const observer = new MutationObserver(() => {
+              observer.disconnect();
+              resolve();
+            });
+            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+            setTimeout(() => {
+              observer.disconnect();
+              resolve();
+            }, 1500);
+          })
       );
 
       const classAfter = await sw.getAttribute('class');
@@ -117,12 +113,19 @@ test.describe('Channels', () => {
       // Toggle back to restore state
       if (wasBefore !== isAfter) {
         await sw.click();
-        await sw.evaluate((el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => { observer.disconnect(); resolve(); });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => { observer.disconnect(); resolve(); }, 1000);
-          }),
+        await sw.evaluate(
+          (el) =>
+            new Promise<void>((resolve) => {
+              const observer = new MutationObserver(() => {
+                observer.disconnect();
+                resolve();
+              });
+              observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+              setTimeout(() => {
+                observer.disconnect();
+                resolve();
+              }, 1000);
+            })
         );
       }
       break;
@@ -144,14 +147,11 @@ test.describe('Channels', () => {
     if (hasComingSoon) {
       const disabledSwitches = page.locator('.arco-switch.arco-switch-disabled, .arco-switch[aria-disabled="true"]');
       const disabledCount = await disabledSwitches.count();
-      const hasComingSoonBadge =
-        body?.includes('Coming Soon') ||
-        body?.includes('即将上线');
+      const hasComingSoonBadge = body?.includes('Coming Soon') || body?.includes('即将上线');
 
       expect(disabledCount > 0 || hasComingSoonBadge).toBeTruthy();
     }
   });
-
 
   test('screenshot: channels settings', async ({ page }) => {
     test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
