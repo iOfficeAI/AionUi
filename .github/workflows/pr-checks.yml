@@ -85,7 +85,101 @@ jobs:
       - name: Run extension system tests
         run: bunx vitest run
 
-  # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
+  # Job 3: E2E tests (Playwright + Electron) across all platforms
+  # Runs after build-test to ensure the build is healthy, then builds & tests
+  # against electron-vite output (close to production environment).
+  e2e-tests:
+    name: E2E Tests (${{ matrix.os }})
+    if: github.event.action != 'edited'
+    needs: [build-test]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-2022]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Install Linux dependencies for Electron
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxss1 libatspi2.0-0 libgtk-3-0 libxrandr2 libasound2 libgbm1
+
+      - name: Setup MSBuild (Windows only)
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
+      - name: Rebuild native modules for Electron
+        run: bunx electron-builder install-app-deps
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+
+      - name: Build app (electron-vite)
+        run: npx electron-vite build
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+
+      - name: Verify build output
+        shell: bash
+        run: |
+          echo "Verifying electron-vite build output..."
+          test -f out/main/index.js || { echo "FAIL: out/main/index.js not found"; exit 1; }
+          echo "Build output verified."
+
+      - name: Run E2E tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum just e2e-test
+        env:
+          CI: true
+
+      - name: Run E2E tests (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: just e2e-test
+        env:
+          CI: true
+
+      - name: Upload E2E test report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-report-${{ matrix.os }}
+          path: |
+            tests/e2e/report/
+            tests/e2e/results/
+            tests/e2e/screenshots/
+          retention-days: 7
+
+  # Job 4: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
@@ -366,11 +460,11 @@ jobs:
 
           test -x "$INSTALLED_BIN"
 
-  # Job 4: Trigger GPT AI review (only on first PR submission)
+  # Job 5: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
+    needs: [code-quality, unit-tests, e2e-tests, build-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.e2e-tests.result == 'success' && needs.build-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -379,11 +473,11 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 5: Check if PR author is an external contributor
+  # Job 6: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
+    needs: [code-quality, unit-tests, e2e-tests, build-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.e2e-tests.result == 'success' && needs.build-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
