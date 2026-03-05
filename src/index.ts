@@ -560,16 +560,25 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    // 初始化关闭到托盘设置 / Initialize close-to-tray setting
-    try {
-      const savedCloseToTray = await ConfigStorage.get('system.closeToTray');
-      closeToTrayEnabled = savedCloseToTray ?? false;
-      if (closeToTrayEnabled) {
-        createOrUpdateTray();
-      }
-    } catch {
-      // Ignore storage read errors, default to false
-    }
+    // Initialize ACP detector BEFORE creating the window to prevent a race
+    // condition where the renderer fetches getAvailableAgents before detection
+    // finishes, caching an empty result via SWR.
+    await initializeAcpDetector();
+
+    createWindow();
+
+    // 初始化关闭到托盘设置（不阻塞窗口创建）
+    // Initialize close-to-tray setting (non-blocking, after window creation)
+    void ConfigStorage.get('system.closeToTray')
+      .then((savedCloseToTray) => {
+        closeToTrayEnabled = savedCloseToTray ?? false;
+        if (closeToTrayEnabled) {
+          createOrUpdateTray();
+        }
+      })
+      .catch(() => {
+        // Ignore storage read errors, default to false
+      });
 
     // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
     onCloseToTrayChanged((enabled) => {
@@ -580,13 +589,6 @@ const handleAppReady = async (): Promise<void> => {
         destroyTray();
       }
     });
-
-    // Initialize ACP detector BEFORE creating the window to prevent a race
-    // condition where the renderer fetches getAvailableAgents before detection
-    // finishes, caching an empty result via SWR.
-    await initializeAcpDetector();
-
-    createWindow();
 
     // Flush pending deep-link URL (received before window was ready)
     if (pendingDeepLinkUrl) {

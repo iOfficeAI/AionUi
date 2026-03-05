@@ -126,7 +126,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.lark.agent')]);
 
         if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data.filter((a) => !a.isPreset).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset }));
+          const CHANNEL_SUPPORTED_BACKENDS = new Set(['gemini', 'claude', 'qwen', 'codex']);
+          const list = agentsResp.data.filter((a) => !a.isPreset && CHANNEL_SUPPORTED_BACKENDS.has(a.backend)).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset }));
           setAvailableAgents(list);
         }
 
