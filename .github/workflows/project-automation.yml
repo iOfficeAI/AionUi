@@ -71,6 +71,9 @@ jobs:
         with:
           github-token: ${{ steps.mint_token.outputs.token }}
           script: |
+            core.info('Using GitHub App token for Project access');
+            core.info(`Project ID: ${process.env.PROJECT_ID}`);
+
             const mutation = `
               mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
                 updateProjectV2ItemFieldValue(input: {
