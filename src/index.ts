@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
-import { ConfigStorage } from './common/storage';
+import { ProcessConfig } from './process/initStorage';
 import { initializeProcess } from './process';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
@@ -567,18 +567,16 @@ const handleAppReady = async (): Promise<void> => {
 
     createWindow();
 
-    // 初始化关闭到托盘设置（不阻塞窗口创建）
-    // Initialize close-to-tray setting (non-blocking, after window creation)
-    void ConfigStorage.get('system.closeToTray')
-      .then((savedCloseToTray) => {
-        closeToTrayEnabled = savedCloseToTray ?? false;
-        if (closeToTrayEnabled) {
-          createOrUpdateTray();
-        }
-      })
-      .catch(() => {
-        // Ignore storage read errors, default to false
-      });
+    // 初始化关闭到托盘设置 / Initialize close-to-tray setting
+    try {
+      const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
+      closeToTrayEnabled = savedCloseToTray ?? false;
+      if (closeToTrayEnabled) {
+        createOrUpdateTray();
+      }
+    } catch {
+      // Ignore storage read errors, default to false
+    }
 
     // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
     onCloseToTrayChanged((enabled) => {

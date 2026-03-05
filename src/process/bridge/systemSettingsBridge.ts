@@ -13,7 +13,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ProcessConfig } from '@/process/initStorage';
 
 type CloseToTrayChangeListener = (enabled: boolean) => void;
 let _changeListener: CloseToTrayChangeListener | null = null;
@@ -29,7 +29,7 @@ export function onCloseToTrayChanged(listener: CloseToTrayChangeListener): void 
 export function initSystemSettingsBridge(): void {
   // 获取"关闭到托盘"设置 / Get "close to tray" setting
   ipcBridge.systemSettings.getCloseToTray.provider(async () => {
-    const value = await ConfigStorage.get('system.closeToTray');
+    const value = await ProcessConfig.get('system.closeToTray');
     return value ?? false;
   });
 
@@ -37,7 +37,7 @@ export function initSystemSettingsBridge(): void {
   // Set "close to tray", persist first then notify main process
   ipcBridge.systemSettings.setCloseToTray.provider(async ({ enabled }) => {
     // 先持久化到配置存储
-    await ConfigStorage.set('system.closeToTray', enabled);
+    await ProcessConfig.set('system.closeToTray', enabled);
     // 然后通知主进程更新托盘状态
     _changeListener?.(enabled);
   });
