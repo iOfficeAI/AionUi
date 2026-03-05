@@ -201,8 +201,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     return items;
   }, [t, isDesktop]);
 
-  console.log('%c [  ]-211', 'font-size:13px; background:pink; color:#bf2c9f;', isDesktop, menuItems);
-
   // 渲染当前选中的设置内容 / Render current selected settings content
   const renderContent = () => {
     switch (activeTab) {
