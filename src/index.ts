@@ -297,6 +297,46 @@ const buildTrayContextMenu = (): Electron.Menu => {
     },
     { type: 'separator' },
     {
+      label: i18n.t('tray.newChat'),
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+          // 发送事件到渲染层导航到新建对话页面 / Send event to renderer to navigate to new chat page
+          mainWindow.webContents.send('tray:navigate-to-guid');
+        }
+      },
+    },
+    {
+      label: i18n.t('tray.closeToTray'),
+      type: 'checkbox',
+      checked: closeToTrayEnabled,
+      click: async (menuItem) => {
+        const newState = !closeToTrayEnabled;
+        void ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: newState });
+      },
+    },
+    { type: 'separator' },
+    {
+      label: i18n.t('tray.about'),
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('tray:open-about');
+        }
+      },
+    },
+    {
+      label: i18n.t('tray.restart'),
+      click: () => {
+        isQuitting = true;
+        app.relaunch();
+        app.exit(0);
+      },
+    },
+    { type: 'separator' },
+    {
       label: i18n.t('tray.quit'),
       click: () => {
         isQuitting = true;

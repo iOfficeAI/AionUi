@@ -12,7 +12,7 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDeepLink } from './hooks/useDeepLink';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
@@ -85,6 +85,7 @@ const Layout: React.FC<{
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
+  const navigate = useNavigate();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
@@ -247,6 +248,31 @@ const Layout: React.FC<{
     });
     return () => unsubscribe();
   }, []);
+
+  // Handle tray events from main process / 处理来自主进程的托盘事件
+  useEffect(() => {
+    if (!isElectronDesktop()) return;
+
+    // Navigate to guid page when requested from tray / 托盘请求导航到 guid 页面
+    const handleNavigateToGuid = () => {
+      void navigate('/guid');
+    };
+
+    // Open about dialog when requested from tray / 托盘请求打开关于对话框
+    const handleOpenAbout = () => {
+      // Navigate to settings/about page / 导航到设置/关于页面
+      void navigate('/settings/about');
+    };
+
+    // Listen for tray events / 监听托盘事件
+    window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
+    window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
+
+    return () => {
+      window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
+      window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
+    };
+  }, [navigate]);
 
   const siderWidth = isMobile ? Math.max(MOBILE_SIDER_MIN_WIDTH, Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))) : DEFAULT_SIDER_WIDTH;
   useEffect(() => {
