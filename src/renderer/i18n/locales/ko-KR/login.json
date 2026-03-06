@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - 로그인",
+  "brand": "AionUi",
+  "subtitle": "다시 오신 것을 환영합니다. 계정에 로그인하세요",
+  "username": "사용자 이름",
+  "usernamePlaceholder": "사용자 이름을 입력하세요",
+  "password": "비밀번호",
+  "passwordPlaceholder": "비밀번호를 입력하세요",
+  "rememberMe": "로그인 상태 유지",
+  "submit": "로그인",
+  "submitting": "로그인 중...",
+  "success": "로그인 성공! 리디렉션 중...",
+  "showPassword": "비밀번호 표시",
+  "hidePassword": "비밀번호 숨기기",
+  "languageToggle": "언어 변경",
+  "footerPrimary": "명령줄 AI의 혁신",
+  "footerSecondary": "현대적이고 효율적인",
+  "errors": {
+    "empty": "사용자 이름과 비밀번호를 입력하세요",
+    "invalidCredentials": "잘못된 사용자 이름 또는 비밀번호",
+    "tooManyAttempts": "시도 횟수가 너무 많습니다. 나중에 다시 시도하세요",
+    "networkError": "연결 실패, 다시 시도하세요",
+    "serverError": "서버 오류, 나중에 다시 시도하세요",
+    "unknown": "로그인 실패, 다시 시도하세요"
+  }
+}

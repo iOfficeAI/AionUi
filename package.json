@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.8.21",
+  "version": "1.8.22",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": "./out/main/index.js",
   "engines": {
@@ -33,11 +33,13 @@
     "lint:fix": "eslint --ext .ts,.tsx . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "i18n:types": "node scripts/generate-i18n-types.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:contract": "vitest run tests/contract",
     "test:integration": "vitest run tests/integration",
+    "test:packaged:i18n": "vitest run tests/integration/i18n-packaged.test.ts",
     "debug:perf": "cross-env ACP_PERF=1 PERF_MONITOR=1 bun start",
     "debug:perf:report": "bunx tsx scripts/debug-performance.ts --report",
     "debug:mcp": "bunx tsx scripts/debug-mcp.ts",

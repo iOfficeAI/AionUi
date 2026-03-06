@@ -334,12 +334,12 @@ const URLViewer: React.FC<URLViewerProps> = ({ url }) => {
         </button>
 
         {/* 前进按钮 / Forward button */}
-        <button onClick={handleGoForward} disabled={!canGoForward} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title={t('common.forward', { defaultValue: 'Forward' })}>
+        <button onClick={handleGoForward} disabled={!canGoForward} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title={t('common.forward')}>
           <Right theme='outline' size={16} />
         </button>
 
         {/* 刷新按钮 / Refresh button */}
-        <button onClick={handleRefresh} className='flex items-center justify-center w-28px h-28px hover:bg-bg-3 transition-colors cursor-pointer text-t-secondary' title={t('common.refresh', { defaultValue: 'Refresh' })}>
+        <button onClick={handleRefresh} className='flex items-center justify-center w-28px h-28px hover:bg-bg-3 transition-colors cursor-pointer text-t-secondary' title={t('common.reload', { defaultValue: 'Refresh' })}>
           {isLoading ? <Loading theme='outline' size={16} className='animate-spin' /> : <Refresh theme='outline' size={16} />}
         </button>
 

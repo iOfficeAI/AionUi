@@ -67,6 +67,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const [skillsModalVisible, setSkillsModalVisible] = useState(false);
   const [skillPath, setSkillPath] = useState(''); // Skill folder path input
   const [commonPaths, setCommonPaths] = useState<Array<{ name: string; path: string }>>([]); // Common skill paths detected
+  const [availableBackends, setAvailableBackends] = useState<Set<string>>(new Set(['gemini']));
   const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]); // 待导入的 skills / Pending skills to import
   const [deletePendingSkillName, setDeletePendingSkillName] = useState<string | null>(null); // 待删除的 pending skill 名称 / Pending skill name to delete
   const [deleteCustomSkillName, setDeleteCustomSkillName] = useState<string | null>(null); // 待从助手移除的 custom skill 名称 / Custom skill to remove from assistant
@@ -99,6 +100,20 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     updateDrawerWidth();
     window.addEventListener('resize', updateDrawerWidth);
     return () => window.removeEventListener('resize', updateDrawerWidth);
+  }, []);
+
+  // Load available agent backends from ACP detector
+  useEffect(() => {
+    void (async () => {
+      try {
+        const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+        if (resp.success && resp.data) {
+          setAvailableBackends(new Set(resp.data.map((a) => a.backend)));
+        }
+      } catch {
+        // fallback to default
+      }
+    })();
   }, []);
 
   // Detect common skill paths when modal opens
@@ -631,12 +646,20 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             <div className='flex-shrink-0'>
               <Typography.Text bold>{t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}</Typography.Text>
               <Select className='mt-10px w-full rounded-4px' value={editAgent} onChange={(value) => setEditAgent(value as PresetAgentType)}>
-                <Select.Option value='gemini'>Gemini CLI</Select.Option>
-                <Select.Option value='claude'>Claude Code</Select.Option>
-                <Select.Option value='qwen'>Qwen Code</Select.Option>
-                <Select.Option value='codex'>Codex</Select.Option>
-                <Select.Option value='codebuddy'>CodeBuddy</Select.Option>
-                <Select.Option value='opencode'>OpenCode</Select.Option>
+                {[
+                  { value: 'gemini', label: 'Gemini CLI' },
+                  { value: 'claude', label: 'Claude Code' },
+                  { value: 'qwen', label: 'Qwen Code' },
+                  { value: 'codex', label: 'Codex' },
+                  { value: 'codebuddy', label: 'CodeBuddy' },
+                  { value: 'opencode', label: 'OpenCode' },
+                ]
+                  .filter((opt) => availableBackends.has(opt.value))
+                  .map((opt) => (
+                    <Select.Option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </Select.Option>
+                  ))}
               </Select>
             </div>
             <div className='flex-shrink-0'>

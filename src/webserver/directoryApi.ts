@@ -13,7 +13,8 @@ import { fileOperationLimiter } from './middleware/security';
 // Allow browsing within the running workspace, current user's home directory,
 // WSL mount points (/mnt/*) on Linux, and all drive letters on Windows
 // 允许在工作目录、用户主目录、WSL 挂载点（/mnt/*），以及 Windows 所有盘符中浏览
-const DEFAULT_ALLOWED_DIRECTORIES = (() => {
+// @exported for testing
+export const DEFAULT_ALLOWED_DIRECTORIES = (() => {
   const baseDirs = [process.cwd(), os.homedir()];
 
   // On Windows, add all available drive letters (C:, D:, E:, etc.)
@@ -69,19 +70,46 @@ const MAX_DIRECTORY_ITEMS = 500;
 
 const router = Router();
 
+function isWindowsStylePath(value: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(value);
+}
+
+function shouldUseWin32PathOps(targetPath: string, basePaths: string[]): boolean {
+  return process.platform === 'win32' || isWindowsStylePath(targetPath) || basePaths.some((basePath) => isWindowsStylePath(basePath));
+}
+
+function resolveForComparison(inputPath: string, useWin32PathOps: boolean): string {
+  const pathApi = useWin32PathOps ? path.win32 : path;
+  const resolvedPath = pathApi.resolve(inputPath);
+
+  if (useWin32PathOps) {
+    return resolvedPath.toLowerCase();
+  }
+
+  try {
+    return fs.realpathSync(resolvedPath);
+  } catch {
+    return resolvedPath;
+  }
+}
+
+function isSubPath(targetPath: string, basePath: string, useWin32PathOps: boolean): boolean {
+  const pathApi = useWin32PathOps ? path.win32 : path;
+  const relative = pathApi.relative(basePath, targetPath);
+  return relative === '' || (!relative.startsWith('..') && !pathApi.isAbsolute(relative));
+}
+
 /**
  * Check if a path falls within the allowed directory trees
+ * @exported for testing
  */
-function isPathAllowed(targetPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIRECTORIES): boolean {
-  let resolved = path.resolve(targetPath);
-  try {
-    resolved = fs.realpathSync(resolved);
-  } catch {
-    // keep resolved if realpath fails (e.g. path doesn't exist yet)
-  }
+export function isPathAllowed(targetPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIRECTORIES): boolean {
+  const useWin32PathOps = shouldUseWin32PathOps(targetPath, allowedBasePaths);
+  const resolved = resolveForComparison(targetPath, useWin32PathOps);
+
   return allowedBasePaths.some((basePath) => {
-    const relative = path.relative(basePath, resolved);
-    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    const resolvedBasePath = resolveForComparison(basePath, useWin32PathOps);
+    return isSubPath(resolved, resolvedBasePath, useWin32PathOps);
   });
 }
 
@@ -108,9 +136,11 @@ function validatePath(userPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIREC
   // 首先规范化以移除任何 .., ., 和多余的分隔符
   const normalizedPath = path.normalize(expandedPath);
 
+  const useWin32PathOps = shouldUseWin32PathOps(normalizedPath, allowedBasePaths);
+
   // Then resolve to absolute path (resolves symbolic links and relative paths)
   // 然后解析为绝对路径（解析符号链接和相对路径）
-  const resolvedPath = path.resolve(normalizedPath);
+  const resolvedPath = resolveForComparison(normalizedPath, useWin32PathOps);
 
   // Check for null bytes (prevents null byte injection attacks)
   // 检查空字节（防止空字节注入攻击）
@@ -123,14 +153,7 @@ function validatePath(userPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIREC
   const sanitizedBasePaths = allowedBasePaths
     .map((basePath) => basePath && basePath.trim())
     .filter((basePath): basePath is string => Boolean(basePath))
-    .map((basePath) => {
-      const resolvedBase = path.resolve(basePath);
-      try {
-        return fs.realpathSync(resolvedBase);
-      } catch {
-        return resolvedBase;
-      }
-    })
+    .map((basePath) => resolveForComparison(basePath, useWin32PathOps))
     .filter((basePath, index, arr) => arr.indexOf(basePath) === index);
 
   if (sanitizedBasePaths.length === 0) {
@@ -139,10 +162,7 @@ function validatePath(userPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIREC
 
   // Ensure resolved path is within one of the allowed base directories
   // 确保解析后的路径在允许的基础目录之一内
-  const isAllowed = sanitizedBasePaths.some((basePath) => {
-    const relative = path.relative(basePath, resolvedPath);
-    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-  });
+  const isAllowed = sanitizedBasePaths.some((basePath) => isSubPath(resolvedPath, basePath, useWin32PathOps));
 
   if (!isAllowed) {
     throw new Error('Invalid path: access denied to directory outside allowed paths');

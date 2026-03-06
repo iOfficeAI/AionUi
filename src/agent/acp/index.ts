@@ -21,6 +21,8 @@ import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, IFLOW_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
+import { mainLog } from '@process/utils/mainLogger';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -324,40 +326,7 @@ export class AcpAgent {
    * Prefers stable configOptions API, falls back to unstable models API.
    */
   getModelInfo(): AcpModelInfo | null {
-    // Try stable API first: configOptions with category 'model'
-    const configOptions = this.connection.getConfigOptions();
-    if (configOptions) {
-      const modelOption = configOptions.find((opt) => opt.category === 'model');
-      if (modelOption && modelOption.type === 'select' && modelOption.options) {
-        // Support both currentValue (ACP spec) and selectedValue (some agents)
-        const activeValue = modelOption.currentValue || modelOption.selectedValue || null;
-        return {
-          currentModelId: activeValue,
-          currentModelLabel: modelOption.options.find((o) => o.value === activeValue)?.name || modelOption.options.find((o) => o.value === activeValue)?.label || activeValue,
-          availableModels: modelOption.options.map((o) => ({ id: o.value, label: o.name || o.label || o.value })),
-          canSwitch: modelOption.options.length > 1,
-          source: 'configOption',
-          configOptionId: modelOption.id,
-        };
-      }
-    }
-
-    // Fallback to unstable models API
-    const models = this.connection.getModels();
-    if (models) {
-      const available = models.availableModels || [];
-      // Support both 'id' (spec) and 'modelId' (OpenCode) field names
-      const getModelId = (m: (typeof available)[0]) => m.id || m.modelId || '';
-      return {
-        currentModelId: models.currentModelId || null,
-        currentModelLabel: available.find((m) => getModelId(m) === models.currentModelId)?.name || models.currentModelId || null,
-        availableModels: available.map((m) => ({ id: getModelId(m), label: m.name || getModelId(m) })),
-        canSwitch: available.length > 1,
-        source: 'models',
-      };
-    }
-
-    return null;
+    return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels());
   }
 
   /**
@@ -410,6 +379,9 @@ export class AcpAgent {
   private emitModelInfo(): void {
     const modelInfo = this.getModelInfo();
     if (modelInfo) {
+      if (this.extra.backend === 'codex') {
+        mainLog('[ACP codex]', 'Emitting model info', summarizeAcpModelInfo(modelInfo));
+      }
       this.onStreamEvent({
         type: 'acp_model_info',
         conversation_id: this.id,

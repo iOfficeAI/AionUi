@@ -346,7 +346,7 @@ if __name__ == "__main__":
     title_arg = sys.argv[1]
     content_file = sys.argv[2]
     image_args = sys.argv[3:]
-    
+
     # Read content from file
     if os.path.exists(content_file):
         with open(content_file, 'r', encoding='utf-8') as f:

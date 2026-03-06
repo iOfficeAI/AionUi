@@ -262,6 +262,9 @@ export const acpConversation = {
   // Get model info for ACP agents (model name and available models)
   // 获取 ACP 代理的模型信息（模型名称和可用模型）
   getModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>('acp.get-model-info'),
+  // Probe model info for an ACP backend without creating a visible conversation
+  // 预探测 ACP 后端的模型信息，不创建可见会话
+  probeModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { backend: AcpBackend }>('acp.probe-model-info'),
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   setModel: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string; modelId: string }>('acp.set-model'),
@@ -364,6 +367,13 @@ export const windowControls = {
   close: bridge.buildProvider<void, void>('window-controls:close'),
   isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
   maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
+};
+
+// 系统设置接口 / System settings API
+export const systemSettings = {
+  getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
+  setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+  changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
 };
 
 // WebUI 服务管理接口 / WebUI service management API

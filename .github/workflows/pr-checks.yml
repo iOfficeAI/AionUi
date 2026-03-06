@@ -163,14 +163,24 @@ jobs:
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
 
-      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
-      - name: Cache electron-builder binaries
+      # Restore Electron/Electron-Builder caches before install-app-deps
+      - name: Cache Electron artifacts
+        id: electron-cache
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.cache/electron-builder
-          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
-            electron-builder-binaries-${{ matrix.platform }}-
+            electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-cache-${{ matrix.platform }}-
+
+      - name: Cache status
+        run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
 
       - name: Rebuild native modules for Electron (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
@@ -178,6 +188,8 @@ jobs:
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Setup MSBuild (Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -234,6 +246,125 @@ jobs:
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_disturl: https://electronjs.org/headers
           CI: true
+
+      - name: Verify packaged i18n assets
+        run: bun run test:packaged:i18n
+
+      - name: Verify build artifacts exist
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "VERIFY ARTIFACTS: ${{ matrix.platform }}"
+          echo "=========================================="
+          ls -lah out || true
+
+          case "${{ matrix.platform }}" in
+            windows-*)
+              ls out/*.exe out/*latest*.yml >/dev/null
+              ;;
+            macos-*)
+              ls out/*.dmg out/*.zip out/*latest*.yml >/dev/null
+              ;;
+            linux)
+              ls out/*.AppImage out/*.deb out/*latest*.yml >/dev/null
+              ;;
+          esac
+
+      - name: Silent install smoke test (Windows x64)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: |
+          Write-Host "=========================================="
+          Write-Host "SMOKE INSTALL: windows-x64"
+          Write-Host "=========================================="
+
+          $installer = Get-ChildItem -Path out -Filter "AionUi-*-win-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows installer found in out/"
+          }
+
+          Write-Host "Using installer: $($installer.FullName)"
+          Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow
+
+          $candidates = @(
+            "$env:LOCALAPPDATA\Programs\AionUi\AionUi.exe",
+            "$env:ProgramFiles\AionUi\AionUi.exe",
+            "$env:ProgramFiles(x86)\AionUi\AionUi.exe"
+          )
+
+          $installedExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $installedExe) {
+            throw "Silent install finished but app executable not found in expected locations"
+          }
+
+          Write-Host "Installed executable: $installedExe"
+
+      - name: Skip executable smoke for Windows arm64 cross build
+        if: matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          Write-Host "Skipping runtime install smoke for windows-arm64: runner is windows-x64, cannot reliably execute arm64 installer."
+          Get-ChildItem -Path out -Filter "AionUi-*-win-*.exe" | Format-Table Name, Length
+
+      - name: Install smoke test (macOS arm64)
+        if: matrix.platform == 'macos-arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=========================================="
+          echo "SMOKE INSTALL: macos-arm64"
+          echo "=========================================="
+
+          DMG_FILE=$(ls out/*.dmg | head -n 1)
+          MOUNT_POINT="/tmp/aionui-smoke-mount"
+          APP_DIR="/tmp/aionui-smoke-app"
+
+          rm -rf "$MOUNT_POINT" "$APP_DIR"
+          mkdir -p "$MOUNT_POINT" "$APP_DIR"
+
+          hdiutil attach "$DMG_FILE" -nobrowse -mountpoint "$MOUNT_POINT"
+          cp -R "$MOUNT_POINT"/*.app "$APP_DIR"/
+          hdiutil detach "$MOUNT_POINT"
+
+          APP_PATH=$(ls -d "$APP_DIR"/*.app | head -n 1)
+          APP_BIN="$APP_PATH/Contents/MacOS/AionUi"
+
+          test -x "$APP_BIN"
+          "$APP_BIN" --version || true
+
+      - name: Skip executable smoke for macOS x64 cross build
+        if: matrix.platform == 'macos-x64'
+        shell: bash
+        run: |
+          echo "Skipping runtime launch smoke for macos-x64 cross build on arm64 runner."
+          ls -lah out/*.dmg out/*.zip
+
+      - name: Install smoke test (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=========================================="
+          echo "SMOKE INSTALL: linux"
+          echo "=========================================="
+
+          APPIMAGE_FILE=$(ls out/*.AppImage | head -n 1)
+          chmod +x "$APPIMAGE_FILE"
+          "$APPIMAGE_FILE" --appimage-extract-and-run --version || true
+
+          DEB_FILE=$(ls out/*.deb | head -n 1)
+          PKG_NAME=$(dpkg-deb -f "$DEB_FILE" Package)
+          sudo dpkg -i "$DEB_FILE" || sudo apt-get install -f -y
+
+          INSTALLED_BIN=$(dpkg -L "$PKG_NAME" | grep -Ei '/(bin|opt)/.*(aionui)$' | head -n 1 || true)
+          if [ -z "$INSTALLED_BIN" ]; then
+            echo "Package files:"
+            dpkg -L "$PKG_NAME" | head -n 50
+            echo "No installed executable path matched expected pattern"
+            exit 1
+          fi
+
+          test -x "$INSTALLED_BIN"
 
   # Job 4: Trigger GPT AI review (only on first PR submission)
   review:

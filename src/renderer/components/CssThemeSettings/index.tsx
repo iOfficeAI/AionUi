@@ -244,19 +244,24 @@ const CssThemeSettings: React.FC = () => {
   );
 
   return (
-    <div className='space-y-16px'>
+    <div className='space-y-12px'>
       {/* 标题栏 / Header */}
-      <div className='flex items-center justify-between'>
-        <span className='text-14px text-t-secondary'>{t('settings.cssTheme.selectOrCustomize')}</span>
-        <Button type='outline' size='small' className='rd-20px' icon={<Plus theme='outline' size='14' />} onClick={handleAddTheme}>
+      <div className='flex items-start md:items-center justify-between gap-8px flex-wrap'>
+        <span className='text-14px text-t-secondary leading-22px'>{t('settings.cssTheme.selectOrCustomize')}</span>
+        <Button type='outline' size='small' className='rd-18px h-34px px-14px !m-0' icon={<Plus theme='outline' size='14' />} onClick={handleAddTheme}>
           {t('settings.cssTheme.addManually')}
         </Button>
       </div>
 
       {/* 主题卡片列表 / Theme card list */}
-      <div className='flex flex-wrap gap-10px'>
+      <div
+        className='grid w-full gap-12px'
+        style={{
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        }}
+      >
         {themes.map((theme) => (
-          <div key={theme.id} className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 w-180px h-112px ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`} style={theme.cover ? { backgroundImage: `url(${theme.cover})`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'var(--fill-1)' } : { backgroundColor: 'var(--fill-1)' }} onClick={() => handleSelectTheme(theme)} onMouseEnter={() => setHoveredThemeId(theme.id)} onMouseLeave={() => setHoveredThemeId(null)}>
+          <div key={theme.id} className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-full ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`} style={theme.cover ? { backgroundImage: `url(${theme.cover})`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'var(--fill-1)' } : { backgroundColor: 'var(--fill-1)' }} onClick={() => handleSelectTheme(theme)} onMouseEnter={() => setHoveredThemeId(theme.id)} onMouseLeave={() => setHoveredThemeId(null)}>
             {/* 无封面时显示名称占位 / Show name placeholder when no cover */}
             {!theme.cover && (
               <div className='absolute inset-0 flex items-center justify-center'>

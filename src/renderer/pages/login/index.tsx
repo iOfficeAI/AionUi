@@ -1,7 +1,7 @@
-import { ConfigStorage } from '@/common/storage';
 import loginLogo from '@renderer/assets/logos/app.png';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '@/renderer/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '../../components/AppLoader';
 import { useAuth } from '../../context/AuthContext';
@@ -122,18 +122,12 @@ const LoginPage: React.FC = () => {
     []
   );
 
-  const handleLanguageChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextLanguage = event.target.value;
-      i18n.changeLanguage(nextLanguage).catch((error: Error) => {
-        console.error('Failed to change language:', error);
-      });
-      ConfigStorage.set('language', nextLanguage).catch((error: Error) => {
-        console.error('Failed to persist language preference:', error);
-      });
-    },
-    [i18n]
-  );
+  const handleLanguageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextLanguage = event.target.value;
+    changeLanguage(nextLanguage).catch((error: Error) => {
+      console.error('Failed to change language:', error);
+    });
+  }, []);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {

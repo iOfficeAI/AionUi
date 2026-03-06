@@ -857,18 +857,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
     try {
       const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+      const nextCachedInfo = {
+        ...modelInfo,
+        // Keep the original default from initial session, not from user switches
+        currentModelId: cached[this.options.backend]?.currentModelId ?? modelInfo.currentModelId,
+        currentModelLabel: cached[this.options.backend]?.currentModelLabel ?? modelInfo.currentModelLabel,
+      };
       // Cache the available model list only. Don't overwrite currentModelId from
       // session-level switches — that should not affect the Guid page default.
       // The Guid page default is managed separately via acp.config[backend].preferredModelId.
       await ProcessConfig.set('acp.cachedModels', {
         ...cached,
-        [this.options.backend]: {
-          ...modelInfo,
-          // Keep the original default from initial session, not from user switches
-          currentModelId: cached[this.options.backend]?.currentModelId ?? modelInfo.currentModelId,
-          currentModelLabel: cached[this.options.backend]?.currentModelLabel ?? modelInfo.currentModelLabel,
-        },
+        [this.options.backend]: nextCachedInfo,
       });
+      if (this.options.backend === 'codex') {
+        mainLog('[AcpAgentManager]', 'Cached Codex model list', {
+          backend: this.options.backend,
+          currentModelId: nextCachedInfo.currentModelId,
+          availableModelCount: nextCachedInfo.availableModels?.length || 0,
+          sampleModelIds: (nextCachedInfo.availableModels || []).slice(0, 8).map((model) => model.id),
+        });
+      }
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to cache model list', error);
     }

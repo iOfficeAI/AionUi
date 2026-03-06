@@ -19,6 +19,7 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
 import { diffColors } from '@/renderer/theme/colors';
+import { copyText } from '@/renderer/utils/clipboard';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
@@ -174,9 +175,13 @@ function CodeBlock(props: any) {
                 style={{ cursor: 'pointer' }}
                 fill='var(--text-secondary)'
                 onClick={() => {
-                  void navigator.clipboard.writeText(formatCode(children)).then(() => {
-                    Message.success(t('common.copySuccess'));
-                  });
+                  void copyText(formatCode(children))
+                    .then(() => {
+                      Message.success(t('common.copySuccess'));
+                    })
+                    .catch(() => {
+                      Message.error(t('common.copyFailed'));
+                    });
                 }}
               />
               {/* 折叠/展开按钮 / Fold/unfold button */}

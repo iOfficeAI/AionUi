@@ -330,6 +330,10 @@ test-contract:
 test-integration:
     bun run test:integration
 
+# Verify packaged artifact contains complete renderer assets (i18n safety)
+test-packaged-i18n:
+    bun run test:packaged:i18n
+
 # ============================================================
 # Extension System (RFC-001)
 # ============================================================

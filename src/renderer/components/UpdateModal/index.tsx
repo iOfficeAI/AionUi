@@ -27,6 +27,7 @@ const UpdateModal: React.FC = () => {
   const [progress, setProgress] = useState({ percent: 0, speed: '', total: 0, transferred: 0 });
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadPath, setDownloadPath] = useState('');
+  const [releasePageUrl, setReleasePageUrl] = useState('');
   const [useAutoUpdate, setUseAutoUpdate] = useState(true); // 默认使用自动更新
   const [autoUpdateInfo, setAutoUpdateInfo] = useState<{ version: string; releaseNotes?: string } | null>(null);
 
@@ -38,10 +39,19 @@ const UpdateModal: React.FC = () => {
     setProgress({ percent: 0, speed: '', total: 0, transferred: 0 });
     setErrorMsg('');
     setDownloadPath('');
+    setReleasePageUrl('');
     setAutoUpdateInfo(null);
   };
 
   const includePrerelease = useMemo(() => localStorage.getItem('update.includePrerelease') === 'true', [visible]);
+  const hasCompatibleManualAsset = Boolean(updateInfo?.recommendedAsset);
+
+  const openReleasePage = () => {
+    if (!releasePageUrl) return;
+    void ipcBridge.shell.openExternal.invoke(releasePageUrl).catch((error) => {
+      console.error('Failed to open release page:', error);
+    });
+  };
 
   const checkForUpdates = async () => {
     setStatus('checking');
@@ -60,6 +70,11 @@ const UpdateModal: React.FC = () => {
             setCurrentVersion(manualRes.data?.currentVersion || '');
             if (manualRes.data?.latest) {
               setUpdateInfo(manualRes.data.latest);
+              setReleasePageUrl(manualRes.data.latest.htmlUrl || '');
+              if (!manualRes.data.latest.recommendedAsset) {
+                setUseAutoUpdate(false);
+                setErrorMsg(t('update.noCompatibleAssetManual'));
+              }
             }
           }
           setStatus('available');
@@ -79,11 +94,16 @@ const UpdateModal: React.FC = () => {
 
       if (res.data?.updateAvailable && res.data.latest) {
         setUpdateInfo(res.data.latest);
+        setReleasePageUrl(res.data.latest.htmlUrl || '');
+        if (!res.data.latest.recommendedAsset) {
+          setErrorMsg(t('update.noCompatibleAssetManual'));
+        }
         setStatus('available');
         return;
       }
 
       setUpdateInfo(res.data?.latest || null);
+      setReleasePageUrl(res.data?.latest?.htmlUrl || '');
       setStatus('upToDate');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -99,6 +119,10 @@ const UpdateModal: React.FC = () => {
     try {
       // 使用自动更新模式
       if (useAutoUpdate) {
+        if (updateInfo && !updateInfo.recommendedAsset) {
+          setUseAutoUpdate(false);
+          throw new Error(t('update.noCompatibleAssetManual'));
+        }
         const res = await ipcBridge.autoUpdate.download.invoke();
         if (!res?.success) {
           throw new Error(res?.msg || t('update.downloadStartFailed'));
@@ -110,7 +134,7 @@ const UpdateModal: React.FC = () => {
       if (!updateInfo) return;
       const asset = updateInfo.recommendedAsset;
       if (!asset) {
-        throw new Error(t('update.noCompatibleAsset'));
+        throw new Error(t('update.noCompatibleAssetManual'));
       }
 
       const res = await ipcBridge.update.download.invoke({
@@ -302,12 +326,15 @@ const UpdateModal: React.FC = () => {
                 </div>
               </div>
               <div className='flex items-center gap-12px'>
-                {!useAutoUpdate && (
+                {!hasCompatibleManualAsset && releasePageUrl ? (
+                  <Button type='primary' size='small' onClick={openReleasePage} className='!px-16px'>
+                    {t('update.goToRelease')}
+                  </Button>
+                ) : !useAutoUpdate ? (
                   <Button type='primary' size='small' onClick={startDownload} className='!px-16px'>
                     {t('update.downloadButton')}
                   </Button>
-                )}
-                {useAutoUpdate && (
+                ) : (
                   <Button type='primary' size='small' onClick={startDownload} className='!px-16px'>
                     {t('update.downloadAndInstall')}
                   </Button>
@@ -318,8 +345,10 @@ const UpdateModal: React.FC = () => {
             {/* 自动更新开关 / Auto update toggle */}
             <div className='flex items-center justify-between px-24px py-12px bg-fill-1 border-b border-border-2'>
               <div className='text-13px text-t-secondary'>{t('update.autoUpdateMode')}</div>
-              <Switch checked={useAutoUpdate} onChange={setUseAutoUpdate} size='small' />
+              <Switch checked={useAutoUpdate} onChange={setUseAutoUpdate} size='small' disabled={!hasCompatibleManualAsset} />
             </div>
+
+            {!hasCompatibleManualAsset && <div className='mx-24px mt-12px px-12px py-10px text-12px rounded-8px bg-[rgb(var(--warning-6))]/10 text-[rgb(var(--warning-6))]'>{t('update.noCompatibleAssetManual')}</div>}
 
             {/* 更新日志内容 / Release notes content */}
             <div className='flex-1 min-h-0 overflow-y-auto px-24px py-16px custom-scrollbar'>
@@ -395,9 +424,16 @@ const UpdateModal: React.FC = () => {
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.errorTitle')}</div>
             <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>{errorMsg}</div>
-            <Button size='small' onClick={checkForUpdates} icon={<Refresh size='14' />} className='!px-16px'>
-              {t('common.retry')}
-            </Button>
+            <div className='flex gap-12px'>
+              <Button size='small' onClick={checkForUpdates} icon={<Refresh size='14' />} className='!px-16px'>
+                {t('common.retry')}
+              </Button>
+              {releasePageUrl && (
+                <Button type='primary' size='small' onClick={openReleasePage} className='!px-16px'>
+                  {t('update.goToRelease')}
+                </Button>
+              )}
+            </div>
           </div>
         );
     }

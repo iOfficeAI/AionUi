@@ -27,18 +27,35 @@ const DMG_RETRY_DELAY_SEC = 30;
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
 
+function walkFiles(dir, acc = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === '.git') continue;
+      walkFiles(fullPath, acc);
+    } else if (entry.isFile()) {
+      acc.push(fullPath);
+    }
+  }
+  return acc;
+}
+
 function computeSourceHash() {
   const hash = crypto.createHash('md5');
+  const rootDir = path.resolve(__dirname, '..');
   const filesToHash = [
     'package.json',
     'package-lock.json',
+    'bun.lock',
     'tsconfig.json',
     'electron.vite.config.ts',
     'electron-builder.yml',
+    'justfile',
   ];
 
   for (const file of filesToHash) {
-    const filePath = path.resolve(__dirname, '..', file);
+    const filePath = path.resolve(rootDir, file);
     if (fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath);
       hash.update(file + ':');
@@ -46,13 +63,21 @@ function computeSourceHash() {
     }
   }
 
-  // Add key src directories modification times
-  const srcDirs = ['src', 'public'];
-  for (const dir of srcDirs) {
-    const dirPath = path.resolve(__dirname, '..', dir);
-    if (fs.existsSync(dirPath)) {
-      const stat = fs.statSync(dirPath);
-      hash.update(dir + ':' + stat.mtimeMs);
+  const hashDirs = ['src', 'public', 'scripts'];
+  for (const dir of hashDirs) {
+    const dirPath = path.resolve(rootDir, dir);
+    if (!fs.existsSync(dirPath)) continue;
+
+    const files = walkFiles(dirPath)
+      .map((file) => path.relative(rootDir, file).replace(/\\/g, '/'))
+      .sort();
+
+    for (const relPath of files) {
+      const absolutePath = path.resolve(rootDir, relPath);
+      const stat = fs.statSync(absolutePath);
+      hash.update(relPath + ':');
+      hash.update(String(stat.size));
+      hash.update(String(stat.mtimeMs));
     }
   }
 
@@ -191,6 +216,35 @@ function buildWithDmgRetry(cmd, targetArch) {
         }
       }
     }
+  }
+}
+
+// Clean stale Windows packaging outputs from previous runs
+function cleanupWindowsPackOutput() {
+  const outDir = path.resolve(__dirname, '../out');
+  if (!fs.existsSync(outDir)) return;
+
+  const removed = [];
+  const winUnpackedDirRe = /^win(?:-[a-z0-9]+)?-unpacked$/i;
+  const winArtifactFileRe = /-win-[^.]+\.(?:exe|msi|zip|7z|blockmap)$/i;
+
+  for (const entry of fs.readdirSync(outDir, { withFileTypes: true })) {
+    const fullPath = path.join(outDir, entry.name);
+
+    if (entry.isDirectory() && winUnpackedDirRe.test(entry.name)) {
+      fs.rmSync(fullPath, { recursive: true, force: true });
+      removed.push(entry.name);
+      continue;
+    }
+
+    if (entry.isFile() && winArtifactFileRe.test(entry.name)) {
+      fs.rmSync(fullPath, { force: true });
+      removed.push(entry.name);
+    }
+  }
+
+  if (removed.length > 0) {
+    console.log(`🧹 Cleaned stale Windows outputs: ${removed.join(', ')}`);
   }
 }
 
@@ -393,6 +447,10 @@ try {
     }
     // 多架构构建：暂不支持架构检测脚本
     // Multi-arch builds: Architecture detection not supported yet
+  }
+
+  if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
+    cleanupWindowsPackOutput();
   }
 
   buildWithDmgRetry(`bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`, targetArch);

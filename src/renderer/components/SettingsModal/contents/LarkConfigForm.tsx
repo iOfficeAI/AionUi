@@ -310,7 +310,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Copy to clipboard
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
-    Message.success(t('common.copied', 'Copied to clipboard'));
+    Message.success(t('common.copySuccess', 'Copied'));
   };
 
   // Format timestamp
@@ -603,7 +603,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
               <Button size='mini' type='text' icon={<Refresh size={14} />} loading={pairingLoading} onClick={loadPendingPairings}>
-                {t('common.refresh', 'Refresh')}
+                {t('conversation.workspace.refresh', 'Refresh')}
               </Button>
             }
           />

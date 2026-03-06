@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - Giriş Yap",
+  "brand": "AionUi",
+  "subtitle": "Tekrar hoş geldiniz, lütfen hesabınıza giriş yapın",
+  "username": "Kullanıcı Adı",
+  "usernamePlaceholder": "Kullanıcı adınızı girin",
+  "password": "Şifre",
+  "passwordPlaceholder": "Şifrenizi girin",
+  "rememberMe": "Beni hatırla",
+  "submit": "Giriş Yap",
+  "submitting": "Giriş yapılıyor...",
+  "success": "Giriş başarılı! Yönlendiriliyor...",
+  "showPassword": "Şifreyi göster",
+  "hidePassword": "Şifreyi gizle",
+  "languageToggle": "Dili değiştir",
+  "footerPrimary": "Komut satırı AI'nızı dönüştürün",
+  "footerSecondary": "Modern ve Verimli",
+  "errors": {
+    "empty": "Lütfen kullanıcı adı ve şifre girin",
+    "invalidCredentials": "Geçersiz kullanıcı adı veya şifre",
+    "tooManyAttempts": "Çok fazla deneme, lütfen daha sonra tekrar deneyin",
+    "networkError": "Bağlantı başarısız, lütfen tekrar deneyin",
+    "serverError": "Sunucu hatası, lütfen daha sonra tekrar deneyin",
+    "unknown": "Giriş başarısız, lütfen tekrar deneyin"
+  }
+}

@@ -63,22 +63,53 @@ const mapAsset = (asset: GitHubReleaseApiAsset): GitHubReleaseAsset => ({
   contentType: asset.content_type,
 });
 
-const getPlatformHints = () => {
-  const platform = process.platform;
-  const arch = process.arch;
+type RuntimePlatformInfo = {
+  platform: NodeJS.Platform;
+  arch: string;
+};
 
-  const archHints = arch === 'arm64' ? ['arm64', 'aarch64'] : ['x64', 'x86_64', 'amd64'];
+type CanonicalArch = 'x64' | 'arm64' | 'ia32';
+
+const normalizeArch = (arch: string): CanonicalArch => {
+  if (arch === 'arm64') return 'arm64';
+  if (arch === 'ia32' || arch === 'x32') return 'ia32';
+  return 'x64';
+};
+
+const detectAssetArchs = (nameLower: string): Set<CanonicalArch> => {
+  const detected = new Set<CanonicalArch>();
+
+  if (/\b(arm64|aarch64)\b/.test(nameLower)) detected.add('arm64');
+  if (/\b(x64|x86_64|amd64)\b/.test(nameLower)) detected.add('x64');
+
+  const hasX86Token = /\bx86\b/.test(nameLower) && !/\bx86[_-]?64\b/.test(nameLower);
+  if (/\b(ia32|x32|32bit)\b/.test(nameLower) || hasX86Token) detected.add('ia32');
+
+  return detected;
+};
+
+const getPlatformHints = (runtime: RuntimePlatformInfo = { platform: process.platform, arch: process.arch }) => {
+  const platform = runtime.platform;
+  const arch = runtime.arch;
+  const normalizedArch = normalizeArch(arch);
+
+  const archHints = normalizedArch === 'arm64' ? ['arm64', 'aarch64'] : normalizedArch === 'ia32' ? ['ia32', 'x86', 'x32', '32bit'] : ['x64', 'x86_64', 'amd64'];
 
   // electron-builder artifact names often include one of these
   const platformHints = platform === 'win32' ? ['win', 'win32', 'windows'] : platform === 'darwin' ? ['mac', 'darwin', 'osx'] : ['linux'];
 
-  return { platform, arch, archHints, platformHints };
+  return { platform, arch, normalizedArch, archHints, platformHints };
 };
 
-const scoreAsset = (asset: GitHubReleaseAsset): number => {
-  const { platform, archHints, platformHints } = getPlatformHints();
+const scoreAsset = (asset: GitHubReleaseAsset, runtime?: RuntimePlatformInfo): number => {
+  const { platform, normalizedArch, archHints, platformHints } = getPlatformHints(runtime);
   const nameLower = asset.name.toLowerCase();
   const ext = path.extname(asset.name);
+
+  const detectedArchs = detectAssetArchs(nameLower);
+  if (detectedArchs.size > 0 && !detectedArchs.has(normalizedArch)) {
+    return -1;
+  }
 
   let score = 0;
 
@@ -87,6 +118,7 @@ const scoreAsset = (asset: GitHubReleaseAsset): number => {
 
   // Arch match
   if (archHints.some((hint) => nameLower.includes(hint))) score += 10;
+  if (detectedArchs.has(normalizedArch)) score += 15;
 
   // Prefer installer formats per platform
   if (platform === 'win32') {
@@ -106,10 +138,15 @@ const scoreAsset = (asset: GitHubReleaseAsset): number => {
   return score;
 };
 
-const pickRecommendedAsset = (assets: GitHubReleaseAsset[]): GitHubReleaseAsset | undefined => {
+export const pickRecommendedAsset = (assets: GitHubReleaseAsset[], runtime?: RuntimePlatformInfo): GitHubReleaseAsset | undefined => {
   if (!assets.length) return undefined;
-  const scored = [...assets].sort((a, b) => scoreAsset(b) - scoreAsset(a));
-  return scored[0];
+
+  const scored = assets
+    .map((asset) => ({ asset, score: scoreAsset(asset, runtime) }))
+    .filter((item) => item.score >= 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.asset;
 };
 
 const resolveRepo = (requestRepo?: string): string => {

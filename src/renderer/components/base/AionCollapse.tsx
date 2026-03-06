@@ -154,20 +154,22 @@ const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCo
         const { name, header, disabled, className: itemClassName, headerClassName, contentClassName, contentStyle } = child.props;
         const isActive = currentKeys.includes(name);
         const iconNode = expandIcon ? expandIcon(isActive) : <DefaultIcon active={isActive} />;
+        const itemBorderClass = bordered ? 'border border-solid border-[color:var(--color-border-2)]' : '';
+        const contentDividerClass = bordered ? 'border-t border-[color:var(--color-border-2)]' : '';
 
         return (
-          <div key={name} className={classNames('overflow-hidden border border-solid border-[color:var(--color-border-2)] rounded-12px', !bordered && 'border-transparent', itemClassName, disabled && 'opacity-50')}>
+          <div key={name} className={classNames('overflow-hidden rounded-12px', itemBorderClass, itemClassName, disabled && 'opacity-50')}>
             {/* 面板标题 / Panel header */}
             <div onClick={() => handleToggle(name, disabled)} className={classNames('flex items-center gap-3 text-left transition-colors py-5px cursor-pointer', headerClassName)}>
               {expandIconPosition === 'left' && <span className='flex items-center'>{iconNode}</span>}
-              <div className='flex-1 text-2 text-14px'>{header}</div>
+              <div className='flex-1 text-t-primary text-14px leading-22px'>{header}</div>
               {expandIconPosition === 'right' && <span className='flex items-center'>{iconNode}</span>}
             </div>
             {/* 面板内容（使用 grid 实现平滑动画）/ Panel content (using grid for smooth animation) */}
             <div className='transition-all duration-300 ease-in-out'>
               {isActive && (
                 <div className={classNames('grid overflow-hidden', mounted && 'transition-all duration-300 ease-in-out', contentClassName)} style={{ gridTemplateRows: '1fr', ...contentStyle }}>
-                  <div className='overflow-hidden border-t border-[color:var(--color-border-2)]'>{child.props.children}</div>
+                  <div className={classNames('overflow-hidden', contentDividerClass)}>{child.props.children}</div>
                 </div>
               )}
             </div>

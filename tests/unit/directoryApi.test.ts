@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
+import path from 'path';
 
 // Mock fs and os modules
 vi.mock('fs');
@@ -109,5 +110,58 @@ describe('directoryApi - canGoUp logic (#1082)', () => {
 
     const canGoUp = isAtDriveRoot || parentDir !== safeDir;
     expect(canGoUp).toBe(true);
+  });
+});
+
+describe('directoryApi - isPathAllowed function (#1082)', () => {
+  // Simulate isPathAllowed function logic
+  function isPathAllowed(targetPath: string, allowedBasePaths: string[]): boolean {
+    const resolved = path.win32.resolve(targetPath);
+    return allowedBasePaths.some((basePath: string) => {
+      const relative = path.win32.relative(basePath, resolved);
+      return relative === '' || (!relative.startsWith('..') && !path.win32.isAbsolute(relative));
+    });
+  }
+
+  it('should allow C:\\Users when C:\\ is in allowed paths', () => {
+    const allowedPaths = ['C:\\'];
+    expect(isPathAllowed('C:\\Users', allowedPaths)).toBe(true);
+  });
+
+  it('should allow C:\\Users\\cocoon-break when C:\\ is in allowed paths', () => {
+    const allowedPaths = ['C:\\'];
+    expect(isPathAllowed('C:\\Users\\cocoon-break', allowedPaths)).toBe(true);
+  });
+
+  it('should allow C:\\Users when homedir is C:\\Users\\cocoon-break (via drive root)', () => {
+    // This is the key scenario for #1082
+    // When homedir is C:\Users\cocoon-break, C:\Users should still be allowed
+    // because C:\ is also in allowed paths
+    const allowedPaths = ['C:\\', 'C:\\Users\\cocoon-break'];
+    expect(isPathAllowed('C:\\Users', allowedPaths)).toBe(true);
+  });
+
+  it('should NOT allow going up from homedir when only homedir is allowed', () => {
+    // If ONLY homedir is allowed (no drive root), then C:\Users should not be allowed
+    const allowedPaths = ['C:\\Users\\cocoon-break'];
+    expect(isPathAllowed('C:\\Users', allowedPaths)).toBe(false);
+  });
+
+  it('should allow drive root itself', () => {
+    const allowedPaths = ['C:\\'];
+    expect(isPathAllowed('C:\\', allowedPaths)).toBe(true);
+  });
+
+  it('path.win32.relative should return correct values for Windows paths', () => {
+    expect(path.win32.relative('C:\\', 'C:\\Users')).toBe('Users');
+    expect(path.win32.relative('C:\\Users\\cocoon-break', 'C:\\Users')).toBe('..');
+    expect(path.win32.relative('C:\\', 'C:\\')).toBe('');
+  });
+
+  it('should correctly identify subdirectories using win32 path api', () => {
+    const relative = path.win32.relative('C:\\', 'C:\\Users');
+    expect(relative).toBe('Users');
+    expect(relative.startsWith('..')).toBe(false);
+    expect(path.win32.isAbsolute(relative)).toBe(false);
   });
 });
