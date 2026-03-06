@@ -12,7 +12,8 @@
  * Handles system-level notifications
  */
 
-import { Notification, BrowserWindow, app } from 'electron';
+import { Notification, app } from 'electron';
+import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
 import path from 'path';
 import fs from 'fs';

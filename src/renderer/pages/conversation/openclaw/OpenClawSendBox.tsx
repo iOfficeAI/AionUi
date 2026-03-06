@@ -30,6 +30,32 @@ import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
+/**
+ * 截断文本到指定长度，超出部分用省略号代替
+ * Truncate text to specified length with ellipsis
+ */
+const truncateText = (text: string, maxLength: number): string => {
+  if (!text || text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+};
+
+/**
+ * 格式化通知内容
+ * Format notification content with user message and AI reply
+ */
+const formatNotificationBody = (userMessage: string, aiReply: string): string => {
+  const MAX_USER_LENGTH = 8;
+  const MAX_REPLY_LENGTH = 12;
+
+  const truncatedUser = truncateText(userMessage, MAX_USER_LENGTH);
+  const truncatedReply = aiReply ? truncateText(aiReply, MAX_REPLY_LENGTH) : '';
+
+  if (truncatedReply) {
+    return `${truncatedUser}\n${truncatedReply}`;
+  }
+  return truncatedUser;
+};
+
 interface OpenClawDraftData {
   _type: 'openclaw-gateway';
   atPath: Array<string | FileOrFolderItem>;
@@ -113,6 +139,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Track user message and AI reply for notification
+  // 跟踪用户消息和 AI 回复用于通知
+  const userMessageRef = useRef<string>('');
+  const aiReplyRef = useRef<string>('');
 
   // Delayed finish timeout to detect true end of task
   const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -278,13 +309,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               setThought({ subject: '', description: '' });
               finishTimeoutRef.current = null;
               // 显示任务完成通知 / Show task completion notification
-              ipcBridge.notification.show.invoke({
-                title: '任务完成',
-                body: 'Agent 任务已完成',
-                conversationId: conversation_id,
-              }).catch((err) => {
-                console.warn('[Notification] Failed to show notification:', err);
-              });
+              const notificationBody = formatNotificationBody(userMessageRef.current, aiReplyRef.current);
+              ipcBridge.notification.show
+                .invoke({
+                  title: '任务完成',
+                  body: notificationBody,
+                  conversationId: conversation_id,
+                })
+                .catch((err) => {
+                  console.warn('[Notification] Failed to show notification:', err);
+                });
             }, 1000);
             hasContentInTurnRef.current = false;
           }
@@ -299,6 +333,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
             aiProcessingRef.current = true;
           }
           setThought({ subject: '', description: '' });
+          // Accumulate AI reply for notification
+          // 累积 AI 回复用于通知
+          if (message.type === 'content') {
+            const contentData = message.data as { content?: string } | undefined;
+            if (contentData?.content) {
+              aiReplyRef.current += contentData.content;
+            }
+          }
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -392,6 +434,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       content: { content: displayMessage },
       createdAt: Date.now(),
     };
+    // 保存用户消息用于通知 / Save user message for notification
+    userMessageRef.current = message;
+    // Reset AI reply for new turn
+    // 重置 AI 回复用于新一轮
+    aiReplyRef.current = '';
     addOrUpdateMessage(userMessage, true);
     setAiProcessing(true);
     aiProcessingRef.current = true;
@@ -457,6 +504,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
+        // 保存用户消息用于通知 / Save user message for notification
+        userMessageRef.current = input;
+        // Reset AI reply for new turn
+        // 重置 AI 回复用于新一轮
+        aiReplyRef.current = '';
         addOrUpdateMessage(userMessage, true);
 
         await ipcBridge.openclawConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
