@@ -274,14 +274,20 @@ const Layout: React.FC<{
       const { ipcBridge } = await import('@/common');
       const result = await ipcBridge.task.stopAll.invoke();
       if (result?.success) {
-        console.log(`Paused ${result.count} tasks`);
+        // Navigate to settings page to show task status
+        void navigate('/settings/system');
       }
     };
 
     // Handle check update request from tray / 托盘请求检查更新
-    const handleCheckUpdate = async () => {
-      const { ipcBridge } = await import('@/common');
-      await ipcBridge.autoUpdate.check.invoke({});
+    // 1. Navigate to about page / 导航到关于页面
+    // 2. Trigger update modal check / 触发更新模态框检查
+    const handleCheckUpdate = () => {
+      void navigate('/settings/about');
+      // Trigger update modal after a short delay to ensure page is loaded
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
+      }, 100);
     };
 
     // Listen for tray events / 监听托盘事件

@@ -17,6 +17,7 @@ import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv'
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import i18n, { setInitialLanguage } from '@process/i18n';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
@@ -290,7 +291,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
       const result = await ipcBridge.conversation.list.invoke({ page: 0, pageSize: 5 });
-      return result?.slice(0, 5).map((conv) => ({ id: conv.id, title: conv.title || i18n.t('tray.untitled') })) || [];
+      return result?.slice(0, 5).map((conv) => ({ id: conv.id, title: conv.title || i18n.t('common.tray.untitled') })) || [];
     } catch {
       return [];
     }
@@ -312,7 +313,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   // 构建菜单模板 / Build menu template
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: i18n.t('tray.showWindow'),
+      label: i18n.t('common.tray.showWindow'),
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -322,7 +323,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     },
     { type: 'separator' },
     {
-      label: i18n.t('tray.newChat'),
+      label: i18n.t('common.tray.newChat'),
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -337,7 +338,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   if (recentConversations.length > 0) {
     template.push({ type: 'separator' });
     template.push({
-      label: i18n.t('tray.recentChats'),
+      label: i18n.t('common.tray.recentChats'),
       enabled: false,
     });
     for (const conv of recentConversations) {
@@ -359,11 +360,11 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   // 添加任务状态 / Add task status
   template.push({ type: 'separator' });
   template.push({
-    label: `${i18n.t('tray.runningTasks')}: ${runningTasksCount}`,
+    label: `${i18n.t('common.tray.runningTasks')}: ${runningTasksCount}`,
     enabled: false,
   });
   template.push({
-    label: i18n.t('tray.pauseAll'),
+    label: i18n.t('common.tray.pauseAll'),
     click: () => {
       if (mainWindow) {
         mainWindow.show();
@@ -376,7 +377,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
 
   template.push({ type: 'separator' });
   template.push({
-    label: i18n.t('tray.closeToTray'),
+    label: i18n.t('common.tray.closeToTray'),
     type: 'checkbox',
     checked: closeToTrayEnabled,
     click: async (menuItem) => {
@@ -385,7 +386,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     },
   });
   template.push({
-    label: i18n.t('tray.checkUpdate'),
+    label: i18n.t('common.tray.checkUpdate'),
     click: () => {
       if (mainWindow) {
         mainWindow.show();
@@ -396,7 +397,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   });
   template.push({ type: 'separator' });
   template.push({
-    label: i18n.t('tray.about'),
+    label: i18n.t('common.tray.about'),
     click: () => {
       if (mainWindow) {
         mainWindow.show();
@@ -406,7 +407,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     },
   });
   template.push({
-    label: i18n.t('tray.restart'),
+    label: i18n.t('common.tray.restart'),
     click: () => {
       isQuitting = true;
       app.relaunch();
@@ -415,7 +416,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   });
   template.push({ type: 'separator' });
   template.push({
-    label: i18n.t('tray.quit'),
+    label: i18n.t('common.tray.quit'),
     click: () => {
       isQuitting = true;
       app.quit();
@@ -706,6 +707,19 @@ const handleAppReady = async (): Promise<void> => {
     await initializeAcpDetector();
 
     createWindow();
+
+    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
+    // Read language setting and initialize main process i18n, then refresh tray menu
+    try {
+      const savedLanguage = await ProcessConfig.get('language');
+      await setInitialLanguage(savedLanguage);
+      // 语言设置完成后，如果托盘已存在，刷新菜单 / After language is set, refresh tray menu if it exists
+      if (tray) {
+        await refreshTrayMenu();
+      }
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
+    }
 
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     try {
