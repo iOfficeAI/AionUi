@@ -105,13 +105,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       }),
       ipcBridge.conversation.confirmation.update.on(({ ...data }) => {
         if (conversation_id !== data.conversation_id) return;
-        setConfirmations((list) => {
-          const original = list.find((p) => p.id === data.id);
-          if (original) {
-            Object.assign(original, data);
-          }
-          return list.slice();
-        });
+        setConfirmations((list) => list.map((p) => (p.id === data.id ? { ...p, ...data } : p)));
       })
     );
   }, [conversation_id, checkAndAutoConfirm]);
@@ -203,7 +197,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
           }}
         >
           {/* 错误标题 / Error title */}
-          <div className='color-[rgba(217,45,32,1)] text-14px font-medium mb-8px'>{t('conversation.confirmationLoadError', 'Failed to load confirmation dialog')}</div>
+          <div className='color-[rgba(217,45,32,1)] text-14px font-medium mb-8px'>{t('conversation.chat.confirmationLoadError', 'Failed to load confirmation dialog')}</div>
           {/* 错误详情 / Error details */}
           <div className='text-12px color-[rgba(134,144,156,1)] mb-12px'>{loadError}</div>
           {/* 手动重试按钮 / Manual retry button */}

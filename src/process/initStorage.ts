@@ -579,6 +579,46 @@ const getDefaultMcpServers = (): IMcpServer[] => {
   }));
 };
 
+/**
+ * 启动时清理异常遗留的健康检测临时会话
+ * Cleanup orphaned health-check temporary conversations on startup
+ */
+const cleanupOrphanedHealthCheckConversations = () => {
+  try {
+    const db = getDatabase();
+    const pageSize = 1000;
+    const idsToDelete: string[] = [];
+    let page = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const result = db.getUserConversations(undefined, page, pageSize);
+      result.data.forEach((conversation) => {
+        const extra = conversation.extra as { isHealthCheck?: boolean } | undefined;
+        if (extra?.isHealthCheck === true) {
+          idsToDelete.push(conversation.id);
+        }
+      });
+      hasMore = result.hasMore;
+      page += 1;
+    }
+
+    let deletedCount = 0;
+    idsToDelete.forEach((id) => {
+      const deleted = db.deleteConversation(id);
+      if (deleted.success && deleted.data) {
+        deletedCount += 1;
+      }
+    });
+
+    if (deletedCount > 0) {
+      console.log(`[AionUi] Cleaned up ${deletedCount} orphaned health-check conversation(s) on startup`);
+    }
+  } catch (error) {
+    console.warn('[AionUi] Failed to cleanup orphaned health-check conversations:', error);
+  }
+};
+
 const initStorage = async () => {
   console.log('[AionUi] Starting storage initialization...');
 
@@ -719,6 +759,7 @@ const initStorage = async () => {
   // 6. 初始化数据库（better-sqlite3）
   try {
     getDatabase();
+    cleanupOrphanedHealthCheckConversations();
   } catch (error) {
     console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
   }

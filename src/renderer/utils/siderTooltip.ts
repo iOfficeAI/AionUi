@@ -26,7 +26,7 @@ export const getSiderTooltipProps = (enabled = false): SiderTooltipProps => {
   const disabled = !enabled || isNoHoverDevice();
   return {
     className: SIDER_TOOLTIP_CLASS,
-    trigger: 'hover',
+    trigger: (disabled ? [] : 'hover') as 'hover' | 'hover'[],
     disabled,
     unmountOnExit: true,
     popupHoverStay: false,

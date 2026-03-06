@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
+import { Alert, Button, Form, Modal, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -104,6 +104,27 @@ const SystemModalContent: React.FC = () => {
   const isPageMode = viewMode === 'page';
   const initializingRef = useRef(true);
 
+  // 关闭到托盘状态 / Close to tray state
+  const [closeToTray, setCloseToTray] = useState(false);
+
+  // 获取关闭到托盘设置 / Fetch close-to-tray setting
+  useEffect(() => {
+    ipcBridge.systemSettings.getCloseToTray
+      .invoke()
+      .then((enabled) => setCloseToTray(enabled))
+      .catch(() => {});
+  }, []);
+
+  // 切换关闭到托盘 / Toggle close-to-tray
+  const handleCloseToTrayChange = useCallback((checked: boolean) => {
+    setCloseToTray(checked);
+    // 通过 bridge 设置，provider 会处理持久化和主进程通知
+    ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
+      // 失败时回滚 UI 状态
+      setCloseToTray(!checked);
+    });
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -120,7 +141,10 @@ const SystemModalContent: React.FC = () => {
   }, [systemInfo, form]);
 
   // 偏好设置项配置 / Preference items configuration
-  const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
+  const preferenceItems = [
+    { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
+    { key: 'closeToTray', label: t('settings.closeToTray'), component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} /> },
+  ];
 
   // 目录配置保存确认 / Directory configuration save confirmation
   const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {

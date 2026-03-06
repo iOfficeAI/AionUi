@@ -282,7 +282,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   // Copy to clipboard
   const copyToClipboard = (text: string) => {
     void navigator.clipboard.writeText(text);
-    Message.success(t('common.copied', 'Copied to clipboard'));
+    Message.success(t('common.copySuccess', 'Copied'));
   };
 
   // Format timestamp

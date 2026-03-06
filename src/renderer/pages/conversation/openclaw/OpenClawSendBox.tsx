@@ -173,7 +173,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     (val: Array<string | FileOrFolderItem>) => {
       mutateDraft((prev) => ({ ...(prev as OpenClawDraftData), atPath: val }));
     },
-    [draftData, mutateDraft]
+    [mutateDraft]
   );
 
   const setUploadFile = createSetUploadFile(mutateDraft, draftData);
@@ -182,7 +182,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     (val: string) => {
       mutateDraft((prev) => ({ ...(prev as OpenClawDraftData), content: val }));
     },
-    [draftData, mutateDraft]
+    [mutateDraft]
   );
 
   const setContentRef = useLatestRef(setContent);
@@ -339,9 +339,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
       const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile([...uploadFile, ...filePaths]);
+      setUploadFile((prev) => [...prev, ...filePaths]);
     },
-    [uploadFile, setUploadFile]
+    [setUploadFile]
   );
 
   useAddEventListener('openclaw-gateway.selected.file', (items: Array<string | FileOrFolderItem>) => {
@@ -407,9 +407,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile([...uploadFile, ...files]);
+      setUploadFile((prev) => [...prev, ...files]);
     },
-    [setUploadFile, uploadFile]
+    [setUploadFile]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,

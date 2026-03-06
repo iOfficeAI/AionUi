@@ -5,21 +5,24 @@
  */
 
 import './utils/configureChromium';
-import { app, BrowserWindow, nativeImage, powerMonitor, screen } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, powerMonitor, screen, Tray } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
+import { ProcessConfig } from './process/initStorage';
 import { initializeProcess } from './process';
-import { loadShellEnvironmentAsync } from './process/utils/shellEnv';
+import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
+import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
+import i18n from '@process/i18n';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -254,7 +257,98 @@ const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
 
+// Flag to distinguish intentional quit from unexpected exit in WebUI mode
+let isExplicitQuit = false;
+
 let mainWindow: BrowserWindow;
+let tray: Tray | null = null;
+let isQuitting = false;
+let closeToTrayEnabled = false;
+
+/**
+ * 获取托盘图标 / Get tray icon
+ * macOS 使用 Template 图标以适配深色/浅色菜单栏
+ * macOS uses Template image to adapt to dark/light menu bar
+ */
+const getTrayIcon = (): Electron.NativeImage => {
+  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
+  if (process.platform === 'darwin') {
+    // macOS: 使用 16x16 的彩色应用图标 / Use 16x16 colored app icon
+    return icon.resize({ width: 16, height: 16 });
+  }
+  // Windows/Linux: 使用 32x32 PNG 图标确保清晰可见 / Use 32x32 PNG icon for clear visibility
+  return icon.resize({ width: 32, height: 32 });
+};
+
+/**
+ * 构建托盘右键菜单 / Build tray context menu
+ */
+const buildTrayContextMenu = (): Electron.Menu => {
+  return Menu.buildFromTemplate([
+    {
+      label: i18n.t('tray.showWindow'),
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: i18n.t('tray.quit'),
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+};
+
+/**
+ * 创建系统托盘 / Create system tray
+ */
+const createOrUpdateTray = (): void => {
+  if (tray) {
+    return;
+  }
+  try {
+    const icon = getTrayIcon();
+    tray = new Tray(icon);
+    tray.setToolTip('AionUi');
+    tray.setContextMenu(buildTrayContextMenu());
+
+    // 双击托盘图标显示窗口（Windows/Linux）/ Double-click tray icon to show window (Windows/Linux)
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (err) {
+    console.error('[Tray] Failed to create tray:', err);
+  }
+};
+
+/**
+ * 刷新托盘右键菜单文案（语言切换时调用）/ Refresh tray context menu labels (called on language change)
+ */
+const refreshTrayMenu = (): void => {
+  if (tray) {
+    tray.setContextMenu(buildTrayContextMenu());
+  }
+};
+
+/**
+ * 销毁系统托盘 / Destroy system tray
+ */
+const destroyTray = (): void => {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+};
 
 const createWindow = (): void => {
   // Get primary display size
@@ -357,15 +451,64 @@ const createWindow = (): void => {
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Listen to DevTools state changes and notify Renderer
+  mainWindow.webContents.on('devtools-opened', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: true });
+  });
+
+  mainWindow.webContents.on('devtools-closed', () => {
+    ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
+  });
+
+  // 关闭拦截：当启用"关闭到托盘"时，隐藏窗口而非关闭
+  // Close interception: hide window instead of closing when "close to tray" is enabled
+  mainWindow.on('close', (event) => {
+    if (closeToTrayEnabled && !isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
 };
 
 // Menu.setApplicationMenu(null);
 
+ipcBridge.application.isDevToolsOpened.provider(() => {
+  if (mainWindow) {
+    return Promise.resolve(mainWindow.webContents.isDevToolsOpened());
+  }
+  return Promise.resolve(false);
+});
+
 ipcBridge.application.openDevTools.provider(() => {
   if (mainWindow) {
-    mainWindow.webContents.openDevTools();
+    const wasOpen = mainWindow.webContents.isDevToolsOpened();
+
+    if (wasOpen) {
+      mainWindow.webContents.closeDevTools();
+      // Close is synchronous, return immediately
+      return Promise.resolve(false);
+    } else {
+      // Open is async, wait for the event
+      return new Promise((resolve) => {
+        const onOpened = () => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          resolve(true);
+        };
+
+        mainWindow.webContents.once('devtools-opened', onOpened);
+        mainWindow.webContents.openDevTools();
+
+        // Fallback timeout in case event doesn't fire
+        setTimeout(() => {
+          mainWindow.webContents.off('devtools-opened', onOpened);
+          const isNowOpen = mainWindow.webContents.isDevToolsOpened();
+          resolve(isNowOpen);
+        }, 500);
+      });
+    }
   }
-  return Promise.resolve();
+  return Promise.resolve(false);
 });
 
 const handleAppReady = async (): Promise<void> => {
@@ -418,8 +561,50 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config);
     await startWebServer(resolvedPort, allowRemote);
+
+    // Keep the process alive in WebUI mode by preventing default quit behavior.
+    // On Linux headless (systemd), Electron may attempt to quit when no windows exist.
+    app.on('will-quit', (event) => {
+      // Only prevent quit if this is an unexpected exit (server still running).
+      // Explicit app.exit() calls bypass will-quit, so they are unaffected.
+      if (!isExplicitQuit) {
+        event.preventDefault();
+        console.warn('[WebUI] Prevented unexpected quit — server is still running');
+      }
+    });
   } else {
+    // Initialize ACP detector BEFORE creating the window to prevent a race
+    // condition where the renderer fetches getAvailableAgents before detection
+    // finishes, caching an empty result via SWR.
+    await initializeAcpDetector();
+
     createWindow();
+
+    // 初始化关闭到托盘设置 / Initialize close-to-tray setting
+    try {
+      const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
+      closeToTrayEnabled = savedCloseToTray ?? false;
+      if (closeToTrayEnabled) {
+        createOrUpdateTray();
+      }
+    } catch {
+      // Ignore storage read errors, default to false
+    }
+
+    // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
+    onCloseToTrayChanged((enabled) => {
+      closeToTrayEnabled = enabled;
+      if (enabled) {
+        createOrUpdateTray();
+      } else {
+        destroyTray();
+      }
+    });
+
+    // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
+    onLanguageChanged(() => {
+      refreshTrayMenu();
+    });
 
     // Flush pending deep-link URL (received before window was ready)
     if (pendingDeepLinkUrl) {
@@ -432,11 +617,38 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  // 启动时初始化ACP检测器 (skip in --resetpass mode)
-  if (!isResetPasswordMode) {
+  // WebUI mode also needs ACP detection for remote agent access
+  if (isWebUIMode) {
     await initializeAcpDetector();
-    // Preload shell environment in background for faster ACP connections
-    void loadShellEnvironmentAsync();
+  }
+
+  if (!isResetPasswordMode) {
+    // Preload shell environment and apply it to process.env so workers forked
+    // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
+    // This ensures custom skills that depend on globally installed tools work correctly.
+    void loadShellEnvironmentAsync().then((shellEnv) => {
+      if (shellEnv.PATH) {
+        process.env.PATH = mergePaths(process.env.PATH, shellEnv.PATH);
+      }
+      // Apply other shell env vars (SSL certs, auth tokens) that may be missing
+      for (const [key, value] of Object.entries(shellEnv)) {
+        if (key !== 'PATH' && !process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    });
+  }
+
+  // Verify CDP is ready and log status
+  const { cdpPort, verifyCdpReady } = await import('./utils/configureChromium');
+  if (cdpPort) {
+    const cdpReady = await verifyCdpReady(cdpPort);
+    if (cdpReady) {
+      console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
+      console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
+    } else {
+      console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
+    }
   }
 
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
@@ -486,6 +698,10 @@ void app
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  // 当关闭到托盘启用时，不退出应用 / Don't quit when close-to-tray is enabled
+  if (closeToTrayEnabled) {
+    return;
+  }
   // In WebUI mode, don't quit when windows are closed since we're running a web server
   if (!isWebUIMode && process.platform !== 'darwin') {
     app.quit();
@@ -495,12 +711,24 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (!isWebUIMode && app.isReady() && BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+  if (!isWebUIMode && app.isReady()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
+      mainWindow.show();
+      mainWindow.focus();
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.show();
+      }
+    } else if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
   }
 });
 
 app.on('before-quit', async () => {
+  isQuitting = true;
+  isExplicitQuit = true;
+  destroyTray();
   // 在应用退出前清理工作进程
   WorkerManage.clear();
 

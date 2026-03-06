@@ -264,7 +264,7 @@ const ChannelModalContent: React.FC = () => {
           Message.success(t('settings.lark.pluginDisabled', 'Lark bot disabled'));
           await loadPluginStatus();
         } else {
-          Message.error(result.msg || t('settings.lark.disableFailed', 'Failed to disable Lark plugin'));
+          Message.error(result.msg || t('settings.assistant.disableFailed', 'Failed to disable plugin'));
         }
       }
     } catch (error: any) {

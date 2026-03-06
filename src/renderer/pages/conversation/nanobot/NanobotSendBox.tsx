@@ -117,7 +117,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     (val: Array<string | FileOrFolderItem>) => {
       mutateDraft((prev) => ({ ...(prev as NanobotDraftData), atPath: val }));
     },
-    [draftData, mutateDraft]
+    [mutateDraft]
   );
 
   const setUploadFile = createSetUploadFile(mutateDraft, draftData);
@@ -126,7 +126,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     (val: string) => {
       mutateDraft((prev) => ({ ...(prev as NanobotDraftData), content: val }));
     },
-    [draftData, mutateDraft]
+    [mutateDraft]
   );
 
   const setContentRef = useLatestRef(setContent);
@@ -187,9 +187,9 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
       const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile([...uploadFile, ...filePaths]);
+      setUploadFile((prev) => [...prev, ...filePaths]);
     },
-    [uploadFile, setUploadFile]
+    [setUploadFile]
   );
 
   useAddEventListener('nanobot.selected.file', (items: Array<string | FileOrFolderItem>) => {
@@ -250,9 +250,9 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
-      setUploadFile([...uploadFile, ...files]);
+      setUploadFile((prev) => [...prev, ...files]);
     },
-    [setUploadFile, uploadFile]
+    [setUploadFile]
   );
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,

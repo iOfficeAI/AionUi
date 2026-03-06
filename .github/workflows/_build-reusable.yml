@@ -105,6 +105,25 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Restore Electron/Electron-Builder caches before any build-related install
+      - name: Cache Electron artifacts
+        id: electron-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
+          restore-keys: |
+            electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-cache-${{ matrix.platform }}-
+
+      - name: Cache status
+        run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
+
       - name: Install dependencies
         run: bun install --no-frozen-lockfile
 
@@ -146,15 +165,8 @@ jobs:
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
-
-      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
-      - name: Cache electron-builder binaries
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/.cache/electron-builder
-          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
-          restore-keys: |
-            electron-builder-binaries-${{ matrix.platform }}-
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Print build configuration
         shell: bash
@@ -450,6 +462,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
 
+
+      - name: Verify packaged i18n assets
+        if: >-
+          !startsWith(matrix.platform, 'windows') ||
+          steps.windows-build.outputs.result == 'success'
+        run: bun run test:packaged:i18n
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)

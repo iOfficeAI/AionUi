@@ -21,7 +21,7 @@ import { processCustomCss } from './utils/customCssProcessor';
 import UpdateModal from '@/renderer/components/UpdateModal';
 import { cleanupSiderTooltips } from './utils/siderTooltip';
 import { isElectronDesktop } from './utils/platform';
-import { DEFAULT_THEME_ID, PRESET_THEMES } from '@/renderer/components/CssThemeSettings/presets';
+import { computeCssSyncDecision } from './utils/themeCssSync';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -58,12 +58,6 @@ const MOBILE_SIDER_WIDTH_RATIO = 0.67;
 const MOBILE_SIDER_MIN_WIDTH = 260;
 const MOBILE_SIDER_MAX_WIDTH = 420;
 
-const resolveCssByActiveTheme = (activeThemeId: string, userThemes: ICssTheme[]): string => {
-  const allThemes = [...PRESET_THEMES, ...(userThemes || [])];
-  const resolvedId = activeThemeId || DEFAULT_THEME_ID;
-  return allThemes.find((theme) => theme.id === resolvedId)?.css || '';
-};
-
 const detectMobileViewportOrTouch = (): boolean => {
   if (typeof window === 'undefined') return false;
   if (isElectronDesktop()) {
@@ -95,18 +89,29 @@ const Layout: React.FC<{
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
   const lastCssRef = useRef('');
+  const lastUiCssUpdateAtRef = useRef(0);
 
   const loadAndHealCustomCss = useCallback(async () => {
     try {
-      const [savedCss, activeThemeId, savedThemes] = await Promise.all([ConfigStorage.get('customCss'), ConfigStorage.get('css.activeThemeId'), ConfigStorage.get('css.themes')]);
+      const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([ConfigStorage.get('customCss'), ConfigStorage.get('css.activeThemeId'), ConfigStorage.get('css.themes')]);
 
-      let effectiveCss = savedCss || '';
-      if (!effectiveCss) {
-        const recoveredCss = resolveCssByActiveTheme(activeThemeId || '', (savedThemes || []) as ICssTheme[]);
-        if (recoveredCss) {
-          await ConfigStorage.set('customCss', recoveredCss);
-          effectiveCss = recoveredCss;
-        }
+      const decision = computeCssSyncDecision({
+        savedCss: savedCssRaw || '',
+        activeThemeId: activeThemeId || '',
+        savedThemes: (savedThemes || []) as ICssTheme[],
+        currentUiCss: customCss,
+        lastUiCssUpdateAt: lastUiCssUpdateAtRef.current,
+      });
+
+      if (decision.shouldSkipApply) {
+        return;
+      }
+
+      const effectiveCss = decision.effectiveCss;
+      if (decision.shouldHealStorage) {
+        await ConfigStorage.set('customCss', effectiveCss).catch((error) => {
+          console.warn('Failed to heal custom CSS from active theme:', error);
+        });
       }
 
       setCustomCss(effectiveCss);
@@ -117,7 +122,7 @@ const Layout: React.FC<{
     } catch (error) {
       console.error('Failed to load or heal custom CSS:', error);
     }
-  }, []);
+  }, [customCss]);
 
   // 加载并监听自定义 CSS 配置 / Load & watch custom CSS configuration
   useEffect(() => {
@@ -127,6 +132,7 @@ const Layout: React.FC<{
       if (event.detail?.customCss !== undefined) {
         const css = event.detail.customCss || '';
         lastCssRef.current = css;
+        lastUiCssUpdateAtRef.current = Date.now();
         setCustomCss(css);
       }
     };
@@ -226,6 +232,22 @@ const Layout: React.FC<{
     cleanupSiderTooltips();
   }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
 
+  // Bridge Main Process logs to F12 Console
+  useEffect(() => {
+    const unsubscribe = ipcBridge.application.logStream.on((entry) => {
+      const prefix = `%c[Main:${entry.tag}]%c ${entry.message}`;
+      const style = 'color:#7c3aed;font-weight:bold';
+      if (entry.level === 'error') {
+        console.error(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
+      } else if (entry.level === 'warn') {
+        console.warn(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
+      } else {
+        console.log(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const siderWidth = isMobile ? Math.max(MOBILE_SIDER_MIN_WIDTH, Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))) : DEFAULT_SIDER_WIDTH;
   useEffect(() => {
     collapsedRef.current = collapsed;
@@ -281,7 +303,7 @@ const Layout: React.FC<{
                   <path key='logo-path-2' d='M18 50 Q40 70 62 50' stroke='white' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
                 </svg>
               </div>
-              <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
+              <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>AionUi</div>
               {isMobile && !collapsed && (
                 <button type='button' className='app-titlebar__button' onClick={() => setCollapsed(true)} aria-label='Collapse sidebar'>
                   {collapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}

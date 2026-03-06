@@ -69,6 +69,16 @@ repos:
         files: \.(ts|tsx|js|jsx|json|css|md)$
         pass_filenames: false
 
+  # i18n translation files validation
+  - repo: local
+    hooks:
+      - id: i18n-check
+        name: i18n Check
+        entry: node scripts/check-i18n.js
+        language: system
+        files: ^src/renderer/i18n/locales/
+        pass_filenames: false
+
   # Commit message format (Conventional Commits)
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.2.0

@@ -124,7 +124,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({ isPrese
           })}
         <div className='group flex items-center justify-center h-28px w-max min-w-28px max-w-28px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap b-1 b-dashed b-aou-2 select-none transition-all duration-500 ease-out hover:min-w-0 hover:max-w-320px hover:rd-100px hover:px-16px hover:justify-start hover:gap-8px hover:bg-fill-2' style={{ borderWidth: '1px' }} onClick={() => navigate('/settings/agent')}>
           <Plus theme='outline' size={14} className='flex-shrink-0 line-height-0 text-[var(--color-text-3)] group-hover:text-[var(--color-text-2)] transition-colors duration-300' />
-          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-2 group-hover:opacity-100 group-hover:max-w-none transition-[opacity,max-width] duration-400 ease-out delay-75'>{t('settings.addAssistant', { defaultValue: 'Add Assistant' })}</span>
+          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-2 group-hover:opacity-100 group-hover:max-w-none transition-[opacity,max-width] duration-400 ease-out delay-75'>{t('settings.createAssistant', { defaultValue: 'Add Assistant' })}</span>
         </div>
       </div>
     </div>

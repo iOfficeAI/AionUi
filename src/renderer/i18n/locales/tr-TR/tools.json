@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Bilinmeyen dosya",
+  "newFile": "Yeni Dosya",
+  "deletedFile": "Silinen Dosya",
+  "modified": "Düzenlenen",
+  "fileChanges": "Dosya Değişiklikleri",
+  "shell": {
+    "displayName": "Shell Komutu",
+    "description": "Shell komutlarını çalıştır"
+  },
+  "fileOps": {
+    "displayName": "Dosya İşlemleri",
+    "description": "Dosya okuma, yazma ve değiştirme"
+  },
+  "webSearch": {
+    "displayName": "Web Araması",
+    "description": "Web içeriği ara"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "MCP Aracı: {{toolName}}",
+      "description": "MCP araç çağrısı: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Bilinmeyen Araç",
+    "description": "Bilinmeyen araç türü"
+  },
+  "status": {
+    "pending": "Bekliyor",
+    "executing": "Çalışıyor",
+    "success": "Başarılı",
+    "error": "Hata",
+    "canceled": "İptal Edildi"
+  },
+  "titles": {
+    "web_search_started": "Web Araması Başlatıldı",
+    "web_search_completed": "Web Araması Tamamlandı",
+    "web_search": "Web Araması",
+    "applying_patch": "Yama Uygulanıyor",
+    "patch_applied": "Yama Uygulandı",
+    "file_patch": "Dosya Yaması",
+    "mcp_tool_starting": "MCP Aracı: {{toolName}} (başlıyor)",
+    "mcp_tool": "MCP Aracı: {{toolName}}",
+    "execute_command": "Çalıştır: {{command}}",
+    "command_output": "Komut Çıktısı",
+    "command_completed": "Komut Tamamlandı",
+    "shell_command": "Shell Komutu"
+  },
+  "labels": {
+    "search_query": "Arama Sorgusu:",
+    "file_changes": "Dosya Değişiklikleri:",
+    "tool_details": "Araç Detayları:",
+    "tool": "Araç",
+    "arguments": "Argümanlar:",
+    "result": "Sonuç:",
+    "command": "Komut:",
+    "working_directory": "Çalışma dizini:",
+    "exit_code": "Çıkış kodu: {{code}}",
+    "duration": "Süre: {{seconds}}",
+    "auto_approved": "Otomatik onaylandı",
+    "manual_approval": "Manuel onay"
+  },
+  "actions": {
+    "create": "oluştur",
+    "modify": "değiştir",
+    "delete": "sil"
+  }
+}

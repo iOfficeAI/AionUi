@@ -61,14 +61,49 @@ export const geminiConversation = {
   responseStream: conversation.responseStream,
 };
 
+// CDP status interface
+export interface ICdpStatus {
+  /** Whether CDP is currently enabled */
+  enabled: boolean;
+  /** Current CDP port (null if disabled or not started) */
+  port: number | null;
+  /** Whether CDP was enabled at startup (requires restart to change) */
+  startupEnabled: boolean;
+  /** All active CDP instances from registry */
+  instances: Array<{
+    pid: number;
+    port: number;
+    cwd: string;
+    startTime: number;
+  }>;
+  /** Whether the app is running in development mode */
+  isDevMode: boolean;
+}
+
+// CDP config interface
+export interface ICdpConfig {
+  /** Whether CDP is enabled */
+  enabled?: boolean;
+  /** Preferred port number */
+  port?: number;
+}
+
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
-  openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
+  openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
+  isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
   systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+  // CDP (Chrome DevTools Protocol) management
+  getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
+  updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
+  // Bridge Main Process logs to Renderer F12 Console
+  logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>('app.log-stream'),
+  // DevTools state change notification
+  devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
 };
 
 // Manual (opt-in) updates via GitHub Releases
@@ -227,6 +262,9 @@ export const acpConversation = {
   // Get model info for ACP agents (model name and available models)
   // 获取 ACP 代理的模型信息（模型名称和可用模型）
   getModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>('acp.get-model-info'),
+  // Probe model info for an ACP backend without creating a visible conversation
+  // 预探测 ACP 后端的模型信息，不创建可见会话
+  probeModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { backend: AcpBackend }>('acp.probe-model-info'),
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   setModel: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string; modelId: string }>('acp.set-model'),
@@ -329,6 +367,13 @@ export const windowControls = {
   close: bridge.buildProvider<void, void>('window-controls:close'),
   isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
   maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
+};
+
+// 系统设置接口 / System settings API
+export const systemSettings = {
+  getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
+  setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+  changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
 };
 
 // WebUI 服务管理接口 / WebUI service management API
@@ -480,6 +525,8 @@ export interface ICreateConversationParams {
       expectedIdentityHash?: string | null;
       switchedAt?: number;
     };
+    /** Explicit marker for temporary health-check conversations */
+    isHealthCheck?: boolean;
   };
 }
 interface IResetConversationParams {

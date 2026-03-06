@@ -95,7 +95,7 @@ export const useDragUpload = ({ supportedExts = [], onFilesAdded }: UseDragUploa
         }
       } catch (err) {
         console.error('Failed to process dropped files:', err);
-        Message.error(t('sendbox.dropFileError', 'Failed to process dropped files'));
+        Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
       }
     },
     [onFilesAdded, supportedExts, t]

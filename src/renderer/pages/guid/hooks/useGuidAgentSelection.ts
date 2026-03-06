@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
+import { DEFAULT_CODEX_MODELS } from '@/common/codex/codexModels';
 import type { IProvider } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo, PresetAgentType } from '../types';
@@ -84,6 +85,7 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
   const selectedAgentRef = useRef<string | null>(null);
+  const probedModelBackendsRef = useRef(new Set<string>());
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
 
@@ -249,6 +251,54 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
       isActive = false;
     };
   }, []);
+
+  // Probe Codex model info on first selection so the Guid page can show
+  // the real account-scoped models before the first conversation starts.
+  useEffect(() => {
+    if (selectedAgentKey !== 'codex') return;
+    if (probedModelBackendsRef.current.has('codex')) return;
+
+    let cancelled = false;
+    probedModelBackendsRef.current.add('codex');
+
+    ipcBridge.acpConversation.probeModelInfo
+      .invoke({ backend: 'codex' })
+      .then(async (result) => {
+        if (cancelled) return;
+        const modelInfo = result.success ? result.data?.modelInfo : null;
+        if (!modelInfo?.availableModels?.length) {
+          probedModelBackendsRef.current.delete('codex');
+          return;
+        }
+
+        console.log('[Guid][codex] Probed model info:', modelInfo);
+
+        const cached = (await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) || {};
+        if (cancelled) return;
+
+        const nextCachedModels = {
+          ...cached,
+          codex: modelInfo,
+        };
+
+        setAcpCachedModels((prev) => ({
+          ...prev,
+          codex: modelInfo,
+        }));
+
+        await ConfigStorage.set('acp.cachedModels', nextCachedModels).catch((error) => {
+          console.error('Failed to save probed ACP model info:', error);
+        });
+      })
+      .catch((error) => {
+        probedModelBackendsRef.current.delete('codex');
+        console.warn('[Guid][codex] Failed to probe model info:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAgentKey]);
 
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
@@ -470,7 +520,22 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
 
   const currentAcpCachedModelInfo = useMemo(() => {
     const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
-    return acpCachedModels[backend] || null;
+    const cached = acpCachedModels[backend];
+    if (cached) return cached;
+
+    // Fallback: when no cached models exist for codex (e.g., first launch or stale cache),
+    // use the hardcoded default list so the Guid page shows a model selector immediately.
+    if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
+      return {
+        source: 'models' as const,
+        currentModelId: DEFAULT_CODEX_MODELS[0].id,
+        currentModelLabel: DEFAULT_CODEX_MODELS[0].label,
+        availableModels: DEFAULT_CODEX_MODELS.map((m) => ({ id: m.id, label: m.label })),
+        canSwitch: true,
+      } satisfies AcpModelInfo;
+    }
+
+    return null;
   }, [selectedAgentKey, acpCachedModels]);
 
   // Auto-switch only for Gemini agent

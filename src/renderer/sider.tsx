@@ -1,4 +1,5 @@
 import { ArrowCircleLeft, ListCheckbox, Plus, SettingTwo } from '@icon-park/react';
+import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +12,7 @@ import { usePreviewContext } from './pages/conversation/preview';
 import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip';
 import { useLayoutContext } from './context/LayoutContext';
 import { blurActiveElement } from './utils/focus';
+import { useThemeContext } from './context/ThemeContext';
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -26,6 +28,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
+  const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
@@ -56,6 +59,16 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
 
   const handleToggleBatchMode = () => {
     setIsBatchMode((prev) => !prev);
+  };
+  const handleQuickThemeToggle = () => {
+    void setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+  const workspaceHistoryProps = {
+    collapsed,
+    tooltipEnabled: collapsed && !isMobile,
+    onSessionClick,
+    batchMode: isBatchMode,
+    onBatchModeChange: setIsBatchMode,
   };
   const tooltipEnabled = collapsed && !isMobile;
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
@@ -102,24 +115,36 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </div>
               </Tooltip>
             </div>
-            <WorkspaceGroupedHistory collapsed={collapsed} tooltipEnabled={tooltipEnabled} onSessionClick={onSessionClick} batchMode={isBatchMode} onBatchModeChange={setIsBatchMode}></WorkspaceGroupedHistory>
+            <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
           </div>
         )}
       </div>
       {/* Footer - settings button */}
       <div className='shrink-0 sider-footer mt-auto pt-8px'>
-        <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
-          <div
-            onClick={handleSettingsClick}
-            className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors', isMobile && 'sider-footer-btn-mobile', {
-              'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
-              'hover:bg-hover hover:shadow-sm active:bg-fill-2': !isSettings,
-            })}
-          >
-            {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} /> : <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />}
-            <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
-          </div>
-        </Tooltip>
+        <div className='flex flex-col gap-8px'>
+          {isSettings && (
+            <Tooltip {...siderTooltipProps} content={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')} position='right'>
+              <div onClick={handleQuickThemeToggle} className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors hover:bg-hover active:bg-fill-2', isMobile && 'sider-footer-btn-mobile')} aria-label={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}>
+                {theme === 'dark' ? <IconSunFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} /> : <IconMoonFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} />}
+                <span className='collapsed-hidden text-t-primary'>
+                  {t('settings.theme')} · {theme === 'dark' ? t('settings.darkMode') : t('settings.lightMode')}
+                </span>
+              </div>
+            </Tooltip>
+          )}
+          <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
+            <div
+              onClick={handleSettingsClick}
+              className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors', isMobile && 'sider-footer-btn-mobile', {
+                'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
+                'hover:bg-hover hover:shadow-sm active:bg-fill-2': !isSettings,
+              })}
+            >
+              {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} /> : <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />}
+              <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
+            </div>
+          </Tooltip>
+        </div>
       </div>
     </div>
   );

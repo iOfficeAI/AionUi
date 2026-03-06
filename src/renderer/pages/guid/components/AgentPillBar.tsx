@@ -25,7 +25,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({ availableAgents, selectedAg
   return (
     <div className='w-full flex justify-center'>
       <div
-        className='flex flex-wrap items-center justify-center'
+        className='flex items-center justify-center'
         style={{
           marginBottom: 20,
           padding: '6px',
@@ -34,6 +34,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({ availableAgents, selectedAg
           transition: 'background-color 0.35s ease',
           width: 'fit-content',
           maxWidth: '100%',
+          overflow: 'hidden',
           gap: 4,
           color: 'var(--text-primary)',
         }}
