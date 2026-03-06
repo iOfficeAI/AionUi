@@ -29,6 +29,9 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'ope
  */
 export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex', 'qwen'] as const;
 
+export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
+export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
+
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
  * Check if preset agent type should be routed through ACP backend
@@ -322,7 +325,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     id: 'codex',
     name: 'Codex',
     cliCommand: 'codex', // Detect local codex CLI (codex-acp bridge invokes it)
-    defaultCliPath: 'npx @zed-industries/codex-acp@0.9.4',
+    defaultCliPath: `npx ${CODEX_ACP_NPX_PACKAGE}`,
     authRequired: true, // Needs OPENAI_API_KEY or ChatGPT auth
     enabled: true, // ✅ Codex via codex-acp ACP bridge
     supportsStreaming: false,

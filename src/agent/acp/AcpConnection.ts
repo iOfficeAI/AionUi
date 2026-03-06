@@ -5,10 +5,12 @@
  */
 
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionConfigOption, AcpSessionModels, AcpSessionUpdate } from '@/types/acpTypes';
-import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
+import { ACP_METHODS, CODEX_ACP_BRIDGE_VERSION, CODEX_ACP_NPX_PACKAGE, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
 import { promisify } from 'util';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
+import { mainLog, mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
 import { promises as fs } from 'fs';
@@ -380,17 +382,18 @@ export class AcpConnection {
 
   private async connectCodex(workingDir: string = process.cwd()): Promise<void> {
     // Use NPX to run codex-acp bridge (Zed's ACP adapter for Codex)
-    console.error('[ACP] Using NPX approach for Codex ACP bridge');
+    console.error(`[ACP] Using NPX approach for Codex ACP bridge (${CODEX_ACP_NPX_PACKAGE})`);
 
     const envStart = Date.now();
     const cleanEnv = this.prepareNpxEnv();
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] codex: env prepared ${Date.now() - envStart}ms`);
 
     this.ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
+    await this.logCodexRuntimeDiagnostics(cleanEnv);
 
     const isWindows = process.platform === 'win32';
     const spawnCommand = resolveNpxPath(cleanEnv);
-    const spawnArgs = ['--yes', '--prefer-offline', '@zed-industries/codex-acp@0.9.4'];
+    const spawnArgs = ['--yes', '--prefer-offline', CODEX_ACP_NPX_PACKAGE];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {
@@ -402,6 +405,52 @@ export class AcpConnection {
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] codex: process spawned ${Date.now() - spawnStart}ms`);
 
     await this.setupChildProcessHandlers('codex');
+  }
+
+  private async logCodexRuntimeDiagnostics(cleanEnv: Record<string, string | undefined>): Promise<void> {
+    const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
+    const diagnostics: {
+      bridgeVersion: string;
+      bridgePackage: string;
+      codexCliVersion: string;
+      loginStatus: string;
+      hasCodexApiKey: boolean;
+      hasOpenAiApiKey: boolean;
+      hasChatGptSession: boolean;
+    } = {
+      bridgeVersion: CODEX_ACP_BRIDGE_VERSION,
+      bridgePackage: CODEX_ACP_NPX_PACKAGE,
+      codexCliVersion: 'unknown',
+      loginStatus: 'unknown',
+      hasCodexApiKey: Boolean(cleanEnv.CODEX_API_KEY),
+      hasOpenAiApiKey: Boolean(cleanEnv.OPENAI_API_KEY),
+      hasChatGptSession: false,
+    };
+
+    try {
+      const { stdout } = await execFile(codexCommand, ['--version'], {
+        env: cleanEnv,
+        timeout: 5000,
+        windowsHide: true,
+      });
+      diagnostics.codexCliVersion = stdout.trim() || diagnostics.codexCliVersion;
+    } catch (error) {
+      mainWarn('[ACP codex]', 'Failed to read codex CLI version', error);
+    }
+
+    try {
+      const { stdout } = await execFile(codexCommand, ['login', 'status'], {
+        env: cleanEnv,
+        timeout: 5000,
+        windowsHide: true,
+      });
+      diagnostics.loginStatus = stdout.trim() || diagnostics.loginStatus;
+      diagnostics.hasChatGptSession = /chatgpt/i.test(diagnostics.loginStatus);
+    } catch (error) {
+      mainWarn('[ACP codex]', 'Failed to read codex login status', error);
+    }
+
+    mainLog('[ACP codex]', 'Runtime diagnostics', diagnostics);
   }
 
   private async connectCodebuddy(workingDir: string = process.cwd()): Promise<void> {
@@ -1022,6 +1071,17 @@ export class AcpConnection {
     const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
     if (modelsSource && typeof modelsSource === 'object') {
       this.models = modelsSource as AcpSessionModels;
+    }
+
+    if (this.backend === 'codex') {
+      const unifiedModelInfo = buildAcpModelInfo(this.configOptions, this.models);
+      const modelOption = this.configOptions?.find((opt) => opt.category === 'model');
+      mainLog('[ACP codex]', 'session/new parsed model info', {
+        rawCurrentModelId: this.models?.currentModelId || null,
+        rawAvailableModelCount: this.models?.availableModels?.length || 0,
+        configOptionModelCount: modelOption && modelOption.type === 'select' && modelOption.options ? modelOption.options.length : 0,
+        unified: summarizeAcpModelInfo(unifiedModelInfo),
+      });
     }
 
     return response;
