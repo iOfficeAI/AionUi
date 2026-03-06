@@ -7,7 +7,15 @@
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
+/** Max upload size in MB — keep in sync with server-side MAX_UPLOAD_SIZE in apiRoutes.ts */
+export const MAX_UPLOAD_SIZE_MB = 10;
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+
 export async function createTempFileViaHttp(fileName: string, data: Uint8Array, contentType: string): Promise<string> {
+  // Client-side size guard — fail fast before network round-trip
+  if (data.byteLength > MAX_UPLOAD_SIZE_BYTES) {
+    throw new Error('FILE_TOO_LARGE');
+  }
   let binary = '';
   const chunkSize = 8192;
   for (let i = 0; i < data.length; i += chunkSize) {
@@ -204,6 +212,11 @@ class FileServiceClass {
           const arrayBuffer = await file.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
 
+          // Client-side size guard
+          if (uint8Array.byteLength > MAX_UPLOAD_SIZE_BYTES) {
+            throw new Error('FILE_TOO_LARGE');
+          }
+
           // Create temporary file (Electron uses IPC, WebUI uses HTTP API)
           let tempPath: string | null = null;
           if (isElectronDesktop()) {
@@ -219,6 +232,10 @@ class FileServiceClass {
             filePath = tempPath;
           }
         } catch (error) {
+          // Re-throw size errors so caller can show user-facing toast
+          if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+            throw error;
+          }
           console.error('Failed to create temp file for dragged file:', error);
           // Skip failed files instead of using invalid paths
           continue;

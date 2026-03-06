@@ -1,5 +1,6 @@
 import { Message } from '@arco-design/web-react';
 import type { FileMetadata } from '@/renderer/services/FileService';
+import { MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
 import { PasteService } from '@/renderer/services/PasteService';
 import { useCallback, useEffect, useRef } from 'react';
 import { uuid } from '../utils/common';
@@ -37,7 +38,7 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste }: Us
       } catch (error) {
         const msg = error instanceof Error ? error.message : '';
         if (msg === 'FILE_TOO_LARGE') {
-          Message.error('File is too large to upload (max ~7.5 MB)');
+          Message.error(`File is too large to upload (max ${MAX_UPLOAD_SIZE_MB} MB)`);
         } else {
           Message.error('Failed to upload file. Please try again.');
         }

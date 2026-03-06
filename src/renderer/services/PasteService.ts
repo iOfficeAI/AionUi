@@ -6,14 +6,21 @@
 
 import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
-import { getFileExtension, createTempFileViaHttp } from './FileService';
+import { getFileExtension, createTempFileViaHttp, MAX_UPLOAD_SIZE_MB } from './FileService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
 /**
  * Create a temporary file in a platform-aware way.
  * Electron desktop uses IPC, WebUI uses HTTP API.
  */
 async function createTempFile(fileName: string, data: Uint8Array, contentType: string): Promise<string | null> {
+  // Client-side size guard — applies to both Electron and WebUI paths
+  if (data.byteLength > MAX_UPLOAD_SIZE_BYTES) {
+    throw new Error('FILE_TOO_LARGE');
+  }
+
   if (isElectronDesktop()) {
     const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
     if (tempPath) {
