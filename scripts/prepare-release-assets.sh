@@ -16,13 +16,14 @@ set -euo pipefail
 ARTIFACTS_DIR="${1:-build-artifacts}"
 OUTPUT_DIR="${2:-release-assets}"
 
+rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # ---------------------------------------------------------------------------
 # 1) Copy all distributables and blockmaps (unique file names)
 # ---------------------------------------------------------------------------
 echo "==> Copying distributables from $ARTIFACTS_DIR ..."
-find "$ARTIFACTS_DIR" -type f \( \
+mapfile -t DISTRIBUTABLES < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "*.exe" -o \
   -name "*.msi" -o \
   -name "*.dmg" -o \
@@ -30,7 +31,18 @@ find "$ARTIFACTS_DIR" -type f \( \
   -name "*.AppImage" -o \
   -name "*.zip" -o \
   -name "*.blockmap" \
-\) -exec cp -f "{}" "$OUTPUT_DIR/" \;
+\) | sort)
+
+DUPLICATE_BASENAMES=$(for file in "${DISTRIBUTABLES[@]}"; do basename "$file"; done | sort | uniq -d || true)
+if [ -n "$DUPLICATE_BASENAMES" ]; then
+  echo "::error::Found duplicate distributable basenames that would be overwritten in flat output:"
+  echo "$DUPLICATE_BASENAMES"
+  exit 1
+fi
+
+for file in "${DISTRIBUTABLES[@]}"; do
+  cp -f "$file" "$OUTPUT_DIR/"
+done
 
 # ---------------------------------------------------------------------------
 # 2) Collect updater metadata from each platform artifact directory
@@ -41,8 +53,8 @@ WIN_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-x64/*" -na
 WIN_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-arm64/*" -name "latest.yml" | sort | head -n 1 || true)
 MAC_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-x64/*" -name "latest-mac.yml" | sort | head -n 1 || true)
 MAC_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-arm64/*" -name "latest-mac.yml" | sort | head -n 1 || true)
-LINUX_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -name "latest-linux.yml" | sort | head -n 1 || true)
-LINUX_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -name "latest-linux-arm64.yml" | sort | head -n 1 || true)
+LINUX_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build/*" -name "latest-linux.yml" | sort | head -n 1 || true)
+LINUX_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build/*" -name "latest-linux-arm64.yml" | sort | head -n 1 || true)
 
 WIN_X64_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-x64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
 WIN_ARM64_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-arm64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
