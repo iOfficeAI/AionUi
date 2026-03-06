@@ -12,11 +12,28 @@
  * Handles system-level notifications
  */
 
-import { Notification, BrowserWindow } from 'electron';
+import { Notification, BrowserWindow, app } from 'electron';
 import { ipcBridge } from '@/common';
 import path from 'path';
+import fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
+
+/**
+ * 获取应用图标路径 / Get app icon path for notifications
+ */
+const getNotificationIcon = (): string | undefined => {
+  try {
+    const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+    const iconPath = path.join(resourcesPath, 'app.png');
+    if (fs.existsSync(iconPath)) {
+      return iconPath;
+    }
+  } catch {
+    // 忽略图标错误，通知仍会显示 / Ignore icon error, notification will still show
+  }
+  return undefined;
+};
 
 /**
  * 设置主窗口引用（供 index.ts 调用）/ Set main window reference (called by index.ts)
@@ -34,13 +51,7 @@ export function initNotificationBridge(): void {
     }
 
     // 获取应用图标路径 / Get app icon path
-    let iconPath: string | undefined;
-    try {
-      // Vite 开发环境使用相对路径 / Use relative path in Vite dev
-      iconPath = path.join(__dirname, '../resources/app.png');
-    } catch {
-      // 忽略图标错误，通知仍会显示 / Ignore icon error, notification will still show
-    }
+    const iconPath = getNotificationIcon();
 
     // 创建并显示通知 / Create and show notification
     const notification = new Notification({
