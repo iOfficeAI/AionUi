@@ -16,7 +16,7 @@ import { initializeProcess } from './process';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
-import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import { onCloseToTrayChanged, onLanguageChanged, setMainWindow } from './process/bridge';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
@@ -412,6 +412,10 @@ const createWindow = (): void => {
 
   initMainAdapterWithWindow(mainWindow);
   setupApplicationMenu();
+
+  // Set main window reference for notifications
+  // 设置主窗口引用供通知使用
+  setMainWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 

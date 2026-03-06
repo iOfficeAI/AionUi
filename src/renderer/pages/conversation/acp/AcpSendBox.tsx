@@ -149,6 +149,13 @@ const useAcpMessage = (conversation_id: string) => {
               setAiProcessing(false);
               aiProcessingRef.current = false;
               setThought({ subject: '', description: '' });
+              // 显示任务完成通知 / Show task completion notification
+              ipcBridge.notification.show.invoke({
+                title: '任务完成',
+                body: 'Agent 任务已完成',
+              }).catch((err) => {
+                console.warn('[Notification] Failed to show notification:', err);
+              });
             }, 1000);
             (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
             hasContentInTurnRef.current = false;

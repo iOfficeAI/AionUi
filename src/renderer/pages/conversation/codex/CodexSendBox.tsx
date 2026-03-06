@@ -199,6 +199,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             setRunning(false);
             setAiProcessing(false);
             setThought({ subject: '', description: '' });
+            // 显示任务完成通知 / Show task completion notification
+            ipcBridge.notification.show.invoke({
+              title: '任务完成',
+              body: 'Agent 任务已完成',
+            }).catch((err) => {
+              console.warn('[Notification] Failed to show notification:', err);
+            });
           }
           // Reset flag for next turn
           hasContentInTurnRef.current = false;

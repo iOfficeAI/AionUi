@@ -165,6 +165,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         case 'finish':
           setThought({ subject: '', description: '' });
           setAiProcessing(false);
+          // 显示任务完成通知 / Show task completion notification
+          ipcBridge.notification.show.invoke({
+            title: '任务完成',
+            body: 'Agent 任务已完成',
+          }).catch((err) => {
+            console.warn('[Notification] Failed to show notification:', err);
+          });
           break;
         case 'content':
         case 'error':

@@ -373,6 +373,17 @@ export const systemSettings = {
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
 };
 
+// 系统通知接口 / System notification API
+export interface INotificationOptions {
+  title: string;
+  body: string;
+  icon?: string; // 自定义图标路径（可选）/ Custom icon path (optional)
+}
+
+export const notification = {
+  show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
+};
+
 // WebUI 服务管理接口 / WebUI service management API
 export interface IWebUIStatus {
   running: boolean;

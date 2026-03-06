@@ -277,6 +277,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               aiProcessingRef.current = false;
               setThought({ subject: '', description: '' });
               finishTimeoutRef.current = null;
+              // 显示任务完成通知 / Show task completion notification
+              ipcBridge.notification.show.invoke({
+                title: '任务完成',
+                body: 'Agent 任务已完成',
+              }).catch((err) => {
+                console.warn('[Notification] Failed to show notification:', err);
+              });
             }, 1000);
             hasContentInTurnRef.current = false;
           }
