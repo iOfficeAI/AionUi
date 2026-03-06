@@ -281,6 +281,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               ipcBridge.notification.show.invoke({
                 title: '任务完成',
                 body: 'Agent 任务已完成',
+                conversationId: conversation_id,
               }).catch((err) => {
                 console.warn('[Notification] Failed to show notification:', err);
               });

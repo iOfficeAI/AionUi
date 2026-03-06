@@ -203,6 +203,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             ipcBridge.notification.show.invoke({
               title: '任务完成',
               body: 'Agent 任务已完成',
+              conversationId: conversation_id,
             }).catch((err) => {
               console.warn('[Notification] Failed to show notification:', err);
             });

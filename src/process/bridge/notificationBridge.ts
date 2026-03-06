@@ -43,7 +43,7 @@ export function setMainWindow(window: BrowserWindow | null): void {
 }
 
 export function initNotificationBridge(): void {
-  ipcBridge.notification.show.provider(async ({ title, body }) => {
+  ipcBridge.notification.show.provider(async ({ title, body, conversationId }) => {
     // 检查应用是否支持通知
     if (!Notification.isSupported()) {
       console.warn('[Notification] System notifications are not supported on this platform');
@@ -62,13 +62,18 @@ export function initNotificationBridge(): void {
       silent: false, // 播放声音 / Play sound
     });
 
-    // 点击通知时聚焦到主窗口 / Focus main window when notification is clicked
+    // 点击通知时聚焦到主窗口并发送导航事件 / Focus main window and send navigation event when notification is clicked
     notification.on('click', () => {
       if (mainWindow) {
         if (mainWindow.isMinimized()) {
           mainWindow.restore();
         }
         mainWindow.focus();
+
+        // 发送点击事件到渲染层 / Send click event to renderer
+        if (conversationId) {
+          ipcBridge.notification.clicked.emit({ conversationId });
+        }
       }
     });
 

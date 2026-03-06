@@ -378,10 +378,13 @@ export interface INotificationOptions {
   title: string;
   body: string;
   icon?: string; // 自定义图标路径（可选）/ Custom icon path (optional)
+  conversationId?: string; // 会话 ID（可选）/ Conversation ID (optional)
 }
 
 export const notification = {
   show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
+  // 通知点击事件 / Notification clicked event
+  clicked: bridge.buildEmitter<{ conversationId?: string }>('notification.clicked'),
 };
 
 // WebUI 服务管理接口 / WebUI service management API
