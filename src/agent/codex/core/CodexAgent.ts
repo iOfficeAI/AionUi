@@ -174,9 +174,6 @@ export class CodexAgent {
     if (model) {
       args.model = model;
     }
-    console.log(`[CodexAgent] newSession args: model=${model || 'not specified'}, cwd=${args.cwd}`);
-    console.log(`[CodexAgent] codex-acp SDK version: ${this.conn?.getVersion() || 'unknown'}`);
-
 
     // Restore web_search_request for older versions (< 0.40.0)
     // Codex CLI 0.40.0+ (mcp-server) handles web_search configuration internally and errors on duplicate field

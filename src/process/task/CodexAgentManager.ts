@@ -259,7 +259,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           enabledSkills: this.options.enabledSkills,
         });
 
-        console.log(`[CodexAgentManager] newSession model=${this.selectedModel || 'default(none)'}`);
         const result = await this.agent.newSession(this.workspace, processedContent, this.selectedModel || undefined);
 
         // Session created successfully - Codex will send session_configured event automatically
@@ -564,7 +563,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Intercept codex_model_info: cache model name, emit to frontend, skip DB persistence
     if (message.type === 'codex_model_info') {
       const modelData = message.data as { model: string };
-      console.log(`[CodexAgentManager] codex_model_info received: model=${modelData?.model}`);
       if (modelData?.model) {
         this.currentModelName = modelData.model;
       }

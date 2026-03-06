@@ -6,12 +6,14 @@
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import { AcpConnection } from '@/agent/acp/AcpConnection';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@/agent/acp/modelInfo';
 import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
 import WorkerManage from '@/process/WorkerManage';
 import AcpAgentManager from '@/process/task/AcpAgentManager';
 import CodexAgentManager from '@/process/task/CodexAgentManager';
 import { GeminiAgentManager } from '@/process/task/GeminiAgentManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
+import { mainLog, mainWarn } from '@/process/utils/mainLogger';
 import { ipcBridge } from '../../common';
 import * as os from 'os';
 
@@ -215,6 +217,49 @@ export function initAcpConversationBridge(): void {
       return { success: true, data: { modelInfo: task.getModelInfo() } };
     } catch {
       return { success: true, data: { modelInfo: null } };
+    }
+  });
+
+  ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
+    const agents = acpDetector.getDetectedAgents();
+    const agent = agents.find((item) => item.backend === backend);
+
+    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
+      return {
+        success: false,
+        msg: `${backend} CLI not found`,
+      };
+    }
+
+    const connection = new AcpConnection();
+    const tempDir = os.tmpdir();
+
+    try {
+      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
+      await connection.newSession(tempDir);
+
+      const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
+      if (backend === 'codex') {
+        const initializeResult = connection.getInitializeResponse() as unknown as Record<string, unknown> | null;
+        mainLog('[ACP codex]', 'probeModelInfo completed', {
+          initializeAgentInfo: initializeResult?.agentInfo || null,
+          modelInfo: summarizeAcpModelInfo(modelInfo),
+        });
+      }
+
+      return { success: true, data: { modelInfo } };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (backend === 'codex') {
+        mainWarn('[ACP codex]', 'probeModelInfo failed', errorMsg);
+      }
+      return { success: false, msg: errorMsg };
+    } finally {
+      try {
+        await connection.disconnect();
+      } catch {
+        // Ignore cleanup failures for best-effort probes
+      }
     }
   });
 

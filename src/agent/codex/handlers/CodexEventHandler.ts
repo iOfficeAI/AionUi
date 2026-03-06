@@ -51,7 +51,6 @@ export class CodexEventHandler {
     if (type === 'session_configured') {
       // Extract model name from session_configured event and emit to UI
       const sessionMsg = msg as Extract<CodexEventMsg, { type: 'session_configured' }>;
-      console.log('[CodexEventHandler] session_configured full payload:', JSON.stringify(sessionMsg, null, 2));
       if (sessionMsg.model) {
         this.messageEmitter.emitAndPersistMessage(
           {
