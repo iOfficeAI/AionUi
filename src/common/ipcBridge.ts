@@ -244,7 +244,8 @@ export const acpConversation = {
         isPreset?: boolean;
         context?: string;
         avatar?: string;
-        presetAgentType?: PresetAgentType;
+        // Allow extension-contributed adapter IDs in addition to built-in PresetAgentType values
+        presetAgentType?: PresetAgentType | string;
         supportedTransports?: string[];
         isExtension?: boolean;
         extensionName?: string;
@@ -580,6 +581,64 @@ export interface IExtensionInfo {
   description?: string;
   source: string;
   directory: string;
+  /** Whether the extension is currently enabled */
+  enabled: boolean;
+  /** Overall permission risk level */
+  riskLevel: 'safe' | 'moderate' | 'dangerous';
+  /** Whether the extension has lifecycle hooks */
+  hasLifecycle: boolean;
+}
+
+/** Permission summary for extension management UI (Figma-inspired) */
+export interface IExtensionPermissionSummary {
+  name: string;
+  description: string;
+  level: 'safe' | 'moderate' | 'dangerous';
+  granted: boolean;
+}
+
+/** Settings tab contributed by an extension, consumed by settings UI */
+export interface IExtensionSettingsTab {
+  id: string;
+  name: string;
+  icon?: string;
+  /** aion-asset:// local page or external https:// URL */
+  entryUrl: string;
+  /** Position anchor relative to a built-in or other extension tab */
+  position?: { anchor: string; placement: 'before' | 'after' };
+  /** Fallback numeric order when multiple tabs share the same anchor+placement. Lower = first */
+  order: number;
+  _extensionName: string;
+}
+
+export type AgentActivityState = 'idle' | 'writing' | 'researching' | 'executing' | 'syncing' | 'error';
+
+export interface IExtensionAgentActivityEvent {
+  conversationId: string;
+  at: number;
+  kind: 'status' | 'tool' | 'message';
+  text: string;
+}
+
+export interface IExtensionAgentActivityItem {
+  id: string;
+  backend: string;
+  agentName: string;
+  state: AgentActivityState;
+  runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown';
+  conversations: number;
+  activeConversations: number;
+  lastActiveAt: number;
+  lastStatus?: string;
+  currentTask?: string;
+  recentEvents: IExtensionAgentActivityEvent[];
+}
+
+export interface IExtensionAgentActivitySnapshot {
+  generatedAt: number;
+  totalConversations: number;
+  runningConversations: number;
+  agents: IExtensionAgentActivityItem[];
 }
 
 export const extensions = {
@@ -587,6 +646,32 @@ export const extensions = {
   getThemes: bridge.buildProvider<ICssTheme[], void>('extensions.get-themes'),
   /** Get summary of all loaded extensions */
   getLoadedExtensions: bridge.buildProvider<IExtensionInfo[], void>('extensions.get-loaded-extensions'),
+  /** Get all extension-contributed assistants */
+  getAssistants: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-assistants'),
+  /** Get all extension-contributed agents (autonomous agent presets) */
+  getAgents: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-agents'),
+  /** Get all extension-contributed ACP adapters */
+  getAcpAdapters: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-acp-adapters'),
+  /** Get all extension-contributed MCP servers */
+  getMcpServers: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-mcp-servers'),
+  /** Get all extension-contributed skills */
+  getSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string }>, void>('extensions.get-skills'),
+  /** Get all extension-contributed settings tabs */
+  getSettingsTabs: bridge.buildProvider<IExtensionSettingsTab[], void>('extensions.get-settings-tabs'),
+  /** Snapshot of all agent activities, for extension settings tabs */
+  getAgentActivitySnapshot: bridge.buildProvider<IExtensionAgentActivitySnapshot, void>('extensions.get-agent-activity-snapshot'),
+
+  // --- Extension Management API (NocoBase-inspired) ---
+  /** Enable a disabled extension */
+  enableExtension: bridge.buildProvider<IBridgeResponse, { name: string }>('extensions.enable'),
+  /** Disable an extension */
+  disableExtension: bridge.buildProvider<IBridgeResponse, { name: string; reason?: string }>('extensions.disable'),
+  /** Get permission summary for an extension (Figma-inspired) */
+  getPermissions: bridge.buildProvider<IExtensionPermissionSummary[], { name: string }>('extensions.get-permissions'),
+  /** Get overall risk level for an extension */
+  getRiskLevel: bridge.buildProvider<string, { name: string }>('extensions.get-risk-level'),
+  /** Extension state change events (push to renderer when enable/disable happens) */
+  stateChanged: bridge.buildEmitter<{ name: string; enabled: boolean; reason?: string }>('extensions.state-changed'),
 };
 
 // ==================== Channel API ====================

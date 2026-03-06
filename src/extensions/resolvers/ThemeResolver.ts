@@ -8,6 +8,8 @@ import * as path from 'path';
 import { existsSync, readFileSync } from 'fs';
 import type { ICssTheme } from '@/common/storage';
 import type { LoadedExtension, ExtTheme } from '../types';
+import { toAssetUrl } from '../assetProtocol';
+import { isPathWithinDirectory } from '../pathSafety';
 
 export function resolveThemes(extensions: LoadedExtension[]): ICssTheme[] {
   const themes: ICssTheme[] = [];
@@ -36,7 +38,7 @@ export function resolveThemes(extensions: LoadedExtension[]): ICssTheme[] {
 
 function convertTheme(theme: ExtTheme, ext: LoadedExtension): ICssTheme | null {
   const absolutePath = path.resolve(ext.directory, theme.file);
-  if (!absolutePath.startsWith(ext.directory)) {
+  if (!isPathWithinDirectory(absolutePath, ext.directory)) {
     console.warn(`[Extensions] Theme file path traversal attempt: ${theme.file} in ${ext.manifest.name}`);
     return null;
   }
@@ -51,8 +53,9 @@ function convertTheme(theme: ExtTheme, ext: LoadedExtension): ICssTheme | null {
     let cover: string | undefined;
     if (theme.cover) {
       const coverPath = path.resolve(ext.directory, theme.cover);
-      if (coverPath.startsWith(ext.directory) && existsSync(coverPath)) {
-        cover = `file://${coverPath.replace(/\\/g, '/')}`;
+      if (isPathWithinDirectory(coverPath, ext.directory) && existsSync(coverPath)) {
+        // Use aion-asset:// protocol to bypass file:// security restrictions in dev mode
+        cover = toAssetUrl(coverPath);
       }
     }
 

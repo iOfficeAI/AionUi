@@ -8,6 +8,8 @@ import fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
 import type { LoadedExtension, ExtAssistant } from '../types';
+import { isPathWithinDirectory } from '../pathSafety';
+import { toAssetUrl } from '../assetProtocol';
 
 export async function resolveAssistants(extensions: LoadedExtension[]): Promise<Record<string, unknown>[]> {
   const assistants: Record<string, unknown>[] = [];
@@ -26,48 +28,52 @@ export async function resolveAssistants(extensions: LoadedExtension[]): Promise<
   return assistants;
 }
 
-async function convertAssistant(assistant: ExtAssistant, ext: LoadedExtension): Promise<Record<string, unknown>> {
-  const context = await readContextFile(assistant.contextFile, ext.directory);
-  let contextI18n: Record<string, string> | undefined;
-
-  if (assistant.contextFileI18n) {
-    contextI18n = {};
-    for (const [locale, filePath] of Object.entries(assistant.contextFileI18n)) {
-      const content = await readContextFile(filePath, ext.directory);
-      if (content) {
-        contextI18n[locale] = content;
+/**
+ * Resolve agents — structurally identical to assistants but sourced from `contributes.agents`.
+ * Agents represent autonomous agent presets (e.g. leis, openfang, opencode style).
+ */
+export async function resolveAgents(extensions: LoadedExtension[]): Promise<Record<string, unknown>[]> {
+  const agents: Record<string, unknown>[] = [];
+  for (const ext of extensions) {
+    const declaredAgents = ext.manifest.contributes.agents;
+    if (!declaredAgents || declaredAgents.length === 0) continue;
+    for (const agent of declaredAgents) {
+      try {
+        const config = await convertAssistant(agent, ext, 'agent');
+        agents.push(config);
+      } catch (error) {
+        console.warn(`[Extensions] Failed to resolve agent "${agent.id}" from ${ext.manifest.name}:`, error instanceof Error ? error.message : error);
       }
     }
-    if (Object.keys(contextI18n).length === 0) {
-      contextI18n = undefined;
-    }
   }
+  return agents;
+}
+
+async function convertAssistant(assistant: ExtAssistant, ext: LoadedExtension, kind: 'assistant' | 'agent' = 'assistant'): Promise<Record<string, unknown>> {
+  const context = await readContextFile(assistant.contextFile, ext.directory);
 
   return {
     id: `ext-${assistant.id}`,
     name: assistant.name,
-    nameI18n: assistant.nameI18n,
     description: assistant.description,
-    descriptionI18n: assistant.descriptionI18n,
     avatar: assistant.avatar ? resolveIconPath(assistant.avatar, ext.directory) : undefined,
     presetAgentType: assistant.presetAgentType,
     context: context || '',
-    contextI18n,
     models: assistant.models,
     enabledSkills: assistant.enabledSkills,
     prompts: assistant.prompts,
-    promptsI18n: assistant.promptsI18n,
     isPreset: true,
     isBuiltin: false,
     enabled: true,
     _source: 'extension',
     _extensionName: ext.manifest.name,
+    _kind: kind,
   };
 }
 
 async function readContextFile(relativePath: string, extensionDir: string): Promise<string | null> {
   const absolutePath = path.resolve(extensionDir, relativePath);
-  if (!absolutePath.startsWith(extensionDir)) {
+  if (!isPathWithinDirectory(absolutePath, extensionDir)) {
     console.warn(`[Extensions] Context file path traversal attempt: ${relativePath}`);
     return null;
   }
@@ -83,9 +89,13 @@ async function readContextFile(relativePath: string, extensionDir: string): Prom
   }
 }
 
-function resolveIconPath(icon: string, extensionDir: string): string {
+function resolveIconPath(icon: string, extensionDir: string): string | undefined {
   if (icon.startsWith('http://') || icon.startsWith('https://')) return icon;
   if (!icon.includes('/') && !icon.includes('\\') && !icon.includes('.')) return icon;
   const absPath = path.isAbsolute(icon) ? icon : path.resolve(extensionDir, icon);
-  return `file://${absPath.replace(/\\/g, '/')}`;
+  if (!isPathWithinDirectory(absPath, extensionDir)) {
+    console.warn(`[Extensions] Assistant icon path traversal attempt: ${icon}`);
+    return undefined;
+  }
+  return toAssetUrl(absPath);
 }

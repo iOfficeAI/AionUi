@@ -50,17 +50,35 @@ export class ExtensionLoader {
 
   private getScanSources(): Array<{ dir: string; source: ExtensionSource }> {
     const sources: Array<{ dir: string; source: ExtensionSource }> = [];
+    const seen = new Set<string>();
+
+    const pushSource = (dir: string, source: ExtensionSource) => {
+      const normalized = path.resolve(dir);
+      if (seen.has(normalized)) return;
+      seen.add(normalized);
+      sources.push({ dir: normalized, source });
+    };
+
     const userDir = getUserExtensionsDir();
-    sources.push({ dir: userDir, source: 'local' });
+    pushSource(userDir, 'local');
 
     const appDataDir = getAppDataExtensionsDir();
     if (appDataDir !== userDir) {
-      sources.push({ dir: appDataDir, source: 'appdata' });
+      pushSource(appDataDir, 'appdata');
     }
 
     const envDirs = getEnvExtensionsDirs();
     for (const dir of envDirs) {
-      sources.push({ dir, source: 'env' });
+      pushSource(dir, 'env');
+    }
+
+    // Development convenience: always auto-load local example extensions when present.
+    // This ensures demo extensions (e.g. ext-feishu / ext-buddy) are discoverable
+    // even when AIONUI_EXTENSIONS_PATH points to a custom directory.
+    const devExampleDirs = [path.resolve(process.cwd(), 'examples'), path.resolve(process.cwd(), '..', 'examples')];
+    for (const dir of devExampleDirs) {
+      if (!existsSync(dir)) continue;
+      pushSource(dir, 'local');
     }
 
     return sources;

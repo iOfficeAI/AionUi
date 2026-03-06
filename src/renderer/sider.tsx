@@ -1,18 +1,19 @@
 import { ArrowCircleLeft, ListCheckbox, Plus, SettingTwo } from '@icon-park/react';
 import { IconMoonFill, IconSunFill } from '@arco-design/web-react/icon';
 import classNames from 'classnames';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import WorkspaceGroupedHistory from './pages/conversation/WorkspaceGroupedHistory';
-import SettingsSider from './pages/settings/SettingsSider';
 import { iconColors } from './theme/colors';
 import { Tooltip } from '@arco-design/web-react';
-import { usePreviewContext } from './pages/conversation/preview';
+import { usePreviewContext } from './pages/conversation/preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip';
 import { useLayoutContext } from './context/LayoutContext';
 import { blurActiveElement } from './utils/focus';
 import { useThemeContext } from './context/ThemeContext';
+
+const WorkspaceGroupedHistory = React.lazy(() => import('./pages/conversation/WorkspaceGroupedHistory'));
+const SettingsSider = React.lazy(() => import('./pages/settings/SettingsSider'));
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -78,7 +79,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       {/* Main content area */}
       <div className='flex-1 min-h-0 overflow-hidden'>
         {isSettings ? (
-          <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled}></SettingsSider>
+          <Suspense fallback={<div className='size-full' />}>
+            <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled}></SettingsSider>
+          </Suspense>
         ) : (
           <div className='size-full flex flex-col'>
             <div className='mb-8px shrink-0 flex items-center gap-8px'>
@@ -115,7 +118,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 </div>
               </Tooltip>
             </div>
-            <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
+            <Suspense fallback={<div className='flex-1 min-h-0' />}>
+              <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
+            </Suspense>
           </div>
         )}
       </div>

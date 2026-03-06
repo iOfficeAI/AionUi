@@ -9,6 +9,8 @@ import { getDatabase } from '@/process/database';
 import { getChannelManager } from '@/channels/core/ChannelManager';
 import { getPairingService } from '@/channels/pairing/PairingService';
 import { ExtensionRegistry } from '@/extensions';
+import { toAssetUrl } from '@/extensions/assetProtocol';
+import * as path from 'path';
 import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
 import { hasPluginCredentials, rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 
@@ -37,9 +39,43 @@ export function initChannelBridge(): void {
       const registry = ExtensionRegistry.getInstance();
       const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
-      const statuses: IChannelPluginStatus[] = result.data.map((plugin) => {
+      const extensions = registry.getLoadedExtensions();
+      const resolveExtensionMeta = (pluginType: string): IChannelPluginStatus['extensionMeta'] | undefined => {
+        try {
+          const meta = registry.getChannelPluginMeta(pluginType);
+          if (!meta || typeof meta !== 'object') return undefined;
+          const m = meta as Record<string, unknown>;
+          const extensionMeta: NonNullable<IChannelPluginStatus['extensionMeta']> = {
+            credentialFields: Array.isArray(m.credentialFields) ? m.credentialFields : undefined,
+            configFields: Array.isArray(m.configFields) ? m.configFields : undefined,
+            description: typeof m.description === 'string' ? m.description : undefined,
+          };
+
+          const ext = extensions.find((e) => e.manifest.contributes.channelPlugins?.some((cp) => cp.type === pluginType));
+          if (ext) {
+            extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
+            const iconField = typeof m.icon === 'string' ? m.icon : undefined;
+            if (iconField) {
+              if (iconField.startsWith('http://') || iconField.startsWith('https://')) {
+                extensionMeta.icon = iconField;
+              } else {
+                const absPath = path.isAbsolute(iconField) ? iconField : path.resolve(ext.directory, iconField);
+                extensionMeta.icon = toAssetUrl(absPath);
+              }
+            }
+          }
+
+          return extensionMeta;
+        } catch {
+          return undefined;
+        }
+      };
+
+      const statusMap = new Map<string, IChannelPluginStatus>();
+
+      for (const plugin of result.data) {
         const isExtension = !BUILTIN_TYPES.has(plugin.type);
-        const status: IChannelPluginStatus = {
+        statusMap.set(plugin.type, {
           id: plugin.id,
           type: plugin.type,
           name: plugin.name,
@@ -50,35 +86,31 @@ export function initChannelBridge(): void {
           activeUsers: 0,
           hasToken: hasPluginCredentials(plugin.type, plugin.credentials),
           isExtension,
-        };
+          extensionMeta: isExtension ? resolveExtensionMeta(plugin.type) : undefined,
+        });
+      }
 
-        // Enrich extension plugins with metadata for dynamic Settings UI
-        if (isExtension) {
-          try {
-            const meta = registry.getChannelPluginMeta(plugin.type);
-            if (meta && typeof meta === 'object') {
-              const m = meta as Record<string, unknown>;
-              status.extensionMeta = {
-                credentialFields: Array.isArray(m.credentialFields) ? m.credentialFields : undefined,
-                configFields: Array.isArray(m.configFields) ? m.configFields : undefined,
-                description: typeof m.description === 'string' ? m.description : undefined,
-              };
-              // Try to find extension name from loaded extensions
-              const extensions = registry.getLoadedExtensions();
-              const ext = extensions.find((e) => e.manifest.contributes.channelPlugins?.some((cp) => cp.type === plugin.type));
-              if (ext) {
-                status.extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
-              }
-            }
-          } catch {
-            // Extension registry may not have meta for this type
-          }
-        }
+      // Ensure extension-contributed channel plugins are always visible in settings
+      // even before first enable (i.e. not yet persisted in DB).
+      for (const [pluginType, entry] of registry.getChannelPlugins()) {
+        if (statusMap.has(pluginType)) continue;
+        const extensionMeta = resolveExtensionMeta(pluginType);
+        const meta = entry.meta as { name?: string } | undefined;
+        statusMap.set(pluginType, {
+          id: pluginType,
+          type: pluginType,
+          name: meta?.name || pluginType,
+          enabled: false,
+          connected: false,
+          status: 'stopped',
+          activeUsers: 0,
+          hasToken: false,
+          isExtension: true,
+          extensionMeta,
+        });
+      }
 
-        return status;
-      });
-
-      return { success: true, data: statuses };
+      return { success: true, data: Array.from(statusMap.values()) };
     } catch (error: any) {
       console.error('[ChannelBridge] getPluginStatus error:', error);
       return { success: false, msg: error.message };

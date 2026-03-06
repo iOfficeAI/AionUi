@@ -9,6 +9,7 @@ import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
 import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { Switch, Tag } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,13 +29,22 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
     slack: { src: ChannelSlackLogo, alt: 'Slack' },
     discord: { src: ChannelDiscordLogo, alt: 'Discord' },
   };
-  const logo = channelLogoMap[channel.id];
+  const builtinLogo = channelLogoMap[channel.id];
+  // Extension channels may provide a custom icon via ChannelConfig
+  // Resolve aion-asset:// or file:// URLs for the current environment
+  const logoSrc = builtinLogo?.src || resolveExtensionAssetUrl(channel.icon);
+  const logoAlt = builtinLogo?.alt || channel.title;
 
   return (
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-8px flex-1 min-w-0'>
-        {logo && <img src={logo.src} alt={logo.alt} className='w-14px h-14px object-contain shrink-0' />}
+        {logoSrc && <img src={logoSrc} alt={logoAlt} className='w-14px h-14px object-contain shrink-0' />}
         <span className='text-14px text-t-primary'>{channel.title}</span>
+        {channel.isExtension && (
+          <Tag size='small' color='arcoblue'>
+            ext
+          </Tag>
+        )}
         {channel.status === 'coming_soon' && (
           <Tag size='small' color='gray'>
             {t('settings.channels.comingSoon', 'Coming Soon')}

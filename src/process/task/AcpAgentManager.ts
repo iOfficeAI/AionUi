@@ -32,6 +32,8 @@ interface AcpAgentManagerData {
   customWorkspace?: boolean;
   conversation_id: string;
   customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
+  /** Display name for the agent (from extension or custom config) / Agent 显示名称（来自扩展或自定义配置） */
+  agentName?: string;
   presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
   /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
   enabledSkills?: string[];
@@ -47,6 +49,13 @@ interface AcpAgentManagerData {
   currentModelId?: string;
 }
 
+type BufferedStreamTextMessage = {
+  conversationId: string;
+  backend: AcpBackend;
+  message: Extract<TMessage, { type: 'text' }>;
+  timer: ReturnType<typeof setTimeout>;
+};
+
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
   agent: AcpAgent;
@@ -60,6 +69,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private currentMsgContent: string = '';
   private acpAvailableSlashCommands: SlashCommandItem[] = [];
   private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
+  private readonly streamDbFlushIntervalMs = 120;
+  private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
@@ -69,6 +80,54 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.currentMode = data.sessionMode || 'default';
     this.persistedModelId = data.currentModelId || null;
     this.status = 'pending';
+  }
+
+  private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
+    return `${message.conversation_id}:${message.msg_id || message.id}`;
+  }
+
+  private queueBufferedStreamTextMessage(message: Extract<TMessage, { type: 'text' }>, backend: AcpBackend): void {
+    const key = this.makeStreamBufferKey(message);
+    const existing = this.bufferedStreamTextMessages.get(key);
+    if (existing) {
+      existing.message.content = {
+        ...existing.message.content,
+        content: existing.message.content.content + message.content.content,
+      };
+      return;
+    }
+
+    const bufferedMessage: Extract<TMessage, { type: 'text' }> = {
+      ...message,
+      content: { ...message.content },
+    };
+    const timer = setTimeout(() => {
+      this.flushBufferedStreamTextMessage(key);
+    }, this.streamDbFlushIntervalMs);
+
+    this.bufferedStreamTextMessages.set(key, {
+      conversationId: message.conversation_id,
+      backend,
+      message: bufferedMessage,
+      timer,
+    });
+  }
+
+  private flushBufferedStreamTextMessage(key: string): void {
+    const buffered = this.bufferedStreamTextMessages.get(key);
+    if (!buffered) return;
+
+    clearTimeout(buffered.timer);
+    this.bufferedStreamTextMessages.delete(key);
+    addOrUpdateMessage(buffered.conversationId, buffered.message, buffered.backend);
+  }
+
+  private flushBufferedStreamTextMessages(): void {
+    if (this.bufferedStreamTextMessages.size === 0) return;
+    const keys = Array.from(this.bufferedStreamTextMessages.keys());
+    for (const key of keys) {
+      this.flushBufferedStreamTextMessage(key);
+    }
   }
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -109,17 +168,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
 
         if (customAgentConfig?.defaultCliPath) {
-          // Parse defaultCliPath which may contain command + args (e.g., "node /path/to/file.js" or "goose acp")
-          const parts = customAgentConfig.defaultCliPath.trim().split(/\s+/);
-          cliPath = parts[0]; // First part is the command
-
-          // 参数优先级：acpArgs > defaultCliPath 中解析的参数
-          // Argument priority: acpArgs > args parsed from defaultCliPath
-          if (customAgentConfig.acpArgs) {
-            customArgs = customAgentConfig.acpArgs;
-          } else if (parts.length > 1) {
-            customArgs = parts.slice(1); // Fallback to parsed args
-          }
+          // Pass the full defaultCliPath to createGenericSpawnConfig which handles
+          // command parsing (npx detection, Windows shell quoting, etc.).
+          // Previously we split here which broke paths with spaces on Windows
+          // and lost npx package arguments when acpArgs was also set.
+          cliPath = customAgentConfig.defaultCliPath.trim();
+          customArgs = customAgentConfig.acpArgs;
           customEnv = customAgentConfig.env;
         }
       } else if (data.backend !== 'custom') {
@@ -186,6 +240,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           customArgs: customArgs,
           customEnv: customEnv,
           yoloMode: yoloMode,
+          agentName: data.agentName,
           acpSessionId: data.acpSessionId,
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
         },
@@ -257,7 +312,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
             if (tMessage) {
               const dbStart = Date.now();
-              addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
+              const isStreamTextChunk = tMessage.type === 'text' && message.type === 'content';
+              if (isStreamTextChunk) {
+                this.queueBufferedStreamTextMessage(tMessage, data.backend);
+              } else {
+                this.flushBufferedStreamTextMessages();
+                addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
+              }
               const dbDuration = Date.now() - dbStart;
 
               if (transformDuration > 5 || dbDuration > 5) {
@@ -266,7 +327,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
               // Track streaming content for cron detection when turn ends
               // ACP sends content in chunks, we accumulate here for later detection
-              if (tMessage.type === 'text' && message.type === 'content') {
+              if (isStreamTextChunk) {
                 const textContent = extractTextFromMessage(tMessage);
                 if (tMessage.msg_id !== this.currentMsgId) {
                   // New message, reset accumulator
@@ -303,6 +364,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
         },
         onSignalEvent: async (v) => {
+          // Flush buffered text chunks before handling turn-level signals
+          this.flushBufferedStreamTextMessages();
+
           // 仅发送信号到前端，不更新消息列表
           if (v.type === 'acp_permission') {
             const { toolCall, options } = v.data as AcpPermissionRequest;
@@ -506,6 +570,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
       return result;
     } catch (e) {
+      this.flushBufferedStreamTextMessages();
       cronBusyGuard.setProcessing(this.conversation_id, false);
       this.status = 'finished';
       const message: IResponseMessage = {
@@ -843,6 +908,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * timeout and graceful path race against each other.
    */
   kill() {
+    this.flushBufferedStreamTextMessages();
+
     let killed = false;
     const GRACE_PERIOD_MS = 500; // Allow child process time to exit cleanly
     const HARD_TIMEOUT_MS = 1500; // Force kill if stop() hangs

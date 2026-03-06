@@ -1,32 +1,21 @@
 {
-  "$schema": "../../schemas/aion-extension-v1.json",
   "name": "ext-feishu",
   "displayName": "ext-飞书",
-  "displayNameI18n": {
-    "en": "ext-Feishu",
-    "zh-CN": "ext-飞书",
-    "zh": "ext-飞书"
-  },
   "version": "0.1.0",
   "description": "Feishu Channels extension example (not integrated by default), demonstrates i18n, data collection hooks, and cross-runtime assets",
-  "descriptionI18n": {
-    "en": "Feishu Channels extension example for the extension framework",
-    "zh-CN": "基于扩展框架的飞书 Channels 示例（默认未集成）",
-    "zh": "基于扩展框架的飞书 Channels 示例（默认未集成）"
-  },
   "author": "AionUI Contributors",
   "icon": "assets/ext-feishu.svg",
+  "i18n": {
+    "localesDir": "i18n",
+    "defaultLocale": "en-US"
+  },
   "contributes": {
     "channelPlugins": [
       {
         "type": "ext-feishu",
         "name": "ext-飞书 Channel",
-        "nameI18n": {
-          "en": "ext-Feishu Channel",
-          "zh-CN": "ext-飞书频道",
-          "zh": "ext-飞书频道"
-        },
         "description": "Feishu channel adapter sample with event dedupe and in-memory data collection",
+        "icon": "assets/ext-feishu.svg",
         "entryPoint": "channels/ext-feishu-channel.js",
         "credentialFields": [
           {

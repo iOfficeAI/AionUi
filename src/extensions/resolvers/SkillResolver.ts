@@ -7,6 +7,7 @@
 import * as path from 'path';
 import { existsSync } from 'fs';
 import type { LoadedExtension, ExtSkill } from '../types';
+import { isPathWithinDirectory } from '../pathSafety';
 
 type ResolvedSkill = {
   name: string;
@@ -31,7 +32,7 @@ export function resolveSkills(extensions: LoadedExtension[]): ResolvedSkill[] {
 
 function convertSkill(skill: ExtSkill, ext: LoadedExtension): ResolvedSkill | null {
   const absolutePath = path.resolve(ext.directory, skill.file);
-  if (!absolutePath.startsWith(ext.directory)) {
+  if (!isPathWithinDirectory(absolutePath, ext.directory)) {
     console.warn(`[Extensions] Skill file path traversal attempt: ${skill.file} in ${ext.manifest.name}`);
     return null;
   }

@@ -20,7 +20,8 @@ interface DetectedAgent {
   isPreset?: boolean;
   context?: string;
   avatar?: string;
-  presetAgentType?: PresetAgentType; // Primary agent type for presets
+  // Allow extension-contributed adapter IDs (e.g. 'ext-buddy') in addition to built-in PresetAgentType values
+  presetAgentType?: PresetAgentType | string;
   isExtension?: boolean;
   extensionName?: string;
 }

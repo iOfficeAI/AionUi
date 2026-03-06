@@ -27,8 +27,8 @@ test.describe('Extension: MCP Servers', () => {
 
     const switches = page.locator(ARCO_SWITCH);
     const count = await switches.count();
-    // Should have toggle controls for MCP servers (at least for built-in ones)
-    expect(count).toBeGreaterThanOrEqual(0);
+    // MCP servers should have at least one toggle control
+    expect(count).toBeGreaterThanOrEqual(1);
   });
 
   test('screenshot: MCP tools with extensions', async ({ page }) => {

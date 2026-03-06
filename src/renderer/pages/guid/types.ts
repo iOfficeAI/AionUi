@@ -17,7 +17,8 @@ export type AvailableAgent = {
   isPreset?: boolean;
   context?: string;
   avatar?: string;
-  presetAgentType?: PresetAgentType;
+  // Allow extension-contributed adapter IDs (e.g. 'ext-buddy') in addition to built-in PresetAgentType values
+  presetAgentType?: PresetAgentType | string;
   isExtension?: boolean;
   extensionName?: string;
 };
@@ -37,11 +38,12 @@ export type MentionOption = {
 
 /**
  * Effective agent type info used for UI display and send logic.
+ * agentType and originalType are widened to string to support extension-contributed adapter IDs.
  */
 export type EffectiveAgentInfo = {
-  agentType: PresetAgentType;
+  agentType: PresetAgentType | string;
   isFallback: boolean;
-  originalType: PresetAgentType;
+  originalType: PresetAgentType | string;
   isAvailable: boolean;
 };
 

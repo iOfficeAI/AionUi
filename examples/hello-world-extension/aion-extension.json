@@ -1,22 +1,36 @@
 {
   "$schema": "../../schemas/aion-extension-v1.json",
-  "name": "hello-world-theme",
-  "displayName": "Hello World Theme Extension",
+  "name": "hello-world",
+  "displayName": "Hello World Extension",
   "version": "1.0.0",
-  "description": "A sample extension demonstrating how to contribute CSS themes to AionUI",
+  "description": "A complete demo extension showcasing all AionUI extension capabilities — themes, skills, assistants, agents, ACP adapters (stdio/http), MCP servers, and settings",
   "author": "AionUI Contributors",
+  "icon": "assets/ocean-breeze-cover.svg",
+  "i18n": {
+    "localesDir": "i18n",
+    "defaultLocale": "en-US"
+  },
+  "engine": {
+    "aionui": "^0.1.0"
+  },
+  "lifecycle": {
+    "onActivate": "scripts/activate.js",
+    "onDeactivate": "scripts/deactivate.js"
+  },
+  "permissions": {
+    "storage": true,
+    "network": false,
+    "shell": false,
+    "filesystem": "extension-only",
+    "events": true
+  },
   "contributes": {
-    "themes": [
-      {
-        "id": "ocean-breeze",
-        "name": "Ocean Breeze",
-        "file": "themes/ocean-breeze.css"
-      },
-      {
-        "id": "sunset-glow",
-        "name": "Sunset Glow",
-        "file": "themes/sunset-glow.css"
-      }
-    ]
+    "acpAdapters": "$file:contributes/acp-adapters.json",
+    "mcpServers": "$file:contributes/mcp-servers.json",
+    "assistants": "$file:contributes/assistants.json",
+    "agents": "$file:contributes/agents.json",
+    "skills": "$file:contributes/skills.json",
+    "themes": "$file:contributes/themes.json",
+    "settingsTabs": "$file:contributes/settings-tabs.json"
   }
 }

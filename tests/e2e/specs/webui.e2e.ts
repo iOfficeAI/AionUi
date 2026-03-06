@@ -9,7 +9,7 @@
  *  - Start / stop lifecycle (via the Switch toggle)
  */
 import { test, expect } from '../fixtures';
-import { goToSettings, expectBodyContainsAny, ARCO_SWITCH, takeScreenshot } from '../helpers';
+import { goToSettings, expectBodyContainsAny, ARCO_SWITCH, takeScreenshot, waitForClassChange } from '../helpers';
 
 test.describe('WebUI Service', () => {
   /** Navigate to the WebUI settings tab. */
@@ -103,55 +103,16 @@ test.describe('WebUI Service', () => {
       // If it started, toggle off to clean up
       if (isRunning) {
         await enableSwitch.click();
-        await enableSwitch.evaluate(
-          (el) =>
-            new Promise<void>((resolve) => {
-              const observer = new MutationObserver(() => {
-                observer.disconnect();
-                resolve();
-              });
-              observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-              setTimeout(() => {
-                observer.disconnect();
-                resolve();
-              }, 2000);
-            })
-        );
+        await waitForClassChange(enableSwitch, 2000);
       }
     } else {
       // Was already running – toggle off then back on
       await enableSwitch.click();
-      await enableSwitch.evaluate(
-        (el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => {
-              observer.disconnect();
-              resolve();
-            });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => {
-              observer.disconnect();
-              resolve();
-            }, 2000);
-          })
-      );
+      await waitForClassChange(enableSwitch, 2000);
 
       // Toggle back on to restore
       await enableSwitch.click();
-      await enableSwitch.evaluate(
-        (el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => {
-              observer.disconnect();
-              resolve();
-            });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => {
-              observer.disconnect();
-              resolve();
-            }, 2000);
-          })
-      );
+      await waitForClassChange(enableSwitch, 2000);
     }
   });
 

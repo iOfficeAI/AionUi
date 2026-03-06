@@ -6,8 +6,9 @@
 
 import * as path from 'path';
 import fs from 'fs';
-import { BasePlugin } from '@/channels/plugins/BasePlugin';
+import { BasePlugin, type PluginConfirmHandler, type PluginMessageHandler } from '@/channels/plugins/BasePlugin';
 import type { LoadedExtension, ExtChannelPlugin } from '../types';
+import { isPathWithinDirectory } from '../pathSafety';
 
 const DEBUG_ENABLED = process.env.AIONUI_EXTENSION_DEBUG === '1' || process.env.AIONUI_EXTENSION_DEBUG === 'true';
 
@@ -30,11 +31,81 @@ type ChannelPluginEntry = {
  */
 const REQUIRED_METHODS = ['start', 'stop', 'sendMessage'] as const;
 
+type LegacyExternalPlugin = {
+  start: () => Promise<unknown> | unknown;
+  stop: () => Promise<unknown> | unknown;
+  sendMessage: (chatId: string, message: unknown) => Promise<string | unknown> | string | unknown;
+  editMessage?: (chatId: string, messageId: string, message: unknown) => Promise<unknown> | unknown;
+  getActiveUserCount?: () => number;
+  getBotInfo?: () => { username?: string; displayName?: string } | null;
+  onMessage?: (handler: PluginMessageHandler) => void;
+  onConfirm?: (handler: PluginConfirmHandler) => void;
+};
+
 function isValidPluginClass(PluginClass: unknown): boolean {
   if (typeof PluginClass !== 'function') return false;
   const proto = (PluginClass as { prototype?: unknown }).prototype;
   if (!proto || typeof proto !== 'object') return false;
   return REQUIRED_METHODS.every((method) => typeof (proto as Record<string, unknown>)[method] === 'function');
+}
+
+function createDuckTypedWrapper(pluginType: string, PluginClass: new (config?: unknown) => LegacyExternalPlugin): typeof BasePlugin {
+  return class ExtensionDuckTypedWrapper extends BasePlugin {
+    readonly type = pluginType as any;
+
+    private impl: LegacyExternalPlugin | null = null;
+
+    override onMessage(handler: PluginMessageHandler): void {
+      super.onMessage(handler);
+      this.impl?.onMessage?.(handler);
+    }
+
+    override onConfirm(handler: PluginConfirmHandler): void {
+      super.onConfirm(handler);
+      this.impl?.onConfirm?.(handler);
+    }
+
+    protected async onInitialize(config: import('@/channels/types').IChannelPluginConfig): Promise<void> {
+      this.impl = new PluginClass(config);
+      if (this.messageHandler) {
+        this.impl.onMessage?.(this.messageHandler);
+      }
+      if (this.confirmHandler) {
+        this.impl.onConfirm?.(this.confirmHandler);
+      }
+    }
+
+    protected async onStart(): Promise<void> {
+      await this.impl?.start();
+    }
+
+    protected async onStop(): Promise<void> {
+      await this.impl?.stop();
+    }
+
+    async sendMessage(chatId: string, message: import('@/channels/types').IUnifiedOutgoingMessage): Promise<string> {
+      if (!this.impl) throw new Error('Extension plugin is not initialized');
+      const result = await this.impl.sendMessage(chatId, message);
+      return typeof result === 'string' ? result : `${pluginType}-msg-${Date.now()}`;
+    }
+
+    async editMessage(chatId: string, messageId: string, message: import('@/channels/types').IUnifiedOutgoingMessage): Promise<void> {
+      if (!this.impl) throw new Error('Extension plugin is not initialized');
+      if (typeof this.impl.editMessage === 'function') {
+        await this.impl.editMessage(chatId, messageId, message);
+        return;
+      }
+      await this.impl.sendMessage(chatId, message);
+    }
+
+    getActiveUserCount(): number {
+      return this.impl?.getActiveUserCount?.() ?? 0;
+    }
+
+    getBotInfo(): { username?: string; displayName?: string } | null {
+      return this.impl?.getBotInfo?.() ?? null;
+    }
+  };
 }
 
 export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string, ChannelPluginEntry> {
@@ -44,7 +115,7 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
     if (!plugins || plugins.length === 0) continue;
     for (const plugin of plugins) {
       const entryPath = path.resolve(ext.directory, plugin.entryPoint);
-      if (!entryPath.startsWith(ext.directory)) {
+      if (!isPathWithinDirectory(entryPath, ext.directory)) {
         console.warn(`[Extension] Path traversal detected in channel plugin: ${plugin.entryPoint}`);
         continue;
       }
@@ -63,7 +134,19 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
         // eslint-disable-next-line no-eval
         const nativeRequire = eval('require');
         const mod = nativeRequire(entryPath);
-        const PluginClass = mod.default || mod.Plugin || mod[Object.keys(mod)[0]];
+        
+        let PluginClass = mod.default || mod.Plugin;
+        // Support module.exports = Class (CommonJS)
+        if (!PluginClass && typeof mod === 'function') {
+          PluginClass = mod;
+        }
+        // Fallback: use first exported property
+        if (!PluginClass && typeof mod === 'object') {
+          const keys = Object.keys(mod);
+          if (keys.length > 0) {
+            PluginClass = mod[keys[0]];
+          }
+        }
 
         // Internal plugins that directly extend BasePlugin pass the instanceof check.
         // External extension plugins cannot import BasePlugin, so we fall back to
@@ -77,11 +160,28 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
           continue;
         }
 
+        const constructor = isInternal ? (PluginClass as typeof BasePlugin) : createDuckTypedWrapper(plugin.type, PluginClass as new (config?: unknown) => LegacyExternalPlugin);
+
+        // Resolve icon path to absolute URL (aion-asset://) for frontend
+        let iconUrl = plugin.icon;
+        if (plugin.icon && !plugin.icon.match(/^(https?:|data:|aion-asset:|file:)/)) {
+          const absPath = path.resolve(ext.directory, plugin.icon);
+          // Windows path separator handling
+          const normalizedPath = absPath.split(path.sep).join('/');
+          // If starts with drive letter (e.g. C:/...), ensure no leading slash for valid aion-asset protocol if logic requires, 
+          // but resolveExtensionAssetUrl handles "aion-asset://asset/{absPath}". 
+          // Note: path.resolve keeps drive letter on Windows. 
+          iconUrl = `aion-asset://asset/${normalizedPath}`;
+        }
+
         result.set(plugin.type, {
-          constructor: PluginClass,
-          meta: plugin,
+          constructor,
+          meta: {
+            ...plugin,
+            icon: iconUrl
+          },
         });
-        console.log(`[Extension] Loaded channel plugin: ${plugin.type} (${plugin.name})` + (isDuckValid ? ' [duck-typed]' : ''));
+        console.log(`[Extension] Loaded channel plugin: ${plugin.type} (${plugin.name})` + (isDuckValid ? ' [duck-typed-wrapped]' : ''));
         logSecurity(`Channel plugin "${plugin.type}" loaded successfully`);
       } catch (error) {
         console.error(`[Extension] Failed to load channel plugin "${plugin.type}":`, error);

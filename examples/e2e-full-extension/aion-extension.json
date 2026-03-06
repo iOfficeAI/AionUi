@@ -1,21 +1,18 @@
 {
   "name": "e2e-full-extension",
   "displayName": "E2E Full Test Extension",
-  "displayNameI18n": {
-    "zh": "E2E 全功能测试扩展"
-  },
   "version": "1.0.0",
   "description": "A comprehensive test extension covering all contribute types for E2E testing",
-  "descriptionI18n": {
-    "zh": "覆盖所有贡献类型的综合 E2E 测试扩展"
-  },
   "author": "AionUI E2E Tests",
+  "i18n": {
+    "localesDir": "i18n",
+    "defaultLocale": "en-US"
+  },
   "contributes": {
     "acpAdapters": [
       {
         "id": "e2e-cli-agent",
         "name": "E2E CLI Agent",
-        "nameI18n": { "zh": "E2E CLI 测试 Agent" },
         "description": "CLI-based agent for E2E testing",
         "connectionType": "cli",
         "cliCommand": "echo",
@@ -31,12 +28,26 @@
       {
         "id": "e2e-http-agent",
         "name": "E2E HTTP Agent",
-        "nameI18n": { "zh": "E2E HTTP 测试 Agent" },
         "description": "HTTP-based agent for E2E testing",
         "connectionType": "http",
         "endpoint": "http://localhost:19999/acp",
         "supportsStreaming": false,
-        "models": ["test-http-model"]
+        "models": ["test-http-model"],
+        "apiKeyFields": [
+          {
+            "key": "E2E_API_KEY",
+            "label": "API Key",
+            "type": "password",
+            "required": true
+          },
+          {
+            "key": "E2E_API_ENDPOINT",
+            "label": "API Endpoint",
+            "type": "text",
+            "required": false,
+            "default": "http://localhost:19999"
+          }
+        ]
       }
     ],
     "skills": [
@@ -76,7 +87,6 @@
       {
         "type": "e2e-test-channel",
         "name": "E2E Test Channel",
-        "nameI18n": { "zh": "E2E 测试频道" },
         "description": "A mock channel plugin for E2E testing",
         "entryPoint": "channels/test-channel.js",
         "credentialFields": [
@@ -109,19 +119,20 @@
       {
         "id": "e2e-dark-theme",
         "name": "E2E Dark Theme",
-        "file": "themes/e2e-dark.css"
+        "file": "themes/e2e-dark.css",
+        "cover": "assets/e2e-dark-cover.svg"
       },
       {
         "id": "e2e-light-theme",
         "name": "E2E Light Theme",
-        "file": "themes/e2e-light.css"
+        "file": "themes/e2e-light.css",
+        "cover": "assets/e2e-light-cover.svg"
       }
     ],
     "assistants": [
       {
         "id": "e2e-test-assistant",
         "name": "E2E Test Assistant",
-        "nameI18n": { "zh": "E2E 测试助手" },
         "description": "A test assistant preset for E2E validation",
         "presetAgentType": "gemini",
         "contextFile": "assistants/test-assistant-context.md",
@@ -129,6 +140,7 @@
         "enabledSkills": ["e2e-test-skill"],
         "prompts": ["You are an E2E test assistant."]
       }
-    ]
+    ],
+    "settingsTabs": "$file:contributes/settings-tabs.json"
   }
 }

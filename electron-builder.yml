@@ -106,7 +106,7 @@ win:
     - nsis
 #    - msi
     - zip
-  # icon: resources/app.ico  # Temporarily disabled - current ico is 32x32, need 256x256+
+  icon: null  # Disable icon to avoid rcedit "Unable to commit changes" error (often caused by antivirus locking)
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
 nsis:

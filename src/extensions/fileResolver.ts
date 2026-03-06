@@ -8,6 +8,7 @@ import fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
+import { isPathWithinDirectory } from './pathSafety';
 
 const FILE_REF_PREFIX = '$file:';
 const JSON_EXTENSIONS = new Set(['.json', '.jsonc', '.json5']);
@@ -41,6 +42,12 @@ export async function resolveFileRefs(obj: unknown, extensionDir: string, resolv
 async function resolveFileRefValue(ref: string, extensionDir: string, visited: Set<string>): Promise<unknown> {
   const relativePath = extractFilePath(ref);
   const absolutePath = path.resolve(extensionDir, relativePath);
+
+  // Security: prevent path traversal — $file references must resolve within the extension directory
+  if (!isPathWithinDirectory(absolutePath, extensionDir)) {
+    console.warn(`[Extensions] Path traversal attempt in $file: reference: ${relativePath}`);
+    return ref;
+  }
 
   if (visited.has(absolutePath)) {
     console.warn(`[Extensions] Circular $file: reference detected: ${relativePath}`);

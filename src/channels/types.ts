@@ -124,6 +124,8 @@ export interface IChannelPluginStatus {
     description?: string;
     /** Extension name this plugin belongs to */
     extensionName?: string;
+    /** Icon URL for the extension channel plugin */
+    icon?: string;
   };
 }
 

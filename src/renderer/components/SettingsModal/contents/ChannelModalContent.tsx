@@ -12,7 +12,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/useModelProviderList';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
-import { Message } from '@arco-design/web-react';
+import { Input, InputNumber, Message, Select, Switch } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,21 @@ import LarkConfigForm from './LarkConfigForm';
 import TelegramConfigForm from './TelegramConfigForm';
 
 type ChannelModelConfigKey = 'assistant.telegram.defaultModel' | 'assistant.lark.defaultModel' | 'assistant.dingtalk.defaultModel';
+
+type ExtensionFieldType = 'text' | 'password' | 'select' | 'number' | 'boolean';
+
+type ExtensionFieldSchema = {
+  key: string;
+  label: string;
+  type: ExtensionFieldType;
+  required?: boolean;
+  options?: string[];
+  default?: string | number | boolean;
+};
+
+type ExtensionFieldValues = Record<string, Record<string, string | number | boolean>>;
+
+const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk']);
 
 /**
  * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
@@ -131,6 +146,9 @@ const ChannelModalContent: React.FC = () => {
   const [enableLoading, setEnableLoading] = useState(false);
   const [larkEnableLoading, setLarkEnableLoading] = useState(false);
   const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
+  const [extensionStatuses, setExtensionStatuses] = useState<Record<string, IChannelPluginStatus>>({});
+  const [extensionLoadingMap, setExtensionLoadingMap] = useState<Record<string, boolean>>({});
+  const [extensionFieldValues, setExtensionFieldValues] = useState<ExtensionFieldValues>({});
 
   // Track the token entered in TelegramConfigForm so the toggle handler can use it
   const telegramTokenRef = React.useRef<string>('');
@@ -157,9 +175,37 @@ const ChannelModalContent: React.FC = () => {
         const telegramPlugin = result.data.find((p) => p.type === 'telegram');
         const larkPlugin = result.data.find((p) => p.type === 'lark');
         const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
+        const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
+
         setPluginStatus(telegramPlugin || null);
         setLarkPluginStatus(larkPlugin || null);
         setDingtalkPluginStatus(dingtalkPlugin || null);
+        setExtensionStatuses(() => {
+          const next: Record<string, IChannelPluginStatus> = {};
+          for (const plugin of extensionPlugins) {
+            next[plugin.type] = plugin;
+          }
+          return next;
+        });
+
+        setExtensionFieldValues((prev) => {
+          const next: ExtensionFieldValues = { ...prev };
+          for (const plugin of extensionPlugins) {
+            const fields = [
+              ...(plugin.extensionMeta?.credentialFields || []),
+              ...(plugin.extensionMeta?.configFields || []),
+            ] as ExtensionFieldSchema[];
+            if (!next[plugin.type]) {
+              next[plugin.type] = {};
+            }
+            for (const field of fields) {
+              if (next[plugin.type][field.key] === undefined && field.default !== undefined) {
+                next[plugin.type][field.key] = field.default;
+              }
+            }
+          }
+          return next;
+        });
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load plugin status:', error);
@@ -180,6 +226,15 @@ const ChannelModalContent: React.FC = () => {
         setLarkPluginStatus(status);
       } else if (status.type === 'dingtalk') {
         setDingtalkPluginStatus(status);
+      } else {
+        setExtensionStatuses((prev) => ({
+          ...prev,
+          [status.type]: {
+            ...(prev[status.type] || {}),
+            ...status,
+            extensionMeta: status.extensionMeta || prev[status.type]?.extensionMeta,
+          },
+        }));
       }
     });
     return () => unsubscribe();
@@ -313,6 +368,137 @@ const ChannelModalContent: React.FC = () => {
     }
   };
 
+  const updateExtensionFieldValue = useCallback((pluginType: string, key: string, value: string | number | boolean) => {
+    setExtensionFieldValues((prev) => ({
+      ...prev,
+      [pluginType]: {
+        ...(prev[pluginType] || {}),
+        [key]: value,
+      },
+    }));
+  }, []);
+
+  const handleToggleExtensionPlugin = useCallback(
+    async (pluginType: string, enabled: boolean) => {
+      const status = extensionStatuses[pluginType];
+      if (!status) return;
+
+      setExtensionLoadingMap((prev) => ({ ...prev, [pluginType]: true }));
+      try {
+        if (enabled) {
+          const fieldValues = extensionFieldValues[pluginType] || {};
+          const credentialFields = (status.extensionMeta?.credentialFields || []) as ExtensionFieldSchema[];
+          const missingField = credentialFields.find((field) => {
+            if (!field.required) return false;
+            const value = fieldValues[field.key];
+            if (field.type === 'boolean') return value === undefined;
+            return value === undefined || value === '';
+          });
+
+          if (missingField) {
+            Message.warning(
+              t('settings.channels.extension.requiredField', {
+                defaultValue: 'Please fill required field: {{field}}',
+                field: missingField.label,
+              })
+            );
+            return;
+          }
+
+          const result = await channel.enablePlugin.invoke({
+            pluginId: status.id || pluginType,
+            config: fieldValues,
+          });
+
+          if (result.success) {
+            Message.success(t('settings.channels.extension.enabled', { defaultValue: 'Channel enabled' }));
+            await loadPluginStatus();
+          } else {
+            Message.error(result.msg || t('settings.channels.extension.enableFailed', { defaultValue: 'Failed to enable channel' }));
+          }
+        } else {
+          const result = await channel.disablePlugin.invoke({ pluginId: status.id || pluginType });
+          if (result.success) {
+            Message.success(t('settings.channels.extension.disabled', { defaultValue: 'Channel disabled' }));
+            await loadPluginStatus();
+          } else {
+            Message.error(result.msg || t('settings.channels.extension.disableFailed', { defaultValue: 'Failed to disable channel' }));
+          }
+        }
+      } catch (error: any) {
+        Message.error(error.message || String(error));
+      } finally {
+        setExtensionLoadingMap((prev) => ({ ...prev, [pluginType]: false }));
+      }
+    },
+    [extensionStatuses, extensionFieldValues, t, loadPluginStatus]
+  );
+
+  const renderExtensionConfigForm = useCallback(
+    (status: IChannelPluginStatus) => {
+      const pluginType = status.type;
+      const fields = [
+        ...((status.extensionMeta?.credentialFields || []) as ExtensionFieldSchema[]),
+        ...((status.extensionMeta?.configFields || []) as ExtensionFieldSchema[]),
+      ];
+      const values = extensionFieldValues[pluginType] || {};
+
+      if (fields.length === 0) {
+        return <div className='text-14px text-t-secondary py-12px'>{status.extensionMeta?.description || t('settings.channels.extension.noConfig', { defaultValue: 'No extra configuration required.' })}</div>;
+      }
+
+      return (
+        <div className='space-y-10px py-4px'>
+          {status.extensionMeta?.description && <div className='text-13px text-t-secondary leading-relaxed'>{status.extensionMeta.description}</div>}
+          {fields.map((field) => {
+            const rawValue = values[field.key];
+            const label = `${field.label}${field.required ? ' *' : ''}`;
+
+            if (field.type === 'boolean') {
+              return (
+                <div key={`${pluginType}-${field.key}`} className='flex items-center justify-between'>
+                  <span className='text-13px text-t-primary'>{label}</span>
+                  <Switch checked={Boolean(rawValue)} onChange={(checked) => updateExtensionFieldValue(pluginType, field.key, checked)} />
+                </div>
+              );
+            }
+
+            if (field.type === 'number') {
+              return (
+                <div key={`${pluginType}-${field.key}`} className='space-y-6px'>
+                  <div className='text-13px text-t-primary'>{label}</div>
+                  <InputNumber value={typeof rawValue === 'number' ? rawValue : undefined} onChange={(value) => updateExtensionFieldValue(pluginType, field.key, Number(value || 0))} className='w-full' />
+                </div>
+              );
+            }
+
+            if (field.type === 'select') {
+              return (
+                <div key={`${pluginType}-${field.key}`} className='space-y-6px'>
+                  <div className='text-13px text-t-primary'>{label}</div>
+                  <Select value={typeof rawValue === 'string' ? rawValue : undefined} options={(field.options || []).map((option) => ({ label: option, value: option }))} onChange={(value) => updateExtensionFieldValue(pluginType, field.key, String(value))} placeholder={t('settings.channels.extension.selectPlaceholder', { defaultValue: 'Please select' })} allowClear />
+                </div>
+              );
+            }
+
+            return (
+              <div key={`${pluginType}-${field.key}`} className='space-y-6px'>
+                <div className='text-13px text-t-primary'>{label}</div>
+                <Input
+                  value={typeof rawValue === 'string' ? rawValue : ''}
+                  onChange={(value) => updateExtensionFieldValue(pluginType, field.key, value)}
+                  placeholder={field.label}
+                  type={field.type === 'password' ? 'password' : 'text'}
+                />
+              </div>
+            );
+          })}
+        </div>
+      );
+    },
+    [extensionFieldValues, t, updateExtensionFieldValue]
+  );
+
   // Build channel configurations
   const channels: ChannelConfig[] = useMemo(() => {
     const telegramChannel: ChannelConfig = {
@@ -361,6 +547,21 @@ const ChannelModalContent: React.FC = () => {
       content: <DingTalkConfigForm pluginStatus={dingtalkPluginStatus} modelSelection={dingtalkModelSelection} onStatusChange={setDingtalkPluginStatus} />,
     };
 
+    const extensionChannels: ChannelConfig[] = Object.values(extensionStatuses)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((status) => ({
+        id: status.type,
+        title: status.name,
+        description: status.extensionMeta?.description || t('settings.channels.extension.defaultDesc', { defaultValue: 'Extension channel plugin' }),
+        status: 'active',
+        enabled: status.enabled || false,
+        disabled: extensionLoadingMap[status.type] || false,
+        isConnected: status.connected || false,
+        icon: status.extensionMeta?.icon,
+        isExtension: true,
+        content: renderExtensionConfigForm(status),
+      }));
+
     const comingSoonChannels: ChannelConfig[] = [
       {
         id: 'slack',
@@ -382,14 +583,33 @@ const ChannelModalContent: React.FC = () => {
       },
     ];
 
-    return [telegramChannel, larkChannel, dingtalkChannel, ...comingSoonChannels];
-  }, [pluginStatus, larkPluginStatus, dingtalkPluginStatus, telegramModelSelection, larkModelSelection, dingtalkModelSelection, enableLoading, larkEnableLoading, dingtalkEnableLoading, t]);
+    return [telegramChannel, larkChannel, dingtalkChannel, ...extensionChannels, ...comingSoonChannels];
+  }, [
+    pluginStatus,
+    larkPluginStatus,
+    dingtalkPluginStatus,
+    extensionStatuses,
+    extensionLoadingMap,
+    telegramModelSelection,
+    larkModelSelection,
+    dingtalkModelSelection,
+    enableLoading,
+    larkEnableLoading,
+    dingtalkEnableLoading,
+    renderExtensionConfigForm,
+    t,
+  ]);
 
   // Get toggle handler for each channel
   const getToggleHandler = (channelId: string) => {
     if (channelId === 'telegram') return handleTogglePlugin;
     if (channelId === 'lark') return handleToggleLarkPlugin;
     if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
+    if (extensionStatuses[channelId]) {
+      return (enabled: boolean) => {
+        void handleToggleExtensionPlugin(channelId, enabled);
+      };
+    }
     return undefined;
   };
   const channelGuideText = t('settings.webui.featureChannelsDesc', { defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps.' });

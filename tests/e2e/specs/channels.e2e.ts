@@ -8,38 +8,9 @@
  *  - "Coming soon" channels have disabled toggles
  */
 import { test, expect } from '../fixtures';
-import { goToSettings, expectBodyContainsAny, ARCO_SWITCH, ARCO_TABS_HEADER_TITLE, takeScreenshot } from '../helpers';
+import { goToChannelsTab, expectBodyContainsAny, ARCO_SWITCH, takeScreenshot, waitForClassChange } from '../helpers';
 
 test.describe('Channels', () => {
-  /** Navigate to the channels tab inside the webui settings page. */
-  async function goToChannelsTab(page: import('@playwright/test').Page): Promise<void> {
-    await goToSettings(page, 'webui');
-
-    // Wait for and click the channels tab using text-based matching
-    // This is more robust than counting tabs which may not all be rendered yet
-    const channelTab = page
-      .locator(ARCO_TABS_HEADER_TITLE)
-      .filter({
-        hasText: /channel|频道|渠道/i,
-      })
-      .first();
-
-    try {
-      await channelTab.waitFor({ state: 'visible', timeout: 15_000 });
-      await channelTab.click();
-      // Wait for channel content to render
-      await page.waitForFunction(
-        () => {
-          const t = document.body.textContent || '';
-          return t.includes('Telegram') || t.includes('Lark') || t.includes('DingTalk') || t.includes('Channel') || t.includes('频道');
-        },
-        { timeout: 10_000 }
-      );
-    } catch {
-      // Best-effort: if channels tab not found, page may show channels directly
-    }
-  }
-
   // ── Channel list ─────────────────────────────────────────────────────────
 
   test('channels settings page renders', async ({ page }) => {
@@ -51,10 +22,10 @@ test.describe('Channels', () => {
     await goToChannelsTab(page);
     const body = await page.locator('body').textContent();
 
-    // At least the active channels should appear
+    // At least two of the active channels should appear
     const activeChannels = ['Telegram', 'Lark', 'DingTalk'];
     const found = activeChannels.filter((ch) => body?.includes(ch));
-    expect(found.length).toBeGreaterThanOrEqual(1);
+    expect(found.length, `Expected at least 2 active channels, found: ${found.join(', ')}`).toBeGreaterThanOrEqual(2);
   });
 
   test('toggle switches are visible for channels', async ({ page }) => {
@@ -86,47 +57,18 @@ test.describe('Channels', () => {
       const wasBefore = isDisabled?.includes('arco-switch-checked');
       await sw.click();
 
-      // Wait for class to change (state transition) instead of fixed sleep
-      await sw.evaluate(
-        (el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => {
-              observer.disconnect();
-              resolve();
-            });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => {
-              observer.disconnect();
-              resolve();
-            }, 1500);
-          })
-      );
+      // Wait for class to change (state transition)
+      await waitForClassChange(sw);
 
       const classAfter = await sw.getAttribute('class');
       const isAfter = classAfter?.includes('arco-switch-checked');
 
-      // State should have changed (toggled)
-      // In e2e, the IPC call may fail silently and revert the switch.
-      // Accept the test if the click didn't throw, regardless of state change.
       toggled = true;
 
       // Toggle back to restore state
       if (wasBefore !== isAfter) {
         await sw.click();
-        await sw.evaluate(
-          (el) =>
-            new Promise<void>((resolve) => {
-              const observer = new MutationObserver(() => {
-                observer.disconnect();
-                resolve();
-              });
-              observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-              setTimeout(() => {
-                observer.disconnect();
-                resolve();
-              }, 1000);
-            })
-        );
+        await waitForClassChange(sw, 1000);
       }
       break;
     }

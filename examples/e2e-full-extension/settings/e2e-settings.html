@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E2E Test Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 16px;
+      color: #333;
+      background: transparent;
+    }
+    h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
+    .field input, .field select {
+      width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;
+      font-size: 14px; outline: none; transition: border-color 0.2s;
+    }
+    .field input:focus, .field select:focus { border-color: #4f6ef7; }
+    .info { font-size: 12px; color: #999; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h2>E2E Extension Settings</h2>
+  <div class="field">
+    <label for="endpoint">Test Endpoint</label>
+    <input id="endpoint" type="text" placeholder="http://localhost:19999" />
+  </div>
+  <div class="field">
+    <label for="timeout">Request Timeout (ms)</label>
+    <input id="timeout" type="number" value="5000" />
+  </div>
+  <div class="field">
+    <label for="mode">Test Mode</label>
+    <select id="mode">
+      <option value="mock">Mock</option>
+      <option value="live">Live</option>
+    </select>
+  </div>
+  <p class="info">This is a demo settings page contributed by the E2E Full Test Extension.</p>
+</body>
+</html>

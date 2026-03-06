@@ -53,14 +53,25 @@ export function createGenericSpawnConfig(cliPath: string, workingDir: string, ac
   let spawnArgs: string[];
 
   if (cliPath.startsWith('npx ')) {
-    // For "npx @package/name", split into command and arguments
-    const parts = cliPath.split(' ');
+    // For "npx @package/name [extra-args]", split into command and arguments
+    const parts = cliPath.split(' ').filter(Boolean);
     spawnCommand = resolveNpxPath(env);
     spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
-  } else {
-    // For regular paths like '/usr/local/bin/cli' or simple commands like 'goose'
-    spawnCommand = cliPath;
+  } else if (isWindows) {
+    // On Windows with shell: true, let cmd.exe handle the full command string.
+    // This correctly supports paths with spaces (e.g., "C:\Program Files\agent.exe")
+    // and commands with inline args (e.g., "goose acp" or "node path/to/file.js").
+    //
+    // chcp 65001: switch console to UTF-8 so stderr/stdout doesn't get garbled
+    // (Chinese Windows defaults to CP936/GBK).
+    spawnCommand = `chcp 65001 >nul && ${cliPath}`;
     spawnArgs = effectiveAcpArgs;
+  } else {
+    // Unix: simple command or path. If cliPath contains spaces (e.g., "goose acp"),
+    // parse into command + inline args.
+    const parts = cliPath.split(/\s+/);
+    spawnCommand = parts[0];
+    spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
   }
 
   const options: SpawnOptions = {
@@ -243,6 +254,15 @@ export class AcpConnection {
 
   // 通用的后端连接方法
   private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codebuddy' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+    // Ensure cwd exists before spawning — on Windows cmd.exe gives a cryptic
+    // "The filename, directory name, or volume label syntax is incorrect" error
+    // when cwd is missing, which is hard to diagnose.
+    try {
+      await fs.mkdir(workingDir, { recursive: true });
+    } catch {
+      // best-effort: if mkdir fails, let spawn report the actual error
+    }
+
     const spawnStart = Date.now();
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
@@ -572,7 +592,13 @@ export class AcpConnection {
     });
 
     child.on('error', (error) => {
-      spawnError = error;
+      // Provide a friendlier message when the CLI binary is not found (ENOENT)
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        const cliHint = this.backend ?? backend;
+        spawnError = new Error(`'${cliHint}' CLI not found. Please install it or update the CLI path in Settings.`);
+      } else {
+        spawnError = error;
+      }
     });
 
     // Promise that rejects when the child process exits during setup.
@@ -590,7 +616,17 @@ export class AcpConnection {
         // Startup phase - set error for initial check.
         // Include stderr in spawnError so callers can detect specific failures
         // (e.g., npm "notarget" for stale cache recovery).
-        const errMsg = stderrOutput ? `${backend} ACP process exited during startup (code: ${code}):\n${stderrOutput}` : `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
+        let errMsg: string;
+        if (stderrOutput) {
+          errMsg = `${backend} ACP process exited during startup (code: ${code}):\n${stderrOutput}`;
+        } else {
+          errMsg = `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
+        }
+        // Detect "command not found" patterns across platforms and provide a clear hint
+        if (code !== 0 && /not recognized|not found|No such file|command not found|ENOENT/i.test(stderrOutput + (spawnError?.message ?? ''))) {
+          const cliHint = this.backend ?? backend;
+          errMsg = `'${cliHint}' CLI not found. Please install it or update the CLI path in Settings.\n${stderrOutput}`;
+        }
         if (code !== 0 && !spawnError) {
           spawnError = new Error(errMsg);
         }
@@ -1082,8 +1118,10 @@ export class AcpConnection {
 
     this.sessionId = response.sessionId;
 
-    // Debug: log full session/new response for diagnosing model list issues
-    console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
+    // Debug: log full session/new response only when ACP_PERF=1
+    if (ACP_PERF_LOG) {
+      console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
+    }
 
     // Parse configOptions and models from session/new response
     const result = response as unknown as Record<string, unknown>;

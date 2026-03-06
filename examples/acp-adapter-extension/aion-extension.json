@@ -1,27 +1,19 @@
 {
   "name": "example-acp-adapter",
   "displayName": "Example ACP Adapter Extension",
-  "displayNameI18n": {
-    "zh": "ACP 适配器示例扩展"
-  },
   "version": "1.0.0",
   "description": "A sample extension demonstrating how to contribute ACP (Agent Communication Protocol) adapters to AionUI",
-  "descriptionI18n": {
-    "zh": "展示如何通过扩展为 AionUI 贡献 ACP 适配器的示例"
-  },
   "author": "AionUI Contributors",
+  "i18n": {
+    "localesDir": "i18n",
+    "defaultLocale": "en-US"
+  },
   "contributes": {
     "acpAdapters": [
       {
         "id": "ext-buddy",
         "name": "ext-buddy",
-        "nameI18n": {
-          "zh": "ext-buddy"
-        },
         "description": "Extension-provided CodeBuddy ACP adapter for E2E and manual testing",
-        "descriptionI18n": {
-          "zh": "用于 E2E 与手工验证的扩展版 CodeBuddy ACP 适配器"
-        },
         "connectionType": "cli",
         "cliCommand": "codebuddy",
         "defaultCliPath": "npx @tencent-ai/codebuddy-code",

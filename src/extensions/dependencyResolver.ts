@@ -22,13 +22,26 @@ function satisfiesVersion(version: string, range: string): boolean {
   if (range === version) return true;
 
   if (range.startsWith('^')) {
+    // Per semver spec: ^0.x.y is special
+    // ^0.0.z  → only matches exact z  (equivalent to =0.0.z)
+    // ^0.y.z  → matches 0.y.z .. 0.y.* (equivalent to ~0.y.z)
+    // ^X.y.z  (X>=1) → matches X.y.z .. X.*.*
+    if (parsedRange.major === 0) {
+      if (parsedRange.minor === 0) {
+        // ^0.0.z — must match exactly
+        return parsedVersion.major === 0 && parsedVersion.minor === 0 && parsedVersion.patch === parsedRange.patch;
+      }
+      // ^0.y.z — same major (0) + same minor + patch >= range patch
+      return parsedVersion.major === 0 && parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch;
+    }
     return parsedVersion.major === parsedRange.major && (parsedVersion.minor > parsedRange.minor || (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch));
   }
   if (range.startsWith('~')) {
     return parsedVersion.major === parsedRange.major && parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch;
   }
 
-  return parsedVersion.major > parsedRange.major || (parsedVersion.major === parsedRange.major && (parsedVersion.minor > parsedRange.minor || (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch)));
+  // Bare version (no range prefix) — exact major.minor.patch match
+  return parsedVersion.major === parsedRange.major && parsedVersion.minor === parsedRange.minor && parsedVersion.patch === parsedRange.patch;
 }
 
 type ExtensionMeta = {

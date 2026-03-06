@@ -5,7 +5,7 @@
  * stability when navigating settings pages with extensions loaded.
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, takeScreenshot, waitForSettle } from '../helpers';
+import { goToGuid, goToSettings, goToExtensionSettings, takeScreenshot, waitForSettle } from '../helpers';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Themes from Extensions
@@ -80,6 +80,11 @@ test.describe('Extension System Stability', () => {
       const body = await page.locator('body').textContent();
       expect(body!.length).toBeGreaterThan(10);
     }
+
+    // Also navigate to extension-contributed settings tabs
+    await goToExtensionSettings(page, 'ext-e2e-full-extension-e2e-settings');
+    const extBody = await page.locator('body').textContent();
+    expect(extBody!.length).toBeGreaterThan(10);
 
     // Return to guid page
     await goToGuid(page);

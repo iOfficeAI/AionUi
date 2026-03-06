@@ -53,8 +53,7 @@ export class ExtensionWatcher {
     this.debounceTimer = setTimeout(async () => {
       console.log('[Extensions] Detected changes, reinitializing registry...');
       try {
-        ExtensionRegistry.resetInstance();
-        await ExtensionRegistry.getInstance().initialize();
+        await ExtensionRegistry.hotReload();
         console.log('[Extensions] Hot-reload complete.');
       } catch (error) {
         console.error('[Extensions] Hot-reload failed:', error);

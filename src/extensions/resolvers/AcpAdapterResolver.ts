@@ -6,6 +6,7 @@
 
 import * as path from 'path';
 import type { LoadedExtension, ExtAcpAdapter } from '../types';
+import { toAssetUrl } from '../assetProtocol';
 
 export function resolveAcpAdapters(extensions: LoadedExtension[]): Record<string, unknown>[] {
   const adapters: Record<string, unknown>[] = [];
@@ -24,9 +25,7 @@ function convertAcpAdapter(adapter: ExtAcpAdapter, ext: LoadedExtension): Record
   return {
     id: adapter.id,
     name: adapter.name,
-    nameI18n: adapter.nameI18n,
     description: adapter.description,
-    descriptionI18n: adapter.descriptionI18n,
     cliCommand: adapter.cliCommand,
     // defaultCliPath: explicit config > cliCommand fallback (for CLI agents)
     defaultCliPath: adapter.defaultCliPath || adapter.cliCommand,
@@ -38,6 +37,9 @@ function convertAcpAdapter(adapter: ExtAcpAdapter, ext: LoadedExtension): Record
     connectionType,
     endpoint: adapter.endpoint,
     models: adapter.models,
+    yoloMode: adapter.yoloMode,
+    healthCheck: adapter.healthCheck,
+    apiKeyFields: adapter.apiKeyFields,
     isPreset: false,
     isBuiltin: false,
     enabled: true,
@@ -50,5 +52,6 @@ function resolveIconPath(icon: string, extensionDir: string): string {
   if (icon.startsWith('http://') || icon.startsWith('https://')) return icon;
   if (!icon.includes('/') && !icon.includes('\\') && !icon.includes('.')) return icon;
   const absPath = path.isAbsolute(icon) ? icon : path.resolve(extensionDir, icon);
-  return `file://${absPath.replace(/\\/g, '/')}`;
+  // Use aion-asset:// protocol to bypass file:// security restrictions in dev mode
+  return toAssetUrl(absPath);
 }

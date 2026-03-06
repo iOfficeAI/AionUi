@@ -4,35 +4,9 @@
  * Validates extension-contributed channel plugins on the channels settings page.
  */
 import { test, expect } from '../fixtures';
-import { goToSettings, expectBodyContainsAny, takeScreenshot, waitForSettle, ARCO_SWITCH, ARCO_TABS_HEADER_TITLE } from '../helpers';
+import { goToChannelsTab, expectBodyContainsAny, takeScreenshot, waitForSettle, ARCO_SWITCH, waitForClassChange } from '../helpers';
 
 test.describe('Extension: Channel Plugins', () => {
-  /** Navigate to the channels tab inside webui settings. */
-  async function goToChannelsTab(page: import('@playwright/test').Page): Promise<void> {
-    await goToSettings(page, 'webui');
-
-    const channelTab = page
-      .locator(ARCO_TABS_HEADER_TITLE)
-      .filter({
-        hasText: /channel|频道|渠道/i,
-      })
-      .first();
-
-    try {
-      await channelTab.waitFor({ state: 'visible', timeout: 15_000 });
-      await channelTab.click();
-      await page.waitForFunction(
-        () => {
-          const t = document.body.textContent || '';
-          return t.includes('Telegram') || t.includes('Lark') || t.includes('DingTalk') || t.includes('Channel') || t.includes('频道');
-        },
-        { timeout: 10_000 }
-      );
-    } catch {
-      // Best-effort
-    }
-  }
-
   test('channels page renders', async ({ page }) => {
     await goToChannelsTab(page);
     await expectBodyContainsAny(page, ['Telegram', 'Lark', 'DingTalk', 'Channel', '频道']);
@@ -80,20 +54,7 @@ test.describe('Extension: Channel Plugins', () => {
 
       const wasBefore = cls?.includes('arco-switch-checked');
       await sw.click();
-      await sw.evaluate(
-        (el) =>
-          new Promise<void>((resolve) => {
-            const observer = new MutationObserver(() => {
-              observer.disconnect();
-              resolve();
-            });
-            observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-            setTimeout(() => {
-              observer.disconnect();
-              resolve();
-            }, 1500);
-          })
-      );
+      await waitForClassChange(sw);
 
       const clsAfter = await sw.getAttribute('class');
       const isAfter = clsAfter?.includes('arco-switch-checked');
@@ -103,20 +64,7 @@ test.describe('Extension: Channel Plugins', () => {
       // Toggle back if state changed
       if (wasBefore !== isAfter) {
         await sw.click();
-        await sw.evaluate(
-          (el) =>
-            new Promise<void>((resolve) => {
-              const observer = new MutationObserver(() => {
-                observer.disconnect();
-                resolve();
-              });
-              observer.observe(el, { attributes: true, attributeFilter: ['class'] });
-              setTimeout(() => {
-                observer.disconnect();
-                resolve();
-              }, 1000);
-            })
-        );
+        await waitForClassChange(sw, 1000);
       }
       break;
     }
