@@ -380,7 +380,7 @@ export class AcpConnection {
 
   private async connectCodex(workingDir: string = process.cwd()): Promise<void> {
     // Use NPX to run codex-acp bridge (Zed's ACP adapter for Codex)
-    console.error('[ACP] Using NPX approach for Codex ACP bridge');
+    console.error('[ACP] Using NPX approach for Codex ACP bridge (codex-acp@0.9.4)');
 
     const envStart = Date.now();
     const cleanEnv = this.prepareNpxEnv();
