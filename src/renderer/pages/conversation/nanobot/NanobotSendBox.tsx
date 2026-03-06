@@ -165,6 +165,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         case 'finish':
           setThought({ subject: '', description: '' });
           setAiProcessing(false);
+          // Refresh sidebar to update conversation sorting after AI response completes
+          emitter.emit('chat.history.refresh');
           break;
         case 'content':
         case 'error':

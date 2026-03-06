@@ -199,6 +199,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             setRunning(false);
             setAiProcessing(false);
             setThought({ subject: '', description: '' });
+            // Refresh sidebar to update conversation sorting after AI response completes
+            emitter.emit('chat.history.refresh');
           }
           // Reset flag for next turn
           hasContentInTurnRef.current = false;

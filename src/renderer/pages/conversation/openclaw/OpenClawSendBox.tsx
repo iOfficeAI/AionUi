@@ -277,6 +277,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               aiProcessingRef.current = false;
               setThought({ subject: '', description: '' });
               finishTimeoutRef.current = null;
+              // Refresh sidebar to update conversation sorting after AI response completes
+              emitter.emit('chat.history.refresh');
             }, 1000);
             hasContentInTurnRef.current = false;
           }

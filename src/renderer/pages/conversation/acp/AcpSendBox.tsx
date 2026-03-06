@@ -149,6 +149,8 @@ const useAcpMessage = (conversation_id: string) => {
               setAiProcessing(false);
               aiProcessingRef.current = false;
               setThought({ subject: '', description: '' });
+              // Refresh sidebar to update conversation sorting after AI response completes
+              emitter.emit('chat.history.refresh');
             }, 1000);
             (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
             hasContentInTurnRef.current = false;

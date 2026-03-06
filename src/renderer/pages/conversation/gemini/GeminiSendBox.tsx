@@ -189,6 +189,8 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                 setWaitingResponse(false);
                 waitingResponseRef.current = false;
                 setThought({ subject: '', description: '' });
+                // Refresh sidebar to update conversation sorting after AI response completes
+                emitter.emit('chat.history.refresh');
               }, 1000);
               (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = timeoutId;
             }
