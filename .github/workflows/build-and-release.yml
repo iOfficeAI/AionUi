@@ -234,20 +234,91 @@ jobs:
         with:
           path: build-artifacts
 
+      - name: Prepare release assets (normalize updater metadata)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p release-assets
+
+          # 1) Copy all distributables and blockmaps (unique file names)
+          find build-artifacts -type f \( \
+            -name "*.exe" -o \
+            -name "*.msi" -o \
+            -name "*.dmg" -o \
+            -name "*.deb" -o \
+            -name "*.AppImage" -o \
+            -name "*.zip" -o \
+            -name "*.blockmap" \
+          \) -exec cp -f "{}" release-assets/ \;
+
+          # 2) Collect updater metadata from each platform artifact directory
+          WIN_X64_LATEST=$(find build-artifacts -type f -path "*/windows-build-x64/*" -name "latest.yml" | sort | head -n 1 || true)
+          WIN_ARM64_LATEST=$(find build-artifacts -type f -path "*/windows-build-arm64/*" -name "latest.yml" | sort | head -n 1 || true)
+          MAC_X64_LATEST=$(find build-artifacts -type f -path "*/macos-build-x64/*" -name "latest-mac.yml" | sort | head -n 1 || true)
+          MAC_ARM64_LATEST=$(find build-artifacts -type f -path "*/macos-build-arm64/*" -name "latest-mac.yml" | sort | head -n 1 || true)
+          LINUX_X64_LATEST=$(find build-artifacts -type f -name "latest-linux.yml" | sort | head -n 1 || true)
+          LINUX_ARM64_LATEST=$(find build-artifacts -type f -name "latest-linux-arm64.yml" | sort | head -n 1 || true)
+
+          WIN_X64_DEBUG=$(find build-artifacts -type f -path "*/windows-build-x64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
+          WIN_ARM64_DEBUG=$(find build-artifacts -type f -path "*/windows-build-arm64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
+          MAC_X64_DEBUG=$(find build-artifacts -type f -path "*/macos-build-x64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
+          MAC_ARM64_DEBUG=$(find build-artifacts -type f -path "*/macos-build-arm64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
+          LINUX_DEBUG=$(find build-artifacts -type f -path "*/linux-build/*" -name "builder-debug.yml" | sort | head -n 1 || true)
+
+          # 3) Publish deterministic canonical metadata for electron-updater
+          #    (avoid nondeterministic overwrite when multiple jobs produce same metadata file names)
+          [ -n "$WIN_X64_LATEST" ] && cp -f "$WIN_X64_LATEST" release-assets/latest.yml
+          [ -n "$MAC_X64_LATEST" ] && cp -f "$MAC_X64_LATEST" release-assets/latest-mac.yml
+          [ -n "$LINUX_X64_LATEST" ] && cp -f "$LINUX_X64_LATEST" release-assets/latest-linux.yml
+          [ -n "$LINUX_ARM64_LATEST" ] && cp -f "$LINUX_ARM64_LATEST" release-assets/latest-linux-arm64.yml
+
+          # 4) Also publish architecture-scoped metadata for diagnostics/manual tooling
+          [ -n "$WIN_X64_LATEST" ] && cp -f "$WIN_X64_LATEST" release-assets/latest-win-x64.yml
+          [ -n "$WIN_ARM64_LATEST" ] && cp -f "$WIN_ARM64_LATEST" release-assets/latest-win-arm64.yml
+          [ -n "$MAC_X64_LATEST" ] && cp -f "$MAC_X64_LATEST" release-assets/latest-mac-x64.yml
+          [ -n "$MAC_ARM64_LATEST" ] && cp -f "$MAC_ARM64_LATEST" release-assets/latest-mac-arm64.yml
+
+          [ -n "$WIN_X64_DEBUG" ] && cp -f "$WIN_X64_DEBUG" release-assets/builder-debug-win-x64.yml
+          [ -n "$WIN_ARM64_DEBUG" ] && cp -f "$WIN_ARM64_DEBUG" release-assets/builder-debug-win-arm64.yml
+          [ -n "$MAC_X64_DEBUG" ] && cp -f "$MAC_X64_DEBUG" release-assets/builder-debug-mac-x64.yml
+          [ -n "$MAC_ARM64_DEBUG" ] && cp -f "$MAC_ARM64_DEBUG" release-assets/builder-debug-mac-arm64.yml
+          [ -n "$LINUX_DEBUG" ] && cp -f "$LINUX_DEBUG" release-assets/builder-debug-linux.yml
+
+          # Keep builder-debug.yml canonical and deterministic as well
+          if [ -n "$WIN_X64_DEBUG" ]; then
+            cp -f "$WIN_X64_DEBUG" release-assets/builder-debug.yml
+          elif [ -n "$MAC_X64_DEBUG" ]; then
+            cp -f "$MAC_X64_DEBUG" release-assets/builder-debug.yml
+          elif [ -n "$LINUX_DEBUG" ]; then
+            cp -f "$LINUX_DEBUG" release-assets/builder-debug.yml
+          fi
+
+          # 5) Hard validation for required updater metadata
+          for required in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.yml; do
+            if [ ! -f "release-assets/$required" ]; then
+              echo "::error::Missing required updater metadata: $required"
+              exit 1
+            fi
+          done
+
+          echo "Prepared release assets:"
+          ls -lh release-assets | cat
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
           name: ${{ steps.version.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
-            build-artifacts/**/*.exe
-            build-artifacts/**/*.msi
-            build-artifacts/**/*.dmg
-            build-artifacts/**/*.deb
-            build-artifacts/**/*.AppImage
-            build-artifacts/**/*.zip
-            build-artifacts/**/*.yml
-            build-artifacts/**/*.blockmap
+            release-assets/**/*.exe
+            release-assets/**/*.msi
+            release-assets/**/*.dmg
+            release-assets/**/*.deb
+            release-assets/**/*.AppImage
+            release-assets/**/*.zip
+            release-assets/**/*.yml
+            release-assets/**/*.blockmap
           generate_release_notes: true
           draft: true
           prerelease: ${{ steps.version.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
