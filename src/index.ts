@@ -16,12 +16,13 @@ import { initializeProcess } from './process';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
-import { onCloseToTrayChanged } from './process/bridge/systemSettingsBridge';
+import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
+import i18n from '@process/i18n';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -271,14 +272,38 @@ let closeToTrayEnabled = false;
  */
 const getTrayIcon = (): Electron.NativeImage => {
   const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
   if (process.platform === 'darwin') {
     // macOS: 使用 16x16 的彩色应用图标 / Use 16x16 colored app icon
-    const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
     return icon.resize({ width: 16, height: 16 });
   }
-  // Windows/Linux: 使用标准图标 / Use standard icon
-  const iconFile = process.platform === 'win32' ? 'app.ico' : 'app.png';
-  return nativeImage.createFromPath(path.join(resourcesPath, iconFile));
+  // Windows/Linux: 使用 32x32 PNG 图标确保清晰可见 / Use 32x32 PNG icon for clear visibility
+  return icon.resize({ width: 32, height: 32 });
+};
+
+/**
+ * 构建托盘右键菜单 / Build tray context menu
+ */
+const buildTrayContextMenu = (): Electron.Menu => {
+  return Menu.buildFromTemplate([
+    {
+      label: i18n.t('tray.showWindow'),
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: i18n.t('tray.quit'),
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
 };
 
 /**
@@ -292,28 +317,7 @@ const createOrUpdateTray = (): void => {
     const icon = getTrayIcon();
     tray = new Tray(icon);
     tray.setToolTip('AionUi');
-
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: 'Show AionUi',
-        click: () => {
-          if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
-          }
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => {
-          isQuitting = true;
-          app.quit();
-        },
-      },
-    ]);
-
-    tray.setContextMenu(contextMenu);
+    tray.setContextMenu(buildTrayContextMenu());
 
     // 双击托盘图标显示窗口（Windows/Linux）/ Double-click tray icon to show window (Windows/Linux)
     tray.on('double-click', () => {
@@ -324,6 +328,15 @@ const createOrUpdateTray = (): void => {
     });
   } catch (err) {
     console.error('[Tray] Failed to create tray:', err);
+  }
+};
+
+/**
+ * 刷新托盘右键菜单文案（语言切换时调用）/ Refresh tray context menu labels (called on language change)
+ */
+const refreshTrayMenu = (): void => {
+  if (tray) {
+    tray.setContextMenu(buildTrayContextMenu());
   }
 };
 
@@ -586,6 +599,11 @@ const handleAppReady = async (): Promise<void> => {
       } else {
         destroyTray();
       }
+    });
+
+    // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
+    onLanguageChanged(() => {
+      refreshTrayMenu();
     });
 
     // Flush pending deep-link URL (received before window was ready)

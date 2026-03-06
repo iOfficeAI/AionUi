@@ -53,5 +53,7 @@
   "goToSettings": "前往設定",
   "forward": "前進",
   "more": "更多",
-  "refresh": "重新整理"
+  "refresh": "重新整理",
+  "tray.showWindow": "顯示 AionUi",
+  "tray.quit": "結束"
 }

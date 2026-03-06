@@ -53,5 +53,7 @@
   "goToSettings": "Go to Settings",
   "forward": "Forward",
   "more": "More",
-  "refresh": "Refresh"
+  "refresh": "Refresh",
+  "tray.showWindow": "Show AionUi",
+  "tray.quit": "Quit"
 }

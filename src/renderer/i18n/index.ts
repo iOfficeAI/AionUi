@@ -3,6 +3,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import { ConfigStorage } from '@/common/storage';
+import { ipcBridge } from '@/common';
 import i18nConfig from '@/shared/i18n-config.json';
 import { DEFAULT_LANGUAGE, normalizeLanguageCode, mergeWithFallback, ensureAndSwitch, type LocaleData } from '@/common/i18n';
 
@@ -110,7 +111,10 @@ void initLanguage();
  */
 export async function changeLanguage(lang: string): Promise<void> {
   await ensureAndSwitch(i18n, lang, loadLocaleModules);
-  await ConfigStorage.set('language', normalizeLanguageCode(lang));
+  const normalized = normalizeLanguageCode(lang);
+  await ConfigStorage.set('language', normalized);
+  // Notify main process to sync i18n (for tray menu, etc.)
+  ipcBridge.systemSettings.changeLanguage.invoke({ language: normalized }).catch(() => {});
 }
 
 // Clear translation cache (useful for development/testing)

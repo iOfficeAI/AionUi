@@ -53,5 +53,7 @@
   "goToSettings": "Ayarlara Git",
   "forward": "İleri",
   "more": "Daha Fazla",
-  "refresh": "Yenile"
+  "refresh": "Yenile",
+  "tray.showWindow": "AionUi'yi Göster",
+  "tray.quit": "Çıkış"
 }

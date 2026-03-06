@@ -53,5 +53,7 @@
   "goToSettings": "설정으로 이동",
   "forward": "앞으로",
   "more": "더보기",
-  "refresh": "새로고침"
+  "refresh": "새로고침",
+  "tray.showWindow": "AionUi 표시",
+  "tray.quit": "종료"
 }

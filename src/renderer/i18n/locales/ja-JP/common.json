@@ -53,5 +53,7 @@
   "goToSettings": "設定に移動",
   "forward": "進む",
   "more": "その他",
-  "refresh": "更新"
+  "refresh": "更新",
+  "tray.showWindow": "AionUi を表示",
+  "tray.quit": "終了"
 }
