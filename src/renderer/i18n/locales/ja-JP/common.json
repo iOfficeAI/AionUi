@@ -55,5 +55,9 @@
   "more": "その他",
   "refresh": "更新",
   "tray.showWindow": "AionUi を表示",
-  "tray.quit": "終了"
+  "tray.quit": "終了",
+  "fileAttach.hostFiles": "ホストマシンのファイル",
+  "fileAttach.myDevice": "マイデバイス",
+  "fileAttach.tooLarge": "ファイルが大きすぎてアップロードできません（最大 {{max}} MB）",
+  "fileAttach.failed": "ファイルのアップロードに失敗しました。もう一度お試しください。"
 }

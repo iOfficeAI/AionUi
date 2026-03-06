@@ -55,5 +55,9 @@
   "more": "更多",
   "refresh": "重新整理",
   "tray.showWindow": "顯示 AionUi",
-  "tray.quit": "結束"
+  "tray.quit": "結束",
+  "fileAttach.hostFiles": "主機檔案",
+  "fileAttach.myDevice": "我的裝置",
+  "fileAttach.tooLarge": "檔案太大無法上傳（最大 {{max}} MB）",
+  "fileAttach.failed": "上傳檔案失敗，請重試。"
 }

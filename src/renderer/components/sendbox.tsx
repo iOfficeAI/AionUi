@@ -10,10 +10,8 @@ import { useSlashCommandController } from '@/renderer/hooks/useSlashCommandContr
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/focus';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Plus } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { ArrowUp, CloseSmall } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +20,7 @@ import { useDragUpload } from '../hooks/useDragUpload';
 import { useLatestRef } from '../hooks/useLatestRef';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
-import { allSupportedExts, FileService, MAX_UPLOAD_SIZE_MB } from '../services/FileService';
+import { allSupportedExts } from '../services/FileService';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -180,33 +178,6 @@ const SendBox: React.FC<{
     supportedExts,
     onFilesAdded,
   });
-
-  // Mobile WebUI file upload via native file picker
-  const mobileFileInputRef = useRef<HTMLInputElement>(null);
-  const showMobileUploadButton = isMobile && !isElectronDesktop() && !!onFilesAdded;
-
-  const handleMobileFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const fileList = e.target.files;
-      if (!fileList || fileList.length === 0 || !onFilesAdded) return;
-      try {
-        const processed = await FileService.processDroppedFiles(fileList);
-        if (processed.length > 0) {
-          onFilesAdded(processed);
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : '';
-        if (msg === 'FILE_TOO_LARGE') {
-          Message.error(`File is too large to upload (max ${MAX_UPLOAD_SIZE_MB} MB)`);
-        } else {
-          Message.error('Failed to upload file. Please try again.');
-        }
-      }
-      // Reset input so the same file can be re-selected
-      e.target.value = '';
-    },
-    [onFilesAdded]
-  );
 
   const [message, context] = Message.useMessage();
 
@@ -424,12 +395,7 @@ const SendBox: React.FC<{
           )}
         </div>
         <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
-          {isSingleLine && (
-            <div className='flex-shrink-0 sendbox-tools flex items-center gap-2'>
-              {showMobileUploadButton && <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={() => mobileFileInputRef.current?.click()} />}
-              {tools}
-            </div>
-          )}
+          {isSingleLine && <div className='flex-shrink-0 sendbox-tools flex items-center gap-2'>{tools}</div>}
           <Input.TextArea
             autoFocus={!isMobile}
             disabled={disabled}
@@ -474,10 +440,7 @@ const SendBox: React.FC<{
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <div className='sendbox-tools flex items-center gap-2'>
-              {showMobileUploadButton && <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={() => mobileFileInputRef.current?.click()} />}
-              {tools}
-            </div>
+            <div className='sendbox-tools flex items-center gap-2'>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
               {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
@@ -485,8 +448,6 @@ const SendBox: React.FC<{
           </div>
         )}
       </div>
-      {/* Hidden file input for mobile WebUI file uploads */}
-      {showMobileUploadButton && <input ref={mobileFileInputRef} type='file' multiple style={{ display: 'none' }} onChange={handleMobileFileChange} />}
     </div>
   );
 };

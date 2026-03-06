@@ -7,6 +7,7 @@ import AgentSetupCard from '@/renderer/components/AgentSetupCard';
 import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
+import FileAttachButton from '@/renderer/components/FileAttachButton';
 import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
@@ -853,7 +854,7 @@ const GeminiSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
+            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
             <AgentModeSelector backend='gemini' conversationId={conversation_id} compact />
           </div>
         }

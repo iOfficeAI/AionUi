@@ -3,6 +3,7 @@ import type { FileMetadata } from '@/renderer/services/FileService';
 import { MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
 import { PasteService } from '@/renderer/services/PasteService';
 import { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { uuid } from '../utils/common';
 
 interface UsePasteServiceProps {
@@ -16,6 +17,7 @@ interface UsePasteServiceProps {
  * 为所有组件提供统一的粘贴处理功能
  */
 export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste }: UsePasteServiceProps) => {
+  const { t } = useTranslation();
   const componentId = useRef('paste-service-' + uuid(4)).current;
   // 统一的粘贴事件处理
   const handlePaste = useCallback(
@@ -38,14 +40,14 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste }: Us
       } catch (error) {
         const msg = error instanceof Error ? error.message : '';
         if (msg === 'FILE_TOO_LARGE') {
-          Message.error(`File is too large to upload (max ${MAX_UPLOAD_SIZE_MB} MB)`);
+          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
         } else {
-          Message.error('Failed to upload file. Please try again.');
+          Message.error(t('common.fileAttach.failed'));
         }
         return false;
       }
     },
-    [supportedExts, onFilesAdded, onTextPaste]
+    [supportedExts, onFilesAdded, onTextPaste, t]
   );
 
   // 焦点处理

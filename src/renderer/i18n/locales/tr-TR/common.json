@@ -55,5 +55,9 @@
   "more": "Daha Fazla",
   "refresh": "Yenile",
   "tray.showWindow": "AionUi'yi Göster",
-  "tray.quit": "Çıkış"
+  "tray.quit": "Çıkış",
+  "fileAttach.hostFiles": "Sunucu Dosyaları",
+  "fileAttach.myDevice": "Cihazım",
+  "fileAttach.tooLarge": "Dosya yüklenemeyecek kadar büyük (maks. {{max}} MB)",
+  "fileAttach.failed": "Dosya yükleme başarısız oldu. Lütfen tekrar deneyin."
 }

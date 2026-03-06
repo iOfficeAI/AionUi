@@ -55,5 +55,9 @@
   "more": "더보기",
   "refresh": "새로고침",
   "tray.showWindow": "AionUi 표시",
-  "tray.quit": "종료"
+  "tray.quit": "종료",
+  "fileAttach.hostFiles": "호스트 머신 파일",
+  "fileAttach.myDevice": "내 디바이스",
+  "fileAttach.tooLarge": "파일이 너무 커서 업로드할 수 없습니다 (최대 {{max}} MB)",
+  "fileAttach.failed": "파일 업로드에 실패했습니다. 다시 시도하세요."
 }

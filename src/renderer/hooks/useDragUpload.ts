@@ -96,7 +96,7 @@ export const useDragUpload = ({ supportedExts = [], onFilesAdded }: UseDragUploa
       } catch (err) {
         const msg = err instanceof Error ? err.message : '';
         if (msg === 'FILE_TOO_LARGE') {
-          Message.error(`File is too large to upload (max ${MAX_UPLOAD_SIZE_MB} MB)`);
+          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
         } else {
           console.error('Failed to process dropped files:', err);
           Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));

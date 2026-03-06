@@ -55,5 +55,9 @@
   "more": "更多",
   "refresh": "刷新",
   "tray.showWindow": "显示 AionUi",
-  "tray.quit": "退出"
+  "tray.quit": "退出",
+  "fileAttach.hostFiles": "主机文件",
+  "fileAttach.myDevice": "我的设备",
+  "fileAttach.tooLarge": "文件太大无法上传（最大 {{max}} MB）",
+  "fileAttach.failed": "上传文件失败，请重试。"
 }
