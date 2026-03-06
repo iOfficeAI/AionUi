@@ -90,7 +90,7 @@ function loadCachedHash() {
     if (fs.existsSync(cacheFile)) {
       return fs.readFileSync(cacheFile, 'utf8').trim();
     }
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -102,7 +102,7 @@ function saveCurrentHash(hash) {
       fs.mkdirSync(viteDir, { recursive: true });
     }
     fs.writeFileSync(cacheFile, hash);
-  } catch {}
+  } catch { }
 }
 
 function viteBuildExists() {
@@ -111,7 +111,7 @@ function viteBuildExists() {
   const rendererDir = path.join(outDir, 'renderer');
 
   return fs.existsSync(path.join(mainDir, 'index.js')) &&
-         fs.existsSync(path.join(rendererDir, 'index.html'));
+    fs.existsSync(path.join(rendererDir, 'index.html'));
 }
 
 function shouldSkipViteBuild(skipViteFlag, forceFlag) {
@@ -422,7 +422,17 @@ try {
     return;
   }
 
-  // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
+  // 5. Generate Linux icons (multi-size) if building for Linux
+  // electron-builder reads `build/icons/<size>x<size>.png` for hicolor icon installation
+  if (builderArgs.includes('--linux') || builderArgs.includes('--all')) {
+    console.log('🎨 Generating Linux icons...');
+    execSync('node scripts/generateLinuxIcons.js', {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+  }
+
+  // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
   // Always disable auto-publish to avoid electron-builder's implicit tag-based publishing
   // Publishing is handled by a separate release job in CI
