@@ -258,19 +258,45 @@ const Layout: React.FC<{
       void navigate('/guid');
     };
 
+    // Navigate to conversation when requested from tray / 托盘请求导航到对话页面
+    const handleNavigateToConversation = (event: CustomEvent<{ conversationId: string }>) => {
+      void navigate(`/conversation/${event.detail.conversationId}`);
+    };
+
     // Open about dialog when requested from tray / 托盘请求打开关于对话框
     const handleOpenAbout = () => {
       // Navigate to settings/about page / 导航到设置/关于页面
       void navigate('/settings/about');
     };
 
+    // Handle pause all tasks request from tray / 托盘请求暂停所有任务
+    const handlePauseAllTasks = async () => {
+      const { ipcBridge } = await import('@/common');
+      const result = await ipcBridge.task.stopAll.invoke();
+      if (result?.success) {
+        console.log(`Paused ${result.count} tasks`);
+      }
+    };
+
+    // Handle check update request from tray / 托盘请求检查更新
+    const handleCheckUpdate = async () => {
+      const { ipcBridge } = await import('@/common');
+      await ipcBridge.autoUpdate.check.invoke({});
+    };
+
     // Listen for tray events / 监听托盘事件
     window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
+    window.addEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
     window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
+    window.addEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
+    window.addEventListener('tray:check-update', handleCheckUpdate as EventListener);
 
     return () => {
       window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
+      window.removeEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
       window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
+      window.removeEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
+      window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
     };
   }, [navigate]);
 

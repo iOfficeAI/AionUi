@@ -283,9 +283,34 @@ const getTrayIcon = (): Electron.NativeImage => {
 
 /**
  * 构建托盘右键菜单 / Build tray context menu
+ * 改为异步函数以支持动态内容 / Changed to async function to support dynamic content
  */
-const buildTrayContextMenu = (): Electron.Menu => {
-  return Menu.buildFromTemplate([
+const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
+  // 获取最近对话列表 / Get recent conversations
+  const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
+    try {
+      const result = await ipcBridge.conversation.list.invoke({ page: 0, pageSize: 5 });
+      return result?.slice(0, 5).map((conv) => ({ id: conv.id, title: conv.title || i18n.t('tray.untitled') })) || [];
+    } catch {
+      return [];
+    }
+  };
+
+  // 获取运行中的任务数量 / Get running tasks count
+  const getRunningTasksCount = (): number => {
+    try {
+      const WorkerManage = require('./process/WorkerManage').default;
+      return WorkerManage.listTasks().length;
+    } catch {
+      return 0;
+    }
+  };
+
+  const recentConversations = await getRecentConversations();
+  const runningTasksCount = getRunningTasksCount();
+
+  // 构建菜单模板 / Build menu template
+  const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: i18n.t('tray.showWindow'),
       click: () => {
@@ -302,48 +327,102 @@ const buildTrayContextMenu = (): Electron.Menu => {
         if (mainWindow) {
           mainWindow.show();
           mainWindow.focus();
-          // 发送事件到渲染层导航到新建对话页面 / Send event to renderer to navigate to new chat page
           mainWindow.webContents.send('tray:navigate-to-guid');
         }
       },
     },
-    {
-      label: i18n.t('tray.closeToTray'),
-      type: 'checkbox',
-      checked: closeToTrayEnabled,
-      click: async (menuItem) => {
-        const newState = !closeToTrayEnabled;
-        void ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: newState });
-      },
+  ];
+
+  // 添加最近对话列表 / Add recent conversations
+  if (recentConversations.length > 0) {
+    template.push({ type: 'separator' });
+    template.push({
+      label: i18n.t('tray.recentChats'),
+      enabled: false,
+    });
+    for (const conv of recentConversations) {
+      const displayTitle = conv.title.length > 20 ? conv.title.slice(0, 20) + '...' : conv.title;
+      template.push({
+        label: displayTitle,
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+            // Send navigation event to renderer / 发送导航事件到渲染器
+            mainWindow.webContents.send('tray:navigate-to-conversation', { conversationId: conv.id });
+          }
+        },
+      });
+    }
+  }
+
+  // 添加任务状态 / Add task status
+  template.push({ type: 'separator' });
+  template.push({
+    label: `${i18n.t('tray.runningTasks')}: ${runningTasksCount}`,
+    enabled: false,
+  });
+  template.push({
+    label: i18n.t('tray.pauseAll'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        // 发送暂停所有任务的事件 / Send event to pause all tasks
+        mainWindow.webContents.send('tray:pause-all-tasks');
+      }
     },
-    { type: 'separator' },
-    {
-      label: i18n.t('tray.about'),
-      click: () => {
-        if (mainWindow) {
-          mainWindow.show();
-          mainWindow.focus();
-          mainWindow.webContents.send('tray:open-about');
-        }
-      },
+  });
+
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('tray.closeToTray'),
+    type: 'checkbox',
+    checked: closeToTrayEnabled,
+    click: async (menuItem) => {
+      const newState = !closeToTrayEnabled;
+      void ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: newState });
     },
-    {
-      label: i18n.t('tray.restart'),
-      click: () => {
-        isQuitting = true;
-        app.relaunch();
-        app.exit(0);
-      },
+  });
+  template.push({
+    label: i18n.t('tray.checkUpdate'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('tray:check-update');
+      }
     },
-    { type: 'separator' },
-    {
-      label: i18n.t('tray.quit'),
-      click: () => {
-        isQuitting = true;
-        app.quit();
-      },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('tray.about'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('tray:open-about');
+      }
     },
-  ]);
+  });
+  template.push({
+    label: i18n.t('tray.restart'),
+    click: () => {
+      isQuitting = true;
+      app.relaunch();
+      app.exit(0);
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('tray.quit'),
+    click: () => {
+      isQuitting = true;
+      app.quit();
+    },
+  });
+
+  return Menu.buildFromTemplate(template);
 };
 
 /**
@@ -357,7 +436,8 @@ const createOrUpdateTray = (): void => {
     const icon = getTrayIcon();
     tray = new Tray(icon);
     tray.setToolTip('AionUi');
-    tray.setContextMenu(buildTrayContextMenu());
+    // 初始化菜单 / Initialize menu
+    void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
 
     // 双击托盘图标显示窗口（Windows/Linux）/ Double-click tray icon to show window (Windows/Linux)
     tray.on('double-click', () => {
@@ -365,6 +445,12 @@ const createOrUpdateTray = (): void => {
         mainWindow.show();
         mainWindow.focus();
       }
+    });
+
+    // 每次右键托盘图标时重建菜单（显示最新数据）/ Rebuild menu on right-click to show latest data
+    tray.on('context-menu', async () => {
+      const menu = await buildTrayContextMenu();
+      tray?.setContextMenu(menu);
     });
   } catch (err) {
     console.error('[Tray] Failed to create tray:', err);
@@ -374,9 +460,10 @@ const createOrUpdateTray = (): void => {
 /**
  * 刷新托盘右键菜单文案（语言切换时调用）/ Refresh tray context menu labels (called on language change)
  */
-const refreshTrayMenu = (): void => {
+const refreshTrayMenu = async (): Promise<void> => {
   if (tray) {
-    tray.setContextMenu(buildTrayContextMenu());
+    const menu = await buildTrayContextMenu();
+    tray.setContextMenu(menu);
   }
 };
 
