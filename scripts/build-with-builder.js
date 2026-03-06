@@ -169,6 +169,37 @@ function dmgExists(outDir) {
   }
 }
 
+function tryRemoveDir(targetDir) {
+  if (!fs.existsSync(targetDir)) return true;
+  try {
+    fs.rmSync(targetDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+    return true;
+  } catch (error) {
+    console.log(`❌ Failed to remove ${targetDir}: ${error.message}`);
+    return false;
+  }
+}
+
+function isProcessRunningWindows(imageName) {
+  if (process.platform !== 'win32') return false;
+  try {
+    const result = execSync(`tasklist /FI "IMAGENAME eq ${imageName}"`, { stdio: ['ignore', 'pipe', 'ignore'] });
+    return result.toString().toLowerCase().includes(imageName.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+function killWindowsProcesses(imageNames) {
+  if (process.platform !== 'win32') return;
+  for (const name of imageNames) {
+    try {
+      execSync(`taskkill /F /IM ${name}`, { stdio: 'ignore' });
+    } catch {
+    }
+  }
+}
+
 // Create DMG using electron-builder --prepackaged with .app path
 // This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
 function createDmgWithPrepackaged(appDir, targetArch) {
@@ -447,6 +478,23 @@ try {
     }
     // 多架构构建：暂不支持架构检测脚本
     // Multi-arch builds: Architecture detection not supported yet
+  }
+
+  if (process.platform === 'win32' && builderArgs.includes('--win')) {
+    const winUnpackedDir = path.join(outDir, 'win-unpacked');
+    let cleaned = tryRemoveDir(winUnpackedDir);
+    if (!cleaned) {
+      const aionRunning = isProcessRunningWindows('AionUi.exe');
+      const electronRunning = isProcessRunningWindows('electron.exe');
+      if (aionRunning || electronRunning) {
+        console.log('⚠️  Detected running AionUi/Electron process. Attempting to close...');
+        killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+        cleaned = tryRemoveDir(winUnpackedDir);
+        if (!cleaned) {
+          console.log('⚠️  Directory still locked. Please close any running AionUi/Electron processes and retry.');
+        }
+      }
+    }
   }
 
   if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
