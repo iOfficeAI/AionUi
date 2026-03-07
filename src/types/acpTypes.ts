@@ -687,7 +687,7 @@ export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   };
 }
 
-/** Usage update notification from claude-agent-acp (context window utilization) */
+/** Usage update notification from ACP backend (context window utilization, supported by claude-agent-acp and codex-acp) */
 export interface UsageUpdatePayload extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'usage_update';
@@ -701,6 +701,22 @@ export interface UsageUpdatePayload extends BaseSessionUpdate {
       currency: string;
     };
   };
+}
+
+/** Per-turn token usage from PromptResponse (unstable ACP spec, supported by codex-acp) */
+export interface AcpPromptResponseUsage {
+  /** Total input tokens (includes context from previous turns) */
+  inputTokens: number;
+  /** Total output tokens for this turn */
+  outputTokens: number;
+  /** Sum of all token types */
+  totalTokens: number;
+  /** Tokens read from cache */
+  cachedReadTokens?: number | null;
+  /** Tokens written to cache */
+  cachedWriteTokens?: number | null;
+  /** Reasoning/thinking tokens */
+  thoughtTokens?: number | null;
 }
 
 // ===== ACP Models types (unstable API) =====

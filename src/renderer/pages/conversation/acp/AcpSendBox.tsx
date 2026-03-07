@@ -664,7 +664,7 @@ const AcpSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        sendButtonPrefix={tokenUsage && contextLimit > 0 ? <ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={contextLimit} size={24} /> : undefined}
+        sendButtonPrefix={tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={contextLimit > 0 ? contextLimit : undefined} size={24} /> : undefined}
       ></SendBox>
     </div>
   );
