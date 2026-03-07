@@ -1,6 +1,6 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Robot, System, Toolkit } from '@icon-park/react';
+import { Communication, Computer, Earth, Gemini, Info, Lightning, LinkCloud, Robot, System, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.assistants', { defaultValue: 'Assistants' }),
         icon: <Robot />,
         path: 'agent',
+      },
+      {
+        label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
+        icon: <Lightning />,
+        path: 'skills-hub',
       },
       {
         label: t('settings.tools'),

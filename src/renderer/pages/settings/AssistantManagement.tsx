@@ -8,7 +8,7 @@ import MarkdownView from '@/renderer/components/Markdown';
 import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 import type { Message } from '@arco-design/web-react';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Modal, Select, Switch, Typography } from '@arco-design/web-react';
-import { Close, Delete, FolderOpen, Plus, Robot, SettingOne } from '@icon-park/react';
+import { Close, Delete, FolderOpen, Plus, Refresh, Robot, Search, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
@@ -19,6 +19,14 @@ interface SkillInfo {
   description: string;
   location: string;
   isCustom: boolean;
+}
+
+// 外部来源类型 / External source type
+interface ExternalSource {
+  name: string;
+  path: string;
+  source: string;
+  skills: Array<{ name: string; description: string; path: string }>;
 }
 
 // 检查内置助手是否有 skills 配置（defaultEnabledSkills 或 skillFiles）
@@ -68,6 +76,14 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const [skillPath, setSkillPath] = useState(''); // Skill folder path input
   const [commonPaths, setCommonPaths] = useState<Array<{ name: string; path: string }>>([]); // Common skill paths detected
   const [availableBackends, setAvailableBackends] = useState<Set<string>>(new Set(['gemini']));
+  const [externalSources, setExternalSources] = useState<ExternalSource[]>([]);
+  const [activeSourceTab, setActiveSourceTab] = useState<string>('');
+  const [searchExternalQuery, setSearchExternalQuery] = useState('');
+  const [externalSkillsLoading, setExternalSkillsLoading] = useState(false);
+  const [showAddPathModal, setShowAddPathModal] = useState(false);
+  const [customPathName, setCustomPathName] = useState('');
+  const [customPathValue, setCustomPathValue] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]); // 待导入的 skills / Pending skills to import
   const [deletePendingSkillName, setDeletePendingSkillName] = useState<string | null>(null); // 待删除的 pending skill 名称 / Pending skill name to delete
   const [deleteCustomSkillName, setDeleteCustomSkillName] = useState<string | null>(null); // 待从助手移除的 custom skill 名称 / Custom skill to remove from assistant
@@ -116,21 +132,51 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     })();
   }, []);
 
-  // Detect common skill paths when modal opens
+  // Reload external skills data
+  const handleRefreshExternal = useCallback(async () => {
+    setExternalSkillsLoading(true);
+    setRefreshing(true);
+    try {
+      const response = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
+      if (response.success && response.data) {
+        setExternalSources(response.data);
+        if (response.data.length > 0 && !response.data.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(response.data[0].source);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to detect external skills:', error);
+    } finally {
+      setExternalSkillsLoading(false);
+      setRefreshing(false);
+    }
+  }, [activeSourceTab]);
+
+  // Detect external skill paths when modal opens
   useEffect(() => {
     if (skillsModalVisible) {
-      void (async () => {
-        try {
-          const response = await ipcBridge.fs.detectCommonSkillPaths.invoke();
-          if (response.success && response.data) {
-            setCommonPaths(response.data);
-          }
-        } catch (error) {
-          console.error('Failed to detect common paths:', error);
-        }
-      })();
+      setSearchExternalQuery('');
+      void handleRefreshExternal();
     }
-  }, [skillsModalVisible]);
+  }, [skillsModalVisible, handleRefreshExternal]);
+
+  const handleAddCustomPath = useCallback(async () => {
+    if (!customPathName.trim() || !customPathValue.trim()) return;
+    try {
+      const result = await ipcBridge.fs.addCustomExternalPath.invoke({ name: customPathName.trim(), path: customPathValue.trim() });
+      if (result.success) {
+        setShowAddPathModal(false);
+        setCustomPathName('');
+        setCustomPathValue('');
+        message.success(t('common.success', { defaultValue: 'Successfully added path' }));
+        void handleRefreshExternal();
+      } else {
+        message.error(result.msg || 'Failed to add path');
+      }
+    } catch (error) {
+      message.error('Failed to add custom path');
+    }
+  }, [customPathName, customPathValue, handleRefreshExternal, message, t]);
 
   const refreshAgentDetection = useCallback(async () => {
     try {
@@ -341,7 +387,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         if (skillsToImport.length > 0) {
           for (const pendingSkill of skillsToImport) {
             try {
-              const response = await ipcBridge.fs.importSkill.invoke({ skillPath: pendingSkill.path });
+              // 使用 importSkillWithSymlink 保持与技能中心一致 / Use importSkillWithSymlink to align with Skills Hub
+              const response = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: pendingSkill.path });
               if (!response.success) {
                 message.error(`Failed to import skill "${pendingSkill.name}": ${response.msg}`);
                 return;
@@ -482,6 +529,58 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };
+
+  const handleAddFoundSkills = (skillsToAdd: Array<{ name: string; description: string; path: string }>) => {
+    let addedCount = 0;
+    let skippedCount = 0;
+    const newPendingSkills: PendingSkill[] = [];
+    const newCustomSkillNames: string[] = [];
+    const newSelectedSkills: string[] = [];
+
+    for (const skill of skillsToAdd) {
+      const { name, description, path: sPath } = skill;
+
+      // 检查是否已经在此助手的列表中 / Check if already in this assistant's list
+      const alreadyInAssistant = customSkills.includes(name) || newCustomSkillNames.includes(name);
+
+      if (alreadyInAssistant) {
+        skippedCount++;
+        continue;
+      }
+
+      // 检查是否系统已存在 / Check if already exists in system
+      const existsInAvailable = availableSkills.some((s) => s.name === name);
+      const existsInPending = pendingSkills.some((s) => s.name === name);
+
+      if (!existsInAvailable && !existsInPending) {
+        // 只有系统不存在时才添加到待导入列表 / Only add to pending if not in system
+        newPendingSkills.push({ path: sPath, name, description });
+      }
+
+      newCustomSkillNames.push(name);
+      newSelectedSkills.push(name);
+      addedCount++;
+    }
+
+    if (addedCount > 0) {
+      setPendingSkills([...pendingSkills, ...newPendingSkills]);
+      setCustomSkills([...customSkills, ...newCustomSkillNames]);
+      setSelectedSkills([...selectedSkills, ...newSelectedSkills]);
+      const skippedCountText = skippedCount > 0 ? ` (${t('settings.skippedCount', { count: skippedCount, defaultValue: `${skippedCount} skipped` })})` : '';
+      message.success(t('settings.skillsAdded', { addedCount, skippedCountText, defaultValue: `${addedCount} skills added and selected${skippedCountText}` }));
+    } else if (skippedCount > 0) {
+      message.warning(t('settings.allSkillsExist', { defaultValue: 'All found skills already exist' }));
+    }
+  };
+
+  const activeSource = externalSources.find((s) => s.source === activeSourceTab);
+
+  const filteredExternalSkills = React.useMemo(() => {
+    if (!activeSource) return [];
+    if (!searchExternalQuery.trim()) return activeSource.skills;
+    const lowerQuery = searchExternalQuery.toLowerCase();
+    return activeSource.skills.filter((s) => s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery)));
+  }, [activeSource, searchExternalQuery]);
 
   return (
     <div>
@@ -719,9 +818,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             }}
                           />
                           <div className='flex-1 min-w-0'>
-                            <div className='flex items-center gap-4px'>
+                            <div className='flex items-center gap-6px'>
                               <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                              <span className='text-10px px-4px py-1px bg-primary-1 text-primary rounded'>Pending</span>
+                              <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 border border-[rgba(var(--primary-6),0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>Pending</span>
                             </div>
                             {skill.description && <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>}
                           </div>
@@ -754,10 +853,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                               }}
                             />
                             <div className='flex-1 min-w-0'>
-                              <div className='flex items-center gap-4px'>
+                              <div className='flex items-center gap-6px'>
                                 <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                                <span className='text-10px px-4px py-1px bg-orange-100 text-orange-600 rounded border border-orange-200 uppercase' style={{ fontSize: '9px', fontWeight: 'bold' }}>
-                                  Custom
+                                <span className='bg-[rgba(242,156,27,0.08)] text-[rgb(242,156,27)] border border-[rgba(242,156,27,0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>
+                                  {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
                                 </span>
                               </div>
                               {skill.description && <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>}
@@ -829,144 +928,100 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         )}
       </Modal>
 
-      {/* Skills Modal - Simplified */}
+      {/* Skills Modal - Aligned with Skills Hub */}
       <Modal
         visible={skillsModalVisible}
         onCancel={() => {
           setSkillsModalVisible(false);
-          setSkillPath('');
+          setSearchExternalQuery('');
         }}
-        onOk={async () => {
-          if (!skillPath.trim()) {
-            message.warning(t('settings.pleaseSelectSkillPath', { defaultValue: 'Please select a skill folder path' }));
-            return;
-          }
-
-          const currentPath = skillPath.trim();
-          setSkillPath(''); // Clear immediately to prevent multiple clicks issue
-
-          try {
-            const paths = currentPath
-              .split(',')
-              .map((p) => p.trim())
-              .filter(Boolean);
-            const allFoundSkills: Array<{ name: string; description: string; path: string }> = [];
-
-            for (const p of paths) {
-              // 扫描目录下的 skills / Scan directory for skills
-              const response = await ipcBridge.fs.scanForSkills.invoke({ folderPath: p });
-              if (response.success && response.data) {
-                allFoundSkills.push(...response.data);
-              }
-            }
-
-            if (allFoundSkills.length > 0) {
-              const newPendingSkills: PendingSkill[] = [];
-              const newCustomSkillNames: string[] = [];
-              const newSelectedSkills: string[] = [];
-
-              let addedCount = 0;
-              let skippedCount = 0;
-
-              for (const skill of allFoundSkills) {
-                const { name, description, path: sPath } = skill;
-
-                // 检查是否已经在此助手的列表中 / Check if already in this assistant's list
-                const alreadyInAssistant = customSkills.includes(name) || newCustomSkillNames.includes(name);
-
-                if (alreadyInAssistant) {
-                  skippedCount++;
-                  continue;
-                }
-
-                // 检查是否系统已存在 / Check if already exists in system
-                const existsInAvailable = availableSkills.some((s) => s.name === name);
-                const existsInPending = pendingSkills.some((s) => s.name === name);
-
-                if (!existsInAvailable && !existsInPending) {
-                  // 只有系统不存在时才添加到待导入列表 / Only add to pending if not in system
-                  newPendingSkills.push({ path: sPath, name, description });
-                }
-
-                newCustomSkillNames.push(name);
-                newSelectedSkills.push(name);
-                addedCount++;
-              }
-
-              if (addedCount > 0) {
-                setPendingSkills([...pendingSkills, ...newPendingSkills]);
-                setCustomSkills([...customSkills, ...newCustomSkillNames]);
-                setSelectedSkills([...selectedSkills, ...newSelectedSkills]);
-                const skippedCountText = skippedCount > 0 ? ` (${t('settings.skippedCount', { count: skippedCount, defaultValue: `${skippedCount} skipped` })})` : '';
-                message.success(t('settings.skillsAdded', { addedCount, skippedCountText, defaultValue: `${addedCount} skills added and selected${skippedCountText}` }));
-              } else if (skippedCount > 0) {
-                message.warning(t('settings.allSkillsExist', { defaultValue: 'All found skills already exist' }));
-              }
-
-              setSkillsModalVisible(false);
-            } else {
-              message.warning(t('settings.noSkillsFound', { defaultValue: 'No valid skills found in the selected path(s)' }));
-              setSkillsModalVisible(false);
-            }
-          } catch (error) {
-            console.error('Failed to scan skills:', error);
-            message.error(t('settings.skillScanFailed', { defaultValue: 'Failed to scan skills' }));
-            setSkillsModalVisible(false);
-          }
-        }}
+        footer={null}
         title={t('settings.addSkillsTitle', { defaultValue: 'Add Skills' })}
-        okText={t('common.confirm', { defaultValue: 'Confirm' })}
-        cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        className='w-[90vw] md:w-[500px]'
+        className='w-[90vw] md:w-[600px]'
         wrapStyle={{ zIndex: 2500 }}
         maskStyle={{ zIndex: 2490 }}
+        autoFocus={false}
       >
-        <div className='space-y-16px'>
-          {commonPaths.length > 0 && (
-            <div>
-              <div className='text-12px text-t-secondary mb-8px'>{t('settings.quickScan', { defaultValue: 'Quick Scan Common Paths' })}</div>
-              <div className='flex flex-wrap gap-8px'>
-                {commonPaths.map((cp) => (
-                  <Button
-                    key={cp.path}
-                    size='small'
-                    type='secondary'
-                    className='rounded-[100px] bg-fill-2 hover:bg-fill-3'
-                    onClick={() => {
-                      if (skillPath.includes(cp.path)) return;
-                      setSkillPath(skillPath ? `${skillPath}, ${cp.path}` : cp.path);
-                    }}
-                  >
-                    {cp.name}
-                  </Button>
-                ))}
+        <div className='flex flex-col h-[500px]'>
+          <div className='flex items-center justify-between mb-16px shrink-0 gap-16px'>
+            <div className='flex-1 overflow-x-auto custom-scrollbar pb-4px'>
+              <div className='flex items-center gap-8px min-w-max'>
+                {externalSources.map((source) => {
+                  const isActive = activeSourceTab === source.source;
+                  return (
+                    <button key={source.source} type='button' className={`outline-none cursor-pointer px-12px py-6px text-12px rd-[100px] transition-all duration-300 flex items-center gap-6px border ${isActive ? 'bg-primary-6 border-primary-6 text-white shadow-sm font-medium' : 'bg-fill-2 border-transparent text-t-secondary hover:bg-fill-3 hover:text-t-primary'}`} onClick={() => setActiveSourceTab(source.source)}>
+                      {source.name}
+                      <span className={`px-6px py-1px rd-[100px] text-10px flex items-center justify-center transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-fill-3 text-t-tertiary border border-border-1'}`}>{source.skills.length}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
-
-          <div className='space-y-12px'>
-            <Typography.Text>{t('settings.skillFolderPath', { defaultValue: 'Skill Folder Path' })}</Typography.Text>
-            <Input.Group className='flex items-center gap-8px'>
-              <Input value={skillPath} onChange={(value) => setSkillPath(value)} placeholder={t('settings.skillPathPlaceholder', { defaultValue: 'Enter or browse skill folder path' })} className='flex-1' />
-              <Button
-                type='outline'
-                icon={<FolderOpen size={16} />}
-                onClick={async () => {
-                  try {
-                    const result = await ipcBridge.dialog.showOpen.invoke({
-                      properties: ['openDirectory', 'multiSelections'],
-                    });
-                    if (result && result.length > 0) {
-                      setSkillPath(result.join(', '));
-                    }
-                  } catch (error) {
-                    console.error('Failed to open directory dialog:', error);
-                  }
-                }}
+            <div className='flex items-center gap-4px shrink-0 ml-4px'>
+              <button
+                type='button'
+                className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2'
+                onClick={() => void handleRefreshExternal()}
+                title={t('common.refresh', { defaultValue: 'Refresh' })}
               >
-                {t('common.browse', { defaultValue: 'Browse' })}
-              </Button>
-            </Input.Group>
+                <Refresh theme='outline' size={16} className={refreshing ? 'animate-spin' : ''} />
+              </button>
+              <button type='button' className='outline-none border border-dashed border-border-1 hover:border-primary-4 cursor-pointer w-28px h-28px text-t-tertiary hover:text-primary-6 hover:bg-primary-1 rd-full transition-all duration-300 flex items-center justify-center bg-transparent shrink-0' onClick={() => setShowAddPathModal(true)} title={t('common.add', { defaultValue: 'Add Custom Path' })}>
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+
+          <Input prefix={<Search />} placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })} value={searchExternalQuery} onChange={(val) => setSearchExternalQuery(val)} className='mb-12px shrink-0 rounded-[8px] bg-fill-2' />
+
+          <div className='flex-1 overflow-y-auto custom-scrollbar bg-fill-1 rounded-8px p-12px'>
+            {externalSkillsLoading ? (
+              <div className='h-full flex items-center justify-center text-t-tertiary'>{t('common.loading', { defaultValue: 'Loading...' })}</div>
+            ) : activeSource ? (
+              filteredExternalSkills.length > 0 ? (
+                <div className='flex flex-col gap-8px'>
+                  {filteredExternalSkills.map((skill) => {
+                    const isAdded = customSkills.includes(skill.name);
+                    return (
+                      <div key={skill.path} className='flex items-start gap-12px p-12px bg-base border border-transparent hover:border-border-2 rounded-8px transition-colors shadow-sm'>
+                        <div className='w-32px h-32px rounded-8px bg-fill-2 border border-border-1 flex items-center justify-center font-bold text-14px text-t-secondary uppercase shrink-0 mt-2px'>{skill.name.charAt(0)}</div>
+                        <div className='flex-1 min-w-0'>
+                          <div className='text-14px font-medium text-t-primary truncate'>{skill.name}</div>
+                          {skill.description && (
+                            <div className='text-12px text-t-secondary line-clamp-2 mt-4px' title={skill.description}>
+                              {skill.description}
+                            </div>
+                          )}
+                        </div>
+                        <div className='shrink-0 flex items-center h-full self-center'>
+                          {isAdded ? (
+                            <Button size='small' disabled className='rounded-[100px] bg-fill-2 text-t-tertiary border-none'>
+                              {t('common.added', { defaultValue: 'Added' })}
+                            </Button>
+                          ) : (
+                            <Button
+                              size='small'
+                              type='primary'
+                              className='rounded-[100px]'
+                              onClick={() => {
+                                handleAddFoundSkills([skill]);
+                              }}
+                            >
+                              <Plus size={14} className='mr-4px' />
+                              {t('common.add', { defaultValue: 'Add' })}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className='h-full flex items-center justify-center text-t-tertiary'>{t('settings.skillsHub.noSearchResults', { defaultValue: 'No skills found' })}</div>
+              )
+            ) : (
+              <div className='h-full flex items-center justify-center text-t-tertiary'>{t('settings.noExternalSources', { defaultValue: 'No external skill sources discovered' })}</div>
+            )}
           </div>
         </div>
       </Modal>
@@ -1037,6 +1092,51 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
           {t('settings.removeCustomSkillNote', {
             defaultValue: 'This will only remove the skill from this assistant. The skill will remain in Builtin Skills and can be re-added later.',
           })}
+        </div>
+      </Modal>
+
+      {/* Add Custom External Path Modal */}
+      <Modal
+        title={t('settings.skillsHub.addCustomPath', { defaultValue: '添加自定义技能路径' })}
+        visible={showAddPathModal}
+        onCancel={() => {
+          setShowAddPathModal(false);
+          setCustomPathName('');
+          setCustomPathValue('');
+        }}
+        onOk={() => void handleAddCustomPath()}
+        okText={t('common.confirm', { defaultValue: '确认' })}
+        cancelText={t('common.cancel', { defaultValue: '取消' })}
+        okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
+        autoFocus={false}
+        focusLock
+        wrapStyle={{ zIndex: 10000 }}
+        maskStyle={{ zIndex: 9999 }}
+      >
+        <div className='flex flex-col gap-16px'>
+          <div>
+            <div className='text-13px font-medium text-t-primary mb-8px'>{t('common.name', { defaultValue: '名称' })}</div>
+            <Input placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: '例：我的自定义技能' })} value={customPathName} onChange={(v) => setCustomPathName(v)} className='rd-6px' />
+          </div>
+          <div>
+            <div className='text-13px font-medium text-t-primary mb-8px'>{t('settings.skillsHub.customPathLabel', { defaultValue: '技能目录路径' })}</div>
+            <div className='flex gap-8px'>
+              <Input placeholder={t('settings.skillsHub.customPathPlaceholder', { defaultValue: '例：C:\\Users\\me\\.mytools\\skills' })} value={customPathValue} onChange={(v) => setCustomPathValue(v)} className='flex-1 rd-6px' />
+              <Button
+                className='rd-6px'
+                onClick={async () => {
+                  try {
+                    const result = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+                    if (result && result.length > 0) {
+                      setCustomPathValue(result[0]);
+                    }
+                  } catch { }
+                }}
+              >
+                <FolderOpen size={16} />
+              </Button>
+            </div>
+          </div>
         </div>
       </Modal>
     </div>
