@@ -175,6 +175,22 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     return list.concat(message);
   }
 
+  // agent_status / tips / plan and other msg_id-based messages:
+  // replace the existing item in place instead of appending duplicates.
+  if (message.msg_id) {
+    const existingIdx = index.msgIdIndex.get(message.msg_id);
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      const newList = list.slice();
+      newList[existingIdx] = {
+        ...existingMsg,
+        ...message,
+        content: message.content,
+      } as TMessage;
+      return newList;
+    }
+  }
+
   // Other types: fallback to last message check
   // 其他类型: 回退到检查最后一条消息
   const last = list[list.length - 1];

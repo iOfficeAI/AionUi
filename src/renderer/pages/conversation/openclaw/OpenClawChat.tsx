@@ -13,6 +13,7 @@ import React, { useEffect } from 'react';
 import LocalImageView from '../../../components/LocalImageView';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import OpenClawSendBox from './OpenClawSendBox';
+import StarOfficeSyncBridge from '../components/StarOfficeSyncBridge';
 
 const OpenClawChat: React.FC<{
   conversation_id: string;
@@ -26,6 +27,7 @@ const OpenClawChat: React.FC<{
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'openclaw-gateway' }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
+        <StarOfficeSyncBridge conversationId={conversation_id} source='openclaw-gateway' />
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>

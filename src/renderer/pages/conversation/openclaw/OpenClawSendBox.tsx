@@ -90,7 +90,25 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
-
+const STAR_OFFICE_CARD_MARKER = '[STAROFFICE_CARD]';
+const normalizeConsentText = (input: string) => input.trim().toLowerCase();
+const isInstallConsentApproved = (input: string) => {
+  const normalized = normalizeConsentText(input);
+  return ['同意', '继续', '开始', '确认', '可以', 'yes', 'ok', 'y', 'run'].some((k) => normalized.includes(k));
+};
+const isInstallConsentRejected = (input: string) => {
+  const normalized = normalizeConsentText(input);
+  return ['取消', '拒绝', '不要', 'no', 'n', 'stop'].some((k) => normalized.includes(k));
+};
+const extractResponseText = (raw: unknown): string => {
+  if (typeof raw === 'string') return raw;
+  if (raw && typeof raw === 'object' && 'content' in raw) {
+    const content = (raw as { content?: unknown }).content;
+    if (typeof content === 'string') return content;
+  }
+  return '';
+};
+type InstallFlowStage = 'idle' | 'consent' | 'checking' | 'installing' | 'starting' | 'detecting' | 'troubleshooting' | 'completed';
 const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -101,10 +119,29 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const [aiProcessing, setAiProcessing] = useState(false);
   const [openclawStatus, setOpenClawStatus] = useState<string | null>(null);
+  const [starOfficeInstallMode, setStarOfficeInstallMode] = useState(false);
+  const [awaitingInstallConsent, setAwaitingInstallConsent] = useState(false);
+  const [pendingInstallPrompt, setPendingInstallPrompt] = useState<string | null>(null);
+  const [installFlowStage, setInstallFlowStage] = useState<InstallFlowStage>('idle');
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
   });
+  const installCompletedInTurnRef = useRef(false);
+  const lastAnnouncedInstallStageRef = useRef<InstallFlowStage>('idle');
+  const installFlowMeta = useMemo(() => {
+    const map: Record<InstallFlowStage, { label: string; percent: number }> = {
+      idle: { label: 'Idle', percent: 0 },
+      consent: { label: 'Waiting consent', percent: 5 },
+      checking: { label: 'Checking environment', percent: 20 },
+      installing: { label: 'Installing / repairing', percent: 50 },
+      starting: { label: 'Starting service', percent: 70 },
+      detecting: { label: 'Detecting local port', percent: 85 },
+      troubleshooting: { label: 'Troubleshooting connection', percent: 90 },
+      completed: { label: 'Completed', percent: 100 },
+    };
+    return map[installFlowStage];
+  }, [installFlowStage]);
 
   // Use ref to sync state for immediate access in event handlers
   // 使用 ref 同步状态，以便在事件处理程序中立即访问
@@ -187,7 +224,98 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
-
+  const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
+  const emitAssistantNarration = useCallback(
+    (markdown: string) => {
+      const assistantMessage: TMessage = {
+        id: uuid(),
+        msg_id: uuid(),
+        conversation_id,
+        type: 'text',
+        position: 'left',
+        content: {
+          content: markdown,
+        },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(assistantMessage, true);
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
+  const emitAssistantCard = useCallback(
+    (markdown: string) => {
+      emitAssistantNarration(`${STAR_OFFICE_CARD_MARKER}\n${markdown}`);
+    },
+    [emitAssistantNarration]
+  );
+  const announceInstallStage = useCallback(
+    (stage: InstallFlowStage) => {
+      if (stage === 'idle' || stage === 'consent') return;
+      if (lastAnnouncedInstallStageRef.current === stage) return;
+      lastAnnouncedInstallStageRef.current = stage;
+      const stageTextMap: Record<Exclude<InstallFlowStage, 'idle' | 'consent'>, string> = {
+        checking: '🧭 进度更新：正在检查本机环境与依赖。',
+        installing: '🛠️ 进度更新：正在安装/修复 Star Office 运行环境。',
+        starting: '🚀 进度更新：正在启动 Star Office 服务。',
+        detecting: '🔎 进度更新：正在检测本地端口与可访问地址。',
+        troubleshooting: '🩺 进度更新：正在执行连接排障（端口/进程/授权/日志）。',
+        completed: '✅ 进度更新：安装与连接流程完成。',
+      };
+      emitAssistantNarration(stageTextMap[stage]);
+    },
+    [emitAssistantNarration]
+  );
+  const emitWorkflowTip = useCallback(
+    (text: string, type: 'success' | 'warning' = 'success') => {
+      const tipMessage: TMessage = {
+        id: uuid(),
+        msg_id: uuid(),
+        conversation_id,
+        type: 'tips',
+        position: 'center',
+        content: {
+          content: text,
+          type,
+        },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(tipMessage, true);
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
+  const emitLocalUserMessage = useCallback(
+    (text: string) => {
+      const userMessage: TMessage = {
+        id: uuid(),
+        msg_id: uuid(),
+        conversation_id,
+        type: 'text',
+        position: 'right',
+        content: { content: text },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(userMessage, true);
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
+  const exitInstallMode = useCallback(
+    (tip?: string) => {
+      setInstallFlowStage('idle');
+      void ipcBridge.conversation.update.invoke({
+        id: conversation_id,
+        updates: {
+          extra: {
+            starOfficeInstallMode: false,
+            starOfficeInstallModePrimed: false,
+          },
+        },
+        mergeExtra: true,
+      });
+      emitter.emit('staroffice.install-mode.changed', { conversationId: conversation_id, enabled: false });
+      if (tip) emitWorkflowTip(tip);
+    },
+    [conversation_id, emitWorkflowTip]
+  );
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
     // Clear pending finish timeout when conversation changes
@@ -199,6 +327,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    setInstallFlowStage('idle');
+    lastAnnouncedInstallStageRef.current = 'idle';
 
     // Check actual conversation status from backend before resetting aiProcessing
     // to avoid flicker when switching to a running conversation
@@ -278,6 +408,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               setThought({ subject: '', description: '' });
               finishTimeoutRef.current = null;
             }, 1000);
+            if (starOfficeInstallMode && installCompletedInTurnRef.current) {
+              installCompletedInTurnRef.current = false;
+              setInstallFlowStage('completed');
+              announceInstallStage('completed');
+              emitAssistantNarration('安装与连接流程已完成，谢谢你。Install mode 已自动退出。');
+              exitInstallMode('Star Office flow completed. Back to normal mode.');
+            }
             hasContentInTurnRef.current = false;
           }
           break;
@@ -291,6 +428,22 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
             aiProcessingRef.current = true;
           }
           setThought({ subject: '', description: '' });
+          if (starOfficeInstallMode && message.type === 'content') {
+            const text = extractResponseText(message.data);
+            let nextStage: InstallFlowStage | null = null;
+            if (/unauthorized|占用|冲突|失败|error|排查|troubleshoot|repair/i.test(text)) nextStage = 'troubleshooting';
+            else if (/端口|port|127\.0\.0\.1|health|reachable|monitor/i.test(text)) nextStage = 'detecting';
+            else if (/启动|start|serve|npm run|pnpm run|backend|frontend|running/i.test(text)) nextStage = 'starting';
+            else if (/install|安装|修复|setup|pip|clone|venv/i.test(text)) nextStage = 'installing';
+            else if (/检查|检测环境|doctor|preflight|dependency|诊断/i.test(text)) nextStage = 'checking';
+            if (nextStage) {
+              setInstallFlowStage(nextStage);
+              announceInstallStage(nextStage);
+            }
+            if (/安装完成|安装成功|已启动|连接成功|ready|connected|running|http:\/\/127\.0\.0\.1/i.test(text)) {
+              installCompletedInTurnRef.current = true;
+            }
+          }
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -298,11 +451,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         case 'agent_status': {
-          // Auto-recover aiProcessing state if agent_status arrives after finish
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
           const statusData = message.data as { status: string; message: string };
           setOpenClawStatus(statusData.status);
           const transformedMessage = transformMessage(message);
@@ -312,13 +460,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         default: {
-          // Mark that current turn has content output
-          hasContentInTurnRef.current = true;
-          // Auto-recover aiProcessing state if other messages arrive after finish
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -327,14 +468,123 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         }
       }
     });
-  }, [conversation_id, addOrUpdateMessage]);
+  }, [conversation_id, addOrUpdateMessage, starOfficeInstallMode, emitAssistantNarration, exitInstallMode, announceInstallStage]);
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
+      const extra = (res.extra as { starOfficeInstallMode?: boolean; starOfficeInstallModePrimed?: boolean }) || {};
+      const shouldKeepInstallMode = Boolean(extra.starOfficeInstallMode) && res.status === 'running';
+      setStarOfficeInstallMode(shouldKeepInstallMode);
+      if (shouldKeepInstallMode) {
+        setInstallFlowStage('checking');
+      }
+
+      // Prevent stale install mode from re-appearing when user re-enters conversation.
+      if (extra.starOfficeInstallMode && !shouldKeepInstallMode) {
+        void ipcBridge.conversation.update.invoke({
+          id: conversation_id,
+          updates: {
+            extra: {
+              starOfficeInstallMode: false,
+              starOfficeInstallModePrimed: false,
+            },
+          },
+          mergeExtra: true,
+        });
+      }
     });
   }, [conversation_id]);
+
+  useAddEventListener(
+    'staroffice.install-mode.changed',
+    ({ conversationId, enabled }) => {
+      if (conversationId !== conversation_id) return;
+      setStarOfficeInstallMode(enabled);
+    },
+    [conversation_id]
+  );
+
+  useAddEventListener(
+    'staroffice.install.request',
+    ({ conversationId, text, detectedUrl }) => {
+      if (conversationId !== conversation_id) return;
+      const runRequest = () => {
+        if (!immediateSendRef.current) {
+          setContentRef.current(text);
+          emitAssistantNarration('当前发送通道还未就绪，我已把请求放到输入框里；你点击发送后我会继续执行。');
+          return;
+        }
+        void immediateSendRef.current(text).catch(() => {
+          setContentRef.current(text);
+          emitAssistantNarration('自动执行失败，我已把请求放到输入框里；你点击发送后我会继续执行。');
+        });
+      };
+
+      const hasLocal = Boolean(detectedUrl);
+      if (hasLocal) {
+        emitWorkflowTip('Star Office helper is ready. Running connection diagnosis / guidance in this conversation.');
+        emitAssistantNarration(`已检测到本机 Star Office 服务（${detectedUrl}），我现在直接帮你完成连接与玩法引导。`);
+        runRequest();
+        return;
+      }
+
+      setPendingInstallPrompt(text);
+      setAwaitingInstallConsent(true);
+      setInstallFlowStage('consent');
+      emitWorkflowTip('Star Office helper is ready. Waiting for your consent to auto-install.');
+      emitAssistantCard(
+        [
+          '## 📺 Star Office UI 助手',
+          '',
+          '> 当前未检测到你本机的 Star Office 服务。',
+          '',
+          '**Star Office 是什么？**',
+          '- 一个把 OpenClaw 对话“可视化”的本地 UI 项目',
+          '- 你可以在小电视里实时看到状态和联动画面',
+          '',
+          '**我可以帮你做什么？**',
+          '- 自动安装/修复环境',
+          '- 自动启动服务并检测端口',
+          '- 引导你一键连接到 Aion 小电视',
+          '',
+          '```text',
+          'Install flow: detect -> install/repair -> start -> check port -> open live monitor',
+          '```',
+          '',
+          '项目地址（含说明/示例图）：https://github.com/ringhyacinth/Star-Office-UI',
+          '',
+          '如果你同意我现在开始一站式安装，请回复：`同意`（或 `继续`）。',
+          '如果先不安装，请回复：`取消`。',
+        ].join('\n')
+      );
+    },
+    [conversation_id, emitAssistantCard, emitAssistantNarration]
+  );
+
+  const handleExitStarOfficeInstallMode = useCallback(() => {
+    void (async () => {
+      // Stop ongoing OpenClaw turn immediately, then exit install mode.
+      try {
+        await ipcBridge.conversation.stop.invoke({ conversation_id });
+      } finally {
+        if (finishTimeoutRef.current) {
+          clearTimeout(finishTimeoutRef.current);
+          finishTimeoutRef.current = null;
+        }
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        setThought({ subject: '', description: '' });
+        hasContentInTurnRef.current = false;
+        setAwaitingInstallConsent(false);
+        setPendingInstallPrompt(null);
+        installCompletedInTurnRef.current = false;
+        setInstallFlowStage('idle');
+        exitInstallMode('Stopped Star Office install flow. Conversation is back to normal mode.');
+      }
+    })();
+  }, [conversation_id, exitInstallMode]);
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
@@ -359,51 +609,103 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     }, 10);
   });
 
-  const onSendHandler = async (message: string) => {
-    const runtimeOk = await validateRuntimeMismatch(conversation_id);
-    if (!runtimeOk) return;
+  const sendOpenClawMessage = useCallback(
+    async (message: string) => {
+      const runtimeOk = await validateRuntimeMismatch(conversation_id);
+      if (!runtimeOk) return;
 
-    const msg_id = uuid();
-    // Content is already cleared by the shared SendBox component (setInput(''))
-    // before calling onSend — no need to clear again here.
-    emitter.emit('openclaw-gateway.selected.file.clear');
-    const currentAtPath = [...atPath];
-    const currentUploadFile = [...uploadFile];
-    setAtPath([]);
-    setUploadFile([]);
+      const msg_id = uuid();
+      // Content is already cleared by the shared SendBox component (setInput(''))
+      // before calling onSend — no need to clear again here.
+      emitter.emit('openclaw-gateway.selected.file.clear');
+      const currentAtPath = [...atPath];
+      const currentUploadFile = [...uploadFile];
+      setAtPath([]);
+      setUploadFile([]);
 
-    const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
-    const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
+      const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+      const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
 
-    const userMessage: TMessage = {
-      id: msg_id,
-      msg_id,
-      conversation_id,
-      type: 'text',
-      position: 'right',
-      content: { content: displayMessage },
-      createdAt: Date.now(),
-    };
-    addOrUpdateMessage(userMessage, true);
-    setAiProcessing(true);
-    aiProcessingRef.current = true;
-    try {
-      const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
-      await ipcBridge.openclawConversation.sendMessage.invoke({
-        input: displayMessage,
+      const userMessage: TMessage = {
+        id: msg_id,
         msg_id,
         conversation_id,
-        files: [...currentUploadFile, ...atPathStrings],
-      });
-      void checkAndUpdateTitle(conversation_id, message);
-      emitter.emit('chat.history.refresh');
-    } catch (error) {
-      // Only reset aiProcessing on error, normal flow is reset by 'finish' event
-      setAiProcessing(false);
-      aiProcessingRef.current = false;
-      throw error;
+        type: 'text',
+        position: 'right',
+        content: { content: displayMessage },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(userMessage, true);
+      setAiProcessing(true);
+      aiProcessingRef.current = true;
+      try {
+        const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
+        await ipcBridge.openclawConversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files: [...currentUploadFile, ...atPathStrings],
+        });
+        void checkAndUpdateTitle(conversation_id, message);
+        emitter.emit('chat.history.refresh');
+      } catch (error) {
+        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        throw error;
+      }
+    },
+    [conversation_id, atPath, uploadFile, workspacePath, addOrUpdateMessage, checkAndUpdateTitle, setAtPath, setUploadFile]
+  );
+
+  const onSendHandler = async (message: string) => {
+    if (awaitingInstallConsent && pendingInstallPrompt) {
+      emitLocalUserMessage(message);
+      if (isInstallConsentApproved(message)) {
+        const requestText = pendingInstallPrompt;
+        setAwaitingInstallConsent(false);
+        setPendingInstallPrompt(null);
+        setInstallFlowStage('checking');
+        announceInstallStage('checking');
+        emitAssistantNarration('收到同意，我现在开始自动安装/修复/启动流程。');
+        void ipcBridge.conversation.update.invoke({
+          id: conversation_id,
+          updates: {
+            extra: {
+              starOfficeInstallMode: true,
+              starOfficeInstallModePrimed: false,
+            },
+          },
+          mergeExtra: true,
+        });
+        emitter.emit('staroffice.install-mode.changed', { conversationId: conversation_id, enabled: true });
+        void sendOpenClawMessage(requestText).catch(() => {
+          setContentRef.current(requestText);
+          emitAssistantNarration('自动执行失败，我已把请求放到输入框里；你点击发送后我会继续执行。');
+        });
+        return;
+      }
+      if (isInstallConsentRejected(message)) {
+        setAwaitingInstallConsent(false);
+        setPendingInstallPrompt(null);
+        setInstallFlowStage('idle');
+        lastAnnouncedInstallStageRef.current = 'idle';
+        emitAssistantNarration('好的，已取消本次安装流程。你可以随时再点小电视重新开始。');
+        return;
+      }
+      emitAssistantNarration('我在等你的确认。请回复：`同意`（或 `继续`）/ `取消`。');
+      return;
     }
+
+    await sendOpenClawMessage(message);
   };
+
+  useEffect(() => {
+    immediateSendRef.current = sendOpenClawMessage;
+    return () => {
+      immediateSendRef.current = null;
+    };
+  }, [sendOpenClawMessage]);
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {
@@ -494,6 +796,19 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      {starOfficeInstallMode ? (
+        <div className='mb-4px flex items-center justify-between gap-10px rounded-full border border-[rgb(var(--arcoblue-3))] bg-[rgba(var(--arcoblue-1),0.6)] px-10px py-6px'>
+          <div className='min-w-0 flex items-center gap-8px text-12px text-[rgb(var(--arcoblue-7))]'>
+            <span className='truncate'>Star Office install mode · {installFlowMeta.label}</span>
+            <span className='text-[11px] text-t-secondary'>{installFlowMeta.percent}%</span>
+          </div>
+          <div className='shrink-0'>
+            <Button size='mini' type='text' onClick={handleExitStarOfficeInstallMode}>
+              Stop
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <SendBox
         value={content}

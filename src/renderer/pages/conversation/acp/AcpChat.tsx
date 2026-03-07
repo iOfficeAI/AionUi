@@ -13,6 +13,7 @@ import HOC from '@renderer/utils/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';
+import StarOfficeSyncBridge from '../components/StarOfficeSyncBridge';
 
 const AcpChat: React.FC<{
   conversation_id: string;
@@ -26,6 +27,7 @@ const AcpChat: React.FC<{
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp' }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
+        <StarOfficeSyncBridge conversationId={conversation_id} source='acp' />
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>

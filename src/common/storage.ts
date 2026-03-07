@@ -270,6 +270,10 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID / Preset assistant ID */
           presetAssistantId?: string;
+          /** Whether Star Office install helper mode is active for this conversation */
+          starOfficeInstallMode?: boolean;
+          /** Whether full Star Office install skill has already been injected for this mode session */
+          starOfficeInstallModePrimed?: boolean;
           /** 是否置顶会话 / Whether this conversation is pinned */
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */

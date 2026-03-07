@@ -100,6 +100,7 @@ export const application = {
   // CDP (Chrome DevTools Protocol) management
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'), // 获取 CDP 状态
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'), // 更新 CDP 配置
+  detectStarOfficeUrl: bridge.buildProvider<IBridgeResponse<{ url: string | null }>, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>('app.detect-star-office-url'),
   // Bridge Main Process logs to Renderer F12 Console
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>('app.log-stream'),
   // DevTools state change notification

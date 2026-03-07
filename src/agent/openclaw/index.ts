@@ -71,6 +71,7 @@ export class OpenClawAgent {
   private approvalStore = new AcpApprovalStore();
   private pendingPermissions = new Map<string, { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }>();
   private statusMessageId: string | null = null;
+  private disconnectTipMessageId: string | null = null;
   private pendingNavigationTools = new Set<string>();
 
   // Streaming message state - independent from AcpAdapter
@@ -567,7 +568,7 @@ export class OpenClawAgent {
 
   private handleDisconnect(reason: string): void {
     this.emitStatusMessage('disconnected');
-    this.emitErrorMessage(`Gateway disconnected: ${reason}`);
+    this.emitErrorMessage(`Gateway disconnected: ${reason}`, 'disconnect');
 
     if (this.onSignalEvent) {
       this.onSignalEvent({
@@ -582,7 +583,6 @@ export class OpenClawAgent {
     this.pendingPermissions.clear();
     this.approvalStore.clear();
     this.pendingNavigationTools.clear();
-    this.statusMessageId = null;
   }
 
   /**
@@ -645,9 +645,11 @@ export class OpenClawAgent {
     this.emitMessage(message);
   }
 
-  private emitErrorMessage(error: string): void {
+  private emitErrorMessage(error: string, kind: 'generic' | 'disconnect' = 'generic'): void {
+    const messageId = kind === 'disconnect' ? (this.disconnectTipMessageId ??= uuid()) : uuid();
     const message: TMessage = {
-      id: uuid(),
+      id: messageId,
+      msg_id: messageId,
       conversation_id: this.id,
       type: 'tips',
       position: 'center',

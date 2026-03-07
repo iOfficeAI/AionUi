@@ -9,6 +9,7 @@ import type { DependencyList } from 'react';
 import { useEffect } from 'react';
 import type { FileOrFolderItem } from '@/renderer/types/files';
 import type { PreviewContentType } from '@/common/types/preview';
+import type { StarOfficeSyncResult } from '@/renderer/utils/starOffice';
 
 interface EventTypes {
   'gemini.selected.file': [Array<string | FileOrFolderItem>];
@@ -38,6 +39,18 @@ interface EventTypes {
   'preview.open': [{ content: string; contentType: PreviewContentType; metadata?: { title?: string; fileName?: string } }];
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [string]; // prompt text to fill
+  'staroffice.status': [
+    {
+      conversationId: string;
+      source: 'acp' | 'openclaw-gateway';
+      state: 'idle' | 'writing' | 'researching' | 'executing' | 'syncing' | 'error';
+      detail: string;
+      ts: number;
+    },
+  ];
+  'staroffice.sync.result': [StarOfficeSyncResult];
+  'staroffice.install-mode.changed': [{ conversationId: string; enabled: boolean }];
+  'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
 }
 
 export const emitter = new EventEmitter<EventTypes>();
