@@ -71,10 +71,22 @@ export function initChannelBridge(): void {
         }
       };
 
+      // Build a set of channel types whose parent extension is currently enabled
+      const enabledExtChannelTypes = new Set<string>();
+      for (const [pluginType] of registry.getChannelPlugins()) {
+        enabledExtChannelTypes.add(pluginType);
+      }
+
       const statusMap = new Map<string, IChannelPluginStatus>();
 
       for (const plugin of result.data) {
         const isExtension = !BUILTIN_TYPES.has(plugin.type);
+
+        // Skip extension channels whose parent extension is not loaded/enabled
+        if (isExtension && !enabledExtChannelTypes.has(plugin.type)) {
+          continue;
+        }
+
         statusMap.set(plugin.type, {
           id: plugin.id,
           type: plugin.type,

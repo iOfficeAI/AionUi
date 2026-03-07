@@ -51,6 +51,8 @@ export class ExtensionLoader {
   private getScanSources(): Array<{ dir: string; source: ExtensionSource }> {
     const sources: Array<{ dir: string; source: ExtensionSource }> = [];
     const seen = new Set<string>();
+    const envDirs = getEnvExtensionsDirs();
+    const isE2ETest = process.env.AIONUI_E2E_TEST === '1';
 
     const pushSource = (dir: string, source: ExtensionSource) => {
       const normalized = path.resolve(dir);
@@ -59,26 +61,31 @@ export class ExtensionLoader {
       sources.push({ dir: normalized, source });
     };
 
-    const userDir = getUserExtensionsDir();
-    pushSource(userDir, 'local');
-
-    const appDataDir = getAppDataExtensionsDir();
-    if (appDataDir !== userDir) {
-      pushSource(appDataDir, 'appdata');
-    }
-
-    const envDirs = getEnvExtensionsDirs();
+    // Explicit extension paths should always win over implicit/default locations.
     for (const dir of envDirs) {
       pushSource(dir, 'env');
     }
 
-    // Development convenience: always auto-load local example extensions when present.
-    // This ensures demo extensions (e.g. ext-feishu / ext-buddy) are discoverable
-    // even when AIONUI_EXTENSIONS_PATH points to a custom directory.
-    const devExampleDirs = [path.resolve(process.cwd(), 'examples'), path.resolve(process.cwd(), '..', 'examples')];
-    for (const dir of devExampleDirs) {
-      if (!existsSync(dir)) continue;
-      pushSource(dir, 'local');
+    // Keep E2E runs hermetic so local/user-installed extensions do not affect results.
+    if (!isE2ETest) {
+      const userDir = getUserExtensionsDir();
+      pushSource(userDir, 'local');
+
+      const appDataDir = getAppDataExtensionsDir();
+      if (appDataDir !== userDir) {
+        pushSource(appDataDir, 'appdata');
+      }
+    }
+
+    // Development convenience: auto-load local example extensions only when no explicit
+    // extension path is provided. This preserves demo discoverability without overriding
+    // caller-selected extension sets.
+    if (envDirs.length === 0 && !isE2ETest) {
+      const devExampleDirs = [path.resolve(process.cwd(), 'examples'), path.resolve(process.cwd(), '..', 'examples')];
+      for (const dir of devExampleDirs) {
+        if (!existsSync(dir)) continue;
+        pushSource(dir, 'local');
+      }
     }
 
     return sources;

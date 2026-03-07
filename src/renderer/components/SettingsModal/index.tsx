@@ -9,6 +9,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
+import { useExtI18n } from '@/renderer/hooks/useExtI18n';
 import { Tabs } from '@arco-design/web-react';
 import { Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
@@ -163,7 +164,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   // Fetch extension-contributed settings tabs when modal opens
   useEffect(() => {
     if (!visible) return;
-    extensionsIpc.getSettingsTabs
+    void extensionsIpc.getSettingsTabs
       .invoke()
       .then((tabs) => {
         setExtensionTabs(tabs ?? []);
@@ -176,12 +177,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
   const isDesktop = isElectronDesktop();
 
-  /**
-   * Resolve i18n display name for an extension tab.
-   */
-  const resolveExtTabName = useCallback((tab: IExtensionSettingsTab): string => {
-    return tab.name;
-  }, []);
+  const { resolveExtTabName } = useExtI18n();
 
   // Extension tab lookup map for renderContent
   const extensionTabMap = useMemo(() => {
@@ -315,7 +311,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       const isActive = activeTab === tabKey;
       return (
         <div key={tabKey} className='w-full h-full' style={{ display: isActive ? 'block' : 'none' }}>
-          <ExtensionSettingsTabContent tabId={extTab.id} entryUrl={extTab.entryUrl} />
+          <ExtensionSettingsTabContent tabId={extTab.id} entryUrl={extTab.entryUrl} extensionName={extTab._extensionName} />
         </div>
       );
     });

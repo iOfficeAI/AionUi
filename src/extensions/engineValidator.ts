@@ -119,9 +119,7 @@ export function validateEngineCompatibility(extension: LoadedExtension): EngineV
   if (apiVersion) {
     if (!satisfiesVersion(EXTENSION_API_VERSION, apiVersion)) {
       result.valid = false;
-      result.issues.push(
-        `Extension "${extension.manifest.name}" requires extension API ${apiVersion} but current API is ${EXTENSION_API_VERSION}`
-      );
+      result.issues.push(`Extension "${extension.manifest.name}" requires extension API ${apiVersion} but current API is ${EXTENSION_API_VERSION}`);
     }
   }
 

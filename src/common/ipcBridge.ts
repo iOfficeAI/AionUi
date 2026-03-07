@@ -669,6 +669,8 @@ export const extensions = {
   getWebuiContributions: bridge.buildProvider<IExtensionWebuiContribution[], void>('extensions.get-webui-contributions'),
   /** Snapshot of all agent activities, for extension settings tabs */
   getAgentActivitySnapshot: bridge.buildProvider<IExtensionAgentActivitySnapshot, void>('extensions.get-agent-activity-snapshot'),
+  /** Get merged extension i18n translations for a specific locale (falls back to en-US) */
+  getExtI18nForLocale: bridge.buildProvider<Record<string, unknown>, { locale: string }>('extensions.get-ext-i18n-for-locale'),
 
   // --- Extension Management API (NocoBase-inspired) ---
   /** Enable a disabled extension */

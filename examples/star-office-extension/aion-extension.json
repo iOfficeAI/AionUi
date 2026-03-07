@@ -6,6 +6,9 @@
   "description": "Star Office style activity visualization tab for all agents.",
   "author": "AionUI Contributors",
   "icon": "assets/star-office-icon.svg",
+  "i18n": {
+    "defaultLocale": "en-US"
+  },
   "contributes": {
     "settingsTabs": "$file:contributes/settings-tabs.json"
   }

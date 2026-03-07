@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/SettingsModal/settingsViewContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -7,6 +7,7 @@ import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/commo
 import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useExtI18n } from '@/renderer/hooks/useExtI18n';
 
 interface SettingsPageWrapperProps {
   children: React.ReactNode;
@@ -25,15 +26,13 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
 
   useEffect(() => {
-    extensionsIpc.getSettingsTabs
+    void extensionsIpc.getSettingsTabs
       .invoke()
       .then((tabs) => setExtensionTabs(tabs ?? []))
       .catch((err) => console.error('[SettingsPageWrapper] Failed to load extension tabs:', err));
   }, []);
 
-  const resolveExtTabName = useCallback((tab: IExtensionSettingsTab): string => {
-    return tab.name;
-  }, []);
+  const { resolveExtTabName } = useExtI18n();
 
   type NavItem = { label: string; icon: React.ReactElement; path: string; id: string };
 

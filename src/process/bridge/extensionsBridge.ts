@@ -337,6 +337,17 @@ export function initExtensionsBridge(): void {
     }
   });
 
+  // Get merged extension i18n translations for a specific locale
+  ipcBridge.extensions.getExtI18nForLocale.provider(async ({ locale }) => {
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      return registry.getExtI18nForLocale(locale);
+    } catch (error) {
+      console.error('[Extensions] Failed to get ext i18n for locale:', error);
+      return {};
+    }
+  });
+
   // --- Extension Management API (NocoBase-inspired) ---
 
   // Enable an extension

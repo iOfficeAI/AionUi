@@ -467,22 +467,26 @@ const createWindow = (): void => {
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
-  // Initialize auto-updater service
-  // 初始化自动更新服务
-  Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
-    .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
-      // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
-      const statusBroadcast = createAutoUpdateStatusBroadcast();
-      autoUpdaterService.initialize(statusBroadcast);
-      // Check for updates after 3 seconds delay
-      // 3秒后检查更新
-      setTimeout(() => {
-        void autoUpdaterService.checkForUpdatesAndNotify();
-      }, 3000);
-    })
-    .catch((error) => {
-      console.error('[App] Failed to initialize autoUpdaterService:', error);
-    });
+  // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
+  // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
+  if (process.env.AIONUI_DISABLE_AUTO_UPDATE !== '1') {
+    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
+      .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
+        // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
+        const statusBroadcast = createAutoUpdateStatusBroadcast();
+        autoUpdaterService.initialize(statusBroadcast);
+        // Check for updates after 3 seconds delay
+        // 3秒后检查更新
+        setTimeout(() => {
+          void autoUpdaterService.checkForUpdatesAndNotify();
+        }, 3000);
+      })
+      .catch((error) => {
+        console.error('[App] Failed to initialize autoUpdaterService:', error);
+      });
+  } else {
+    console.log('[AionUi] Auto-updater disabled via AIONUI_DISABLE_AUTO_UPDATE');
+  }
 
   // Load the renderer: dev server URL in development, built HTML file in production
   const rendererUrl = process.env['ELECTRON_RENDERER_URL'];

@@ -27,13 +27,7 @@ test.describe('Extension: Settings Tabs Discovery', () => {
     // e2e-full-extension contributes "E2E Settings" and "E2E Before About"
     // hello-world-theme contributes "Hello Config"
     // At least one extension tab should be visible
-    const hasExtTab =
-      siderText?.includes('E2E Settings') ||
-      siderText?.includes('E2E 测试设置') ||
-      siderText?.includes('Hello Config') ||
-      siderText?.includes('Hello 设置') ||
-      siderText?.includes('E2E Before About') ||
-      siderText?.includes('E2E (About之前)');
+    const hasExtTab = siderText?.includes('E2E Settings') || siderText?.includes('E2E 测试设置') || siderText?.includes('Hello Config') || siderText?.includes('Hello 设置') || siderText?.includes('E2E Before About') || siderText?.includes('E2E (About之前)');
 
     expect(hasExtTab).toBeTruthy();
   });
@@ -45,12 +39,8 @@ test.describe('Extension: Settings Tabs Discovery', () => {
     const siderLabels = await page.locator(SETTINGS_SIDER_ITEM_LABEL).allTextContents();
 
     // Check that both extension sources contribute tabs
-    const hasE2eTab = siderLabels.some(
-      (label) => label.includes('E2E Settings') || label.includes('E2E 测试设置'),
-    );
-    const hasHelloTab = siderLabels.some(
-      (label) => label.includes('Hello Config') || label.includes('Hello 设置'),
-    );
+    const hasE2eTab = siderLabels.some((label) => label.includes('E2E Settings') || label.includes('E2E 测试设置'));
+    const hasHelloTab = siderLabels.some((label) => label.includes('Hello Config') || label.includes('Hello 设置'));
 
     // At minimum one should be present (both extensions are loaded from examples/)
     expect(hasE2eTab || hasHelloTab).toBeTruthy();
@@ -70,9 +60,7 @@ test.describe('Extension: Settings Tabs Position Anchoring', () => {
 
     // Find the indices
     const toolsIdx = siderLabels.findIndex((l) => l.includes('Tools') || l.includes('工具'));
-    const e2eIdx = siderLabels.findIndex(
-      (l) => l.includes('E2E Settings') || l.includes('E2E 测试设置'),
-    );
+    const e2eIdx = siderLabels.findIndex((l) => l.includes('E2E Settings') || l.includes('E2E 测试设置'));
 
     // If both found, E2E settings should be after Tools
     if (toolsIdx >= 0 && e2eIdx >= 0) {
@@ -87,9 +75,7 @@ test.describe('Extension: Settings Tabs Position Anchoring', () => {
     const siderLabels = await page.locator(SETTINGS_SIDER_ITEM_LABEL).allTextContents();
 
     const aboutIdx = siderLabels.findIndex((l) => l.includes('About') || l.includes('关于'));
-    const beforeAboutIdx = siderLabels.findIndex(
-      (l) => l.includes('E2E Before About') || l.includes('E2E (About之前)'),
-    );
+    const beforeAboutIdx = siderLabels.findIndex((l) => l.includes('E2E Before About') || l.includes('E2E (About之前)'));
 
     if (aboutIdx >= 0 && beforeAboutIdx >= 0) {
       expect(beforeAboutIdx).toBeLessThan(aboutIdx);
@@ -103,9 +89,7 @@ test.describe('Extension: Settings Tabs Position Anchoring', () => {
     const siderLabels = await page.locator(SETTINGS_SIDER_ITEM_LABEL).allTextContents();
 
     const displayIdx = siderLabels.findIndex((l) => l.includes('Display') || l.includes('显示'));
-    const helloIdx = siderLabels.findIndex(
-      (l) => l.includes('Hello Config') || l.includes('Hello 设置'),
-    );
+    const helloIdx = siderLabels.findIndex((l) => l.includes('Hello Config') || l.includes('Hello 设置'));
 
     if (displayIdx >= 0 && helloIdx >= 0) {
       expect(helloIdx).toBeGreaterThan(displayIdx);
@@ -180,8 +164,7 @@ test.describe('Extension: Settings Tabs $file: Resolution', () => {
     await waitForSettle(page);
 
     const siderText = await page.locator('.settings-sider').textContent();
-    const hasE2eTab =
-      siderText?.includes('E2E Settings') || siderText?.includes('E2E 测试设置');
+    const hasE2eTab = siderText?.includes('E2E Settings') || siderText?.includes('E2E 测试设置');
 
     // The tab should be present, proving $file:contributes/settings-tabs.json was resolved
     expect(hasE2eTab).toBeTruthy();
@@ -206,12 +189,7 @@ test.describe('Extension: Settings Tabs Stability', () => {
     await waitForSettle(page);
 
     // Filter for extension-specific errors
-    const extErrors = errors.filter(
-      (e) =>
-        e.toLowerCase().includes('extension') ||
-        e.toLowerCase().includes('settings-tab') ||
-        e.toLowerCase().includes('settingstab'),
-    );
+    const extErrors = errors.filter((e) => e.toLowerCase().includes('extension') || e.toLowerCase().includes('settings-tab') || e.toLowerCase().includes('settingstab'));
 
     expect(extErrors).toHaveLength(0);
   });

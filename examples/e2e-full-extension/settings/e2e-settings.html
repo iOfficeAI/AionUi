@@ -24,22 +24,54 @@
   </style>
 </head>
 <body>
-  <h2>E2E Extension Settings</h2>
+  <h2 data-i18n="title">E2E Extension Settings</h2>
   <div class="field">
-    <label for="endpoint">Test Endpoint</label>
+    <label for="endpoint" data-i18n="endpoint">Test Endpoint</label>
     <input id="endpoint" type="text" placeholder="http://localhost:19999" />
   </div>
   <div class="field">
-    <label for="timeout">Request Timeout (ms)</label>
+    <label for="timeout" data-i18n="timeout">Request Timeout (ms)</label>
     <input id="timeout" type="number" value="5000" />
   </div>
   <div class="field">
-    <label for="mode">Test Mode</label>
+    <label for="mode" data-i18n="mode">Test Mode</label>
     <select id="mode">
-      <option value="mock">Mock</option>
-      <option value="live">Live</option>
+      <option value="mock" data-i18n="mode-mock">Mock</option>
+      <option value="live" data-i18n="mode-live">Live</option>
     </select>
   </div>
-  <p class="info">This is a demo settings page contributed by the E2E Full Test Extension.</p>
+  <p class="info" data-i18n="info">This is a demo settings page contributed by the E2E Full Test Extension.</p>
+
+  <script>
+    (() => {
+      const applyTranslations = (payload) => {
+        const pageTranslations = payload && payload.translations && payload.translations.settings && payload.translations.settings.page;
+        if (!pageTranslations || typeof pageTranslations !== 'object') return;
+
+        if (payload.locale) {
+          document.documentElement.lang = payload.locale;
+        }
+
+        document.querySelectorAll('[data-i18n]').forEach((element) => {
+          const key = element.getAttribute('data-i18n');
+          const value = key ? pageTranslations[key] : undefined;
+          if (typeof value === 'string') {
+            element.textContent = value;
+          }
+        });
+      };
+
+      window.addEventListener('message', (event) => {
+        const data = event.data || {};
+        if (data.type === 'aion:init') {
+          applyTranslations(data);
+        }
+      });
+
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'aion:get-locale' }, '*');
+      }
+    })();
+  </script>
 </body>
 </html>

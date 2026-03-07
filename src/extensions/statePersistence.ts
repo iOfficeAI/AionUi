@@ -10,12 +10,22 @@ import * as os from 'os';
 import type { ExtensionState } from './types';
 import { extensionEventBus, ExtensionSystemEvents } from './ExtensionEventBus';
 
-const STATES_DIR = path.join(os.homedir(), '.aionui');
-const STATES_FILE = path.join(STATES_DIR, 'extension-states.json');
+const EXTENSION_STATES_FILE_ENV = 'AIONUI_EXTENSION_STATES_FILE';
+const DEFAULT_STATES_DIR = '.aionui';
+const DEFAULT_STATES_FILE = 'extension-states.json';
+
+function resolveStatesFile(): string {
+  const override = process.env[EXTENSION_STATES_FILE_ENV]?.trim();
+  if (override) {
+    return path.resolve(override);
+  }
+  return path.join(os.homedir(), DEFAULT_STATES_DIR, DEFAULT_STATES_FILE);
+}
 
 /**
  * Persisted state format on disk.
- * Stored at ~/.aionui/extension-states.json
+ * Stored at ~/.aionui/extension-states.json by default.
+ * Can be overridden via AIONUI_EXTENSION_STATES_FILE.
  */
 interface PersistedStates {
   /** Schema version for future migrations */
@@ -41,12 +51,13 @@ interface PersistedStates {
  */
 export function loadPersistedStates(): Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }> {
   const result = new Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>();
+  const statesFile = resolveStatesFile();
 
   try {
-    if (!fs.existsSync(STATES_FILE)) {
+    if (!fs.existsSync(statesFile)) {
       return result;
     }
-    const raw = fs.readFileSync(STATES_FILE, 'utf-8');
+    const raw = fs.readFileSync(statesFile, 'utf-8');
     const data = JSON.parse(raw) as PersistedStates;
 
     if (data.version !== 1) {
@@ -72,14 +83,15 @@ export function loadPersistedStates(): Map<string, ExtensionState & { installed?
 
 /**
  * Save extension states to disk.
- * Creates ~/.aionui/ directory if it doesn't exist.
+ * Creates the target directory if it doesn't exist.
  */
-export function savePersistedStates(
-  states: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>
-): void {
+export function savePersistedStates(states: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>): void {
+  const statesFile = resolveStatesFile();
+  const statesDir = path.dirname(statesFile);
+
   try {
-    if (!fs.existsSync(STATES_DIR)) {
-      fs.mkdirSync(STATES_DIR, { recursive: true });
+    if (!fs.existsSync(statesDir)) {
+      fs.mkdirSync(statesDir, { recursive: true });
     }
 
     const data: PersistedStates = {
@@ -98,9 +110,9 @@ export function savePersistedStates(
     }
 
     // Atomic write: write to temp file then rename
-    const tmpFile = STATES_FILE + '.tmp';
+    const tmpFile = statesFile + '.tmp';
     fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
-    fs.renameSync(tmpFile, STATES_FILE);
+    fs.renameSync(tmpFile, statesFile);
 
     extensionEventBus.emitLifecycle(ExtensionSystemEvents.STATES_PERSISTED, {
       extensionName: '*',
@@ -118,11 +130,7 @@ export function savePersistedStates(
  * - Extension has never been seen before (first install)
  * - Extension version has changed (upgrade)
  */
-export function needsInstallHook(
-  extensionName: string,
-  currentVersion: string,
-  persistedStates: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>
-): { isFirstInstall: boolean; isUpgrade: boolean } {
+export function needsInstallHook(extensionName: string, currentVersion: string, persistedStates: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>): { isFirstInstall: boolean; isUpgrade: boolean } {
   const persisted = persistedStates.get(extensionName);
 
   if (!persisted || !persisted.installed) {

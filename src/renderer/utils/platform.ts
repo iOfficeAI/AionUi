@@ -41,23 +41,53 @@ export const isLinux = (): boolean => {
   return typeof navigator !== 'undefined' && /linux/i.test(navigator.userAgent);
 };
 
+const ASSET_PROTOCOL_PREFIX = 'aion-asset://asset/';
+
+const shouldKeepAssetProtocolInElectron = (): boolean => {
+  if (!isElectronDesktop() || typeof window === 'undefined') return false;
+  const protocol = window.location.protocol;
+  return protocol === 'http:' || protocol === 'https:';
+};
+
+const getAssetAbsolutePath = (url: string): string | undefined => {
+  if (!url.startsWith(ASSET_PROTOCOL_PREFIX)) return undefined;
+
+  let absPath = decodeURIComponent(url.slice(ASSET_PROTOCOL_PREFIX.length));
+  if (/^\/[A-Za-z]:/.test(absPath)) {
+    absPath = absPath.slice(1);
+  }
+  return absPath;
+};
+
+const toFileUrl = (absPath: string): string => {
+  const normalized = absPath.replace(/\\/g, '/');
+  if (/^[A-Za-z]:\//.test(normalized)) {
+    return `file:///${encodeURI(normalized)}`;
+  }
+  return `file://${encodeURI(normalized)}`;
+};
+
 /**
  * Resolve an extension asset URL for the current environment.
- * - In Electron desktop: `aion-asset://` protocol works natively, returned as-is.
- * - In a regular browser (WebUI): converts `aion-asset://asset/{path}` to
- *   `/api/ext-asset?path={encodedPath}` which is served by the Express server.
+ * - In Electron dev / any HTTP(S)-served renderer: keep `aion-asset://` because direct `file://` is blocked.
+ * - In Electron packaged / local-protocol renderers: convert `aion-asset://asset/{path}` to `file://` for reliable image loading.
+ * - In a regular browser (WebUI): convert `aion-asset://asset/{path}` to `/api/ext-asset?path={encodedPath}`.
  *
  * 将扩展资源 URL 转换为当前环境可用的地址
  */
 export const resolveExtensionAssetUrl = (url: string | undefined): string | undefined => {
   if (!url) return url;
 
-  // Electron renderer can directly consume file:// and custom protocols.
-  if (isElectronDesktop()) return url;
+  const absPath = getAssetAbsolutePath(url);
 
-  // WebUI: aion-asset://asset/{absPath} -> /api/ext-asset
-  if (url.startsWith('aion-asset://asset/')) {
-    const absPath = url.slice('aion-asset://asset/'.length);
+  if (isElectronDesktop()) {
+    if (absPath && !shouldKeepAssetProtocolInElectron()) {
+      return toFileUrl(absPath);
+    }
+    return url;
+  }
+
+  if (absPath) {
     return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
   }
 

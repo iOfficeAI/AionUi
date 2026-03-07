@@ -87,14 +87,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   };
 
   // Load extension-contributed ACP adapters so they appear in the main agent dropdown
-  const { data: extensionAcpAdapters } = useSWR('extensions.acpAdapters', () =>
-    ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[])
-  );
+  const { data: extensionAcpAdapters } = useSWR('extensions.acpAdapters', () => ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[]));
 
   // Load extension-contributed assistants for Settings > Assistants list
-  const { data: extensionAssistants } = useSWR('extensions.assistants', () =>
-    ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])
-  );
+  const { data: extensionAssistants } = useSWR('extensions.assistants', () => ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]));
 
   const normalizedExtensionAssistants = React.useMemo<AssistantListItem[]>(() => {
     if (!Array.isArray(extensionAssistants) || extensionAssistants.length === 0) return [];
@@ -407,9 +403,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
     // 加载原助手的规则和技能内容 / Load original assistant's rules and skills
     try {
-      const [skillsList, context, skills] = isExtensionAssistant(assistant)
-        ? await Promise.all([ipcBridge.fs.listAvailableSkills.invoke(), Promise.resolve(assistant.context || ''), Promise.resolve('')])
-        : await Promise.all([ipcBridge.fs.listAvailableSkills.invoke(), loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id)]);
+      const [skillsList, context, skills] = isExtensionAssistant(assistant) ? await Promise.all([ipcBridge.fs.listAvailableSkills.invoke(), Promise.resolve(assistant.context || ''), Promise.resolve('')]) : await Promise.all([ipcBridge.fs.listAvailableSkills.invoke(), loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id)]);
 
       setEditContext(context);
       setEditSkills(skills);
@@ -645,7 +639,11 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                         <div className='min-w-0'>
                           <div className='font-medium text-t-primary truncate flex items-center gap-6px'>
                             <span className='truncate'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
-                            {assistantIsExtension && <Tag size='small' color='arcoblue'>ext</Tag>}
+                            {assistantIsExtension && (
+                              <Tag size='small' color='arcoblue'>
+                                ext
+                              </Tag>
+                            )}
                           </div>
                           <div className='text-12px text-t-secondary truncate'>{assistant.descriptionI18n?.[localeKey] || assistant.description || ''}</div>
                         </div>
@@ -792,7 +790,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     <Select.Option key={id} value={id}>
                       <span className='flex items-center gap-6px'>
                         {name}
-                        <Tag size='small' color='arcoblue'>ext</Tag>
+                        <Tag size='small' color='arcoblue'>
+                          ext
+                        </Tag>
                       </span>
                     </Select.Option>
                   );

@@ -222,10 +222,7 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
   // Load custom agents + extension-contributed assistants
   useEffect(() => {
     let isActive = true;
-    Promise.all([
-      ConfigStorage.get('acp.customAgents'),
-      ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]),
-    ])
+    Promise.all([ConfigStorage.get('acp.customAgents'), ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])])
       .then(([agents, extAssistants]) => {
         if (!isActive) return;
         const list = (agents || []).filter((agent: AcpBackendConfig) => availableCustomAgentIds.has(agent.id));
@@ -245,8 +242,8 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
             presetAgentType: typeof ext.presetAgentType === 'string' ? ext.presetAgentType : undefined,
             context: typeof ext.context === 'string' ? ext.context : undefined,
             contextI18n: ext.contextI18n as Record<string, string> | undefined,
-            enabledSkills: Array.isArray(ext.enabledSkills) ? ext.enabledSkills as string[] : undefined,
-            prompts: Array.isArray(ext.prompts) ? ext.prompts as string[] : undefined,
+            enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+            prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
             promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
           } as AcpBackendConfig);
         }

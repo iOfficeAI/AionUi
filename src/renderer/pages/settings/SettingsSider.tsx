@@ -1,9 +1,10 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
+import { useExtI18n } from '@/renderer/hooks/useExtI18n';
 import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
@@ -28,17 +29,14 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const isDesktop = isElectronDesktop();
 
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
+  const { resolveExtTabName } = useExtI18n();
 
   // Fetch extension tabs once on mount
   useEffect(() => {
-    extensionsIpc.getSettingsTabs
+    void extensionsIpc.getSettingsTabs
       .invoke()
       .then((tabs) => setExtensionTabs(tabs ?? []))
       .catch((err) => console.error('[SettingsSider] Failed to load extension settings tabs:', err));
-  }, []);
-
-  const resolveExtTabName = useCallback((tab: IExtensionSettingsTab): string => {
-    return tab.name;
   }, []);
 
   const menus: SiderItem[] = useMemo(() => {

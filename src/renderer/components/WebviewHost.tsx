@@ -36,16 +36,7 @@ export interface WebviewHostProps {
  * - Partition support for cache isolation
  * - Optional navigation bar (hidden by default for embedded use)
  */
-const WebviewHost: React.FC<WebviewHostProps> = ({
-  url,
-  id,
-  showNavBar = false,
-  partition,
-  className,
-  style,
-  onDidFinishLoad,
-  onDidFailLoad,
-}) => {
+const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, partition, className, style, onDidFinishLoad, onDidFailLoad }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
@@ -327,39 +318,17 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       {/* Navigation bar (optional) */}
       {showNavBar && (
         <div className='flex items-center gap-4px h-36px px-8px bg-bg-2 border-b border-border-1 flex-shrink-0'>
-          <button
-            onClick={handleGoBack}
-            disabled={!canGoBack}
-            className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoBack ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`}
-            title='Back'
-          >
+          <button onClick={handleGoBack} disabled={!canGoBack} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoBack ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title='Back'>
             <Left theme='outline' size={16} />
           </button>
-          <button
-            onClick={handleGoForward}
-            disabled={!canGoForward}
-            className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`}
-            title='Forward'
-          >
+          <button onClick={handleGoForward} disabled={!canGoForward} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title='Forward'>
             <Right theme='outline' size={16} />
           </button>
-          <button
-            onClick={handleRefresh}
-            className='flex items-center justify-center w-28px h-28px hover:bg-bg-3 transition-colors cursor-pointer text-t-secondary'
-            title='Refresh'
-          >
+          <button onClick={handleRefresh} className='flex items-center justify-center w-28px h-28px hover:bg-bg-3 transition-colors cursor-pointer text-t-secondary' title='Refresh'>
             {isLoading ? <Loading theme='outline' size={16} className='animate-spin' /> : <Refresh theme='outline' size={16} />}
           </button>
           <form onSubmit={handleUrlSubmit} className='flex-1 ml-4px'>
-            <input
-              type='text'
-              value={inputUrl}
-              onChange={(e) => setInputUrl(e.target.value)}
-              onKeyDown={handleUrlKeyDown}
-              onFocus={(e) => e.target.select()}
-              className='w-full h-26px pl-4px pr-0 rd-4px bg-bg-3 border border-border-1 text-12px text-t-primary outline-none focus:border-primary transition-colors'
-              placeholder='Enter URL...'
-            />
+            <input type='text' value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} onKeyDown={handleUrlKeyDown} onFocus={(e) => e.target.select()} className='w-full h-26px pl-4px pr-0 rd-4px bg-bg-3 border border-border-1 text-12px text-t-primary outline-none focus:border-primary transition-colors' placeholder='Enter URL...' />
           </form>
         </div>
       )}

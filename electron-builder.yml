@@ -106,7 +106,7 @@ win:
     - nsis
 #    - msi
     - zip
-  icon: null  # Disable icon to avoid rcedit "Unable to commit changes" error (often caused by antivirus locking)
+  icon: resources/app.ico  # Use the checked-in Windows icon resource for executable metadata/icon patching
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
 nsis:

@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
+import { useExtI18n } from '@/renderer/hooks/useExtI18n';
 import WebviewHost from '@/renderer/components/WebviewHost';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -19,19 +21,25 @@ const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(ur
  */
 const ExtensionSettingsPage: React.FC = () => {
   const { tabId } = useParams<{ tabId: string }>();
+  const { i18n } = useTranslation();
+  const { resolveExtTabName } = useExtI18n();
   const [tab, setTab] = useState<IExtensionSettingsTab | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setTab(null);
+
     if (!tabId) {
       setError('No tab ID provided');
       setLoading(false);
       return;
     }
 
-    extensionsIpc.getSettingsTabs
+    void extensionsIpc.getSettingsTabs
       .invoke()
       .then((tabs) => {
         const found = (tabs ?? []).find((t) => t.id === tabId);
@@ -55,7 +63,31 @@ const ExtensionSettingsPage: React.FC = () => {
     setLoading(true);
   }, [tab?.id, resolvedEntryUrl]);
 
-  // postMessage bridge for local iframe tabs
+  const postLocaleInit = useCallback(async () => {
+    if (!tab || isExternalTab) return;
+
+    const frameWindow = iframeRef.current?.contentWindow;
+    if (!frameWindow) return;
+
+    try {
+      const mergedI18n = await extensionsIpc.getExtI18nForLocale.invoke({ locale: i18n.language });
+      const namespace = `ext.${tab._extensionName}`;
+      const translations = (mergedI18n?.[namespace] as Record<string, unknown> | undefined) ?? {};
+
+      frameWindow.postMessage(
+        {
+          type: 'aion:init',
+          locale: i18n.language,
+          extensionName: tab._extensionName,
+          translations,
+        },
+        '*'
+      );
+    } catch (err) {
+      console.error('[ExtensionSettingsPage] Failed to post locale init:', err);
+    }
+  }, [i18n.language, isExternalTab, tab]);
+
   useEffect(() => {
     if (!tab || isExternalTab) return;
 
@@ -64,7 +96,14 @@ const ExtensionSettingsPage: React.FC = () => {
       if (!frameWindow || event.source !== frameWindow) return;
 
       const data = event.data as { type?: string; reqId?: string } | undefined;
-      if (!data || data.type !== 'star-office:request-snapshot') return;
+      if (!data) return;
+
+      if (data.type === 'aion:get-locale') {
+        void postLocaleInit();
+        return;
+      }
+
+      if (data.type !== 'star-office:request-snapshot') return;
 
       try {
         const snapshot = await extensionsIpc.getAgentActivitySnapshot.invoke();
@@ -83,7 +122,13 @@ const ExtensionSettingsPage: React.FC = () => {
 
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [tab?.id, isExternalTab]);
+  }, [isExternalTab, postLocaleInit, tab]);
+
+  useEffect(() => {
+    if (!loading) {
+      void postLocaleInit();
+    }
+  }, [loading, postLocaleInit]);
 
   return (
     <SettingsPageWrapper>
@@ -126,7 +171,7 @@ const ExtensionSettingsPage: React.FC = () => {
                   opacity: loading ? 0 : 1,
                   transition: 'opacity 150ms ease-in',
                 }}
-                title={`Extension settings: ${tab.name}`}
+                title={`Extension settings: ${resolveExtTabName(tab)}`}
               />
             </>
           ))}

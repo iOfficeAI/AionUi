@@ -30,13 +30,7 @@ import type { ExtPermissions } from './permissions';
 
 // ============ Message Protocol ============
 
-export type SandboxMessage =
-  | { type: 'api-call'; id: string; method: string; args: unknown[] }
-  | { type: 'api-response'; id: string; result?: unknown; error?: string }
-  | { type: 'event'; name: string; payload: unknown }
-  | { type: 'log'; level: 'log' | 'warn' | 'error'; args: unknown[] }
-  | { type: 'ready' }
-  | { type: 'shutdown' };
+export type SandboxMessage = { type: 'api-call'; id: string; method: string; args: unknown[] } | { type: 'api-response'; id: string; result?: unknown; error?: string } | { type: 'event'; name: string; payload: unknown } | { type: 'log'; level: 'log' | 'warn' | 'error'; args: unknown[] } | { type: 'ready' } | { type: 'shutdown' };
 
 // ============ Sandbox Host (Main Thread) ============
 

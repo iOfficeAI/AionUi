@@ -91,7 +91,6 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
         entryUrl = toAssetUrl(absEntry);
       }
 
-
       // Resolve icon path
       let iconUrl: string | undefined;
       if (tab.icon) {
@@ -131,14 +130,9 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
  * @param extTabs      Resolved extension tabs (already sorted by order)
  * @returns Merged sequence of { type, id, extTab? } in display order
  */
-export type MergedTab =
-  | { type: 'builtin'; id: string }
-  | { type: 'extension'; id: string; extTab: ResolvedSettingsTab };
+export type MergedTab = { type: 'builtin'; id: string } | { type: 'extension'; id: string; extTab: ResolvedSettingsTab };
 
-export function mergeSettingsTabs(
-  builtinIds: readonly string[],
-  extTabs: ResolvedSettingsTab[],
-): MergedTab[] {
+export function mergeSettingsTabs(builtinIds: readonly string[], extTabs: ResolvedSettingsTab[]): MergedTab[] {
   // Build initial sequence from built-in IDs
   const result: MergedTab[] = builtinIds.map((id) => ({ type: 'builtin' as const, id }));
 

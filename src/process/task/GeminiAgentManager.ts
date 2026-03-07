@@ -247,8 +247,8 @@ export class GeminiAgentManager extends BaseAgentManager<
             enabled: true,
             transport,
             status: 'connected', // Extension MCP servers are treated as available
-            createdAt: extServer.createdAt as number || Date.now(),
-            updatedAt: extServer.updatedAt as number || Date.now(),
+            createdAt: (extServer.createdAt as number) || Date.now(),
+            updatedAt: (extServer.updatedAt as number) || Date.now(),
             originalJson: String(extServer.originalJson || '{}'),
           });
         }

@@ -12,7 +12,7 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
-  issues: write
+  issues: read
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -85,16 +85,14 @@ jobs:
       - name: Run extension system tests
         run: bunx vitest run
 
-  # ──────────────────────────────────────────────────────────
-  # Job 3: Build – compile & package on all 5 platform targets
-  # Uploads the *-unpacked directories as artifacts so that
-  # downstream jobs (build-verify, e2e-tests) can reuse them.
-  # ──────────────────────────────────────────────────────────
-  build:
-    name: Build (${{ matrix.platform }})
+  # Job 3: Build + E2E test across all platforms (parallel with code-quality and unit-tests)
+  # E2E tests run inline after build (linux, macos-arm64, windows-x64) so each
+  # platform starts testing immediately without waiting for other platforms.
+  build-test:
+    name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -206,14 +204,15 @@ jobs:
         with:
           vs-version: '17.0'
 
-      - name: Build (Windows x64)
+      - name: Build test (Windows x64)
         if: matrix.platform == 'windows-x64'
         shell: pwsh
         run: |
           Write-Host "=========================================="
-          Write-Host "BUILD: ${{ matrix.platform }}"
+          Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
           just build-win-x64
+          Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           MSVS_VERSION: 2022
@@ -221,14 +220,15 @@ jobs:
           WindowsTargetPlatformVersion: 10.0.19041.0
           CI: true
 
-      - name: Build (Windows arm64)
+      - name: Build test (Windows arm64)
         if: matrix.platform == 'windows-arm64'
         shell: pwsh
         run: |
           Write-Host "=========================================="
-          Write-Host "BUILD: ${{ matrix.platform }}"
+          Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
           just build-win-arm64
+          Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           MSVS_VERSION: 2022
@@ -236,14 +236,15 @@ jobs:
           WindowsTargetPlatformVersion: 10.0.19041.0
           CI: true
 
-      - name: Build (non-Windows)
+      - name: Build test (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
         shell: bash
         run: |
           echo "=========================================="
-          echo "BUILD: ${{ matrix.platform }}"
+          echo "BUILD TEST: ${{ matrix.platform }}"
           echo "=========================================="
           node scripts/build-with-builder.js auto ${{ matrix.build_args }}
+          echo "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           npm_config_arch: ${{ matrix.arch }}
@@ -276,112 +277,6 @@ jobs:
               ;;
           esac
 
-      # Detect the actual unpacked directory name produced by electron-builder.
-      # On macOS, cross-compiling for a different arch may produce 'mac-x64'
-      # instead of 'mac', so we probe all known candidates.
-      - name: Detect unpacked directory
-        id: detect-unpacked
-        shell: bash
-        run: |
-          EXPECTED="out/${{ matrix.unpacked_dir }}"
-          if [ -d "$EXPECTED" ]; then
-            echo "dir=$EXPECTED" >> $GITHUB_OUTPUT
-            echo "Found expected unpacked dir: $EXPECTED"
-          else
-            echo "Expected dir '$EXPECTED' not found, scanning candidates..."
-            ls -la out/
-            case "${{ matrix.platform }}" in
-              macos-*)
-                for d in mac mac-arm64 mac-x64 mac-universal; do
-                  if [ -d "out/$d" ]; then
-                    echo "dir=out/$d" >> $GITHUB_OUTPUT
-                    echo "Found unpacked dir: out/$d"
-                    exit 0
-                  fi
-                done
-                ;;
-              windows-*)
-                for d in win-unpacked win-x64-unpacked win-arm64-unpacked; do
-                  if [ -d "out/$d" ]; then
-                    echo "dir=out/$d" >> $GITHUB_OUTPUT
-                    echo "Found unpacked dir: out/$d"
-                    exit 0
-                  fi
-                done
-                ;;
-              linux)
-                for d in linux-unpacked linux-x64-unpacked linux-arm64-unpacked; do
-                  if [ -d "out/$d" ]; then
-                    echo "dir=out/$d" >> $GITHUB_OUTPUT
-                    echo "Found unpacked dir: out/$d"
-                    exit 0
-                  fi
-                done
-                ;;
-            esac
-            echo "::error::No unpacked directory found for ${{ matrix.platform }}"
-            exit 1
-          fi
-
-      # Upload the unpacked directory for downstream jobs (e2e-tests, build-verify)
-      - name: Upload unpacked app artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: unpacked-${{ matrix.platform }}
-          path: ${{ steps.detect-unpacked.outputs.dir }}/
-          retention-days: 1
-          if-no-files-found: error
-
-      # Upload installers/packages for build-verify smoke tests
-      - name: Upload installer artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: installers-${{ matrix.platform }}
-          path: |
-            out/*.exe
-            out/*.dmg
-            out/*.zip
-            out/*.AppImage
-            out/*.deb
-            out/*latest*.yml
-          retention-days: 1
-          if-no-files-found: warn
-
-  # ──────────────────────────────────────────────────────────
-  # Job 3b: Build Verify – download build artifacts & run
-  # smoke tests (silent install, version check, etc.)
-  # ──────────────────────────────────────────────────────────
-  build-verify:
-    name: Verify (${{ matrix.platform }})
-    needs: [build]
-    if: github.event.action != 'edited'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: 'windows-x64'
-            os: 'windows-2022'
-          - platform: 'windows-arm64'
-            os: 'windows-2022'
-          - platform: 'macos-arm64'
-            os: 'macos-14'
-          - platform: 'macos-x64'
-            os: 'macos-14'
-          - platform: 'linux'
-            os: 'ubuntu-latest'
-    steps:
-      - name: Download installer artifacts
-        uses: actions/download-artifact@v6
-        with:
-          name: installers-${{ matrix.platform }}
-          path: out/
-
-      - name: List downloaded artifacts
-        shell: bash
-        run: ls -lah out/
-
       - name: Silent install smoke test (Windows x64)
         if: matrix.platform == 'windows-x64'
         shell: pwsh
@@ -399,9 +294,9 @@ jobs:
           Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow
 
           $candidates = @(
-            "$env:LOCALAPPDATA\Programs\AionUi\AionUi.exe",
-            "$env:ProgramFiles\AionUi\AionUi.exe",
-            "$env:ProgramFiles(x86)\AionUi\AionUi.exe"
+            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles(x86)\\AionUi\\AionUi.exe"
           )
 
           $installedExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -478,135 +373,25 @@ jobs:
 
           test -x "$INSTALLED_BIN"
 
-<<<<<<< HEAD
-  # Job 4: Test release scripts (fast, no build required)
-  release-script-test:
-    name: Release Script Test
-    if: github.event.action != 'edited'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Create mock build artifacts
-        shell: bash
-        run: bash scripts/create-mock-release-artifacts.sh build-artifacts
-
-      - name: Run prepare-release-assets script
-        shell: bash
-        run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
-
-      - name: Validate script output
-        shell: bash
-        run: bash scripts/verify-release-assets.sh release-assets
-
-  # Job 5: E2E Tests (Playwright + packaged Electron) – all three platforms
-  # Builds the app with --pack-only (vite build + electron-builder pack, no installer),
-  # then launches from the unpacked directory to validate packaged resources.
-=======
-  # ──────────────────────────────────────────────────────────
-  # Job 4: E2E Tests – reuse build artifacts from Job 3
-  # Downloads the unpacked app and runs Playwright tests
-  # against it on each natively-runnable platform.
-  # ──────────────────────────────────────────────────────────
->>>>>>> 58448020 (refactor(ci): split build-test into build + build-verify, E2E reuses build artifacts)
-  e2e-tests:
-    name: E2E Tests (${{ matrix.platform }})
-    needs: [build]
-    if: github.event.action != 'edited'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: linux
-            os: ubuntu-latest
-          - platform: macos-arm64
-            os: macos-14
-          - platform: windows-x64
-            os: windows-2022
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Upload unpacked app artifact
+        if: >-
+          matrix.platform == 'linux' ||
+          matrix.platform == 'macos-arm64' ||
+          matrix.platform == 'windows-x64'
+        uses: actions/upload-artifact@v6
         with:
-          node-version: '22'
+          name: unpacked-${{ matrix.platform }}
+          path: out/${{ matrix.unpacked_dir }}/
+          retention-days: 1
+          if-no-files-found: error
 
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      # ── E2E tests (run inline after build — no waiting for other platforms) ──
 
-      - name: Install dependencies
-        run: bun install --no-frozen-lockfile
-
-      - name: Run postinstall
-        run: npm run postinstall || true
-
-      - name: Install Linux display dependencies
+      - name: Install Linux display dependencies (E2E)
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev libgbm-dev xvfb
-
-      # Download the pre-built unpacked app from the build job
-      - name: Download unpacked app artifact
-        uses: actions/download-artifact@v6
-        with:
-          name: unpacked-${{ matrix.platform }}
-          path: out/${{ matrix.platform == 'linux' && 'linux-unpacked' || matrix.platform == 'macos-arm64' && 'mac-arm64' || 'win-unpacked' }}
-
-      - name: Restore executable permissions (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          echo "Downloaded unpacked app:"
-          ls -la out/
-          # Artifact upload/download strips POSIX executable permissions – restore them
-          case "${{ matrix.platform }}" in
-            linux)
-              chmod +x out/linux-unpacked/AionUi out/linux-unpacked/aionui 2>/dev/null || true
-              # Also restore chrome-sandbox, libEGL, libGLES, etc.
-              find out/linux-unpacked/ -maxdepth 1 -type f \( -name '*.so' -o -name 'chrome*' -o -name 'lib*' \) -exec chmod +x {} +
-              ls -la out/linux-unpacked/
-              ;;
-            macos-arm64)
-              APP_BUNDLE=$(ls -d out/mac-arm64/*.app 2>/dev/null | head -1)
-              if [ -n "$APP_BUNDLE" ]; then
-                # Restore main binary
-                chmod +x "$APP_BUNDLE/Contents/MacOS/AionUi"
-                # Restore all Helpers and framework binaries
-                find "$APP_BUNDLE" -type f -perm +0000 -name '*.dylib' -exec chmod +x {} + 2>/dev/null || true
-                find "$APP_BUNDLE/Contents/Frameworks" -type f -name '* Helper*' -exec chmod +x {} + 2>/dev/null || true
-                find "$APP_BUNDLE/Contents/Frameworks" -name 'Electron Framework' -exec chmod +x {} + 2>/dev/null || true
-                echo "Restored permissions for $APP_BUNDLE"
-              fi
-              ls -la out/mac-arm64/
-              ;;
-          esac
-
-      - name: Verify unpacked app
-        shell: bash
-        run: |
-          echo "=========================================="
-          echo "Verifying unpacked app for E2E: ${{ matrix.platform }}"
-          echo "=========================================="
-          case "${{ matrix.platform }}" in
-            linux)
-              ls out/linux-unpacked/ | head -20
-              ;;
-            macos-arm64)
-              ls out/mac-arm64/ | head -20
-              ;;
-            windows-x64)
-              ls out/win-unpacked/ | head -20
-              ;;
-          esac
+          sudo apt-get install -y libgbm-dev xvfb
 
       - name: Run E2E tests (Linux)
         if: matrix.platform == 'linux'
@@ -634,7 +419,12 @@ jobs:
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
       - name: Upload E2E report
-        if: always()
+        if: >-
+          always() && (
+            matrix.platform == 'linux' ||
+            matrix.platform == 'macos-arm64' ||
+            matrix.platform == 'windows-x64'
+          )
         uses: actions/upload-artifact@v6
         with:
           name: e2e-report-${{ matrix.platform }}
@@ -642,7 +432,12 @@ jobs:
           retention-days: 14
 
       - name: Upload E2E screenshots
-        if: always()
+        if: >-
+          always() && (
+            matrix.platform == 'linux' ||
+            matrix.platform == 'macos-arm64' ||
+            matrix.platform == 'windows-x64'
+          )
         uses: actions/upload-artifact@v6
         with:
           name: e2e-screenshots-${{ matrix.platform }}
@@ -650,80 +445,33 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # Job 4b: Aggregate E2E results and comment on PR
-  e2e-summary:
-    name: E2E Summary
-    needs: [e2e-tests]
-    if: always() && github.event.action != 'edited'
+  # Job 4: Test release scripts (fast, no build required)
+  release-script-test:
+    name: Release Script Test
+    if: github.event.action != 'edited'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Comment E2E results on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const prNumber = context.payload.pull_request.number;
-            const runId = context.runId;
-            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-            const e2eResult = '${{ needs.e2e-tests.result }}';
-            const allPassed = e2eResult === 'success';
-            const statusEmoji = allPassed ? '✅' : '❌';
-            const artifactUrl = `${runUrl}#artifacts`;
+      - name: Create mock build artifacts
+        shell: bash
+        run: bash scripts/create-mock-release-artifacts.sh build-artifacts
 
-            const platforms = [
-              { name: 'Linux (ubuntu)', key: 'linux' },
-              { name: 'macOS (arm64)', key: 'macos-arm64' },
-              { name: 'Windows (x64)', key: 'windows-x64' },
-            ];
+      - name: Run prepare-release-assets script
+        shell: bash
+        run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
 
-            const body = [
-              `<!-- e2e-report-bot -->`,
-              `## ${statusEmoji} E2E Test Report (Packaged Mode)`,
-              ``,
-              `Tests run against **packaged app** built in the Build job to validate resource integrity.`,
-              ``,
-              `| Platform | Status |`,
-              `|----------|--------|`,
-              ...platforms.map(p => `| ${p.name} | ${allPassed ? '✅ Passed' : '⚠️ See logs'} |`),
-              ``,
-              `| Item | Detail |`,
-              `|------|--------|`,
-              `| **Overall** | ${statusEmoji} ${allPassed ? 'All platforms passed' : 'Some platforms failed'} |`,
-              `| **Reports** | [Download HTML Reports](${artifactUrl}) |`,
-              `| **Run** | [View Workflow Run](${runUrl}) |`,
-              ``,
-              `> 📥 Download the \`e2e-report-*\` artifacts to view interactive Playwright HTML reports:`,
-              `> \`\`\``,
-              `> npx playwright show-report path/to/downloaded/e2e-report-linux`,
-              `> \`\`\``,
-            ].join('\n');
+      - name: Validate script output
+        shell: bash
+        run: bash scripts/verify-release-assets.sh release-assets
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner, repo, issue_number: prNumber,
-            });
-            const existing = comments.find(c => c.body?.includes('<!-- e2e-report-bot -->'));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner, repo, comment_id: existing.id, body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner, repo, issue_number: prNumber, body,
-              });
-            }
-
-  # Job 6: Trigger GPT AI review (only on first PR submission)
+  # Job 5: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-<<<<<<< HEAD
-    needs: [code-quality, unit-tests, build-test, release-script-test, e2e-tests]
+    needs: [code-quality, unit-tests, build-test, release-script-test]
     if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
-=======
-    needs: [code-quality, unit-tests, build, build-verify]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build.result == 'success' && needs.build-verify.result == 'success'
->>>>>>> 58448020 (refactor(ci): split build-test into build + build-verify, E2E reuses build artifacts)
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -732,16 +480,11 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 7: Check if PR author is an external contributor
+  # Job 6: Check if PR author is an external contributor
   check-external:
     name: Check External
-<<<<<<< HEAD
-    needs: [code-quality, unit-tests, build-test, release-script-test, e2e-tests]
+    needs: [code-quality, unit-tests, build-test, release-script-test]
     if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
-=======
-    needs: [code-quality, unit-tests, build, build-verify]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build.result == 'success' && needs.build-verify.result == 'success'
->>>>>>> 58448020 (refactor(ci): split build-test into build + build-verify, E2E reuses build artifacts)
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
@@ -767,7 +510,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 8: Trigger GPT PR assessment for external contributors
+  # Job 7: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]

@@ -81,9 +81,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
-        {isReadOnly && (
-          <span className='text-xs px-1.5 py-0.5 rounded bg-fill-3 text-t-secondary'>ext</span>
-        )}
+        {isReadOnly && <span className='text-xs px-1.5 py-0.5 rounded bg-fill-3 text-t-secondary'>ext</span>}
         <Tooltip content={statusText} position='top'>
           <span className='flex items-center cursor-default'>{statusIcon}</span>
         </Tooltip>

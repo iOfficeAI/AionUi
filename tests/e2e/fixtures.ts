@@ -16,6 +16,7 @@ import { test as base, expect, type ElectronApplication, type Page } from '@play
 import { _electron as electron } from 'playwright';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 type Fixtures = {
   electronApp: ElectronApplication;
@@ -25,6 +26,8 @@ type Fixtures = {
 // Singleton – one app per test worker
 let app: ElectronApplication | null = null;
 let mainPage: Page | null = null;
+const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-state-'));
+const e2eStateFile = path.join(e2eStateSandboxDir, 'extension-states.json');
 
 function isDevToolsWindow(page: Page): boolean {
   return page.url().startsWith('devtools://');
@@ -107,6 +110,7 @@ async function launchApp(): Promise<ElectronApplication> {
   const commonEnv = {
     ...process.env,
     AIONUI_EXTENSIONS_PATH: process.env.AIONUI_EXTENSIONS_PATH || path.join(projectRoot, 'examples'),
+    AIONUI_EXTENSION_STATES_FILE: process.env.AIONUI_EXTENSION_STATES_FILE || e2eStateFile,
     AIONUI_DISABLE_AUTO_UPDATE: '1',
     AIONUI_DISABLE_DEVTOOLS: '1',
     AIONUI_E2E_TEST: '1',
@@ -189,23 +193,45 @@ export const test = base.extend<Fixtures>({
   },
 });
 
-// Cleanup after all tests
-test.afterAll(async () => {
-  if (app) {
-    try {
-      await app.evaluate(async ({ app }) => {
-        app.exit(0);
-      });
-    } catch {
-      // ignore: app may already be closed
-    }
+// ── Cleanup ──────────────────────────────────────────────────────────────────
+// IMPORTANT: Do NOT use `test.afterAll` here. Playwright runs afterAll at the
+// end of **every** test.describe block, which would close and relaunch the
+// Electron app between describe blocks — each relaunch costs ~25-30 seconds.
+//
+// Instead, register a one-time process exit handler so the singleton app stays
+// alive for the entire worker lifetime (all spec files, all describe blocks).
+let cleanupRegistered = false;
+function registerCleanup(): void {
+  if (cleanupRegistered) return;
+  cleanupRegistered = true;
 
-    await app.close().catch(() => {
-      // ignore close errors during teardown
-    });
-    app = null;
-    mainPage = null;
-  }
-});
+  // Async cleanup before the worker process exits
+  process.on('beforeExit', async () => {
+    if (app) {
+      try {
+        await app.evaluate(async ({ app: electronApp }) => {
+          electronApp.exit(0);
+        });
+      } catch {
+        // ignore: app may already be closed
+      }
+      await app.close().catch(() => {});
+      app = null;
+      mainPage = null;
+    }
+    fs.rmSync(e2eStateSandboxDir, { recursive: true, force: true });
+  });
+
+  // Synchronous fallback for abrupt termination
+  process.on('exit', () => {
+    try {
+      fs.rmSync(e2eStateSandboxDir, { recursive: true, force: true });
+    } catch {
+      // best-effort
+    }
+  });
+}
+
+registerCleanup();
 
 export { expect };
