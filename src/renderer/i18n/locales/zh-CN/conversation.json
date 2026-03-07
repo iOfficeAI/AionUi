@@ -175,6 +175,8 @@
       "cardConsentApprove": "如果你同意我现在开始一站式安装，请回复：`同意`（或 `继续`）。",
       "cardConsentReject": "如果先不安装，请回复：`取消`。",
       "flowStoppedTip": "已停止 Star Office 安装流程，当前会话已返回普通模式。",
+      "flowEndedWithoutSuccessNarration": "本轮安装/修复流程已结束，但还未确认连接成功。请点击小电视验证；如有需要可运行引导诊断。",
+      "flowEndedWithoutSuccessTip": "Star Office 流程已结束。请在小电视中验证，如未连通可继续诊断。",
       "consentApproved": "收到同意，我现在开始自动安装/修复/启动流程。",
       "consentRejected": "好的，已取消本次安装流程。你可以随时再点小电视重新开始。",
       "waitingConsent": "我在等你的确认。请回复：`同意`（或 `继续`）/ `取消`。",

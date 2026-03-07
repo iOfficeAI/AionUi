@@ -175,6 +175,8 @@
       "cardConsentApprove": "If you agree to start one-stop install now, reply: `Agree` (or `Continue`).",
       "cardConsentReject": "If not for now, reply: `Cancel`.",
       "flowStoppedTip": "Stopped Star Office install flow. Conversation is back to normal mode.",
+      "flowEndedWithoutSuccessNarration": "This install/repair turn has ended, but connection success was not confirmed yet. Please click the TV icon to verify; if needed, run guided diagnose.",
+      "flowEndedWithoutSuccessTip": "Star Office flow ended. Verify in TV panel or run diagnose if still not connected.",
       "consentApproved": "Consent received. I am now starting auto install/repair/start flow.",
       "consentRejected": "Okay, this install flow is cancelled. You can tap the TV icon anytime to start again.",
       "waitingConsent": "I am waiting for your confirmation. Please reply: `Agree` (or `Continue`) / `Cancel`.",

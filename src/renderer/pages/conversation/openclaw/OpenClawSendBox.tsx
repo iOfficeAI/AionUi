@@ -253,17 +253,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       if (stage === 'idle' || stage === 'consent') return;
       if (lastAnnouncedInstallStageRef.current === stage) return;
       lastAnnouncedInstallStageRef.current = stage;
-      const stageTextMap: Record<Exclude<InstallFlowStage, 'idle' | 'consent'>, string> = {
-        checking: t('conversation.chat.starOffice.stageChecking', { defaultValue: '🧭 Progress: checking local environment and dependencies.' }),
-        installing: t('conversation.chat.starOffice.stageInstalling', { defaultValue: '🛠️ Progress: installing/repairing Star Office runtime.' }),
-        starting: t('conversation.chat.starOffice.stageStarting', { defaultValue: '🚀 Progress: starting Star Office service.' }),
-        detecting: t('conversation.chat.starOffice.stageDetecting', { defaultValue: '🔎 Progress: detecting local port and reachable URL.' }),
-        troubleshooting: t('conversation.chat.starOffice.stageTroubleshooting', { defaultValue: '🩺 Progress: running connection diagnosis (port/process/auth/logs).' }),
-        completed: t('conversation.chat.starOffice.stageCompleted', { defaultValue: '✅ Progress: install and connect flow completed.' }),
-      };
-      emitAssistantNarration(stageTextMap[stage]);
+      // Keep stage updates inside the install mode pill only.
+      // Avoid appending repetitive progress text messages into conversation history.
     },
-    [emitAssistantNarration, t]
+    []
   );
   const emitWorkflowTip = useCallback(
     (text: string, type: 'success' | 'warning' = 'success') => {
@@ -418,6 +411,21 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                 })
               );
               exitInstallMode(t('conversation.chat.starOffice.flowCompletedTip', { defaultValue: 'Star Office flow completed. Back to normal mode.' }));
+            } else if (starOfficeInstallMode) {
+              // Prevent getting stuck at intermediate progress (e.g. 85% detecting)
+              // when this turn has finished but no success keyword was emitted.
+              setInstallFlowStage('idle');
+              emitAssistantNarration(
+                t('conversation.chat.starOffice.flowEndedWithoutSuccessNarration', {
+                  defaultValue:
+                    'This install/repair turn has ended, but connection success was not confirmed yet. Please click the TV icon to verify; if needed, run guided diagnose.',
+                })
+              );
+              exitInstallMode(
+                t('conversation.chat.starOffice.flowEndedWithoutSuccessTip', {
+                  defaultValue: 'Star Office flow ended. Verify in TV panel or run diagnose if still not connected.',
+                }),
+              );
             }
             hasContentInTurnRef.current = false;
           }

@@ -445,18 +445,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
                 </Button>
               </div>
             )}
-            {showDiagnoseHint ? (
-              <div className='mt-8px text-12px text-[rgb(var(--danger-6))]'>
-                {t('conversation.preview.openclawMonitorDiagnoseHint', { defaultValue: 'Connection issue detected. ' })}
-                <button
-                  type='button'
-                  className='border-none bg-transparent p-0 text-[rgb(var(--danger-6))] underline cursor-pointer'
-                  onClick={handleAskOpenClawDiagnose}
-                >
-                  {t('conversation.preview.openclawMonitorDiagnoseRun', { defaultValue: 'Run guided diagnose' })}
-                </button>
-              </div>
-            ) : null}
+            {showDiagnoseHint ? null : null}
           </div>
 
           {detectError ? <div className='text-11px text-[rgb(var(--danger-6))]'>{statusText} · {detectError}</div> : null}
