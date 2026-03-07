@@ -29,12 +29,34 @@ export type SettingsTab = keyof typeof ROUTES.settings;
 
 // ── Navigation helpers ───────────────────────────────────────────────────────
 
+/**
+ * Check if the page is already at the target hash route.
+ * Avoids redundant navigation + re-render when consecutive tests
+ * in the same describe block navigate to the same page.
+ */
+function isAlreadyAt(page: Page, hash: string): boolean {
+  try {
+    const url = page.url();
+    // Compare the hash portion (e.g. "#/guid" or "#/settings/agent")
+    const currentHash = url.includes('#') ? '#' + url.split('#')[1] : '';
+    return currentHash === hash;
+  } catch {
+    return false;
+  }
+}
+
 /** Navigate to a hash route and wait for the page to settle. */
 export async function navigateTo(page: Page, hash: string): Promise<void> {
   // Guard against stale page references
   if (page.isClosed()) {
     throw new Error('Cannot navigate: page is already closed. The page fixture should re-resolve the window.');
   }
+
+  // Skip navigation if already on the target route (big speed win)
+  if (isAlreadyAt(page, hash)) {
+    return;
+  }
+
   await page.evaluate((h) => window.location.assign(h), hash);
   // Give React a tick to begin re-rendering after hash change
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
@@ -73,11 +95,22 @@ export async function goToExtensionSettings(page: Page, tabId: string): Promise<
   await navigateTo(page, ROUTES.extensionSettings(tabId));
 }
 
+/** Track whether we have already navigated to the channels tab in this session. */
+let _onChannelsTab = false;
+
 /**
  * Navigate to the channels tab inside the webui settings page.
  * Extracted from individual test files to eliminate duplication.
+ * Uses a session-level flag to skip re-navigation when already on the tab.
  */
 export async function goToChannelsTab(page: Page): Promise<void> {
+  // Quick check: if we're already on the channels tab, verify a channel item is still visible
+  if (_onChannelsTab && isAlreadyAt(page, ROUTES.settings.webui)) {
+    const channelItem = page.locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`).first();
+    const stillVisible = await channelItem.isVisible().catch(() => false);
+    if (stillVisible) return;
+  }
+
   await goToSettings(page, 'webui');
 
   const stableTab = page.locator(webuiTabByKey('channels')).first();
@@ -100,10 +133,17 @@ export async function goToChannelsTab(page: Page): Promise<void> {
       .locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`)
       .first()
       .waitFor({ state: 'visible', timeout: 8_000 });
+    _onChannelsTab = true;
   } catch {
     // Best-effort fallback for transitional states
     await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: 5_000 });
+    _onChannelsTab = true;
   }
+}
+
+/** Reset the channels-tab navigation cache (call when navigating away). */
+export function resetChannelsTabCache(): void {
+  _onChannelsTab = false;
 }
 
 /**

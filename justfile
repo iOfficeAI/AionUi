@@ -338,6 +338,10 @@ test-packaged-i18n:
 e2e-test:
     bunx playwright test --config playwright.config.ts
 
+# Run only extension-related E2E tests (faster iteration)
+e2e-test-ext:
+    bunx playwright test --config playwright.config.ts tests/e2e/specs/ext-*.e2e.ts
+
 # Run E2E tests with headed browser (for debugging)
 e2e-test-headed:
     bunx playwright test --config playwright.config.ts --headed
