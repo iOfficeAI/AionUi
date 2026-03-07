@@ -767,7 +767,7 @@ export function initFsBridge(): void {
           const entries = await fs.readdir(skillsDir, { withFileTypes: true });
 
           for (const entry of entries) {
-            if (!entry.isDirectory()) continue;
+            if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
 
             // 跳过内置 skills 目录（_builtin），这些 skills 自动注入，不需要用户选择
             // Skip builtin skills directory (_builtin), these are auto-injected, no user selection needed
@@ -924,9 +924,13 @@ export function initFsBridge(): void {
 
       try {
         await fs.access(targetDir);
+        // Skill already exists in user directory, treat as success (skip copy)
+        // 用户目录已存在同名 skill，视为成功（跳过复制）
+        console.log(`[fsBridge] Skill "${skillName}" already exists in user skills, skipping import`);
         return {
-          success: false,
-          msg: `Skill "${skillName}" already exists in user skills`,
+          success: true,
+          data: { skillName },
+          msg: `Skill "${skillName}" already exists`,
         };
       } catch {
         // User skill doesn't exist
@@ -972,7 +976,7 @@ export function initFsBridge(): void {
       console.log(`[fsBridge] Found ${entries.length} entries in ${folderPath}`);
 
       for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
 
         const skillDir = path.join(folderPath, entry.name);
         const skillMdPath = path.join(skillDir, 'SKILL.md');
