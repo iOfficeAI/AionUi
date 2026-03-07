@@ -22,26 +22,37 @@ import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import './ConversationSearchPopover.css';
 
 const PAGE_SIZE = 20;
+const SNIPPET_MAX_LENGTH = 110;
+const SNIPPET_PREFIX_CONTEXT_LENGTH = 34;
+const SNIPPET_SUFFIX_CONTEXT_LENGTH = 58;
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const buildSnippet = (text: string, keyword: string, maxLength = 120): string => {
+const buildSnippet = (text: string, keyword: string, maxLength = SNIPPET_MAX_LENGTH): string => {
   const normalized = text.replace(/\s+/g, ' ').trim();
   if (!normalized) return '';
   if (!keyword.trim()) {
-    return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
+    return normalized.length > maxLength ? `${normalized.slice(0, maxLength).trimEnd()}...` : normalized;
   }
 
   const lowerText = normalized.toLowerCase();
   const lowerKeyword = keyword.trim().toLowerCase();
   const matchIndex = lowerText.indexOf(lowerKeyword);
   if (matchIndex === -1) {
-    return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
+    return normalized.length > maxLength ? `${normalized.slice(0, maxLength).trimEnd()}...` : normalized;
   }
 
-  const start = Math.max(0, matchIndex - 28);
-  const end = Math.min(normalized.length, matchIndex + lowerKeyword.length + 72);
-  return `${start > 0 ? '...' : ''}${normalized.slice(start, end)}${end < normalized.length ? '...' : ''}`;
+  let start = Math.max(0, matchIndex - SNIPPET_PREFIX_CONTEXT_LENGTH);
+  let end = Math.min(normalized.length, matchIndex + lowerKeyword.length + SNIPPET_SUFFIX_CONTEXT_LENGTH);
+
+  if (end - start > maxLength) {
+    const centeredStart = Math.max(0, matchIndex - Math.floor((maxLength - lowerKeyword.length) / 2));
+    start = Math.min(centeredStart, Math.max(0, normalized.length - maxLength));
+    end = Math.min(normalized.length, start + maxLength);
+  }
+
+  const snippet = normalized.slice(start, end).trim();
+  return `${start > 0 ? '...' : ''}${snippet}${end < normalized.length ? '...' : ''}`;
 };
 
 const renderHighlightedText = (text: string, keyword: string) => {
@@ -59,7 +70,7 @@ const renderHighlightedText = (text: string, keyword: string) => {
     }
 
     return (
-      <mark key={`${part}-${index}`} className='px-2px rounded-4px text-[var(--color-aou-6-brand)] bg-[var(--color-aou-8-selected)] text-inherit'>
+      <mark key={`${part}-${index}`} className='conversation-search-modal__highlight'>
         {part}
       </mark>
     );
@@ -269,7 +280,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({ o
                   </div>
                   <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.messageCreatedAt)}</span>
                 </div>
-                <div className='text-13px leading-22px text-t-primary/92 break-words'>{renderHighlightedText(snippet, debouncedKeyword)}</div>
+                <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>{renderHighlightedText(snippet, debouncedKeyword)}</div>
               </button>
             );
           })}

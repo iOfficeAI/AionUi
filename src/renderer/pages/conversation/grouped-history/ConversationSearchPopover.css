@@ -173,6 +173,13 @@ body[arco-theme='dark'] .conversation-search-modal {
   border-bottom: 1px solid var(--conversation-search-divider);
 }
 
+.conversation-search-modal__snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
 .conversation-search-modal__result:hover,
 .conversation-search-modal__result:focus {
   background: var(--conversation-search-hover-bg);
@@ -182,6 +189,11 @@ body[arco-theme='dark'] .conversation-search-modal {
   border-bottom: none;
 }
 
-.conversation-search-modal__result mark {
-  box-shadow: 0 0 0 1px rgba(var(--primary-6), 0.14) inset;
+.conversation-search-modal__highlight {
+  padding: 0;
+  background: transparent;
+  color: var(--color-aou-6-brand);
+  font-weight: 700;
+  color: coral;
+  box-shadow: none;
 }
