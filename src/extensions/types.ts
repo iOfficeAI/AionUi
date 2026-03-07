@@ -32,6 +32,15 @@ export const ExtensionMetaSchema = z
     author: z.string().optional(),
     icon: z.string().optional(),
     homepage: z.string().url().optional(),
+    /**
+     * Extension API compatibility range.
+     * Prefer declaring this field for extensions targeting the bundled extension API.
+     * Example: "^1.0.0"
+     */
+    apiVersion: z
+      .string()
+      .regex(/^\^?\d+\.\d+\.\d+(-[\w.]+)?$/, 'apiVersion must be semver format')
+      .optional(),
     /** P2: Extension dependencies */
     dependencies: z
       .record(z.string(), z.string().regex(/^\^?\d+\.\d+\.\d+(-[\w.]+)?$/, 'Dependency version must be semver format'))
@@ -219,10 +228,7 @@ export const ExtAssistantSchema = z.object({
   description: z.string().optional(),
   avatar: z.string().optional(),
   // Accept built-in preset types OR any extension-contributed adapter ID (e.g. "ext-buddy")
-  presetAgentType: z.union([
-    z.enum(PRESET_AGENT_TYPES),
-    z.string().min(1, 'presetAgentType must be a non-empty string'),
-  ]),
+  presetAgentType: z.union([z.enum(PRESET_AGENT_TYPES), z.string().min(1, 'presetAgentType must be a non-empty string')]),
   contextFile: z.string().min(1, 'contextFile is required'),
   models: z.array(z.string()).optional(),
   enabledSkills: z.array(z.string()).optional(),
@@ -252,7 +258,7 @@ export const ExtChannelPluginSchema = z.object({
 // ============ WebUI Schema ============
 
 export const ExtApiRouteSchema = z.object({
-  path: z.string(),
+  path: z.string().min(1, 'WebUI route path is required'),
   entryPoint: z.string(),
   description: z.string().optional(),
   auth: z.boolean().default(true),
@@ -272,7 +278,7 @@ export const ExtMiddlewareSchema = z.object({
 });
 
 export const ExtStaticAssetSchema = z.object({
-  urlPrefix: z.string(),
+  urlPrefix: z.string().min(1, 'WebUI static asset urlPrefix is required'),
   directory: z.string(),
   description: z.string().optional(),
 });

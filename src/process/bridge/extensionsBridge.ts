@@ -24,11 +24,7 @@ const normalizeRuntimeStatus = (status?: string): 'pending' | 'running' | 'finis
   return 'unknown';
 };
 
-const mapStatusToState = (
-  runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown',
-  lastStatus?: string,
-  recentEvents: IExtensionAgentActivityEvent[] = []
-): AgentActivityState => {
+const mapStatusToState = (runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown', lastStatus?: string, recentEvents: IExtensionAgentActivityEvent[] = []): AgentActivityState => {
   if (lastStatus === 'error' || recentEvents.some((e) => /error|失败|异常/i.test(e.text))) return 'error';
 
   const hasWriteEvent = recentEvents.some((e) => /write|patch|edit|写入|修改|生成文件/i.test(e.text));
@@ -85,9 +81,7 @@ const toEventText = (message: TMessage): { kind: 'status' | 'tool' | 'message'; 
 
 const buildActivitySnapshot = (): IExtensionAgentActivitySnapshot => {
   const db = getDatabase();
-  const conversations = db
-    .getUserConversations(undefined, 0, 10000)
-    .data.filter((conv) => !conv.extra?.isHealthCheck);
+  const conversations = db.getUserConversations(undefined, 0, 10000).data.filter((conv) => !conv.extra?.isHealthCheck);
 
   const rankedState: Record<AgentActivityState, number> = {
     error: 5,
@@ -114,12 +108,14 @@ const buildActivitySnapshot = (): IExtensionAgentActivitySnapshot => {
       .map((m) => toEventText(m))
       .filter((e): e is { kind: 'status' | 'tool' | 'message'; text: string; at: number } => Boolean(e))
       .slice(0, 6)
-      .map((e): IExtensionAgentActivityEvent => ({
-        conversationId: conversation.id,
-        kind: e.kind,
-        text: e.text,
-        at: e.at,
-      }));
+      .map(
+        (e): IExtensionAgentActivityEvent => ({
+          conversationId: conversation.id,
+          kind: e.kind,
+          text: e.text,
+          at: e.at,
+        })
+      );
 
     const lastStatus = recentMessages.find((m) => m.type === 'agent_status')?.content as { status?: string } | undefined;
     const state = mapStatusToState(runtimeStatus, lastStatus?.status, events);
@@ -301,6 +297,27 @@ export function initExtensionsBridge(): void {
       return registry.getSettingsTabs();
     } catch (error) {
       console.error('[Extensions] Failed to get settings tabs:', error);
+      return [];
+    }
+  });
+
+  // Get extension-contributed WebUI metadata (api routes + static assets)
+  ipcBridge.extensions.getWebuiContributions.provider(async () => {
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      return registry.getWebuiContributions().map((item) => ({
+        extensionName: item.extensionName,
+        apiRoutes: (item.config.apiRoutes || []).map((route) => ({
+          path: route.path,
+          auth: route.auth !== false,
+        })),
+        staticAssets: (item.config.staticAssets || []).map((asset) => ({
+          urlPrefix: asset.urlPrefix,
+          directory: asset.directory,
+        })),
+      }));
+    } catch (error) {
+      console.error('[Extensions] Failed to get webui contributions:', error);
       return [];
     }
   });

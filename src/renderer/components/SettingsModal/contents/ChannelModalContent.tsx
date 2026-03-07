@@ -6,7 +6,7 @@
 
 import type { IChannelPluginStatus } from '@/channels/types';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { channel } from '@/common/ipcBridge';
+import { channel, webui, type IWebUIStatus } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/useModelProviderList';
@@ -149,6 +149,7 @@ const ChannelModalContent: React.FC = () => {
   const [extensionStatuses, setExtensionStatuses] = useState<Record<string, IChannelPluginStatus>>({});
   const [extensionLoadingMap, setExtensionLoadingMap] = useState<Record<string, boolean>>({});
   const [extensionFieldValues, setExtensionFieldValues] = useState<ExtensionFieldValues>({});
+  const [webuiStatus, setWebuiStatus] = useState<IWebUIStatus | null>(null);
 
   // Track the token entered in TelegramConfigForm so the toggle handler can use it
   const telegramTokenRef = React.useRef<string>('');
@@ -216,6 +217,20 @@ const ChannelModalContent: React.FC = () => {
   useEffect(() => {
     void loadPluginStatus();
   }, [loadPluginStatus]);
+
+  useEffect(() => {
+    const loadWebuiStatus = async () => {
+      try {
+        const result = await webui.getStatus.invoke();
+        if (result?.success && result.data) {
+          setWebuiStatus(result.data);
+        }
+      } catch {
+        // Best-effort only: channel settings should not fail if webui status is unavailable.
+      }
+    };
+    void loadWebuiStatus();
+  }, []);
 
   // Listen for plugin status changes
   useEffect(() => {
@@ -442,6 +457,11 @@ const ChannelModalContent: React.FC = () => {
         ...((status.extensionMeta?.configFields || []) as ExtensionFieldSchema[]),
       ];
       const values = extensionFieldValues[pluginType] || {};
+      const callbackPath = '/ext-wecom-bot/webhook';
+      const localCallbackUrl = webuiStatus?.localUrl ? `${webuiStatus.localUrl}${callbackPath}` : `http://localhost:25808${callbackPath}`;
+      const lanCallbackUrl = webuiStatus?.networkUrl ? `${webuiStatus.networkUrl}${callbackPath}` : null;
+      const publicBaseUrl = typeof values.publicBaseUrl === 'string' ? values.publicBaseUrl.trim().replace(/\/+$/, '') : '';
+      const publicCallbackUrl = publicBaseUrl ? `${publicBaseUrl}${callbackPath}` : null;
 
       if (fields.length === 0) {
         return <div className='text-14px text-t-secondary py-12px'>{status.extensionMeta?.description || t('settings.channels.extension.noConfig', { defaultValue: 'No extra configuration required.' })}</div>;
@@ -450,6 +470,18 @@ const ChannelModalContent: React.FC = () => {
       return (
         <div className='space-y-10px py-4px'>
           {status.extensionMeta?.description && <div className='text-13px text-t-secondary leading-relaxed'>{status.extensionMeta.description}</div>}
+          {pluginType === 'ext-wecom-bot' && (
+            <div className='text-12px leading-relaxed p-10px rd-8px bg-[rgba(var(--orange-6),0.08)] border border-[rgba(var(--orange-6),0.3)] text-t-secondary'>
+              <div className='font-500 text-t-primary mb-6px'>企微回调地址说明</div>
+              <div>本机 Callback URL: {localCallbackUrl}</div>
+              {lanCallbackUrl ? <div>局域网 Callback URL: {lanCallbackUrl}</div> : null}
+              {publicCallbackUrl ? <div>公网 Callback URL(配置值): {publicCallbackUrl}</div> : null}
+              <div className='mt-6px'>
+                仅开启 WebUI 远程访问（LAN）通常不能直接通过企微回调。企微服务器需要可访问的公网 HTTPS 地址。
+              </div>
+              <div>建议：使用反向代理 + 证书，或 Cloudflare Tunnel / ngrok 映射到本机。</div>
+            </div>
+          )}
           {fields.map((field) => {
             const rawValue = values[field.key];
             const label = `${field.label}${field.required ? ' *' : ''}`;
@@ -496,7 +528,7 @@ const ChannelModalContent: React.FC = () => {
         </div>
       );
     },
-    [extensionFieldValues, t, updateExtensionFieldValue]
+    [extensionFieldValues, t, updateExtensionFieldValue, webuiStatus]
   );
 
   // Build channel configurations

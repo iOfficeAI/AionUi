@@ -7,6 +7,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { extensions as extensionsIpc } from '@/common/ipcBridge';
 import WebviewHost from '@/renderer/components/WebviewHost';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 
 const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(url || '');
 
@@ -25,11 +26,12 @@ interface ExtensionSettingsTabContentProps {
 const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = ({ entryUrl, tabId }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
-  const isExternalTab = isExternalSettingsUrl(entryUrl);
+  const resolvedEntryUrl = resolveExtensionAssetUrl(entryUrl) || entryUrl;
+  const isExternalTab = isExternalSettingsUrl(resolvedEntryUrl);
 
   useEffect(() => {
     setLoading(true);
-  }, [entryUrl]);
+  }, [resolvedEntryUrl]);
 
   // postMessage bridge for local iframe tabs (aion-asset://)
   useEffect(() => {
@@ -44,11 +46,14 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
 
       try {
         const snapshot = await extensionsIpc.getAgentActivitySnapshot.invoke();
-        frameWindow.postMessage({
-          type: 'star-office:activity-snapshot',
-          reqId: data.reqId,
-          snapshot,
-        }, '*');
+        frameWindow.postMessage(
+          {
+            type: 'star-office:activity-snapshot',
+            reqId: data.reqId,
+            snapshot,
+          },
+          '*'
+        );
       } catch (err) {
         console.error('[ExtensionSettingsTabContent] Failed to get activity snapshot:', err);
       }
@@ -61,13 +66,7 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
   return (
     <div className='relative w-full h-full min-h-200px'>
       {isExternalTab ? (
-        <WebviewHost
-          key={tabId}
-          url={entryUrl}
-          id={tabId}
-          partition={`persist:ext-settings-${tabId}`}
-          style={{ minHeight: '200px' }}
-        />
+        <WebviewHost key={tabId} url={resolvedEntryUrl} id={tabId} partition={`persist:ext-settings-${tabId}`} style={{ minHeight: '200px' }} />
       ) : (
         <>
           {loading && (
@@ -78,7 +77,7 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
           <iframe
             ref={iframeRef}
             key={tabId}
-            src={entryUrl}
+            src={resolvedEntryUrl}
             onLoad={() => setLoading(false)}
             sandbox='allow-scripts allow-same-origin'
             className='w-full h-full border-none'

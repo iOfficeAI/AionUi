@@ -3,3 +3,4 @@ export { CHAT_INPUT, SETTINGS_SIDER, SETTINGS_SIDER_ITEM, SETTINGS_SIDER_ITEM_LA
 export { expectBodyContainsAny, expectUrlContains, createErrorCollector } from './assertions';
 export { takeScreenshot } from './screenshots';
 export { getExtensionSnapshot, getChannelPluginStatus, type ExtensionSnapshot, type ChannelPluginStatus } from './extensions';
+export { invokeBridge } from './bridge';

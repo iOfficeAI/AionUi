@@ -273,6 +273,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         onStreamEvent: (message) => {
           const pipelineStart = Date.now();
 
+          // Reduce status noise: show full lifecycle only for the first turn.
+          // After first turn, only keep failure statuses to avoid reconnect chatter.
+          if (message.type === 'agent_status') {
+            const status = (message.data as { status?: string } | null)?.status;
+            const shouldDisplayStatus = this.isFirstMessage || status === 'error' || status === 'disconnected';
+            if (!shouldDisplayStatus) {
+              return;
+            }
+          }
+
           // Handle preview_open event (chrome-devtools navigation interception)
           // 处理 preview_open 事件（chrome-devtools 导航拦截）
           if (handlePreviewOpenEvent(message)) {
@@ -505,10 +515,41 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Set status to running when message is being processed
     this.status = 'running';
     try {
+      // Emit/persist user message immediately so UI can refresh without waiting
+      // for ACP connection/auth/session initialization.
+      if (data.msg_id && data.content) {
+        const userMessage: TMessage = {
+          id: data.msg_id,
+          msg_id: data.msg_id,
+          type: 'text',
+          position: 'right',
+          conversation_id: this.conversation_id,
+          content: {
+            content: data.content,
+            ...(data.cronMeta && { cronMeta: data.cronMeta }),
+          },
+          createdAt: Date.now(),
+        };
+        addMessage(this.conversation_id, userMessage);
+        // Ensure conversation list sorting updates immediately after user sends.
+        try {
+          getDatabase().updateConversation(this.conversation_id, {});
+        } catch {
+          // Conversation might not exist in DB yet
+        }
+        const userResponseMessage: IResponseMessage = {
+          type: 'user_content',
+          conversation_id: this.conversation_id,
+          msg_id: data.msg_id,
+          data: data.cronMeta ? { content: userMessage.content.content, cronMeta: data.cronMeta } : userMessage.content.content,
+        };
+        ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
+      }
+
       const initStart = Date.now();
       await this.initAgent(this.options);
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: initAgent completed ${Date.now() - initStart}ms`);
-      // Save user message to chat history ONLY after successful sending
+
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
         if (contentToSend.includes(AIONUI_FILES_MARKER)) {
@@ -524,35 +565,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           });
         }
 
-        const userMessage: TMessage = {
-          id: data.msg_id,
-          msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id: this.conversation_id,
-          content: {
-            content: data.content, // Save original content to history
-            ...(data.cronMeta && { cronMeta: data.cronMeta }),
-          },
-          createdAt: Date.now(),
-        };
-        addMessage(this.conversation_id, userMessage);
-        // Update conversation modifyTime so history list sorts correctly.
-        // For Claude with session resume, onSessionIdUpdate won't fire when
-        // session ID is unchanged, leaving modifyTime stale.
-        try {
-          getDatabase().updateConversation(this.conversation_id, {});
-        } catch {
-          // Conversation might not exist in DB yet
-        }
-        const userResponseMessage: IResponseMessage = {
-          type: 'user_content',
-          conversation_id: this.conversation_id,
-          msg_id: data.msg_id,
-          data: data.cronMeta ? { content: userMessage.content.content, cronMeta: data.cronMeta } : userMessage.content.content,
-        };
-        ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
-
         const agentSendStart = Date.now();
         const result = await this.agent.sendMessage({ ...data, content: contentToSend });
         if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
@@ -567,7 +579,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
       const agentSendStart = Date.now();
       const result = await this.agent.sendMessage(data);
-      console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
       return result;
     } catch (e) {
       this.flushBufferedStreamTextMessages();

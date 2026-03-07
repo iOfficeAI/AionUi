@@ -9,6 +9,8 @@ import fs from 'fs';
 import { BasePlugin, type PluginConfirmHandler, type PluginMessageHandler } from '@/channels/plugins/BasePlugin';
 import type { LoadedExtension, ExtChannelPlugin } from '../types';
 import { isPathWithinDirectory } from '../pathSafety';
+import { resolveRuntimeEntryPath } from '../entryPointResolver';
+import { toAssetUrl } from '../assetProtocol';
 
 const DEBUG_ENABLED = process.env.AIONUI_EXTENSION_DEBUG === '1' || process.env.AIONUI_EXTENSION_DEBUG === 'true';
 
@@ -114,13 +116,18 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
     const plugins = ext.manifest.contributes.channelPlugins;
     if (!plugins || plugins.length === 0) continue;
     for (const plugin of plugins) {
-      const entryPath = path.resolve(ext.directory, plugin.entryPoint);
-      if (!isPathWithinDirectory(entryPath, ext.directory)) {
-        console.warn(`[Extension] Path traversal detected in channel plugin: ${plugin.entryPoint}`);
-        continue;
-      }
-      if (!fs.existsSync(entryPath)) {
-        console.warn(`[Extension] Channel plugin entry not found: ${entryPath}`);
+      const entryPath = resolveRuntimeEntryPath(ext.directory, plugin.entryPoint);
+      if (!entryPath) {
+        const fallbackPath = path.resolve(ext.directory, plugin.entryPoint);
+        if (!isPathWithinDirectory(fallbackPath, ext.directory)) {
+          console.warn(`[Extension] Path traversal detected in channel plugin: ${plugin.entryPoint}`);
+          continue;
+        }
+        if (!fs.existsSync(fallbackPath)) {
+          console.warn(`[Extension] Channel plugin entry not found (dist/source): ${plugin.entryPoint} (${ext.manifest.name})`);
+          continue;
+        }
+        console.warn(`[Extension] Channel plugin runtime entry resolver failed unexpectedly: ${plugin.entryPoint} (${ext.manifest.name})`);
         continue;
       }
       if (result.has(plugin.type)) {
@@ -134,7 +141,7 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
         // eslint-disable-next-line no-eval
         const nativeRequire = eval('require');
         const mod = nativeRequire(entryPath);
-        
+
         let PluginClass = mod.default || mod.Plugin;
         // Support module.exports = Class (CommonJS)
         if (!PluginClass && typeof mod === 'function') {
@@ -166,19 +173,14 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
         let iconUrl = plugin.icon;
         if (plugin.icon && !plugin.icon.match(/^(https?:|data:|aion-asset:|file:)/)) {
           const absPath = path.resolve(ext.directory, plugin.icon);
-          // Windows path separator handling
-          const normalizedPath = absPath.split(path.sep).join('/');
-          // If starts with drive letter (e.g. C:/...), ensure no leading slash for valid aion-asset protocol if logic requires, 
-          // but resolveExtensionAssetUrl handles "aion-asset://asset/{absPath}". 
-          // Note: path.resolve keeps drive letter on Windows. 
-          iconUrl = `aion-asset://asset/${normalizedPath}`;
+          iconUrl = toAssetUrl(absPath);
         }
 
         result.set(plugin.type, {
           constructor,
           meta: {
             ...plugin,
-            icon: iconUrl
+            icon: iconUrl,
           },
         });
         console.log(`[Extension] Loaded channel plugin: ${plugin.type} (${plugin.name})` + (isDuckValid ? ' [duck-typed-wrapped]' : ''));

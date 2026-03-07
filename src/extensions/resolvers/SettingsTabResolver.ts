@@ -10,6 +10,7 @@ import type { LoadedExtension } from '../types';
 import { BUILTIN_SETTINGS_TAB_IDS } from '../types';
 import { isPathWithinDirectory } from '../pathSafety';
 import { toAssetUrl } from '../assetProtocol';
+import { resolveRuntimeEntryPath } from '../entryPointResolver';
 
 /**
  * Resolved settings tab contribution — ready to be consumed by the renderer.
@@ -73,13 +74,18 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
           continue;
         }
       } else {
-        const absEntry = path.resolve(extDir, tab.entryPoint);
-        if (!isPathWithinDirectory(absEntry, extDir)) {
-          console.warn(`[Extensions] Settings tab path traversal attempt: ${tab.entryPoint} in ${extName}`);
+        const absEntry = resolveRuntimeEntryPath(extDir, tab.entryPoint);
+        if (!absEntry) {
+          const rawPath = path.resolve(extDir, tab.entryPoint);
+          if (!isPathWithinDirectory(rawPath, extDir)) {
+            console.warn(`[Extensions] Settings tab path traversal attempt: ${tab.entryPoint} in ${extName}`);
+            continue;
+          }
+          console.warn(`[Extensions] Settings tab entryPoint not found (dist/source): ${tab.entryPoint} (extension: ${extName})`);
           continue;
         }
-        if (!existsSync(absEntry)) {
-          console.warn(`[Extensions] Settings tab entryPoint not found: ${absEntry} (extension: ${extName})`);
+        if (!isPathWithinDirectory(absEntry, extDir)) {
+          console.warn(`[Extensions] Settings tab path traversal attempt: ${tab.entryPoint} in ${extName}`);
           continue;
         }
         entryUrl = toAssetUrl(absEntry);

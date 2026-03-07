@@ -8,6 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import WebviewHost from '@/renderer/components/WebviewHost';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(url || '');
@@ -47,11 +48,12 @@ const ExtensionSettingsPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [tabId]);
 
-  const isExternalTab = isExternalSettingsUrl(tab?.entryUrl);
+  const resolvedEntryUrl = resolveExtensionAssetUrl(tab?.entryUrl) || tab?.entryUrl;
+  const isExternalTab = isExternalSettingsUrl(resolvedEntryUrl);
 
   useEffect(() => {
     setLoading(true);
-  }, [tab?.id, tab?.entryUrl]);
+  }, [tab?.id, resolvedEntryUrl]);
 
   // postMessage bridge for local iframe tabs
   useEffect(() => {
@@ -66,11 +68,14 @@ const ExtensionSettingsPage: React.FC = () => {
 
       try {
         const snapshot = await extensionsIpc.getAgentActivitySnapshot.invoke();
-        frameWindow.postMessage({
-          type: 'star-office:activity-snapshot',
-          reqId: data.reqId,
-          snapshot,
-        }, '*');
+        frameWindow.postMessage(
+          {
+            type: 'star-office:activity-snapshot',
+            reqId: data.reqId,
+            snapshot,
+          },
+          '*'
+        );
       } catch (err) {
         console.error('[ExtensionSettingsPage] Failed to get activity snapshot:', err);
       }
@@ -88,46 +93,43 @@ const ExtensionSettingsPage: React.FC = () => {
             <span className='animate-pulse'>Loading…</span>
           </div>
         )}
-        {error && (
-          <div className='flex items-center justify-center h-full text-t-secondary text-14px'>
-            {error}
-          </div>
-        )}
-        {tab && (isExternalTab ? (
-          <WebviewHost
-            key={tab.id}
-            url={tab.entryUrl}
-            id={tab.id}
-            partition={`persist:ext-settings-${tab.id}`}
-            style={{
-              minHeight: '400px',
-              height: 'calc(100vh - 200px)',
-            }}
-          />
-        ) : (
-          <>
-            {loading && (
-              <div className='absolute inset-0 flex items-center justify-center text-t-secondary text-14px'>
-                <span className='animate-pulse'>Loading…</span>
-              </div>
-            )}
-            <iframe
-              ref={iframeRef}
+        {error && <div className='flex items-center justify-center h-full text-t-secondary text-14px'>{error}</div>}
+        {tab &&
+          (isExternalTab ? (
+            <WebviewHost
               key={tab.id}
-              src={tab.entryUrl}
-              onLoad={() => setLoading(false)}
-              sandbox='allow-scripts allow-same-origin'
-              className='w-full border-none'
+              url={resolvedEntryUrl || ''}
+              id={tab.id}
+              partition={`persist:ext-settings-${tab.id}`}
               style={{
                 minHeight: '400px',
                 height: 'calc(100vh - 200px)',
-                opacity: loading ? 0 : 1,
-                transition: 'opacity 150ms ease-in',
               }}
-              title={`Extension settings: ${tab.name}`}
             />
-          </>
-        ))}
+          ) : (
+            <>
+              {loading && (
+                <div className='absolute inset-0 flex items-center justify-center text-t-secondary text-14px'>
+                  <span className='animate-pulse'>Loading…</span>
+                </div>
+              )}
+              <iframe
+                ref={iframeRef}
+                key={tab.id}
+                src={resolvedEntryUrl}
+                onLoad={() => setLoading(false)}
+                sandbox='allow-scripts allow-same-origin'
+                className='w-full border-none'
+                style={{
+                  minHeight: '400px',
+                  height: 'calc(100vh - 200px)',
+                  opacity: loading ? 0 : 1,
+                  transition: 'opacity 150ms ease-in',
+                }}
+                title={`Extension settings: ${tab.name}`}
+              />
+            </>
+          ))}
       </div>
     </SettingsPageWrapper>
   );

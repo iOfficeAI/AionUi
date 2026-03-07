@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/SettingsModal/settingsViewContext';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +19,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   const isMobile = layout?.isMobile ?? false;
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const isDesktop = isElectronDesktop();
 
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
@@ -31,12 +31,9 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
       .catch((err) => console.error('[SettingsPageWrapper] Failed to load extension tabs:', err));
   }, []);
 
-  const resolveExtTabName = useCallback(
-    (tab: IExtensionSettingsTab): string => {
-      return tab.name;
-    },
-    [],
-  );
+  const resolveExtTabName = useCallback((tab: IExtensionSettingsTab): string => {
+    return tab.name;
+  }, []);
 
   type NavItem = { label: string; icon: React.ReactElement; path: string; id: string };
 
@@ -59,19 +56,28 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     const afterMap = new Map<string, IExtensionSettingsTab[]>();
 
     for (const tab of extensionTabs) {
-      if (!tab.position) { unanchored.push(tab); continue; }
+      if (!tab.position) {
+        unanchored.push(tab);
+        continue;
+      }
       const map = tab.position.placement === 'before' ? beforeMap : afterMap;
       let list = map.get(tab.position.anchor);
-      if (!list) { list = []; map.set(tab.position.anchor, list); }
+      if (!list) {
+        list = [];
+        map.set(tab.position.anchor, list);
+      }
       list.push(tab);
     }
 
-    const toNavItem = (tab: IExtensionSettingsTab): NavItem => ({
-      id: tab.id,
-      label: resolveExtTabName(tab),
-      icon: tab.icon ? <img src={tab.icon} alt='' className='w-16px h-16px object-contain' /> : <Puzzle theme='outline' size='16' />,
-      path: `ext/${tab.id}`,
-    });
+    const toNavItem = (tab: IExtensionSettingsTab): NavItem => {
+      const resolvedIcon = resolveExtensionAssetUrl(tab.icon) || tab.icon;
+      return {
+        id: tab.id,
+        label: resolveExtTabName(tab),
+        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-16px h-16px object-contain' /> : <Puzzle theme='outline' size='16' />,
+        path: `ext/${tab.id}`,
+      };
+    };
 
     for (let i = result.length - 1; i >= 0; i--) {
       const id = result[i].id;

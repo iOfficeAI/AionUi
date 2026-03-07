@@ -31,6 +31,13 @@ test.describe('Extension: Complete Capabilities', () => {
 
     const allEntryUrlsValid = snapshot.settingsTabs.every((item) => item.entryUrl.startsWith('aion-asset://') || item.entryUrl.startsWith('http://') || item.entryUrl.startsWith('https://'));
     expect(allEntryUrlsValid).toBeTruthy();
+
+    const feishuWebui = snapshot.webuiContributions.find((item) => item.extensionName === 'ext-feishu');
+    expect(feishuWebui).toBeTruthy();
+    const feishuApiPaths = feishuWebui?.apiRoutes.map((item) => item.path) || [];
+    expect(feishuApiPaths).toEqual(expect.arrayContaining(['/ext-feishu/collect', '/ext-feishu/stats']));
+    const feishuAssetPrefixes = feishuWebui?.staticAssets.map((item) => item.urlPrefix) || [];
+    expect(feishuAssetPrefixes).toEqual(expect.arrayContaining(['/ext-feishu/assets']));
   });
 
   test('all known extension settings tabs can be opened and rendered', async ({ page }) => {

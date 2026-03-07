@@ -100,6 +100,11 @@ export default defineConfig(({ mode }) => {
     renderer: {
       base: './',
       server: {
+        // Keep renderer HTTP port deterministic for Electron runtime URL injection.
+        // If 5173 is unavailable, fail fast instead of auto-switching to 5174+,
+        // which causes renderer resource requests to target the wrong origin.
+        port: 5173,
+        strictPort: true,
         // Explicit HMR config so Vite client connects directly to the Vite dev server,
         // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload)
         hmr: {

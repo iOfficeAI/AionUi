@@ -205,7 +205,7 @@ export class ChannelManager {
   /**
    * Enable and start a plugin.
    * Supports both built-in plugins and extension-contributed plugins.
-   * For extension plugins, credentials are extracted generically from the config.
+   * For extension plugins, fields are extracted from manifest metadata.
    */
   async enablePlugin(pluginId: string, config: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
     // Ensure manager is initialized
@@ -223,6 +223,7 @@ export class ChannelManager {
     // Resolve plugin type
     const pluginType = (existing?.type || this.getPluginTypeFromId(pluginId)) as PluginType;
     let credentials = existing?.credentials;
+    let pluginRuntimeConfig = existing?.config ? { ...existing.config } : {};
 
     // Extract credentials based on plugin type
     if (pluginType === 'telegram') {
@@ -245,16 +246,58 @@ export class ChannelManager {
         credentials = { clientId, clientSecret };
       }
     } else {
-      // Extension or unknown plugin type: extract all string config values as credentials
-      const extCredentials: Record<string, string | undefined> = {};
-      for (const [key, value] of Object.entries(config)) {
-        if (typeof value === 'string') {
-          extCredentials[key] = value;
+      // Extension or unknown plugin type:
+      // - prefer manifest-declared credential/config fields
+      // - preserve primitive types (string/number/boolean)
+      const registry = ExtensionRegistry.getInstance();
+      const meta = registry.getChannelPluginMeta(pluginType) as
+        | {
+            credentialFields?: Array<{ key: string }>;
+            configFields?: Array<{ key: string }>;
+          }
+        | undefined;
+
+      const nextCredentials: Record<string, string | number | boolean | undefined> = {
+        ...(credentials || {}),
+      };
+      const nextRuntimeConfig: Record<string, string | number | boolean | undefined> = {
+        ...(pluginRuntimeConfig || {}),
+      };
+
+      const primitiveEntries = Object.entries(config).filter(([, value]) => {
+        const t = typeof value;
+        return t === 'string' || t === 'number' || t === 'boolean';
+      }) as Array<[string, string | number | boolean]>;
+
+      const credentialKeys = new Set((meta?.credentialFields || []).map((f) => f.key));
+      const configKeys = new Set((meta?.configFields || []).map((f) => f.key));
+
+      if (credentialKeys.size === 0 && configKeys.size === 0) {
+        // Legacy fallback: string values are credentials, non-strings go to config
+        for (const [key, value] of primitiveEntries) {
+          if (typeof value === 'string') {
+            nextCredentials[key] = value;
+          } else {
+            nextRuntimeConfig[key] = value;
+          }
+        }
+      } else {
+        for (const [key, value] of primitiveEntries) {
+          if (credentialKeys.has(key)) {
+            nextCredentials[key] = value;
+            continue;
+          }
+          if (configKeys.has(key)) {
+            nextRuntimeConfig[key] = value;
+            continue;
+          }
+          // Unknown field fallback: keep as runtime config to avoid losing data.
+          nextRuntimeConfig[key] = value;
         }
       }
-      if (Object.keys(extCredentials).length > 0) {
-        credentials = { ...credentials, ...extCredentials };
-      }
+
+      credentials = nextCredentials;
+      pluginRuntimeConfig = nextRuntimeConfig;
     }
 
     const pluginConfig: IChannelPluginConfig = {
@@ -263,7 +306,7 @@ export class ChannelManager {
       name: existing?.name || this.getPluginNameFromId(pluginId),
       enabled: true,
       credentials,
-      config: { ...existing?.config },
+      config: pluginRuntimeConfig,
       status: 'created',
       createdAt: existing?.createdAt || Date.now(),
       updatedAt: Date.now(),

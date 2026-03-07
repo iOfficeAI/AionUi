@@ -1,5 +1,5 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
@@ -23,7 +23,7 @@ type SiderItem = {
 
 const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }> = ({ collapsed = false, tooltipEnabled = false }) => {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const isDesktop = isElectronDesktop();
 
@@ -37,12 +37,9 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       .catch((err) => console.error('[SettingsSider] Failed to load extension settings tabs:', err));
   }, []);
 
-  const resolveExtTabName = useCallback(
-    (tab: IExtensionSettingsTab): string => {
-      return tab.name;
-    },
-    [],
-  );
+  const resolveExtTabName = useCallback((tab: IExtensionSettingsTab): string => {
+    return tab.name;
+  }, []);
 
   const menus: SiderItem[] = useMemo(() => {
     // Build builtin items
@@ -73,20 +70,24 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       const { anchor, placement } = tab.position;
       const map = placement === 'before' ? beforeMap : afterMap;
       let list = map.get(anchor);
-      if (!list) { list = []; map.set(anchor, list); }
+      if (!list) {
+        list = [];
+        map.set(anchor, list);
+      }
       list.push(tab);
     }
 
     // Helper to create SiderItem from extension tab
-    const toSiderItem = (tab: IExtensionSettingsTab): SiderItem => ({
-      id: tab.id,
-      label: resolveExtTabName(tab),
-      icon: tab.icon
-        ? <img src={tab.icon} alt='' className='w-full h-full object-contain' />
-        : <Puzzle />,
-      isImageIcon: Boolean(tab.icon),
-      path: `ext/${tab.id}`,
-    });
+    const toSiderItem = (tab: IExtensionSettingsTab): SiderItem => {
+      const resolvedIcon = resolveExtensionAssetUrl(tab.icon) || tab.icon;
+      return {
+        id: tab.id,
+        label: resolveExtTabName(tab),
+        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-full h-full object-contain' /> : <Puzzle />,
+        isImageIcon: Boolean(resolvedIcon),
+        path: `ext/${tab.id}`,
+      };
+    };
 
     // Insert anchored tabs (reverse iteration to preserve indices)
     for (let i = result.length - 1; i >= 0; i--) {
@@ -129,9 +130,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
               }}
             >
               {item.isImageIcon ? (
-                <div className='mt-2px ml-2px mr-8px w-20px h-20px flex shrink-0 items-center justify-center'>
-                  {item.icon}
-                </div>
+                <div className='mt-2px ml-2px mr-8px w-20px h-20px flex shrink-0 items-center justify-center'>{item.icon}</div>
               ) : (
                 React.cloneElement(item.icon, {
                   theme: 'outline',

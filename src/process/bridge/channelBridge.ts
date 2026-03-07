@@ -56,7 +56,7 @@ export function initChannelBridge(): void {
             extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
             const iconField = typeof m.icon === 'string' ? m.icon : undefined;
             if (iconField) {
-              if (iconField.startsWith('http://') || iconField.startsWith('https://')) {
+              if (iconField.startsWith('http://') || iconField.startsWith('https://') || iconField.startsWith('data:') || iconField.startsWith('file://') || iconField.startsWith('aion-asset://')) {
                 extensionMeta.icon = iconField;
               } else {
                 const absPath = path.isAbsolute(iconField) ? iconField : path.resolve(ext.directory, iconField);

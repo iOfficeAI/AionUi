@@ -116,6 +116,8 @@ out/
 
 # Temporary and backup files
 *.tmp
+.tmp_*
+tmp-webui.err
 *.bak
 *.swp
 *~

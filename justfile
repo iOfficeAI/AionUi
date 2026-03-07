@@ -353,21 +353,28 @@ e2e-report:
 # Start dev server with example extensions loaded
 # CDP remote debugging is enabled by default on port 9222 in dev mode
 dev-ext:
-    $env:AIONUI_EXTENSIONS_PATH = (Resolve-Path "examples").Path; \
-    Write-Host "Loading extensions from: $($env:AIONUI_EXTENSIONS_PATH)"; \
-    bun run start
+    node scripts/dev-bootstrap.mjs launch start --extensions
 
 # Start WebUI with example extensions loaded
 webui-ext:
-    $env:AIONUI_EXTENSIONS_PATH = (Resolve-Path "examples").Path; \
-    Write-Host "Loading extensions from: $($env:AIONUI_EXTENSIONS_PATH)"; \
-    bun run webui
+    node scripts/dev-bootstrap.mjs launch webui --extensions
 
 # Start CLI with example extensions loaded
 cli-ext:
-    $env:AIONUI_EXTENSIONS_PATH = (Resolve-Path "examples").Path; \
-    Write-Host "Loading extensions from: $($env:AIONUI_EXTENSIONS_PATH)"; \
-    bun run cli
+    node scripts/dev-bootstrap.mjs launch cli --extensions
+
+# Cross-platform diagnosis for dev extension startup
+dev-ext-doctor:
+    node scripts/dev-bootstrap.mjs doctor
+
+# Launch packaged (unpacked) app with example extensions for one-click debugging
+# Requires out/*-unpacked artifacts
+packaged-ext:
+    node scripts/packaged-launch.mjs
+
+# Build package first, then launch with example extensions
+packaged-ext-build: build-package
+    node scripts/packaged-launch.mjs
 
 # Validate extension system types compile correctly
 ext-typecheck:

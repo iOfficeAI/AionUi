@@ -611,6 +611,13 @@ export interface IExtensionSettingsTab {
   _extensionName: string;
 }
 
+/** WebUI contributions exposed for diagnostics/e2e validation */
+export interface IExtensionWebuiContribution {
+  extensionName: string;
+  apiRoutes: Array<{ path: string; auth: boolean }>;
+  staticAssets: Array<{ urlPrefix: string; directory: string }>;
+}
+
 export type AgentActivityState = 'idle' | 'writing' | 'researching' | 'executing' | 'syncing' | 'error';
 
 export interface IExtensionAgentActivityEvent {
@@ -658,6 +665,8 @@ export const extensions = {
   getSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string }>, void>('extensions.get-skills'),
   /** Get all extension-contributed settings tabs */
   getSettingsTabs: bridge.buildProvider<IExtensionSettingsTab[], void>('extensions.get-settings-tabs'),
+  /** Get extension-contributed webui routes/assets metadata */
+  getWebuiContributions: bridge.buildProvider<IExtensionWebuiContribution[], void>('extensions.get-webui-contributions'),
   /** Snapshot of all agent activities, for extension settings tabs */
   getAgentActivitySnapshot: bridge.buildProvider<IExtensionAgentActivitySnapshot, void>('extensions.get-agent-activity-snapshot'),
 

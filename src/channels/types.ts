@@ -39,7 +39,7 @@ export interface IPluginCredentials {
   clientId?: string;
   clientSecret?: string;
   // Extension plugins: arbitrary credential fields
-  [key: string]: string | undefined;
+  [key: string]: string | number | boolean | undefined;
 }
 
 /**
@@ -64,6 +64,8 @@ export interface IPluginConfigOptions {
   webhookUrl?: string;
   rateLimit?: number; // Max messages per minute
   requireMention?: boolean; // Require @mention in groups
+  // Extension plugins may define additional primitive config fields
+  [key: string]: string | number | boolean | undefined;
 }
 
 /**

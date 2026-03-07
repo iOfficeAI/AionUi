@@ -7,7 +7,7 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import { Tabs } from '@arco-design/web-react';
 import { Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
@@ -124,7 +124,7 @@ export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, ch
  * ```
  */
 const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaultTab = 'gemini' }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingTab>(defaultTab);
   const [isMobile, setIsMobile] = useState(false);
   const resizeTimerRef = useRef<number | undefined>(undefined);
@@ -163,11 +163,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   // Fetch extension-contributed settings tabs when modal opens
   useEffect(() => {
     if (!visible) return;
-    extensionsIpc.getSettingsTabs.invoke().then((tabs) => {
-      setExtensionTabs(tabs ?? []);
-    }).catch((err) => {
-      console.error('[SettingsModal] Failed to load extension settings tabs:', err);
-    });
+    extensionsIpc.getSettingsTabs
+      .invoke()
+      .then((tabs) => {
+        setExtensionTabs(tabs ?? []);
+      })
+      .catch((err) => {
+        console.error('[SettingsModal] Failed to load extension settings tabs:', err);
+      });
   }, [visible]);
 
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
@@ -176,12 +179,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   /**
    * Resolve i18n display name for an extension tab.
    */
-  const resolveExtTabName = useCallback(
-    (tab: IExtensionSettingsTab): string => {
-      return tab.name;
-    },
-    []
-  );
+  const resolveExtTabName = useCallback((tab: IExtensionSettingsTab): string => {
+    return tab.name;
+  }, []);
 
   // Extension tab lookup map for renderContent
   const extensionTabMap = useMemo(() => {
@@ -212,10 +212,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       });
     }
 
-    builtinItems.push(
-      { key: 'system', label: t('settings.system'), icon: <Computer theme='outline' size='20' fill={iconColors.secondary} /> },
-      { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> },
-    );
+    builtinItems.push({ key: 'system', label: t('settings.system'), icon: <Computer theme='outline' size='20' fill={iconColors.secondary} /> }, { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> });
 
     // Extension tabs — position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -223,21 +220,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     const unanchored: IExtensionSettingsTab[] = [];
 
     for (const tab of extensionTabs) {
-      if (!tab.position) { unanchored.push(tab); continue; }
+      if (!tab.position) {
+        unanchored.push(tab);
+        continue;
+      }
       const { anchor, placement } = tab.position;
       const map = placement === 'before' ? beforeMap : afterMap;
       let list = map.get(anchor);
-      if (!list) { list = []; map.set(anchor, list); }
+      if (!list) {
+        list = [];
+        map.set(anchor, list);
+      }
       list.push(tab);
     }
 
-    const toMenuItem = (tab: IExtensionSettingsTab): MenuItem => ({
-      key: tab.id,
-      label: resolveExtTabName(tab),
-      icon: tab.icon
-        ? <img src={tab.icon} alt='' className='w-20px h-20px object-contain' />
-        : <Puzzle theme='outline' size='20' fill={iconColors.secondary} />,
-    });
+    const toMenuItem = (tab: IExtensionSettingsTab): MenuItem => {
+      const resolvedIcon = resolveExtensionAssetUrl(tab.icon) || tab.icon;
+      return {
+        key: tab.id,
+        label: resolveExtTabName(tab),
+        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-20px h-20px object-contain' /> : <Puzzle theme='outline' size='20' fill={iconColors.secondary} />,
+      };
+    };
 
     // Insert anchored tabs
     for (let i = builtinItems.length - 1; i >= 0; i--) {
@@ -310,11 +314,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       if (!extTab) return null;
       const isActive = activeTab === tabKey;
       return (
-        <div
-          key={tabKey}
-          className='w-full h-full'
-          style={{ display: isActive ? 'block' : 'none' }}
-        >
+        <div key={tabKey} className='w-full h-full' style={{ display: isActive ? 'block' : 'none' }}>
           <ExtensionSettingsTabContent tabId={extTab.id} entryUrl={extTab.entryUrl} />
         </div>
       );
