@@ -59,29 +59,14 @@ jobs:
           E2E_SCREENSHOTS: '1'
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
-      - name: Upload E2E report
+      - name: Upload E2E report (self-contained with screenshots & traces)
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: e2e-report-linux-pr
-          path: tests/e2e/report/
-          retention-days: 14
-          if-no-files-found: ignore
-
-      - name: Upload E2E runtime artifacts
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: e2e-results-linux-pr
-          path: tests/e2e/results/
-          retention-days: 14
-          if-no-files-found: ignore
-
-      - name: Upload E2E screenshots
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: e2e-screenshots-linux-pr
-          path: tests/e2e/screenshots/
+          path: |
+            tests/e2e/report/
+            tests/e2e/results/
+            tests/e2e/screenshots/
           retention-days: 14
           if-no-files-found: ignore

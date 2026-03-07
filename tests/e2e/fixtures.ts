@@ -12,7 +12,7 @@
  *
  * Set `E2E_PACKAGED=1` to force packaged mode, or `E2E_DEV=1` to force dev mode.
  */
-import { test as base, expect, type ElectronApplication, type Page } from '@playwright/test';
+import { test as base, expect, type ElectronApplication, type Page, type TestInfo } from '@playwright/test';
 import { _electron as electron } from 'playwright';
 import path from 'path';
 import fs from 'fs';
@@ -171,25 +171,55 @@ export const test = base.extend<Fixtures>({
     if (!app) {
       app = await launchApp();
     }
+
+    // Verify the app process is still alive; relaunch if it crashed
+    try {
+      await app.evaluate(() => true);
+    } catch {
+      console.log('[E2E] App process lost – relaunching...');
+      app = await launchApp();
+      mainPage = null; // force window re-resolution
+    }
+
     await use(app);
   },
 
-  page: async ({ electronApp }, use) => {
+  page: async ({ electronApp }, use, testInfo: TestInfo) => {
     if (!mainPage || mainPage.isClosed() || isDevToolsWindow(mainPage)) {
       mainPage = await resolveMainWindow(electronApp);
     }
-    // Extra guard: wait briefly then re-check in case Electron replaces
-    // the window during startup (e.g. splash → main transition).
+
+    // Only wait for DOM when the page is brand-new or was replaced.
+    // For an already-resolved page, skip the expensive waitForLoadState
+    // to speed up consecutive tests sharing the same window.
     try {
-      await mainPage.waitForLoadState('domcontentloaded', { timeout: 10_000 });
+      if (mainPage.url() === 'about:blank' || mainPage.url() === '') {
+        await mainPage.waitForLoadState('domcontentloaded', { timeout: 15_000 });
+      }
     } catch {
       // Page may have been replaced – resolve again
       mainPage = await resolveMainWindow(electronApp);
     }
+
     if (mainPage.isClosed()) {
       mainPage = await resolveMainWindow(electronApp);
     }
     await use(mainPage);
+
+    // Attach screenshot on failure so it appears in the HTML report.
+    // Playwright's built-in `screenshot: 'only-on-failure'` relies on its
+    // own `page` fixture, which we override for Electron — so we do it manually.
+    if (testInfo.status !== testInfo.expectedStatus && mainPage && !mainPage.isClosed()) {
+      try {
+        const screenshot = await mainPage.screenshot();
+        await testInfo.attach('screenshot-on-failure', {
+          body: screenshot,
+          contentType: 'image/png',
+        });
+      } catch {
+        // best-effort: page may have crashed
+      }
+    }
   },
 });
 

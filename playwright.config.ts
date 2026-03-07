@@ -11,6 +11,8 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['html', { open: 'never', outputFolder: 'tests/e2e/report' }]] : [['list'], ['html', { open: 'never', outputFolder: 'tests/e2e/report' }]],
   use: {
     trace: 'on-first-retry',
+    // screenshot/video are handled by our custom Electron fixture (see fixtures.ts)
+    // since Playwright's built-in auto-screenshot requires its own `page` fixture.
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
   },

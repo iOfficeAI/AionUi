@@ -421,6 +421,22 @@ jobs:
           E2E_SCREENSHOTS: '1'
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
+      - name: Upload E2E report
+        if: >-
+          always() && (
+            matrix.platform == 'linux' ||
+            matrix.platform == 'macos-arm64' ||
+            matrix.platform == 'windows-x64'
+          )
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-report-${{ matrix.platform }}
+          path: |
+            tests/e2e/report/
+            tests/e2e/results/
+            tests/e2e/screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Job 4: Test release scripts (fast, no build required)
   release-script-test:
