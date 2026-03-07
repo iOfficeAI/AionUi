@@ -46,6 +46,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
   const [showManualUrlEditor, setShowManualUrlEditor] = useState(false);
   const [detectFailureCount, setDetectFailureCount] = useState(0);
   const [showDiagnoseHint, setShowDiagnoseHint] = useState(false);
+  const [previewImageFailed, setPreviewImageFailed] = useState(false);
   const [url, setUrl] = useState(() => {
     try {
       return localStorage.getItem(MONITOR_URL_STORAGE_KEY)?.trim() || DEFAULT_MONITOR_URL;
@@ -55,8 +56,10 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
   });
 
   const runDetect = useCallback(async (options?: { force?: boolean; silent?: boolean; timeoutMs?: number }) => {
-    setDetectState('checking');
-    setDetectError('');
+    if (!options?.silent) {
+      setDetectState('checking');
+      setDetectError('');
+    }
     if (!options?.silent) setDetecting(true);
     try {
       let found: string | null = null;
@@ -91,12 +94,18 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
           // ignore persistence error
         }
       } else {
-        setDetectState(hasDetectError ? 'error' : 'not_found');
+        if (!options?.silent) {
+          setDetectState(hasDetectError ? 'error' : 'not_found');
+        }
         setDetectedUrl(null);
-        const nextFailureCount = detectFailureCount + 1;
-        setDetectFailureCount(nextFailureCount);
-        if (nextFailureCount >= 2) {
-          setShowDiagnoseHint(true);
+        if (!options?.silent) {
+          setDetectFailureCount((prev) => {
+            const nextFailureCount = prev + 1;
+            if (nextFailureCount >= 2) {
+              setShowDiagnoseHint(true);
+            }
+            return nextFailureCount;
+          });
         }
         if (options?.force) {
           // Force detect miss means prior cached URL is stale.
@@ -112,7 +121,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
     } finally {
       if (!options?.silent) setDetecting(false);
     }
-  }, [url, detectFailureCount]);
+  }, [url]);
 
   useEffect(() => {
     const idleWindow = window as IdleWindow;
@@ -136,6 +145,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
   useEffect(() => {
     if (!visible) return;
     // Always refresh state when opening modal to avoid stale ready status.
+    setPreviewImageFailed(false);
     void runDetect({ force: true, silent: false, timeoutMs: 420 });
   }, [visible, runDetect]);
 
@@ -323,13 +333,77 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
       >
         <div className='flex flex-col gap-12px'>
           <div className='rounded-12px border border-3 bg-2 p-12px'>
+            <button
+              type='button'
+              className='border-none bg-transparent p-0 text-left text-14px font-500 text-t-primary underline-offset-3 hover:underline cursor-pointer'
+              onClick={handleOpenInstallGuide}
+            >
+              {t('conversation.preview.openclawMonitorVisualTitle', { defaultValue: 'What is Star Office UI?' })}
+            </button>
+            <div className='mt-6px text-12px leading-18px text-t-secondary'>
+              {t('conversation.preview.openclawMonitorVisualDesc', {
+                defaultValue: 'Star Office is a visual companion for OpenClaw. It turns chat-side status into a live, interactive monitor view.',
+              })}
+            </div>
+            <div className='mt-10px overflow-hidden rounded-10px border border-3 bg-1'>
+              {previewImageFailed ? (
+                <div className='h-132px w-full flex items-center justify-center bg-[linear-gradient(135deg,rgba(73,147,255,0.12),rgba(73,147,255,0.04))] px-12px'>
+                  <div className='text-center'>
+                    <div className='text-20px'>📺</div>
+                    <div className='mt-4px text-12px font-500 text-t-primary'>
+                      {t('conversation.preview.openclawMonitorVisualFallbackTitle', { defaultValue: 'Star Office UI live preview' })}
+                    </div>
+                    <div className='mt-2px text-11px text-t-secondary'>
+                      {t('conversation.preview.openclawMonitorVisualFallbackDesc', { defaultValue: 'OpenClaw chat status becomes a visual office scene.' })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src='https://raw.githubusercontent.com/ringhyacinth/Star-Office-UI/master/docs/screenshots/readme-cover-1.jpg'
+                  alt={t('conversation.preview.openclawMonitorVisualImageAlt', { defaultValue: 'Star Office UI official preview' })}
+                  className='h-132px w-full object-cover'
+                  loading='lazy'
+                  referrerPolicy='no-referrer'
+                  onError={() => setPreviewImageFailed(true)}
+                />
+              )}
+              <div className='px-8px py-6px text-11px text-t-secondary'>
+                {previewImageFailed
+                  ? t('conversation.preview.openclawMonitorVisualImageCaptionFallback', {
+                      defaultValue: 'Preview image unavailable, open project for full screenshots.',
+                    })
+                  : t('conversation.preview.openclawMonitorVisualImageCaption', {
+                      defaultValue: 'Official preview from Star-Office-UI (GitHub).',
+                    })}
+              </div>
+            </div>
+            <div className='mt-10px flex items-center gap-6px text-12px text-t-primary flex-wrap'>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
+                {t('conversation.preview.openclawMonitorVisualStepChat', { defaultValue: 'OpenClaw Chat' })}
+              </span>
+              <span className='text-t-secondary'>→</span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
+                {t('conversation.preview.openclawMonitorVisualStepUi', { defaultValue: 'Star Office UI' })}
+              </span>
+              <span className='text-t-secondary'>→</span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
+                {t('conversation.preview.openclawMonitorVisualStepLive', { defaultValue: 'Live Monitor' })}
+              </span>
+            </div>
+          </div>
+
+          <div className='rounded-14px border border-2 bg-[linear-gradient(180deg,rgba(var(--gray-1),0.82),rgba(var(--gray-2),0.7))] p-14px'>
             <div className='flex items-center gap-8px'>
-              <span className='h-8px w-8px rounded-full' style={{ backgroundColor: detectState === 'ready' ? 'rgb(var(--success-6))' : 'rgb(var(--gray-5))' }} />
+              <span
+                className='h-8px w-8px rounded-full'
+                style={{ backgroundColor: detectState === 'ready' ? 'rgb(var(--success-6))' : 'rgb(var(--gray-5))' }}
+              />
               <div className='text-14px font-500 text-t-primary'>
                 {t('conversation.preview.openclawMonitorIntroTitle', { defaultValue: 'Star Office Monitor' })}
               </div>
             </div>
-            <div className='mt-6px text-12px leading-18px text-t-secondary'>
+            <div className='mt-8px text-13px leading-20px text-t-secondary'>
               {detectState === 'ready'
                 ? t('conversation.preview.openclawMonitorConnectedInline', {
                     defaultValue: 'Connected · {{url}}',
@@ -339,12 +413,13 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
             </div>
             {detectState === 'ready' ? (
               <div className='mt-10px flex flex-wrap items-center gap-8px'>
-                <Button type='primary' onClick={handleOpenDetectedMonitor}>
+                <Button type='primary' className='!rounded-10px' onClick={handleOpenDetectedMonitor}>
                   {t('conversation.preview.openclawMonitorOpenNow', { defaultValue: 'Open monitor' })}
                 </Button>
                 <Button
                   size='mini'
                   type='outline'
+                  className='!rounded-10px'
                   onClick={() => {
                     setShowManualUrlEditor((prev) => !prev);
                   }}
@@ -356,10 +431,16 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
               </div>
             ) : (
               <div className='mt-10px flex flex-wrap items-center gap-8px'>
-                <Button type='primary' onClick={handleAskOpenClawInstall}>
+                <Button type='primary' className='!rounded-10px' onClick={handleAskOpenClawInstall}>
                   {t('conversation.preview.openclawMonitorInstallWithOpenClaw', { defaultValue: 'Install with OpenClaw' })}
                 </Button>
-                <Button size='mini' type='outline' loading={detecting} onClick={() => void runDetect({ force: true, timeoutMs: 360 })}>
+                <Button
+                  size='mini'
+                  type='outline'
+                  className='!rounded-10px'
+                  loading={detecting}
+                  onClick={() => void runDetect({ force: true, timeoutMs: 360 })}
+                >
                   {t('conversation.preview.openclawMonitorDetect', { defaultValue: 'Detect again' })}
                 </Button>
               </div>
@@ -376,11 +457,6 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
                 </button>
               </div>
             ) : null}
-            <div className='mt-8px'>
-              <Button size='mini' type='text' onClick={handleOpenInstallGuide}>
-                {t('conversation.preview.openclawMonitorInstallGuide', { defaultValue: 'View project' })}
-              </Button>
-            </div>
           </div>
 
           {detectError ? <div className='text-11px text-[rgb(var(--danger-6))]'>{statusText} · {detectError}</div> : null}

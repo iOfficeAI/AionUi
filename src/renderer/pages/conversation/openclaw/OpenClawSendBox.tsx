@@ -131,17 +131,17 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const lastAnnouncedInstallStageRef = useRef<InstallFlowStage>('idle');
   const installFlowMeta = useMemo(() => {
     const map: Record<InstallFlowStage, { label: string; percent: number }> = {
-      idle: { label: 'Idle', percent: 0 },
-      consent: { label: 'Waiting consent', percent: 5 },
-      checking: { label: 'Checking environment', percent: 20 },
-      installing: { label: 'Installing / repairing', percent: 50 },
-      starting: { label: 'Starting service', percent: 70 },
-      detecting: { label: 'Detecting local port', percent: 85 },
-      troubleshooting: { label: 'Troubleshooting connection', percent: 90 },
-      completed: { label: 'Completed', percent: 100 },
+      idle: { label: t('conversation.chat.starOffice.modeIdle', { defaultValue: 'Idle' }), percent: 0 },
+      consent: { label: t('conversation.chat.starOffice.modeConsent', { defaultValue: 'Waiting consent' }), percent: 5 },
+      checking: { label: t('conversation.chat.starOffice.modeChecking', { defaultValue: 'Checking environment' }), percent: 20 },
+      installing: { label: t('conversation.chat.starOffice.modeInstalling', { defaultValue: 'Installing / repairing' }), percent: 50 },
+      starting: { label: t('conversation.chat.starOffice.modeStarting', { defaultValue: 'Starting service' }), percent: 70 },
+      detecting: { label: t('conversation.chat.starOffice.modeDetecting', { defaultValue: 'Detecting local port' }), percent: 85 },
+      troubleshooting: { label: t('conversation.chat.starOffice.modeTroubleshooting', { defaultValue: 'Troubleshooting connection' }), percent: 90 },
+      completed: { label: t('conversation.chat.starOffice.modeCompleted', { defaultValue: 'Completed' }), percent: 100 },
     };
     return map[installFlowStage];
-  }, [installFlowStage]);
+  }, [installFlowStage, t]);
 
   // Use ref to sync state for immediate access in event handlers
   // 使用 ref 同步状态，以便在事件处理程序中立即访问
@@ -254,16 +254,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       if (lastAnnouncedInstallStageRef.current === stage) return;
       lastAnnouncedInstallStageRef.current = stage;
       const stageTextMap: Record<Exclude<InstallFlowStage, 'idle' | 'consent'>, string> = {
-        checking: '🧭 进度更新：正在检查本机环境与依赖。',
-        installing: '🛠️ 进度更新：正在安装/修复 Star Office 运行环境。',
-        starting: '🚀 进度更新：正在启动 Star Office 服务。',
-        detecting: '🔎 进度更新：正在检测本地端口与可访问地址。',
-        troubleshooting: '🩺 进度更新：正在执行连接排障（端口/进程/授权/日志）。',
-        completed: '✅ 进度更新：安装与连接流程完成。',
+        checking: t('conversation.chat.starOffice.stageChecking', { defaultValue: '🧭 Progress: checking local environment and dependencies.' }),
+        installing: t('conversation.chat.starOffice.stageInstalling', { defaultValue: '🛠️ Progress: installing/repairing Star Office runtime.' }),
+        starting: t('conversation.chat.starOffice.stageStarting', { defaultValue: '🚀 Progress: starting Star Office service.' }),
+        detecting: t('conversation.chat.starOffice.stageDetecting', { defaultValue: '🔎 Progress: detecting local port and reachable URL.' }),
+        troubleshooting: t('conversation.chat.starOffice.stageTroubleshooting', { defaultValue: '🩺 Progress: running connection diagnosis (port/process/auth/logs).' }),
+        completed: t('conversation.chat.starOffice.stageCompleted', { defaultValue: '✅ Progress: install and connect flow completed.' }),
       };
       emitAssistantNarration(stageTextMap[stage]);
     },
-    [emitAssistantNarration]
+    [emitAssistantNarration, t]
   );
   const emitWorkflowTip = useCallback(
     (text: string, type: 'success' | 'warning' = 'success') => {
@@ -412,8 +412,12 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               installCompletedInTurnRef.current = false;
               setInstallFlowStage('completed');
               announceInstallStage('completed');
-              emitAssistantNarration('安装与连接流程已完成，谢谢你。Install mode 已自动退出。');
-              exitInstallMode('Star Office flow completed. Back to normal mode.');
+              emitAssistantNarration(
+                t('conversation.chat.starOffice.flowCompletedNarration', {
+                  defaultValue: 'Install and connection flow completed. Thank you. Install mode has exited automatically.',
+                })
+              );
+              exitInstallMode(t('conversation.chat.starOffice.flowCompletedTip', { defaultValue: 'Star Office flow completed. Back to normal mode.' }));
             }
             hasContentInTurnRef.current = false;
           }
@@ -513,19 +517,36 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       const runRequest = () => {
         if (!immediateSendRef.current) {
           setContentRef.current(text);
-          emitAssistantNarration('当前发送通道还未就绪，我已把请求放到输入框里；你点击发送后我会继续执行。');
+          emitAssistantNarration(
+            t('conversation.chat.starOffice.channelNotReady', {
+              defaultValue: 'Send channel is not ready yet. I placed the request in the input box; click send and I will continue.',
+            })
+          );
           return;
         }
         void immediateSendRef.current(text).catch(() => {
           setContentRef.current(text);
-          emitAssistantNarration('自动执行失败，我已把请求放到输入框里；你点击发送后我会继续执行。');
+          emitAssistantNarration(
+            t('conversation.chat.starOffice.autoRunFailed', {
+              defaultValue: 'Auto-run failed. I placed the request in the input box; click send and I will continue.',
+            })
+          );
         });
       };
 
       const hasLocal = Boolean(detectedUrl);
       if (hasLocal) {
-        emitWorkflowTip('Star Office helper is ready. Running connection diagnosis / guidance in this conversation.');
-        emitAssistantNarration(`已检测到本机 Star Office 服务（${detectedUrl}），我现在直接帮你完成连接与玩法引导。`);
+        emitWorkflowTip(
+          t('conversation.chat.starOffice.helperReadyDiagnose', {
+            defaultValue: 'Star Office helper is ready. Running connection diagnosis / guidance in this conversation.',
+          })
+        );
+        emitAssistantNarration(
+          t('conversation.chat.starOffice.detectedAndGuide', {
+            defaultValue: 'Detected local Star Office service ({{url}}). I will now guide connection and usage directly.',
+            url: detectedUrl || '',
+          })
+        );
         runRequest();
         return;
       }
@@ -533,34 +554,44 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setPendingInstallPrompt(text);
       setAwaitingInstallConsent(true);
       setInstallFlowStage('consent');
-      emitWorkflowTip('Star Office helper is ready. Waiting for your consent to auto-install.');
+      emitWorkflowTip(
+        t('conversation.chat.starOffice.helperReadyConsent', {
+          defaultValue: 'Star Office helper is ready. Waiting for your consent to auto-install.',
+        })
+      );
       emitAssistantCard(
         [
-          '## 📺 Star Office UI 助手',
+          t('conversation.chat.starOffice.cardTitle', { defaultValue: '## 📺 Star Office UI Assistant' }),
           '',
-          '> 当前未检测到你本机的 Star Office 服务。',
+          t('conversation.chat.starOffice.cardNotDetected', { defaultValue: '> No Star Office service was detected on this machine.' }),
           '',
-          '**Star Office 是什么？**',
-          '- 一个把 OpenClaw 对话“可视化”的本地 UI 项目',
-          '- 你可以在小电视里实时看到状态和联动画面',
+          t('conversation.chat.starOffice.cardWhatIsTitle', { defaultValue: '**What is Star Office?**' }),
+          t('conversation.chat.starOffice.cardWhatIsBullet1', { defaultValue: '- A local UI project that visualizes OpenClaw conversations' }),
+          t('conversation.chat.starOffice.cardWhatIsBullet2', { defaultValue: '- You can view real-time status and live interaction in the TV panel' }),
           '',
-          '**我可以帮你做什么？**',
-          '- 自动安装/修复环境',
-          '- 自动启动服务并检测端口',
-          '- 引导你一键连接到 Aion 小电视',
+          t('conversation.chat.starOffice.cardHelpTitle', { defaultValue: '**What can I do for you?**' }),
+          t('conversation.chat.starOffice.cardHelpBullet1', { defaultValue: '- Auto install/repair environment' }),
+          t('conversation.chat.starOffice.cardHelpBullet2', { defaultValue: '- Auto start service and detect port' }),
+          t('conversation.chat.starOffice.cardHelpBullet3', { defaultValue: '- Guide one-click connection to Aion live monitor' }),
           '',
           '```text',
           'Install flow: detect -> install/repair -> start -> check port -> open live monitor',
           '```',
           '',
-          '项目地址（含说明/示例图）：https://github.com/ringhyacinth/Star-Office-UI',
+          t('conversation.chat.starOffice.cardProjectLink', {
+            defaultValue: 'Project (docs/screenshots): https://github.com/ringhyacinth/Star-Office-UI',
+          }),
           '',
-          '如果你同意我现在开始一站式安装，请回复：`同意`（或 `继续`）。',
-          '如果先不安装，请回复：`取消`。',
+          t('conversation.chat.starOffice.cardConsentApprove', {
+            defaultValue: 'If you agree to start one-stop install now, reply: `Agree` (or `Continue`).',
+          }),
+          t('conversation.chat.starOffice.cardConsentReject', {
+            defaultValue: 'If not for now, reply: `Cancel`.',
+          }),
         ].join('\n')
       );
     },
-    [conversation_id, emitAssistantCard, emitAssistantNarration]
+    [conversation_id, emitAssistantCard, emitAssistantNarration, t]
   );
 
   const handleExitStarOfficeInstallMode = useCallback(() => {
@@ -581,10 +612,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         setPendingInstallPrompt(null);
         installCompletedInTurnRef.current = false;
         setInstallFlowStage('idle');
-        exitInstallMode('Stopped Star Office install flow. Conversation is back to normal mode.');
+        exitInstallMode(
+          t('conversation.chat.starOffice.flowStoppedTip', {
+            defaultValue: 'Stopped Star Office install flow. Conversation is back to normal mode.',
+          })
+        );
       }
     })();
-  }, [conversation_id, exitInstallMode]);
+  }, [conversation_id, exitInstallMode, t]);
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
@@ -667,7 +702,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         setPendingInstallPrompt(null);
         setInstallFlowStage('checking');
         announceInstallStage('checking');
-        emitAssistantNarration('收到同意，我现在开始自动安装/修复/启动流程。');
+        emitAssistantNarration(
+          t('conversation.chat.starOffice.consentApproved', {
+            defaultValue: 'Consent received. I am now starting auto install/repair/start flow.',
+          })
+        );
         void ipcBridge.conversation.update.invoke({
           id: conversation_id,
           updates: {
@@ -681,7 +720,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         emitter.emit('staroffice.install-mode.changed', { conversationId: conversation_id, enabled: true });
         void sendOpenClawMessage(requestText).catch(() => {
           setContentRef.current(requestText);
-          emitAssistantNarration('自动执行失败，我已把请求放到输入框里；你点击发送后我会继续执行。');
+          emitAssistantNarration(
+            t('conversation.chat.starOffice.autoRunFailed', {
+              defaultValue: 'Auto-run failed. I placed the request in the input box; click send and I will continue.',
+            })
+          );
         });
         return;
       }
@@ -690,10 +733,18 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         setPendingInstallPrompt(null);
         setInstallFlowStage('idle');
         lastAnnouncedInstallStageRef.current = 'idle';
-        emitAssistantNarration('好的，已取消本次安装流程。你可以随时再点小电视重新开始。');
+        emitAssistantNarration(
+          t('conversation.chat.starOffice.consentRejected', {
+            defaultValue: 'Okay, this install flow is cancelled. You can tap the TV icon anytime to start again.',
+          })
+        );
         return;
       }
-      emitAssistantNarration('我在等你的确认。请回复：`同意`（或 `继续`）/ `取消`。');
+      emitAssistantNarration(
+        t('conversation.chat.starOffice.waitingConsent', {
+          defaultValue: 'I am waiting for your confirmation. Please reply: `Agree` (or `Continue`) / `Cancel`.',
+        })
+      );
       return;
     }
 
@@ -799,12 +850,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       {starOfficeInstallMode ? (
         <div className='mb-4px flex items-center justify-between gap-10px rounded-full border border-[rgb(var(--arcoblue-3))] bg-[rgba(var(--arcoblue-1),0.6)] px-10px py-6px'>
           <div className='min-w-0 flex items-center gap-8px text-12px text-[rgb(var(--arcoblue-7))]'>
-            <span className='truncate'>Star Office install mode · {installFlowMeta.label}</span>
+            <span className='truncate'>
+              {t('conversation.chat.starOffice.installModeTitle', { defaultValue: 'Star Office install mode' })} · {installFlowMeta.label}
+            </span>
             <span className='text-[11px] text-t-secondary'>{installFlowMeta.percent}%</span>
           </div>
           <div className='shrink-0'>
             <Button size='mini' type='text' onClick={handleExitStarOfficeInstallMode}>
-              Stop
+              {t('conversation.chat.starOffice.stop', { defaultValue: 'Stop' })}
             </Button>
           </div>
         </div>
