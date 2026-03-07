@@ -13,10 +13,51 @@ import { runMigrations as executeMigrations } from './migrations';
 import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
+import type { IMessageSearchItem, IMessageSearchResponse } from '@/common/types/database';
 import type { IChannelPluginConfig, IChannelUser, IChannelSession, IChannelPairingRequest, IChannelUserRow, IChannelSessionRow, IChannelPairingCodeRow, PluginType, PluginStatus } from '@/channels/types';
 import type { TProviderWithModel } from '@/common/storage';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 import { encryptCredentials, decryptCredentials } from '@/channels/utils/credentialCrypto';
+
+type IConversationMessageSearchRow = IConversationRow & {
+  message_id: string;
+  message_type: TMessage['type'];
+  message_content: string;
+  message_created_at: number;
+};
+
+const escapeLikePattern = (value: string): string => value.replace(/[\\%_]/g, (match) => `\\${match}`);
+
+const extractSearchPreviewText = (rawContent: string): string => {
+  const collectStrings = (value: unknown, bucket: string[]): void => {
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized) {
+        bucket.push(normalized);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => collectStrings(item, bucket));
+      return;
+    }
+
+    if (value && typeof value === 'object') {
+      Object.values(value).forEach((item) => collectStrings(item, bucket));
+    }
+  };
+
+  try {
+    const parsed = JSON.parse(rawContent);
+    const bucket: string[] = [];
+    collectStrings(parsed, bucket);
+    const previewText = bucket.join(' ').replace(/\s+/g, ' ').trim();
+    return previewText || rawContent;
+  } catch {
+    return rawContent.replace(/\s+/g, ' ').trim();
+  }
+};
 
 /**
  * Main database class for AionUi
@@ -652,6 +693,91 @@ export class AionUIDatabase {
       console.error('[Database] Get messages error:', error);
       return {
         data: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+  }
+
+  searchConversationMessages(keyword: string, userId?: string, page = 0, pageSize = 20): IMessageSearchResponse {
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedKeyword) {
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+
+    try {
+      const finalUserId = userId || this.defaultUserId;
+      const escapedKeyword = escapeLikePattern(trimmedKeyword);
+      const likePattern = `%${escapedKeyword}%`;
+
+      const countResult = this.db
+        .prepare(
+          `
+            SELECT COUNT(*) as count
+            FROM messages m
+            INNER JOIN conversations c ON c.id = m.conversation_id
+            WHERE c.user_id = ?
+              AND m.content LIKE ? ESCAPE '\\'
+          `
+        )
+        .get(finalUserId, likePattern) as { count: number };
+
+      const rows = this.db
+        .prepare(
+          `
+            SELECT
+              c.id,
+              c.user_id,
+              c.name,
+              c.type,
+              c.extra,
+              c.model,
+              c.status,
+              c.source,
+              c.channel_chat_id,
+              c.created_at,
+              c.updated_at,
+              m.id as message_id,
+              m.type as message_type,
+              m.content as message_content,
+              m.created_at as message_created_at
+            FROM messages m
+            INNER JOIN conversations c ON c.id = m.conversation_id
+            WHERE c.user_id = ?
+              AND m.content LIKE ? ESCAPE '\\'
+            ORDER BY m.created_at DESC
+            LIMIT ? OFFSET ?
+          `
+        )
+        .all(finalUserId, likePattern, pageSize, page * pageSize) as IConversationMessageSearchRow[];
+
+      const items: IMessageSearchItem[] = rows.map((row) => ({
+        conversation: rowToConversation(row),
+        messageId: row.message_id,
+        messageType: row.message_type,
+        messageCreatedAt: row.message_created_at,
+        previewText: extractSearchPreviewText(row.message_content),
+      }));
+
+      return {
+        items,
+        total: countResult.count,
+        page,
+        pageSize,
+        hasMore: (page + 1) * pageSize < countResult.count,
+      };
+    } catch (error: any) {
+      console.error('[Database] Search messages error:', error);
+      return {
+        items: [],
         total: 0,
         page,
         pageSize,

@@ -13,6 +13,7 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip
 import { useLayoutContext } from './context/LayoutContext';
 import { blurActiveElement } from './utils/focus';
 import { useThemeContext } from './context/ThemeContext';
+import ConversationSearchPopover from './pages/conversation/grouped-history/ConversationSearchPopover';
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -60,6 +61,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleToggleBatchMode = () => {
     setIsBatchMode((prev) => !prev);
   };
+  const handleConversationSelect = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+  };
   const handleQuickThemeToggle = () => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -101,6 +108,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 >
                   <Plus theme='outline' size='24' fill={iconColors.primary} className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
                   <span className='collapsed-hidden font-bold text-t-primary leading-24px'>{t('conversation.welcome.newConversation')}</span>
+                </div>
+              </Tooltip>
+              <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
+                <div>
+                  <ConversationSearchPopover onSessionClick={onSessionClick} onConversationSelect={handleConversationSelect} buttonClassName={classNames(isMobile && 'sider-action-icon-btn-mobile')} />
                 </div>
               </Tooltip>
               <Tooltip {...siderTooltipProps} content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')} position='right'>

@@ -325,6 +325,7 @@ export const openclawConversation = {
 export const database = {
   getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { page?: number; pageSize?: number }>('database.get-user-conversations'),
+  searchConversationMessages: bridge.buildProvider<import('./types/database').IMessageSearchResponse, { keyword: string; page?: number; pageSize?: number }>('database.search-conversation-messages'),
 };
 
 export const previewHistory = {
