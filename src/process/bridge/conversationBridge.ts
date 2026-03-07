@@ -447,6 +447,10 @@ export function initConversationBridge(): void {
     // 复制文件到工作空间（所有 agents 统一处理）
     // Copy files to workspace (unified for all agents)
     const workspaceFiles = await copyFilesToDirectory(task.workspace, files, false);
+    const isStarOfficeRelatedInput = (input: string): boolean => {
+      const text = (input || '').toLowerCase();
+      return /(star[\s\-]?office|staroffice|star-office-ui|小电视|实时监视|实时监控|可视化|19000|18791)/i.test(text);
+    };
     const buildOpenClawInput = async (input: string): Promise<string> => {
       const db = getDatabase();
       const conversationResult = db.getConversation(conversation_id);
@@ -460,8 +464,22 @@ export function initConversationBridge(): void {
         return input;
       }
 
+      // Auto-exit install mode when current input is unrelated to Star Office.
+      // This prevents mode rules from leaking into unrelated requests in the same conversation.
+      if (!isStarOfficeRelatedInput(input)) {
+        void db.updateConversation(conversation_id, {
+          extra: {
+            ...(conversation.extra as Record<string, unknown>),
+            starOfficeInstallMode: false,
+            starOfficeInstallModePrimed: false,
+          },
+        } as Partial<TChatConversation>);
+        return input;
+      }
+
       const modeInstructions = [
         'Star Office install mode is active for this conversation.',
+        'Star Office UI is a THIRD-PARTY local project. It is NOT built-in to Aion/OpenClaw and NOT a required core service.',
         'The user has already consented to one-stop automated install/repair actions in this conversation.',
         'Stay focused on installing, starting, detecting, repairing, uninstalling, and reconnecting Star Office UI.',
         'Do not ask the user to manually type shell commands unless OS-level permission requires user action.',
@@ -471,6 +489,8 @@ export function initConversationBridge(): void {
         'VERIFICATION RULES (STRICT): Treat Star Office as running only if at least one strict signal matches: (1) local port 19000 is listening, OR (2) health endpoint responds from candidate URL, OR (3) process command/path clearly points to Star-Office-UI repo/backend.',
         'UNINSTALL RULES (STRICT): Do NOT treat generic python/python3 processes as Star Office residuals unless their command/path explicitly references Star-Office-UI or its backend app.',
         'If strict signals are absent, report Star Office as not running/uninstalled; do not claim residual runtime based only on generic Python workers.',
+        'Do NOT claim "openclaw-gateway/Aion auto-restarts Star Office app.py" unless you have explicit evidence from process parent chain, Aion config, or logs in this session.',
+        'Never claim Star Office is "built-in", "bound to Aion", or "cannot be independently uninstalled" without explicit product evidence from this repo.',
       ].join('\n');
 
       const compactWorkflow = [

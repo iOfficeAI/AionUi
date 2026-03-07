@@ -602,33 +602,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     [conversation_id, emitAssistantCard, emitAssistantNarration, t]
   );
 
-  const handleExitStarOfficeInstallMode = useCallback(() => {
-    void (async () => {
-      // Stop ongoing OpenClaw turn immediately, then exit install mode.
-      try {
-        await ipcBridge.conversation.stop.invoke({ conversation_id });
-      } finally {
-        if (finishTimeoutRef.current) {
-          clearTimeout(finishTimeoutRef.current);
-          finishTimeoutRef.current = null;
-        }
-        setAiProcessing(false);
-        aiProcessingRef.current = false;
-        setThought({ subject: '', description: '' });
-        hasContentInTurnRef.current = false;
-        setAwaitingInstallConsent(false);
-        setPendingInstallPrompt(null);
-        installCompletedInTurnRef.current = false;
-        setInstallFlowStage('idle');
-        exitInstallMode(
-          t('conversation.chat.starOffice.flowStoppedTip', {
-            defaultValue: 'Stopped Star Office install flow. Conversation is back to normal mode.',
-          })
-        );
-      }
-    })();
-  }, [conversation_id, exitInstallMode, t]);
-
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
       const filePaths = pastedFiles.map((file) => file.path);
@@ -856,17 +829,12 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
       {starOfficeInstallMode ? (
-        <div className='mb-4px flex items-center justify-between gap-10px rounded-full border border-[rgb(var(--arcoblue-3))] bg-[rgba(var(--arcoblue-1),0.6)] px-10px py-6px'>
+        <div className='mb-4px flex items-center gap-10px rounded-full border border-[rgb(var(--arcoblue-3))] bg-[rgba(var(--arcoblue-1),0.6)] px-10px py-6px'>
           <div className='min-w-0 flex items-center gap-8px text-12px text-[rgb(var(--arcoblue-7))]'>
             <span className='truncate'>
               {t('conversation.chat.starOffice.installModeTitle', { defaultValue: 'Star Office install mode' })} · {installFlowMeta.label}
             </span>
             <span className='text-[11px] text-t-secondary'>{installFlowMeta.percent}%</span>
-          </div>
-          <div className='shrink-0'>
-            <Button size='mini' type='text' onClick={handleExitStarOfficeInstallMode}>
-              {t('conversation.chat.starOffice.stop', { defaultValue: 'Stop' })}
-            </Button>
           </div>
         </div>
       ) : null}
