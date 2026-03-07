@@ -87,7 +87,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
   // 运行中但没有 thought 时显示默认处理状态
   if (running && !thought?.subject) {
     return (
-      <div className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary flex items-center gap-8px' style={containerStyle}>
+      <div className='px-10px py-10px rd-20px text-14px lh-20px text-t-primary flex items-center gap-8px' style={containerStyle}>
         <Spin size={14} />
         <span className='text-t-secondary'>
           {t('conversation.chat.processing')}
