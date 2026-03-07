@@ -800,6 +800,21 @@ export class AcpAgent {
         }
       }
 
+      // Emit context usage data when usage_update arrives
+      if (data.update?.sessionUpdate === 'usage_update') {
+        const usageUpdate = data.update as { used: number; size: number; cost?: { amount: number; currency: string } };
+        this.onStreamEvent({
+          type: 'acp_context_usage',
+          conversation_id: this.id,
+          msg_id: uuid(),
+          data: {
+            used: usageUpdate.used,
+            size: usageUpdate.size,
+            cost: usageUpdate.cost,
+          },
+        });
+      }
+
       // Emit updated model info when config_option_update arrives
       if (data.update?.sessionUpdate === 'config_option_update') {
         this.emitModelInfo();

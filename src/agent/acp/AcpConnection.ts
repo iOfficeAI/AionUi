@@ -364,7 +364,7 @@ export class AcpConnection {
   }
 
   private async spawnAndSetupClaude(spawnCommand: string, cleanEnv: Record<string, string | undefined>, workingDir: string, isWindows: boolean, preferOffline: boolean): Promise<void> {
-    const spawnArgs = ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), '@zed-industries/claude-agent-acp@0.18.0'];
+    const spawnArgs = ['--yes', ...(preferOffline ? ['--prefer-offline'] : []), '@zed-industries/claude-agent-acp@0.20.2'];
 
     const spawnStart = Date.now();
     this.child = spawn(spawnCommand, spawnArgs, {

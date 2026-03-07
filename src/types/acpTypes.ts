@@ -687,6 +687,22 @@ export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   };
 }
 
+/** Usage update notification from claude-agent-acp (context window utilization) */
+export interface UsageUpdatePayload extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'usage_update';
+    /** Total tokens currently in context */
+    used: number;
+    /** Context window capacity (max tokens) */
+    size: number;
+    /** Cumulative session cost */
+    cost?: {
+      amount: number;
+      currency: string;
+    };
+  };
+}
+
 // ===== ACP Models types (unstable API) =====
 
 /** An available model returned by session/new (unstable API) */
@@ -721,7 +737,7 @@ export interface AcpModelInfo {
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload;
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload | UsageUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
