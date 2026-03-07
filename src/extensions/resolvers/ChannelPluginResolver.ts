@@ -183,7 +183,7 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
             icon: iconUrl,
           },
         });
-        console.log(`[Extension] Loaded channel plugin: ${plugin.type} (${plugin.name})` + (isDuckValid ? ' [duck-typed-wrapped]' : ''));
+        console.log(`[Extension] Loaded channel plugin: ${plugin.type} from ${ext.manifest.name}` + (isDuckValid ? ' [duck-typed-wrapped]' : ''));
         logSecurity(`Channel plugin "${plugin.type}" loaded successfully`);
       } catch (error) {
         console.error(`[Extension] Failed to load channel plugin "${plugin.type}":`, error);

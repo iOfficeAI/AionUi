@@ -5,6 +5,7 @@
  * so individual test files stay DRY.
  */
 import type { Page } from '@playwright/test';
+import { channelItemById, webuiTabByKey } from './selectors';
 
 // ── Route constants ──────────────────────────────────────────────────────────
 
@@ -79,23 +80,29 @@ export async function goToExtensionSettings(page: Page, tabId: string): Promise<
 export async function goToChannelsTab(page: Page): Promise<void> {
   await goToSettings(page, 'webui');
 
-  const channelTab = page
-    .locator('.arco-tabs-header-title')
-    .filter({ hasText: /channel|频道|渠道/i })
-    .first();
+  const stableTab = page.locator(webuiTabByKey('channels')).first();
 
   try {
-    await channelTab.waitFor({ state: 'visible', timeout: 15_000 });
-    await channelTab.click();
-    await page.waitForFunction(
-      () => {
-        const t = document.body.textContent || '';
-        return t.includes('Telegram') || t.includes('Lark') || t.includes('DingTalk') || t.includes('Channel') || t.includes('频道');
-      },
-      { timeout: 10_000 }
-    );
+    await stableTab.waitFor({ state: 'visible', timeout: 8_000 });
+    await stableTab.click();
   } catch {
-    // Best-effort: if channels tab not found, page may show channels directly
+    // Backward-compatible fallback for old UI builds without data attributes
+    const fallbackTab = page
+      .locator('.arco-tabs-header-title')
+      .filter({ hasText: /channel|频道|渠道/i })
+      .first();
+    await fallbackTab.waitFor({ state: 'visible', timeout: 8_000 });
+    await fallbackTab.click();
+  }
+
+  try {
+    await page
+      .locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`)
+      .first()
+      .waitFor({ state: 'visible', timeout: 8_000 });
+  } catch {
+    // Best-effort fallback for transitional states
+    await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: 5_000 });
   }
 }
 

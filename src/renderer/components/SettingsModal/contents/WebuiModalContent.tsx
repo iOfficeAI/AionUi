@@ -687,7 +687,7 @@ const WebuiModalContent: React.FC = () => {
         <Tabs.TabPane
           key='webui'
           title={
-            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+            <span data-webui-tab='webui' className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
               <Earth theme='outline' size='15' />
               <span>WebUI</span>
             </span>
@@ -696,7 +696,7 @@ const WebuiModalContent: React.FC = () => {
         <Tabs.TabPane
           key='channels'
           title={
-            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+            <span data-webui-tab='channels' className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
               <Communication theme='outline' size='15' />
               <span>Channels</span>
               <span className='inline-flex items-center gap-4px ml-2px'>

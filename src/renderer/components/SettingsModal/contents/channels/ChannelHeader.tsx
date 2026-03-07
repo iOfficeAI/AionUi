@@ -36,7 +36,7 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
   const logoAlt = builtinLogo?.alt || channel.title;
 
   return (
-    <div className='flex items-center justify-between group'>
+    <div className='flex items-center justify-between group' data-channel-header={channel.id}>
       <div className='flex items-center gap-8px flex-1 min-w-0'>
         {logoSrc && <img src={logoSrc} alt={logoAlt} className='w-14px h-14px object-contain shrink-0' />}
         <span className='text-14px text-t-primary'>{channel.title}</span>
@@ -52,7 +52,7 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
         )}
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
-        <Switch checked={channel.enabled} onChange={onToggleEnabled} size='small' disabled={channel.status === 'coming_soon' || channel.disabled} />
+        <Switch data-channel-switch-for={channel.id} checked={channel.enabled} onChange={onToggleEnabled} size='small' disabled={channel.status === 'coming_soon' || channel.disabled} />
       </div>
     </div>
   );

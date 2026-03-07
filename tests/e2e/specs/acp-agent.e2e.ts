@@ -9,13 +9,12 @@
  *  - MCP tools page loads
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, expectBodyContainsAny, expectUrlContains, agentLogoByBackend, takeScreenshot } from '../helpers';
+import { goToGuid, goToSettings, expectBodyContainsAny, expectUrlContains, takeScreenshot, AGENT_PILL, AGENT_PILL_SELECTED, settingsSiderItemById } from '../helpers';
 
 test.describe('ACP Agent', () => {
-  // ── Settings page ────────────────────────────────────────────────────────
-
   test('agent settings page has management UI', async ({ page }) => {
     await goToSettings(page, 'agent');
+    await expect(page.locator(settingsSiderItemById('agent')).first()).toBeVisible({ timeout: 8_000 });
     await expectBodyContainsAny(page, ['Agent', 'agent', '助手', '预设', 'Preset', 'Custom', 'Assistants']);
   });
 
@@ -25,83 +24,65 @@ test.describe('ACP Agent', () => {
     await takeScreenshot(page, 'agent-settings');
   });
 
-  // ── Pill bar on guid page ────────────────────────────────────────────────
-
   test('agent pill bar renders on guid page', async ({ page }) => {
     await goToGuid(page);
 
-    // At least one agent logo should be visible (any backend)
-    const logos = page.locator(
-      'img[alt$=" logo"]' // matches "claude logo", "gemini logo", etc.
-    );
-    await expect(logos.first()).toBeVisible({ timeout: 10000 });
-
-    const count = await logos.count();
-    expect(count).toBeGreaterThanOrEqual(1);
+    const pills = page.locator(AGENT_PILL);
+    await expect(pills.first()).toBeVisible({ timeout: 8_000 });
+    expect(await pills.count()).toBeGreaterThanOrEqual(1);
   });
 
   test('can see agent backend names', async ({ page }) => {
     await goToGuid(page);
 
-    // Check that at least one known backend name appears in the pill bar area
     const knownBackends = ['claude', 'gemini', 'qwen', 'opencode', 'codex', 'iflow'];
-    const logos = page.locator('img[alt$=" logo"]');
-    await expect(logos.first()).toBeVisible({ timeout: 10000 });
+    const pills = page.locator(AGENT_PILL);
+    await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
-    const count = await logos.count();
-    const foundBackends: string[] = [];
+    const count = await pills.count();
+    const backends: string[] = [];
     for (let i = 0; i < count; i++) {
-      const alt = await logos.nth(i).getAttribute('alt');
-      if (alt) {
-        const backend = alt.replace(' logo', '');
-        if (knownBackends.includes(backend)) {
-          foundBackends.push(backend);
-        }
-      }
+      const backend = await pills.nth(i).getAttribute('data-agent-backend');
+      if (backend) backends.push(backend);
     }
-    expect(foundBackends.length).toBeGreaterThanOrEqual(1);
+
+    expect(backends.some((backend) => knownBackends.includes(backend))).toBeTruthy();
   });
 
   test('clicking an agent pill selects it', async ({ page }) => {
     await goToGuid(page);
 
-    // Wait for pill bar to be visible
-    const logos = page.locator('img[alt$=" logo"]');
-    await expect(logos.first()).toBeVisible({ timeout: 10000 });
+    const pills = page.locator(AGENT_PILL);
+    await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
-    const count = await logos.count();
+    const count = await pills.count();
     if (count >= 2) {
-      // Click the second agent to switch
-      const secondAgent = logos.nth(1);
-      const secondAlt = await secondAgent.getAttribute('alt');
-      await secondAgent.click();
+      const target = pills.nth(1);
+      await target.click();
 
-      // Wait for selection state to settle (class change)
-      const parent = secondAgent.locator('..');
-      const grandparent = parent.locator('..');
-      await expect(grandparent).toBeVisible();
-      // We just verify the click didn't throw and the page is still stable
-      expect(secondAlt).toBeTruthy();
+      await expect
+        .poll(async () => {
+          return await target.getAttribute('data-agent-selected');
+        })
+        .toBe('true');
+
+      await expect(page.locator(AGENT_PILL_SELECTED).first()).toBeVisible();
     }
   });
 
   test('screenshot: agent pill bar', async ({ page }) => {
     test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     await goToGuid(page);
-    const logos = page.locator('img[alt$=" logo"]');
-    await expect(logos.first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(AGENT_PILL).first()).toBeVisible({ timeout: 8_000 });
     await takeScreenshot(page, 'agent-pill-bar');
   });
-
-  // ── MCP tools page ───────────────────────────────────────────────────────
 
   test('MCP tools page has server management UI', async ({ page }) => {
     await goToSettings(page, 'tools');
     await expectUrlContains(page, 'tools');
+    await expect(page.locator(settingsSiderItemById('tools')).first()).toBeVisible({ timeout: 8_000 });
     await expectBodyContainsAny(page, ['MCP', 'mcp', 'Server', 'server', '工具', '配置', '添加', 'Add']);
   });
-
-  // ── IPC: available agents ────────────────────────────────────────────────
 
   test('can query available agents via IPC', async ({ page, electronApp }) => {
     await goToGuid(page);

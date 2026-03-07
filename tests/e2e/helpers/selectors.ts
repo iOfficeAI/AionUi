@@ -18,6 +18,11 @@ export const SETTINGS_SIDER = '.settings-sider';
 export const SETTINGS_SIDER_ITEM = '.settings-sider__item';
 export const SETTINGS_SIDER_ITEM_LABEL = '.settings-sider__item-label';
 
+/** Match a settings sider item by logical tab ID (builtin/extension global id). */
+export function settingsSiderItemById(id: string): string {
+  return `${SETTINGS_SIDER_ITEM}[data-settings-id="${id}"]`;
+}
+
 // ── Settings modal ───────────────────────────────────────────────────────────
 
 export const SETTINGS_MODAL = '.settings-modal';
@@ -38,7 +43,33 @@ export function agentLogoByBackend(backend: string): string {
   return `img[alt="${backend} logo"]`;
 }
 
+/** Stable selector for all agent pills on guid page. */
+export const AGENT_PILL = '[data-agent-pill="true"]';
+
+/** Match an agent pill by backend (claude/gemini/...). */
+export function agentPillByBackend(backend: string): string {
+  return `${AGENT_PILL}[data-agent-backend="${backend}"]`;
+}
+
+/** Match currently selected agent pill. */
+export const AGENT_PILL_SELECTED = `${AGENT_PILL}[data-agent-selected="true"]`;
+
 // ── Channel list ─────────────────────────────────────────────────────────────
 
 export const CHANNEL_IDS = ['telegram', 'lark', 'dingtalk', 'slack', 'discord'] as const;
 export type ChannelId = (typeof CHANNEL_IDS)[number];
+
+/** Match a channel row by channel id. */
+export function channelItemById(id: string): string {
+  return `[data-channel-id="${id}"]`;
+}
+
+/** Match a channel switch by channel id. */
+export function channelSwitchById(id: string): string {
+  return `[data-channel-switch-for="${id}"]`;
+}
+
+/** Match WebUI page tabs by key (`webui` / `channels`). */
+export function webuiTabByKey(key: 'webui' | 'channels'): string {
+  return `[data-webui-tab="${key}"]`;
+}

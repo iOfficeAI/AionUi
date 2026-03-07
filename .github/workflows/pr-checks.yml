@@ -395,55 +395,32 @@ jobs:
 
       - name: Run E2E tests (Linux)
         if: matrix.platform == 'linux'
-        run: xvfb-run --auto-servernum bunx playwright test --config playwright.config.ts
+        run: xvfb-run --auto-servernum just e2e-test
         env:
           CI: true
           E2E_PACKAGED: '1'
+          E2E_SCREENSHOTS: '1'
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
       - name: Run E2E tests (macOS)
         if: matrix.platform == 'macos-arm64'
-        run: bunx playwright test --config playwright.config.ts
+        run: just e2e-test
         env:
           CI: true
           E2E_PACKAGED: '1'
+          E2E_SCREENSHOTS: '1'
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
       - name: Run E2E tests (Windows)
         if: matrix.platform == 'windows-x64'
         shell: pwsh
-        run: bunx playwright test --config playwright.config.ts
+        run: just e2e-test
         env:
           CI: true
           E2E_PACKAGED: '1'
+          E2E_SCREENSHOTS: '1'
           AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
 
-      - name: Upload E2E report
-        if: >-
-          always() && (
-            matrix.platform == 'linux' ||
-            matrix.platform == 'macos-arm64' ||
-            matrix.platform == 'windows-x64'
-          )
-        uses: actions/upload-artifact@v6
-        with:
-          name: e2e-report-${{ matrix.platform }}
-          path: tests/e2e/report/
-          retention-days: 14
-
-      - name: Upload E2E screenshots
-        if: >-
-          always() && (
-            matrix.platform == 'linux' ||
-            matrix.platform == 'macos-arm64' ||
-            matrix.platform == 'windows-x64'
-          )
-        uses: actions/upload-artifact@v6
-        with:
-          name: e2e-screenshots-${{ matrix.platform }}
-          path: tests/e2e/screenshots/
-          retention-days: 14
-          if-no-files-found: ignore
 
   # Job 4: Test release scripts (fast, no build required)
   release-script-test:

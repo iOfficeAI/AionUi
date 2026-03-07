@@ -8,90 +8,89 @@
  *  - "Coming soon" channels have disabled toggles
  */
 import { test, expect } from '../fixtures';
-import { goToChannelsTab, expectBodyContainsAny, ARCO_SWITCH, takeScreenshot, waitForClassChange } from '../helpers';
+import { goToChannelsTab, channelItemById, channelSwitchById, takeScreenshot, waitForClassChange } from '../helpers';
+
+const ACTIVE_CHANNEL_IDS = ['telegram', 'lark', 'dingtalk'] as const;
+const COMING_SOON_CHANNEL_IDS = ['slack', 'discord'] as const;
 
 test.describe('Channels', () => {
-  // ── Channel list ─────────────────────────────────────────────────────────
-
   test('channels settings page renders', async ({ page }) => {
     await goToChannelsTab(page);
-    await expectBodyContainsAny(page, ['Telegram', 'Lark', 'DingTalk', 'Slack', 'Discord', '频道', 'Channel']);
+    await expect(page.locator(channelItemById('telegram'))).toBeVisible({ timeout: 8_000 });
   });
 
   test('known channels are listed', async ({ page }) => {
     await goToChannelsTab(page);
-    const body = await page.locator('body').textContent();
 
-    // At least two of the active channels should appear
-    const activeChannels = ['Telegram', 'Lark', 'DingTalk'];
-    const found = activeChannels.filter((ch) => body?.includes(ch));
-    expect(found.length, `Expected at least 2 active channels, found: ${found.join(', ')}`).toBeGreaterThanOrEqual(2);
+    const visibleCount = (
+      await Promise.all(
+        ACTIVE_CHANNEL_IDS.map(async (id) => {
+          return (await page.locator(channelItemById(id)).count()) > 0 ? 1 : 0;
+        })
+      )
+    ).reduce((sum, n) => sum + n, 0);
+
+    expect(visibleCount).toBeGreaterThanOrEqual(2);
   });
 
   test('toggle switches are visible for channels', async ({ page }) => {
     await goToChannelsTab(page);
 
-    // Each channel item is inside a Collapse, with a Switch in the header
-    const switches = page.locator(ARCO_SWITCH);
-    await expect(switches.first()).toBeVisible({ timeout: 5000 });
+    const visibleSwitches = (
+      await Promise.all(
+        ACTIVE_CHANNEL_IDS.map(async (id) => {
+          const sw = page.locator(channelSwitchById(id)).first();
+          return (await sw.count()) > 0 ? 1 : 0;
+        })
+      )
+    ).reduce((sum, n) => sum + n, 0);
 
-    const count = await switches.count();
-    expect(count).toBeGreaterThanOrEqual(1);
+    expect(visibleSwitches).toBeGreaterThanOrEqual(1);
   });
 
   test('can toggle a channel switch', async ({ page }) => {
     await goToChannelsTab(page);
 
-    const switches = page.locator(ARCO_SWITCH);
-    await expect(switches.first()).toBeVisible({ timeout: 5000 });
-
-    // Find the first enabled (not disabled) switch
-    const count = await switches.count();
     let toggled = false;
-    for (let i = 0; i < count; i++) {
-      const sw = switches.nth(i);
-      const isDisabled = await sw.getAttribute('class');
-      if (isDisabled?.includes('arco-switch-disabled')) continue;
+    for (const id of ACTIVE_CHANNEL_IDS) {
+      const sw = page.locator(channelSwitchById(id)).first();
+      if ((await sw.count()) === 0) continue;
 
-      // Read initial state
-      const wasBefore = isDisabled?.includes('arco-switch-checked');
+      await expect(sw).toBeVisible({ timeout: 5_000 });
+      const classBefore = await sw.getAttribute('class');
+      if (classBefore?.includes('arco-switch-disabled')) continue;
+
+      const checkedBefore = classBefore?.includes('arco-switch-checked');
       await sw.click();
-
-      // Wait for class to change (state transition)
-      await waitForClassChange(sw);
+      await waitForClassChange(sw, 1200);
 
       const classAfter = await sw.getAttribute('class');
-      const isAfter = classAfter?.includes('arco-switch-checked');
-
+      const checkedAfter = classAfter?.includes('arco-switch-checked');
       toggled = true;
 
-      // Toggle back to restore state
-      if (wasBefore !== isAfter) {
+      if (checkedBefore !== checkedAfter) {
         await sw.click();
         await waitForClassChange(sw, 1000);
       }
       break;
     }
-    // At least one non-disabled switch was found and clicked
+
     expect(toggled).toBeTruthy();
   });
 
   test('coming-soon channels have disabled switches', async ({ page }) => {
     await goToChannelsTab(page);
 
-    const body = await page.locator('body').textContent();
+    for (const id of COMING_SOON_CHANNEL_IDS) {
+      const item = page.locator(channelItemById(id));
+      await expect(item).toBeVisible({ timeout: 8_000 });
 
-    // If Slack or Discord is visible, coming-soon channels should be represented
-    // by disabled switches and/or coming-soon badges (depends on Arco class output).
-    const comingSoonLabels = ['Slack', 'Discord'];
-    const hasComingSoon = comingSoonLabels.some((label) => body?.includes(label));
+      const sw = page.locator(channelSwitchById(id)).first();
+      await expect(sw).toBeVisible({ timeout: 5_000 });
 
-    if (hasComingSoon) {
-      const disabledSwitches = page.locator('.arco-switch.arco-switch-disabled, .arco-switch[aria-disabled="true"]');
-      const disabledCount = await disabledSwitches.count();
-      const hasComingSoonBadge = body?.includes('Coming Soon') || body?.includes('即将上线');
-
-      expect(disabledCount > 0 || hasComingSoonBadge).toBeTruthy();
+      const cls = (await sw.getAttribute('class')) || '';
+      const ariaDisabled = await sw.getAttribute('aria-disabled');
+      expect(cls.includes('arco-switch-disabled') || ariaDisabled === 'true').toBeTruthy();
     }
   });
 

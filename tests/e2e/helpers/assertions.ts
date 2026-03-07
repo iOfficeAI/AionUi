@@ -9,12 +9,21 @@ import { expect } from '../fixtures';
 
 /**
  * Assert that the page body contains at least one of the given strings
- * (case-sensitive).  Useful for i18n-agnostic checks.
+ * (case-sensitive). Useful for i18n-agnostic checks.
  */
-export async function expectBodyContainsAny(page: Page, candidates: string[]): Promise<void> {
-  const content = await page.locator('body').textContent();
-  const found = candidates.some((c) => content?.includes(c));
-  expect(found, `Expected body to contain one of: ${candidates.join(', ')}`).toBeTruthy();
+export async function expectBodyContainsAny(page: Page, candidates: string[], timeoutMs = 10_000): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const content = await page.locator('body').textContent();
+        return candidates.some((candidate) => content?.includes(candidate));
+      },
+      {
+        timeout: timeoutMs,
+        message: `Expected body to contain one of: ${candidates.join(', ')}`,
+      }
+    )
+    .toBeTruthy();
 }
 
 /**
