@@ -2,6 +2,7 @@ import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/storage';
+import GeminiThinkingSelector from '@/renderer/components/GeminiThinkingSelector';
 import { uuid } from '@/common/utils';
 import AgentSetupCard from '@/renderer/components/AgentSetupCard';
 import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
@@ -855,6 +856,7 @@ const GeminiSendBox: React.FC<{
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <AgentModeSelector backend='gemini' conversationId={conversation_id} compact />
+            <GeminiThinkingSelector conversationId={conversation_id} />
           </div>
         }
         sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}

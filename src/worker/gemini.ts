@@ -67,6 +67,10 @@ export default forkTask(({ data }, pipe) => {
   pipe.on('send.message', (event: { input: string; msg_id: string; files?: string[] }, deferred) => {
     deferred.with(agent.send(event.input, event.msg_id, event.files));
   });
+  pipe.on('set.thinking.level', (event: { level: string }, deferred) => {
+    agent.setThinkingLevel(event.level);
+    deferred.with(Promise.resolve());
+  });
 
   return agent.bootstrap;
 });

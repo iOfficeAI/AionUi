@@ -295,4 +295,34 @@ export function initAcpConversationBridge(): void {
       return { success: false, msg: errorMsg };
     }
   });
+
+  // Get non-model config options for ACP agents (e.g., reasoning effort)
+  // 获取 ACP 代理的非模型配置选项（如推理级别）
+  ipcBridge.acpConversation.getConfigOptions.provider(async ({ conversationId }) => {
+    try {
+      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      if (!task || !(task instanceof AcpAgentManager)) {
+        return { success: true, data: { configOptions: [] } };
+      }
+      return { success: true, data: { configOptions: task.getConfigOptions() } };
+    } catch {
+      return { success: true, data: { configOptions: [] } };
+    }
+  });
+
+  // Set a config option value for ACP agents (e.g., reasoning effort)
+  // 设置 ACP 代理的配置选项值（如推理级别）
+  ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
+    try {
+      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      if (!task || !(task instanceof AcpAgentManager)) {
+        return { success: false, msg: 'Conversation not found or not an ACP agent' };
+      }
+      const configOptions = await task.setConfigOption(configId, value);
+      return { success: true, data: { configOptions } };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return { success: false, msg: errorMsg };
+    }
+  });
 }

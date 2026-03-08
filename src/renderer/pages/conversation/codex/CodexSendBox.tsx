@@ -23,6 +23,7 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 interface CodexDraftData {
@@ -437,6 +438,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <AgentModeSelector backend='codex' conversationId={conversation_id} compact />
+            <AcpConfigSelector conversationId={conversation_id} compact />
           </div>
         }
         prefix={
