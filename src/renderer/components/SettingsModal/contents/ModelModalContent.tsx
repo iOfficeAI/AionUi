@@ -506,11 +506,11 @@ const ModelModalContent: React.FC = () => {
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch size='small' checked={getProviderState(platform).checked} onChange={() => toggleProviderEnabled(platform)} />
                           <div className='flex items-center gap-4px'>
-                            <Button size='mini' className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]' icon={<Plus size='14' />} onClick={() => addModelModalCtrl.open({ data: platform })} />
+                            <Button size='mini' className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary' icon={<Plus size='14' />} onClick={() => addModelModalCtrl.open({ data: platform })} />
                             <Popconfirm title={t('settings.deleteAllModelConfirm')} onOk={() => removePlatform(platform.id)}>
-                              <Button size='mini' className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]' icon={<Minus size='14' />} />
+                              <Button size='mini' className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary' icon={<Minus size='14' />} />
                             </Popconfirm>
-                            <Button size='mini' className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]' icon={<Write size='14' />} onClick={() => editModalCtrl.open({ data: platform })} />
+                            <Button size='mini' className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary' icon={<Write size='14' />} onClick={() => editModalCtrl.open({ data: platform })} />
                           </div>
                         </div>
                       </div>
