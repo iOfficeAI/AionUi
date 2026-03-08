@@ -11,7 +11,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 import type { SlashCommandItem } from '@/common/slash/types';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionConfigOption, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -344,6 +344,27 @@ export class AcpAgent {
    */
   getModelInfo(): AcpModelInfo | null {
     return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels());
+  }
+
+  /**
+   * Get non-model, non-mode config options from ACP connection.
+   * Filters out model-category options (handled by AcpModelSelector)
+   * and mode-category options (handled by AgentModeSelector).
+   * Returns options like reasoning effort, output format, etc.
+   */
+  getConfigOptions(): AcpSessionConfigOption[] {
+    const all = this.connection.getConfigOptions();
+    if (!all) return [];
+    return all.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
+  }
+
+  /**
+   * Set a config option value on the ACP connection.
+   * Used for reasoning effort and other non-model config options.
+   */
+  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+    await this.connection.setConfigOption(configId, value);
+    return this.getConfigOptions();
   }
 
   /**

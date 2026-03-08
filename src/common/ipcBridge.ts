@@ -59,6 +59,9 @@ export const geminiConversation = {
   sendMessage: conversation.sendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('input.confirm.message'),
   responseStream: conversation.responseStream,
+  // Thinking level (推理深度)
+  getThinkingLevel: bridge.buildProvider<IBridgeResponse<{ level: string }>, { conversationId: string }>('gemini.get-thinking-level'),
+  setThinkingLevel: bridge.buildProvider<IBridgeResponse<{ level: string }>, { conversationId: string; level: string }>('gemini.set-thinking-level'),
 };
 
 // CDP status interface
@@ -271,6 +274,12 @@ export const acpConversation = {
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   setModel: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string; modelId: string }>('acp.set-model'),
+  // Get non-model config options for ACP agents (e.g., reasoning effort)
+  // 获取 ACP 代理的非模型配置选项（如推理级别）
+  getConfigOptions: bridge.buildProvider<IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>, { conversationId: string }>('acp.get-config-options'),
+  // Set a config option value for ACP agents (e.g., reasoning effort)
+  // 设置 ACP 代理的配置选项值（如推理级别）
+  setConfigOption: bridge.buildProvider<IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>, { conversationId: string; configId: string; value: string }>('acp.set-config-option'),
 };
 
 // MCP 服务相关接口

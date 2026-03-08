@@ -783,6 +783,37 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
+  // ===== Thinking Level (推理深度) =====
+
+  /** Current thinking level for this Gemini session */
+  private thinkingLevel: string = 'medium';
+
+  /**
+   * Get the current thinking level.
+   * 获取当前的思考深度。
+   */
+  getThinkingLevel(): string {
+    return this.thinkingLevel;
+  }
+
+  /**
+   * Set the thinking level for the Gemini agent.
+   * Sends a message to the forked worker to update thinkingConfig at runtime.
+   *
+   * 设置 Gemini 代理的思考深度。
+   * 向 forked worker 发送消息以在运行时更新 thinkingConfig。
+   */
+  async setThinkingLevel(level: string): Promise<{ success: boolean; data?: { level: string } }> {
+    this.thinkingLevel = level;
+    try {
+      await this.postMessagePromise('set.thinking.level', { level });
+      return { success: true, data: { level } };
+    } catch (error) {
+      mainError('[GeminiAgentManager]', 'Failed to set thinking level', error);
+      return { success: false };
+    }
+  }
+
   /**
    * Clear legacy yoloMode in gemini.config.
    * This syncs back to the old SecurityModalContent config key so that

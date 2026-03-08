@@ -24,4 +24,23 @@ export function initGeminiConversationBridge(): void {
     void (task as GeminiAgentManager).confirm(msg_id, callId, confirmKey);
     return { success: true };
   });
+
+  // Thinking level (推理深度) IPC handlers
+  ipcBridge.geminiConversation.getThinkingLevel.provider(async ({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || task.type !== 'gemini') {
+      return { success: false, msg: 'gemini conversation not found' };
+    }
+    const level = (task as GeminiAgentManager).getThinkingLevel();
+    return { success: true, data: { level } };
+  });
+
+  ipcBridge.geminiConversation.setThinkingLevel.provider(async ({ conversationId, level }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || task.type !== 'gemini') {
+      return { success: false, msg: 'gemini conversation not found' };
+    }
+    const result = await (task as GeminiAgentManager).setThinkingLevel(level);
+    return result;
+  });
 }
