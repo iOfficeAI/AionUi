@@ -115,9 +115,7 @@ export async function goToChannelsTab(page: Page): Promise<void> {
   await goToSettings(page, 'webui');
 
   // Ensure route transition is actually complete before locating inner tabs
-  await page
-    .waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 })
-    .catch(() => undefined);
+  await page.waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 }).catch(() => undefined);
 
   const stableTab = page.locator(webuiTabByKey('channels')).first();
   const fallbackTab = page

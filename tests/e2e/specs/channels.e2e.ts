@@ -82,10 +82,10 @@ test.describe('Channels', () => {
     await goToChannelsTab(page);
 
     for (const id of COMING_SOON_CHANNEL_IDS) {
-      const item = page.locator(channelItemById(id));
+      const item = page.locator(`${channelItemById(id)}[data-channel-status="coming_soon"]`).first();
       await expect(item).toBeVisible({ timeout: 8_000 });
 
-      const sw = page.locator(channelSwitchById(id)).first();
+      const sw = item.locator(channelSwitchById(id)).first();
       await expect(sw).toBeVisible({ timeout: 5_000 });
 
       const cls = (await sw.getAttribute('class')) || '';
