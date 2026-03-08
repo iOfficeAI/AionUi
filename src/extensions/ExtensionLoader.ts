@@ -77,17 +77,6 @@ export class ExtensionLoader {
       }
     }
 
-    // Development convenience: auto-load local example extensions only when no explicit
-    // extension path is provided. This preserves demo discoverability without overriding
-    // caller-selected extension sets.
-    if (envDirs.length === 0 && !isE2ETest) {
-      const devExampleDirs = [path.resolve(process.cwd(), 'examples'), path.resolve(process.cwd(), '..', 'examples')];
-      for (const dir of devExampleDirs) {
-        if (!existsSync(dir)) continue;
-        pushSource(dir, 'local');
-      }
-    }
-
     return sources;
   }
 

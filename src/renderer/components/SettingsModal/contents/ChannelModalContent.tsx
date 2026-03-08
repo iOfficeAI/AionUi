@@ -38,7 +38,7 @@ type ExtensionFieldSchema = {
 
 type ExtensionFieldValues = Record<string, Record<string, string | number | boolean>>;
 
-const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk']);
+const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
 /**
  * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
@@ -238,7 +238,7 @@ const ChannelModalContent: React.FC = () => {
         setLarkPluginStatus(status);
       } else if (status.type === 'dingtalk') {
         setDingtalkPluginStatus(status);
-      } else {
+      } else if (!BUILTIN_CHANNEL_TYPES.has(status.type)) {
         setExtensionStatuses((prev) => ({
           ...prev,
           [status.type]: {
@@ -581,12 +581,13 @@ const ChannelModalContent: React.FC = () => {
         content: renderExtensionConfigForm(status),
       }));
 
+    const extensionTypeSet = new Set(extensionChannels.map((channel) => String(channel.id).toLowerCase()));
     const comingSoonChannels: ChannelConfig[] = [
       {
         id: 'slack',
         title: t('settings.channels.slackTitle', 'Slack'),
         description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
-        status: 'coming_soon',
+        status: 'coming_soon' as const,
         enabled: false,
         disabled: true,
         content: <div className='text-14px text-t-secondary py-12px'>{t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', { channel: t('settings.channels.slackTitle', 'Slack') })}</div>,
@@ -595,12 +596,12 @@ const ChannelModalContent: React.FC = () => {
         id: 'discord',
         title: t('settings.channels.discordTitle', 'Discord'),
         description: t('settings.channels.discordDesc', 'Chat with AionUi assistant via Discord'),
-        status: 'coming_soon',
+        status: 'coming_soon' as const,
         enabled: false,
         disabled: true,
         content: <div className='text-14px text-t-secondary py-12px'>{t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', { channel: t('settings.channels.discordTitle', 'Discord') })}</div>,
       },
-    ];
+    ].filter((channel) => !extensionTypeSet.has(String(channel.id).toLowerCase()));
 
     return [telegramChannel, larkChannel, dingtalkChannel, ...extensionChannels, ...comingSoonChannels];
   }, [pluginStatus, larkPluginStatus, dingtalkPluginStatus, extensionStatuses, extensionLoadingMap, telegramModelSelection, larkModelSelection, dingtalkModelSelection, enableLoading, larkEnableLoading, dingtalkEnableLoading, renderExtensionConfigForm, t]);

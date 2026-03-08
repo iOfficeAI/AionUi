@@ -180,8 +180,26 @@ export class ChannelManager {
     }
 
     const enabledPlugins = result.data.filter((p) => p.enabled);
+    const builtinStartableTypes = new Set<PluginType>(['telegram', 'lark', 'dingtalk']);
+    const extensionRegistry = ExtensionRegistry.getInstance();
 
     for (const plugin of enabledPlugins) {
+      const isBuiltinStartable = builtinStartableTypes.has(plugin.type);
+      const hasExtensionPlugin = !!extensionRegistry.getChannelPluginMeta(plugin.type);
+      const canStartInCurrentRuntime = isBuiltinStartable || hasExtensionPlugin;
+
+      if (!canStartInCurrentRuntime) {
+        console.warn(`[ChannelManager] Auto-disabling stale plugin ${plugin.id} (type=${plugin.type}) because it is not available in current runtime`);
+        const nextConfig: IChannelPluginConfig = {
+          ...plugin,
+          enabled: false,
+          status: 'stopped',
+          updatedAt: Date.now(),
+        };
+        db.upsertChannelPlugin(nextConfig);
+        continue;
+      }
+
       try {
         await this.startPlugin(plugin);
       } catch (error) {
