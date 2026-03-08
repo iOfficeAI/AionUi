@@ -5,7 +5,7 @@
  */
 
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionConfigOption, AcpSessionModels, AcpSessionUpdate } from '@/types/acpTypes';
-import { ACP_METHODS, CODEX_ACP_BRIDGE_VERSION, CODEX_ACP_NPX_PACKAGE, JSONRPC_VERSION } from '@/types/acpTypes';
+import { ACP_METHODS, CLAUDE_ACP_NPX_PACKAGE, CODEX_ACP_BRIDGE_VERSION, CODEX_ACP_NPX_PACKAGE, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
 import { promisify } from 'util';
@@ -348,7 +348,7 @@ export class AcpConnection {
 
     // Phase 1: Try with --prefer-offline for fast startup (~1-2s)
     try {
-      await this.spawnAndSetupNpxBackend('claude', '@zed-industries/claude-agent-acp@0.18.0', spawnCommand, cleanEnv, workingDir, isWindows, true);
+      await this.spawnAndSetupNpxBackend('claude', CLAUDE_ACP_NPX_PACKAGE, spawnCommand, cleanEnv, workingDir, isWindows, true);
     } catch (firstError) {
       // Phase 2: Retry without --prefer-offline to refresh stale cache (~3-5s)
       // This handles upgrades where cached registry metadata is outdated
@@ -359,7 +359,7 @@ export class AcpConnection {
       await this.terminateChild();
       this.isSetupComplete = false;
 
-      await this.spawnAndSetupNpxBackend('claude', '@zed-industries/claude-agent-acp@0.18.0', spawnCommand, cleanEnv, workingDir, isWindows, false);
+      await this.spawnAndSetupNpxBackend('claude', CLAUDE_ACP_NPX_PACKAGE, spawnCommand, cleanEnv, workingDir, isWindows, false);
     }
   }
 
