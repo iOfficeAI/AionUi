@@ -1,100 +1,78 @@
 /**
  * Extensions – Permissions & Risk Level tests.
  *
- * Validates the Figma-style permission system and risk analysis
- * exposed through the IPC bridge.
- *
- * Covers:
- *  - Querying extension permissions
- *  - Querying extension risk level
- *  - Permission schema validation
- *  - Extensions with different permission profiles
+ * Validates the current IPC contract exposed by the extension bridge:
+ * - `extensions.get-permissions` returns `IExtensionPermissionSummary[]`
+ * - `extensions.get-risk-level` returns `'safe' | 'moderate' | 'dangerous'`
  */
 import { test, expect } from '../fixtures';
 import { invokeBridge } from '../helpers';
 
-type PermissionsResult = {
-  success?: boolean;
-  data?: {
-    storage?: boolean;
-    network?: boolean | { allowedDomains?: string[] };
-    shell?: boolean;
-    filesystem?: string;
-    clipboard?: boolean;
-    activeUser?: boolean;
-    events?: boolean;
-  };
+type PermissionSummary = {
+  name: string;
+  description: string;
+  level: 'safe' | 'moderate' | 'dangerous';
+  granted: boolean;
 };
 
-type RiskLevelResult = {
-  success?: boolean;
-  data?: {
-    level?: string;
-    reasons?: string[];
-  };
-};
+type RiskLevel = 'safe' | 'moderate' | 'dangerous';
+
+function permissionsByName(items: PermissionSummary[]): Map<string, PermissionSummary> {
+  return new Map(items.map((item) => [item.name, item]));
+}
 
 test.describe('Extension: Permissions Query', () => {
-  test('can query permissions for hello-world extension', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'hello-world' })) as PermissionsResult;
+  test('hello-world exposes its declared permission summary', async ({ page }) => {
+    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'hello-world' })) as PermissionSummary[];
 
-    expect(result.success).toBeTruthy();
-    expect(result.data).toBeTruthy();
+    expect(Array.isArray(result)).toBeTruthy();
+    expect(result.length).toBeGreaterThan(0);
 
-    // hello-world has explicit permissions: storage=true, network=false, shell=false, filesystem=extension-only
-    if (result.data) {
-      expect(result.data.storage).toBe(true);
-      expect(result.data.network).toBe(false);
-      expect(result.data.shell).toBe(false);
-      expect(result.data.filesystem).toBe('extension-only');
-    }
+    const byName = permissionsByName(result);
+    expect(byName.get('storage')).toMatchObject({ granted: true, level: 'safe' });
+    expect(byName.get('network')).toMatchObject({ granted: false, level: 'safe' });
+    expect(byName.get('shell')).toMatchObject({ granted: false, level: 'dangerous' });
+    expect(byName.get('filesystem')).toMatchObject({ granted: false, level: 'safe' });
+    expect(byName.get('events')).toMatchObject({ granted: true, level: 'safe' });
   });
 
-  test('can query permissions for e2e-full-extension', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'e2e-full-extension' })) as PermissionsResult;
+  test('e2e-full-extension falls back to default safe permission summary', async ({ page }) => {
+    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'e2e-full-extension' })) as PermissionSummary[];
 
-    expect(result.success).toBeTruthy();
-    expect(result.data).toBeTruthy();
+    expect(Array.isArray(result)).toBeTruthy();
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      name: 'events',
+      level: 'safe',
+      granted: true,
+    });
   });
 
   test('permissions query for nonexistent extension returns gracefully', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'nonexistent-extension-xyz' })) as PermissionsResult;
+    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'nonexistent-extension-xyz' })) as PermissionSummary[];
 
-    // Should not crash – may return success=false or empty data
-    expect(result).toBeTruthy();
+    expect(Array.isArray(result)).toBeTruthy();
+    expect(result).toHaveLength(0);
   });
 });
 
 test.describe('Extension: Risk Level Assessment', () => {
-  test('can query risk level for hello-world extension', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'hello-world' })) as RiskLevelResult;
+  test('hello-world risk level matches its current permissions', async ({ page }) => {
+    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'hello-world' })) as RiskLevel;
 
-    expect(result.success).toBeTruthy();
-    expect(result.data).toBeTruthy();
-
-    if (result.data?.level) {
-      // Risk level should be one of: low, medium, high
-      expect(['low', 'medium', 'high']).toContain(result.data.level);
-    }
+    expect(result).toBe('safe');
   });
 
-  test('can query risk level for e2e-full-extension', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'e2e-full-extension' })) as RiskLevelResult;
+  test('e2e-full-extension risk level is safe by default', async ({ page }) => {
+    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'e2e-full-extension' })) as RiskLevel;
 
-    expect(result.success).toBeTruthy();
-    expect(result.data).toBeTruthy();
-
-    if (result.data?.level) {
-      expect(['low', 'medium', 'high']).toContain(result.data.level);
-    }
+    expect(result).toBe('safe');
   });
 
-  test('risk level includes reasons array', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'hello-world' })) as RiskLevelResult;
+  test('risk level query for nonexistent extension returns safe fallback', async ({ page }) => {
+    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'nonexistent-extension-xyz' })) as RiskLevel;
 
-    if (result.success && result.data) {
-      // reasons should be an array (possibly empty for low-risk extensions)
-      expect(Array.isArray(result.data.reasons)).toBeTruthy();
-    }
+    expect(['safe', 'moderate', 'dangerous']).toContain(result);
+    expect(result).toBe('safe');
   });
 });

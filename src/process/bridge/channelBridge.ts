@@ -28,16 +28,21 @@ export function initChannelBridge(): void {
    */
   channel.getPluginStatus.provider(async () => {
     try {
-      const db = getDatabase();
-      const result = db.getChannelPlugins();
+      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
-      if (!result.success || !result.data) {
-        return { success: false, msg: result.error };
+      let dbPlugins: import('@/channels/types').IChannelPluginConfig[] = [];
+      try {
+        const db = getDatabase();
+        const result = db.getChannelPlugins();
+        if (result.success && Array.isArray(result.data)) {
+          dbPlugins = result.data;
+        }
+      } catch (dbError) {
+        console.warn('[ChannelBridge] getChannelPlugins failed, proceeding with builtin-only list:', dbError);
       }
 
       // Pre-fetch extension plugin metadata (lazy, cached by registry)
       const registry = ExtensionRegistry.getInstance();
-      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
       const extensions = registry.getLoadedExtensions();
       const resolveExtensionMeta = (pluginType: string): IChannelPluginStatus['extensionMeta'] | undefined => {
@@ -79,7 +84,7 @@ export function initChannelBridge(): void {
 
       const statusMap = new Map<string, IChannelPluginStatus>();
 
-      for (const plugin of result.data) {
+      for (const plugin of dbPlugins) {
         const isExtension = !BUILTIN_TYPES.has(plugin.type);
 
         // Skip extension channels whose parent extension is not loaded/enabled
@@ -119,6 +124,30 @@ export function initChannelBridge(): void {
           hasToken: false,
           isExtension: true,
           extensionMeta,
+        });
+      }
+
+      // Ensure builtin channel types are always visible in settings
+      // even before user configures them (i.e. not yet persisted in DB).
+      const BUILTIN_NAMES: Record<string, string> = {
+        telegram: 'Telegram',
+        lark: 'Lark',
+        dingtalk: 'DingTalk',
+        slack: 'Slack',
+        discord: 'Discord',
+      };
+      for (const builtinType of BUILTIN_TYPES) {
+        if (statusMap.has(builtinType)) continue;
+        statusMap.set(builtinType, {
+          id: builtinType,
+          type: builtinType,
+          name: BUILTIN_NAMES[builtinType] || builtinType,
+          enabled: false,
+          connected: false,
+          status: 'stopped',
+          activeUsers: 0,
+          hasToken: false,
+          isExtension: false,
         });
       }
 

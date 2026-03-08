@@ -104,35 +104,59 @@ let _onChannelsTab = false;
  * Uses a session-level flag to skip re-navigation when already on the tab.
  */
 export async function goToChannelsTab(page: Page): Promise<void> {
+  const channelItem = page.locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`).first();
+
   // Quick check: if we're already on the channels tab, verify a channel item is still visible
   if (_onChannelsTab && isAlreadyAt(page, ROUTES.settings.webui)) {
-    const channelItem = page.locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`).first();
     const stillVisible = await channelItem.isVisible().catch(() => false);
     if (stillVisible) return;
   }
 
   await goToSettings(page, 'webui');
 
-  const stableTab = page.locator(webuiTabByKey('channels')).first();
+  // Ensure route transition is actually complete before locating inner tabs
+  await page
+    .waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 })
+    .catch(() => undefined);
 
-  try {
-    await stableTab.waitFor({ state: 'visible', timeout: 8_000 });
+  const stableTab = page.locator(webuiTabByKey('channels')).first();
+  const fallbackTab = page
+    .locator('.arco-tabs-header-title, .arco-tabs-nav-tab-title')
+    .filter({ hasText: /channel|频道|渠道/i })
+    .first();
+
+  let switched = false;
+  for (let attempt = 0; attempt < 2 && !switched; attempt++) {
+    if (await channelItem.isVisible().catch(() => false)) {
+      switched = true;
+      break;
+    }
+
+    if (await stableTab.isVisible().catch(() => false)) {
+      await stableTab.click();
+      switched = true;
+      break;
+    }
+
+    if (await fallbackTab.isVisible().catch(() => false)) {
+      await fallbackTab.click();
+      switched = true;
+      break;
+    }
+
+    // Retry once in case of slow Settings lazy-load in packaged CI runs
+    await goToSettings(page, 'webui');
+    await waitForSettle(page, 2_000);
+  }
+
+  if (!switched) {
+    // Final strict wait to surface a clear failure when Channels tab truly does not exist
+    await stableTab.waitFor({ state: 'visible', timeout: 12_000 });
     await stableTab.click();
-  } catch {
-    // Backward-compatible fallback for old UI builds without data attributes
-    const fallbackTab = page
-      .locator('.arco-tabs-header-title')
-      .filter({ hasText: /channel|频道|渠道/i })
-      .first();
-    await fallbackTab.waitFor({ state: 'visible', timeout: 8_000 });
-    await fallbackTab.click();
   }
 
   try {
-    await page
-      .locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`)
-      .first()
-      .waitFor({ state: 'visible', timeout: 8_000 });
+    await channelItem.waitFor({ state: 'visible', timeout: 12_000 });
     _onChannelsTab = true;
   } catch {
     // Best-effort fallback for transitional states

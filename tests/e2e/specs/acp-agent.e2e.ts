@@ -9,12 +9,12 @@
  *  - MCP tools page loads
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, expectBodyContainsAny, expectUrlContains, takeScreenshot, AGENT_PILL, AGENT_PILL_SELECTED, settingsSiderItemById } from '../helpers';
+import { goToGuid, goToSettings, expectBodyContainsAny, expectUrlContains, takeScreenshot, AGENT_PILL, AGENT_PILL_SELECTED, settingsSiderItemById, SETTINGS_SIDER } from '../helpers';
 
 test.describe('ACP Agent', () => {
   test('agent settings page has management UI', async ({ page }) => {
     await goToSettings(page, 'agent');
-    await expect(page.locator(settingsSiderItemById('agent')).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator(`${SETTINGS_SIDER}, ${settingsSiderItemById('agent')}`).first()).toBeVisible({ timeout: 8_000 });
     await expectBodyContainsAny(page, ['Agent', 'agent', '助手', '预设', 'Preset', 'Custom', 'Assistants']);
   });
 

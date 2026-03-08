@@ -335,15 +335,19 @@ test-packaged-i18n:
     bun run test:packaged:i18n
 
 # Run E2E tests (Playwright + Electron — auto-launches app)
+# Builds main+preload+renderer into out/ first to ensure fresh artifacts.
 e2e-test:
+    bun run package
     bunx playwright test --config playwright.config.ts
 
 # Run only extension-related E2E tests (faster iteration)
 e2e-test-ext:
+    bun run package
     bunx playwright test --config playwright.config.ts tests/e2e/specs/ext-*.e2e.ts
 
 # Run E2E tests with headed browser (for debugging)
 e2e-test-headed:
+    bun run package
     bunx playwright test --config playwright.config.ts --headed
 
 # Open Playwright HTML report after test run

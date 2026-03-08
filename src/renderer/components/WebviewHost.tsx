@@ -350,7 +350,6 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
             opacity: !showNavBar && isLoading ? 0 : 1,
             transition: 'opacity 150ms ease-in',
           }}
-          // @ts-expect-error webview attributes not typed in React
           {...webviewAttrs}
         />
       </div>

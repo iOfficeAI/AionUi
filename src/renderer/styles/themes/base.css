@@ -881,7 +881,9 @@ body,
   background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
 /* Light mode: hover feedback should be visible */

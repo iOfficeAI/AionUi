@@ -91,7 +91,7 @@ export class SandboxHost {
 
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.stop();
+        void this.stop();
         reject(new Error(`[Sandbox] Worker for "${this.options.extensionName}" timed out during initialization`));
       }, this.options.initTimeout);
 
@@ -192,7 +192,7 @@ export class SandboxHost {
     // Give it a moment to clean up, then force terminate
     await new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
-        this.worker?.terminate();
+        void this.worker?.terminate();
         resolve();
       }, 3000);
 

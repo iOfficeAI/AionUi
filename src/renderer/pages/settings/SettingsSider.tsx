@@ -179,7 +179,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
               {item.isImageIcon ? (
                 <div className='mt-2px ml-2px mr-8px w-20px h-20px flex shrink-0 items-center justify-center'>{item.icon}</div>
               ) : (
-                React.cloneElement(item.icon, {
+                React.cloneElement(item.icon as React.ReactElement<{ theme?: string; size?: string | number; className?: string }>, {
                   theme: 'outline',
                   size: '20',
                   className: 'mt-2px ml-2px mr-8px flex',

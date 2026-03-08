@@ -34,6 +34,7 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
   // Resolve aion-asset:// or file:// URLs for the current environment
   const logoSrc = builtinLogo?.src || resolveExtensionAssetUrl(channel.icon);
   const logoAlt = builtinLogo?.alt || channel.title;
+  const isDisabled = channel.status === 'coming_soon' || channel.disabled;
 
   return (
     <div className='flex items-center justify-between group' data-channel-header={channel.id}>
@@ -52,7 +53,7 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
         )}
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
-        <Switch data-channel-switch-for={channel.id} checked={channel.enabled} onChange={onToggleEnabled} size='small' disabled={channel.status === 'coming_soon' || channel.disabled} />
+        <Switch data-channel-switch-for={channel.id} data-channel-switch-disabled={isDisabled ? 'true' : 'false'} aria-disabled={isDisabled ? 'true' : undefined} checked={channel.enabled} onChange={onToggleEnabled} size='small' disabled={isDisabled} />
       </div>
     </div>
   );

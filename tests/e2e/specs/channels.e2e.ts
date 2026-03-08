@@ -90,7 +90,9 @@ test.describe('Channels', () => {
 
       const cls = (await sw.getAttribute('class')) || '';
       const ariaDisabled = await sw.getAttribute('aria-disabled');
-      expect(cls.includes('arco-switch-disabled') || ariaDisabled === 'true').toBeTruthy();
+      const dataDisabled = await sw.getAttribute('data-channel-switch-disabled');
+      const disabledAttr = await sw.getAttribute('disabled');
+      expect(cls.includes('arco-switch-disabled') || ariaDisabled === 'true' || dataDisabled === 'true' || disabledAttr !== null).toBeTruthy();
     }
   });
 

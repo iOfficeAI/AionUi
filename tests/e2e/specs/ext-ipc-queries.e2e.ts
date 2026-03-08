@@ -245,17 +245,7 @@ test.describe('Extension IPC: Performance', () => {
   });
 
   test('individual IPC queries complete within 2 seconds each', async ({ page }) => {
-    const queries = [
-      'extensions.get-loaded-extensions',
-      'extensions.get-acp-adapters',
-      'extensions.get-mcp-servers',
-      'extensions.get-assistants',
-      'extensions.get-agents',
-      'extensions.get-skills',
-      'extensions.get-themes',
-      'extensions.get-settings-tabs',
-      'extensions.get-webui-contributions',
-    ];
+    const queries = ['extensions.get-loaded-extensions', 'extensions.get-acp-adapters', 'extensions.get-mcp-servers', 'extensions.get-assistants', 'extensions.get-agents', 'extensions.get-skills', 'extensions.get-themes', 'extensions.get-settings-tabs', 'extensions.get-webui-contributions'];
 
     for (const key of queries) {
       const start = Date.now();
