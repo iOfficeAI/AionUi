@@ -296,6 +296,7 @@ const resolveRemoteAccess = (config: WebUIUserConfig): boolean => {
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
+const isVersionMode = hasCommand('--version') || hasCommand('-v');
 
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
@@ -594,6 +595,14 @@ ipcBridge.application.openDevTools.provider(() => {
 
 const handleAppReady = async (): Promise<void> => {
   console.log('[AionUi] app.whenReady resolved');
+
+  // CLI mode: print app version and exit immediately (used by CI smoke tests)
+  if (isVersionMode) {
+    console.log(app.getVersion());
+    app.exit(0);
+    return;
+  }
+
   // Register aion-asset:// protocol handler.
   // Converts aion-asset://asset/C:/path/to/file.svg → file:///C:/path/to/file.svg
   // and serves the local file through Electron's net module.
