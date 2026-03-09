@@ -254,6 +254,8 @@ export function useCronJobsMap() {
   const lastRunAtMapRef = useRef<Map<string, number>>(new Map());
   // Track current active conversation (use ref to access latest value in event handlers)
   const activeConversationIdRef = useRef<string | null>(null);
+  // Force update trigger for re-rendering
+  const [trigger, setTrigger] = useState(0);
 
   // Persist unread state to localStorage
   useEffect(() => {
@@ -322,6 +324,7 @@ export function useCronJobsMap() {
         const newLastRunAt = job.state.lastRunAtMs;
         if (newLastRunAt && newLastRunAt !== prevLastRunAt) {
           lastRunAtMapRef.current.set(job.id, newLastRunAt);
+
           // Mark as unread only if user is not currently viewing this conversation
           // Use ref to access the latest activeConversationId value
           if (activeConversationIdRef.current !== convId) {
@@ -332,8 +335,8 @@ export function useCronJobsMap() {
               return newSet;
             });
           }
+
           // Refresh conversation list to update sorting (modifyTime was updated after execution)
-          console.log('[useCronJobsMap] onJobUpdated with new execution, triggering chat.history.refresh');
           emitter.emit('chat.history.refresh');
         }
 
@@ -417,7 +420,9 @@ export function useCronJobsMap() {
   const markAsRead = useCallback((conversationId: string) => {
     activeConversationIdRef.current = conversationId;
     setUnreadConversations((prev) => {
-      if (!prev.has(conversationId)) return prev;
+      if (!prev.has(conversationId)) {
+        return prev;
+      }
       const newSet = new Set(prev);
       newSet.delete(conversationId);
       return newSet;
@@ -443,7 +448,7 @@ export function useCronJobsMap() {
       hasUnread,
       refetch: fetchAllJobs,
     }),
-    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, hasUnread, fetchAllJobs]
+    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, hasUnread, fetchAllJobs, unreadConversations]
   );
 }
 

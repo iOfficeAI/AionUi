@@ -7,10 +7,11 @@
 import type { TChatConversation } from '@/common/storage';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { Button, Empty, Input, Modal } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
@@ -25,6 +26,14 @@ import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSessionClick, collapsed = false, tooltipEnabled = false, batchMode = false, onBatchModeChange }) => {
   const { id } = useParams();
   const { t } = useTranslation();
+  const { getJobStatus, markAsRead } = useCronJobsMap();
+
+  // Mark conversation as read when id changes
+  useEffect(() => {
+    if (id) {
+      markAsRead(id);
+    }
+  }, [id, markAsRead]);
 
   const { conversations, expandedWorkspaces, pinnedConversations, timelineSections, handleToggleWorkspace } = useConversations();
 
@@ -63,6 +72,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
       onDelete: handleDeleteClick,
       onExport: handleExportConversation,
       onTogglePin: handleTogglePin,
+      getJobStatus,
     };
 
     return <ConversationRow key={conversation.id} {...rowProps} />;
