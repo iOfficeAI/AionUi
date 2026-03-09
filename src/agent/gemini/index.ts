@@ -64,7 +64,6 @@ interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
   model: TProviderWithModel;
-  imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
   yoloMode?: boolean;
   GOOGLE_CLOUD_PROJECT?: string;
@@ -85,7 +84,6 @@ export class GeminiAgent {
   private workspace: string | null = null;
   private proxy: string | null = null;
   private model: TProviderWithModel | null = null;
-  private imageGenerationModel: TProviderWithModel | null = null;
   private webSearchEngine: 'google' | 'default' | null = null;
   private yoloMode: boolean = false;
   private googleCloudProject: string | null = null;
@@ -119,7 +117,6 @@ export class GeminiAgent {
     this.workspace = options.workspace;
     this.proxy = options.proxy;
     this.model = options.model;
-    this.imageGenerationModel = options.imageGenerationModel;
     this.webSearchEngine = options.webSearchEngine || 'default';
     this.yoloMode = options.yoloMode || false;
     this.googleCloudProject = options.GOOGLE_CLOUD_PROJECT;
@@ -136,7 +133,6 @@ export class GeminiAgent {
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
-      imageGenerationModel: this.imageGenerationModel,
       webSearchEngine: this.webSearchEngine,
     });
 

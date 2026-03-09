@@ -6,7 +6,7 @@
 
 import { ConfigStorage, type IConfigStorageRefer, type IMcpServer } from '@/common/storage';
 import { acpConversation } from '@/common/ipcBridge';
-import { Divider, Form, Switch, Tooltip, Message, Button, Dropdown, Menu, Modal } from '@arco-design/web-react';
+import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,9 @@ import McpServerItem from '@/renderer/pages/settings/McpManagement/McpServerItem
 import { useMcpServers, useMcpAgentStatus, useMcpOperations, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
+
+/** Stable ID for the built-in image generation MCP server */
+const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
@@ -222,14 +225,14 @@ const ToolsModalContent: React.FC = () => {
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
   const { modelListWithImage: data } = useConfigModelListWithImage();
+  const { mcpServers, saveMcpServers } = useMcpServers();
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
     // Filter models that support image generation
-    // 筛选支持图片生成的模型
     const isImageModel = (modelName: string) => {
       const name = modelName.toLowerCase();
-      return name.includes('image') || name.includes('banana');
+      return name.includes('image') || name.includes('banana') || name.includes('imagine');
     };
     return (data || [])
       .filter((v) => {
@@ -273,6 +276,8 @@ const ToolsModalContent: React.FC = () => {
       ConfigStorage.set('tools.imageGenerationModel', updatedModel).catch((error) => {
         console.error('Failed to save image generation model config:', error);
       });
+      // Also sync to built-in MCP server env
+      void syncMcpServerEnv(updatedModel);
     } else if (!currentProvider) {
       setImageGenerationModel(undefined);
       ConfigStorage.remove('tools.imageGenerationModel').catch((error) => {
@@ -281,15 +286,44 @@ const ToolsModalContent: React.FC = () => {
     }
   }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey]);
 
-  const handleImageGenerationModelChange = (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
-    setImageGenerationModel((prev) => {
-      const newImageGenerationModel = { ...prev, ...value };
-      ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
-        console.error('Failed to update image generation model config:', error);
+  // Sync image generation model config to the built-in MCP server's transport.env
+  const syncMcpServerEnv = useCallback(
+    async (model: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+      const builtinServer = mcpServers.find((s) => s.id === BUILTIN_IMAGE_GEN_ID && s.builtin === true);
+      if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
+
+      const env: Record<string, string> = { ...(builtinServer.transport.env || {}) };
+      if (model.platform) env.AIONUI_IMG_PLATFORM = model.platform;
+      if (model.baseUrl !== undefined) env.AIONUI_IMG_BASE_URL = model.baseUrl;
+      if (model.apiKey) env.AIONUI_IMG_API_KEY = model.apiKey;
+      if (model.useModel) env.AIONUI_IMG_MODEL = model.useModel;
+
+      const updatedServer: IMcpServer = {
+        ...builtinServer,
+        transport: { ...builtinServer.transport, env },
+        updatedAt: Date.now(),
+      };
+
+      const updatedServers = mcpServers.map((s) => (s.id === BUILTIN_IMAGE_GEN_ID ? updatedServer : s));
+      await saveMcpServers(updatedServers);
+    },
+    [mcpServers, saveMcpServers]
+  );
+
+  const handleImageGenerationModelChange = useCallback(
+    (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+      setImageGenerationModel((prev) => {
+        const newImageGenerationModel = { ...prev, ...value };
+        ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+          console.error('Failed to update image generation model config:', error);
+        });
+        // Sync env vars to the built-in MCP server
+        void syncMcpServerEnv(newImageGenerationModel);
+        return newImageGenerationModel;
       });
-      return newImageGenerationModel;
-    });
-  };
+    },
+    [syncMcpServerEnv]
+  );
 
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -313,7 +347,6 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <div className='flex items-center justify-between mb-16px'>
               <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
-              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} />
             </div>
 
             <Divider className='mt-0px mb-20px' />
