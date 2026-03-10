@@ -1,102 +1,32 @@
-# AionUi - Project Guide for Claude
-
-## Project Overview
-
-**AionUi** is a unified AI agent graphical interface that transforms command-line AI agents into a modern, efficient chat interface. It supports multiple CLI AI tools including Gemini CLI, Claude Code, CodeX, Qwen Code, and more.
-
-- **Version**: 1.7.8
-- **License**: Apache-2.0
-- **Platform**: Cross-platform (macOS, Windows, Linux)
+# AionUi - Claude Guide
 
 ## Tech Stack
 
-### Core
+Key choices that affect how code is written:
 
-- **Electron 37.x** - Desktop application framework
-- **React 19.x** - UI framework
-- **TypeScript 5.8.x** - Programming language
-- **Express 5.x** - Web server (for WebUI remote access)
-
-### Build Tools
-
-- **Webpack 6.x** - Module bundler (via @electron-forge/plugin-webpack)
-- **Electron Forge 7.8.x** - Build tooling
-- **Electron Builder 26.x** - Application packaging
-
-### UI & Styling
-
-- **Arco Design 2.x** - Enterprise UI component library
-- **UnoCSS 66.x** - Atomic CSS engine
-- **Monaco Editor 4.x** - Code editor
-
-### AI Integration
-
-- **Anthropic SDK** - Claude API
-- **Google GenAI** - Gemini API
-- **OpenAI SDK** - OpenAI API
-- **MCP SDK** - Model Context Protocol
-
-### Data & Storage
-
-- **Better SQLite3** - Local database
-- **Zod** - Data validation
-
-## Project Structure
-
-```
-src/
-├── index.ts                 # Main process entry
-├── preload.ts               # Electron preload (IPC bridge)
-├── renderer/                # UI application
-│   ├── pages/               # Page components
-│   │   ├── conversation/    # Chat interface (main feature)
-│   │   ├── settings/        # Settings management
-│   │   ├── cron/            # Scheduled tasks
-│   │   └── login/           # Authentication
-│   ├── components/          # Reusable UI components
-│   ├── hooks/               # React hooks
-│   ├── context/             # Global state (React Context)
-│   ├── services/            # Client-side services
-│   ├── i18n/                # Internationalization
-│   └── utils/               # Utility functions
-├── process/                 # Main process services
-│   ├── database/            # SQLite operations
-│   ├── bridge/              # IPC communication
-│   └── services/            # Backend services
-│       ├── mcpServices/     # MCP protocol (multi-agent)
-│       └── cron/            # Task scheduling
-├── webserver/               # Web server for remote access
-│   ├── routes/              # HTTP routes
-│   ├── websocket/           # Real-time communication
-│   └── auth/                # Authentication
-├── worker/                  # Background task workers
-├── channels/                # Agent communication system
-├── common/                  # Shared utilities & types
-└── agent/                   # AI agent implementations
-```
+- **Electron 37** + **electron-vite 5** — multi-process desktop app, not a web app
+- **React 19** + **TypeScript 5.8** (strict mode)
+- **Vitest 4** — test framework
+- **Arco Design 2** + **UnoCSS 66** — UI and styling
+- **Zod** — data validation at boundaries
 
 ## Development Commands
 
 ```bash
 # Development
-npm start              # Start dev environment
-npm run webui          # Start WebUI server
+bun run start              # Start dev environment
+bun run webui              # Start WebUI server
 
 # Code Quality
-npm run lint           # Run ESLint
-npm run lint:fix       # Auto-fix lint issues
-npm run format         # Format with Prettier
+bun run lint               # Run ESLint
+bun run lint:fix           # Auto-fix lint issues
+bun run format             # Format with Prettier
 
 # Testing
-npm test               # Run all tests
-npm run test:watch     # Watch mode
-npm run test:coverage  # Coverage report
-
-# Building
-npm run build          # Full build (macOS arm64 + x64)
-npm run dist:mac       # macOS build
-npm run dist:win       # Windows build
-npm run dist:linux     # Linux build
+bun run test               # Run all tests (run before every commit)
+bun run test:watch         # Watch mode
+bun run test:coverage      # Coverage report
+bun run test:integration   # Integration tests only
 ```
 
 ## Code Conventions
@@ -119,7 +49,7 @@ npm run dist:linux     # Linux build
 - Functional components only
 - Hooks: `use*` prefix
 - Event handlers: `on*` prefix
-- Props interface: `${ComponentName}Props`
+- Props type: `${ComponentName}Props`
 
 ### Styling
 
@@ -131,6 +61,25 @@ npm run dist:linux     # Linux build
 
 - English for code comments
 - JSDoc for function documentation
+
+## Testing
+
+**Framework**: Vitest 4 (`vitest.config.ts`)
+
+**Structure**:
+- `tests/unit/` - Individual functions, utilities, components
+- `tests/integration/` - IPC, database, service interactions
+- `tests/regression/` - Regression test cases
+
+**Two test environments**:
+- `node` (default) - main process, utilities, services
+- `jsdom` - files named `*.dom.test.ts`
+
+**Workflow rules**:
+- Run `bun run test` before every commit
+- New features must include corresponding test cases
+- When modifying logic, update affected existing tests
+- New source files added to feature areas must be included in coverage config (`vitest.config.ts` → `coverage.include`)
 
 ## Git Conventions
 
@@ -150,90 +99,23 @@ chore: remove debug console.log statements
 
 ### No AI Signature (MANDATORY)
 
-**NEVER add any AI-related signatures to commits.** This includes but is not limited to:
+**NEVER add any AI-related signatures to commits.** This includes:
 
-- `Co-Authored-By: Claude` or any Claude-related attribution
-- `Co-Authored-By: <any AI assistant>`
-- `🤖 Generated with Claude` or similar markers
-- Any other AI tool signatures or attributions
+- `Co-Authored-By: Claude` or any AI attribution
+- `Generated with Claude` or similar markers
 
 This is a strict rule. Violating this will pollute the git history.
 
 ## Architecture Notes
 
-### Multi-Process Model
+Three process types: Main (`src/process/`), Renderer (`src/renderer/`), Worker (`src/worker/`).
 
-- **Main Process**: Application logic, database, IPC handling
-- **Renderer Process**: React UI
-- **Worker Processes**: Background AI tasks (gemini, codex, acp workers)
+- `src/process/` — no DOM APIs
+- `src/renderer/` — no Node.js APIs
+- Cross-process communication must go through the IPC bridge (`src/preload.ts`)
 
-### IPC Communication
-
-- Secure contextBridge isolation
-- Type-safe message system in `src/renderer/messages/`
-
-### WebUI Server
-
-- Express + WebSocket
-- JWT authentication
-- Supports remote network access
-
-### Cron System
-
-- Based on `croner` library
-- `CronService`: Task scheduling engine
-- `CronBusyGuard`: Prevents concurrent execution
-
-## Supported AI Agents
-
-- Claude (via MCP)
-- Gemini (Google AI)
-- Codex (OpenAI)
-- Qwen Code
-- Iflow
-- Custom agents via MCP protocol
+See [docs/tech/architecture.md](docs/tech/architecture.md) for IPC, WebUI, and Cron details.
 
 ## Internationalization
 
-Supported languages: English (en-US), Chinese Simplified (zh-CN), Chinese Traditional (zh-TW), Japanese (ja-JP), Korean (ko-KR)
-
-Translation files: `src/renderer/i18n/locales/*.json`
-
----
-
-## Skills Index
-
-Detailed rules and guidelines are organized into Skills for better modularity:
-
-| Skill    | Purpose                                                              | Triggers                                               |
-| -------- | -------------------------------------------------------------------- | ------------------------------------------------------ |
-| **i18n** | Key naming, sync checking, hardcoded detection, translation workflow | Adding user-facing text, creating components with text |
-
-> Skills are located in `.claude/skills/` and loaded automatically when relevant.
-
-## Key Configuration Files
-
-| File               | Purpose                     |
-| ------------------ | --------------------------- |
-| `tsconfig.json`    | TypeScript compiler options |
-| `forge.config.ts`  | Electron Forge build config |
-| `uno.config.ts`    | UnoCSS styling config       |
-| `.eslintrc.json`   | Linting rules               |
-| `.prettierrc.json` | Code formatting             |
-| `jest.config.js`   | Test configuration          |
-
-## Testing
-
-- **Framework**: Jest + ts-jest
-- **Structure**: `tests/unit/`, `tests/integration/`, `tests/contract/`
-- Run with `npm test`
-
-## Native Modules
-
-The following require special handling during build:
-
-- `better-sqlite3` - Database
-- `node-pty` - Terminal emulation
-- `tree-sitter` - Code parsing
-
-These are configured as externals in Webpack.
+When adding user-facing text or creating components with text, use the **i18n** skill. Translation files: `src/renderer/i18n/locales/*.json`.
