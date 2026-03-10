@@ -639,11 +639,6 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                         <div className='min-w-0'>
                           <div className='font-medium text-t-primary truncate flex items-center gap-6px'>
                             <span className='truncate'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
-                            {assistantIsExtension && (
-                              <Tag size='small' color='arcoblue'>
-                                ext
-                              </Tag>
-                            )}
                           </div>
                           <div className='text-12px text-t-secondary truncate'>{assistant.descriptionI18n?.[localeKey] || assistant.description || ''}</div>
                         </div>

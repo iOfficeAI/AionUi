@@ -351,10 +351,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
                         void persistSelectedAgent(next);
                       }}
                     >
-                      <div className='flex items-center gap-6px'>
-                        <span>{a.name}</span>
-                        {a.isExtension && <span className='text-[10px] leading-none px-4px py-2px rd-8px bg-[var(--color-primary)] text-white'>Ext</span>}
-                      </div>
+                      {a.name}
                     </Menu.Item>
                   );
                 })}

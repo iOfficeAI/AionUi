@@ -81,11 +81,10 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
-        {isReadOnly && <span className='text-xs px-1.5 py-0.5 rounded bg-fill-3 text-t-secondary'>ext</span>}
         <Tooltip content={statusText} position='top'>
           <span className='flex items-center cursor-default'>{statusIcon}</span>
         </Tooltip>
-        <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} alwaysVisible={Boolean(isReadOnly)} />
+        {isReadOnly && <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} alwaysVisible />}
         {!isReadOnly && needsLogin && onOAuthLogin && (
           <Button size='mini' type='primary' icon={<Login size={'14'} />} title={t('settings.mcpLogin') || 'Login'} loading={isLoggingIn} onClick={() => onOAuthLogin(server)}>
             {t('settings.mcpLogin') || 'Login'}
@@ -96,6 +95,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
       {!isReadOnly && (
         <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
           <div className='flex items-center gap-2 invisible group-hover:visible'>
+            <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} />
             <Dropdown
               trigger='hover'
               droplist={

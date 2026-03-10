@@ -41,11 +41,6 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
       <div className='flex items-center gap-8px flex-1 min-w-0'>
         {logoSrc && <img src={logoSrc} alt={logoAlt} className='w-14px h-14px object-contain shrink-0' />}
         <span className='text-14px text-t-primary'>{channel.title}</span>
-        {channel.isExtension && (
-          <Tag size='small' color='arcoblue'>
-            ext
-          </Tag>
-        )}
         {channel.status === 'coming_soon' && (
           <Tag size='small' color='gray'>
             {t('settings.channels.comingSoon', 'Coming Soon')}
