@@ -11,8 +11,9 @@ import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
+import { formatModeDisplayLabel, isZhLocale } from '@/renderer/utils/agentUiDisplay';
 import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { Plus, Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -352,7 +353,9 @@ const AcpSendBox: React.FC<{
   agentName?: string;
 }> = ({ conversation_id, backend, sessionMode, agentName }) => {
   const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = isZhLocale(i18n.language);
+  const permissionBaseLabel = isZh ? '权限' : 'Permission';
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -578,7 +581,7 @@ const AcpSendBox: React.FC<{
         tools={
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} />
+            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => formatModeDisplayLabel(mode.value, mode.label, isZh)} compactLabelPrefix={permissionBaseLabel} hideCompactLabelPrefixOnMobile />
             <AcpConfigSelector conversationId={conversation_id} backend={backend} />
           </div>
         }

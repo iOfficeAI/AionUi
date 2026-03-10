@@ -11,6 +11,7 @@ import type { IProvider } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { buildDefaultModelLabel, getModelDisplayLabel, isZhLocale } from '@/renderer/utils/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -36,7 +37,7 @@ const AcpModelSelector: React.FC<{
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
 }> = ({ conversationId, backend, initialModelId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
   const [modelInfo, setModelInfo] = useState<AcpModelInfo | null>(null);
@@ -162,7 +163,16 @@ const AcpModelSelector: React.FC<{
     [conversationId]
   );
 
-  const displayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || t('conversation.welcome.useCliModel');
+  const isZh = isZhLocale(i18n.language);
+  const modelLabel = t('settings.model', { defaultValue: 'Model' });
+  const defaultModelLabel = buildDefaultModelLabel(isZh, t('common.default', { defaultValue: 'Default' }), modelLabel);
+  const rawDisplayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || '';
+  const displayLabel = getModelDisplayLabel({
+    selectedValue: modelInfo?.currentModelId,
+    selectedLabel: rawDisplayLabel,
+    defaultModelLabel,
+    fallbackLabel: t('conversation.welcome.useCliModel'),
+  });
   const compact = isPreviewOpen || layout?.isMobile;
   const isMobileCompact = Boolean(layout?.isMobile);
 

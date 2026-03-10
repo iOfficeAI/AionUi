@@ -31,23 +31,16 @@
 /* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
 .actionTools :global(.sendbox-model-btn) {
   background-color: transparent !important;
-  border: 1px solid var(--border-base) !important;
+  border: none !important;
+  box-shadow: none !important;
   color: var(--color-text-2) !important;
 }
 
 .actionTools :global(.sendbox-model-btn:hover) {
-  background-color: var(--color-fill-2) !important;
-  border-color: var(--color-border-2) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: var(--color-text-1) !important;
-}
-
-/* 暗色模式：边框用稍亮色，否则与背景融在一起看不见 */
-[data-theme='dark'] .actionTools :global(.sendbox-model-btn) {
-  border-color: var(--bg-4) !important;
-}
-
-[data-theme='dark'] .actionTools :global(.sendbox-model-btn:hover) {
-  border-color: var(--bg-5) !important;
 }
 
 .actionSubmit {
@@ -102,8 +95,8 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 100%);
-    padding: 0 16px;
+    width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 100%);
+    padding: 0 12px;
     padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
     box-sizing: border-box;
   }
@@ -112,6 +105,7 @@
     width: 100%;
   }
 
+
   .actionRow {
     flex-wrap: nowrap;
     gap: 8px;
@@ -119,14 +113,36 @@
 
   .actionTools {
     gap: 8px;
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .actionTools::-webkit-scrollbar {
+    display: none;
+  }
+
+  .actionTools > * {
+    flex: 0 0 auto;
   }
 
   .actionSubmit {
     flex-shrink: 0;
     margin-left: 8px;
   }
+}
+
+/* 小屏手机再收窄一点安全边距，提升可操作面积 */
+@media (max-width: 420px) {
+  .guidLayout {
+    width: clamp(var(--app-min-width, 360px), calc(100% - 20px), 100%);
+    padding: 0 10px;
+  }
+
 }
 
 /* 移动端容器滚动支持 */
@@ -243,9 +259,13 @@
 
   .actionTools {
     gap: 6px;
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
 }
 
@@ -256,9 +276,13 @@
   }
 
   .actionTools {
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
 
   .actionSubmit {

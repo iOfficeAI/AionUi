@@ -6,13 +6,14 @@
 
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
-import { supportsModeSwitch } from '@/renderer/constants/agentModes';
+import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { getCleanFileNames } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
 import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
 import PresetAgentTag from './PresetAgentTag';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, Plus, UploadOne } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -28,6 +29,7 @@ type GuidActionRowProps = {
 
   // Agent mode
   selectedAgent: AcpBackend | 'custom';
+  effectiveModeAgent?: string;
   selectedMode: string;
   onModeSelect: (mode: string) => void;
 
@@ -44,9 +46,35 @@ type GuidActionRowProps = {
   onSend: () => void;
 };
 
-const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, onSelectWorkspace, modelSelectorNode, selectedAgent, selectedMode, onModeSelect, isPresetAgent, selectedAgentInfo, customAgents, localeKey, onClosePresetTag, loading, isButtonDisabled, onSend }) => {
-  const { t } = useTranslation();
+const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, onSelectWorkspace, modelSelectorNode, selectedAgent, effectiveModeAgent, selectedMode, onModeSelect, isPresetAgent, selectedAgentInfo, customAgents, localeKey, onClosePresetTag, loading, isButtonDisabled, onSend }) => {
+  const { t, i18n } = useTranslation();
+  const layout = useLayoutContext();
+  const isMobile = Boolean(layout?.isMobile);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
+  const isZh = i18n.language.toLowerCase().startsWith('zh');
+  const modeBackend = effectiveModeAgent || selectedAgent;
+  const permissionBaseLabel = isZh ? '权限' : 'Permission';
+  const modeOptions = getAgentModes(modeBackend);
+  const currentModeOption = modeOptions.find((mode) => mode.value === selectedMode);
+
+  const getModeDisplayLabel = (mode: AgentModeOption): string => {
+    if (!isZh) return mode.label;
+    const map: Record<string, string> = {
+      default: '默认',
+      plan: '计划',
+      yolo: '自动执行',
+      bypassPermissions: '自动执行',
+      autoEdit: '自动编辑',
+      build: '构建',
+      smart: '智能',
+      'full auto': '全自动',
+      'auto edit': '自动编辑',
+      'auto-accept edits': '自动批准',
+    };
+    return map[mode.value] || map[mode.label.toLowerCase()] || mode.label;
+  };
+
+  const permissionLabel = currentModeOption ? (isMobile ? getModeDisplayLabel(currentModeOption) : `${permissionBaseLabel} · ${getModeDisplayLabel(currentModeOption)}`) : permissionBaseLabel;
 
   return (
     <div className={styles.actionRow}>
@@ -110,7 +138,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, o
 
         {modelSelectorNode}
 
-        {supportsModeSwitch(selectedAgent) && <AgentModeSelector backend={selectedAgent} compact initialMode={selectedMode} onModeSelect={onModeSelect} />}
+        {supportsModeSwitch(modeBackend) && <AgentModeSelector backend={modeBackend} compact initialMode={selectedMode} onModeSelect={onModeSelect} compactLabelOverride={permissionLabel} compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={getModeDisplayLabel} />}
 
         {isPresetAgent && selectedAgentInfo && <PresetAgentTag agentInfo={selectedAgentInfo} customAgents={customAgents} localeKey={localeKey} onClose={onClosePresetTag} />}
       </div>

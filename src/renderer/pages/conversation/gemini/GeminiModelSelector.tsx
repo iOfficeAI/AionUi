@@ -1,6 +1,7 @@
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
+import { buildDefaultModelLabel, getModelDisplayLabel, isZhLocale } from '@/renderer/utils/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React from 'react';
@@ -17,11 +18,14 @@ const GeminiModelSelector: React.FC<{
   label?: string;
   variant?: 'header' | 'settings';
 }> = ({ selection, disabled = false, label: customLabel, variant = 'header' }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
   const compact = variant === 'header' && (isPreviewOpen || layout?.isMobile);
   const isMobileHeaderCompact = variant === 'header' && Boolean(layout?.isMobile);
+  const isZh = isZhLocale(i18n.language);
+  const modelLabel = t('settings.model', { defaultValue: 'Model' });
+  const defaultModelLabel = buildDefaultModelLabel(isZh, t('common.default', { defaultValue: 'Default' }), modelLabel);
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
@@ -59,7 +63,15 @@ const GeminiModelSelector: React.FC<{
 
   // formatModelLabel returns the friendly label for known modes (e.g. 'Auto (Gemini 3)')
   // and falls back to the raw model name for manual sub-model selections.
-  const label = customLabel || (currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel'));
+  const rawLabel = currentModel ? formatModelLabel(currentModel, currentModel.useModel) : '';
+  const label =
+    customLabel ||
+    getModelDisplayLabel({
+      selectedValue: currentModel?.useModel,
+      selectedLabel: rawLabel,
+      defaultModelLabel,
+      fallbackLabel: t('conversation.welcome.selectModel'),
+    });
 
   const triggerButton =
     variant === 'settings' ? (

@@ -56,7 +56,6 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
     toolbarExtrasContext.setExtras({
       left: (
         <div className='flex items-center gap-8px'>
-          <span className='text-13px text-t-secondary'>📊 {t('preview.excel.title')}</span>
           <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
           {typeof sheetCount === 'number' && <span className='text-12px text-t-secondary'>{t('preview.excel.sheetCount', { count: sheetCount })}</span>}
         </div>

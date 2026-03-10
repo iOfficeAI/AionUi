@@ -6,10 +6,12 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
+import { iconColors } from '@/renderer/theme/colors';
+import { buildDefaultModelLabel, getModelDisplayLabel, isZhLocale } from '@/renderer/utils/agentUiDisplay';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { Brain, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +24,6 @@ type GuidModelSelectorProps = {
   currentModel: TProviderWithModel | undefined;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
   geminiModeLookup: Map<string, any>;
-  formatGeminiModelLabel: (provider: { platform?: string } | undefined, modelName?: string) => string;
 
   // ACP model state
   currentAcpCachedModelInfo: AcpModelInfo | null;
@@ -30,9 +31,12 @@ type GuidModelSelectorProps = {
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, modelList, currentModel, setCurrentModel, geminiModeLookup, formatGeminiModelLabel, currentAcpCachedModelInfo, selectedAcpModel, setSelectedAcpModel }) => {
-  const { t } = useTranslation();
+const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, modelList, currentModel, setCurrentModel, geminiModeLookup, currentAcpCachedModelInfo, selectedAcpModel, setSelectedAcpModel }) => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const isZh = isZhLocale(i18n.language);
+  const modelLabel = t('settings.model', { defaultValue: 'Model' });
+  const defaultModelLabel = buildDefaultModelLabel(isZh, t('common.default', { defaultValue: 'Default' }), modelLabel);
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
@@ -42,25 +46,36 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
     return modelList.filter((p) => p.enabled !== false);
   }, [modelList]);
 
-  // 获取当前模型的健康状态（Gemini 模式）
-  const currentGeminiModelHealth = React.useMemo(() => {
-    if (!currentModel || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
-    const matchedProvider = modelConfig.find((p) => p.id === currentModel.id);
-    const healthStatus = matchedProvider?.modelHealth?.[currentModel.useModel]?.status || 'unknown';
-    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
-    return { status: healthStatus, color: healthColor };
-  }, [currentModel, modelConfig]);
+  const geminiSelectedLabel = React.useMemo(() => {
+    if (!currentModel?.useModel) return '';
+    const isGoogleProvider = currentModel.platform?.toLowerCase().includes('gemini-with-google-auth');
+    if (isGoogleProvider) {
+      return geminiModeLookup.get(currentModel.useModel)?.label || currentModel.useModel;
+    }
+    return currentModel.useModel;
+  }, [currentModel?.platform, currentModel?.useModel, geminiModeLookup]);
 
-  // 获取当前模型的健康状态（ACP 模式）
-  const currentAcpModelHealth = React.useMemo(() => {
-    if (!selectedAcpModel || !modelConfig || !currentAcpCachedModelInfo) return { status: 'unknown', color: 'bg-gray-400' };
-    // ACP 模式下，需要根据 backend 匹配 provider
-    const backend = currentAcpCachedModelInfo.source; // 'claude', 'qwen' 等
-    const providerConfig = modelConfig.find((p) => p.platform?.includes(backend || ''));
-    const healthStatus = providerConfig?.modelHealth?.[selectedAcpModel]?.status || 'unknown';
-    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
-    return { status: healthStatus, color: healthColor };
-  }, [selectedAcpModel, modelConfig, currentAcpCachedModelInfo]);
+  const geminiButtonLabel = React.useMemo(() => {
+    return getModelDisplayLabel({
+      selectedValue: currentModel?.useModel,
+      selectedLabel: geminiSelectedLabel,
+      defaultModelLabel,
+      fallbackLabel: defaultModelLabel,
+    });
+  }, [currentModel?.useModel, defaultModelLabel, geminiSelectedLabel]);
+
+  const acpSelectedLabel = React.useMemo(() => {
+    return currentAcpCachedModelInfo?.availableModels?.find((m) => m.id === selectedAcpModel)?.label || currentAcpCachedModelInfo?.currentModelLabel || currentAcpCachedModelInfo?.currentModelId || '';
+  }, [currentAcpCachedModelInfo?.availableModels, currentAcpCachedModelInfo?.currentModelId, currentAcpCachedModelInfo?.currentModelLabel, selectedAcpModel]);
+
+  const acpButtonLabel = React.useMemo(() => {
+    return getModelDisplayLabel({
+      selectedValue: selectedAcpModel || currentAcpCachedModelInfo?.currentModelId,
+      selectedLabel: acpSelectedLabel,
+      defaultModelLabel,
+      fallbackLabel: defaultModelLabel,
+    });
+  }, [acpSelectedLabel, currentAcpCachedModelInfo?.currentModelId, defaultModelLabel, selectedAcpModel]);
 
   if (isGeminiMode) {
     return (
@@ -174,10 +189,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
           </Menu>
         }
       >
-        <Button className={'sendbox-model-btn'} shape='round'>
+        <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
           <span className='flex items-center gap-6px min-w-0'>
-            {currentGeminiModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentGeminiModelHealth.color}`} />}
-            <span>{currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}</span>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+            <span>{geminiButtonLabel}</span>
           </span>
         </Button>
       </Dropdown>
@@ -211,10 +226,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
             </Menu>
           }
         >
-          <Button className={'sendbox-model-btn'} shape='round'>
+          <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
             <span className='flex items-center gap-6px min-w-0'>
-              {currentAcpModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentAcpModelHealth.color}`} />}
-              <span>{currentAcpCachedModelInfo.availableModels.find((m) => m.id === selectedAcpModel)?.label || selectedAcpModel || t('conversation.welcome.useCliModel')}</span>
+              <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+              <span>{acpButtonLabel}</span>
             </span>
           </Button>
         </Dropdown>
@@ -223,10 +238,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
 
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
+        <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>
           <span className='flex items-center gap-6px min-w-0'>
-            {currentAcpModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentAcpModelHealth.color}`} />}
-            <span>{currentAcpCachedModelInfo.currentModelLabel || currentAcpCachedModelInfo.currentModelId || t('conversation.welcome.useCliModel')}</span>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+            <span>{acpButtonLabel}</span>
           </span>
         </Button>
       </Tooltip>
@@ -236,8 +251,11 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
   // Fallback: no model switching
   return (
     <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-      <Button className={'sendbox-model-btn'} shape='round' style={{ cursor: 'default' }}>
-        {t('conversation.welcome.useCliModel')}
+      <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>
+        <span className='flex items-center gap-6px min-w-0'>
+          <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+          <span>{defaultModelLabel}</span>
+        </span>
       </Button>
     </Tooltip>
   );
