@@ -4,4 +4,4 @@
 ## Claude-Specific Notes
 
 - Use the **i18n** skill when adding user-facing text or creating components with text
-- Use the **`/oss-commit`** command for smart commit workflow
+- Use the **`/oss-pr`** command for smart commit + PR workflow
