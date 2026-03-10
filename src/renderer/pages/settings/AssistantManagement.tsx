@@ -5,13 +5,14 @@ import { resolveLocaleKey } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
 import EmojiPicker from '@/renderer/components/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
-import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import type { AcpBackendConfig } from '@/types/acpTypes';
 import type { Message } from '@arco-design/web-react';
-import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Modal, Select, Switch, Typography } from '@arco-design/web-react';
+import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Modal, Select, Switch, Tag, Typography } from '@arco-design/web-react';
 import { Close, Delete, FolderOpen, Plus, Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -45,16 +46,23 @@ interface AssistantManagementProps {
   message: ReturnType<typeof Message.useMessage>[0];
 }
 
+type AssistantListItem = AcpBackendConfig & {
+  _source?: string;
+  _extensionName?: string;
+  _kind?: string;
+};
+
 const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) => {
   const { t, i18n } = useTranslation();
-  const [assistants, setAssistants] = useState<AcpBackendConfig[]>([]);
+  const [assistants, setAssistants] = useState<AssistantListItem[]>([]);
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
-  const [editAgent, setEditAgent] = useState<PresetAgentType>('gemini');
+  // editAgent holds either a built-in PresetAgentType or an extension adapter ID (e.g. "ext-buddy")
+  const [editAgent, setEditAgent] = useState<string>('gemini');
   const [editSkills, setEditSkills] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
@@ -77,6 +85,51 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     'cowork.svg': coworkSvg,
     '🛠️': coworkSvg,
   };
+
+  // Load extension-contributed ACP adapters so they appear in the main agent dropdown
+  const { data: extensionAcpAdapters } = useSWR('extensions.acpAdapters', () => ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[]));
+
+  // Load extension-contributed assistants for Settings > Assistants list
+  const { data: extensionAssistants } = useSWR('extensions.assistants', () => ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]));
+
+  const normalizedExtensionAssistants = React.useMemo<AssistantListItem[]>(() => {
+    if (!Array.isArray(extensionAssistants) || extensionAssistants.length === 0) return [];
+
+    return extensionAssistants
+      .map((ext) => {
+        const id = typeof ext.id === 'string' ? ext.id : '';
+        const name = typeof ext.name === 'string' ? ext.name : '';
+        if (!id || !name) return null;
+
+        return {
+          id,
+          name,
+          nameI18n: ext.nameI18n as Record<string, string> | undefined,
+          description: typeof ext.description === 'string' ? ext.description : undefined,
+          descriptionI18n: ext.descriptionI18n as Record<string, string> | undefined,
+          avatar: typeof ext.avatar === 'string' ? ext.avatar : undefined,
+          presetAgentType: typeof ext.presetAgentType === 'string' ? ext.presetAgentType : undefined,
+          context: typeof ext.context === 'string' ? ext.context : undefined,
+          contextI18n: ext.contextI18n as Record<string, string> | undefined,
+          models: Array.isArray(ext.models) ? (ext.models as string[]) : undefined,
+          enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+          prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
+          promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
+          isPreset: true,
+          isBuiltin: false,
+          enabled: true,
+          _source: 'extension',
+          _extensionName: typeof ext._extensionName === 'string' ? ext._extensionName : undefined,
+          _kind: typeof ext._kind === 'string' ? ext._kind : undefined,
+        } as AssistantListItem;
+      })
+      .filter((item): item is AssistantListItem => item !== null);
+  }, [extensionAssistants]);
+
+  const isExtensionAssistant = useCallback((assistant: AssistantListItem | null | undefined) => {
+    if (!assistant) return false;
+    return assistant._source === 'extension' || assistant.id.startsWith('ext-');
+  }, []);
 
   // Auto focus textarea when drawer opens
   useEffect(() => {
@@ -171,7 +224,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
   // Helper function to sort assistants according to ASSISTANT_PRESETS order
   // 根据 ASSISTANT_PRESETS 顺序排序助手的辅助函数
-  const sortAssistants = useCallback((agents: AcpBackendConfig[]) => {
+  const sortAssistants = useCallback((agents: AssistantListItem[]) => {
     const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
     return agents
       .filter((agent) => agent.isPreset)
@@ -191,21 +244,33 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     try {
       // 从配置中读取已存储的助手（包含内置助手和用户自定义助手）
       // Read stored assistants from config (includes builtin and user-defined)
-      const allAgents: AcpBackendConfig[] = (await ConfigStorage.get('acp.customAgents')) || [];
-      const sortedAssistants = sortAssistants(allAgents);
+      const localAgents: AssistantListItem[] = (await ConfigStorage.get('acp.customAgents')) || [];
+
+      const mergedAgents = [...localAgents];
+      for (const extAssistant of normalizedExtensionAssistants) {
+        if (!mergedAgents.some((agent) => agent.id === extAssistant.id)) {
+          mergedAgents.push(extAssistant);
+        }
+      }
+
+      const sortedAssistants = sortAssistants(mergedAgents);
 
       setAssistants(sortedAssistants);
-      setActiveAssistantId((prev) => prev || sortedAssistants[0]?.id || null);
+      setActiveAssistantId((prev) => {
+        if (prev && sortedAssistants.some((assistant) => assistant.id === prev)) return prev;
+        return sortedAssistants[0]?.id || null;
+      });
     } catch (error) {
       console.error('Failed to load assistant presets:', error);
     }
-  }, [sortAssistants]);
+  }, [normalizedExtensionAssistants, sortAssistants]);
 
   useEffect(() => {
     void loadAssistants();
   }, [loadAssistants]);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
+  const isReadonlyAssistant = Boolean(activeAssistant && (activeAssistant.isBuiltin || isExtensionAssistant(activeAssistant)));
 
   // Check if string is an emoji (simple check for common emoji patterns)
   const isEmoji = useCallback((str: string) => {
@@ -215,11 +280,26 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     return emojiRegex.test(str);
   }, []);
 
+  const resolveAvatarImageSrc = useCallback(
+    (avatar: string | undefined): string | undefined => {
+      const value = avatar?.trim();
+      if (!value) return undefined;
+
+      const mapped = avatarImageMap[value];
+      if (mapped) return mapped;
+
+      const resolved = resolveExtensionAssetUrl(value) || value;
+      const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(resolved);
+      return isImage ? resolved : undefined;
+    },
+    [avatarImageMap]
+  );
+
   const renderAvatarGroup = useCallback(
-    (assistant: AcpBackendConfig, size = 32) => {
+    (assistant: AssistantListItem, size = 32) => {
       const resolvedAvatar = assistant.avatar?.trim();
-      const hasEmojiAvatar = resolvedAvatar && isEmoji(resolvedAvatar);
-      const avatarImage = resolvedAvatar ? avatarImageMap[resolvedAvatar] : undefined;
+      const hasEmojiAvatar = Boolean(resolvedAvatar && isEmoji(resolvedAvatar));
+      const avatarImage = resolveAvatarImageSrc(resolvedAvatar);
       const iconSize = Math.floor(size * 0.5);
       const emojiSize = Math.floor(size * 0.6);
 
@@ -231,17 +311,31 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         </Avatar.Group>
       );
     },
-    [avatarImageMap, isEmoji]
+    [isEmoji, resolveAvatarImageSrc]
   );
 
-  const handleEdit = async (assistant: AcpBackendConfig) => {
+  const handleEdit = async (assistant: AssistantListItem) => {
     setIsCreating(false);
     setActiveAssistantId(assistant.id);
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
     setEditAgent(assistant.presetAgentType || 'gemini');
+    setPendingSkills([]);
+    setDeletePendingSkillName(null);
+    setDeleteCustomSkillName(null);
     setEditVisible(true);
+
+    // 扩展助手直接展示扩展内 context，不走本地规则文件
+    if (isExtensionAssistant(assistant)) {
+      setPromptViewMode('preview');
+      setEditContext(assistant.context || '');
+      setEditSkills('');
+      setAvailableSkills([]);
+      setSelectedSkills(Array.isArray(assistant.enabledSkills) ? assistant.enabledSkills : []);
+      setCustomSkills([]);
+      return;
+    }
 
     // 先加载规则、技能内容 / Load rules, skills content
     try {
@@ -297,7 +391,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   };
 
   // 复制新建助手功能 / Duplicate assistant function
-  const handleDuplicate = async (assistant: AcpBackendConfig) => {
+  const handleDuplicate = async (assistant: AssistantListItem) => {
     setIsCreating(true);
     setActiveAssistantId(null);
     setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
@@ -309,7 +403,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
     // 加载原助手的规则和技能内容 / Load original assistant's rules and skills
     try {
-      const [context, skills, skillsList] = await Promise.all([loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id), ipcBridge.fs.listAvailableSkills.invoke()]);
+      const [skillsList, context, skills] = isExtensionAssistant(assistant) ? await Promise.all([ipcBridge.fs.listAvailableSkills.invoke(), Promise.resolve(assistant.context || ''), Promise.resolve('')]) : await Promise.all([ipcBridge.fs.listAvailableSkills.invoke(), loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id)]);
+
       setEditContext(context);
       setEditSkills(skills);
       setAvailableSkills(skillsList);
@@ -330,6 +425,12 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       // 验证必填字段 / Validate required fields
       if (!editName.trim()) {
         message.error(t('settings.assistantNameRequired', { defaultValue: 'Assistant name is required' }));
+        return;
+      }
+
+      // 扩展助手为只读配置，不能直接保存覆盖
+      if (!isCreating && activeAssistant && isExtensionAssistant(activeAssistant)) {
+        message.warning(t('settings.extensionAssistantReadonly', { defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.' }));
         return;
       }
 
@@ -391,8 +492,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
         const updatedAgents = [...agents, newAssistant];
         await ConfigStorage.set('acp.customAgents', updatedAgents);
-        setAssistants(sortAssistants(updatedAgents));
         setActiveAssistantId(newId);
+        await loadAssistants();
         message.success(t('common.createSuccess', { defaultValue: 'Created successfully' }));
       } else {
         // 更新现有助手 / Update existing assistant
@@ -419,7 +520,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
         await ConfigStorage.set('acp.customAgents', updatedAgents);
-        setAssistants(sortAssistants(updatedAgents));
+        await loadAssistants();
         message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
       }
 
@@ -439,6 +540,11 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       message.warning(t('settings.cannotDeleteBuiltin', { defaultValue: 'Cannot delete builtin assistants' }));
       return;
     }
+    // 扩展助手是扩展贡献，不允许在此处删除
+    if (isExtensionAssistant(activeAssistant)) {
+      message.warning(t('settings.extensionAssistantReadonly', { defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.' }));
+      return;
+    }
     setDeleteConfirmVisible(true);
   };
 
@@ -453,10 +559,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
       await ConfigStorage.set('acp.customAgents', updatedAgents);
 
-      // Apply sorting / 应用排序
-      const sortedAssistants = sortAssistants(updatedAgents);
-      setAssistants(sortedAssistants);
-      setActiveAssistantId(sortedAssistants[0]?.id || null);
+      // Reload merged assistant list (local + extensions)
+      await loadAssistants();
       setDeleteConfirmVisible(false);
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
@@ -468,20 +572,27 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   };
 
   // Toggle assistant enabled state / 切换助手启用状态
-  const handleToggleEnabled = async (assistant: AcpBackendConfig, enabled: boolean) => {
+  const handleToggleEnabled = async (assistant: AssistantListItem, enabled: boolean) => {
+    if (isExtensionAssistant(assistant)) {
+      message.warning(t('settings.extensionAssistantReadonly', { defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.' }));
+      return;
+    }
+
     try {
       const agents = (await ConfigStorage.get('acp.customAgents')) || [];
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
       await ConfigStorage.set('acp.customAgents', updatedAgents);
 
-      // Apply sorting / 应用排序
-      setAssistants(sortAssistants(updatedAgents));
+      // Reload merged assistant list (local + extensions)
+      await loadAssistants();
       await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to toggle assistant:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };
+
+  const editAvatarImage = resolveAvatarImageSrc(editAvatar);
 
   return (
     <div>
@@ -512,52 +623,58 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             <div className='text-14px text-t-secondary mb-12px'>{t('settings.assistantsList', { defaultValue: 'Available assistants' })}</div>
             {assistants.length > 0 ? (
               <div className='space-y-12px'>
-                {assistants.map((assistant) => (
-                  <div
-                    key={assistant.id}
-                    className='group bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
-                    onClick={() => {
-                      setActiveAssistantId(assistant.id);
-                      void handleEdit(assistant);
-                    }}
-                  >
-                    <div className='flex items-center gap-12px min-w-0'>
-                      {renderAvatarGroup(assistant, 28)}
-                      <div className='min-w-0'>
-                        <div className='font-medium text-t-primary truncate'>{assistant.nameI18n?.[localeKey] || assistant.name}</div>
-                        <div className='text-12px text-t-secondary truncate'>{assistant.descriptionI18n?.[localeKey] || assistant.description || ''}</div>
+                {assistants.map((assistant) => {
+                  const assistantIsExtension = isExtensionAssistant(assistant);
+                  return (
+                    <div
+                      key={assistant.id}
+                      className='group bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
+                      onClick={() => {
+                        setActiveAssistantId(assistant.id);
+                        void handleEdit(assistant);
+                      }}
+                    >
+                      <div className='flex items-center gap-12px min-w-0'>
+                        {renderAvatarGroup(assistant, 28)}
+                        <div className='min-w-0'>
+                          <div className='font-medium text-t-primary truncate flex items-center gap-6px'>
+                            <span className='truncate'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
+                          </div>
+                          <div className='text-12px text-t-secondary truncate'>{assistant.descriptionI18n?.[localeKey] || assistant.description || ''}</div>
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-12px text-t-secondary'>
+                        <span
+                          className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDuplicate(assistant);
+                          }}
+                        >
+                          {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
+                        </span>
+                        <Switch
+                          size='small'
+                          checked={assistantIsExtension ? true : assistant.enabled !== false}
+                          disabled={assistantIsExtension}
+                          onChange={(checked) => {
+                            void handleToggleEnabled(assistant, checked);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <Button
+                          type='text'
+                          size='small'
+                          icon={<SettingOne size={16} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleEdit(assistant);
+                          }}
+                        />
                       </div>
                     </div>
-                    <div className='flex items-center gap-12px text-t-secondary'>
-                      <span
-                        className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleDuplicate(assistant);
-                        }}
-                      >
-                        {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
-                      </span>
-                      <Switch
-                        size='small'
-                        checked={assistant.enabled !== false}
-                        onChange={(checked) => {
-                          void handleToggleEnabled(assistant, checked);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <Button
-                        type='text'
-                        size='small'
-                        icon={<SettingOne size={16} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleEdit(assistant);
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className='text-center text-t-secondary py-12px'>{t('settings.assistantsEmpty', { defaultValue: 'No assistants configured.' })}</div>
@@ -596,7 +713,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         footer={
           <div className='flex items-center justify-between w-full'>
             <div className='flex items-center gap-8px'>
-              <Button type='primary' onClick={handleSave} className='w-[100px] rounded-[100px]'>
+              <Button type='primary' onClick={handleSave} disabled={!isCreating && isReadonlyAssistant} className='w-[100px] rounded-[100px]'>
                 {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
               </Button>
               <Button
@@ -608,7 +725,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 {t('common.cancel', { defaultValue: 'Cancel' })}
               </Button>
             </div>
-            {!isCreating && !activeAssistant?.isBuiltin && (
+            {!isCreating && !activeAssistant?.isBuiltin && !isExtensionAssistant(activeAssistant) && (
               <Button status='danger' onClick={handleDeleteClick} className='rounded-[100px]' style={{ backgroundColor: 'rgb(var(--danger-1))' }}>
                 {t('common.delete', { defaultValue: 'Delete' })}
               </Button>
@@ -623,29 +740,29 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 <span className='text-red-500'>*</span> {t('settings.assistantNameAvatar', { defaultValue: 'Name & Avatar' })}
               </Typography.Text>
               <div className='mt-10px flex items-center gap-12px'>
-                {activeAssistant?.isBuiltin ? (
+                {isReadonlyAssistant ? (
                   <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px'>
-                    {editAvatar && avatarImageMap[editAvatar.trim()] ? <img src={avatarImageMap[editAvatar.trim()]} alt='' width={24} height={24} style={{ objectFit: 'contain' }} /> : editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
+                    {editAvatarImage ? <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} /> : editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
                   </Avatar>
                 ) : (
                   <EmojiPicker value={editAvatar} onChange={(emoji) => setEditAvatar(emoji)} placement='br'>
                     <div className='cursor-pointer'>
                       <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px hover:bg-fill-2 transition-colors'>
-                        {editAvatar && avatarImageMap[editAvatar.trim()] ? <img src={avatarImageMap[editAvatar.trim()]} alt='' width={24} height={24} style={{ objectFit: 'contain' }} /> : editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
+                        {editAvatarImage ? <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} /> : editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
                       </Avatar>
                     </div>
                   </EmojiPicker>
                 )}
-                <Input value={editName} onChange={(value) => setEditName(value)} disabled={activeAssistant?.isBuiltin} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1 rounded-4px bg-bg-1' />
+                <Input value={editName} onChange={(value) => setEditName(value)} disabled={isReadonlyAssistant} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1 rounded-4px bg-bg-1' />
               </div>
             </div>
             <div className='flex-shrink-0'>
               <Typography.Text bold>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</Typography.Text>
-              <Input className='mt-10px rounded-4px bg-bg-1' value={editDescription} onChange={(value) => setEditDescription(value)} disabled={activeAssistant?.isBuiltin} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} />
+              <Input className='mt-10px rounded-4px bg-bg-1' value={editDescription} onChange={(value) => setEditDescription(value)} disabled={isReadonlyAssistant} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} />
             </div>
             <div className='flex-shrink-0'>
               <Typography.Text bold>{t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}</Typography.Text>
-              <Select className='mt-10px w-full rounded-4px' value={editAgent} onChange={(value) => setEditAgent(value as PresetAgentType)}>
+              <Select className='mt-10px w-full rounded-4px' value={editAgent} onChange={(value) => setEditAgent(value as string)} disabled={isReadonlyAssistant}>
                 {[
                   { value: 'gemini', label: 'Gemini CLI' },
                   { value: 'claude', label: 'Claude Code' },
@@ -660,6 +777,21 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                       {opt.label}
                     </Select.Option>
                   ))}
+                {/* Extension-contributed ACP adapters */}
+                {extensionAcpAdapters?.map((adapter) => {
+                  const id = adapter.id as string;
+                  const name = (adapter.name as string) || id;
+                  return (
+                    <Select.Option key={id} value={id}>
+                      <span className='flex items-center gap-6px'>
+                        {name}
+                        <Tag size='small' color='arcoblue'>
+                          ext
+                        </Tag>
+                      </span>
+                    </Select.Option>
+                  );
+                })}
               </Select>
             </div>
             <div className='flex-shrink-0'>
@@ -668,7 +800,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               </Typography.Text>
               {/* Prompt Edit/Preview Tabs */}
               <div className='mt-10px border border-border-2 overflow-hidden rounded-4px' style={{ height: '300px' }}>
-                {!activeAssistant?.isBuiltin && (
+                {!isReadonlyAssistant && (
                   <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
                     <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setPromptViewMode('edit')}>
                       {t('settings.promptEdit', { defaultValue: 'Edit' })}
@@ -678,8 +810,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     </div>
                   </div>
                 )}
-                <div className='bg-fill-2' style={{ height: activeAssistant?.isBuiltin ? '100%' : 'calc(100% - 36px)', overflow: 'auto' }}>
-                  {promptViewMode === 'edit' && !activeAssistant?.isBuiltin ? (
+                <div className='bg-fill-2' style={{ height: isReadonlyAssistant ? '100%' : 'calc(100% - 36px)', overflow: 'auto' }}>
+                  {promptViewMode === 'edit' && !isReadonlyAssistant ? (
                     <div ref={textareaWrapperRef} className='h-full'>
                       <Input.TextArea value={editContext} onChange={(value) => setEditContext(value)} placeholder={t('settings.assistantRulesPlaceholder', { defaultValue: 'Enter rules in Markdown format...' })} autoSize={false} className='border-none rounded-none bg-transparent h-full resize-none' />
                     </div>
@@ -690,7 +822,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               </div>
             </div>
             {/* 创建助手或编辑有 skillFiles 配置的内置助手/自定义助手时显示技能选择 / Show skills selection when creating or editing builtin assistants with skillFiles/custom assistants */}
-            {(isCreating || (activeAssistantId && hasBuiltinSkills(activeAssistantId)) || (activeAssistant && !activeAssistant.isBuiltin)) && (
+            {(isCreating || (activeAssistantId && hasBuiltinSkills(activeAssistantId)) || (activeAssistant && !activeAssistant.isBuiltin && !isExtensionAssistant(activeAssistant))) && (
               <div className='flex-shrink-0 mt-16px'>
                 <div className='flex items-center justify-between mb-12px'>
                   <Typography.Text bold>{t('settings.assistantSkills', { defaultValue: 'Skills' })}</Typography.Text>

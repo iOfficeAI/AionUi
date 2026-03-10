@@ -14,7 +14,7 @@ import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion 
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import type { IChannelPluginConfig, IChannelUser, IChannelSession, IChannelPairingRequest, IChannelUserRow, IChannelSessionRow, IChannelPairingCodeRow, PluginType, PluginStatus } from '@/channels/types';
-import type { TProviderWithModel } from '@/common/storage';
+import type { ConversationSource, TProviderWithModel } from '@/common/storage';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 import { encryptCredentials, decryptCredentials } from '@/channels/utils/credentialCrypto';
 
@@ -435,7 +435,7 @@ export class AionUIDatabase {
    * For ACP conversations, `backend` distinguishes between claude, iflow, codebuddy, etc.
    * (stored in `extra.backend` JSON field).
    */
-  findChannelConversation(source: 'aionui' | 'telegram' | 'lark' | 'dingtalk', channelChatId: string, type: string, backend?: string, userId?: string): IQueryResult<TChatConversation | null> {
+  findChannelConversation(source: ConversationSource, channelChatId: string, type: string, backend?: string, userId?: string): IQueryResult<TChatConversation | null> {
     try {
       const finalUserId = userId || this.defaultUserId;
 

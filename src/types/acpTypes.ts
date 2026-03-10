@@ -32,6 +32,9 @@ export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'c
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.18.0';
+export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
+
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
  * Check if preset agent type should be routed through ACP backend
@@ -207,6 +210,23 @@ export interface AcpBackendConfig {
   env?: Record<string, string>;
 
   /**
+   * 扩展声明的 API Key 字段列表
+   * 用户可在 Settings UI 中配置这些值，配置后作为环境变量注入到子进程
+   *
+   * API Key fields declared by extensions for user configuration in Settings UI.
+   * User-entered values are injected as environment variables when spawning the process.
+   * Example: [{ key: "MY_API_KEY", label: "API Key", type: "password", required: true }]
+   */
+  apiKeyFields?: Array<{
+    key: string;
+    label: string;
+    type: 'text' | 'password' | 'select' | 'number' | 'boolean';
+    required?: boolean;
+    options?: string[];
+    default?: string | number | boolean;
+  }>;
+
+  /**
    * 启用 ACP 模式时的参数
    * 不同 CLI 使用不同约定：
    *   - ['--experimental-acp'] 用于 claude（未指定时的默认值）
@@ -243,6 +263,7 @@ export interface AcpBackendConfig {
    * - 'gemini': 创建 Gemini 对话
    * - 'claude': 创建使用 Claude 后端的 ACP 对话
    * - 'codex': 创建 Codex 对话
+   * - 任意字符串: 扩展贡献的 ACP 适配器 ID（如 'ext-buddy'）
    * 为向后兼容默认为 'gemini'
    *
    * The primary agent type for this preset (only applies when isPreset=true).
@@ -250,9 +271,10 @@ export interface AcpBackendConfig {
    * - 'gemini': Creates a Gemini conversation
    * - 'claude': Creates an ACP conversation with Claude backend
    * - 'codex': Creates a Codex conversation
+   * - any string: Extension-contributed ACP adapter ID (e.g. 'ext-buddy')
    * Defaults to 'gemini' for backward compatibility.
    */
-  presetAgentType?: PresetAgentType;
+  presetAgentType?: PresetAgentType | string;
 
   /**
    * 此助手可用的模型列表（仅 isPreset=true 时生效）

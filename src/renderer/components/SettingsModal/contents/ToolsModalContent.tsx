@@ -29,9 +29,10 @@ const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true 
 const ModalMcpManagementSection: React.FC<{
   message: MessageInstance;
   mcpServers: IMcpServer[];
+  extensionMcpServers: IMcpServer[];
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
   isPageMode?: boolean;
-}> = ({ message, mcpServers, saveMcpServers, isPageMode }) => {
+}> = ({ message, mcpServers, extensionMcpServers, saveMcpServers, isPageMode }) => {
   const { t } = useTranslation();
   const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } = useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
@@ -205,13 +206,16 @@ const ModalMcpManagementSection: React.FC<{
       </div>
 
       <div className='flex-1 min-h-0'>
-        {visibleMcpServers.length === 0 ? (
+        {visibleMcpServers.length === 0 && extensionMcpServers.length === 0 ? (
           <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>{t('settings.mcpNoServersFound')}</div>
         ) : (
           <AionScrollArea className={classNames('max-h-360px', isPageMode && 'max-h-none')} disableOverflow={isPageMode}>
             <div className='space-y-12px'>
               {visibleMcpServers.map((server) => (
                 <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />
+              ))}
+              {extensionMcpServers.map((server) => (
+                <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={() => {}} onDeleteServer={() => {}} onToggleServer={() => Promise.resolve()} isReadOnly />
               ))}
             </div>
           </AionScrollArea>
@@ -233,7 +237,7 @@ const ToolsModalContent: React.FC = () => {
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
-  const { mcpServers, saveMcpServers } = useMcpServers();
+  const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, mcpMessage);
   const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
 
@@ -396,7 +400,7 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px flex flex-col min-h-0 border border-border-2'>
             <div className='flex-1 min-h-0'>
               <AionScrollArea className={classNames('h-full', isPageMode && 'overflow-visible')} disableOverflow={isPageMode}>
-                <ModalMcpManagementSection message={mcpMessage} mcpServers={mcpServers} saveMcpServers={saveMcpServers} isPageMode={isPageMode} />
+                <ModalMcpManagementSection message={mcpMessage} mcpServers={mcpServers} extensionMcpServers={extensionMcpServers} saveMcpServers={saveMcpServers} isPageMode={isPageMode} />
               </AionScrollArea>
             </div>
           </div>

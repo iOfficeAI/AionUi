@@ -3,6 +3,21 @@ import { DEFAULT_THEME_ID, PRESET_THEMES } from '@/renderer/components/CssThemeS
 
 export const CSS_SYNC_RECENT_UPDATE_WINDOW_MS = 2000;
 
+/**
+ * Extension themes cache.
+ * Populated by CssThemeSettings when it loads extension themes from main process.
+ * This avoids requiring async IPC calls in the sync resolution path.
+ */
+let extensionThemesCache: ICssTheme[] = [];
+
+/** Update the extension themes cache (called by CssThemeSettings after loading) */
+export const setExtensionThemesCache = (themes: ICssTheme[]): void => {
+  extensionThemesCache = themes;
+};
+
+/** Get the current extension themes cache */
+export const getExtensionThemesCache = (): ICssTheme[] => extensionThemesCache;
+
 type ComputeCssSyncDecisionParams = {
   savedCss: string;
   activeThemeId: string;
@@ -19,9 +34,15 @@ type ComputeCssSyncDecisionResult = {
 };
 
 export const resolveCssByActiveTheme = (activeThemeId: string, userThemes: ICssTheme[]): string => {
-  const allThemes = [...PRESET_THEMES, ...(userThemes || [])];
+  const allThemes = [...PRESET_THEMES, ...extensionThemesCache, ...(userThemes || [])];
   const resolvedId = activeThemeId || DEFAULT_THEME_ID;
-  return allThemes.find((theme) => theme.id === resolvedId)?.css || '';
+  const match = allThemes.find((theme) => theme.id === resolvedId);
+  if (match) return match.css || '';
+  // Theme not found (e.g., extension removed) → fall back to default theme
+  if (resolvedId !== DEFAULT_THEME_ID) {
+    return allThemes.find((theme) => theme.id === DEFAULT_THEME_ID)?.css || '';
+  }
+  return '';
 };
 
 export const computeCssSyncDecision = ({ savedCss, activeThemeId, savedThemes, currentUiCss, lastUiCssUpdateAt, now = Date.now() }: ComputeCssSyncDecisionParams): ComputeCssSyncDecisionResult => {

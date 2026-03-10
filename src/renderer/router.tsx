@@ -1,19 +1,27 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from './components/AppLoader';
 import { useAuth } from './context/AuthContext';
-import Conversation from './pages/conversation';
-import Guid from './pages/guid';
-import About from './pages/settings/About';
-import AgentSettings from './pages/settings/AgentSettings';
-import DisplaySettings from './pages/settings/DisplaySettings';
-import GeminiSettings from './pages/settings/GeminiSettings';
-import ModeSettings from './pages/settings/ModeSettings';
-import SystemSettings from './pages/settings/SystemSettings';
-import ToolsSettings from './pages/settings/ToolsSettings';
-import WebuiSettings from './pages/settings/WebuiSettings';
-import LoginPage from './pages/login';
-import ComponentsShowcase from './pages/test/ComponentsShowcase';
+
+const Conversation = React.lazy(() => import('./pages/conversation'));
+const Guid = React.lazy(() => import('./pages/guid'));
+const About = React.lazy(() => import('./pages/settings/About'));
+const AgentSettings = React.lazy(() => import('./pages/settings/AgentSettings'));
+const DisplaySettings = React.lazy(() => import('./pages/settings/DisplaySettings'));
+const GeminiSettings = React.lazy(() => import('./pages/settings/GeminiSettings'));
+const ModeSettings = React.lazy(() => import('./pages/settings/ModeSettings'));
+const SystemSettings = React.lazy(() => import('./pages/settings/SystemSettings'));
+const ToolsSettings = React.lazy(() => import('./pages/settings/ToolsSettings'));
+const WebuiSettings = React.lazy(() => import('./pages/settings/WebuiSettings'));
+const ExtensionSettingsPage = React.lazy(() => import('./pages/settings/ExtensionSettingsPage'));
+const LoginPage = React.lazy(() => import('./pages/login'));
+const ComponentsShowcase = React.lazy(() => import('./pages/test/ComponentsShowcase'));
+
+const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
+  <Suspense fallback={<AppLoader />}>
+    <Component />
+  </Suspense>
+);
 
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
@@ -35,21 +43,22 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   return (
     <HashRouter>
       <Routes>
-        <Route path='/login' element={status === 'authenticated' ? <Navigate to='/guid' replace /> : <LoginPage />} />
+        <Route path='/login' element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)} />
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
-          <Route path='/guid' element={<Guid />} />
-          <Route path='/conversation/:id' element={<Conversation />} />
-          <Route path='/settings/gemini' element={<GeminiSettings />} />
-          <Route path='/settings/model' element={<ModeSettings />} />
-          <Route path='/settings/agent' element={<AgentSettings />} />
-          <Route path='/settings/display' element={<DisplaySettings />} />
-          <Route path='/settings/webui' element={<WebuiSettings />} />
-          <Route path='/settings/system' element={<SystemSettings />} />
-          <Route path='/settings/about' element={<About />} />
-          <Route path='/settings/tools' element={<ToolsSettings />} />
+          <Route path='/guid' element={withRouteFallback(Guid)} />
+          <Route path='/conversation/:id' element={withRouteFallback(Conversation)} />
+          <Route path='/settings/gemini' element={withRouteFallback(GeminiSettings)} />
+          <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
+          <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
+          <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
+          <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
+          <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
+          <Route path='/settings/about' element={withRouteFallback(About)} />
+          <Route path='/settings/tools' element={withRouteFallback(ToolsSettings)} />
+          <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings' element={<Navigate to='/settings/gemini' replace />} />
-          <Route path='/test/components' element={<ComponentsShowcase />} />
+          <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>
