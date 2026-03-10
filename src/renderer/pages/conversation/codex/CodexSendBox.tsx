@@ -438,7 +438,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <AgentModeSelector backend='codex' conversationId={conversation_id} compact />
-            <AcpConfigSelector conversationId={conversation_id} compact />
+            <AcpConfigSelector conversationId={conversation_id} backend='codex' />
           </div>
         }
         prefix={

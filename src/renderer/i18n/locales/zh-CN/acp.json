@@ -15,5 +15,8 @@
     "disconnected": "已与 {{agent}} 断开连接",
     "error": "连接错误",
     "unknown": "未知状态"
+  },
+  "config": {
+    "reasoning_effort": "推理深度"
   }
 }

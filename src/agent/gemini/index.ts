@@ -849,52 +849,6 @@ export class GeminiAgent {
     this.abortController?.abort();
   }
 
-  /**
-   * Set the thinking level for Gemini models at runtime.
-   * Uses ModelConfigService.registerRuntimeModelOverride() to inject thinkingConfig
-   * without re-bootstrapping the agent.
-   *
-   * 在运行时设置 Gemini 模型的思考深度。
-   * 使用 ModelConfigService.registerRuntimeModelOverride() 注入 thinkingConfig，
-   * 无需重新初始化 agent。
-   *
-   * @param level - Thinking level: 'none' | 'low' | 'medium' | 'high'
-   */
-  setThinkingLevel(level: string): void {
-    if (!this.config) {
-      console.warn('[GeminiAgent] Cannot set thinking level: config not initialized');
-      return;
-    }
-
-    // Map level names to thinkingBudget token counts
-    // Using thinkingBudget (number) instead of thinkingLevel (enum) to avoid TypeScript enum type issues
-    // Values aligned with Gemini CLI defaults:
-    // - none: 0 (disabled)
-    // - low: 1024
-    // - medium: 8192 (Gemini CLI default for chat-base)
-    // - high: 32768 (deep thinking)
-    const thinkingBudgetMap: Record<string, number> = {
-      none: 0,
-      low: 1024,
-      medium: 8192,
-      high: 32768,
-    };
-
-    const budget = thinkingBudgetMap[level] ?? 8192; // Default to medium
-
-    // Register a broad override that applies to all models
-    this.config.modelConfigService.registerRuntimeModelOverride({
-      match: {}, // Match all models
-      modelConfig: {
-        generateContentConfig: {
-          thinkingConfig: { thinkingBudget: budget },
-        },
-      },
-    });
-
-    console.log(`[GeminiAgent] Set thinking level to: ${level} (budget: ${budget} tokens)`);
-  }
-
   async injectConversationHistory(text: string): Promise<void> {
     try {
       if (!this.config || !this.workspace || !this.settings) return;
