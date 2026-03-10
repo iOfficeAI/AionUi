@@ -139,8 +139,11 @@ export class ExtensionRegistry {
         try {
           await activateExtension(ext, isFirstTime);
           // Mark as installed with current version
-          state.installed = true;
-          state.lastVersion = ext.manifest.version;
+          this.extensionStates.set(ext.manifest.name, {
+            ...state,
+            installed: true,
+            lastVersion: ext.manifest.version,
+          });
         } catch (error) {
           console.error(`[Extensions] Lifecycle activation failed for "${ext.manifest.name}":`, error);
         }
@@ -185,9 +188,12 @@ export class ExtensionRegistry {
       }
     }
 
-    state.enabled = false;
-    state.disabledAt = new Date();
-    state.disabledReason = reason;
+    this.extensionStates.set(name, {
+      ...state,
+      enabled: false,
+      disabledAt: new Date(),
+      disabledReason: reason,
+    });
     console.log(`[Extensions] Disabled extension "${name}"${reason ? `: ${reason}` : ''}`);
 
     // Persist state to disk
@@ -213,9 +219,12 @@ export class ExtensionRegistry {
       return false;
     }
 
-    state.enabled = true;
-    state.disabledAt = undefined;
-    state.disabledReason = undefined;
+    this.extensionStates.set(name, {
+      ...state,
+      enabled: true,
+      disabledAt: undefined,
+      disabledReason: undefined,
+    });
 
     // Run activation lifecycle hook
     const ext = this.extensions.find((e) => e.manifest.name === name);

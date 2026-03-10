@@ -90,7 +90,7 @@ async function runLifecycleHook(extension: LoadedExtension, hookName: keyof Life
  * Runs onInstall (if first time) then onActivate hook.
  */
 export async function activateExtension(extension: LoadedExtension, isFirstTime: boolean): Promise<void> {
-  const lifecycle = (extension.manifest as any).lifecycle as LifecycleHooks | undefined;
+  const lifecycle = extension.manifest.lifecycle;
   const payload: ExtensionLifecyclePayload = {
     extensionName: extension.manifest.name,
     version: extension.manifest.version,
@@ -117,7 +117,7 @@ export async function activateExtension(extension: LoadedExtension, isFirstTime:
  * Execute the deactivation lifecycle for an extension.
  */
 export async function deactivateExtension(extension: LoadedExtension): Promise<void> {
-  const lifecycle = (extension.manifest as any).lifecycle as LifecycleHooks | undefined;
+  const lifecycle = extension.manifest.lifecycle;
   const payload: ExtensionLifecyclePayload = {
     extensionName: extension.manifest.name,
     version: extension.manifest.version,
@@ -135,7 +135,7 @@ export async function deactivateExtension(extension: LoadedExtension): Promise<v
  * Execute the uninstall lifecycle for an extension.
  */
 export async function uninstallExtension(extension: LoadedExtension): Promise<void> {
-  const lifecycle = (extension.manifest as any).lifecycle as LifecycleHooks | undefined;
+  const lifecycle = extension.manifest.lifecycle;
   const payload: ExtensionLifecyclePayload = {
     extensionName: extension.manifest.name,
     version: extension.manifest.version,
