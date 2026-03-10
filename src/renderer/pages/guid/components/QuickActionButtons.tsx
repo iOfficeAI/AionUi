@@ -101,8 +101,10 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
           <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
         </div>
         <div className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-200px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out' style={quickActionStyle(hoveredQuickAction === 'webui')} onMouseEnter={() => setHoveredQuickAction('webui')} onMouseLeave={() => setHoveredQuickAction(null)} onClick={handleOpenWebUI}>
-          <div className='w-20px h-20px flex-shrink-0 flex items-center justify-center'>
-            <Earth theme='outline' size={20} fill='currentColor' className='transition-colors duration-360' style={{ color: webuiStatus?.running ? 'rgb(var(--success-6))' : 'var(--color-text-4)' }} />
+          <div className='relative w-20px h-20px flex-shrink-0 leading-none'>
+            <div className='absolute inset-0 flex items-center justify-center'>
+              <Earth theme='outline' size={20} fill='currentColor' className='block transition-colors duration-360' style={{ color: webuiStatus?.running ? 'rgb(var(--success-6))' : 'var(--color-text-4)' }} />
+            </div>
           </div>
           <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-280px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>
             {t('settings.webui', { defaultValue: 'WebUI' })} · {webuiStatusLabel}
