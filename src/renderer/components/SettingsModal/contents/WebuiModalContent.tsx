@@ -518,7 +518,7 @@ const WebuiModalContent: React.FC = () => {
   const displayPassword = getDisplayPassword();
   const statusKind = startLoading || loading ? 'checking' : status?.running ? 'running' : status ? 'stopped' : 'unavailable';
   const statusLabel = statusKind === 'running' ? t('settings.webui.running') : statusKind === 'checking' ? t('settings.webui.starting', { defaultValue: 'Checking' }) : statusKind === 'stopped' ? t('settings.webui.enable', { defaultValue: 'Stopped' }) : t('settings.webui.operationFailed', { defaultValue: 'Unavailable' });
-  const statusPillStyle = statusKind === 'running' ? { color: 'rgb(var(--success-6))', backgroundColor: 'rgba(var(--success-6),0.16)', borderColor: 'rgba(var(--success-6),0.35)' } : statusKind === 'checking' ? { color: 'rgb(var(--primary-6))', backgroundColor: 'rgba(var(--primary-6),0.14)', borderColor: 'rgba(var(--primary-6),0.3)' } : { color: 'var(--color-text-2)', backgroundColor: 'var(--color-fill-1)', borderColor: 'var(--color-border-2)' };
+  const statusPillStyle = statusKind === 'running' ? { color: 'rgb(var(--success-6))', backgroundColor: 'var(--color-success-light-1)', borderColor: 'rgb(var(--success-3))' } : statusKind === 'checking' ? { color: 'rgb(var(--primary-6))', backgroundColor: 'var(--color-primary-light-1)', borderColor: 'rgb(var(--primary-3))' } : { color: 'var(--color-text-2)', backgroundColor: 'var(--color-fill-1)', borderColor: 'var(--color-border-2)' };
 
   // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
   if (!isDesktop) {
