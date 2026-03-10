@@ -6,7 +6,7 @@
 
 import { ConfigStorage, type IConfigStorageRefer, type IMcpServer } from '@/common/storage';
 import { acpConversation } from '@/common/ipcBridge';
-import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal } from '@arco-design/web-react';
+import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,12 +24,19 @@ const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
-const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode?: boolean }> = ({ message, isPageMode }) => {
+const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
+
+const ModalMcpManagementSection: React.FC<{
+  message: MessageInstance;
+  mcpServers: IMcpServer[];
+  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
+  isPageMode?: boolean;
+}> = ({ message, mcpServers, saveMcpServers, isPageMode }) => {
   const { t } = useTranslation();
-  const { mcpServers, saveMcpServers } = useMcpServers();
   const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } = useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
   const { oauthStatus, loggingIn, checkOAuthStatus, login } = useMcpOAuth();
+  const visibleMcpServers = useMemo(() => mcpServers.filter((server) => !isBuiltinImageGenServer(server)), [mcpServers]);
 
   const handleAuthRequired = useCallback(
     (server: IMcpServer) => {
@@ -198,12 +205,12 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode
       </div>
 
       <div className='flex-1 min-h-0'>
-        {mcpServers.length === 0 ? (
+        {visibleMcpServers.length === 0 ? (
           <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>{t('settings.mcpNoServersFound')}</div>
         ) : (
           <AionScrollArea className={classNames('max-h-360px', isPageMode && 'max-h-none')} disableOverflow={isPageMode}>
             <div className='space-y-12px'>
-              {mcpServers.map((server) => (
+              {visibleMcpServers.map((server) => (
                 <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />
               ))}
             </div>
@@ -224,8 +231,11 @@ const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
+  const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const { mcpServers, saveMcpServers } = useMcpServers();
+  const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, mcpMessage);
+  const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
@@ -260,6 +270,49 @@ const ToolsModalContent: React.FC = () => {
     void loadConfigs();
   }, []);
 
+  // Sync image generation model config to the built-in MCP server's transport.env
+  const syncMcpServerEnv = useCallback(
+    async (model: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+      const builtinServer = mcpServers.find(isBuiltinImageGenServer);
+      if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
+
+      const env: Record<string, string> = { ...(builtinServer.transport.env || {}) };
+      if (model.platform) {
+        env.AIONUI_IMG_PLATFORM = model.platform;
+      } else {
+        delete env.AIONUI_IMG_PLATFORM;
+      }
+      if (model.baseUrl) {
+        env.AIONUI_IMG_BASE_URL = model.baseUrl;
+      } else {
+        delete env.AIONUI_IMG_BASE_URL;
+      }
+      if (model.apiKey) {
+        env.AIONUI_IMG_API_KEY = model.apiKey;
+      } else {
+        delete env.AIONUI_IMG_API_KEY;
+      }
+      if (model.useModel) {
+        env.AIONUI_IMG_MODEL = model.useModel;
+      } else {
+        delete env.AIONUI_IMG_MODEL;
+      }
+
+      const updatedServer: IMcpServer = {
+        ...builtinServer,
+        transport: { ...builtinServer.transport, env },
+        updatedAt: Date.now(),
+      };
+
+      const updatedServers = mcpServers.map((s) => (s.id === BUILTIN_IMAGE_GEN_ID ? updatedServer : s));
+      await saveMcpServers(updatedServers);
+      if (updatedServer.enabled) {
+        await syncMcpToAgents(updatedServer, true);
+      }
+    },
+    [mcpServers, saveMcpServers, syncMcpToAgents]
+  );
+
   // Sync imageGenerationModel apiKey when provider apiKey changes
   useEffect(() => {
     if (!imageGenerationModel || !data) return;
@@ -276,39 +329,15 @@ const ToolsModalContent: React.FC = () => {
       ConfigStorage.set('tools.imageGenerationModel', updatedModel).catch((error) => {
         console.error('Failed to save image generation model config:', error);
       });
-      // Also sync to built-in MCP server env
       void syncMcpServerEnv(updatedModel);
     } else if (!currentProvider) {
       setImageGenerationModel(undefined);
       ConfigStorage.remove('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
+      void syncMcpServerEnv({});
     }
-  }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey]);
-
-  // Sync image generation model config to the built-in MCP server's transport.env
-  const syncMcpServerEnv = useCallback(
-    async (model: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
-      const builtinServer = mcpServers.find((s) => s.id === BUILTIN_IMAGE_GEN_ID && s.builtin === true);
-      if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
-
-      const env: Record<string, string> = { ...(builtinServer.transport.env || {}) };
-      if (model.platform) env.AIONUI_IMG_PLATFORM = model.platform;
-      if (model.baseUrl !== undefined) env.AIONUI_IMG_BASE_URL = model.baseUrl;
-      if (model.apiKey) env.AIONUI_IMG_API_KEY = model.apiKey;
-      if (model.useModel) env.AIONUI_IMG_MODEL = model.useModel;
-
-      const updatedServer: IMcpServer = {
-        ...builtinServer,
-        transport: { ...builtinServer.transport, env },
-        updatedAt: Date.now(),
-      };
-
-      const updatedServers = mcpServers.map((s) => (s.id === BUILTIN_IMAGE_GEN_ID ? updatedServer : s));
-      await saveMcpServers(updatedServers);
-    },
-    [mcpServers, saveMcpServers]
-  );
+  }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
     (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
@@ -325,6 +354,34 @@ const ToolsModalContent: React.FC = () => {
     [syncMcpServerEnv]
   );
 
+  const handleImageGenerationToggle = useCallback(
+    async (checked: boolean) => {
+      if (!builtinImageGenServer) return;
+
+      const updatedServer: IMcpServer = {
+        ...builtinImageGenServer,
+        enabled: checked,
+        updatedAt: Date.now(),
+      };
+
+      setIsUpdatingImageGeneration(true);
+      try {
+        await saveMcpServers((prevServers) => prevServers.map((server) => (isBuiltinImageGenServer(server) ? updatedServer : server)));
+
+        if (checked) {
+          await syncMcpToAgents(updatedServer, true);
+        } else {
+          await removeMcpFromAgents(updatedServer.name, undefined, updatedServer.transport.type);
+        }
+      } catch (error) {
+        console.error('Failed to toggle image generation MCP server:', error);
+      } finally {
+        setIsUpdatingImageGeneration(false);
+      }
+    },
+    [builtinImageGenServer, removeMcpFromAgents, saveMcpServers, syncMcpToAgents]
+  );
+
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
 
@@ -339,7 +396,7 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px flex flex-col min-h-0 border border-border-2'>
             <div className='flex-1 min-h-0'>
               <AionScrollArea className={classNames('h-full', isPageMode && 'overflow-visible')} disableOverflow={isPageMode}>
-                <ModalMcpManagementSection message={mcpMessage} isPageMode={isPageMode} />
+                <ModalMcpManagementSection message={mcpMessage} mcpServers={mcpServers} saveMcpServers={saveMcpServers} isPageMode={isPageMode} />
               </AionScrollArea>
             </div>
           </div>
@@ -347,6 +404,7 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <div className='flex items-center justify-between mb-16px'>
               <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
+              <Switch disabled={isUpdatingImageGeneration || !builtinImageGenServer || !imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={Boolean(builtinImageGenServer?.enabled)} onChange={handleImageGenerationToggle} />
             </div>
 
             <Divider className='mt-0px mb-20px' />
