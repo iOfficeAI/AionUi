@@ -5,7 +5,10 @@
   "autoEdit": "自動編集",
   "yolo": "全自動",
   "bypass": "チェックをバイパス",
+  "bypassPermissions": "全自動",
+  "smart": "スマート",
   "build": "ビルドモード",
+  "permission": "パーミッション",
   "switchMode": "モード切替",
   "switchSuccess": "モードを切り替えました",
   "switchFailed": "モードの切り替えに失敗しました"

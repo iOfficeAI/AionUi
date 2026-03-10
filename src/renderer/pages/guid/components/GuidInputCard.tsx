@@ -68,6 +68,9 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({ input, onInputChange, onK
       style={{
         zIndex: 1,
         transition: 'box-shadow 0.25s ease, border-color 0.25s ease, border-width 0.25s ease',
+        width: isMobile ? 'calc(100% + 28px)' : undefined,
+        marginLeft: isMobile ? -14 : undefined,
+        marginRight: isMobile ? -14 : undefined,
         ...(isFileDragging
           ? {
               backgroundColor: 'var(--color-primary-light-1)',
