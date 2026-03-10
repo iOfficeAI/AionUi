@@ -102,7 +102,6 @@ out/
 # AI CLI tool configurations (may contain sensitive information)
 **/.claude/settings.local.json
 **/.claude/settings.json
-**/.claude/commands/
 .qwen/
 .qwen/*/
 .iflow/
@@ -116,6 +115,8 @@ out/
 
 # Temporary and backup files
 *.tmp
+.tmp_*
+tmp-webui.err
 *.bak
 *.swp
 *~
@@ -134,11 +135,15 @@ Thumbs.db
 dist/
 build/
 out/
+
+# Keep extension example dist (pre-built distributable assets)
+!examples/**/dist/
 .webpack/
 
 # Debug and test files
 debug.log
 test-*.js
+!examples/**/test-*.js
 diagnose-*.js
 
 # Keep .gemini config for AI code review (but ignore local cache)
@@ -166,6 +171,11 @@ wiki/
 
 # Local design docs and screenshots
 desdoc/
+
+# E2E test artifacts (Playwright)
+tests/e2e/screenshots/
+tests/e2e/results/
+tests/e2e/report/
 
 # PowerShell accidentally creates a literal file named '$null' when a command
 # redirects output to $null (e.g. `cmd > $null`) on Windows runners.

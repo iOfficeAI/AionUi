@@ -250,6 +250,7 @@ export class PluginManager {
    * Build plugin status object
    */
   private buildPluginStatus(config: IChannelPluginConfig): IChannelPluginStatus {
+    const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
     const plugin = this.plugins.get(config.id);
     const botInfo = plugin?.getBotInfo();
 
@@ -269,6 +270,7 @@ export class PluginManager {
       activeUsers: plugin?.getActiveUserCount() ?? 0,
       botUsername: botInfo?.username,
       hasToken: hasPluginCredentials(config.type, config.credentials),
+      isExtension: !BUILTIN_TYPES.has(config.type),
     };
   }
 

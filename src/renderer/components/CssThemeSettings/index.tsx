@@ -5,6 +5,7 @@
  */
 
 import { ConfigStorage, type ICssTheme } from '@/common/storage';
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { Button, Message, Modal } from '@arco-design/web-react';
 import { EditTwo, Plus, CheckOne } from '@icon-park/react';
@@ -13,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import CssThemeModal from './CssThemeModal';
 import { PRESET_THEMES, DEFAULT_THEME_ID } from './presets';
 import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils';
+import { setExtensionThemesCache } from '@/renderer/utils/themeCssSync';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 
 const ensureBackgroundCss = <T extends { id?: string; cover?: string; css: string }>(theme: T): T => {
   // 跳过 Default 主题，不注入背景图 CSS / Skip Default theme, do not inject background CSS
@@ -71,24 +74,56 @@ const CssThemeSettings: React.FC = () => {
         // 对预设主题也应用背景图 CSS 处理 / Apply background CSS processing to preset themes as well
         const normalizedPresets = PRESET_THEMES.map((theme) => ensureBackgroundCss(theme));
 
-        // 合并预设主题和用户主题 / Merge preset themes with user themes
-        const allThemes = [...normalizedPresets, ...normalized.filter((t) => !t.isPreset)];
+        // 加载扩展主题 / Load extension-contributed themes
+        let extensionThemes: ICssTheme[] = [];
+        try {
+          const loadedExtensionThemes = await ipcBridge.extensions.getThemes.invoke();
+          // Normalize extension asset URLs for current runtime (Electron/WebUI)
+          extensionThemes = loadedExtensionThemes.map((theme) => ({
+            ...theme,
+            cover: resolveExtensionAssetUrl(theme.cover),
+          }));
+          // Update cache so themeCssSync can resolve extension themes without async IPC
+          setExtensionThemesCache(extensionThemes);
+        } catch {
+          // Extensions not available (e.g., WebUI mode or not initialized yet)
+        }
+
+        // 合并预设主题、扩展主题和用户主题，按 ID 去重（先出现的优先）
+        // Merge preset, extension, and user themes; deduplicate by ID (first occurrence wins)
+        const seenIds = new Set<string>();
+        const allThemes: ICssTheme[] = [];
+        for (const theme of [...normalizedPresets, ...extensionThemes, ...normalized.filter((t) => !t.isPreset)]) {
+          if (!theme?.id || seenIds.has(theme.id)) continue;
+          seenIds.add(theme.id);
+          allThemes.push(theme);
+        }
 
         const resolvedActiveId = activeId || DEFAULT_THEME_ID;
         const activeTheme = allThemes.find((theme) => theme.id === resolvedActiveId);
-        const expectedCss = activeTheme?.css || '';
+
+        // 如果激活主题不存在（扩展被移除等），回退到默认主题
+        // If active theme no longer exists (extension removed etc.), fall back to default
+        let effectiveActiveId = resolvedActiveId;
+        let expectedCss = activeTheme?.css || '';
+        if (!activeTheme && resolvedActiveId !== DEFAULT_THEME_ID) {
+          effectiveActiveId = DEFAULT_THEME_ID;
+          const defaultTheme = allThemes.find((t) => t.id === DEFAULT_THEME_ID);
+          expectedCss = defaultTheme?.css || '';
+          // Persist the fallback so we don't repeat this on every mount
+          await ConfigStorage.set('css.activeThemeId', effectiveActiveId);
+        }
 
         setThemes(allThemes);
-        // 如果没有保存的主题 ID，默认选择 default-theme / Default to default-theme if no saved theme ID
-        setActiveThemeId(resolvedActiveId);
+        setActiveThemeId(effectiveActiveId);
 
         // Self-heal potential split-brain state (activeThemeId != customCss) caused by partial IPC write failures.
         const savedCustomCss = (await ConfigStorage.get('customCss')) || '';
         if (savedCustomCss !== expectedCss) {
           await ConfigStorage.set('customCss', expectedCss);
+          // Only dispatch when CSS actually changed to avoid redundant re-renders
+          dispatchCustomCssUpdated(expectedCss);
         }
-        // Ensure current page visuals always align with the selected theme after loading settings.
-        dispatchCustomCssUpdated(expectedCss);
       } catch (error) {
         console.error('Failed to load CSS themes:', error);
       }

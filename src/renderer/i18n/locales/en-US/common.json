@@ -42,6 +42,7 @@
   "deleteSuccess": "Deleted successfully",
   "deleteFailed": "Failed to delete",
   "default": "Default",
+  "defaultModel": "Default Model",
   "escToCancel": "esc to cancel",
   "create": "Create",
   "createSuccess": "Created successfully",

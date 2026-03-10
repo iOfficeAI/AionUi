@@ -85,12 +85,14 @@ jobs:
       - name: Run extension system tests
         run: bunx vitest run
 
-  # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
+  # Job 3: Build + E2E test across all platforms (parallel with code-quality and unit-tests)
+  # E2E tests run inline after build (linux, macos-arm64, windows-x64) so each
+  # platform starts testing immediately without waiting for other platforms.
   build-test:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -100,26 +102,31 @@ jobs:
             arch: 'arm64'
             target: '--mac'
             build_args: '--mac --arm64'
+            unpacked_dir: 'mac-arm64'
           - platform: 'macos-x64'
             os: 'macos-14'
             arch: 'x64'
             target: '--mac'
             build_args: '--mac --x64'
+            unpacked_dir: 'mac'
           - platform: 'windows-x64'
             os: 'windows-2022'
             arch: 'x64'
             target: '--win'
             build_args: '--win --x64'
+            unpacked_dir: 'win-unpacked'
           - platform: 'windows-arm64'
             os: 'windows-2022'
             arch: 'arm64'
             target: '--win'
             build_args: '--win --arm64'
+            unpacked_dir: 'win-arm64-unpacked'
           - platform: 'linux'
             os: 'ubuntu-latest'
             arch: 'x64'
             target: '--linux'
             build_args: '--linux --x64'
+            unpacked_dir: 'linux-unpacked'
 
     steps:
       - name: Checkout code
@@ -287,9 +294,9 @@ jobs:
           Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow
 
           $candidates = @(
-            "$env:LOCALAPPDATA\Programs\AionUi\AionUi.exe",
-            "$env:ProgramFiles\AionUi\AionUi.exe",
-            "$env:ProgramFiles(x86)\AionUi\AionUi.exe"
+            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles(x86)\\AionUi\\AionUi.exe"
           )
 
           $installedExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -366,11 +373,98 @@ jobs:
 
           test -x "$INSTALLED_BIN"
 
-  # Job 4: Trigger GPT AI review (only on first PR submission)
+      - name: Upload unpacked app artifact
+        if: >-
+          matrix.platform == 'linux' ||
+          matrix.platform == 'macos-arm64' ||
+          matrix.platform == 'windows-x64'
+        uses: actions/upload-artifact@v6
+        with:
+          name: unpacked-${{ matrix.platform }}
+          path: out/${{ matrix.unpacked_dir }}/
+          retention-days: 1
+          if-no-files-found: error
+
+      # ── E2E tests (run inline after build — no waiting for other platforms) ──
+
+      - name: Install Linux display dependencies (E2E)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgbm-dev xvfb
+
+      - name: Run E2E tests (Linux)
+        if: matrix.platform == 'linux'
+        run: xvfb-run --auto-servernum just e2e-test
+        env:
+          CI: true
+          E2E_PACKAGED: '1'
+          E2E_SCREENSHOTS: '1'
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Run E2E tests (macOS)
+        if: matrix.platform == 'macos-arm64'
+        run: just e2e-test
+        env:
+          CI: true
+          E2E_PACKAGED: '1'
+          E2E_SCREENSHOTS: '1'
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Run E2E tests (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: just e2e-test
+        env:
+          CI: true
+          E2E_PACKAGED: '1'
+          E2E_SCREENSHOTS: '1'
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Upload E2E report
+        if: >-
+          always() && (
+            matrix.platform == 'linux' ||
+            matrix.platform == 'macos-arm64' ||
+            matrix.platform == 'windows-x64'
+          )
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-report-${{ matrix.platform }}
+          path: |
+            tests/e2e/report/
+            tests/e2e/results/
+            tests/e2e/screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # Job 4: Test release scripts (fast, no build required)
+  release-script-test:
+    name: Release Script Test
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create mock build artifacts
+        shell: bash
+        run: bash scripts/create-mock-release-artifacts.sh build-artifacts
+
+      - name: Run prepare-release-assets script
+        shell: bash
+        run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
+
+      - name: Validate script output
+        shell: bash
+        run: bash scripts/verify-release-assets.sh release-assets
+
+  # Job 5: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
+    needs: [code-quality, unit-tests, build-test, release-script-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -379,11 +473,11 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 5: Check if PR author is an external contributor
+  # Job 6: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
+    needs: [code-quality, unit-tests, build-test, release-script-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
@@ -409,7 +503,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 6: Trigger GPT PR assessment for external contributors
+  # Job 7: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]
