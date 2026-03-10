@@ -1042,30 +1042,7 @@ export class AcpConnection {
 
     this.sessionId = response.sessionId;
 
-    // Debug: log full session/new response for diagnosing model list issues
-    console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
-
-    // Parse configOptions and models from session/new response
-    const result = response as unknown as Record<string, unknown>;
-    if (Array.isArray(result.configOptions)) {
-      this.configOptions = result.configOptions as AcpSessionConfigOption[];
-    }
-    // Check top-level models first, then fall back to _meta.models (used by iFlow)
-    const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
-    if (modelsSource && typeof modelsSource === 'object') {
-      this.models = modelsSource as AcpSessionModels;
-    }
-
-    if (this.backend === 'codex') {
-      const unifiedModelInfo = buildAcpModelInfo(this.configOptions, this.models);
-      const modelOption = this.configOptions?.find((opt) => opt.category === 'model');
-      mainLog('[ACP codex]', 'session/new parsed model info', {
-        rawCurrentModelId: this.models?.currentModelId || null,
-        rawAvailableModelCount: this.models?.availableModels?.length || 0,
-        configOptionModelCount: modelOption && modelOption.type === 'select' && modelOption.options ? modelOption.options.length : 0,
-        unified: summarizeAcpModelInfo(unifiedModelInfo),
-      });
-    }
+    this.parseSessionCapabilities(response);
 
     return response;
   }
@@ -1092,28 +1069,35 @@ export class AcpConnection {
 
     mainLog(`[ACP ${this.backend}]`, 'session/load completed', { sessionId: this.sessionId });
 
-    // Parse configOptions and models (same logic as newSession)
-    const result = response as unknown as Record<string, unknown>;
+    this.parseSessionCapabilities(response);
+
+    return response;
+  }
+
+  /**
+   * Parse configOptions and models from a session response (session/new or session/load).
+   * Logs model info for Codex backend.
+   */
+  private parseSessionCapabilities(response: unknown): void {
+    const result = response as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
     }
+    // Check top-level models first, then fall back to _meta.models (used by iFlow)
     const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
     if (modelsSource && typeof modelsSource === 'object') {
       this.models = modelsSource as AcpSessionModels;
     }
-
     if (this.backend === 'codex') {
       const unifiedModelInfo = buildAcpModelInfo(this.configOptions, this.models);
       const modelOption = this.configOptions?.find((opt) => opt.category === 'model');
-      mainLog('[ACP codex]', 'session/load parsed model info', {
+      mainLog('[ACP codex]', 'session capabilities parsed', {
         rawCurrentModelId: this.models?.currentModelId || null,
         rawAvailableModelCount: this.models?.availableModels?.length || 0,
         configOptionModelCount: modelOption && modelOption.type === 'select' && modelOption.options ? modelOption.options.length : 0,
         unified: summarizeAcpModelInfo(unifiedModelInfo),
       });
     }
-
-    return response;
   }
 
   /**
