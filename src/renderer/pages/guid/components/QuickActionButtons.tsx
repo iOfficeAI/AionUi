@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useState } from 'react';
+import { webui, type IWebUIStatus } from '@/common/ipcBridge';
+import { Earth } from '@icon-park/react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import styles from '../index.module.css';
 
 type QuickActionButtonsProps = {
@@ -16,7 +19,49 @@ type QuickActionButtonsProps = {
 
 const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, inactiveBorderColor, activeShadow }) => {
   const { t } = useTranslation();
-  const [hoveredQuickAction, setHoveredQuickAction] = useState<'feedback' | 'repo' | null>(null);
+  const navigate = useNavigate();
+  const [hoveredQuickAction, setHoveredQuickAction] = useState<'feedback' | 'repo' | 'webui' | null>(null);
+  const [webuiStatus, setWebuiStatus] = useState<IWebUIStatus | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const loadStatus = async () => {
+      try {
+        const result = await webui.getStatus.invoke();
+        if (!alive || !result?.success || !result.data) return;
+        setWebuiStatus(result.data);
+      } catch {
+        // Ignore status loading failures in quick action area
+      }
+    };
+
+    void loadStatus();
+
+    const unsubscribe = webui.statusChanged.on((payload) => {
+      setWebuiStatus((prev) => {
+        const base: IWebUIStatus = prev ?? {
+          running: false,
+          port: payload.port || 0,
+          allowRemote: false,
+          localUrl: payload.localUrl || '',
+          networkUrl: payload.networkUrl,
+          adminUsername: 'admin',
+        };
+        return {
+          ...base,
+          running: payload.running,
+          port: payload.port ?? base.port,
+          localUrl: payload.localUrl ?? base.localUrl,
+          networkUrl: payload.networkUrl ?? base.networkUrl,
+        };
+      });
+    });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, []);
 
   const quickActionStyle = useCallback(
     (isActive: boolean) => ({
@@ -27,6 +72,16 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
     }),
     [activeShadow, inactiveBorderColor]
   );
+
+  const handleOpenWebUI = useCallback(() => {
+    if (webuiStatus?.running && webuiStatus.localUrl) {
+      onOpenLink(webuiStatus.localUrl);
+      return;
+    }
+    void navigate('/settings/webui');
+  }, [navigate, onOpenLink, webuiStatus?.localUrl, webuiStatus?.running]);
+
+  const webuiStatusLabel = webuiStatus?.running ? t('settings.webui.running', { defaultValue: 'Running' }) : t('settings.webui.enable', { defaultValue: 'Not running' });
 
   return (
     <div className={`absolute left-50% -translate-x-1/2 flex flex-col justify-center items-center ${styles.guidQuickActions}`}>
@@ -48,6 +103,15 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
             />
           </svg>
           <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
+        </div>
+        <div className='group flex items-center justify-center w-36px h-36px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:w-240px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={quickActionStyle(hoveredQuickAction === 'webui')} onMouseEnter={() => setHoveredQuickAction('webui')} onMouseLeave={() => setHoveredQuickAction(null)} onClick={handleOpenWebUI}>
+          <div className='relative flex-shrink-0'>
+            <Earth theme='outline' size={20} fill='currentColor' className='text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' />
+            <span className='absolute -top-1px -right-1px block w-7px h-7px rd-999px' style={{ backgroundColor: webuiStatus?.running ? 'rgb(var(--success-6))' : 'var(--color-text-4)' }} />
+          </div>
+          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-280px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>
+            {t('settings.webui', { defaultValue: 'WebUI' })} · {webuiStatusLabel}
+          </span>
         </div>
       </div>
     </div>
