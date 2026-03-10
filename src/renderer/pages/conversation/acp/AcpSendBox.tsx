@@ -579,7 +579,7 @@ const AcpSendBox: React.FC<{
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
             <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} />
-            <AcpConfigSelector conversationId={conversation_id} compact enableFallback />
+            <AcpConfigSelector conversationId={conversation_id} backend={backend} />
           </div>
         }
         prefix={

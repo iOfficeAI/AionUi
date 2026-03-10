@@ -6,59 +6,45 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
-import type { AcpSessionConfigOption } from '@/types/acpTypes';
+import type { AcpBackend, AcpSessionConfigOption } from '@/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Hardcoded thinking budget options for backends that don't expose
- * thought_level via ACP configOptions (e.g., Claude Code).
+ * Backends that currently support ACP configOptions (e.g., thought_level).
+ * Other backends will be added here once their ACP layer exposes config options.
  *
- * Values aligned with claudian's THINKING_BUDGETS:
- * off=0, low=4000, medium=8000, high=16000, xhigh=32000 tokens.
+ * 目前支援 ACP configOptions 的後端列表。
+ * 其他後端（如 Claude Code、OpenCode）待上游支援後再加入。
  */
-const FALLBACK_THINKING_OPTIONS: AcpSessionConfigOption = {
-  id: 'thinking_budget',
-  name: 'Thinking',
-  description: 'Control how much the model thinks before responding',
-  category: 'thought_level',
-  type: 'select',
-  currentValue: 'medium',
-  options: [
-    { value: 'off', name: 'Off' },
-    { value: 'low', name: 'Low' },
-    { value: 'medium', name: 'Medium' },
-    { value: 'high', name: 'High' },
-    { value: 'xhigh', name: 'Ultra' },
-  ],
-};
+const CONFIG_OPTION_SUPPORTED_BACKENDS: AcpBackend[] = ['codex'];
 
 /**
- * Generic config option selector for ACP agents.
- * - For backends that expose configOptions (e.g., Codex): renders them dynamically
- * - For backends that don't (e.g., Claude Code): falls back to hardcoded thinking options
+ * Dynamic config option selector for ACP agents.
  *
- * ACP 代理的通用配置选项选择器。
- * - 对暴露 configOptions 的后端（如 Codex）：动态渲染
- * - 对不暴露的后端（如 Claude Code）：使用硬编码的 thinking 选项作为 fallback
+ * Renders config options (e.g., thinking level) that the backend
+ * exposes via ACP `session/new` → `configOptions`. Only shows options
+ * for backends listed in CONFIG_OPTION_SUPPORTED_BACKENDS.
+ *
+ * ACP Agent 的動態配置選項選擇器。
+ * 僅在已確認支援的後端才會顯示 configOptions。
  */
 const AcpConfigSelector: React.FC<{
   conversationId: string;
-  compact?: boolean;
-  /** When true, show fallback thinking options if backend doesn't provide any */
-  enableFallback?: boolean;
-}> = ({ conversationId, compact: _compact, enableFallback }) => {
+  backend?: AcpBackend;
+}> = ({ conversationId, backend }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>([]);
-  const [fetchDone, setFetchDone] = useState(false);
-  const [fallbackValue, setFallbackValue] = useState<string>(FALLBACK_THINKING_OPTIONS.currentValue || 'medium');
+
+  // Skip entirely for unsupported backends
+  const isSupported = backend && CONFIG_OPTION_SUPPORTED_BACKENDS.includes(backend);
 
   // Fetch config options on mount
   useEffect(() => {
+    if (!isSupported) return;
     let cancelled = false;
-    setFetchDone(false);
     ipcBridge.acpConversation.getConfigOptions
       .invoke({ conversationId })
       .then((result) => {
@@ -66,19 +52,17 @@ const AcpConfigSelector: React.FC<{
         if (result.success && result.data?.configOptions?.length > 0) {
           setConfigOptions(result.data.configOptions);
         }
-        setFetchDone(true);
       })
-      .catch(() => {
-        if (!cancelled) setFetchDone(true);
-      });
+      .catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [conversationId]);
+  }, [conversationId, isSupported]);
 
   // Listen for config_option_update events from responseStream
   useEffect(() => {
+    if (!isSupported) return;
     const handler = (message: IResponseMessage) => {
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info') {
@@ -93,31 +77,14 @@ const AcpConfigSelector: React.FC<{
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId]);
-
-  // Merge fallback thinking options if backend doesn't provide thought_level
-  const effectiveOptions = useMemo(() => {
-    const hasThoughtLevel = configOptions.some((opt) => opt.category === 'thought_level');
-    if (!hasThoughtLevel && enableFallback && fetchDone) {
-      return [...configOptions, { ...FALLBACK_THINKING_OPTIONS, currentValue: fallbackValue }];
-    }
-    return configOptions;
-  }, [configOptions, enableFallback, fetchDone, fallbackValue]);
+  }, [conversationId, isSupported]);
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {
-      // Check if this is a fallback option (not in configOptions state)
-      const isFallback = configId === FALLBACK_THINKING_OPTIONS.id && !configOptions.some((opt) => opt.id === configId);
+      // Optimistically update UI
+      setConfigOptions((prev) => prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt)));
 
-      if (isFallback) {
-        // Update fallback state directly
-        setFallbackValue(value);
-      } else {
-        // Optimistically update UI for real config options
-        setConfigOptions((prev) => prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt)));
-      }
-
-      // Send to ACP backend (best-effort for both real and fallback options)
+      // Send to ACP backend
       ipcBridge.acpConversation.setConfigOption
         .invoke({ conversationId, configId, value })
         .then((result) => {
@@ -127,24 +94,26 @@ const AcpConfigSelector: React.FC<{
         })
         .catch((error) => {
           console.error('[AcpConfigSelector] Failed to set config option:', error);
-          if (!isFallback) {
-            // Revert on error by re-fetching (only for real options)
-            ipcBridge.acpConversation.getConfigOptions
-              .invoke({ conversationId })
-              .then((result) => {
-                if (result.success && result.data?.configOptions) {
-                  setConfigOptions(result.data.configOptions);
-                }
-              })
-              .catch(() => {});
-          }
+          // Revert on error by re-fetching
+          ipcBridge.acpConversation.getConfigOptions
+            .invoke({ conversationId })
+            .then((result) => {
+              if (result.success && result.data?.configOptions) {
+                setConfigOptions(result.data.configOptions);
+              }
+            })
+            .catch(() => {});
         });
     },
-    [conversationId, configOptions]
+    [conversationId]
   );
 
-  // Filter to only show select-type options with multiple choices
-  const selectOptions = effectiveOptions.filter((opt) => opt.type === 'select' && opt.options && opt.options.length > 1);
+  // Don't render for unsupported backends
+  if (!isSupported) return null;
+
+  // Filter: only show select-type options with multiple choices,
+  // exclude mode/model (handled by AgentModeSelector / AcpModelSelector)
+  const selectOptions = configOptions.filter((opt) => opt.type === 'select' && opt.options && opt.options.length > 1 && opt.category !== 'mode' && opt.category !== 'model');
 
   // Don't render if no options available
   if (selectOptions.length === 0) return null;
@@ -152,7 +121,8 @@ const AcpConfigSelector: React.FC<{
   return (
     <>
       {selectOptions.map((option) => {
-        const currentLabel = option.options?.find((o) => o.value === option.currentValue)?.name || option.currentValue || option.name || t('acp.config.default');
+        const currentValue = option.currentValue || option.selectedValue;
+        const currentLabel = option.options?.find((o) => o.value === currentValue)?.name || currentValue || t('acp.config.default', { defaultValue: 'Default' });
 
         return (
           <Dropdown
@@ -160,11 +130,16 @@ const AcpConfigSelector: React.FC<{
             trigger='click'
             droplist={
               <Menu>
-                {option.options?.map((choice) => (
-                  <Menu.Item key={choice.value} className={choice.value === option.currentValue ? 'bg-2!' : ''} onClick={() => handleSelectOption(option.id, choice.value)}>
-                    <span>{choice.name || choice.value}</span>
-                  </Menu.Item>
-                ))}
+                <Menu.ItemGroup title={t(`acp.config.${option.id}`, { defaultValue: option.name || 'Options' })}>
+                  {option.options?.map((choice) => (
+                    <Menu.Item key={choice.value} className={choice.value === currentValue ? 'bg-2!' : ''} onClick={() => handleSelectOption(option.id, choice.value)}>
+                      <div className='flex items-center gap-8px'>
+                        {choice.value === currentValue && <span className='text-primary'>✓</span>}
+                        <span className={choice.value !== currentValue ? 'ml-16px' : ''}>{choice.name || choice.value}</span>
+                      </div>
+                    </Menu.Item>
+                  ))}
+                </Menu.ItemGroup>
               </Menu>
             }
           >

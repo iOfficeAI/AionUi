@@ -59,9 +59,6 @@ export const geminiConversation = {
   sendMessage: conversation.sendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('input.confirm.message'),
   responseStream: conversation.responseStream,
-  // Thinking level (推理深度)
-  getThinkingLevel: bridge.buildProvider<IBridgeResponse<{ level: string }>, { conversationId: string }>('gemini.get-thinking-level'),
-  setThinkingLevel: bridge.buildProvider<IBridgeResponse<{ level: string }>, { conversationId: string; level: string }>('gemini.set-thinking-level'),
 };
 
 // CDP status interface

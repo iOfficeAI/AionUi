@@ -15,5 +15,8 @@
     "disconnected": "{{agent}} ile bağlantı kesildi",
     "error": "Bağlantı hatası",
     "unknown": "Bilinmeyen durum"
+  },
+  "config": {
+    "reasoning_effort": "Akıl Yürütme Çabası"
   }
 }
