@@ -88,6 +88,8 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
 
   const webuiStatusLabel = webuiQuickStatus === 'running' ? t('settings.webui.running', { defaultValue: 'Running' }) : webuiQuickStatus === 'checking' ? t('settings.webui.starting', { defaultValue: 'Checking' }) : webuiQuickStatus === 'error' ? t('settings.webui.operationFailed', { defaultValue: 'Unavailable' }) : t('settings.webui.enable', { defaultValue: 'Start' });
   const webuiIconColor = webuiQuickStatus === 'running' ? 'rgb(var(--success-6))' : webuiQuickStatus === 'checking' ? 'rgb(var(--primary-6))' : webuiQuickStatus === 'error' ? 'var(--color-text-3)' : 'var(--color-text-4)';
+  const webuiIconBg = webuiQuickStatus === 'running' ? 'rgba(var(--success-6), 0.18)' : webuiQuickStatus === 'checking' ? 'rgba(var(--primary-6), 0.16)' : webuiQuickStatus === 'error' ? 'rgba(120, 126, 138, 0.14)' : 'rgba(120, 126, 138, 0.1)';
+  const webuiIconRing = webuiQuickStatus === 'running' ? '0 0 0 1px rgba(var(--success-6), 0.45), 0 0 12px rgba(var(--success-6), 0.2)' : webuiQuickStatus === 'checking' ? '0 0 0 1px rgba(var(--primary-6), 0.42), 0 0 10px rgba(var(--primary-6), 0.16)' : '0 0 0 1px rgba(120, 126, 138, 0.25)';
 
   return (
     <div className={`absolute left-50% -translate-x-1/2 flex flex-col justify-center items-center ${styles.guidQuickActions}`}>
@@ -111,7 +113,13 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
           <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
         </div>
         <div className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-200px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out' style={quickActionStyle(hoveredQuickAction === 'webui')} onMouseEnter={() => setHoveredQuickAction('webui')} onMouseLeave={() => setHoveredQuickAction(null)} onClick={handleOpenWebUI}>
-          <div className='relative w-20px h-20px flex-shrink-0 leading-none'>
+          <div
+            className='relative w-20px h-20px flex-shrink-0 leading-none rd-999px'
+            style={{
+              background: webuiIconBg,
+              boxShadow: webuiIconRing,
+            }}
+          >
             <div className='absolute inset-0 flex items-center justify-center'>
               <Earth theme='outline' size={20} fill='currentColor' className='block transition-colors duration-360' style={{ color: webuiIconColor }} />
             </div>
