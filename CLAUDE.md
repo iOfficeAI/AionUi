@@ -83,6 +83,15 @@ bun run test:e2e           # E2E tests (Playwright)
 - When modifying logic, update affected existing tests
 - New source files added to feature areas must be included in coverage config (`vitest.config.ts` → `coverage.include`)
 
+## Code Quality
+
+**Run `bun run lint:fix` after editing any `.ts` / `.tsx` file** — Prettier is enforced in CI and formatting errors block merges.
+
+Common Prettier rules to follow (avoids needing a fix pass):
+- Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
+- Trailing commas required in multi-line arrays/objects
+- Single quotes for strings
+
 ## Git Conventions
 
 ### Commit Messages

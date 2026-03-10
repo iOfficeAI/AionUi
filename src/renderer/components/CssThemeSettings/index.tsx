@@ -8,7 +8,7 @@ import { ConfigStorage, type ICssTheme } from '@/common/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { Button, Message, Modal } from '@arco-design/web-react';
-import { EditTwo, Plus, CheckOne, Puzzle } from '@icon-park/react';
+import { EditTwo, Plus, CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CssThemeModal from './CssThemeModal';
@@ -314,14 +314,6 @@ const CssThemeSettings: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {/* 扩展主题标识 / Extension theme badge */}
-            {theme.id.startsWith('ext-') && (
-              <div className='absolute top-8px left-8px bg-black/40 backdrop-blur-4px rounded-4px px-4px py-2px flex items-center gap-2px'>
-                <Puzzle theme='outline' size='10' fill='#fff' />
-                <span className='text-10px text-white leading-none'>Ext</span>
-              </div>
-            )}
 
             {/* 选中标记 / Selected indicator */}
             {activeThemeId === theme.id && (
