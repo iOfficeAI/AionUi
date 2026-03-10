@@ -11,9 +11,11 @@ import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
-import { Button, Tag } from '@arco-design/web-react';
-import { Plus, Shield } from '@icon-park/react';
+import { Tag } from '@arco-design/web-react';
+import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
+import FileAttachButton from '@/renderer/components/FileAttachButton';
+import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FilePreview from '@/renderer/components/FilePreview';
@@ -25,7 +27,6 @@ import type { TokenUsageData } from '@/common/storage';
 import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
-import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
@@ -611,12 +612,7 @@ const AcpSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={openFileSelector}
-            />
+            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
             <AgentModeSelector
               backend={backend}
               conversationId={conversation_id}

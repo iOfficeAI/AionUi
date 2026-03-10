@@ -5,6 +5,42 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+
+/** Max upload size in MB — keep in sync with server-side MAX_UPLOAD_SIZE in apiRoutes.ts */
+export const MAX_UPLOAD_SIZE_MB = 30;
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+
+/**
+ * Upload a file to the server via HTTP multipart (WebUI mode).
+ * Conversation-bound uploads go to the workspace uploads directory; pre-conversation uploads go to temp storage.
+ */
+export async function uploadFileViaHttp(file: File, conversationId?: string): Promise<string> {
+  if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+    throw new Error('FILE_TOO_LARGE');
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  if (conversationId) {
+    formData.append('conversationId', conversationId);
+  }
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  if (!response.ok) {
+    if (response.status === 413) {
+      throw new Error('FILE_TOO_LARGE');
+    }
+    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+  }
+  const result = (await response.json()) as { success: boolean; data?: { path: string } };
+  if (!result.success || !result.data) {
+    throw new Error('Upload failed: server returned unsuccessful response');
+  }
+  return result.data.path;
+}
 // Simple formatBytes implementation moved from deleted updateConfig
 function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 Bytes';
@@ -184,9 +220,10 @@ export function isTextFile(fileName: string): boolean {
 
 class FileServiceClass {
   /**
-   * Process files from drag and drop events, creating temporary files for files without valid paths
+   * Process files from drag and drop events, creating temporary files for files without valid paths.
+   * In WebUI mode, uploads files via HTTP to the conversation workspace uploads directory.
    */
-  async processDroppedFiles(files: FileList): Promise<FileMetadata[]> {
+  async processDroppedFiles(files: FileList, conversationId?: string): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -196,22 +233,28 @@ class FileServiceClass {
 
       let filePath = electronFile.path || '';
 
-      // If no valid path (some dragged files may not have paths), create temporary file
+      // If no valid path (WebUI or some dragged files may not have paths), create temporary file
       if (!filePath) {
         try {
-          // Read file content
-          const arrayBuffer = await file.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-
-          // Create temporary file
-          const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName: file.name });
-          if (tempPath) {
-            await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
-            filePath = tempPath;
+          if (!isElectronDesktop()) {
+            // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
+            filePath = await uploadFileViaHttp(file, conversationId || '');
+          } else {
+            // Electron: use IPC to create temp file
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName: file.name });
+            if (tempPath) {
+              await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
+              filePath = tempPath;
+            }
           }
         } catch (error) {
+          // Re-throw size errors so caller can show user-facing toast
+          if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+            throw error;
+          }
           console.error('Failed to create temp file for dragged file:', error);
-          // Skip failed files instead of using invalid paths
           continue;
         }
       }

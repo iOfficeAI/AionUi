@@ -13,19 +13,20 @@ import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck'
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
+import FileAttachButton from '@/renderer/components/FileAttachButton';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
-import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
-import { Button, Message, Tag } from '@arco-design/web-react';
-import { Plus, Shield } from '@icon-park/react';
+import { Message, Tag } from '@arco-design/web-react';
+import { Shield } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -916,12 +917,7 @@ const GeminiSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={openFileSelector}
-            />
+            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
             <AgentModeSelector
               backend='gemini'
               conversationId={conversation_id}
