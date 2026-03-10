@@ -47,34 +47,17 @@ type GuidActionRowProps = {
 };
 
 const GuidActionRow: React.FC<GuidActionRowProps> = ({ files, onFilesUploaded, onSelectWorkspace, modelSelectorNode, selectedAgent, effectiveModeAgent, selectedMode, onModeSelect, isPresetAgent, selectedAgentInfo, customAgents, localeKey, onClosePresetTag, loading, isButtonDisabled, onSend }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
-  const isZh = i18n.language.toLowerCase().startsWith('zh');
   const modeBackend = effectiveModeAgent || selectedAgent;
-  const permissionBaseLabel = isZh ? '权限' : 'Permission';
   const modeOptions = getAgentModes(modeBackend);
   const currentModeOption = modeOptions.find((mode) => mode.value === selectedMode);
 
-  const getModeDisplayLabel = (mode: AgentModeOption): string => {
-    if (!isZh) return mode.label;
-    const map: Record<string, string> = {
-      default: '默认',
-      plan: '计划',
-      yolo: '自动执行',
-      bypassPermissions: '自动执行',
-      autoEdit: '自动编辑',
-      build: '构建',
-      smart: '智能',
-      'full auto': '全自动',
-      'auto edit': '自动编辑',
-      'auto-accept edits': '自动批准',
-    };
-    return map[mode.value] || map[mode.label.toLowerCase()] || mode.label;
-  };
+  const getModeDisplayLabel = (mode: AgentModeOption): string => t(`agentMode.${mode.value}`, { defaultValue: mode.label });
 
-  const permissionLabel = currentModeOption ? (isMobile ? getModeDisplayLabel(currentModeOption) : `${permissionBaseLabel} · ${getModeDisplayLabel(currentModeOption)}`) : permissionBaseLabel;
+  const permissionLabel = currentModeOption ? (isMobile ? getModeDisplayLabel(currentModeOption) : `${t('agentMode.permission')} · ${getModeDisplayLabel(currentModeOption)}`) : t('agentMode.permission');
 
   return (
     <div className={styles.actionRow}>

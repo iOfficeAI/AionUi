@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { iconColors } from '@/renderer/theme/colors';
-import { buildDefaultModelLabel, getModelDisplayLabel, isZhLocale } from '@/renderer/utils/agentUiDisplay';
+import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
@@ -32,11 +32,9 @@ type GuidModelSelectorProps = {
 };
 
 const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, modelList, currentModel, setCurrentModel, geminiModeLookup, currentAcpCachedModelInfo, selectedAcpModel, setSelectedAcpModel }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const isZh = isZhLocale(i18n.language);
-  const modelLabel = t('settings.model', { defaultValue: 'Model' });
-  const defaultModelLabel = buildDefaultModelLabel(isZh, t('common.default', { defaultValue: 'Default' }), modelLabel);
+  const defaultModelLabel = t('common.defaultModel');
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());

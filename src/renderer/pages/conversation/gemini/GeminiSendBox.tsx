@@ -24,7 +24,6 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
-import { formatModeDisplayLabel, isZhLocale } from '@/renderer/utils/agentUiDisplay';
 import { Button, Message, Tag } from '@arco-design/web-react';
 import { Plus, Shield } from '@icon-park/react';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
@@ -437,9 +436,7 @@ const GeminiSendBox: React.FC<{
   modelSelection: GeminiModelSelection;
 }> = ({ conversation_id, modelSelection }) => {
   const [workspacePath, setWorkspacePath] = useState('');
-  const { t, i18n } = useTranslation();
-  const isZh = isZhLocale(i18n.language);
-  const permissionBaseLabel = isZh ? '权限' : 'Permission';
+  const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const quotaPromptedRef = useRef<string | null>(null);
   const exhaustedModelsRef = useRef(new Set<string>());
@@ -857,7 +854,7 @@ const GeminiSendBox: React.FC<{
         tools={
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend='gemini' conversationId={conversation_id} compact compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => formatModeDisplayLabel(mode.value, mode.label, isZh)} compactLabelPrefix={permissionBaseLabel} hideCompactLabelPrefixOnMobile />
+            <AgentModeSelector backend='gemini' conversationId={conversation_id} compact compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })} compactLabelPrefix={t('agentMode.permission')} hideCompactLabelPrefixOnMobile />
           </div>
         }
         sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}

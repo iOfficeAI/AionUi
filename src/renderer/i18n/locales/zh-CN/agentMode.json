@@ -5,7 +5,10 @@
   "autoEdit": "自动编辑",
   "yolo": "全自动",
   "bypass": "绕过检查",
+  "bypassPermissions": "全自动",
+  "smart": "智能",
   "build": "构建模式",
+  "permission": "权限",
   "switchMode": "切换模式",
   "switchSuccess": "模式切换成功",
   "switchFailed": "模式切换失败"
