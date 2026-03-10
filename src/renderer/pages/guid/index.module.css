@@ -105,7 +105,6 @@
     width: 100%;
   }
 
-
   .actionRow {
     flex-wrap: nowrap;
     gap: 8px;
@@ -142,7 +141,6 @@
     width: clamp(var(--app-min-width, 360px), calc(100% - 20px), 100%);
     padding: 0 10px;
   }
-
 }
 
 /* 移动端容器滚动支持 */
