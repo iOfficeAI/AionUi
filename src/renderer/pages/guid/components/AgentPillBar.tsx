@@ -54,7 +54,6 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({ availableAgents, selectedAg
               <React.Fragment key={getAgentKey(agent)}>
                 {!isMobile && index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
                 <div data-agent-pill='true' data-agent-key={getAgentKey(agent)} data-agent-backend={agent.backend} data-agent-selected={isSelected ? 'true' : 'false'} className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`} style={isSelected ? (isMobile ? { animation: 'none', transition: 'opacity 0.2s ease, background-color 0.2s ease' } : undefined) : { transition: 'opacity 0.2s ease' }} onClick={() => onSelectAgent(getAgentKey(agent))}>
-
                   {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />}
                   <span
                     className={`font-medium text-14px ${isSelected ? 'font-semibold ml-4px' : isMobile ? 'max-w-0 opacity-0 overflow-hidden' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
