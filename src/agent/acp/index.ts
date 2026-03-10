@@ -78,6 +78,8 @@ export interface AcpAgentConfig {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** Display name for the agent (from extension or custom config) / Agent 显示名称 */
+    agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
@@ -102,6 +104,8 @@ export class AcpAgent {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** Display name for the agent (from extension or custom config) / Agent 显示名称 */
+    agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
@@ -220,7 +224,20 @@ export class AcpAgent {
 
       const connectStart = Date.now();
       try {
-        await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
+        const tryConnect = async () => {
+          await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
+        };
+
+        try {
+          await tryConnect();
+        } catch (firstError) {
+          // Transient startup failures (env race / process warmup) are common on first try.
+          // Retry once after a short backoff to reduce "need multiple clicks to connect".
+          console.warn('[ACP] First connect attempt failed, retrying once:', firstError instanceof Error ? firstError.message : String(firstError));
+          await this.connection.disconnect();
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          await tryConnect();
+        }
       } finally {
         if (connectTimeoutId) {
           clearTimeout(connectTimeoutId);
@@ -982,6 +999,7 @@ export class AcpAgent {
       content: {
         backend: this.extra.backend,
         status,
+        agentName: this.extra.agentName,
       },
     };
 

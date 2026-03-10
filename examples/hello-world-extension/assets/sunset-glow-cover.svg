@@ -1,0 +1,29 @@
+<svg width="360" height="224" viewBox="0 0 360 224" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sunset-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A0533"/>
+      <stop offset="25%" stop-color="#6A1B4D"/>
+      <stop offset="50%" stop-color="#E74C3C"/>
+      <stop offset="75%" stop-color="#F39C12"/>
+      <stop offset="100%" stop-color="#FFD93D"/>
+    </linearGradient>
+    <radialGradient id="sun-glow" cx="50%" cy="65%" r="35%">
+      <stop offset="0%" stop-color="#FFD93D" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#F39C12" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#E74C3C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="360" height="224" fill="url(#sunset-sky)"/>
+  <!-- Sun glow -->
+  <circle cx="180" cy="145" r="120" fill="url(#sun-glow)"/>
+  <!-- Sun -->
+  <circle cx="180" cy="150" r="28" fill="#FFD93D" opacity="0.9"/>
+  <circle cx="180" cy="150" r="22" fill="#FFF176"/>
+  <!-- Horizon clouds -->
+  <ellipse cx="90" cy="130" rx="60" ry="10" fill="#E74C3C" opacity="0.3"/>
+  <ellipse cx="280" cy="125" rx="50" ry="8" fill="#E74C3C" opacity="0.25"/>
+  <ellipse cx="180" cy="120" rx="80" ry="6" fill="#6A1B4D" opacity="0.2"/>
+  <!-- Ground/silhouette -->
+  <path d="M0,170 Q30,160 60,168 Q90,176 120,165 Q150,155 180,162 Q210,170 240,160 Q270,152 300,163 Q330,174 360,165 L360,224 L0,224 Z" fill="#1A0533" opacity="0.7"/>
+  <rect x="0" y="185" width="360" height="39" fill="#1A0533" opacity="0.85"/>
+</svg>

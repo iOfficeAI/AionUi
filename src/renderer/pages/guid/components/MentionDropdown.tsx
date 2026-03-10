@@ -5,6 +5,7 @@
  */
 
 import type { MentionOption } from '../types';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { Menu } from '@arco-design/web-react';
 import { Robot } from '@icon-park/react';
 import React from 'react';
@@ -27,8 +28,9 @@ const MentionDropdown: React.FC<MentionDropdownProps> = ({ menuRef, options, sel
           options.map((option, index) => (
             <Menu.Item key={option.key} data-mention-index={index}>
               <div className='flex items-center gap-8px'>
-                {option.avatarImage ? <img src={option.avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
+                {option.avatarImage ? <img src={resolveExtensionAssetUrl(option.avatarImage)} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
                 <span>{option.label}</span>
+                {option.isExtension && <span className='text-[10px] leading-none px-4px py-2px rd-8px bg-[var(--color-primary)] text-white'>Ext</span>}
               </div>
             </Menu.Item>
           ))

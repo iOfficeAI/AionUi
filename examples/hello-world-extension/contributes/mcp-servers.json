@@ -1,0 +1,21 @@
+[
+  {
+    "name": "hello-echo-mcp",
+    "description": "A demo MCP server using stdio transport",
+    "transport": {
+      "type": "stdio",
+      "command": "echo",
+      "args": ["hello-mcp"]
+    },
+    "enabled": true
+  },
+  {
+    "name": "hello-http-mcp",
+    "description": "A demo MCP server using HTTP transport",
+    "transport": {
+      "type": "http",
+      "url": "http://localhost:9090/mcp"
+    },
+    "enabled": false
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "tab": {
+    "e2e-settings": "E2E 설정",
+    "e2e-before-about": "E2E 정보 앞"
+  },
+  "page": {
+    "title": "E2E 확장 설정",
+    "endpoint": "테스트 엔드포인트",
+    "timeout": "요청 타임아웃 (밀리초)",
+    "mode": "테스트 모드",
+    "mode-mock": "모의",
+    "mode-live": "라이브",
+    "info": "이 페이지는 E2E 전체 테스트 확장에서 제공하는 데모 설정 페이지입니다."
+  }
+}
