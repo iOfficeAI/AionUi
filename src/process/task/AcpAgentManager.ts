@@ -80,6 +80,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.currentMode = data.sessionMode || 'default';
     this.persistedModelId = data.currentModelId || null;
     this.status = 'pending';
+    // Sync yoloMode from sessionMode so addConfirmation auto-approves when Full Auto is selected
+    this.yoloMode = this.yoloMode || this.currentMode === 'yolo' || this.currentMode === 'bypassPermissions';
   }
 
   private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
@@ -200,8 +202,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             claude: 'bypassPermissions',
             qwen: 'yolo',
             iflow: 'yolo',
+            codex: 'yolo',
           };
           this.currentMode = yoloModeValues[data.backend] || 'yolo';
+          this.yoloMode = true;
         }
 
         // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
@@ -837,6 +841,21 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * @returns Promise that resolves with success status and current mode
    */
   async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    // Codex (via codex-acp bridge) does not support ACP session/set_mode — it uses MCP
+    // and manages approval at the Manager layer. Update local state only to avoid
+    // "Invalid params" JSON-RPC error from the bridge.
+    if (this.options.backend === 'codex') {
+      const prev = this.currentMode;
+      this.currentMode = mode;
+      this.yoloMode = this.isYoloMode(mode);
+      this.saveSessionMode(mode);
+
+      if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
+        void this.clearLegacyYoloConfig();
+      }
+      return { success: true, data: { mode: this.currentMode } };
+    }
+
     // If agent is not initialized, try to initialize it first
     // 如果 agent 未初始化，先尝试初始化
     if (!this.agent) {
@@ -857,6 +876,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (result.success) {
       const prev = this.currentMode;
       this.currentMode = mode;
+      this.yoloMode = this.isYoloMode(mode);
       this.saveSessionMode(mode);
 
       // Sync legacy yoloMode config: when leaving yolo mode, clear the old
