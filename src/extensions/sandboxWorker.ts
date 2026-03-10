@@ -5,19 +5,24 @@
  */
 
 /**
- * Sandbox Worker Script — runs inside a Worker Thread.
+ * Extension Worker Script — runs inside a Worker Thread.
  *
  * This script:
  * 1. Receives extension config via workerData
- * 2. Sets up a restricted environment
- * 3. Loads and executes the extension entry point
+ * 2. Exposes a restricted `aion` API proxy to the extension
+ * 3. Loads and executes the extension entry point via native require
  * 4. Proxies communication via structured messages
  *
- * Security boundaries:
- * - No direct access to Electron APIs
- * - No access to IPC bridge
- * - Restricted fs/net based on declared permissions
- * - All API calls proxied through message port
+ * Current isolation model:
+ * - Extension code runs with full Worker Thread privileges (Node.js built-ins accessible)
+ * - Electron main-process APIs are not directly accessible (different process/thread)
+ * - The `aion` proxy provides a structured communication channel to the main thread
+ * - Declared permissions in the manifest are NOT enforced at runtime — they are
+ *   informational only and used for UI display purposes
+ *
+ * TODO: Enforce declared permissions at runtime (e.g. via vm.runInNewContext +
+ * custom require proxy, or Node.js --experimental-permission flag) to prevent
+ * extensions from accessing undeclared Node.js APIs.
  */
 
 import { parentPort, workerData } from 'worker_threads';

@@ -27,6 +27,7 @@ bun run test               # Run all tests (run before every commit)
 bun run test:watch         # Watch mode
 bun run test:coverage      # Coverage report
 bun run test:integration   # Integration tests only
+bun run test:e2e           # E2E tests (Playwright)
 ```
 
 ## Code Conventions
@@ -70,6 +71,7 @@ bun run test:integration   # Integration tests only
 - `tests/unit/` - Individual functions, utilities, components
 - `tests/integration/` - IPC, database, service interactions
 - `tests/regression/` - Regression test cases
+- `tests/e2e/` - End-to-end tests (Playwright, `playwright.config.ts`)
 
 **Two test environments**:
 - `node` (default) - main process, utilities, services

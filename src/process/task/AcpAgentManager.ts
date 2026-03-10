@@ -90,10 +90,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     const key = this.makeStreamBufferKey(message);
     const existing = this.bufferedStreamTextMessages.get(key);
     if (existing) {
-      existing.message.content = {
-        ...existing.message.content,
-        content: existing.message.content.content + message.content.content,
-      };
+      this.bufferedStreamTextMessages.set(key, {
+        ...existing,
+        message: {
+          ...existing.message,
+          content: {
+            ...existing.message.content,
+            content: existing.message.content.content + message.content.content,
+          },
+        },
+      });
       return;
     }
 
