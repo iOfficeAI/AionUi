@@ -85,13 +85,9 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                 id,
                 createTime: Date.now(),
                 modifyTime: Date.now(),
-                // 清除 ACP session 相关字段，确保新会话不继承旧会话的上下文
-                extra: {
-                  ...source.extra,
-                  acpSessionId: undefined,
-                  acpSessionUpdatedAt: undefined,
-                },
-              },
+                // Clear ACP session fields to prevent new conversation from inheriting old session context
+                extra: source.type === 'acp' ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined } : source.extra,
+              } as TChatConversation,
             })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
