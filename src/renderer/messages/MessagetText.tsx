@@ -56,8 +56,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
     const rawContent = message.content.content;
-    if (typeof rawContent === 'string') {
-      return hasThinkTags(rawContent) ? stripThinkTags(rawContent) : rawContent;
+    if (typeof rawContent === 'string' && hasThinkTags(rawContent)) {
+      return stripThinkTags(rawContent);
     }
     return rawContent;
   }, [message.content.content]);
@@ -129,7 +129,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
               <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
             </CollapsibleContent>
           ) : (
-            <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{text}</MarkdownView>
+            <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
         </div>
         <div
