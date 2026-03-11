@@ -133,7 +133,7 @@ const ConversationTabs: React.FC = () => {
           return;
         }
 
-        // 创建新会话，复制当前会话的配置和标题
+        // Create new conversation, copying config from current conversation
         const newId = uuid();
         const newConversation = {
           ...currentConversation,
@@ -141,13 +141,9 @@ const ConversationTabs: React.FC = () => {
           name: t('conversation.welcome.newConversation'), // Default title for new session
           createTime: Date.now(),
           modifyTime: Date.now(),
-          // 清除 ACP session 相关字段，确保新会话不继承旧会话的上下文
-          extra: {
-            ...currentConversation.extra,
-            acpSessionId: undefined,
-            acpSessionUpdatedAt: undefined,
-          },
-        };
+          // Clear ACP session fields to prevent new conversation from inheriting old session context
+          extra: currentConversation.type === 'acp' ? { ...currentConversation.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined } : currentConversation.extra,
+        } as TChatConversation;
 
         void ipcBridge.conversation.createWithConversation
           .invoke({
