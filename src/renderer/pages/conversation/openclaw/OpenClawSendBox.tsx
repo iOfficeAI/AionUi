@@ -296,7 +296,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         updates: {
           extra: {
             starOfficeInstallMode: false,
-            starOfficeInstallModePrimed: false,
           },
         },
         mergeExtra: true,
@@ -482,7 +481,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
-      const extra = (res.extra as { starOfficeInstallMode?: boolean; starOfficeInstallModePrimed?: boolean }) || {};
+      const extra = (res.extra as { starOfficeInstallMode?: boolean }) || {};
       const shouldKeepInstallMode = Boolean(extra.starOfficeInstallMode) && res.status === 'running';
       setStarOfficeInstallMode(shouldKeepInstallMode);
       if (shouldKeepInstallMode) {
@@ -496,7 +495,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           updates: {
             extra: {
               starOfficeInstallMode: false,
-              starOfficeInstallModePrimed: false,
             },
           },
           mergeExtra: true,
@@ -689,7 +687,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           updates: {
             extra: {
               starOfficeInstallMode: true,
-              starOfficeInstallModePrimed: false,
             },
           },
           mergeExtra: true,

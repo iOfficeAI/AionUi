@@ -42,6 +42,36 @@ Guide users from zero to usable visualization integration in Aion. Prefer Star-O
   - maintenance signals (recent commits/issues activity)
   - risk notes
 
+## Install Mode Rules
+
+When the user triggers one-stop install/repair (e.g. via the TV icon), follow these rules:
+
+- Star Office UI is a THIRD-PARTY local project. It is NOT built-in to Aion/OpenClaw and NOT a required core service.
+- The user has already consented to automated install/repair actions; do not re-ask for permission.
+- Stay focused on installing, starting, detecting, repairing, uninstalling, and reconnecting Star Office UI.
+- Do not ask the user to manually type shell commands unless OS-level permission requires user action.
+- After each major step, tell the user whether they can click the TV icon to verify live monitor.
+- Stream concise progress updates in real time. At minimum output one short line before and after each major step.
+
+### Verification Rules (Strict)
+
+- Treat Star Office as running **only** if at least one strict signal matches:
+  1. Local port 19000 is listening, OR
+  2. Health endpoint responds from candidate URL, OR
+  3. Process command/path clearly points to Star-Office-UI repo/backend.
+- If strict signals are absent, report Star Office as not running/uninstalled; do not claim residual runtime based only on generic Python workers.
+- Do NOT treat generic `python`/`python3` processes as Star Office residuals unless their command/path explicitly references Star-Office-UI or its backend app.
+- Do NOT claim "openclaw-gateway/Aion auto-restarts Star Office app.py" unless you have explicit evidence from process parent chain, Aion config, or logs in this session.
+- Never claim Star Office is "built-in", "bound to Aion", or "cannot be independently uninstalled" without explicit product evidence from this repo.
+
+### Install Workflow
+
+1. Run environment check first.
+2. If missing/broken, install or repair automatically.
+3. Start service and detect local URL/port.
+4. If issues (unauthorized/port conflict), troubleshoot and retry.
+5. End with concrete verification step via TV icon.
+
 ## Ground Rules
 
 - Do not use `pip --break-system-packages` unless user explicitly asks for system-wide install.

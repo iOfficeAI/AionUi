@@ -21,20 +21,6 @@ import { stripThinkTags, hasThinkTags } from '../utils/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
 
 const STAR_OFFICE_CARD_MARKER = '[STAROFFICE_CARD]';
-const INTERNAL_RULE_BLOCK_PATTERNS: Array<RegExp> = [
-  /\[Assistant Rules[\s\S]*?\[User Request\]\s*/gi,
-  /\[INTERNAL STAR OFFICE MODE[\s\S]*?\[User Request\]\s*/gi,
-  /\[Available Skills\][\s\S]*?(?=\n## |\n### |\n[A-Z\u4e00-\u9fa5].*|$)/gi,
-  /Skill:\s*star-office-helper[\s\S]*?(?=\n## |\n### |\n[A-Z\u4e00-\u9fa5].*|$)/gi,
-];
-
-const sanitizeInternalRuleLeakage = (content: string) => {
-  let sanitized = content;
-  for (const pattern of INTERNAL_RULE_BLOCK_PATTERNS) {
-    sanitized = sanitized.replace(pattern, '');
-  }
-  return sanitized.trim();
-};
 
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
@@ -73,8 +59,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const contentToRender = useMemo(() => {
     const rawContent = message.content.content;
     if (typeof rawContent === 'string') {
-      const noThink = hasThinkTags(rawContent) ? stripThinkTags(rawContent) : rawContent;
-      return sanitizeInternalRuleLeakage(noThink);
+      return hasThinkTags(rawContent) ? stripThinkTags(rawContent) : rawContent;
     }
     return rawContent;
   }, [message.content.content]);
