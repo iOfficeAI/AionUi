@@ -87,6 +87,8 @@ bun run test:e2e           # E2E tests (Playwright)
 
 **Run `bun run lint:fix` after editing any `.ts` / `.tsx` file** — Prettier is enforced in CI and formatting errors block merges.
 
+**Run `bunx tsc --noEmit` to verify there are no type errors** — TypeScript strict mode is enabled and type errors block merges.
+
 Common Prettier rules to follow (avoids needing a fix pass):
 - Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
 - Trailing commas required in multi-line arrays/objects
