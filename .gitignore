@@ -186,3 +186,4 @@ $null
 vx.lock
 vx.toml
 .taichuy/
+.worktrees/

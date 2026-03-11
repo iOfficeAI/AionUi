@@ -79,7 +79,16 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
           const source = latest || conversation;
           ipcBridge.conversation.createWithConversation
-            .invoke({ conversation: { ...source, id, createTime: Date.now(), modifyTime: Date.now() } })
+            .invoke({
+              conversation: {
+                ...source,
+                id,
+                createTime: Date.now(),
+                modifyTime: Date.now(),
+                // Clear ACP session fields to prevent new conversation from inheriting old session context
+                extra: source.type === 'acp' ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined } : source.extra,
+              } as TChatConversation,
+            })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
                 console.error('Navigation failed:', error);
