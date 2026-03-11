@@ -7,6 +7,34 @@ description: Install, start, connect, and troubleshoot visualization companion p
 
 Guide users from zero to usable visualization integration in Aion. Prefer Star-Office-UI first, then provide alternatives only when requested or when Star Office does not fit.
 
+## What is Star Office
+
+Star Office UI is a **third-party open-source** local visualization companion for OpenClaw / Aion.
+
+- Project: <https://github.com/ringhyacinth/Star-Office-UI>
+- It turns chat-side agent status (idle / writing / researching / executing / syncing / error) into a live, interactive office-themed monitor view.
+- It is **not** built-in to Aion — it runs as a separate local service (default `http://127.0.0.1:19000`).
+- OpenClaw works independently without Star Office; Star Office only animates when its own backend+frontend and event bridge are active.
+
+**Capabilities when connected:**
+- Real-time visualization of conversation state changes
+- Interactive office scene that reflects agent activity
+- Live monitor accessible via the TV icon in the chat header
+
+When a user asks "what is Star Office" or triggers the install flow, introduce it clearly with the above context before proceeding.
+
+## Connection Guidance
+
+When Star Office is **already detected** on the local machine:
+1. Confirm the detected URL (e.g. `http://127.0.0.1:19000`).
+2. Guide the user to click the TV icon in the chat header to open the live monitor.
+3. Explain available interactions: real-time status view, office scene animation.
+4. If connection fails despite detection, enter troubleshooting (check port, process, auth, logs).
+
+When Star Office is **not detected**:
+1. Follow the Install Workflow below.
+2. After install completes, guide the user to verify via the TV icon.
+
 ## Workflow
 
 1. Confirm objective:
@@ -66,11 +94,14 @@ When the user triggers one-stop install/repair (e.g. via the TV icon), follow th
 
 ### Install Workflow
 
-1. Run environment check first.
-2. If missing/broken, install or repair automatically.
-3. Start service and detect local URL/port.
-4. If issues (unauthorized/port conflict), troubleshoot and retry.
-5. End with concrete verification step via TV icon.
+Each step should include a short progress message so the user knows what is happening.
+
+1. **Checking environment** — Run doctor script, report findings.
+2. **Installing / repairing** — Clone repo, create venv, install deps. Report success or failure.
+3. **Starting service** — Launch backend and frontend. Report when both are running.
+4. **Detecting port** — Verify `http://127.0.0.1:19000/health` responds. Report detected URL.
+5. **Troubleshooting** (if needed) — Diagnose unauthorized, port conflict, missing process. Auto-fix and retry.
+6. **Completed** — Confirm service is reachable. Guide the user to click the TV icon to verify the live monitor.
 
 ## Ground Rules
 
