@@ -91,7 +91,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                   acpSessionId: undefined,
                   acpSessionUpdatedAt: undefined,
                 },
-              }
+              },
             })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
