@@ -63,7 +63,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const [editAvatar, setEditAvatar] = useState('');
   // editAgent holds either a built-in PresetAgentType or an extension adapter ID (e.g. "ext-buddy")
   const [editAgent, setEditAgent] = useState<string>('gemini');
-  const [editSkills, setEditSkills] = useState('');
+  const [_editSkills, setEditSkills] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [promptViewMode, setPromptViewMode] = useState<'edit' | 'preview'>('preview');
@@ -834,7 +834,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 {/* Skills 折叠面板 / Skills Collapse */}
                 <Collapse defaultActiveKey={['custom-skills']}>
                   {/* 通过 Add Skills 添加的 Skills / Custom Skills (Pending + Imported) */}
-                  <Collapse.Item header={<span className='text-13px font-medium'>{t('settings.customSkills', { defaultValue: 'Imported Skills (Library)' })}</span>} name='custom-skills' className='mb-8px' extra={<span className='text-12px text-t-secondary'>{pendingSkills.length + availableSkills.filter((skill) => skill.isCustom).length}</span>}>
+                  <Collapse.Item header={<span className='text-13px font-medium'>{t('settings.customSkills', { defaultValue: 'Imported Skills (Library)' })}</span>} name='custom-skills' className='mb-8px' extra={<span className='text-12px text-t-secondary'>{pendingSkills.length + availableSkills.filter((skill) => skill.isCustom && customSkills.includes(skill.name)).length}</span>}>
                     <div className='space-y-4px'>
                       {/* 待导入的 skills (Pending) / Pending skills (not yet imported) */}
                       {pendingSkills.map((skill) => (
@@ -869,9 +869,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                           </button>
                         </div>
                       ))}
-                      {/* 所有已导入的 custom skills / All imported custom skills */}
+                      {/* 此助手关联的 custom skills / Custom skills associated with this assistant */}
                       {availableSkills
-                        .filter((skill) => skill.isCustom)
+                        .filter((skill) => skill.isCustom && customSkills.includes(skill.name))
                         .map((skill) => (
                           <div key={`custom-${skill.name}`} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px group'>
                             <Checkbox
@@ -906,7 +906,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             </button>
                           </div>
                         ))}
-                      {pendingSkills.length === 0 && availableSkills.filter((skill) => skill.isCustom).length === 0 && <div className='text-center text-t-secondary text-12px py-16px'>{t('settings.noCustomSkills', { defaultValue: 'No custom skills added' })}</div>}
+                      {pendingSkills.length === 0 && availableSkills.filter((skill) => skill.isCustom && customSkills.includes(skill.name)).length === 0 && <div className='text-center text-t-secondary text-12px py-16px'>{t('settings.noCustomSkills', { defaultValue: 'No custom skills added' })}</div>}
                     </div>
                   </Collapse.Item>
 
@@ -1128,6 +1128,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       >
         <p>
           {t('settings.deletePendingSkillConfirm', {
+            name: deletePendingSkillName,
             defaultValue: `Are you sure you want to remove "${deletePendingSkillName}"? This skill has not been imported yet.`,
           })}
         </p>
@@ -1162,6 +1163,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       >
         <p>
           {t('settings.removeCustomSkillConfirm', {
+            name: deleteCustomSkillName,
             defaultValue: `Are you sure you want to remove "${deleteCustomSkillName}" from this assistant?`,
           })}
         </p>
