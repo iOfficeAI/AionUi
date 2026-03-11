@@ -69,10 +69,17 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { getJobStatus } = useCronJobsMap();
+  const { getJobStatus, markAsRead } = useCronJobsMap();
   const siderTooltipProps = getSiderTooltipProps(collapsed && !isMobile);
 
   useScrollIntoView(id);
+
+  // Mark conversation as read when id changes
+  useEffect(() => {
+    if (id) {
+      markAsRead(id);
+    }
+  }, [id, markAsRead]);
 
   const handleSelect = (conversation: TChatConversation) => {
     cleanupSiderTooltips();

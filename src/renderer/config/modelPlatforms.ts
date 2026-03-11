@@ -35,6 +35,7 @@ import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
 import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
 import MiniMaxLogo from '@/renderer/assets/logos/minimax.png';
 import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
+import PPIOLogo from '@/renderer/assets/logos/ppio.svg';
 
 /**
  * 平台类型
@@ -102,6 +103,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'Hunyuan', value: 'Hunyuan', logo: TencentLogo, platform: 'custom', baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1' },
   { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', baseUrl: 'https://api.lingyiwanwu.com/v1' },
   { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', baseUrl: 'https://api.poe.com/v1' },
+  { name: 'PPIO', value: 'PPIO', logo: PPIOLogo, platform: 'custom', baseUrl: 'https://api.ppinfra.com/v3/openai' },
   { name: 'ModelScope', value: 'ModelScope', logo: ModelScopeLogo, platform: 'custom', baseUrl: 'https://api-inference.modelscope.cn/v1' },
   { name: 'InfiniAI', value: 'InfiniAI', logo: InfiniAILogo, platform: 'custom', baseUrl: 'https://cloud.infini-ai.com/maas/v1' },
   { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', baseUrl: 'https://wishub-x1.ctyun.cn/v1' },
