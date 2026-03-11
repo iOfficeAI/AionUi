@@ -141,6 +141,12 @@ const ConversationTabs: React.FC = () => {
           name: t('conversation.welcome.newConversation'), // Default title for new session
           createTime: Date.now(),
           modifyTime: Date.now(),
+          // 清除 ACP session 相关字段，确保新会话不继承旧会话的上下文
+          extra: {
+            ...currentConversation.extra,
+            acpSessionId: undefined,
+            acpSessionUpdatedAt: undefined,
+          },
         };
 
         void ipcBridge.conversation.createWithConversation

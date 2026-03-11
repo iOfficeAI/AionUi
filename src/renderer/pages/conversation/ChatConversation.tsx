@@ -79,7 +79,20 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
           const source = latest || conversation;
           ipcBridge.conversation.createWithConversation
-            .invoke({ conversation: { ...source, id, createTime: Date.now(), modifyTime: Date.now() } })
+            .invoke({
+              conversation: {
+                ...source,
+                id,
+                createTime: Date.now(),
+                modifyTime: Date.now(),
+                // 清除 ACP session 相关字段，确保新会话不继承旧会话的上下文
+                extra: {
+                  ...source.extra,
+                  acpSessionId: undefined,
+                  acpSessionUpdatedAt: undefined,
+                },
+              }
+            })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
                 console.error('Navigation failed:', error);
