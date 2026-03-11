@@ -157,9 +157,13 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   }
 
   private handleSessionKeyUpdate(sessionKey: string): void {
-    // Store updated session key for resume
-    // This could be persisted to conversation extra data
     console.log('[OpenClawAgentManager] Session key updated:', sessionKey);
+    // Persist session key to conversation extra for resume on reconnect
+    void ipcBridge.conversation.update.invoke({
+      id: this.conversation_id,
+      updates: { extra: { sessionKey } },
+      mergeExtra: true,
+    });
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {

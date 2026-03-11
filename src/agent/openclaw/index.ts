@@ -300,8 +300,10 @@ export class OpenClawAgent {
       }
     }
 
-    // Use "main" as default session key - OpenClaw will create it if needed
-    const defaultKey = 'main';
+    // Use conversation ID as session key so each Aion conversation gets its own
+    // OpenClaw session. Previously hardcoded to 'main', which caused all conversations
+    // to share the same gateway session and leak context between them.
+    const defaultKey = this.id;
     this.connection.sessionKey = defaultKey;
     console.log('[OpenClawAgent] Using default session key:', defaultKey);
 
