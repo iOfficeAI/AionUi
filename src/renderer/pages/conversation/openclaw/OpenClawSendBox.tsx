@@ -327,16 +327,32 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     'staroffice.install.request',
     ({ conversationId, text }) => {
       if (conversationId !== conversation_id) return;
-      // User already confirmed via UI button in StarOfficeMonitorCard — send directly.
-      if (immediateSendRef.current) {
-        void immediateSendRef.current(text).catch(() => {
-          setContentRef.current(text);
+      // Show the simplified prompt to user, inject star-office-helper skill via main process
+      const msg_id = uuid();
+      const userMessage: TMessage = {
+        id: msg_id,
+        msg_id,
+        conversation_id,
+        type: 'text',
+        position: 'right',
+        content: { content: text },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(userMessage, true);
+      setAiProcessing(true);
+      aiProcessingRef.current = true;
+      ipcBridge.openclawConversation.sendMessage
+        .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
+        .then(() => {
+          void checkAndUpdateTitle(conversation_id, text);
+          emitter.emit('chat.history.refresh');
+        })
+        .catch(() => {
+          setAiProcessing(false);
+          aiProcessingRef.current = false;
         });
-      } else {
-        setContentRef.current(text);
-      }
     },
-    [conversation_id]
+    [conversation_id, addOrUpdateMessage, checkAndUpdateTitle]
   );
 
   const handleFilesAdded = useCallback(

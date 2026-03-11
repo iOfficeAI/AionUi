@@ -259,33 +259,16 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
   const handleAskOpenClawInstall = useCallback(() => {
     if (conversationId) {
       const hasLocal = detectState === 'ready' && Boolean(detectedUrl);
-      const text = hasLocal
-        ? t('starOffice.monitor.assistPromptInstalled', {
-            defaultValue: '已检测到本机 Star Office 服务（{{url}}）。请直接进入“连接与玩法引导”模式：1) 用一句话确认已检测到服务；2) 引导我点击右上角小电视并确认 URL；3) 告诉我 Star Office 与 OpenClaw 的联动玩法；4) 若连接失败，自动执行最短排障步骤（端口/进程/日志）并重试。',
-            url: detectedUrl || '',
-          })
-        : t('starOffice.monitor.installPrompt', {
-            defaultValue: '用户已授权你在当前会话中自动执行 Star Office 的安装与修复命令（尽量不让用户手动敲命令）。请立刻执行：环境检查 -> 自动安装/修复（项目：https://github.com/ringhyacinth/Star-Office-UI）-> 启动服务 -> 检测端口 -> 引导点击右上角小电视验证。仅在系统权限必须用户确认时再提示用户操作。',
-          });
-      emitter.emit('staroffice.install.request', {
-        conversationId,
-        text,
-        detectedUrl: detectedUrl || null,
-      });
+      const text = hasLocal ? t('starOffice.monitor.assistPromptInstalled', { url: detectedUrl || '' }) : t('starOffice.monitor.installPrompt');
+      emitter.emit('staroffice.install.request', { conversationId, text, detectedUrl: detectedUrl || null });
     }
     setVisible(false);
   }, [conversationId, detectState, detectedUrl, t]);
 
   const handleAskOpenClawDiagnose = useCallback(() => {
     if (conversationId) {
-      const text = t('starOffice.monitor.diagnosePrompt', {
-        defaultValue: '请进入 Star Office 连接排障模式（不重装优先）：先检查端口占用、进程状态、授权/token、健康检查与日志；给出最短修复动作并自动执行；最后重新检测并引导我点击右上角小电视验证。',
-      });
-      emitter.emit('staroffice.install.request', {
-        conversationId,
-        text,
-        detectedUrl: detectedUrl || null,
-      });
+      const text = t('starOffice.monitor.diagnosePrompt');
+      emitter.emit('staroffice.install.request', { conversationId, text, detectedUrl: detectedUrl || null });
     }
     setVisible(false);
   }, [conversationId, detectedUrl, t]);

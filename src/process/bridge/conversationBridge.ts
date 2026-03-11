@@ -17,6 +17,7 @@ import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type NanoBotAgentManager from '../task/NanoBotAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
+import { prepareFirstMessageWithSkillsIndex } from '../task/agentUtils';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
 import WorkerManage from '../WorkerManage';
@@ -460,7 +461,12 @@ export function initConversationBridge(): void {
         await (task as CodexAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else if (task.type === 'openclaw-gateway') {
-        await (task as OpenClawAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        // Inject skills into message when requested (e.g. star-office-helper install flow)
+        let content = other.input;
+        if (other.injectSkills?.length) {
+          content = await prepareFirstMessageWithSkillsIndex(content, { enabledSkills: other.injectSkills });
+        }
+        await (task as OpenClawAgentManager).sendMessage({ content, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else if (task.type === 'nanobot') {
         await (task as NanoBotAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
