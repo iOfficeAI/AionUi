@@ -29,7 +29,7 @@ import AcpModelSelector from '@/renderer/components/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
 import { usePreviewContext } from './preview';
-import StarOfficeMonitorCard from './components/StarOfficeMonitorCard';
+import StarOfficeMonitorCard from './openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {

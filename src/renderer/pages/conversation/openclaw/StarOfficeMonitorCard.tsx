@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewMetadata } from '@/renderer/pages/conversation/preview/context/PreviewContext';
+import type { PreviewMetadata } from '@renderer/pages/conversation/preview/context/PreviewContext.tsx';
 import { Button, Input, Modal, Tooltip } from '@arco-design/web-react';
 import { Tv } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { emitter } from '@/renderer/utils/emitter';
-import { iconColors } from '@/renderer/theme/colors';
+import { emitter } from '@renderer/utils/emitter.ts';
+import { iconColors } from '@renderer/theme/colors.ts';
 
 const MONITOR_URL_STORAGE_KEY = 'aionui.openclaw.monitorUrl';
 const STAR_OFFICE_URL_KEY = 'aionui.starOffice.url';
