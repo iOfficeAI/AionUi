@@ -104,7 +104,7 @@ You MUST execute every step yourself. Each step should include a short progress 
    - Wait a few seconds, then verify both processes are running.
 4. **Detecting port** — Verify `http://127.0.0.1:19000/health` responds. Report detected URL.
 5. **Troubleshooting** (if needed) — Diagnose unauthorized, port conflict, missing process. Auto-fix and retry.
-6. **Completed** — Confirm service is reachable. Guide the user to click the TV icon to verify the live monitor.
+6. **Completed** — Confirm service is reachable. You MUST explicitly tell the user that installation is complete and the service is running at `http://127.0.0.1:19000`. Do NOT end your response without confirming the final URL.
 
 ### Uninstall Workflow
 

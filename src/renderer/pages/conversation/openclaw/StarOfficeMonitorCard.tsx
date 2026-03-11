@@ -10,7 +10,7 @@ import { Tv } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { emitter } from '@renderer/utils/emitter.ts';
+import { emitter, useAddEventListener } from '@renderer/utils/emitter.ts';
 import { iconColors } from '@renderer/theme/colors.ts';
 
 const MONITOR_URL_STORAGE_KEY = 'aionui.openclaw.monitorUrl';
@@ -295,6 +295,16 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
       setVisible(false);
     })();
   }, [onOpenUrl, runDetect, t, url]);
+
+  // Auto-detect and open monitor panel after install flow completes
+  useAddEventListener(
+    'staroffice.install.finished',
+    ({ conversationId: cid }) => {
+      if (cid !== conversationId) return;
+      handleOpenDetectedMonitor();
+    },
+    [conversationId, handleOpenDetectedMonitor]
+  );
 
   const iconFill = useMemo(() => {
     if (detectState === 'ready') return iconColors.primary;

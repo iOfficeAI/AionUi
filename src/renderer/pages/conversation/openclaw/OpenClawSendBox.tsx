@@ -113,6 +113,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
 
+  // Track whether the current turn was triggered by a Star Office install request
+  const starOfficeInstallInFlightRef = useRef(false);
+
   // Delayed finish timeout to detect true end of task
   const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -276,6 +279,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               aiProcessingRef.current = false;
               setThought({ subject: '', description: '' });
               finishTimeoutRef.current = null;
+              // Notify StarOfficeMonitorCard to re-detect and auto-open panel
+              if (starOfficeInstallInFlightRef.current) {
+                starOfficeInstallInFlightRef.current = false;
+                emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
+              }
             }, 1000);
             hasContentInTurnRef.current = false;
           }
@@ -341,6 +349,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       aiProcessingRef.current = true;
+      starOfficeInstallInFlightRef.current = true;
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
         .then(() => {
@@ -350,6 +359,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         .catch(() => {
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          starOfficeInstallInFlightRef.current = false;
         });
     },
     [conversation_id, addOrUpdateMessage, checkAndUpdateTitle]
