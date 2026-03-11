@@ -327,7 +327,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     'staroffice.install.request',
     ({ conversationId, text }) => {
       if (conversationId !== conversation_id) return;
-      // User already confirmed via UI button in OpenClawMonitorButton — send directly.
+      // User already confirmed via UI button in StarOfficeMonitorCard — send directly.
       if (immediateSendRef.current) {
         void immediateSendRef.current(text).catch(() => {
           setContentRef.current(text);

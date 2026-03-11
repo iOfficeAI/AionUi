@@ -19,7 +19,7 @@ const DEFAULT_MONITOR_URL = 'http://127.0.0.1:19000';
 const STAR_OFFICE_DETECT_TIMEOUT_DEFAULT = 1200;
 const STAR_OFFICE_DETECT_TIMEOUT_RETRY = 2400;
 
-interface OpenClawMonitorButtonProps {
+interface StarOfficeMonitorCardProps {
   conversationId?: string;
   onOpenUrl: (url: string, metadata?: PreviewMetadata) => void;
 }
@@ -38,7 +38,7 @@ type IdleWindow = Window & {
 
 type DetectState = 'checking' | 'ready' | 'not_found' | 'error';
 
-const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversationId, onOpenUrl }) => {
+const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversationId, onOpenUrl }) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -445,4 +445,4 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
   );
 };
 
-export default OpenClawMonitorButton;
+export default StarOfficeMonitorCard;

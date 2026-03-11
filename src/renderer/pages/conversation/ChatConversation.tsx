@@ -29,7 +29,7 @@ import AcpModelSelector from '@/renderer/components/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
 import { usePreviewContext } from './preview';
-import OpenClawMonitorButton from './components/OpenClawMonitorButton';
+import StarOfficeMonitorCard from './components/StarOfficeMonitorCard';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -217,7 +217,7 @@ const ChatConversation: React.FC<{
     <div className='flex items-center gap-8px'>
       {conversation?.type === 'openclaw-gateway' && (
         <div className='shrink-0'>
-          <OpenClawMonitorButton
+          <StarOfficeMonitorCard
             conversationId={conversation.id}
             onOpenUrl={(url, metadata) => {
               openPreview(url, 'url', metadata);
