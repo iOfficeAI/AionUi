@@ -254,8 +254,6 @@ export function useCronJobsMap() {
   const lastRunAtMapRef = useRef<Map<string, number>>(new Map());
   // Track current active conversation (use ref to access latest value in event handlers)
   const activeConversationIdRef = useRef<string | null>(null);
-  // Force update trigger for re-rendering
-  const [trigger, setTrigger] = useState(0);
 
   // Persist unread state to localStorage
   useEffect(() => {
@@ -429,6 +427,12 @@ export function useCronJobsMap() {
     });
   }, []);
 
+  // Update active conversation ref without triggering state update
+  // Use this to sync the ref when route changes (e.g., URL navigation)
+  const setActiveConversation = useCallback((conversationId: string) => {
+    activeConversationIdRef.current = conversationId;
+  }, []);
+
   // Check if a conversation has unread cron executions
   const hasUnread = useCallback(
     (conversationId: string) => {
@@ -445,10 +449,11 @@ export function useCronJobsMap() {
       getJobsForConversation,
       getJobStatus,
       markAsRead,
+      setActiveConversation,
       hasUnread,
       refetch: fetchAllJobs,
     }),
-    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, hasUnread, fetchAllJobs, unreadConversations]
+    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, setActiveConversation, hasUnread, fetchAllJobs]
   );
 }
 

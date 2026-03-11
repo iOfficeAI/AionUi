@@ -26,14 +26,15 @@ import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSessionClick, collapsed = false, tooltipEnabled = false, batchMode = false, onBatchModeChange }) => {
   const { id } = useParams();
   const { t } = useTranslation();
-  const { getJobStatus, markAsRead } = useCronJobsMap();
+  const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
-  // Mark conversation as read when id changes
+  // Sync active conversation ref when route changes (for URL navigation)
+  // This doesn't trigger state update, avoiding double render
   useEffect(() => {
     if (id) {
-      markAsRead(id);
+      setActiveConversation(id);
     }
-  }, [id, markAsRead]);
+  }, [id, setActiveConversation]);
 
   const { conversations, expandedWorkspaces, pinnedConversations, timelineSections, handleToggleWorkspace } = useConversations();
 
@@ -46,6 +47,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
     selectedConversationIds,
     setSelectedConversationIds,
     toggleSelectedConversation,
+    markAsRead,
   });
 
   const { exportTask, exportModalVisible, exportTargetPath, exportModalLoading, showExportDirectorySelector, setShowExportDirectorySelector, closeExportModal, handleSelectExportDirectoryFromModal, handleSelectExportFolder, handleExportConversation, handleBatchExport, handleConfirmExport } = useExport({
