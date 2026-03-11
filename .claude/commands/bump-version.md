@@ -62,26 +62,37 @@ git diff bun.lock
 - **No diff** → Proceed silently (normal case).
 - **Has diff** → Ask the user: "bun.lock changed unexpectedly after version bump. Continue?" Wait for confirmation before proceeding.
 
-### Step 7 — Create Branch
+### Step 7 — Run Quality Checks
+
+```bash
+bun run lint
+bunx tsc --noEmit
+```
+
+- **lint fails** → Stop: "Lint errors found. Please fix them before bumping the version."
+- **tsc fails** → Stop: "TypeScript errors found. Please fix them before bumping the version."
+- **Both pass** → Proceed silently.
+
+### Step 8 — Create Branch
 
 ```bash
 git checkout -b chore/bump-version-{target}
 ```
 
-### Step 8 — Commit
+### Step 9 — Commit
 
 ```bash
 git add package.json
 git commit -m "chore: bump version to {target}"
 ```
 
-### Step 9 — Push
+### Step 10 — Push
 
 ```bash
 git push -u origin chore/bump-version-{target}
 ```
 
-### Step 10 — Create PR
+### Step 11 — Create PR
 
 ```bash
 gh pr create --base main --title "chore: bump version to {target}" --body "Bump version to {target}"
