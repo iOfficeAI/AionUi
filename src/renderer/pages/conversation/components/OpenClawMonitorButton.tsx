@@ -10,7 +10,7 @@ import { Tv } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { detectReachableStarOfficeUrl, STAR_OFFICE_URL_KEY } from '@/renderer/utils/starOffice';
+import { STAR_OFFICE_URL_KEY } from '@/renderer/utils/starOffice';
 import { emitter } from '@/renderer/utils/emitter';
 import { iconColors } from '@/renderer/theme/colors';
 
@@ -69,7 +69,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
           let found: string | null = null;
           let hasDetectError = false;
           let message = '';
-          const mainDetectResult = await ipcBridge.application.detectStarOfficeUrl.invoke({
+          const mainDetectResult = await ipcBridge.starOffice.detectUrl.invoke({
             preferredUrl: url,
             force: options?.force,
             timeoutMs,
@@ -79,12 +79,6 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
           } else if (mainDetectResult.msg) {
             hasDetectError = true;
             message = mainDetectResult.msg;
-          }
-          if (!found) {
-            found = await detectReachableStarOfficeUrl(url, {
-              force: options?.force,
-              timeoutMs,
-            });
           }
           return { found, hasDetectError, message };
         };
