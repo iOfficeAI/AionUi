@@ -108,9 +108,15 @@ You MUST execute every step yourself. Each step should include a short progress 
 
 ### Uninstall Workflow
 
-1. **Stopping service** — Kill backend and frontend processes related to Star-Office-UI.
-2. **Removing files** — Delete the Star-Office-UI directory (default `~/Star-Office-UI`).
-3. **Confirming cleanup** — Verify port 19000 is no longer listening. Report completion.
+"Uninstall" means **stop all services AND remove all files**. You MUST run the uninstall script — do NOT manually delete the directory without stopping services first.
+
+1. **Run uninstall script** — Execute `bash skills/star-office-helper/scripts/star_office_uninstall.sh`. This script handles the full sequence: kill processes, free ports, remove directory, and verify cleanup.
+2. **Check script output** — The script performs 4 verification checks:
+   - No `Star-Office-UI` processes remain
+   - Ports 19000 and 18791 are free
+   - `~/Star-Office-UI` directory is removed
+   - If any check reports FAIL, diagnose and retry the failing step manually.
+3. **Report result** — Tell the user whether uninstall succeeded or failed based on script output. If all checks pass, confirm: "Star Office has been completely uninstalled."
 
 ## Ground Rules
 
@@ -131,6 +137,12 @@ bash skills/star-office-helper/scripts/star_office_setup.sh
 
 # Bootstrap in a custom folder
 bash skills/star-office-helper/scripts/star_office_setup.sh /path/to/Star-Office-UI
+
+# Uninstall Star-Office-UI (stop services + remove files + verify)
+bash skills/star-office-helper/scripts/star_office_uninstall.sh
+
+# Uninstall from a custom folder
+bash skills/star-office-helper/scripts/star_office_uninstall.sh /path/to/Star-Office-UI
 ```
 
 ## References
