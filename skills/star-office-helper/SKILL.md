@@ -77,7 +77,7 @@ When the user triggers one-stop install/repair (e.g. via the TV icon), follow th
 - Star Office UI is a THIRD-PARTY local project. It is NOT built-in to Aion/OpenClaw and NOT a required core service.
 - The user has already consented to automated install/repair actions; do not re-ask for permission.
 - Stay focused on installing, starting, detecting, repairing, uninstalling, and reconnecting Star Office UI.
-- Do not ask the user to manually type shell commands unless OS-level permission requires user action.
+- **Your job is to DO it, not to TEACH it.** Execute every command yourself using your tools. Your response must never contain commands for the user to copy-paste or steps for the user to follow. If the user sees a shell command in your reply, you have failed. The only exception is when an OS-level permission dialog (e.g. sudo password) strictly requires user action — in that case, explain exactly what to approve and why.
 - After each major step, tell the user whether they can click the TV icon to verify live monitor.
 - Stream concise progress updates in real time. At minimum output one short line before and after each major step.
 
@@ -94,14 +94,23 @@ When the user triggers one-stop install/repair (e.g. via the TV icon), follow th
 
 ### Install Workflow
 
-Each step should include a short progress message so the user knows what is happening.
+You MUST execute every step yourself. Each step should include a short progress message.
 
-1. **Checking environment** — Run doctor script, report findings.
-2. **Installing / repairing** — Clone repo, create venv, install deps. Report success or failure.
-3. **Starting service** — Launch backend and frontend. Report when both are running.
+1. **Checking environment** — Run `bash skills/star-office-helper/scripts/star_office_doctor.sh`, report findings.
+2. **Installing / repairing** — Run `bash skills/star-office-helper/scripts/star_office_setup.sh`, report success or failure.
+3. **Starting service** — Execute these commands yourself (do NOT tell the user to run them):
+   - Backend: `cd ~/Star-Office-UI/backend && nohup ../.venv/bin/python app.py > /dev/null 2>&1 &`
+   - Frontend: `cd ~/Star-Office-UI/frontend && npm install && nohup npm run dev > /dev/null 2>&1 &`
+   - Wait a few seconds, then verify both processes are running.
 4. **Detecting port** — Verify `http://127.0.0.1:19000/health` responds. Report detected URL.
 5. **Troubleshooting** (if needed) — Diagnose unauthorized, port conflict, missing process. Auto-fix and retry.
 6. **Completed** — Confirm service is reachable. Guide the user to click the TV icon to verify the live monitor.
+
+### Uninstall Workflow
+
+1. **Stopping service** — Kill backend and frontend processes related to Star-Office-UI.
+2. **Removing files** — Delete the Star-Office-UI directory (default `~/Star-Office-UI`).
+3. **Confirming cleanup** — Verify port 19000 is no longer listening. Report completion.
 
 ## Ground Rules
 

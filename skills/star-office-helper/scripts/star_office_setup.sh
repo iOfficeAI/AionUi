@@ -39,21 +39,5 @@ if [ ! -f "state.json" ] && [ -f "state.sample.json" ]; then
   echo "[star-office-setup] created state.json from sample"
 fi
 
-cat <<'EOF'
-
-Done.
-
-Next:
-1) Backend:
-   cd backend
-   ../.venv/bin/python app.py
-
-2) Frontend (new terminal):
-   cd frontend
-   npm install
-   npm run dev
-
-3) In Aion preview panel:
-   use URL like http://127.0.0.1:19000
-
-EOF
+echo ""
+echo "[star-office-setup] Done. Proceed to start backend and frontend."
