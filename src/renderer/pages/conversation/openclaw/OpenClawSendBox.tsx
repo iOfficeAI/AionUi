@@ -248,16 +248,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     },
     [emitAssistantNarration]
   );
-  const announceInstallStage = useCallback(
-    (stage: InstallFlowStage) => {
-      if (stage === 'idle' || stage === 'consent') return;
-      if (lastAnnouncedInstallStageRef.current === stage) return;
-      lastAnnouncedInstallStageRef.current = stage;
-      // Keep stage updates inside the install mode pill only.
-      // Avoid appending repetitive progress text messages into conversation history.
-    },
-    []
-  );
+  const announceInstallStage = useCallback((stage: InstallFlowStage) => {
+    if (stage === 'idle' || stage === 'consent') return;
+    if (lastAnnouncedInstallStageRef.current === stage) return;
+    lastAnnouncedInstallStageRef.current = stage;
+    // Keep stage updates inside the install mode pill only.
+    // Avoid appending repetitive progress text messages into conversation history.
+  }, []);
   const emitWorkflowTip = useCallback(
     (text: string, type: 'success' | 'warning' = 'success') => {
       const tipMessage: TMessage = {
@@ -417,14 +414,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
               setInstallFlowStage('idle');
               emitAssistantNarration(
                 t('conversation.chat.starOffice.flowEndedWithoutSuccessNarration', {
-                  defaultValue:
-                    'This install/repair turn has ended, but connection success was not confirmed yet. Please click the TV icon to verify; if needed, run guided diagnose.',
+                  defaultValue: 'This install/repair turn has ended, but connection success was not confirmed yet. Please click the TV icon to verify; if needed, run guided diagnose.',
                 })
               );
               exitInstallMode(
                 t('conversation.chat.starOffice.flowEndedWithoutSuccessTip', {
                   defaultValue: 'Star Office flow ended. Verify in TV panel or run diagnose if still not connected.',
-                }),
+                })
               );
             }
             hasContentInTurnRef.current = false;
@@ -827,7 +823,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={aiProcessing} style={starOfficeInstallMode ? 'compact' : 'default'} onStop={handleStop} />
       {starOfficeInstallMode ? (
         <div className='mb-4px flex items-center gap-10px rounded-full border border-[rgb(var(--arcoblue-3))] bg-[rgba(var(--arcoblue-1),0.6)] px-10px py-6px'>
           <div className='min-w-0 flex items-center gap-8px text-12px text-[rgb(var(--arcoblue-7))]'>

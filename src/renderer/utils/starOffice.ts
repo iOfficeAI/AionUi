@@ -29,9 +29,9 @@ const STAR_OFFICE_STATUS_MARKERS = ['idle', 'writing', 'researching', 'executing
 
 const STAR_OFFICE_SCAN_RADIUS = 24;
 const STAR_OFFICE_SCAN_CONCURRENCY = 6;
-const STAR_OFFICE_SCAN_TIMEOUT_MS = 280;
+const STAR_OFFICE_SCAN_TIMEOUT_MS = 600;
 const STAR_OFFICE_DETECT_CACHE_HIT_TTL_MS = 20_000;
-const STAR_OFFICE_DETECT_CACHE_MISS_TTL_MS = 6_000;
+const STAR_OFFICE_DETECT_CACHE_MISS_TTL_MS = 1_500;
 
 interface DetectCacheEntry {
   url: string | null;
@@ -151,9 +151,7 @@ export const checkStarOfficeHealth = async (baseUrl: string, timeoutMs = 1200): 
     return false;
   }
 
-  return normalizedRoot.includes('star office')
-    || normalizedRoot.includes('decorate room')
-    || normalizedRoot.includes('asset sidebar');
+  return normalizedRoot.includes('star office') || normalizedRoot.includes('decorate room') || normalizedRoot.includes('asset sidebar');
 };
 
 const toLocalPort = (rawUrl?: string): number | null => {
@@ -202,9 +200,7 @@ const writeDetectCache = (url: string | null) => {
 };
 
 const buildCandidates = (preferredUrl?: string): string[] => {
-  const knownPorts = [toLocalPort(preferredUrl), ...STAR_OFFICE_FALLBACK_URLS.map((item) => toLocalPort(item))]
-    .filter((port): port is number => port != null)
-    .filter((port, index, arr) => arr.indexOf(port) === index);
+  const knownPorts = [toLocalPort(preferredUrl), ...STAR_OFFICE_FALLBACK_URLS.map((item) => toLocalPort(item))].filter((port): port is number => port != null).filter((port, index, arr) => arr.indexOf(port) === index);
 
   const rangedPorts: number[] = [];
   for (const basePort of knownPorts) {
@@ -216,9 +212,7 @@ const buildCandidates = (preferredUrl?: string): string[] => {
     }
   }
 
-  return [...knownPorts, ...rangedPorts]
-    .filter((port, index, arr) => arr.indexOf(port) === index)
-    .map(toLocalUrl);
+  return [...knownPorts, ...rangedPorts].filter((port, index, arr) => arr.indexOf(port) === index).map(toLocalUrl);
 };
 
 const probeCandidates = async (candidates: string[], timeoutMs: number): Promise<string | null> => {

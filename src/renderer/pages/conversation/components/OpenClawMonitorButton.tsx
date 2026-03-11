@@ -16,6 +16,8 @@ import { iconColors } from '@/renderer/theme/colors';
 
 const MONITOR_URL_STORAGE_KEY = 'aionui.openclaw.monitorUrl';
 const DEFAULT_MONITOR_URL = 'http://127.0.0.1:19000';
+const STAR_OFFICE_DETECT_TIMEOUT_DEFAULT = 1200;
+const STAR_OFFICE_DETECT_TIMEOUT_RETRY = 2400;
 
 interface OpenClawMonitorButtonProps {
   conversationId?: string;
@@ -55,80 +57,103 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
     }
   });
 
-  const runDetect = useCallback(async (options?: { force?: boolean; silent?: boolean; timeoutMs?: number }) => {
-    if (!options?.silent) {
-      setDetectState('checking');
-      setDetectError('');
-    }
-    if (!options?.silent) setDetecting(true);
-    try {
-      let found: string | null = null;
-      let hasDetectError = false;
-      const mainDetectResult = await ipcBridge.application.detectStarOfficeUrl.invoke({
-        preferredUrl: url,
-        force: options?.force,
-        timeoutMs: options?.timeoutMs ?? 1000,
-      });
-      if (mainDetectResult.success) {
-        found = mainDetectResult.data?.url || null;
-      } else if (mainDetectResult.msg) {
-        hasDetectError = true;
-        setDetectError(mainDetectResult.msg);
+  const runDetect = useCallback(
+    async (options?: { force?: boolean; silent?: boolean; timeoutMs?: number }) => {
+      if (!options?.silent) {
+        setDetectState('checking');
+        setDetectError('');
       }
-      if (!found) {
-        found = await detectReachableStarOfficeUrl(url, {
-          force: options?.force,
-          timeoutMs: options?.timeoutMs,
-        });
-      }
-      setDetectedUrl(found);
-      if (found) {
-        setUrl(found);
-        setDetectState('ready');
-        setDetectFailureCount(0);
-        setShowDiagnoseHint(false);
-        try {
-          localStorage.setItem(MONITOR_URL_STORAGE_KEY, found);
-          localStorage.setItem(STAR_OFFICE_URL_KEY, found);
-        } catch {
-          // ignore persistence error
-        }
-      } else {
-        if (!options?.silent) {
-          setDetectState(hasDetectError ? 'error' : 'not_found');
-        }
-        setDetectedUrl(null);
-        if (!options?.silent) {
-          setDetectFailureCount((prev) => {
-            const nextFailureCount = prev + 1;
-            if (nextFailureCount >= 2) {
-              setShowDiagnoseHint(true);
-            }
-            return nextFailureCount;
+      if (!options?.silent) setDetecting(true);
+      try {
+        const detectOnce = async (timeoutMs: number): Promise<{ found: string | null; hasDetectError: boolean; message: string }> => {
+          let found: string | null = null;
+          let hasDetectError = false;
+          let message = '';
+          const mainDetectResult = await ipcBridge.application.detectStarOfficeUrl.invoke({
+            preferredUrl: url,
+            force: options?.force,
+            timeoutMs,
           });
-        }
-        if (options?.force) {
-          // Force detect miss means prior cached URL is stale.
-          try {
-            localStorage.removeItem(MONITOR_URL_STORAGE_KEY);
-            localStorage.removeItem(STAR_OFFICE_URL_KEY);
-          } catch {
-            // ignore persistence failures
+          if (mainDetectResult.success) {
+            found = mainDetectResult.data?.url || null;
+          } else if (mainDetectResult.msg) {
+            hasDetectError = true;
+            message = mainDetectResult.msg;
+          }
+          if (!found) {
+            found = await detectReachableStarOfficeUrl(url, {
+              force: options?.force,
+              timeoutMs,
+            });
+          }
+          return { found, hasDetectError, message };
+        };
+
+        const firstTimeout = options?.timeoutMs ?? STAR_OFFICE_DETECT_TIMEOUT_DEFAULT;
+        const first = await detectOnce(firstTimeout);
+
+        let found = first.found;
+        let hasDetectError = first.hasDetectError;
+        let errorMessage = first.message;
+
+        if (!found) {
+          // Retry once with a longer timeout to reduce transient false negatives.
+          await new Promise((resolve) => setTimeout(resolve, 160));
+          const second = await detectOnce(Math.max(firstTimeout, STAR_OFFICE_DETECT_TIMEOUT_RETRY));
+          found = second.found;
+          hasDetectError = hasDetectError || second.hasDetectError;
+          if (!errorMessage) {
+            errorMessage = second.message;
           }
         }
+
+        if (hasDetectError && errorMessage) {
+          setDetectError(errorMessage);
+        }
+        setDetectedUrl(found);
+        if (found) {
+          setUrl(found);
+          setDetectState('ready');
+          setDetectFailureCount(0);
+          setShowDiagnoseHint(false);
+          try {
+            localStorage.setItem(MONITOR_URL_STORAGE_KEY, found);
+            localStorage.setItem(STAR_OFFICE_URL_KEY, found);
+          } catch {
+            // ignore persistence error
+          }
+        } else {
+          if (!options?.silent) {
+            setDetectState(hasDetectError ? 'error' : 'not_found');
+          }
+          setDetectedUrl(null);
+          if (!options?.silent) {
+            setDetectFailureCount((prev) => {
+              const nextFailureCount = prev + 1;
+              if (nextFailureCount >= 2) {
+                setShowDiagnoseHint(true);
+              }
+              return nextFailureCount;
+            });
+          }
+        }
+        return found;
+      } finally {
+        if (!options?.silent) setDetecting(false);
       }
-      return found;
-    } finally {
-      if (!options?.silent) setDetecting(false);
-    }
-  }, [url]);
+    },
+    [url]
+  );
 
   useEffect(() => {
     const idleWindow = window as IdleWindow;
     if (typeof idleWindow.requestIdleCallback === 'function') {
-      const idleId = idleWindow.requestIdleCallback(() => {
-        void runDetect({ silent: true });
-      }, { timeout: 700 });
+      const idleId = idleWindow.requestIdleCallback(
+        () => {
+          void runDetect({ silent: true });
+        },
+        { timeout: 700 }
+      );
       return () => {
         if (typeof idleWindow.cancelIdleCallback === 'function') {
           idleWindow.cancelIdleCallback(idleId);
@@ -146,7 +171,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
     if (!visible) return;
     // Always refresh state when opening modal to avoid stale ready status.
     setPreviewImageFailed(false);
-    void runDetect({ force: true, silent: false, timeoutMs: 420 });
+    void runDetect({ force: true, silent: false, timeoutMs: STAR_OFFICE_DETECT_TIMEOUT_DEFAULT });
   }, [visible, runDetect]);
 
   const handleConfirm = useCallback(() => {
@@ -219,7 +244,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
     if (detectState === 'ready' && detectedUrl) {
       void (async () => {
         // Re-verify quickly before opening to avoid stale "ready" state after uninstall/stop.
-        const rechecked = await runDetect({ force: true, timeoutMs: 320 });
+        const rechecked = await runDetect({ force: true, timeoutMs: STAR_OFFICE_DETECT_TIMEOUT_DEFAULT });
         if (rechecked) {
           onOpenUrl(rechecked, {
             title: t('conversation.preview.openclawMonitorTitle', { defaultValue: 'OpenClaw Live Monitor' }),
@@ -242,13 +267,11 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
       const hasLocal = detectState === 'ready' && Boolean(detectedUrl);
       const text = hasLocal
         ? t('conversation.preview.openclawMonitorAssistPromptInstalled', {
-            defaultValue:
-              '已检测到本机 Star Office 服务（{{url}}）。请直接进入“连接与玩法引导”模式：1) 用一句话确认已检测到服务；2) 引导我点击右上角小电视并确认 URL；3) 告诉我 Star Office 与 OpenClaw 的联动玩法；4) 若连接失败，自动执行最短排障步骤（端口/进程/日志）并重试。',
+            defaultValue: '已检测到本机 Star Office 服务（{{url}}）。请直接进入“连接与玩法引导”模式：1) 用一句话确认已检测到服务；2) 引导我点击右上角小电视并确认 URL；3) 告诉我 Star Office 与 OpenClaw 的联动玩法；4) 若连接失败，自动执行最短排障步骤（端口/进程/日志）并重试。',
             url: detectedUrl || '',
           })
         : t('conversation.preview.openclawMonitorInstallPrompt', {
-            defaultValue:
-              '用户已授权你在当前会话中自动执行 Star Office 的安装与修复命令（尽量不让用户手动敲命令）。请立刻执行：环境检查 -> 自动安装/修复（项目：https://github.com/ringhyacinth/Star-Office-UI）-> 启动服务 -> 检测端口 -> 引导点击右上角小电视验证。仅在系统权限必须用户确认时再提示用户操作。',
+            defaultValue: '用户已授权你在当前会话中自动执行 Star Office 的安装与修复命令（尽量不让用户手动敲命令）。请立刻执行：环境检查 -> 自动安装/修复（项目：https://github.com/ringhyacinth/Star-Office-UI）-> 启动服务 -> 检测端口 -> 引导点击右上角小电视验证。仅在系统权限必须用户确认时再提示用户操作。',
           });
       emitter.emit('staroffice.install.request', {
         conversationId,
@@ -262,8 +285,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
   const handleAskOpenClawDiagnose = useCallback(() => {
     if (conversationId) {
       const text = t('conversation.preview.openclawMonitorDiagnosePrompt', {
-        defaultValue:
-          '请进入 Star Office 连接排障模式（不重装优先）：先检查端口占用、进程状态、授权/token、健康检查与日志；给出最短修复动作并自动执行；最后重新检测并引导我点击右上角小电视验证。',
+        defaultValue: '请进入 Star Office 连接排障模式（不重装优先）：先检查端口占用、进程状态、授权/token、健康检查与日志；给出最短修复动作并自动执行；最后重新检测并引导我点击右上角小电视验证。',
       });
       emitter.emit('staroffice.install.request', {
         conversationId,
@@ -276,7 +298,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
 
   const handleOpenDetectedMonitor = useCallback(() => {
     void (async () => {
-      const rechecked = await runDetect({ force: true, timeoutMs: 380 });
+      const rechecked = await runDetect({ force: true, timeoutMs: STAR_OFFICE_DETECT_TIMEOUT_DEFAULT });
       const target = rechecked || normalizeUrl(url);
       if (!rechecked || !target) {
         setVisible(true);
@@ -303,14 +325,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
   }, [detectState]);
 
   const buttonNode = (
-    <Button
-      type='text'
-      size='small'
-      className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
-      loading={detecting}
-      onClick={handlePrimaryClick}
-      aria-label={t('conversation.preview.openclawMonitor', { defaultValue: 'Open live monitor' })}
-    >
+    <Button type='text' size='small' className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0' loading={detecting} onClick={handlePrimaryClick} aria-label={t('conversation.preview.openclawMonitor', { defaultValue: 'Open live monitor' })}>
       <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
         <Tv theme='outline' size={16} fill={iconFill} />
         <span className='ml-4px w-8px h-8px rounded-full' style={{ backgroundColor: statusBadgeColor }} />
@@ -333,11 +348,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
       >
         <div className='flex flex-col gap-12px'>
           <div className='rounded-12px border border-3 bg-2 p-12px'>
-            <button
-              type='button'
-              className='border-none bg-transparent p-0 text-left text-14px font-500 text-t-primary underline-offset-3 hover:underline cursor-pointer'
-              onClick={handleOpenInstallGuide}
-            >
+            <button type='button' className='border-none bg-transparent p-0 text-left text-14px font-500 text-t-primary underline-offset-3 hover:underline cursor-pointer' onClick={handleOpenInstallGuide}>
               {t('conversation.preview.openclawMonitorVisualTitle', { defaultValue: 'What is Star Office UI?' })}
             </button>
             <div className='mt-6px text-12px leading-18px text-t-secondary'>
@@ -350,23 +361,12 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
                 <div className='h-132px w-full flex items-center justify-center bg-[linear-gradient(135deg,rgba(73,147,255,0.12),rgba(73,147,255,0.04))] px-12px'>
                   <div className='text-center'>
                     <div className='text-20px'>📺</div>
-                    <div className='mt-4px text-12px font-500 text-t-primary'>
-                      {t('conversation.preview.openclawMonitorVisualFallbackTitle', { defaultValue: 'Star Office UI live preview' })}
-                    </div>
-                    <div className='mt-2px text-11px text-t-secondary'>
-                      {t('conversation.preview.openclawMonitorVisualFallbackDesc', { defaultValue: 'OpenClaw chat status becomes a visual office scene.' })}
-                    </div>
+                    <div className='mt-4px text-12px font-500 text-t-primary'>{t('conversation.preview.openclawMonitorVisualFallbackTitle', { defaultValue: 'Star Office UI live preview' })}</div>
+                    <div className='mt-2px text-11px text-t-secondary'>{t('conversation.preview.openclawMonitorVisualFallbackDesc', { defaultValue: 'OpenClaw chat status becomes a visual office scene.' })}</div>
                   </div>
                 </div>
               ) : (
-                <img
-                  src='https://raw.githubusercontent.com/ringhyacinth/Star-Office-UI/master/docs/screenshots/readme-cover-1.jpg'
-                  alt={t('conversation.preview.openclawMonitorVisualImageAlt', { defaultValue: 'Star Office UI official preview' })}
-                  className='h-132px w-full object-cover'
-                  loading='lazy'
-                  referrerPolicy='no-referrer'
-                  onError={() => setPreviewImageFailed(true)}
-                />
+                <img src='https://raw.githubusercontent.com/ringhyacinth/Star-Office-UI/master/docs/screenshots/readme-cover-1.jpg' alt={t('conversation.preview.openclawMonitorVisualImageAlt', { defaultValue: 'Star Office UI official preview' })} className='h-132px w-full object-cover' loading='lazy' referrerPolicy='no-referrer' onError={() => setPreviewImageFailed(true)} />
               )}
               <div className='px-8px py-6px text-11px text-t-secondary'>
                 {previewImageFailed
@@ -379,29 +379,18 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
               </div>
             </div>
             <div className='mt-10px flex items-center gap-6px text-12px text-t-primary flex-wrap'>
-              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
-                {t('conversation.preview.openclawMonitorVisualStepChat', { defaultValue: 'OpenClaw Chat' })}
-              </span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('conversation.preview.openclawMonitorVisualStepChat', { defaultValue: 'OpenClaw Chat' })}</span>
               <span className='text-t-secondary'>→</span>
-              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
-                {t('conversation.preview.openclawMonitorVisualStepUi', { defaultValue: 'Star Office UI' })}
-              </span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('conversation.preview.openclawMonitorVisualStepUi', { defaultValue: 'Star Office UI' })}</span>
               <span className='text-t-secondary'>→</span>
-              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>
-                {t('conversation.preview.openclawMonitorVisualStepLive', { defaultValue: 'Live Monitor' })}
-              </span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('conversation.preview.openclawMonitorVisualStepLive', { defaultValue: 'Live Monitor' })}</span>
             </div>
           </div>
 
           <div className='rounded-14px border border-2 bg-[linear-gradient(180deg,rgba(var(--gray-1),0.82),rgba(var(--gray-2),0.7))] p-14px'>
             <div className='flex items-center gap-8px'>
-              <span
-                className='h-8px w-8px rounded-full'
-                style={{ backgroundColor: detectState === 'ready' ? 'rgb(var(--success-6))' : 'rgb(var(--gray-5))' }}
-              />
-              <div className='text-14px font-500 text-t-primary'>
-                {t('conversation.preview.openclawMonitorIntroTitle', { defaultValue: 'Star Office Monitor' })}
-              </div>
+              <span className='h-8px w-8px rounded-full' style={{ backgroundColor: detectState === 'ready' ? 'rgb(var(--success-6))' : 'rgb(var(--gray-5))' }} />
+              <div className='text-14px font-500 text-t-primary'>{t('conversation.preview.openclawMonitorIntroTitle', { defaultValue: 'Star Office Monitor' })}</div>
             </div>
             <div className='mt-8px text-13px leading-20px text-t-secondary'>
               {detectState === 'ready'
@@ -424,9 +413,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
                     setShowManualUrlEditor((prev) => !prev);
                   }}
                 >
-                  {showManualUrlEditor
-                    ? t('conversation.preview.openclawMonitorHideUrlEditor', { defaultValue: 'Hide URL editor' })
-                    : t('conversation.preview.openclawMonitorEditUrl', { defaultValue: 'Change URL' })}
+                  {showManualUrlEditor ? t('conversation.preview.openclawMonitorHideUrlEditor', { defaultValue: 'Hide URL editor' }) : t('conversation.preview.openclawMonitorEditUrl', { defaultValue: 'Change URL' })}
                 </Button>
               </div>
             ) : (
@@ -434,13 +421,7 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
                 <Button type='primary' className='!rounded-10px' onClick={handleAskOpenClawInstall}>
                   {t('conversation.preview.openclawMonitorInstallWithOpenClaw', { defaultValue: 'Install with OpenClaw' })}
                 </Button>
-                <Button
-                  size='mini'
-                  type='outline'
-                  className='!rounded-10px'
-                  loading={detecting}
-                  onClick={() => void runDetect({ force: true, timeoutMs: 360 })}
-                >
+                <Button size='mini' type='outline' className='!rounded-10px' loading={detecting} onClick={() => void runDetect({ force: true, timeoutMs: 360 })}>
                   {t('conversation.preview.openclawMonitorDetect', { defaultValue: 'Detect again' })}
                 </Button>
               </div>
@@ -448,12 +429,14 @@ const OpenClawMonitorButton: React.FC<OpenClawMonitorButtonProps> = ({ conversat
             {showDiagnoseHint ? null : null}
           </div>
 
-          {detectError ? <div className='text-11px text-[rgb(var(--danger-6))]'>{statusText} · {detectError}</div> : null}
+          {detectError ? (
+            <div className='text-11px text-[rgb(var(--danger-6))]'>
+              {statusText} · {detectError}
+            </div>
+          ) : null}
           {detectState === 'ready' && showManualUrlEditor ? (
             <>
-              <div className='text-12px text-t-secondary'>
-                {t('conversation.preview.openclawMonitorHint', { defaultValue: 'Input monitor URL manually, e.g. http://127.0.0.1:19000' })}
-              </div>
+              <div className='text-12px text-t-secondary'>{t('conversation.preview.openclawMonitorHint', { defaultValue: 'Input monitor URL manually, e.g. http://127.0.0.1:19000' })}</div>
               <div className='flex items-center gap-8px'>
                 <Input value={url} onChange={setUrl} placeholder='http://127.0.0.1:19000' />
                 <Button type='outline' onClick={handleConfirm}>
