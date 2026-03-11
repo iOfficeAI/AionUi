@@ -184,7 +184,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         // ignore persistence error
       }
       onOpenUrl(normalized, {
-        title: t('conversation.preview.openclawMonitorTitle', { defaultValue: 'OpenClaw Live Monitor' }),
+        title: t('starOffice.monitor.title', { defaultValue: 'OpenClaw Live Monitor' }),
       });
       setVisible(false);
     } catch {
@@ -194,21 +194,21 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
 
   const tooltipText = useMemo(() => {
     if (detectState === 'ready' && detectedUrl) {
-      return t('conversation.preview.openclawMonitorDetected', {
+      return t('starOffice.monitor.detected', {
         defaultValue: 'Open live monitor (detected at {{url}})',
         url: detectedUrl,
       });
     }
     if (detectState === 'checking') {
-      return t('conversation.preview.openclawMonitorDetecting', { defaultValue: 'Detecting local monitor service...' });
+      return t('starOffice.monitor.detecting', { defaultValue: 'Detecting local monitor service...' });
     }
     if (detectState === 'error') {
-      return t('conversation.preview.openclawMonitorDetectFailed', { defaultValue: 'Monitor detection failed, click to configure manually' });
+      return t('starOffice.monitor.detectFailed', { defaultValue: 'Monitor detection failed, click to configure manually' });
     }
     if (detectState === 'not_found') {
-      return t('conversation.preview.openclawMonitorNotInstalled', { defaultValue: 'No local monitor detected, click to install/connect' });
+      return t('starOffice.monitor.notInstalled', { defaultValue: 'No local monitor detected, click to install/connect' });
     }
-    return t('conversation.preview.openclawMonitor', { defaultValue: 'Open live monitor' });
+    return t('starOffice.monitor.openMonitor', { defaultValue: 'Open live monitor' });
   }, [detectState, detectedUrl, t]);
 
   const statusBadgeColor = useMemo(() => {
@@ -220,18 +220,18 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
 
   const statusText = useMemo(() => {
     if (detectState === 'ready') {
-      return t('conversation.preview.openclawMonitorReady', {
+      return t('starOffice.monitor.ready', {
         defaultValue: 'Connected: {{url}}',
         url: detectedUrl,
       });
     }
     if (detectState === 'checking') {
-      return t('conversation.preview.openclawMonitorChecking', { defaultValue: 'Checking local Star Office service...' });
+      return t('starOffice.monitor.checking', { defaultValue: 'Checking local Star Office service...' });
     }
     if (detectState === 'error') {
-      return t('conversation.preview.openclawMonitorError', { defaultValue: 'Detection failed. You can still input URL manually.' });
+      return t('starOffice.monitor.error', { defaultValue: 'Detection failed. You can still input URL manually.' });
     }
-    return t('conversation.preview.openclawMonitorMissing', { defaultValue: 'Star Office is not detected on this machine.' });
+    return t('starOffice.monitor.missing', { defaultValue: 'Star Office is not detected on this machine.' });
   }, [detectState, detectedUrl, t]);
 
   const handlePrimaryClick = useCallback(() => {
@@ -241,7 +241,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         const rechecked = await runDetect({ force: true, timeoutMs: STAR_OFFICE_DETECT_TIMEOUT_DEFAULT });
         if (rechecked) {
           onOpenUrl(rechecked, {
-            title: t('conversation.preview.openclawMonitorTitle', { defaultValue: 'OpenClaw Live Monitor' }),
+            title: t('starOffice.monitor.title', { defaultValue: 'OpenClaw Live Monitor' }),
           });
           return;
         }
@@ -260,11 +260,11 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
     if (conversationId) {
       const hasLocal = detectState === 'ready' && Boolean(detectedUrl);
       const text = hasLocal
-        ? t('conversation.preview.openclawMonitorAssistPromptInstalled', {
+        ? t('starOffice.monitor.assistPromptInstalled', {
             defaultValue: '已检测到本机 Star Office 服务（{{url}}）。请直接进入“连接与玩法引导”模式：1) 用一句话确认已检测到服务；2) 引导我点击右上角小电视并确认 URL；3) 告诉我 Star Office 与 OpenClaw 的联动玩法；4) 若连接失败，自动执行最短排障步骤（端口/进程/日志）并重试。',
             url: detectedUrl || '',
           })
-        : t('conversation.preview.openclawMonitorInstallPrompt', {
+        : t('starOffice.monitor.installPrompt', {
             defaultValue: '用户已授权你在当前会话中自动执行 Star Office 的安装与修复命令（尽量不让用户手动敲命令）。请立刻执行：环境检查 -> 自动安装/修复（项目：https://github.com/ringhyacinth/Star-Office-UI）-> 启动服务 -> 检测端口 -> 引导点击右上角小电视验证。仅在系统权限必须用户确认时再提示用户操作。',
           });
       emitter.emit('staroffice.install.request', {
@@ -278,7 +278,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
 
   const handleAskOpenClawDiagnose = useCallback(() => {
     if (conversationId) {
-      const text = t('conversation.preview.openclawMonitorDiagnosePrompt', {
+      const text = t('starOffice.monitor.diagnosePrompt', {
         defaultValue: '请进入 Star Office 连接排障模式（不重装优先）：先检查端口占用、进程状态、授权/token、健康检查与日志；给出最短修复动作并自动执行；最后重新检测并引导我点击右上角小电视验证。',
       });
       emitter.emit('staroffice.install.request', {
@@ -305,7 +305,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         // ignore persistence error
       }
       onOpenUrl(target, {
-        title: t('conversation.preview.openclawMonitorTitle', { defaultValue: 'OpenClaw Live Monitor' }),
+        title: t('starOffice.monitor.title', { defaultValue: 'OpenClaw Live Monitor' }),
       });
       setShowDiagnoseHint(false);
       setDetectFailureCount(0);
@@ -319,7 +319,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
   }, [detectState]);
 
   const buttonNode = (
-    <Button type='text' size='small' className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0' loading={detecting} onClick={handlePrimaryClick} aria-label={t('conversation.preview.openclawMonitor', { defaultValue: 'Open live monitor' })}>
+    <Button type='text' size='small' className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0' loading={detecting} onClick={handlePrimaryClick} aria-label={t('starOffice.monitor.openMonitor', { defaultValue: 'Open live monitor' })}>
       <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
         <Tv theme='outline' size={16} fill={iconFill} />
         <span className='ml-4px w-8px h-8px rounded-full' style={{ backgroundColor: statusBadgeColor }} />
@@ -332,7 +332,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
       <Tooltip content={tooltipText}>{buttonNode}</Tooltip>
 
       <Modal
-        title={t('conversation.preview.openclawMonitor', { defaultValue: 'Open live monitor' })}
+        title={t('starOffice.monitor.openMonitor', { defaultValue: 'Open live monitor' })}
         visible={visible}
         footer={null}
         onCancel={() => {
@@ -343,10 +343,10 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
         <div className='flex flex-col gap-12px'>
           <div className='rounded-12px border border-3 bg-2 p-12px'>
             <button type='button' className='border-none bg-transparent p-0 text-left text-14px font-500 text-t-primary underline-offset-3 hover:underline cursor-pointer' onClick={handleOpenInstallGuide}>
-              {t('conversation.preview.openclawMonitorVisualTitle', { defaultValue: 'What is Star Office UI?' })}
+              {t('starOffice.monitor.visualTitle', { defaultValue: 'What is Star Office UI?' })}
             </button>
             <div className='mt-6px text-12px leading-18px text-t-secondary'>
-              {t('conversation.preview.openclawMonitorVisualDesc', {
+              {t('starOffice.monitor.visualDesc', {
                 defaultValue: 'Star Office is a visual companion for OpenClaw. It turns chat-side status into a live, interactive monitor view.',
               })}
             </div>
@@ -355,49 +355,49 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
                 <div className='h-132px w-full flex items-center justify-center bg-[linear-gradient(135deg,rgba(73,147,255,0.12),rgba(73,147,255,0.04))] px-12px'>
                   <div className='text-center'>
                     <div className='text-20px'>📺</div>
-                    <div className='mt-4px text-12px font-500 text-t-primary'>{t('conversation.preview.openclawMonitorVisualFallbackTitle', { defaultValue: 'Star Office UI live preview' })}</div>
-                    <div className='mt-2px text-11px text-t-secondary'>{t('conversation.preview.openclawMonitorVisualFallbackDesc', { defaultValue: 'OpenClaw chat status becomes a visual office scene.' })}</div>
+                    <div className='mt-4px text-12px font-500 text-t-primary'>{t('starOffice.monitor.visualFallbackTitle', { defaultValue: 'Star Office UI live preview' })}</div>
+                    <div className='mt-2px text-11px text-t-secondary'>{t('starOffice.monitor.visualFallbackDesc', { defaultValue: 'OpenClaw chat status becomes a visual office scene.' })}</div>
                   </div>
                 </div>
               ) : (
-                <img src='https://raw.githubusercontent.com/ringhyacinth/Star-Office-UI/master/docs/screenshots/readme-cover-1.jpg' alt={t('conversation.preview.openclawMonitorVisualImageAlt', { defaultValue: 'Star Office UI official preview' })} className='h-132px w-full object-cover' loading='lazy' referrerPolicy='no-referrer' onError={() => setPreviewImageFailed(true)} />
+                <img src='https://raw.githubusercontent.com/ringhyacinth/Star-Office-UI/master/docs/screenshots/readme-cover-1.jpg' alt={t('starOffice.monitor.visualImageAlt', { defaultValue: 'Star Office UI official preview' })} className='h-132px w-full object-cover' loading='lazy' referrerPolicy='no-referrer' onError={() => setPreviewImageFailed(true)} />
               )}
               <div className='px-8px py-6px text-11px text-t-secondary'>
                 {previewImageFailed
-                  ? t('conversation.preview.openclawMonitorVisualImageCaptionFallback', {
+                  ? t('starOffice.monitor.visualImageCaptionFallback', {
                       defaultValue: 'Preview image unavailable, open project for full screenshots.',
                     })
-                  : t('conversation.preview.openclawMonitorVisualImageCaption', {
+                  : t('starOffice.monitor.visualImageCaption', {
                       defaultValue: 'Official preview from Star-Office-UI (GitHub).',
                     })}
               </div>
             </div>
             <div className='mt-10px flex items-center gap-6px text-12px text-t-primary flex-wrap'>
-              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('conversation.preview.openclawMonitorVisualStepChat', { defaultValue: 'OpenClaw Chat' })}</span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('starOffice.monitor.visualStepChat', { defaultValue: 'OpenClaw Chat' })}</span>
               <span className='text-t-secondary'>→</span>
-              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('conversation.preview.openclawMonitorVisualStepUi', { defaultValue: 'Star Office UI' })}</span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('starOffice.monitor.visualStepUi', { defaultValue: 'Star Office UI' })}</span>
               <span className='text-t-secondary'>→</span>
-              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('conversation.preview.openclawMonitorVisualStepLive', { defaultValue: 'Live Monitor' })}</span>
+              <span className='rounded-full border border-3 bg-1 px-8px py-4px'>{t('starOffice.monitor.visualStepLive', { defaultValue: 'Live Monitor' })}</span>
             </div>
           </div>
 
           <div className='rounded-14px border border-2 bg-[linear-gradient(180deg,rgba(var(--gray-1),0.82),rgba(var(--gray-2),0.7))] p-14px'>
             <div className='flex items-center gap-8px'>
               <span className='h-8px w-8px rounded-full' style={{ backgroundColor: detectState === 'ready' ? 'rgb(var(--success-6))' : 'rgb(var(--gray-5))' }} />
-              <div className='text-14px font-500 text-t-primary'>{t('conversation.preview.openclawMonitorIntroTitle', { defaultValue: 'Star Office Monitor' })}</div>
+              <div className='text-14px font-500 text-t-primary'>{t('starOffice.monitor.introTitle', { defaultValue: 'Star Office Monitor' })}</div>
             </div>
             <div className='mt-8px text-13px leading-20px text-t-secondary'>
               {detectState === 'ready'
-                ? t('conversation.preview.openclawMonitorConnectedInline', {
+                ? t('starOffice.monitor.connectedInline', {
                     defaultValue: 'Connected · {{url}}',
                     url: detectedUrl || '',
                   })
-                : t('conversation.preview.openclawMonitorNotDetectedInline', { defaultValue: 'Not detected on this device' })}
+                : t('starOffice.monitor.notDetectedInline', { defaultValue: 'Not detected on this device' })}
             </div>
             {detectState === 'ready' ? (
               <div className='mt-10px flex flex-wrap items-center gap-8px'>
                 <Button type='primary' className='!rounded-10px' onClick={handleOpenDetectedMonitor}>
-                  {t('conversation.preview.openclawMonitorOpenNow', { defaultValue: 'Open monitor' })}
+                  {t('starOffice.monitor.openNow', { defaultValue: 'Open monitor' })}
                 </Button>
                 <Button
                   size='mini'
@@ -407,16 +407,16 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
                     setShowManualUrlEditor((prev) => !prev);
                   }}
                 >
-                  {showManualUrlEditor ? t('conversation.preview.openclawMonitorHideUrlEditor', { defaultValue: 'Hide URL editor' }) : t('conversation.preview.openclawMonitorEditUrl', { defaultValue: 'Change URL' })}
+                  {showManualUrlEditor ? t('starOffice.monitor.hideUrlEditor', { defaultValue: 'Hide URL editor' }) : t('starOffice.monitor.editUrl', { defaultValue: 'Change URL' })}
                 </Button>
               </div>
             ) : (
               <div className='mt-10px flex flex-wrap items-center gap-8px'>
                 <Button type='primary' className='!rounded-10px' onClick={handleAskOpenClawInstall}>
-                  {t('conversation.preview.openclawMonitorInstallWithOpenClaw', { defaultValue: 'Install with OpenClaw' })}
+                  {t('starOffice.monitor.installWithOpenClaw', { defaultValue: 'Install with OpenClaw' })}
                 </Button>
                 <Button size='mini' type='outline' className='!rounded-10px' loading={detecting} onClick={() => void runDetect({ force: true, timeoutMs: 360 })}>
-                  {t('conversation.preview.openclawMonitorDetect', { defaultValue: 'Detect again' })}
+                  {t('starOffice.monitor.detect', { defaultValue: 'Detect again' })}
                 </Button>
               </div>
             )}
@@ -430,7 +430,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
           ) : null}
           {detectState === 'ready' && showManualUrlEditor ? (
             <>
-              <div className='text-12px text-t-secondary'>{t('conversation.preview.openclawMonitorHint', { defaultValue: 'Input monitor URL manually, e.g. http://127.0.0.1:19000' })}</div>
+              <div className='text-12px text-t-secondary'>{t('starOffice.monitor.hint', { defaultValue: 'Input monitor URL manually, e.g. http://127.0.0.1:19000' })}</div>
               <div className='flex items-center gap-8px'>
                 <Input value={url} onChange={setUrl} placeholder='http://127.0.0.1:19000' />
                 <Button type='outline' onClick={handleConfirm}>
