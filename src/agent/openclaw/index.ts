@@ -296,7 +296,7 @@ export class OpenClawAgent {
     }
 
     // Resolve or create default session via gateway so it exists before first chat.send
-    const defaultKey = 'main';
+    const defaultKey = this.id; // use conversation_id for per-conversation session isolation
     try {
       const result = await this.connection.sessionsResolve({ key: defaultKey });
       this.connection.sessionKey = result.key;
