@@ -49,7 +49,6 @@ interface EventTypes {
     },
   ];
   'staroffice.sync.result': [StarOfficeSyncResult];
-  'staroffice.install-mode.changed': [{ conversationId: string; enabled: boolean }];
   'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
 }
 
