@@ -90,7 +90,6 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
-const STAR_OFFICE_CARD_MARKER = '[STAROFFICE_CARD]';
 const normalizeConsentText = (input: string) => input.trim().toLowerCase();
 const isInstallConsentApproved = (input: string) => {
   const normalized = normalizeConsentText(input);
@@ -244,9 +243,18 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   );
   const emitAssistantCard = useCallback(
     (markdown: string) => {
-      emitAssistantNarration(`${STAR_OFFICE_CARD_MARKER}\n${markdown}`);
+      const cardMessage: TMessage = {
+        id: uuid(),
+        msg_id: uuid(),
+        conversation_id,
+        type: 'star_office_card',
+        position: 'left',
+        content: { content: markdown },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(cardMessage, true);
     },
-    [emitAssistantNarration]
+    [addOrUpdateMessage, conversation_id]
   );
   const announceInstallStage = useCallback((stage: InstallFlowStage) => {
     if (stage === 'idle' || stage === 'consent') return;

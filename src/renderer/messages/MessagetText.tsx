@@ -20,8 +20,6 @@ import MarkdownView from '../components/Markdown';
 import { stripThinkTags, hasThinkTags } from '../utils/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
 
-const STAR_OFFICE_CARD_MARKER = '[STAROFFICE_CARD]';
-
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
   if (markerIndex === -1) {
@@ -65,15 +63,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   }, [message.content.content]);
 
   const { text, files } = parseFileMarker(contentToRender);
-  const isStarOfficeCardMessage = useMemo(
-    () => typeof text === 'string' && text.trimStart().startsWith(STAR_OFFICE_CARD_MARKER) && message.position === 'left',
-    [text, message.position]
-  );
-  const starOfficeCardText = useMemo(
-    () => (isStarOfficeCardMessage ? text.replace(STAR_OFFICE_CARD_MARKER, '').trimStart() : text),
-    [isStarOfficeCardMessage, text]
-  );
-  const { data, json } = useFormatContent(starOfficeCardText);
+  const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
@@ -84,7 +74,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   }
 
   const handleCopy = () => {
-    const baseText = json ? JSON.stringify(data, null, 2) : starOfficeCardText;
+    const baseText = json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     const textToCopy = fileList + baseText;
     copyText(textToCopy)
@@ -139,31 +129,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
               <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
             </CollapsibleContent>
           ) : (
-            <div
-              className={classNames({
-                'rounded-14px border px-14px py-12px':
-                  isStarOfficeCardMessage,
-              })}
-              style={
-                isStarOfficeCardMessage
-                  ? {
-                      borderColor: 'rgb(var(--arcoblue-3))',
-                      background:
-                        'linear-gradient(135deg, rgba(var(--arcoblue-1), 0.62) 0%, rgba(var(--arcoblue-2), 0.28) 60%, var(--color-bg-2) 100%)',
-                    }
-                  : undefined
-              }
-            >
-              <div
-                className={classNames('mb-8px text-12px font-600 tracking-[0.2px]', {
-                  hidden: !isStarOfficeCardMessage,
-                })}
-                style={isStarOfficeCardMessage ? { color: 'var(--color-text-2)' } : undefined}
-              >
-                📺 STAR OFFICE ASSISTANT
-              </div>
-              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{starOfficeCardText}</MarkdownView>
-            </div>
+            <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{text}</MarkdownView>
           )}
         </div>
         <div
