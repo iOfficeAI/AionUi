@@ -26,7 +26,6 @@ import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
 import MessageToolGroupSummary from './MessageToolGroupSummary';
-import MessageStarOfficeCard from './MessageStarOfficeCard';
 import MessageText from './MessagetText';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
@@ -85,8 +84,6 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
         return <MessagePlan message={message}></MessagePlan>;
       case 'available_commands':
         return null;
-      case 'star_office_card':
-        return <MessageStarOfficeCard message={message} />;
       default:
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }
