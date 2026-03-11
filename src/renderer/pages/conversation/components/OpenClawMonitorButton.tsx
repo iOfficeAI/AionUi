@@ -10,11 +10,11 @@ import { Tv } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { STAR_OFFICE_URL_KEY } from '@/renderer/utils/starOffice';
 import { emitter } from '@/renderer/utils/emitter';
 import { iconColors } from '@/renderer/theme/colors';
 
 const MONITOR_URL_STORAGE_KEY = 'aionui.openclaw.monitorUrl';
+const STAR_OFFICE_URL_KEY = 'aionui.starOffice.url';
 const DEFAULT_MONITOR_URL = 'http://127.0.0.1:19000';
 const STAR_OFFICE_DETECT_TIMEOUT_DEFAULT = 1200;
 const STAR_OFFICE_DETECT_TIMEOUT_RETRY = 2400;
