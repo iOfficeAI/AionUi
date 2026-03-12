@@ -10,7 +10,7 @@ import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { SlashCommandItem } from './slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from './storage';
+import type { ChannelConversationOverrides, ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
@@ -536,6 +536,8 @@ export interface ICreateConversationParams {
       expectedIdentityHash?: string | null;
       switchedAt?: number;
     };
+    /** Channel-specific model/thinking overrides for Telegram/Lark/DingTalk */
+    channelOverrides?: ChannelConversationOverrides;
     /** Explicit marker for temporary health-check conversations */
     isHealthCheck?: boolean;
   };

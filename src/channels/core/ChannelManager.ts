@@ -88,7 +88,7 @@ export class ChannelManager {
 
       // Set confirm handler for tool confirmations
       // 设置工具确认处理器
-      this.pluginManager.setConfirmHandler(async (userId: string, platform: string, callId: string, value: string) => {
+      this.pluginManager.setConfirmHandler(async (userId: string, platform: string, callId: string, value: string, chatId?: string) => {
         // 查找用户
         // Find user
         const db = getDatabase();
@@ -100,7 +100,7 @@ export class ChannelManager {
 
         // 查找 session 获取 conversationId
         // Find session to get conversationId
-        const session = this.sessionManager?.getSession(userResult.data.id);
+        const session = this.sessionManager?.getSession(userResult.data.id, chatId);
         if (!session?.conversationId) {
           console.error(`[ChannelManager] Session not found for user: ${userResult.data.id}`);
           return;

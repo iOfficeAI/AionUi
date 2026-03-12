@@ -9,7 +9,7 @@ import { ipcBridge } from '@/common';
 import type { CronMessageMeta, IMessageText, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
-import type { IMcpServer, TProviderWithModel } from '@/common/storage';
+import type { ChannelThinkingLevel, IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
 import { ExtensionRegistry } from '@/extensions';
 import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
@@ -310,7 +310,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta; thinking?: ChannelThinkingLevel }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',

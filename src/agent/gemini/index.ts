@@ -10,7 +10,7 @@ export { GeminiApprovalStore } from './GeminiApprovalStore';
 // src/core/ConfigManager.ts
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { NavigationInterceptor } from '@/common/navigation';
-import type { TProviderWithModel } from '@/common/storage';
+import type { ChannelThinkingLevel, TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
@@ -34,6 +34,17 @@ import os from 'os';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
+
+type GeminiStreamRequest = {
+  model?: string;
+  config?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+type PatchableContentGenerator = {
+  generateContentStream: (request: GeminiStreamRequest, userPromptId: string, role: unknown) => Promise<AsyncGenerator<unknown>>;
+  __aionuiThinkingPatched?: boolean;
+};
 
 /**
  * Check if Google OAuth credentials exist
@@ -107,6 +118,7 @@ export class GeminiAgent {
   private historyUsedOnce = false;
   private skillsIndexPrependedOnce = false; // Track if we've prepended skills index to first message
   private contextFileName: string | undefined;
+  private currentThinking: ChannelThinkingLevel | undefined;
   /** 内置 skills 目录路径 / Builtin skills directory path */
   private skillsDir?: string;
   /** 启用的 skills 列表 / Enabled skills list */
@@ -297,6 +309,68 @@ export class GeminiAgent {
     return errorMessage;
   }
 
+  private isGemini3Model(modelId: string): boolean {
+    return modelId.startsWith('gemini-3') || modelId.startsWith('chat-base-3');
+  }
+
+  private isGeminiThinkingModel(modelId: string): boolean {
+    return this.isGemini3Model(modelId) || modelId.startsWith('gemini-') || modelId.startsWith('chat-base-');
+  }
+
+  private buildThinkingConfig(modelId: string, level: ChannelThinkingLevel, current: Record<string, unknown>): Record<string, unknown> {
+    const thinkingConfig: Record<string, unknown> = { ...current };
+    delete thinkingConfig.thinkingBudget;
+    delete thinkingConfig.thinkingLevel;
+
+    if (level === 'off') {
+      thinkingConfig.thinkingBudget = 0;
+      return thinkingConfig;
+    }
+
+    if (this.isGemini3Model(modelId)) {
+      thinkingConfig.thinkingLevel = level === 'low' ? 'LOW' : level === 'medium' ? 'MEDIUM' : level === 'xhigh' ? 'HIGH' : 'HIGH';
+      return thinkingConfig;
+    }
+
+    thinkingConfig.thinkingBudget = level === 'low' ? 1024 : level === 'medium' ? 4096 : level === 'xhigh' ? 8192 : 8192;
+    return thinkingConfig;
+  }
+
+  private applyChannelThinking(request: GeminiStreamRequest): GeminiStreamRequest {
+    const level = this.currentThinking;
+    if (!level) {
+      return request;
+    }
+
+    const modelId = typeof request.model === 'string' ? request.model : this.model?.useModel || '';
+    if (!modelId || !this.isGeminiThinkingModel(modelId)) {
+      return request;
+    }
+
+    const config: Record<string, unknown> = request.config && typeof request.config === 'object' ? { ...(request.config as Record<string, unknown>) } : {};
+    const currentThinkingConfig: Record<string, unknown> = config.thinkingConfig && typeof config.thinkingConfig === 'object' ? { ...(config.thinkingConfig as Record<string, unknown>) } : {};
+
+    config.thinkingConfig = this.buildThinkingConfig(modelId, level, currentThinkingConfig);
+    return {
+      ...request,
+      config,
+    };
+  }
+
+  private installThinkingConfigInterceptor(): void {
+    const contentGenerator = this.config?.getContentGenerator() as unknown as PatchableContentGenerator | undefined;
+    if (!contentGenerator || contentGenerator.__aionuiThinkingPatched) {
+      return;
+    }
+
+    const originalGenerateContentStream = contentGenerator.generateContentStream.bind(contentGenerator);
+
+    // aioncli-core currently forces Gemini 3 requests to HIGH inside geminiChat.js.
+    // Intercept the final outgoing request so channel-level thinking can still override it.
+    contentGenerator.generateContentStream = (request, userPromptId, role) => originalGenerateContentStream(this.applyChannelThinking(request), userPromptId, role);
+    contentGenerator.__aionuiThinkingPatched = true;
+  }
+
   private async initialize(): Promise<void> {
     const path = this.workspace;
 
@@ -368,6 +442,7 @@ export class GeminiAgent {
     console.log(`[GeminiAgent] After refreshAuth — config.getModel(): "${this.config.getModel()}", authType used: ${this.authType}`);
 
     this.geminiClient = this.config.getGeminiClient();
+    this.installThinkingConfigInterceptor();
 
     // 在初始化时注入 presetRules 到 userMemory
     // Inject presetRules into userMemory at initialization
@@ -710,9 +785,10 @@ export class GeminiAgent {
     }
   }
 
-  async send(message: string | Array<{ text: string }>, msg_id = '', files?: string[]) {
+  async send(message: string | Array<{ text: string }>, msg_id = '', files?: string[], thinking?: ChannelThinkingLevel) {
     await this.bootstrap;
     const abortController = this.createAbortController();
+    this.currentThinking = thinking;
 
     const stripFilesMarker = (text: string): string => {
       const markerIndex = text.indexOf(AIONUI_FILES_MARKER);

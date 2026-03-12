@@ -408,13 +408,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               })),
             });
 
-            // Channels (Telegram/Lark) currently don't have interactive permission UX.
-            // Emit a readable error to avoid "silent hang" in external platforms.
             channelEventBus.emitAgentMessage(this.conversation_id, {
-              type: 'error',
+              ...v,
               conversation_id: this.conversation_id,
-              msg_id: v.msg_id,
-              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
             });
             return;
           }
@@ -520,7 +516,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta; channelThinkingPrompt?: string }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -582,7 +578,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
 
         const agentSendStart = Date.now();
-        const result = await this.agent.sendMessage({ ...data, content: contentToSend });
+        const effectiveContent = data.channelThinkingPrompt ? `${data.channelThinkingPrompt}\n\n${contentToSend}` : contentToSend;
+        const result = await this.agent.sendMessage({ ...data, content: effectiveContent });
         if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
         // 首条消息发送后标记，无论是否有 presetContext
         if (this.isFirstMessage) {
@@ -594,7 +591,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         return result;
       }
       const agentSendStart = Date.now();
-      const result = await this.agent.sendMessage(data);
+      const effectiveContent = data.channelThinkingPrompt ? `${data.channelThinkingPrompt}\n\n${data.content}` : data.content;
+      const result = await this.agent.sendMessage({ ...data, content: effectiveContent });
       if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`);
       return result;
     } catch (e) {

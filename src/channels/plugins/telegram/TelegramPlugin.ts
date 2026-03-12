@@ -13,6 +13,27 @@ import { BasePlugin } from '../BasePlugin';
 import { splitMessage, TELEGRAM_MESSAGE_LIMIT, toTelegramSendParams, toUnifiedIncomingMessage } from './TelegramAdapter';
 import { extractAction, extractCategory } from './TelegramKeyboards';
 
+const TELEGRAM_COMMANDS = [
+  { command: 'start', description: '开始绑定并显示菜单' },
+  { command: 'new', description: '新建会话' },
+  { command: 'status', description: '查看当前会话状态' },
+  { command: 'settings', description: '打开设置面板' },
+  { command: 'tool', description: '切换工具，无参时显示可选项' },
+  { command: 'model', description: '切换模型，无参时显示可选项' },
+  { command: 'think', description: '切换思考强度，无参时显示可选项' },
+  { command: 'approvals', description: '切换审批模式，无参时显示可选项' },
+  { command: 'history', description: '查看历史会话列表' },
+  { command: 'messages', description: '查看当前会话消息' },
+  { command: 'help', description: '查看帮助' },
+] as const;
+
+const SLASH_COMMAND_SETTINGS_VIEWS: Partial<Record<string, 'tool' | 'model' | 'think' | 'approvals'>> = {
+  tool: 'tool',
+  model: 'model',
+  think: 'think',
+  approvals: 'approvals',
+};
+
 /**
  * TelegramPlugin - Telegram Bot integration for Personal Assistant
  *
@@ -63,6 +84,7 @@ export class TelegramPlugin extends BasePlugin {
     try {
       // Get bot info first to validate the token
       this.botInfo = await this.bot.api.getMe();
+      await this.syncBotCommands();
 
       // Start polling - grammY handles webhook deletion internally
       // grammY 内部会自动删除 webhook
@@ -256,6 +278,10 @@ export class TelegramPlugin extends BasePlugin {
     this.activeUsers.add(userId);
 
     try {
+      if (await this.handleSlashCommand(ctx, text)) {
+        return;
+      }
+
       // Check for button text commands
       if (await this.handleButtonCommand(ctx, text)) {
         return;
@@ -293,7 +319,9 @@ export class TelegramPlugin extends BasePlugin {
     // Map button text to actions
     const buttonActions: Record<string, { type: string; action: string }> = {
       '🆕 New Chat': { type: 'system', action: 'session.new' },
+      '🗂 History': { type: 'system', action: 'history.show' },
       '📊 Status': { type: 'system', action: 'session.status' },
+      '⚙️ Settings': { type: 'system', action: 'settings.show' },
       '❓ Help': { type: 'system', action: 'help.show' },
       '🔄 Agent': { type: 'system', action: 'agent.show' },
       '🔄 Refresh Status': { type: 'platform', action: 'pairing.check' },
@@ -314,6 +342,69 @@ export class TelegramPlugin extends BasePlugin {
     }
 
     return false;
+  }
+
+  private async syncBotCommands(): Promise<void> {
+    if (!this.bot) return;
+
+    try {
+      await this.bot.api.setMyCommands([...TELEGRAM_COMMANDS]);
+      console.log(`[TelegramPlugin] Registered ${TELEGRAM_COMMANDS.length} slash commands`);
+    } catch (error) {
+      console.warn('[TelegramPlugin] Failed to register slash commands:', error);
+    }
+  }
+
+  private async handleSlashCommand(ctx: Context, text: string): Promise<boolean> {
+    if (!text.startsWith('/')) {
+      return false;
+    }
+
+    const unifiedMessage = toUnifiedIncomingMessage(ctx);
+    if (!unifiedMessage || !this.messageHandler) return false;
+
+    const trimmed = text.trim();
+    const [rawCommand = '', ...restArgs] = trimmed.split(/\s+/);
+    const command = rawCommand.replace(/^\/+/, '').split('@')[0]?.toLowerCase();
+    const args = restArgs.join(' ').trim();
+
+    const commandMap: Record<string, { type: 'system' | 'platform'; action: string; params?: Record<string, string> }> = {
+      new: { type: 'system', action: 'session.new' },
+      status: { type: 'system', action: 'session.status' },
+      help: { type: 'system', action: 'help.show' },
+      settings: { type: 'system', action: 'settings.show' },
+      history: { type: 'system', action: 'history.show', params: args ? { page: args } : undefined },
+      messages: { type: 'system', action: 'messages.show', params: args ? { page: args } : undefined },
+      tool: { type: 'system', action: 'tool.set', params: args ? { tool: args } : undefined },
+      model: { type: 'system', action: 'model.set', params: args ? { model: args } : undefined },
+      think: { type: 'system', action: 'think.set', params: args ? { level: args } : undefined },
+      approvals: { type: 'system', action: 'approvals.set', params: args ? { mode: args } : undefined },
+    };
+
+    const slashAction = commandMap[command];
+    if (!slashAction) {
+      return false;
+    }
+
+    const settingsView = !args ? SLASH_COMMAND_SETTINGS_VIEWS[command] : undefined;
+    const resolvedAction = settingsView
+      ? {
+          type: 'system' as const,
+          action: 'settings.show',
+          params: { view: settingsView },
+        }
+      : slashAction;
+
+    unifiedMessage.content.type = 'action';
+    unifiedMessage.content.text = resolvedAction.action;
+    unifiedMessage.action = {
+      type: resolvedAction.type,
+      name: resolvedAction.action,
+      params: resolvedAction.params,
+    };
+
+    void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling slash command:`, error));
+    return true;
   }
 
   /**
@@ -363,9 +454,10 @@ export class TelegramPlugin extends BasePlugin {
       if (parts.length >= 3 && this.confirmHandler) {
         const callId = parts[1];
         const value = parts.slice(2).join(':'); // value 可能包含冒号
+        const chatId = ctx.callbackQuery?.message?.chat?.id?.toString() || userId;
         // 直接调用 confirmHandler，不通过 messageHandler
         // Call confirmHandler directly, not through messageHandler
-        void this.confirmHandler(userId, 'telegram', callId, value)
+        void this.confirmHandler(userId, 'telegram', callId, value, chatId)
           .then(async () => {
             // 确认成功后移除按钮
             // Remove buttons after confirmation success
@@ -408,6 +500,114 @@ export class TelegramPlugin extends BasePlugin {
             }
           })
           .catch((error) => console.error(`[TelegramPlugin] Error handling agent selection:`, error));
+      }
+      return;
+    }
+
+    if (category === 'history') {
+      const parts = data.split(':');
+      const action = parts[1];
+      const unifiedMessage = toUnifiedIncomingMessage(ctx);
+      if (unifiedMessage && this.messageHandler) {
+        unifiedMessage.content.type = 'action';
+        unifiedMessage.content.text = `history.${action === 'select' ? 'select' : 'show'}`;
+        unifiedMessage.action = {
+          type: 'system',
+          name: action === 'select' ? 'history.select' : 'history.show',
+          params: action === 'select' ? { conversationId: parts[2] } : { page: parts[2] || '0' },
+        };
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling history callback:`, error));
+      }
+      return;
+    }
+
+    if (category === 'settings') {
+      const parts = data.split(':');
+      const unifiedMessage = toUnifiedIncomingMessage(ctx);
+      if (unifiedMessage && this.messageHandler) {
+        unifiedMessage.content.type = 'action';
+        unifiedMessage.content.text = 'settings.show';
+        unifiedMessage.action = {
+          type: 'system',
+          name: 'settings.show',
+          params: {
+            view: parts[2] || 'main',
+            page: parts[3] || '0',
+            originalMessageId: ctx.callbackQuery?.message?.message_id?.toString() || '',
+          },
+        };
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling settings callback:`, error));
+      }
+      return;
+    }
+
+    if (category === 'tool' || category === 'model' || category === 'think' || category === 'approvals') {
+      const parts = data.split(':');
+      const unifiedMessage = toUnifiedIncomingMessage(ctx);
+      if (unifiedMessage && this.messageHandler && parts[1] === 'set') {
+        const originalMessageId = ctx.callbackQuery?.message?.message_id?.toString() || '';
+        let params: Record<string, string>;
+
+        if (category === 'tool') {
+          params = {
+            tool: parts.slice(2).join(':'),
+            originalMessageId,
+          };
+        } else if (category === 'model') {
+          params =
+            parts.length >= 4
+              ? {
+                  page: parts[2] || '0',
+                  index: parts[3] || '',
+                  originalMessageId,
+                }
+              : {
+                  model: parts.slice(2).join(':'),
+                  originalMessageId,
+                };
+        } else if (category === 'think') {
+          params = {
+            level: parts[2] || '',
+            originalMessageId,
+          };
+        } else {
+          params = {
+            mode: parts.slice(2).join(':'),
+            originalMessageId,
+          };
+        }
+
+        unifiedMessage.content.type = 'action';
+        unifiedMessage.content.text = `${category}.set`;
+        unifiedMessage.action = {
+          type: 'system',
+          name: `${category}.set`,
+          params,
+        };
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling ${category} callback:`, error));
+      }
+      return;
+    }
+
+    if (category === 'messages') {
+      const parts = data.split(':');
+      const action = parts[1];
+      const unifiedMessage = toUnifiedIncomingMessage(ctx);
+      if (unifiedMessage && this.messageHandler) {
+        unifiedMessage.content.type = 'action';
+        unifiedMessage.content.text = 'messages.show';
+        unifiedMessage.action = {
+          type: 'system',
+          name: 'messages.show',
+          params:
+            action === 'current'
+              ? { page: parts[2] || '0' }
+              : {
+                  conversationId: parts[2],
+                  page: parts[3] || '0',
+                },
+        };
+        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling messages callback:`, error));
       }
       return;
     }

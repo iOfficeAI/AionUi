@@ -206,6 +206,7 @@ export interface SessionsPatchParams {
   key: string;
   label?: string | null;
   model?: string | null;
+  thinkingLevel?: string | null;
   // ... other optional fields
 }
 

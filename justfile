@@ -25,7 +25,15 @@ webui:
 webui-remote:
     bun run webui:remote
 
-# Start WebUI production mode
+# Preview the existing production build locally
+webui-preview:
+    bun run webui:preview
+
+# Preview the existing production build with remote access
+webui-preview-remote:
+    bun run webui:preview:remote
+
+# Build and start WebUI in production preview mode
 webui-prod:
     bun run webui:prod
 

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { CodexAgentEventType } from './eventTypes';
+import type { ChannelConversationOverrides } from '@/common/storage';
 
 // JSON-RPC 消息的泛型结构 - 使用 CodexEventMsg 自动推断类型
 export type CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventMsg['type']> = {
@@ -57,7 +58,7 @@ export type CodexEventMsg =
 export interface SessionConfiguredData {
   session_id: string;
   model?: string;
-  reasoning_effort?: 'minimal' | 'low' | 'medium' | 'high' | null;
+  reasoning_effort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
   history_log_id?: number;
   history_entry_count?: number;
   initial_messages?: unknown[] | null;
@@ -331,6 +332,8 @@ export interface CodexAgentManagerData {
   sessionMode?: string;
   /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
   codexModel?: string;
+  /** Channel-level model / reasoning overrides */
+  channelOverrides?: ChannelConversationOverrides;
 }
 
 export interface ElicitationCreateData {

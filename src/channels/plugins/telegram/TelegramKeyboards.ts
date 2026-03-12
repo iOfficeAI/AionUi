@@ -23,7 +23,7 @@ import type { ChannelAgentType } from '../../types';
  * Displayed persistently below the message input
  */
 export function createMainMenuKeyboard(): Keyboard {
-  return new Keyboard().text('🆕 New Chat').text('🔄 Agent').row().text('📊 Status').text('❓ Help').resized().persistent();
+  return new Keyboard().text('🆕 New Chat').text('🔄 Agent').row().text('🗂 History').text('📊 Status').row().text('⚙️ Settings').text('❓ Help').resized().persistent();
 }
 
 /**
@@ -101,7 +101,7 @@ export function createConfirmationKeyboard(confirmAction: string, cancelAction: 
  * Session control keyboard
  */
 export function createSessionControlKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🆕 New Session', 'session:new').text('📊 Session Status', 'session:status');
+  return new InlineKeyboard().text('🆕 New Session', 'session:new').text('📊 Session Status', 'session:status').row().text('⚙️ Settings', 'settings:show:main').text('🗂 History', 'history:page:0').row().text('📄 Messages', 'messages:current:0');
 }
 
 /**
@@ -109,6 +109,129 @@ export function createSessionControlKeyboard(): InlineKeyboard {
  */
 export function createHelpKeyboard(): InlineKeyboard {
   return new InlineKeyboard().text('🤖 Features', 'help:features').text('🔗 Pairing Guide', 'help:pairing').row().text('💬 Tips', 'help:tips');
+}
+
+export function createHistoryListKeyboard(items: Array<{ id: string; label: string; current?: boolean }>, page: number, hasPrev: boolean, hasNext: boolean): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  for (const item of items) {
+    const label = item.current ? `✓ ${item.label}` : item.label;
+    keyboard.text(label, `history:select:${item.id}`).row();
+  }
+
+  if (hasPrev) {
+    keyboard.text('⬅️ Prev', `history:page:${page - 1}`);
+  }
+  if (hasNext) {
+    keyboard.text('➡️ Next', `history:page:${page + 1}`);
+  }
+
+  if (items.length > 0) {
+    keyboard.row().text('📄 Current Messages', 'messages:current:0');
+  }
+
+  return keyboard;
+}
+
+export function createMessageListKeyboard(conversationId: string, page: number, hasPrev: boolean, hasNext: boolean): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+  let hasPager = false;
+
+  if (hasPrev) {
+    keyboard.text('⬅️ Prev', `messages:show:${conversationId}:${page - 1}`);
+    hasPager = true;
+  }
+  if (hasNext) {
+    keyboard.text('➡️ Next', `messages:show:${conversationId}:${page + 1}`);
+    hasPager = true;
+  }
+
+  if (hasPager) {
+    keyboard.row();
+  }
+
+  return keyboard.text('⚙️ Settings', 'settings:show:main').text('🗂 History', 'history:page:0');
+}
+
+export function createSettingsPanelKeyboard(hasConversation: boolean, supportsApprovals = false): InlineKeyboard {
+  const keyboard = new InlineKeyboard().text('🤖 Tool', 'settings:show:tool').text('🧠 Model', 'settings:show:model:0').row().text('💭 Thinking', 'settings:show:think');
+
+  if (supportsApprovals) {
+    keyboard.text('🛡 Approvals', 'settings:show:approvals').row().text('📊 Status', 'session:status');
+  } else {
+    keyboard.text('📊 Status', 'session:status');
+  }
+
+  if (hasConversation) {
+    keyboard.row().text('🗂 History', 'history:page:0').text('📄 Messages', 'messages:current:0');
+  } else {
+    keyboard.row().text('🆕 New Session', 'session:new').text('🗂 History', 'history:page:0');
+  }
+
+  return keyboard.row().text('🔄 Refresh', 'settings:show:main');
+}
+
+export function createSettingsToolKeyboard(items: Array<{ label: string; value: string; current?: boolean }>): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  items.forEach((item, index) => {
+    keyboard.text(item.current ? `✓ ${item.label}` : item.label, `tool:set:${item.value}`);
+    if ((index + 1) % 2 === 0 && index < items.length - 1) {
+      keyboard.row();
+    }
+  });
+
+  return keyboard.row().text('⬅️ Back', 'settings:show:main').text('🔄 Refresh', 'settings:show:tool');
+}
+
+export function createSettingsThinkingKeyboard(currentLevel?: string, includeXHigh = false): InlineKeyboard {
+  const keyboard = new InlineKeyboard()
+    .text(currentLevel === 'off' ? '✓ Off' : 'Off', 'think:set:off')
+    .text(currentLevel === 'low' ? '✓ Low' : 'Low', 'think:set:low')
+    .row()
+    .text(currentLevel === 'medium' ? '✓ Medium' : 'Medium', 'think:set:medium')
+    .text(currentLevel === 'high' ? '✓ High' : 'High', 'think:set:high');
+
+  if (includeXHigh) {
+    keyboard.row().text(currentLevel === 'xhigh' ? '✓ XHigh' : 'XHigh', 'think:set:xhigh');
+  }
+
+  return keyboard.row().text('⬅️ Back', 'settings:show:main').text('🔄 Refresh', 'settings:show:think');
+}
+
+export function createSettingsApprovalsKeyboard(items: Array<{ label: string; value: string; current?: boolean }>): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  items.forEach((item, index) => {
+    keyboard.text(item.current ? `✓ ${item.label}` : item.label, `approvals:set:${item.value}`);
+    if ((index + 1) % 2 === 0 && index < items.length - 1) {
+      keyboard.row();
+    }
+  });
+
+  return keyboard.row().text('⬅️ Back', 'settings:show:main').text('🔄 Refresh', 'settings:show:approvals');
+}
+
+export function createSettingsModelKeyboard(items: Array<{ label: string; current?: boolean }>, page: number, hasPrev: boolean, hasNext: boolean): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  items.forEach((item, index) => {
+    const label = item.current ? `✓ ${item.label}` : item.label;
+    keyboard.text(label, `model:set:${page}:${index}`).row();
+  });
+
+  if (hasPrev) {
+    keyboard.text('⬅️ Prev', `settings:show:model:${page - 1}`);
+  }
+  if (hasNext) {
+    keyboard.text('➡️ Next', `settings:show:model:${page + 1}`);
+  }
+
+  if (hasPrev || hasNext) {
+    keyboard.row();
+  }
+
+  return keyboard.text('⬅️ Back', 'settings:show:main').text('🔄 Refresh', `settings:show:model:${page}`);
 }
 
 /**

@@ -9,6 +9,7 @@ import { AcpApprovalStore } from '@/agent/acp/ApprovalStore';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
+import type { ChannelConversationOverrides, ChannelThinkingLevel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
@@ -47,6 +48,8 @@ export interface OpenClawAgentConfig {
     sessionKey?: string;
     /** YOLO mode (auto-approve all permissions) */
     yoloMode?: boolean;
+    /** Channel-level overrides from Telegram/Lark/DingTalk */
+    channelOverrides?: ChannelConversationOverrides;
   };
   /** Stream event callback */
   onStreamEvent: (data: IResponseMessage) => void;
@@ -90,6 +93,16 @@ export class OpenClawAgent {
 
     // Initialize adapter with 'openclaw-gateway' backend
     this.adapter = new AcpAdapter(this.id, 'openclaw-gateway');
+  }
+
+  private normalizeThinkingLevel(level?: ChannelThinkingLevel): string | null | undefined {
+    if (level === undefined) {
+      return undefined;
+    }
+    if (level === 'xhigh') {
+      return 'high';
+    }
+    return level;
   }
 
   /**
@@ -160,6 +173,17 @@ export class OpenClawAgent {
 
       // Resolve session
       await this.resolveSession();
+
+      const selectedModel = this.config.extra?.channelOverrides?.model;
+      const selectedThinking = this.normalizeThinkingLevel(this.config.extra?.channelOverrides?.thinking);
+      if ((selectedModel || selectedThinking !== undefined) && this.connection?.sessionKey) {
+        await this.connection.sessionsPatch({
+          key: this.connection.sessionKey,
+          ...(selectedModel ? { model: selectedModel } : {}),
+          ...(selectedThinking !== undefined ? { thinkingLevel: selectedThinking } : {}),
+        });
+      }
+
       this.emitStatusMessage('session_active');
     } catch (error) {
       this.emitStatusMessage('error');
@@ -202,7 +226,7 @@ export class OpenClawAgent {
   /**
    * Send a message
    */
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; thinking?: string }): Promise<AcpResult> {
     try {
       // Auto-reconnect if needed
       if (!this.connection?.isConnected || !this.connection?.sessionKey) {
@@ -225,6 +249,7 @@ export class OpenClawAgent {
       await this.connection!.chatSend({
         sessionKey: this.connection!.sessionKey!,
         message: processedContent,
+        thinking: data.thinking,
       });
 
       return { success: true, data: null };
@@ -266,6 +291,36 @@ export class OpenClawAgent {
    */
   kill(): void {
     this.stop().catch(console.error);
+  }
+
+  async setModel(modelId: string): Promise<void> {
+    if (!this.connection?.isConnected || !this.connection?.sessionKey) {
+      await this.start();
+    }
+
+    if (!this.connection?.sessionKey) {
+      throw new Error('OpenClaw session is not available');
+    }
+
+    await this.connection.sessionsPatch({
+      key: this.connection.sessionKey,
+      model: modelId,
+    });
+  }
+
+  async setThinking(level: ChannelThinkingLevel): Promise<void> {
+    if (!this.connection?.isConnected || !this.connection?.sessionKey) {
+      await this.start();
+    }
+
+    if (!this.connection?.sessionKey) {
+      throw new Error('OpenClaw session is not available');
+    }
+
+    await this.connection.sessionsPatch({
+      key: this.connection.sessionKey,
+      thinkingLevel: this.normalizeThinkingLevel(level),
+    });
   }
 
   // ========== Private Methods ==========

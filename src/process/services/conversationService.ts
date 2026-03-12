@@ -6,7 +6,7 @@
 
 import { getChannelConversationName, isChannelPlatform } from '@/channels/types';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
-import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
+import type { ChannelConversationOverrides, ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import path from 'path';
 import { createAcpAgent, createCodexAgent, createGeminiAgent, createNanobotAgent, createOpenClawAgent } from '../initAgent';
@@ -26,7 +26,9 @@ export interface ICreateGeminiConversationParams {
   presetRules?: string;
   enabledSkills?: string[];
   presetAssistantId?: string;
+  sessionMode?: string;
   isHealthCheck?: boolean;
+  channelOverrides?: ChannelConversationOverrides;
   /** 会话来源 / Conversation source */
   source?: ConversationSource;
   /** 自定义会话 ID / Custom conversation ID */
@@ -79,7 +81,7 @@ export class ConversationService {
       }
 
       // Create conversation object
-      const conversation = await createGeminiAgent(params.model, params.workspace, params.defaultFiles, params.webSearchEngine, params.customWorkspace, contextFileName, params.presetRules, params.enabledSkills, params.presetAssistantId, undefined, params.isHealthCheck);
+      const conversation = await createGeminiAgent(params.model, params.workspace, params.defaultFiles, params.webSearchEngine, params.customWorkspace, contextFileName, params.presetRules, params.enabledSkills, params.presetAssistantId, params.sessionMode, params.isHealthCheck, params.channelOverrides);
 
       // Apply custom ID and name if provided
       if (params.id) {
@@ -143,7 +145,7 @@ export class ConversationService {
         const enabledSkills = extraWithPresets.enabledSkills;
         const presetAssistantId = extraWithPresets.presetAssistantId;
 
-        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode, extra.isHealthCheck);
+        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode, extra.isHealthCheck, extra.channelOverrides);
       } else if (type === 'acp') {
         conversation = await createAcpAgent(params);
       } else if (type === 'codex') {

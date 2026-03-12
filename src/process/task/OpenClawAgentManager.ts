@@ -8,6 +8,7 @@ import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';
+import type { ChannelConversationOverrides, ChannelThinkingLevel } from '@/common/storage';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
@@ -34,6 +35,8 @@ export interface OpenClawAgentManagerData {
   sessionKey?: string;
   /** YOLO mode (auto-approve all permissions) */
   yoloMode?: boolean;
+  /** Channel-level overrides from Telegram/Lark/DingTalk */
+  channelOverrides?: ChannelConversationOverrides;
 }
 
 class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
@@ -67,6 +70,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
         workspace: data.workspace,
         sessionKey: data.sessionKey,
         yoloMode: data.yoloMode,
+        channelOverrides: data.channelOverrides,
       },
       onStreamEvent: (message) => this.handleStreamEvent(message),
       onSignalEvent: (message) => this.handleSignalEvent(message),
@@ -162,7 +166,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     console.log('[OpenClawAgentManager] Session key updated:', sessionKey);
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; thinking?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
@@ -184,10 +188,12 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       }
 
       // Send message to agent
+      const contentToSend = data.content;
       const result = await this.agent.sendMessage({
-        content: data.content,
+        content: contentToSend,
         files: data.files,
         msg_id: data.msg_id,
+        thinking: data.thinking || this.options.channelOverrides?.thinking,
       });
 
       return result;
@@ -235,6 +241,22 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
    */
   async ensureYoloMode(): Promise<boolean> {
     return !!this.options.yoloMode;
+  }
+
+  async setModel(modelId: string): Promise<void> {
+    this.options.channelOverrides = {
+      ...this.options.channelOverrides,
+      model: modelId,
+    };
+    await this.agent.setModel(modelId);
+  }
+
+  async setThinking(level: ChannelThinkingLevel): Promise<void> {
+    this.options.channelOverrides = {
+      ...this.options.channelOverrides,
+      thinking: level,
+    };
+    await this.agent.setThinking(level);
   }
 
   stop() {

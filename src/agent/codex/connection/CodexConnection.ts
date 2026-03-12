@@ -80,6 +80,8 @@ export interface NetworkError {
   suggestedAction: string;
 }
 
+export type CodexReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+
 interface PendingReq {
   resolve: (v: unknown) => void;
   reject: (e: unknown) => void;
@@ -162,7 +164,7 @@ export class CodexConnection {
     }
   }
 
-  start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean }): Promise<void> {
+  start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean; reasoningEffort?: CodexReasoningEffort }): Promise<void> {
     console.log(`[Codex-Startup] ===== Codex startup diagnostics =====`);
     console.log(`[Codex-Startup] cliPath=${cliPath}, cwd=${cwd}, platform=${process.platform}`);
     console.log(`[Codex-Startup] process.env.PATH (first 200): ${(process.env.PATH || '(empty)').substring(0, 200)}`);
@@ -220,6 +222,10 @@ export class CodexConnection {
       }
       // If no user config or user had 'never', don't add any flag -
       // let Codex use its default (ensures approval events are sent to us)
+    }
+
+    if (options?.reasoningEffort) {
+      finalArgs = [...finalArgs, '-c', `model_reasoning_effort=${options.reasoningEffort}`];
     }
 
     const envVarCount = Object.keys(cleanEnv).length;

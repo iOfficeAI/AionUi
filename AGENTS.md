@@ -68,16 +68,19 @@ bun run test:e2e           # E2E tests (Playwright)
 **Framework**: Vitest 4 (`vitest.config.ts`)
 
 **Structure**:
+
 - `tests/unit/` - Individual functions, utilities, components
 - `tests/integration/` - IPC, database, service interactions
 - `tests/regression/` - Regression test cases
 - `tests/e2e/` - End-to-end tests (Playwright, `playwright.config.ts`)
 
 **Two test environments**:
+
 - `node` (default) - main process, utilities, services
 - `jsdom` - files named `*.dom.test.ts`
 
 **Workflow rules**:
+
 - Run `bun run test` before every commit
 - New features must include corresponding test cases
 - When modifying logic, update affected existing tests
@@ -90,6 +93,7 @@ bun run test:e2e           # E2E tests (Playwright)
 **Run `bunx tsc --noEmit` to verify there are no type errors** — TypeScript strict mode is enabled and type errors block merges.
 
 Common Prettier rules to follow (avoids needing a fix pass):
+
 - Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
 - Trailing commas required in multi-line arrays/objects
 - Single quotes for strings
@@ -104,7 +108,7 @@ Common Prettier rules to follow (avoids needing a fix pass):
 
 Examples:
 
-```
+```text
 feat(cron): implement scheduled task system
 fix(webui): correct modal z-index issue
 chore: remove debug console.log statements

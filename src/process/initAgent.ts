@@ -5,7 +5,7 @@
  */
 
 import type { ICreateConversationParams } from '@/common/ipcBridge';
-import type { TChatConversation, TProviderWithModel } from '@/common/storage';
+import type { ChannelConversationOverrides, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import fs from 'fs/promises';
 import path from 'path';
@@ -37,7 +37,7 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string, isHealthCheck?: boolean): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string, isHealthCheck?: boolean, channelOverrides?: ChannelConversationOverrides): Promise<TChatConversation> => {
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
 
   return {
@@ -59,6 +59,7 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
       presetAssistantId,
       // Initial session mode from Guid page mode selector
       sessionMode,
+      channelOverrides,
       // Explicit marker for temporary health-check conversations
       isHealthCheck,
     },
@@ -92,6 +93,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       sessionMode: extra.sessionMode,
       // Pre-selected model from Guid page (cached model list)
       currentModelId: extra.currentModelId,
+      channelOverrides: extra.channelOverrides,
       // Explicit marker for temporary health-check conversations
       isHealthCheck: extra.isHealthCheck,
     },
@@ -123,6 +125,7 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       sessionMode: extra.sessionMode,
       // User-selected Codex model from Guid page
       codexModel: extra.codexModel,
+      channelOverrides: extra.channelOverrides,
       // Explicit marker for temporary health-check conversations
       isHealthCheck: extra.isHealthCheck,
     },
@@ -143,6 +146,7 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
       customWorkspace,
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
+      channelOverrides: extra.channelOverrides,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -175,6 +179,7 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
         expectedIdentityHash,
         switchedAt: extra.runtimeValidation?.switchedAt ?? Date.now(),
       },
+      channelOverrides: extra.channelOverrides,
       // Enabled skills list (loaded via SkillManager)
       enabledSkills: extra.enabledSkills,
       // Preset assistant ID for displaying name and avatar in conversation panel

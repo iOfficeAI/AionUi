@@ -72,6 +72,13 @@ export const SystemActionNames = {
   SETTINGS_SHOW: 'settings.show',
   AGENT_SHOW: 'agent.show',
   AGENT_SELECT: 'agent.select',
+  TOOL_SET: 'tool.set',
+  MODEL_SET: 'model.set',
+  THINK_SET: 'think.set',
+  APPROVALS_SET: 'approvals.set',
+  HISTORY_SHOW: 'history.show',
+  HISTORY_SELECT: 'history.select',
+  MESSAGES_SHOW: 'messages.show',
 } as const;
 
 /**

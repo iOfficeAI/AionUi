@@ -7,17 +7,13 @@
 import type { Express, Request, Response } from 'express';
 import express from 'express';
 import http from 'http';
+import https from 'https';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { AUTH_CONFIG } from '../config/constants';
 import { createRateLimiter } from '../middleware/security';
-
-/**
- * Vite dev server port (electron-vite default)
- */
-const VITE_DEV_PORT = 5173;
 
 /**
  * Try to resolve built renderer assets path, return null if not found
@@ -42,9 +38,30 @@ const resolveRendererPath = (): { staticRoot: string; indexHtml: string } | null
 };
 
 /**
+ * Resolve the renderer dev server URL exposed by electron-vite.
+ */
+const resolveRendererDevServerUrl = (): URL | null => {
+  const rawUrl = process.env.ELECTRON_RENDERER_URL;
+  if (!rawUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(rawUrl);
+  } catch (error) {
+    console.warn(`[WebUI] Ignoring invalid ELECTRON_RENDERER_URL: ${rawUrl}`, error);
+    return null;
+  }
+};
+
+/**
  * Create a proxy middleware that forwards requests to the Vite dev server
  */
-function createViteDevProxy(): (req: Request, res: Response) => void {
+function createViteDevProxy(devServerUrl: URL): (req: Request, res: Response) => void {
+  const requestImpl = devServerUrl.protocol === 'https:' ? https : http;
+  const targetPort = devServerUrl.port ? parseInt(devServerUrl.port, 10) : devServerUrl.protocol === 'https:' ? 443 : 80;
+  const targetBasePath = devServerUrl.pathname === '/' ? '' : devServerUrl.pathname.replace(/\/$/, '');
+
   return (req: Request, res: Response) => {
     // Remove ALL restrictive security headers set by Express middleware -
     // Vite dev server content doesn't need them and they block HMR/inline scripts
@@ -54,17 +71,17 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
     res.removeHeader('X-XSS-Protection');
 
     const options: http.RequestOptions = {
-      hostname: 'localhost',
-      port: VITE_DEV_PORT,
-      path: req.url,
+      hostname: devServerUrl.hostname,
+      port: targetPort,
+      path: `${targetBasePath}${req.url || '/'}`,
       method: req.method,
       headers: {
         ...req.headers,
-        host: `localhost:${VITE_DEV_PORT}`,
+        host: devServerUrl.host,
       },
     };
 
-    const proxyReq = http.request(options, (proxyRes) => {
+    const proxyReq = requestImpl.request(options, (proxyRes) => {
       const headers = proxyRes.headers;
       for (const [key, value] of Object.entries(headers)) {
         if (value !== undefined) {
@@ -82,12 +99,18 @@ function createViteDevProxy(): (req: Request, res: Response) => void {
     proxyReq.on('error', (err) => {
       console.error(`[ViteProxy] Error proxying ${req.method} ${req.url}: ${err.message}`);
       if (!res.headersSent) {
-        res.status(502).send(`[WebUI] Vite dev server (localhost:${VITE_DEV_PORT}) unavailable: ${err.message}`);
+        res.status(502).send(`[WebUI] Renderer dev server (${devServerUrl.origin}) unavailable: ${err.message}`);
       }
     });
 
     req.pipe(proxyReq);
   };
+}
+
+function registerMissingRendererBuildRoute(expressApp: Express): void {
+  expressApp.use((_req: Request, res: Response) => {
+    res.status(503).type('text/plain').send('[WebUI] Renderer build not found. Use `bun run webui` for development, or rebuild with `bun run webui:prod`.');
+  });
 }
 
 /**
@@ -138,7 +161,7 @@ function registerProductionStaticRoutes(expressApp: Express, staticRoot: string,
  * Register static assets and page routes
  *
  * In production: serve built files from out/renderer/
- * In development: proxy to Vite dev server (localhost:5173)
+ * In development: proxy to the renderer dev server exposed by electron-vite
  */
 export function registerStaticRoutes(expressApp: Express): void {
   const resolved = resolveRendererPath();
@@ -149,10 +172,16 @@ export function registerStaticRoutes(expressApp: Express): void {
     return;
   }
 
-  // No built assets - proxy to Vite dev server in development mode
-  console.log(`[WebUI] No renderer build found, proxying to Vite dev server at http://localhost:${VITE_DEV_PORT}`);
-  const proxy = createViteDevProxy();
-  expressApp.use(proxy);
+  const devServerUrl = resolveRendererDevServerUrl();
+  if (devServerUrl) {
+    console.log(`[WebUI] No renderer build found, proxying to renderer dev server at ${devServerUrl.origin}`);
+    const proxy = createViteDevProxy(devServerUrl);
+    expressApp.use(proxy);
+    return;
+  }
+
+  console.error('[WebUI] Renderer build not found and no renderer dev server detected.');
+  registerMissingRendererBuildRoute(expressApp);
 }
 
 export default registerStaticRoutes;

@@ -6,7 +6,9 @@
 
 import WorkerManage from '@/process/WorkerManage';
 import { getDatabase } from '@/process/database';
+import type { ChannelThinkingLevel, TChatConversation } from '@/common/storage';
 import type BaseAgentManager from '@/process/task/BaseAgentManager';
+import type { AcpPermissionOption } from '@/types/acpTypes';
 import { composeMessage, transformMessage, type TMessage } from '../../common/chatLib';
 import { uuid } from '../../common/utils';
 import { channelEventBus, type IAgentMessageEvent } from './ChannelEventBus';
@@ -62,6 +64,25 @@ export class ChannelMessageService {
   private initialized = false;
 
   private messageListMap = new Map<string, TMessage[]>();
+
+  private getConversationThinking(conversation: TChatConversation | undefined): ChannelThinkingLevel | undefined {
+    const extra = conversation?.extra as { channelOverrides?: { thinking?: ChannelThinkingLevel } } | undefined;
+    return extra?.channelOverrides?.thinking;
+  }
+
+  private buildAcpThinkingPrompt(level: ChannelThinkingLevel): string {
+    const instructions: Record<ChannelThinkingLevel, string> = {
+      off: 'Use minimal reasoning for this reply. Answer directly and do not reveal private chain-of-thought.',
+      low: 'Use light reasoning for this reply. Keep the answer efficient and do not reveal private chain-of-thought.',
+      medium: 'Use a balanced amount of reasoning for this reply. Do not reveal private chain-of-thought.',
+      high: 'Use deeper reasoning for this reply before answering. Do not reveal private chain-of-thought.',
+      xhigh: 'Use the deepest available reasoning for this reply before answering. Do not reveal private chain-of-thought.',
+    };
+
+    const instruction = instructions[level];
+
+    return `[Channel thinking preference: ${level}] ${instruction}`;
+  }
 
   /**
    * 初始化服务，注册全局事件监听
@@ -159,15 +180,7 @@ export class ChannelMessageService {
     // Get task
     let task: BaseAgentManager<unknown>;
     try {
-      // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
-      // Check conversation source, enable yoloMode if it's from a Channel
-      const db = getDatabase();
-      const dbResult = db.getConversation(conversationId);
-      const isFromChannel = dbResult.success && (dbResult.data?.source === 'lark' || dbResult.data?.source === 'telegram' || dbResult.data?.source === 'dingtalk');
-
-      task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
-        yoloMode: isFromChannel,
-      });
+      task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to get conversation task';
       console.error(`[ChannelMessageService] Failed to get task:`, errorMsg);
@@ -201,7 +214,10 @@ export class ChannelMessageService {
 
       // Build payload based on agent type.
       // Gemini expects { input }, ACP/Codex expect { content }.
-      const payload: { input?: string; content?: string; msg_id: string } = task.type === 'gemini' ? { input: message, msg_id: msgId } : task.type === 'acp' || task.type === 'codex' ? { content: message, msg_id: msgId } : { content: message, msg_id: msgId };
+      const conversation = getDatabase().getConversation(conversationId);
+      const thinkingLevel = conversation.success ? this.getConversationThinking(conversation.data) : undefined;
+      const promptHint = thinkingLevel ? this.buildAcpThinkingPrompt(thinkingLevel) : undefined;
+      const payload: { input: string; msg_id: string; thinking?: ChannelThinkingLevel } | { content: string; msg_id: string; channelThinkingPrompt?: string; thinking?: string } = task.type === 'gemini' ? { input: message, msg_id: msgId, thinking: thinkingLevel } : task.type === 'openclaw-gateway' ? { content: message, msg_id: msgId, thinking: thinkingLevel } : task.type === 'acp' ? { content: message, msg_id: msgId, channelThinkingPrompt: promptHint } : { content: message, msg_id: msgId };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
@@ -266,9 +282,35 @@ export class ChannelMessageService {
         throw new Error(`Task not found for conversation ${conversationId}`);
       }
 
+      const confirmationTask = task as BaseAgentManager<unknown> & {
+        getConfirmations?: () => Array<{
+          id: string;
+          callId: string;
+          options: Array<{
+            value: unknown;
+          }>;
+        }>;
+        confirm: (id: string, callId: string, data: unknown) => void | Promise<void>;
+      };
+
+      let confirmValue: unknown = value;
+      if (task.type === 'acp') {
+        const confirmation = confirmationTask.getConfirmations?.()?.find((item) => item.callId === callId || item.id === callId);
+        const matchedOption = confirmation?.options.find((option) => {
+          const optionValue = option.value;
+          return typeof optionValue === 'object' && optionValue !== null && 'optionId' in optionValue && (optionValue as AcpPermissionOption).optionId === value;
+        });
+
+        if (!matchedOption) {
+          throw new Error(`ACP confirmation option not found for call ${callId}`);
+        }
+
+        confirmValue = matchedOption.value;
+      }
+
       // 调用 agent 的 confirm 方法
       // Call agent's confirm method
-      task.confirm(conversationId, callId, value);
+      await Promise.resolve(confirmationTask.confirm(conversationId, callId, confirmValue));
     } catch (error) {
       console.error(`[ChannelMessageService] Failed to confirm tool call:`, error);
       throw error;

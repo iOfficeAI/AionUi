@@ -5,9 +5,11 @@
  */
 
 import type { TMessage } from '@/common/chatLib';
+import type { CodexPermissionRequest } from '@/common/codex/types';
 import { getDatabase } from '@/process/database';
 import { ProcessConfig } from '@/process/initStorage';
 import { ConversationService } from '@/process/services/conversationService';
+import type { AcpBackend, AcpPermissionRequest } from '@/types/acpTypes';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
 import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
@@ -25,7 +27,6 @@ import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugi
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
-import type { AcpBackend } from '@/types/acpTypes';
 
 // ==================== Platform-specific Helpers ====================
 
@@ -148,6 +149,59 @@ function getConfirmationPrompt(details: { type: string; title?: string; [key: st
   }
 }
 
+function getPermissionOptionLabel(option: { name?: string; kind?: string; optionId?: string }): string {
+  const optionKey = option.kind || option.optionId || '';
+
+  switch (optionKey) {
+    case 'allow_once':
+    case 'proceed_once':
+      return '✅ 仅此次允许';
+    case 'allow_always':
+    case 'proceed_always':
+      return '✅ 总是允许';
+    case 'proceed_always_tool':
+      return '✅ 总是允许此工具';
+    case 'proceed_always_server':
+      return '✅ 总是允许此服务';
+    case 'reject_once':
+    case 'cancel':
+    case 'denied':
+      return '❌ 仅此次拒绝';
+    case 'reject_always':
+    case 'abort':
+      return '⛔ 总是拒绝';
+    default:
+      return option.name && !option.name.includes('.') ? option.name : option.optionId || option.name || 'Confirm';
+  }
+}
+
+function joinMessageLines(lines: Array<string | undefined>): string {
+  return lines.filter((line): line is string => Boolean(line)).join('\n');
+}
+
+function buildAcpPermissionText(content: AcpPermissionRequest): string {
+  const toolCall = content.toolCall;
+  const title = toolCall?.title || toolCall?.rawInput?.description || '需要权限确认';
+  const rawCommand = toolCall?.rawInput?.command as unknown;
+  const command = typeof rawCommand === 'string' ? rawCommand : Array.isArray(rawCommand) ? rawCommand.join(' ') : '';
+  const description = typeof toolCall?.rawInput?.description === 'string' ? toolCall.rawInput.description : '';
+
+  return joinMessageLines(['🛡 <b>Permission Required</b>', '', `<b>${escapeHtml(title)}</b>`, command ? `Command: <code>${escapeHtml(command)}</code>` : undefined, description && description !== title ? escapeHtml(description) : undefined, '', '请选择处理方式：']);
+}
+
+function buildCodexPermissionText(content: CodexPermissionRequest): string {
+  if (content.subtype === 'exec_approval_request') {
+    const command = Array.isArray(content.data.command) ? content.data.command.join(' ') : '';
+    return joinMessageLines(['🛡 <b>Codex Permission</b>', '', '<b>需要执行命令</b>', command ? `Command: <code>${escapeHtml(command)}</code>` : undefined, content.description ? escapeHtml(content.description) : undefined, '', '请选择处理方式：']);
+  }
+
+  const files = Object.keys(content.data.changes || content.data.codex_changes || {});
+  const filePreview = files.length > 0 ? files.slice(0, 4).map((file) => `• <code>${escapeHtml(file)}</code>`) : [];
+  const moreCount = files.length > 4 ? files.length - 4 : 0;
+
+  return joinMessageLines(['🛡 <b>Codex Permission</b>', '', '<b>需要应用代码修改</b>', content.description ? escapeHtml(content.description) : undefined, ...filePreview, moreCount > 0 ? `... 还有 ${moreCount} 个文件` : undefined, '', '请选择处理方式：']);
+}
+
 /**
  * 将 TMessage 转换为 IUnifiedOutgoingMessage
  * Convert TMessage to IUnifiedOutgoingMessage for platform
@@ -220,14 +274,36 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
       };
     }
 
-    case 'acp_permission':
-    case 'codex_permission': {
-      // Channels (Telegram/Lark) use automatic approval via yoloMode.
-      // Show a subtle indicator instead of an error message.
+    case 'acp_permission': {
+      const permissionContent = message.content as AcpPermissionRequest;
+      const callId = permissionContent.toolCall?.toolCallId || message.msg_id;
+      const options = permissionContent.options.map((option) => ({
+        label: getPermissionOptionLabel(option),
+        value: option.optionId,
+      }));
+      const text = buildAcpPermissionText(permissionContent);
+
       return {
         type: 'text',
-        text: `⏳ ${formatTextForPlatform('Applying automatic approval for permission request...', platform)}`,
+        text,
         parseMode: 'HTML',
+        replyMarkup: options.length > 0 ? getToolConfirmationMarkup(platform, callId, options, 'Permission Confirmation', text) : undefined,
+      };
+    }
+
+    case 'codex_permission': {
+      const permissionContent = message.content as CodexPermissionRequest;
+      const options = permissionContent.options.map((option) => ({
+        label: getPermissionOptionLabel(option),
+        value: option.optionId,
+      }));
+      const text = buildCodexPermissionText(permissionContent);
+
+      return {
+        type: 'text',
+        text,
+        parseMode: 'HTML',
+        replyMarkup: options.length > 0 ? getToolConfirmationMarkup(platform, message.msg_id || permissionContent.requestId || 'permission', options, 'Permission Confirmation', text) : undefined,
       };
     }
 
@@ -341,9 +417,14 @@ export class ActionExecutor {
       // Set the assistant user in context
       context.channelUser = channelUser;
 
+      const incomingActionName = action?.name || (content.type === 'action' ? content.text : undefined);
+      const sessionOptionalActions = new Set(['session.new', 'session.status', 'help.show', 'help.features', 'help.pairing', 'help.tips', 'settings.show', 'agent.show', 'agent.select', 'tool.set', 'model.set', 'think.set', 'approvals.set', 'history.show', 'history.select', 'messages.show']);
+
       // Get or create session (scoped by chatId for per-chat isolation)
       let session = this.sessionManager.getSession(channelUser.id, chatId);
-      if (!session || !session.conversationId) {
+      const shouldAutoCreateSession = !incomingActionName || !sessionOptionalActions.has(incomingActionName);
+
+      if (shouldAutoCreateSession && (!session || !session.conversationId)) {
         const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 
         // Read selected agent for this platform (defaults to Gemini)
@@ -422,8 +503,10 @@ export class ActionExecutor {
           return;
         }
       }
-      context.sessionId = session.id;
-      context.conversationId = session.conversationId;
+      if (session) {
+        context.sessionId = session.id;
+        context.conversationId = session.conversationId;
+      }
 
       // Route based on action or content
       if (action) {
@@ -549,11 +632,9 @@ export class ActionExecutor {
         // Convert message format (based on platform)
         const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
 
-        // Strip replyMarkup during streaming to prevent premature card finalization.
-        // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
-        // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
-        // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
-        const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
+        // DingTalk interprets replyMarkup as "stream complete" and finalizes the AI card.
+        // Telegram/Lark can keep inline confirmation controls during streaming.
+        const streamOutgoing: IUnifiedOutgoingMessage = context.platform === 'dingtalk' ? { ...outgoingMessage, replyMarkup: undefined } : outgoingMessage;
 
         // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
         // Save last message content (without replyMarkup, final message adds it separately)
@@ -651,7 +732,7 @@ export class ActionExecutor {
       try {
         // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
         // Use actual content of last message, add action buttons (based on platform)
-        const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, lastMessageContent?.text);
+        const responseMarkup = lastMessageContent?.replyMarkup || getResponseActionsMarkup(context.platform as PluginType, lastMessageContent?.text);
         const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, replyMarkup: responseMarkup } : { type: 'text', text: '✅ Done', parseMode: 'HTML', replyMarkup: responseMarkup };
         await context.editMessage(lastMsgId, finalMessage);
       } catch {

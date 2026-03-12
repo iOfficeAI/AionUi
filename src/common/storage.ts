@@ -130,6 +130,15 @@ export interface IEnvStorageRefer {
  */
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | (string & {});
 
+export type ChannelThinkingLevel = 'off' | 'low' | 'medium' | 'high' | 'xhigh';
+
+export interface ChannelConversationOverrides {
+  /** Preferred model for channel-triggered conversations */
+  model?: string;
+  /** Per-turn thinking preference used by external channels such as Telegram */
+  thinking?: ChannelThinkingLevel;
+}
+
 interface IChatConversation<T, Extra> {
   createTime: number;
   modifyTime: number;
@@ -173,6 +182,8 @@ export type TChatConversation =
         pinnedAt?: number;
         /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
         sessionMode?: string;
+        /** Channel-specific overrides for external chat platforms */
+        channelOverrides?: ChannelConversationOverrides;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
       }
@@ -208,6 +219,8 @@ export type TChatConversation =
           sessionMode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
           currentModelId?: string;
+          /** Channel-specific overrides for external chat platforms */
+          channelOverrides?: ChannelConversationOverrides;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
         }
@@ -235,6 +248,8 @@ export type TChatConversation =
           sessionMode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
+          /** Channel-specific overrides for external chat platforms */
+          channelOverrides?: ChannelConversationOverrides;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
         }
@@ -278,6 +293,8 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinnedAt?: number;
+          /** Channel-specific overrides for external chat platforms */
+          channelOverrides?: ChannelConversationOverrides;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
         }
@@ -298,6 +315,8 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinnedAt?: number;
+          /** Channel-specific overrides for external chat platforms */
+          channelOverrides?: ChannelConversationOverrides;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
         }

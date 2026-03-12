@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexConnection';
+import type { CodexReasoningEffort, NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexConnection';
 import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
 import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/codex/types';
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
@@ -36,6 +36,7 @@ export interface CodexAgentConfig {
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
   /** Yolo mode: skip confirmation prompts while keeping sandbox protection (for cron jobs) */
   yoloMode?: boolean;
+  reasoningEffort?: CodexReasoningEffort;
 }
 
 /**
@@ -52,6 +53,7 @@ export class CodexAgent {
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
   private readonly yoloMode: boolean;
+  private readonly reasoningEffort?: CodexReasoningEffort;
   private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
@@ -71,6 +73,7 @@ export class CodexAgent {
     this.onNetworkError = cfg.onNetworkError;
     this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
     this.yoloMode = cfg.yoloMode || false;
+    this.reasoningEffort = cfg.reasoningEffort;
   }
 
   async start(): Promise<void> {
@@ -81,7 +84,10 @@ export class CodexAgent {
     try {
       // 让 CodexConnection 根据版本自动检测合适的命令 / Let CodexConnection auto-detect the appropriate command based on version
       // Pass yoloMode option for cron jobs to enable automatic execution
-      await this.conn.start(this.cliPath || 'codex', this.workingDir, [], { yoloMode: this.yoloMode });
+      await this.conn.start(this.cliPath || 'codex', this.workingDir, [], {
+        yoloMode: this.yoloMode,
+        reasoningEffort: this.reasoningEffort,
+      });
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);

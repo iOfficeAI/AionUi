@@ -5,7 +5,7 @@
  */
 
 import { CodexAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
+import type { CodexReasoningEffort, NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
@@ -30,11 +30,18 @@ import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import i18n from '@process/i18n';
+import type { ChannelThinkingLevel } from '@/common/storage';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
 const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
+
+function mapThinkingLevelToCodexReasoningEffort(level?: ChannelThinkingLevel): CodexReasoningEffort | undefined {
+  if (!level) return undefined;
+  if (level === 'off') return 'none';
+  return level;
+}
 
 /**
  * @deprecated Legacy Codex agent manager. New Codex conversations are created
@@ -57,6 +64,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   /** User-selected model before session creation */
   private selectedModel: string | null = null;
+  private selectedReasoningEffort: CodexReasoningEffort | undefined;
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
@@ -67,6 +75,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.status = 'pending';
     this.currentMode = data.sessionMode || 'default';
     this.selectedModel = data.codexModel || null;
+    this.selectedReasoningEffort = mapThinkingLevelToCodexReasoningEffort(data.channelOverrides?.thinking);
 
     this.initAgent(data);
   }
@@ -140,6 +149,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         fileOperationHandler,
         sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
         yoloMode: false, // Always false — approval handled by Manager, not CLI
+        reasoningEffort: this.selectedReasoningEffort,
         onNetworkError: (error) => {
           this.handleNetworkError(error);
         },
@@ -215,7 +225,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.status = 'running';
     try {
       await this.bootstrap;
-      const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
+      const rawContentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
+      const contentToSend = rawContentToSend;
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
       if (data.msg_id && data.content) {

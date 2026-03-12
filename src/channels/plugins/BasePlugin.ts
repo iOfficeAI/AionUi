@@ -19,7 +19,7 @@ export type PluginMessageHandler = (message: IUnifiedIncomingMessage) => Promise
  * @param callId - Tool call ID
  * @param value - Confirmation value
  */
-export type PluginConfirmHandler = (userId: string, platform: string, callId: string, value: string) => Promise<void>;
+export type PluginConfirmHandler = (userId: string, platform: string, callId: string, value: string, chatId?: string) => Promise<void>;
 
 /**
  * BasePlugin - Abstract base class for all platform plugins
