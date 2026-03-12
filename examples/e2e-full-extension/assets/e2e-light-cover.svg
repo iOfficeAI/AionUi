@@ -1,0 +1,22 @@
+<svg width="360" height="224" viewBox="0 0 360 224" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="light-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f5f5f5"/>
+      <stop offset="100%" stop-color="#e8eaf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="224" fill="url(#light-bg)"/>
+  <!-- Grid lines -->
+  <line x1="0" y1="56" x2="360" y2="56" stroke="#ccc" stroke-width="0.5" opacity="0.4"/>
+  <line x1="0" y1="112" x2="360" y2="112" stroke="#ccc" stroke-width="0.5" opacity="0.4"/>
+  <line x1="0" y1="168" x2="360" y2="168" stroke="#ccc" stroke-width="0.5" opacity="0.4"/>
+  <line x1="90" y1="0" x2="90" y2="224" stroke="#ccc" stroke-width="0.5" opacity="0.4"/>
+  <line x1="180" y1="0" x2="180" y2="224" stroke="#ccc" stroke-width="0.5" opacity="0.4"/>
+  <line x1="270" y1="0" x2="270" y2="224" stroke="#ccc" stroke-width="0.5" opacity="0.4"/>
+  <!-- Accent dots -->
+  <circle cx="90" cy="56" r="3" fill="#2196F3" opacity="0.6"/>
+  <circle cx="180" cy="112" r="3" fill="#2196F3" opacity="0.6"/>
+  <circle cx="270" cy="168" r="3" fill="#2196F3" opacity="0.6"/>
+  <!-- Label -->
+  <text x="180" y="118" text-anchor="middle" fill="#555" font-size="14" font-family="monospace">E2E Light</text>
+</svg>

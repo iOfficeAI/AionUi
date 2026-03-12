@@ -175,6 +175,8 @@ export type IMessageAgentStatus = IMessage<
   {
     backend: AcpBackend; // Agent identifier: 'claude', 'qwen', 'codex', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
+    /** Display name for the agent (e.g. extension-contributed adapter name) / Agent 显示名称 */
+    agentName?: string;
     // Optional legacy fields for backward compatibility
     sessionId?: string;
     isConnected?: boolean;

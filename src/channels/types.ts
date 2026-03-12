@@ -7,9 +7,16 @@
 // ==================== Plugin Types ====================
 
 /**
- * Supported platform types for plugins
+ * Built-in platform types for channel plugins.
  */
-export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk';
+export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk';
+
+/**
+ * Supported platform types for plugins.
+ * Extension-contributed plugins can use any string type (e.g., 'ext-feishu').
+ * Built-in types are preserved for type-safe handling in known code paths.
+ */
+export type PluginType = BuiltinPluginType | (string & {});
 
 /**
  * Plugin connection status
@@ -18,6 +25,7 @@ export type PluginStatus = 'created' | 'initializing' | 'ready' | 'starting' | '
 
 /**
  * Plugin credentials (stored encrypted in database)
+ * Built-in fields for known platforms + index signature for extension plugins.
  */
 export interface IPluginCredentials {
   // Telegram
@@ -30,17 +38,22 @@ export interface IPluginCredentials {
   // DingTalk
   clientId?: string;
   clientSecret?: string;
+  // Extension plugins: arbitrary credential fields
+  [key: string]: string | number | boolean | undefined;
 }
 
 /**
  * Check whether a plugin has valid credentials configured.
  * Centralized so every call-site stays in sync when a new platform is added.
+ * For extension plugins, any non-empty credential value is considered valid.
  */
 export function hasPluginCredentials(type: PluginType, credentials?: IPluginCredentials): boolean {
   if (!credentials) return false;
   if (type === 'lark') return !!(credentials.appId && credentials.appSecret);
   if (type === 'dingtalk') return !!(credentials.clientId && credentials.clientSecret);
-  return !!credentials.token;
+  if (type === 'telegram') return !!credentials.token;
+  // Extension or unknown plugins: check if any credential value is non-empty
+  return Object.values(credentials).some((v) => v !== undefined && v !== null && v !== '');
 }
 
 /**
@@ -51,6 +64,8 @@ export interface IPluginConfigOptions {
   webhookUrl?: string;
   rateLimit?: number; // Max messages per minute
   requireMention?: boolean; // Require @mention in groups
+  // Extension plugins may define additional primitive config fields
+  [key: string]: string | number | boolean | undefined;
 }
 
 /**
@@ -85,6 +100,35 @@ export interface IChannelPluginStatus {
   botUsername?: string;
   /** Whether the plugin has a token configured (token itself is not exposed for security) */
   hasToken?: boolean;
+  /** Whether this plugin comes from an extension (not built-in) */
+  isExtension?: boolean;
+  /** Extension-contributed metadata for dynamic UI rendering */
+  extensionMeta?: {
+    /** Credential fields required by this extension plugin */
+    credentialFields?: Array<{
+      key: string;
+      label: string;
+      type: 'text' | 'password' | 'select' | 'number' | 'boolean';
+      required?: boolean;
+      options?: string[];
+      default?: string | number | boolean;
+    }>;
+    /** Additional config fields */
+    configFields?: Array<{
+      key: string;
+      label: string;
+      type: 'text' | 'password' | 'select' | 'number' | 'boolean';
+      required?: boolean;
+      options?: string[];
+      default?: string | number | boolean;
+    }>;
+    /** Description of the plugin */
+    description?: string;
+    /** Extension name this plugin belongs to */
+    extensionName?: string;
+    /** Icon URL for the extension channel plugin */
+    icon?: string;
+  };
 }
 
 // ==================== User Types ====================
@@ -455,15 +499,24 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
 
 /**
  * Channel platform type for model configuration.
- * Subset of PluginType that currently supports channel conversations.
+ * Includes built-in platforms and extension-contributed platforms (string).
  */
-export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk';
+export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | (string & {});
 
 /**
- * Type guard to check if a string is a valid ChannelPlatform
+ * Type guard to check if a string is a known built-in ChannelPlatform.
+ * Extension platform types are valid but not matched here.
+ */
+export function isBuiltinChannelPlatform(value: string): value is 'telegram' | 'lark' | 'dingtalk' {
+  return value === 'telegram' || value === 'lark' || value === 'dingtalk';
+}
+
+/**
+ * Type guard to check if a string is a valid ChannelPlatform (including extensions).
+ * All non-empty strings are valid channel platforms.
  */
 export function isChannelPlatform(value: string): value is ChannelPlatform {
-  return value === 'telegram' || value === 'lark' || value === 'dingtalk';
+  return value.length > 0;
 }
 
 /**

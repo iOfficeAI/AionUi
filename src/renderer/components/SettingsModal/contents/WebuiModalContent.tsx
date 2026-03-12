@@ -15,11 +15,9 @@ import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
-import { QRCodeSVG } from 'qrcode.react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
-import ChannelModalContent from './ChannelModalContent';
 
 /**
  * 偏好设置行组件
@@ -45,6 +43,12 @@ const CHANNEL_LOGOS = [
   { src: ChannelSlackLogo, alt: 'Slack' },
   { src: ChannelDiscordLogo, alt: 'Discord' },
 ] as const;
+
+const ChannelModalContentLazy = React.lazy(() => import('./ChannelModalContent'));
+const QRCodeSVGLazy = React.lazy(async () => {
+  const mod = await import('qrcode.react');
+  return { default: mod.QRCodeSVG };
+});
 
 /**
  * WebUI 设置内容组件
@@ -520,7 +524,9 @@ const WebuiModalContent: React.FC = () => {
         <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
           <div className='space-y-16px'>
             <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
-            <ChannelModalContent />
+            <Suspense fallback={<div className='text-13px text-t-secondary'>{t('common.loading')}</div>}>
+              <ChannelModalContentLazy />
+            </Suspense>
           </div>
         </AionScrollArea>
       </div>
@@ -655,7 +661,15 @@ const WebuiModalContent: React.FC = () => {
                     </div>
                   ) : qrUrl ? (
                     <div className='p-8px bg-white rd-8px'>
-                      <QRCodeSVG value={qrUrl} size={140} level='M' />
+                      <Suspense
+                        fallback={
+                          <div className='w-140px h-140px flex items-center justify-center'>
+                            <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                          </div>
+                        }
+                      >
+                        <QRCodeSVGLazy value={qrUrl} size={140} level='M' />
+                      </Suspense>
                     </div>
                   ) : (
                     <div className='w-140px h-140px flex items-center justify-center'>
@@ -687,7 +701,7 @@ const WebuiModalContent: React.FC = () => {
         <Tabs.TabPane
           key='webui'
           title={
-            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+            <span data-webui-tab='webui' className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
               <Earth theme='outline' size='15' />
               <span>WebUI</span>
             </span>
@@ -696,7 +710,7 @@ const WebuiModalContent: React.FC = () => {
         <Tabs.TabPane
           key='channels'
           title={
-            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+            <span data-webui-tab='channels' className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
               <Communication theme='outline' size='15' />
               <span>Channels</span>
               <span className='inline-flex items-center gap-4px ml-2px'>
@@ -715,7 +729,9 @@ const WebuiModalContent: React.FC = () => {
         webuiPanel
       ) : (
         <div className='flex-1 min-h-0'>
-          <ChannelModalContent />
+          <Suspense fallback={<div className='px-[12px] md:px-[28px] text-13px text-t-secondary'>{t('common.loading')}</div>}>
+            <ChannelModalContentLazy />
+          </Suspense>
         </div>
       )}
 

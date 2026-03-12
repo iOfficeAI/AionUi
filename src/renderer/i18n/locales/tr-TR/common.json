@@ -42,6 +42,7 @@
   "deleteSuccess": "Başarıyla silindi",
   "deleteFailed": "Silme başarısız",
   "default": "Varsayılan",
+  "defaultModel": "Varsayılan Model",
   "escToCancel": "iptal için esc",
   "create": "Oluştur",
   "createSuccess": "Başarıyla oluşturuldu",

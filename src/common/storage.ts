@@ -128,7 +128,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | (string & {});
 
 interface IChatConversation<T, Extra> {
   createTime: number;

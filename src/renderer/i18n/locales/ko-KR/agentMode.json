@@ -5,7 +5,10 @@
   "autoEdit": "자동 편집",
   "yolo": "전자동",
   "bypass": "검사 우회",
+  "bypassPermissions": "전자동",
+  "smart": "스마트",
   "build": "빌드 모드",
+  "permission": "권한",
   "switchMode": "모드 전환",
   "switchSuccess": "모드가 전환되었습니다",
   "switchFailed": "모드 전환에 실패했습니다"

@@ -8,9 +8,11 @@ interface McpAgentStatusDisplayProps {
   serverName: string;
   agentInstallStatus: Record<string, string[]>;
   isLoadingAgentStatus: boolean;
+  /** Read-only rows (extension MCP) can keep icons visible without hover */
+  alwaysVisible?: boolean;
 }
 
-const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus }) => {
+const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus, alwaysVisible = false }) => {
   const agents = agentInstallStatus[serverName] || [];
 
   if (!agents.length && !isLoadingAgentStatus) {
@@ -32,7 +34,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
               return (
                 <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
                   <div
-                    className='w-6 h-6 flex items-center relative  cursor-pointer transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
+                    className={`w-6 h-6 flex items-center relative cursor-pointer transition-all duration-200 ease-out ${alwaysVisible ? 'scale-100 opacity-100' : 'group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'}`}
                     style={{
                       zIndex: index + 1,
                       marginLeft: index === 0 ? 0 : '-4px',

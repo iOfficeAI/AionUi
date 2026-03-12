@@ -10,7 +10,7 @@ import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { SlashCommandItem } from './slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
+import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
@@ -244,8 +244,11 @@ export const acpConversation = {
         isPreset?: boolean;
         context?: string;
         avatar?: string;
-        presetAgentType?: PresetAgentType;
+        // Allow extension-contributed adapter IDs in addition to built-in PresetAgentType values
+        presetAgentType?: PresetAgentType | string;
         supportedTransports?: string[];
+        isExtension?: boolean;
+        extensionName?: string;
       }>
     >,
     void
@@ -268,6 +271,12 @@ export const acpConversation = {
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   setModel: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string; modelId: string }>('acp.set-model'),
+  // Get non-model config options for ACP agents (e.g., reasoning effort)
+  // 获取 ACP 代理的非模型配置选项（如推理级别）
+  getConfigOptions: bridge.buildProvider<IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>, { conversationId: string }>('acp.get-config-options'),
+  // Set a config option value for ACP agents (e.g., reasoning effort)
+  // 设置 ACP 代理的配置选项值（如推理级别）
+  setConfigOption: bridge.buildProvider<IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>, { conversationId: string; configId: string; value: string }>('acp.set-config-option'),
 };
 
 // MCP 服务相关接口
@@ -569,6 +578,119 @@ interface IBridgeResponse<D = {}> {
   msg?: string;
 }
 
+// ==================== Extensions API ====================
+
+export interface IExtensionInfo {
+  name: string;
+  displayName: string;
+  version: string;
+  description?: string;
+  source: string;
+  directory: string;
+  /** Whether the extension is currently enabled */
+  enabled: boolean;
+  /** Overall permission risk level */
+  riskLevel: 'safe' | 'moderate' | 'dangerous';
+  /** Whether the extension has lifecycle hooks */
+  hasLifecycle: boolean;
+}
+
+/** Permission summary for extension management UI (Figma-inspired) */
+export interface IExtensionPermissionSummary {
+  name: string;
+  description: string;
+  level: 'safe' | 'moderate' | 'dangerous';
+  granted: boolean;
+}
+
+/** Settings tab contributed by an extension, consumed by settings UI */
+export interface IExtensionSettingsTab {
+  id: string;
+  name: string;
+  icon?: string;
+  /** aion-asset:// local page or external https:// URL */
+  entryUrl: string;
+  /** Position anchor relative to a built-in or other extension tab */
+  position?: { anchor: string; placement: 'before' | 'after' };
+  /** Fallback numeric order when multiple tabs share the same anchor+placement. Lower = first */
+  order: number;
+  _extensionName: string;
+}
+
+/** WebUI contributions exposed for diagnostics/e2e validation */
+export interface IExtensionWebuiContribution {
+  extensionName: string;
+  apiRoutes: Array<{ path: string; auth: boolean }>;
+  staticAssets: Array<{ urlPrefix: string; directory: string }>;
+}
+
+export type AgentActivityState = 'idle' | 'writing' | 'researching' | 'executing' | 'syncing' | 'error';
+
+export interface IExtensionAgentActivityEvent {
+  conversationId: string;
+  at: number;
+  kind: 'status' | 'tool' | 'message';
+  text: string;
+}
+
+export interface IExtensionAgentActivityItem {
+  id: string;
+  backend: string;
+  agentName: string;
+  state: AgentActivityState;
+  runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown';
+  conversations: number;
+  activeConversations: number;
+  lastActiveAt: number;
+  lastStatus?: string;
+  currentTask?: string;
+  recentEvents: IExtensionAgentActivityEvent[];
+}
+
+export interface IExtensionAgentActivitySnapshot {
+  generatedAt: number;
+  totalConversations: number;
+  runningConversations: number;
+  agents: IExtensionAgentActivityItem[];
+}
+
+export const extensions = {
+  /** Get all extension-contributed CSS themes */
+  getThemes: bridge.buildProvider<ICssTheme[], void>('extensions.get-themes'),
+  /** Get summary of all loaded extensions */
+  getLoadedExtensions: bridge.buildProvider<IExtensionInfo[], void>('extensions.get-loaded-extensions'),
+  /** Get all extension-contributed assistants */
+  getAssistants: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-assistants'),
+  /** Get all extension-contributed agents (autonomous agent presets) */
+  getAgents: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-agents'),
+  /** Get all extension-contributed ACP adapters */
+  getAcpAdapters: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-acp-adapters'),
+  /** Get all extension-contributed MCP servers */
+  getMcpServers: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-mcp-servers'),
+  /** Get all extension-contributed skills */
+  getSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string }>, void>('extensions.get-skills'),
+  /** Get all extension-contributed settings tabs */
+  getSettingsTabs: bridge.buildProvider<IExtensionSettingsTab[], void>('extensions.get-settings-tabs'),
+  /** Get extension-contributed webui routes/assets metadata */
+  getWebuiContributions: bridge.buildProvider<IExtensionWebuiContribution[], void>('extensions.get-webui-contributions'),
+  /** Snapshot of all agent activities, for extension settings tabs */
+  getAgentActivitySnapshot: bridge.buildProvider<IExtensionAgentActivitySnapshot, void>('extensions.get-agent-activity-snapshot'),
+  /** Get merged extension i18n translations for a specific locale (falls back to en-US) */
+  getExtI18nForLocale: bridge.buildProvider<Record<string, unknown>, { locale: string }>('extensions.get-ext-i18n-for-locale'),
+
+  // --- Extension Management API (NocoBase-inspired) ---
+  /** Enable a disabled extension */
+  enableExtension: bridge.buildProvider<IBridgeResponse, { name: string }>('extensions.enable'),
+  /** Disable an extension */
+  disableExtension: bridge.buildProvider<IBridgeResponse, { name: string; reason?: string }>('extensions.disable'),
+  /** Get permission summary for an extension (Figma-inspired) */
+  getPermissions: bridge.buildProvider<IExtensionPermissionSummary[], { name: string }>('extensions.get-permissions'),
+  /** Get overall risk level for an extension */
+  getRiskLevel: bridge.buildProvider<string, { name: string }>('extensions.get-risk-level'),
+  /** Extension state change events (push to renderer when enable/disable happens) */
+  stateChanged: bridge.buildEmitter<{ name: string; enabled: boolean; reason?: string }>('extensions.state-changed'),
+};
+
 // ==================== Channel API ====================
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@/channels/types';
@@ -593,7 +715,7 @@ export const channel = {
   getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
 
   // Settings Sync
-  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: 'telegram' | 'lark' | 'dingtalk'; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
+  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: string; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
 
   // Events
   pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),
