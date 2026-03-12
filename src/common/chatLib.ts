@@ -175,6 +175,8 @@ export type IMessageAgentStatus = IMessage<
   {
     backend: AcpBackend; // Agent identifier: 'claude', 'qwen', 'codex', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
+    /** Display name for the agent (e.g. extension-contributed adapter name) / Agent 显示名称 */
+    agentName?: string;
     // Optional legacy fields for backward compatibility
     sessionId?: string;
     isConnected?: boolean;
@@ -423,6 +425,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
     case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
+    case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
       break;
     default: {

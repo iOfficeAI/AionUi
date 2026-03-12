@@ -11,17 +11,16 @@ import Titlebar from '@/renderer/components/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDeepLink } from './hooks/useDeepLink';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
-import UpdateModal from '@/renderer/components/UpdateModal';
 import { cleanupSiderTooltips } from './utils/siderTooltip';
 import { isElectronDesktop } from './utils/platform';
-import { computeCssSyncDecision } from './utils/themeCssSync';
+import { computeCssSyncDecision, resolveCssByActiveTheme } from './utils/themeCssSync';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -53,6 +52,8 @@ const useDebug = () => {
   return { onClick };
 };
 
+const UpdateModal = React.lazy(() => import('@/renderer/components/UpdateModal'));
+
 const DEFAULT_SIDER_WIDTH = 250;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
 const MOBILE_SIDER_MIN_WIDTH = 260;
@@ -81,6 +82,7 @@ const Layout: React.FC<{
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() => (typeof window === 'undefined' ? 390 : window.innerWidth));
   const [customCss, setCustomCss] = useState<string>('');
+  const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
@@ -107,8 +109,18 @@ const Layout: React.FC<{
         return;
       }
 
-      const effectiveCss = decision.effectiveCss;
-      if (decision.shouldHealStorage) {
+      let effectiveCss = decision.effectiveCss;
+
+      // If the active theme resolved to empty CSS and there IS a saved activeThemeId
+      // (but it no longer matches any known theme), fall back to default and persist.
+      if (!effectiveCss && activeThemeId && activeThemeId !== 'default-theme') {
+        const defaultCss = resolveCssByActiveTheme('default-theme', (savedThemes || []) as ICssTheme[]);
+        effectiveCss = defaultCss;
+        // Persist the fallback so Layout doesn't keep retrying
+        await Promise.all([ConfigStorage.set('css.activeThemeId', 'default-theme'), ConfigStorage.set('customCss', effectiveCss)]).catch((error) => {
+          console.warn('Failed to persist theme fallback:', error);
+        });
+      } else if (decision.shouldHealStorage) {
         await ConfigStorage.set('customCss', effectiveCss).catch((error) => {
           console.warn('Failed to heal custom CSS from active theme:', error);
         });
@@ -341,7 +353,9 @@ const Layout: React.FC<{
             {multiAgentContextHolder}
             {directorySelectionContextHolder}
             <PwaPullToRefresh />
-            <UpdateModal />
+            <Suspense fallback={null}>
+              <UpdateModal />
+            </Suspense>
           </ArcoLayout.Content>
         </ArcoLayout>
       </div>

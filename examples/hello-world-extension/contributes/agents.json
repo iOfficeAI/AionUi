@@ -1,0 +1,21 @@
+[
+  {
+    "id": "hello-coder",
+    "name": "Hello Coder",
+    "description": "A coding agent that helps with code generation and review",
+    "presetAgentType": "hello-stdio-agent",
+    "contextFile": "agents/hello-coder-context.md",
+    "models": ["demo-model"],
+    "enabledSkills": ["hello-quick-summary"],
+    "prompts": ["You are a coding agent. Help users write clean, efficient code."]
+  },
+  {
+    "id": "hello-researcher",
+    "name": "Hello Researcher",
+    "description": "A research agent similar to leis/openfang style agents",
+    "presetAgentType": "hello-http-agent",
+    "contextFile": "agents/hello-researcher-context.md",
+    "models": ["http-model"],
+    "prompts": ["You are a research assistant. Help users analyze and summarize information."]
+  }
+]

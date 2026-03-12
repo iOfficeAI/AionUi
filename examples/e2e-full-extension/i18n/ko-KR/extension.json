@@ -1,0 +1,8 @@
+{
+  "displayName": "E2E 전체 테스트 확장",
+  "description": "E2E 테스트를 위한 모든 기여 유형을 포괄하는 종합 테스트 확장",
+  "settingsTabs": {
+    "e2e-settings": { "name": "E2E 설정" },
+    "e2e-before-about": { "name": "E2E 정보 앞" }
+  }
+}

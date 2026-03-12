@@ -40,8 +40,8 @@ export type GuidSendDeps = {
   getEffectiveAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => EffectiveAgentInfo;
   resolvePresetRulesAndSkills: (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined) => Promise<{ rules?: string; skills?: string }>;
   resolveEnabledSkills: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string[] | undefined;
-  isMainAgentAvailable: (agentType: PresetAgentType) => boolean;
-  getAvailableFallbackAgent: () => PresetAgentType | null;
+  isMainAgentAvailable: (agentType: string) => boolean;
+  getAvailableFallbackAgent: () => string | null;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
 
@@ -259,8 +259,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // ACP path (including preset with claude agent type)
     {
-      const agentTypeChanged = selectedAgent !== finalEffectiveAgentType;
-      const acpBackend: PresetAgentType | undefined = agentTypeChanged ? finalEffectiveAgentType : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType) ? finalEffectiveAgentType : selectedAgent;
+      // Agent-type fallback only applies to preset assistants whose primary agent
+      // was unavailable and got switched (e.g. claude → gemini).  For non-preset
+      // agents (including extension-contributed ACP adapters with backend='custom'),
+      // we must keep the original selectedAgent so the correct backend/cliPath is used.
+      const agentTypeChanged = isPreset && selectedAgent !== finalEffectiveAgentType;
+      const acpBackend: string | undefined = agentTypeChanged ? finalEffectiveAgentType : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType as PresetAgentType) ? finalEffectiveAgentType : selectedAgent;
 
       const acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
 
@@ -277,7 +281,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            backend: acpBackend,
+            backend: acpBackend as import('@/types/acpTypes').AcpBackendAll | undefined,
             cliPath: acpAgentInfo?.cliPath,
             agentName: acpAgentInfo?.name,
             customAgentId: acpAgentInfo?.customAgentId,

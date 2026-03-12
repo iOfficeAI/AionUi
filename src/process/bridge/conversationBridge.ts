@@ -414,8 +414,9 @@ export function initConversationBridge(): void {
         return { success: true, data: { commands: [] } };
       }
 
-      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager | undefined;
-      if (task?.type !== 'acp') {
+      // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+      const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+      if (!task || task.type !== 'acp') {
         return { success: true, data: { commands: [] } };
       }
 

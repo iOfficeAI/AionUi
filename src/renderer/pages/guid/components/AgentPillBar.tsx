@@ -5,6 +5,7 @@
  */
 
 import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import type { AcpBackend, AvailableAgent } from '../types';
 import { Robot } from '@icon-park/react';
@@ -32,23 +33,27 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({ availableAgents, selectedAg
           borderRadius: '30px',
           backgroundColor: 'var(--color-guid-agent-bar, var(--aou-2))',
           transition: 'background-color 0.35s ease',
-          width: 'fit-content',
-          maxWidth: '100%',
-          overflow: 'hidden',
-          gap: 4,
+          width: isMobile ? 'calc(100% + 28px)' : 'fit-content',
+          maxWidth: isMobile ? 'none' : '100%',
+          marginLeft: isMobile ? -14 : 0,
+          marginRight: isMobile ? -14 : 0,
+          overflow: isMobile ? 'visible' : 'hidden',
+          gap: isMobile ? 6 : 4,
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
           color: 'var(--text-primary)',
         }}
       >
         {availableAgents
-          .filter((agent) => agent.backend !== 'custom')
+          .filter((agent) => agent.backend !== 'custom' || agent.isExtension)
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
-            const logoSrc = getAgentLogo(agent.backend);
+            const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
+            const logoSrc = extensionAvatar || getAgentLogo(agent.backend);
 
             return (
               <React.Fragment key={getAgentKey(agent)}>
-                {index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
-                <div className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`} style={isSelected ? (isMobile ? { animation: 'none', transition: 'opacity 0.2s ease, background-color 0.2s ease' } : undefined) : { transition: 'opacity 0.2s ease' }} onClick={() => onSelectAgent(getAgentKey(agent))}>
+                {!isMobile && index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
+                <div data-agent-pill='true' data-agent-key={getAgentKey(agent)} data-agent-backend={agent.backend} data-agent-selected={isSelected ? 'true' : 'false'} className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`} style={isSelected ? (isMobile ? { animation: 'none', transition: 'opacity 0.2s ease, background-color 0.2s ease' } : undefined) : { transition: 'opacity 0.2s ease' }} onClick={() => onSelectAgent(getAgentKey(agent))}>
                   {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />}
                   <span
                     className={`font-medium text-14px ${isSelected ? 'font-semibold ml-4px' : isMobile ? 'max-w-0 opacity-0 overflow-hidden' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}

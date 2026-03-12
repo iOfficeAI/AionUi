@@ -11,7 +11,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 import type { SlashCommandItem } from '@/common/slash/types';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpPromptResponseUsage, AcpResult, AcpSessionConfigOption, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -78,6 +78,8 @@ export interface AcpAgentConfig {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** Display name for the agent (from extension or custom config) / Agent 显示名称 */
+    agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
@@ -102,6 +104,8 @@ export class AcpAgent {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** Display name for the agent (from extension or custom config) / Agent 显示名称 */
+    agentName?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
     acpSessionId?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
@@ -137,6 +141,9 @@ export class AcpAgent {
   // Store permission request metadata for later use in confirmMessage
   private permissionRequestMeta = new Map<string, { kind?: string; title?: string; rawInput?: Record<string, unknown> }>();
 
+  // Whether usage_update session notifications have been received (if so, skip PromptResponse.usage fallback)
+  private hasReceivedUsageUpdate = false;
+
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
@@ -168,6 +175,9 @@ export class AcpAgent {
     };
     this.connection.onEndTurn = () => {
       this.handleEndTurn();
+    };
+    this.connection.onPromptUsage = (usage: AcpPromptResponseUsage) => {
+      this.handlePromptUsage(usage);
     };
     this.connection.onFileOperation = (operation) => {
       this.handleFileOperation(operation);
@@ -220,7 +230,20 @@ export class AcpAgent {
 
       const connectStart = Date.now();
       try {
-        await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
+        const tryConnect = async () => {
+          await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
+        };
+
+        try {
+          await tryConnect();
+        } catch (firstError) {
+          // Transient startup failures (env race / process warmup) are common on first try.
+          // Retry once after a short backoff to reduce "need multiple clicks to connect".
+          console.warn('[ACP] First connect attempt failed, retrying once:', firstError instanceof Error ? firstError.message : String(firstError));
+          await this.connection.disconnect();
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          await tryConnect();
+        }
       } finally {
         if (connectTimeoutId) {
           clearTimeout(connectTimeoutId);
@@ -327,6 +350,27 @@ export class AcpAgent {
    */
   getModelInfo(): AcpModelInfo | null {
     return buildAcpModelInfo(this.connection.getConfigOptions(), this.connection.getModels());
+  }
+
+  /**
+   * Get non-model, non-mode config options from ACP connection.
+   * Filters out model-category options (handled by AcpModelSelector)
+   * and mode-category options (handled by AgentModeSelector).
+   * Returns options like reasoning effort, output format, etc.
+   */
+  getConfigOptions(): AcpSessionConfigOption[] {
+    const all = this.connection.getConfigOptions();
+    if (!all) return [];
+    return all.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
+  }
+
+  /**
+   * Set a config option value on the ACP connection.
+   * Used for reasoning effort and other non-model config options.
+   */
+  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+    await this.connection.setConfigOption(configId, value);
+    return this.getConfigOptions();
   }
 
   /**
@@ -800,6 +844,22 @@ export class AcpAgent {
         }
       }
 
+      // Emit context usage data when usage_update arrives
+      if (data.update?.sessionUpdate === 'usage_update') {
+        this.hasReceivedUsageUpdate = true;
+        const usageUpdate = data.update as { used: number; size: number; cost?: { amount: number; currency: string } };
+        this.onStreamEvent({
+          type: 'acp_context_usage',
+          conversation_id: this.id,
+          msg_id: uuid(),
+          data: {
+            used: usageUpdate.used,
+            size: usageUpdate.size,
+            cost: usageUpdate.cost,
+          },
+        });
+      }
+
       // Emit updated model info when config_option_update arrives
       if (data.update?.sessionUpdate === 'config_option_update') {
         this.emitModelInfo();
@@ -908,6 +968,30 @@ export class AcpAgent {
   }
 
   /**
+   * Handle PromptResponse.usage from ACP backend (codex-acp PR #167).
+   * Used as fallback context usage when usage_update notifications are not available.
+   * Follows the same pattern as Gemini CLI's usageMetadata extraction.
+   */
+  private handlePromptUsage(usage: AcpPromptResponseUsage): void {
+    // Skip if usage_update notifications are already providing context usage data
+    if (this.hasReceivedUsageUpdate) {
+      return;
+    }
+
+    // Use totalTokens from PromptResponse as context usage indicator (fallback)
+    // size=0 tells the frontend to use model-based context limit lookup
+    this.onStreamEvent({
+      type: 'acp_context_usage',
+      conversation_id: this.id,
+      msg_id: uuid(),
+      data: {
+        used: usage.totalTokens,
+        size: 0,
+      },
+    });
+  }
+
+  /**
    * Handle unexpected disconnect from ACP backend
    * Notify frontend and clean up internal state
    */
@@ -982,6 +1066,7 @@ export class AcpAgent {
       content: {
         backend: this.extra.backend,
         status,
+        agentName: this.extra.agentName,
       },
     };
 
@@ -1164,6 +1249,11 @@ export class AcpAgent {
   /**
    * Create a new session or resume an existing one, and notify upper layer if session ID changed.
    * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
+   *
+   * Resume strategy per backend:
+   * - Codex:           uses dedicated ACP `session/load` method
+   * - Claude/CodeBuddy: uses `session/new` with `_meta.claudeCode.options.resume`
+   * - Others:          uses `session/new` with generic `resumeSessionId` param
    */
   private async createOrResumeSession(): Promise<void> {
     const resumeSessionId = this.extra.acpSessionId;
@@ -1173,10 +1263,21 @@ export class AcpAgent {
     // or the session simply expired. In that case, fall back to creating a fresh session.
     if (resumeSessionId) {
       try {
-        const response = await this.connection.newSession(this.extra.workspace, {
-          resumeSessionId,
-          forkSession: false,
-        });
+        let response: { sessionId?: string };
+
+        if (this.extra.backend === 'codex') {
+          // Codex ACP bridge implements session/load (load_session) which calls
+          // resume_thread_from_rollout internally to restore full conversation history.
+          // Codex ignores resumeSessionId in session/new, so we must use session/load.
+          response = await this.connection.loadSession(resumeSessionId, this.extra.workspace);
+        } else {
+          // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
+          response = await this.connection.newSession(this.extra.workspace, {
+            resumeSessionId,
+            forkSession: false,
+          });
+        }
+
         if (response.sessionId && response.sessionId !== resumeSessionId) {
           this.extra.acpSessionId = response.sessionId;
           this.onSessionIdUpdate?.(response.sessionId);

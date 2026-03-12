@@ -60,10 +60,10 @@ export type GuidAgentSelectionResult = {
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   resolvePresetRulesAndSkills: (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined) => Promise<{ rules?: string; skills?: string }>;
   resolvePresetContext: (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined) => Promise<string | undefined>;
-  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => PresetAgentType;
+  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string;
   resolveEnabledSkills: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string[] | undefined;
-  isMainAgentAvailable: (agentType: PresetAgentType) => boolean;
-  getAvailableFallbackAgent: () => PresetAgentType | null;
+  isMainAgentAvailable: (agentType: string) => boolean;
+  getAvailableFallbackAgent: () => string | null;
   getEffectiveAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => EffectiveAgentInfo;
   refreshCustomAgents: () => Promise<void>;
   customAgentAvatarMap: Map<string, string | undefined>;
@@ -219,13 +219,35 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
     };
   }, [availableAgents]);
 
-  // Load custom agents
+  // Load custom agents + extension-contributed assistants
   useEffect(() => {
     let isActive = true;
-    ConfigStorage.get('acp.customAgents')
-      .then((agents) => {
+    Promise.all([ConfigStorage.get('acp.customAgents'), ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])])
+      .then(([agents, extAssistants]) => {
         if (!isActive) return;
         const list = (agents || []).filter((agent: AcpBackendConfig) => availableCustomAgentIds.has(agent.id));
+
+        // Merge extension-contributed assistants (they are preset assistants that don't need
+        // to be in availableCustomAgentIds because they use existing backends like gemini/claude)
+        for (const ext of extAssistants) {
+          const id = typeof ext.id === 'string' ? ext.id : '';
+          if (!id || list.some((a) => a.id === id)) continue;
+          list.push({
+            id,
+            name: typeof ext.name === 'string' ? ext.name : id,
+            nameI18n: ext.nameI18n as Record<string, string> | undefined,
+            avatar: typeof ext.avatar === 'string' ? ext.avatar : undefined,
+            isPreset: true,
+            enabled: true,
+            presetAgentType: typeof ext.presetAgentType === 'string' ? ext.presetAgentType : undefined,
+            context: typeof ext.context === 'string' ? ext.context : undefined,
+            contextI18n: ext.contextI18n as Record<string, string> | undefined,
+            enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+            prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
+            promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
+          } as AcpBackendConfig);
+        }
+
         setCustomAgents(list);
       })
       .catch((error) => {
@@ -461,11 +483,11 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
   );
 
   const resolvePresetAgentType = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => {
-      if (!agentInfo) return 'gemini' as PresetAgentType;
-      if (agentInfo.backend !== 'custom') return agentInfo.backend as PresetAgentType;
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string => {
+      if (!agentInfo) return 'gemini';
+      if (agentInfo.backend !== 'custom') return agentInfo.backend as string;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      return customAgent?.presetAgentType || ('gemini' as PresetAgentType);
+      return customAgent?.presetAgentType || 'gemini';
     },
     [customAgents]
   );
@@ -482,7 +504,7 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
 
   // --- Availability checks ---
   const isMainAgentAvailable = useCallback(
-    (agentType: PresetAgentType): boolean => {
+    (agentType: string): boolean => {
       if (agentType === 'gemini') {
         return isGoogleAuth || (modelList != null && modelList.length > 0);
       }
@@ -491,7 +513,7 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
     [modelList, availableAgents, isGoogleAuth]
   );
 
-  const getAvailableFallbackAgent = useCallback((): PresetAgentType | null => {
+  const getAvailableFallbackAgent = useCallback((): string | null => {
     const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'qwen', 'codex', 'codebuddy', 'opencode'];
     for (const agentType of fallbackOrder) {
       if (isMainAgentAvailable(agentType)) {
@@ -512,8 +534,8 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
 
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!isPresetAgent) {
-      const isAvailable = isMainAgentAvailable(selectedAgent as PresetAgentType);
-      return { agentType: selectedAgent as PresetAgentType, isFallback: false, originalType: selectedAgent as PresetAgentType, isAvailable };
+      const isAvailable = isMainAgentAvailable(selectedAgent as string);
+      return { agentType: selectedAgent as string, isFallback: false, originalType: selectedAgent as string, isAvailable };
     }
     return getEffectiveAgentType(selectedAgentInfo);
   }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);

@@ -106,6 +106,10 @@ export class AcpAdapter {
       case 'config_option_update':
         break;
 
+      // Usage updates are emitted directly by AcpAgent; no chat message conversion needed.
+      case 'usage_update':
+        break;
+
       // Disabled: available_commands messages are too noisy and distracting in the chat UI
       case 'available_commands_update':
         // Still reset message tracking so next agent_message_chunk gets new msg_id

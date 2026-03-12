@@ -128,7 +128,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | (string & {});
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -200,6 +200,10 @@ export type TChatConversation =
           acpSessionId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
+          /** Last context usage from usage_update */
+          lastTokenUsage?: TokenUsageData;
+          /** Context window capacity from usage_update */
+          lastContextLimit?: number;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
           sessionMode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
