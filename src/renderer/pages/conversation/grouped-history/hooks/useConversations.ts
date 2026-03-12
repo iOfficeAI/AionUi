@@ -108,6 +108,23 @@ export const useConversations = () => {
     }
   }, [timelineSections]);
 
+  // Remove stale workspace entries that no longer exist in the data
+  useEffect(() => {
+    const currentWorkspaces = new Set<string>();
+    timelineSections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.type === 'workspace' && item.workspaceGroup) {
+          currentWorkspaces.add(item.workspaceGroup.workspace);
+        }
+      });
+    });
+    if (currentWorkspaces.size === 0) return;
+    setExpandedWorkspaces((prev) => {
+      const filtered = prev.filter((ws) => currentWorkspaces.has(ws));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [timelineSections]);
+
   const handleToggleWorkspace = useCallback((workspace: string) => {
     setExpandedWorkspaces((prev) => {
       if (prev.includes(workspace)) {
