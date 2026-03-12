@@ -14,6 +14,7 @@ import useConfigModelListWithImage from '@/renderer/hooks/useConfigModelListWith
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
+import McpAgentStatusDisplay from '@/renderer/pages/settings/McpManagement/McpAgentStatusDisplay';
 import McpServerItem from '@/renderer/pages/settings/McpManagement/McpServerItem';
 import { useMcpServers, useMcpAgentStatus, useMcpOperations, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
 import classNames from 'classnames';
@@ -235,6 +236,8 @@ const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
+  const [imageGenerationCompatibleAgents, setImageGenerationCompatibleAgents] = useState<string[]>([]);
+  const [isLoadingImageGenerationAgents, setIsLoadingImageGenerationAgents] = useState(false);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
@@ -273,6 +276,48 @@ const ToolsModalContent: React.FC = () => {
 
     void loadConfigs();
   }, []);
+
+  useEffect(() => {
+    if (!builtinImageGenServer) {
+      setImageGenerationCompatibleAgents([]);
+      setIsLoadingImageGenerationAgents(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadCompatibleAgents = async () => {
+      setIsLoadingImageGenerationAgents(true);
+      try {
+        const response = await acpConversation.getAvailableAgents.invoke();
+        if (!response.success || !response.data || cancelled) {
+          if (!cancelled) {
+            setImageGenerationCompatibleAgents([]);
+          }
+          return;
+        }
+
+        const compatibleAgents = [...new Set(response.data.filter((agent) => agent.supportedTransports?.includes(builtinImageGenServer.transport.type)).map((agent) => agent.backend))];
+
+        setImageGenerationCompatibleAgents(compatibleAgents);
+      } catch (error) {
+        if (!cancelled) {
+          setImageGenerationCompatibleAgents([]);
+        }
+        console.error('Failed to load image generation compatible agents:', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingImageGenerationAgents(false);
+        }
+      }
+    };
+
+    void loadCompatibleAgents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [builtinImageGenServer]);
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
@@ -408,7 +453,10 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <div className='flex items-center justify-between mb-16px'>
               <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
-              <Switch disabled={isUpdatingImageGeneration || !builtinImageGenServer || !imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={Boolean(builtinImageGenServer?.enabled)} onChange={handleImageGenerationToggle} />
+              <div className='flex items-center gap-8px'>
+                {builtinImageGenServer?.enabled && builtinImageGenServer.name && <McpAgentStatusDisplay serverName={builtinImageGenServer.name} agentInstallStatus={{ [builtinImageGenServer.name]: imageGenerationCompatibleAgents }} isLoadingAgentStatus={isLoadingImageGenerationAgents} alwaysVisible />}
+                <Switch disabled={isUpdatingImageGeneration || !builtinImageGenServer || !imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={Boolean(builtinImageGenServer?.enabled)} onChange={handleImageGenerationToggle} />
+              </div>
             </div>
 
             <Divider className='mt-0px mb-20px' />

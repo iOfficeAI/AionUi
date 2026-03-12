@@ -35,11 +35,7 @@ function normalizeCodexEnv(entry: CodexMcpListEntry['transport']): Record<string
 
   const envVars = entry?.env_vars;
   if (Array.isArray(envVars)) {
-    return Object.fromEntries(
-      envVars
-        .filter((item): item is { name: string; value: string } => typeof item?.name === 'string' && typeof item?.value === 'string')
-        .map((item) => [item.name, item.value])
-    );
+    return Object.fromEntries(envVars.filter((item): item is { name: string; value: string } => typeof item?.name === 'string' && typeof item?.value === 'string').map((item) => [item.name, item.value]));
   }
 
   return {};

@@ -29,18 +29,7 @@ describe('CodexMcpAgent helpers', () => {
       originalJson: '{}',
     };
 
-    expect(buildCodexAddArgs(server)).toEqual([
-      'mcp',
-      'add',
-      'aionui-image-generation',
-      '--env',
-      'AIONUI_IMG_PLATFORM=openai',
-      '--env',
-      'AIONUI_IMG_MODEL=gpt-image-1',
-      '--',
-      'node',
-      '/abs/builtin-mcp-image-gen.js',
-    ]);
+    expect(buildCodexAddArgs(server)).toEqual(['mcp', 'add', 'aionui-image-generation', '--env', 'AIONUI_IMG_PLATFORM=openai', '--env', 'AIONUI_IMG_MODEL=gpt-image-1', '--', 'node', '/abs/builtin-mcp-image-gen.js']);
   });
 
   it('parses codex json output including env vars', () => {

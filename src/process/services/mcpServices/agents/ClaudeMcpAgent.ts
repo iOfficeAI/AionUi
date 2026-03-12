@@ -207,9 +207,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         // 按顺序尝试: user (AionUi默认) -> local -> project
         // user scope优先，因为AionUi安装时使用user scope
         const scopes = ['user', 'local', 'project'] as const;
-        const candidateNames = Array.from(
-          new Set(isBuiltinImageGenName(mcpServerName) ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES] : [mcpServerName])
-        );
+        const candidateNames = Array.from(new Set(isBuiltinImageGenName(mcpServerName) ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES] : [mcpServerName]));
 
         for (const scope of scopes) {
           for (const candidateName of candidateNames) {

@@ -73,10 +73,7 @@ function shouldInjectBuiltinServer(server: IMcpServer): boolean {
   return server.status === undefined || server.status === 'connected';
 }
 
-export function buildBuiltinAcpSessionMcpServers(
-  mcpServers: IMcpServer[] | undefined | null,
-  capabilities: Partial<AcpMcpCapabilities> = DEFAULT_ACP_MCP_CAPABILITIES
-): AcpSessionMcpServer[] {
+export function buildBuiltinAcpSessionMcpServers(mcpServers: IMcpServer[] | undefined | null, capabilities: Partial<AcpMcpCapabilities> = DEFAULT_ACP_MCP_CAPABILITIES): AcpSessionMcpServer[] {
   if (!Array.isArray(mcpServers) || mcpServers.length === 0) {
     return [];
   }
