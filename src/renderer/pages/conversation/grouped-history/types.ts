@@ -53,6 +53,7 @@ export type ConversationRowProps = {
   onDelete: (conversationId: string) => void;
   onExport: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
+  getJobStatus: (conversationId: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
 };
 
 export type WorkspaceGroupedHistoryProps = {
