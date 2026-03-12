@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionConfigOption, AcpSessionModels, AcpSessionUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpPromptResponseUsage, AcpRequest, AcpResponse, AcpSessionConfigOption, AcpSessionModels, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, CLAUDE_ACP_NPX_PACKAGE, CODEX_ACP_BRIDGE_VERSION, CODEX_ACP_NPX_PACKAGE, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { execFile as execFileCb, execFileSync, spawn } from 'child_process';
@@ -111,6 +111,7 @@ export class AcpConnection {
     optionId: string;
   }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
+  public onPromptUsage: (usage: AcpPromptResponseUsage) => void = () => {}; // Handler for PromptResponse.usage (per-turn token data)
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
   // Disconnect callback - called when child process exits unexpectedly during runtime
   public onDisconnect: (error: { code: number | null; signal: NodeJS.Signals | null }) => void = () => {};
@@ -881,9 +882,19 @@ export class AcpConnection {
         this.pendingRequests.delete(message.id);
 
         if ('result' in message) {
-          // Check for end_turn message
-          if (message.result && typeof message.result === 'object' && (message.result as Record<string, unknown>).stopReason === 'end_turn') {
-            this.onEndTurn();
+          // Check for end_turn message and extract usage data
+          if (message.result && typeof message.result === 'object') {
+            const promptResult = message.result as Record<string, unknown>;
+            if (promptResult.stopReason === 'end_turn') {
+              this.onEndTurn();
+            }
+            // Extract PromptResponse.usage (per-turn token data from codex-acp / PR #167)
+            if (promptResult.usage && typeof promptResult.usage === 'object') {
+              const usage = promptResult.usage as AcpPromptResponseUsage;
+              if (typeof usage.totalTokens === 'number') {
+                this.onPromptUsage(usage);
+              }
+            }
           }
           resolve(message.result);
         } else if ('error' in message) {

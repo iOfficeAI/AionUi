@@ -32,7 +32,7 @@ export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'c
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
-export const CLAUDE_ACP_BRIDGE_VERSION = '0.18.0';
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.20.2';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
 /**
@@ -709,6 +709,38 @@ export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   };
 }
 
+/** Usage update notification from ACP backend (context window utilization, supported by claude-agent-acp and codex-acp) */
+export interface UsageUpdatePayload extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'usage_update';
+    /** Total tokens currently in context */
+    used: number;
+    /** Context window capacity (max tokens) */
+    size: number;
+    /** Cumulative session cost */
+    cost?: {
+      amount: number;
+      currency: string;
+    };
+  };
+}
+
+/** Per-turn token usage from PromptResponse (unstable ACP spec, supported by codex-acp) */
+export interface AcpPromptResponseUsage {
+  /** Total input tokens (includes context from previous turns) */
+  inputTokens: number;
+  /** Total output tokens for this turn */
+  outputTokens: number;
+  /** Sum of all token types */
+  totalTokens: number;
+  /** Tokens read from cache */
+  cachedReadTokens?: number | null;
+  /** Tokens written to cache */
+  cachedWriteTokens?: number | null;
+  /** Reasoning/thinking tokens */
+  thoughtTokens?: number | null;
+}
+
 // ===== ACP Models types (unstable API) =====
 
 /** An available model returned by session/new (unstable API) */
@@ -743,7 +775,7 @@ export interface AcpModelInfo {
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload;
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload | UsageUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
