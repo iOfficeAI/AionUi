@@ -154,7 +154,6 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
       request.generationConfig = {
         responseModalities: ['IMAGE', 'TEXT'],
       };
-      console.log(`[OpenAI2GeminiConverter] Image generation detected, adding responseModalities: ["IMAGE", "TEXT"]`);
     }
 
     // Add tools if present in OpenAI request
