@@ -24,10 +24,13 @@ describe('loadPresetAssistantResources', () => {
     const deps = createDeps();
 
     await expect(
-      loadPresetAssistantResources({
-        localeKey: 'zh-CN',
-        fallbackRules: 'fallback rules',
-      }, deps)
+      loadPresetAssistantResources(
+        {
+          localeKey: 'zh-CN',
+          fallbackRules: 'fallback rules',
+        },
+        deps
+      )
     ).resolves.toEqual({
       rules: 'fallback rules',
       skills: '',
@@ -43,11 +46,14 @@ describe('loadPresetAssistantResources', () => {
     });
 
     await expect(
-      loadPresetAssistantResources({
-        customAgentId: 'assistant-1',
-        localeKey: 'zh-CN',
-        fallbackRules: 'fallback rules',
-      }, deps)
+      loadPresetAssistantResources(
+        {
+          customAgentId: 'assistant-1',
+          localeKey: 'zh-CN',
+          fallbackRules: 'fallback rules',
+        },
+        deps
+      )
     ).resolves.toEqual({
       rules: 'user rules',
       skills: 'user skills',

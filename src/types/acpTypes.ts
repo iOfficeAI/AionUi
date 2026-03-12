@@ -35,6 +35,8 @@ export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRID
 export const CLAUDE_ACP_BRIDGE_VERSION = '0.20.2';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
+export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
+
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
  * Check if preset agent type should be routed through ACP backend
@@ -357,7 +359,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     id: 'codebuddy',
     name: 'CodeBuddy',
     cliCommand: 'codebuddy',
-    defaultCliPath: 'npx @tencent-ai/codebuddy-code',
+    defaultCliPath: `npx ${CODEBUDDY_ACP_NPX_PACKAGE}`,
     authRequired: true,
     enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
     supportsStreaming: false,
