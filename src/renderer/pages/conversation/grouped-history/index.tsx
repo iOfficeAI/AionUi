@@ -7,12 +7,13 @@
 import type { TChatConversation } from '@/common/storage';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Empty, Input, Modal } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
@@ -30,6 +31,15 @@ import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSessionClick, collapsed = false, tooltipEnabled = false, batchMode = false, onBatchModeChange }) => {
   const { id } = useParams();
   const { t } = useTranslation();
+  const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
+
+  // Sync active conversation ref when route changes (for URL navigation)
+  // This doesn't trigger state update, avoiding double render
+  useEffect(() => {
+    if (id) {
+      setActiveConversation(id);
+    }
+  }, [id, setActiveConversation]);
 
   const { conversations, expandedWorkspaces, pinnedConversations, timelineSections, handleToggleWorkspace } = useConversations();
 
@@ -42,6 +52,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
     selectedConversationIds,
     setSelectedConversationIds,
     toggleSelectedConversation,
+    markAsRead,
   });
 
   const { exportTask, exportModalVisible, exportTargetPath, exportModalLoading, showExportDirectorySelector, setShowExportDirectorySelector, closeExportModal, handleSelectExportDirectoryFromModal, handleSelectExportFolder, handleExportConversation, handleBatchExport, handleConfirmExport } = useExport({
@@ -74,8 +85,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
       onDelete: handleDeleteClick,
       onExport: handleExportConversation,
       onTogglePin: handleTogglePin,
+      getJobStatus,
     }),
-    [collapsed, tooltipEnabled, batchMode, selectedConversationIds, id, dropdownVisibleId, toggleSelectedConversation, handleConversationClick, handleOpenMenu, handleMenuVisibleChange, handleEditStart, handleDeleteClick, handleExportConversation, handleTogglePin]
+    [collapsed, tooltipEnabled, batchMode, selectedConversationIds, id, dropdownVisibleId, toggleSelectedConversation, handleConversationClick, handleOpenMenu, handleMenuVisibleChange, handleEditStart, handleDeleteClick, handleExportConversation, handleTogglePin, getJobStatus]
   );
 
   const renderConversation = (conversation: TChatConversation) => {

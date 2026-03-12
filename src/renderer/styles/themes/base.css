@@ -874,6 +874,47 @@ body,
   transform: none !important;
 }
 
+/* Conversation sendbox model/permission pills: blend into background */
+.sendbox-tools .sendbox-model-btn,
+.sendbox-tools .sendbox-model-btn:hover,
+.sendbox-tools .sendbox-model-btn:active,
+.sendbox-tools .sendbox-model-btn:focus,
+.sendbox-tools .sendbox-model-btn:focus-visible {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--text-secondary) !important;
+}
+
+.sendbox-tools .sendbox-model-btn:hover,
+.sendbox-tools .sendbox-model-btn:active,
+.sendbox-tools .sendbox-model-btn:focus,
+.sendbox-tools .sendbox-model-btn:focus-visible {
+  color: var(--text-primary) !important;
+}
+
+/* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
+/* 移动端：发送框工具区支持横向滚动（模型/权限按钮） */
+@media (max-width: 767px) {
+  .sendbox-tools-scroll-mobile {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: calc(100vw - 140px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    touch-action: pan-x;
+  }
+
+  .sendbox-tools-scroll-mobile::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Model settings provider action buttons (+ / - / edit)
  * Normal state merges with row background, hover/focus shows a block.
  */
@@ -881,7 +922,9 @@ body,
   background-color: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
 /* Light mode: hover feedback should be visible */

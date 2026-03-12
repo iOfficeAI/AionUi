@@ -395,7 +395,7 @@ const SendBox: React.FC<{
           )}
         </div>
         <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
-          {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
+          {isSingleLine && <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>{tools}</div>}
           <Input.TextArea
             autoFocus={!isMobile}
             disabled={disabled}
@@ -440,7 +440,7 @@ const SendBox: React.FC<{
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <div className='sendbox-tools'>{tools}</div>
+            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
               {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}

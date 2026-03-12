@@ -23,7 +23,7 @@ type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
 const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode?: boolean }> = ({ message, isPageMode }) => {
   const { t } = useTranslation();
-  const { mcpServers, saveMcpServers } = useMcpServers();
+  const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
   const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } = useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
   const { oauthStatus, loggingIn, checkOAuthStatus, login } = useMcpOAuth();
@@ -195,13 +195,16 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode
       </div>
 
       <div className='flex-1 min-h-0'>
-        {mcpServers.length === 0 ? (
+        {mcpServers.length === 0 && extensionMcpServers.length === 0 ? (
           <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>{t('settings.mcpNoServersFound')}</div>
         ) : (
           <AionScrollArea className={classNames('max-h-360px', isPageMode && 'max-h-none')} disableOverflow={isPageMode}>
             <div className='space-y-12px'>
               {mcpServers.map((server) => (
                 <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />
+              ))}
+              {extensionMcpServers.map((server) => (
+                <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={() => {}} onDeleteServer={() => {}} onToggleServer={() => Promise.resolve()} isReadOnly />
               ))}
             </div>
           </AionScrollArea>

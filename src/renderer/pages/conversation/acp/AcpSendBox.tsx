@@ -12,7 +12,7 @@ import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { Plus, Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
@@ -348,7 +349,8 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
   sessionMode?: string;
-}> = ({ conversation_id, backend, sessionMode }) => {
+  agentName?: string;
+}> = ({ conversation_id, backend, sessionMode, agentName }) => {
   const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
@@ -566,7 +568,7 @@ const AcpSendBox: React.FC<{
         onChange={setContent}
         loading={running || aiProcessing}
         disabled={false}
-        placeholder={t('acp.sendbox.placeholder', { backend, defaultValue: `Send message to {{backend}}...` })}
+        placeholder={t('acp.sendbox.placeholder', { backend: agentName || backend, defaultValue: `Send message to {{backend}}...` })}
         onStop={handleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
@@ -576,7 +578,8 @@ const AcpSendBox: React.FC<{
         tools={
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} />
+            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })} compactLabelPrefix={t('agentMode.permission')} hideCompactLabelPrefixOnMobile />
+            <AcpConfigSelector conversationId={conversation_id} backend={backend} />
           </div>
         }
         prefix={
