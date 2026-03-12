@@ -143,7 +143,6 @@
     "grammy": "^1.39.3",
     "html-to-text": "^9.0.5",
     "i18next": "^23.7.16",
-    "i18next-browser-languagedetector": "^7.2.0",
     "jsonrepair": "^3.13.0",
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.22",

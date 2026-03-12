@@ -1,5 +1,4 @@
 import i18n from 'i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 import { ConfigStorage } from '@/common/storage';
@@ -57,9 +56,14 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
   return modules;
 }
 
-// Initialize i18n with fallback locale loaded synchronously to avoid FOUC
+// Initialize i18n with fallback locale loaded synchronously to avoid FOUC.
+// NOTE: We intentionally do NOT use i18next-browser-languagedetector here.
+// In WebUI mode the browser's localStorage is on a different origin than the
+// Electron renderer, so the detector would read the wrong (or missing) value
+// and fall back to navigator.language, causing a language mismatch (Issue #1176).
+// Instead, we use localStorage only as a hint for the initial render and let
+// ConfigStorage (which bridges to the main process) be the single source of truth.
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
@@ -67,24 +71,23 @@ i18n
         translation: fallbackLocale,
       },
     },
+    lng: localStorage.getItem('i18nextLng') || DEFAULT_LANGUAGE,
     fallbackLng: DEFAULT_LANGUAGE,
     debug: false,
     interpolation: { escapeValue: false },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-    },
   })
   .catch((error: Error) => {
     console.error('Failed to initialize i18n:', error);
   });
 
-// Load initial language
+// Load initial language from ConfigStorage (single source of truth)
 async function initLanguage(): Promise<void> {
   try {
     const savedLanguage = await ConfigStorage.get('language');
-    const language = savedLanguage || i18n.language || DEFAULT_LANGUAGE;
+    const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
     await ensureAndSwitch(i18n, language, loadLocaleModules);
+    // Sync to localStorage so next page load can use it as a fast hint
+    localStorage.setItem('i18nextLng', normalizeLanguageCode(language));
   } catch (error) {
     console.error('Failed to initialize language:', error);
   }
@@ -106,6 +109,17 @@ i18n.on('languageChanged', async (lang: string) => {
 // Initialize on module load
 void initLanguage();
 
+// Listen for language changes broadcast by the main process (from other renderers).
+// This enables real-time sync between desktop and WebUI — when one changes language,
+// the other updates immediately without requiring a restart.
+ipcBridge.systemSettings.languageChanged.on(async ({ language }) => {
+  const normalized = normalizeLanguageCode(language);
+  // Skip if already on this language (we're the one who triggered the change)
+  if (i18n.language === normalized) return;
+  await ensureAndSwitch(i18n, normalized, loadLocaleModules);
+  localStorage.setItem('i18nextLng', normalized);
+});
+
 /**
  * Change language with lazy loading.
  */
@@ -113,6 +127,8 @@ export async function changeLanguage(lang: string): Promise<void> {
   await ensureAndSwitch(i18n, lang, loadLocaleModules);
   const normalized = normalizeLanguageCode(lang);
   await ConfigStorage.set('language', normalized);
+  // Keep localStorage in sync so WebUI can use it as a fast hint on next load
+  localStorage.setItem('i18nextLng', normalized);
   // Notify main process to sync i18n (for tray menu, etc.)
   ipcBridge.systemSettings.changeLanguage.invoke({ language: normalized }).catch(() => {});
 }
