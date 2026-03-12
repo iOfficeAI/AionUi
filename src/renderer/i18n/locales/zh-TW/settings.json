@@ -98,6 +98,7 @@
   "geminiBaseUrl": "Gemini API Base URL",
   "cacheDir": "緩存目錄",
   "workDir": "工作目錄",
+  "logDir": "日誌目錄",
   "dirNotConfigured": "尚未設定目錄",
   "cacheClean": "Cache Cleanup",
   "clean": "Clean",

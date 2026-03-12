@@ -98,6 +98,7 @@
   "geminiBaseUrl": "Gemini API Base URL",
   "cacheDir": "Cache Directory",
   "workDir": "Work Directory",
+  "logDir": "Log Directory",
   "dirNotConfigured": "Not configured yet",
   "cacheClean": "Cache Cleanup",
   "clean": "Clean",

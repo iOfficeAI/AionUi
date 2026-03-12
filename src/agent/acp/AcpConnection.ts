@@ -16,7 +16,7 @@ const execFile = promisify(execFileCb);
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { findSuitableNodeBin, getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
+import { findSuitableNodeBin, getEnhancedEnv, getNpxCacheDir, resolveNpxPath } from '@process/utils/shellEnv';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -307,8 +307,7 @@ export class AcpConnection {
         // existing directory. Fix: delete the _npx cache and retry from scratch.
         console.warn(`[ACP] Detected corrupted npx cache for ${backend}, cleaning _npx and retrying...`);
         try {
-          const npmCacheBase = process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache') : path.join(os.homedir(), '.npm');
-          const npxCacheDir = path.join(npmCacheBase, '_npx');
+          const npxCacheDir = getNpxCacheDir();
           await fs.rm(npxCacheDir, { recursive: true, force: true });
           console.warn(`[ACP] Cleaned corrupted npx cache: ${npxCacheDir}`);
         } catch (cleanError) {
@@ -379,7 +378,7 @@ export class AcpConnection {
   private async connectClaude(workingDir: string = process.cwd()): Promise<void> {
     // Use NPX to run Claude Code ACP bridge directly from npm registry
     // This eliminates dependency packaging issues and simplifies deployment
-    console.error('[ACP] Using NPX approach for Claude ACP bridge');
+    mainLog('[ACP]', 'Using NPX approach for Claude ACP bridge');
 
     const envStart = Date.now();
     const cleanEnv = this.prepareNpxEnv();
@@ -435,7 +434,7 @@ export class AcpConnection {
 
   private async connectCodex(workingDir: string = process.cwd()): Promise<void> {
     // Use NPX to run codex-acp bridge (Zed's ACP adapter for Codex)
-    console.error(`[ACP] Using NPX approach for Codex ACP bridge (${CODEX_ACP_NPX_PACKAGE})`);
+    mainLog('[ACP]', `Using NPX approach for Codex ACP bridge (${CODEX_ACP_NPX_PACKAGE})`);
 
     const envStart = Date.now();
     const cleanEnv = this.prepareNpxEnv();
@@ -511,7 +510,7 @@ export class AcpConnection {
 
   private async connectCodebuddy(workingDir: string = process.cwd()): Promise<void> {
     // Use NPX to run CodeBuddy Code CLI directly from npm registry (same pattern as Claude)
-    console.error('[ACP] Using NPX approach for CodeBuddy ACP');
+    mainLog('[ACP]', 'Using NPX approach for CodeBuddy ACP');
 
     const envStart = Date.now();
     const cleanEnv = this.prepareNpxEnv();
@@ -529,9 +528,9 @@ export class AcpConnection {
     try {
       await fs.access(mcpConfigPath);
       extraArgs.push('--mcp-config', mcpConfigPath);
-      console.error(`[ACP] Loading CodeBuddy MCP config from ${mcpConfigPath}`);
+      mainLog('[ACP]', `Loading CodeBuddy MCP config from ${mcpConfigPath}`);
     } catch {
-      console.error('[ACP] No CodeBuddy MCP config found, starting without MCP servers');
+      mainWarn('[ACP]', 'No CodeBuddy MCP config found, starting without MCP servers');
     }
 
     const spawnOptions = { extraArgs: ['--acp', ...extraArgs], detached: !isWindows };
