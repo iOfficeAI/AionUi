@@ -118,14 +118,16 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
 };
 
 export const buildGroupedHistory = (conversations: TChatConversation[], t: (key: string) => string): GroupedHistoryResult => {
-  const pinnedConversations = conversations.filter((conversation) => isConversationPinned(conversation)).sort((a, b) => {
-    const orderA = getConversationSortOrder(a);
-    const orderB = getConversationSortOrder(b);
-    if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
-    if (orderA !== undefined) return -1;
-    if (orderB !== undefined) return 1;
-    return getConversationPinnedAt(b) - getConversationPinnedAt(a);
-  });
+  const pinnedConversations = conversations
+    .filter((conversation) => isConversationPinned(conversation))
+    .sort((a, b) => {
+      const orderA = getConversationSortOrder(a);
+      const orderB = getConversationSortOrder(b);
+      if (orderA !== undefined && orderB !== undefined) return orderA - orderB;
+      if (orderA !== undefined) return -1;
+      if (orderB !== undefined) return 1;
+      return getConversationPinnedAt(b) - getConversationPinnedAt(a);
+    });
 
   const normalConversations = conversations.filter((conversation) => !isConversationPinned(conversation));
 

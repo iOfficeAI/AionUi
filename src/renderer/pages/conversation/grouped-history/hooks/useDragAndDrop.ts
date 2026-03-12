@@ -38,24 +38,21 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
     })
   );
 
-  const persistSortOrder = useCallback(
-    async (conversationId: string, sortOrder: number) => {
-      try {
-        await ipcBridge.conversation.update.invoke({
-          id: conversationId,
-          updates: {
-            extra: {
-              sortOrder,
-            } as Partial<TChatConversation['extra']>,
-          } as Partial<TChatConversation>,
-          mergeExtra: true,
-        });
-      } catch (error) {
-        console.error('[DragAndDrop] Failed to persist sort order:', error);
-      }
-    },
-    []
-  );
+  const persistSortOrder = useCallback(async (conversationId: string, sortOrder: number) => {
+    try {
+      await ipcBridge.conversation.update.invoke({
+        id: conversationId,
+        updates: {
+          extra: {
+            sortOrder,
+          } as Partial<TChatConversation['extra']>,
+        } as Partial<TChatConversation>,
+        mergeExtra: true,
+      });
+    } catch (error) {
+      console.error('[DragAndDrop] Failed to persist sort order:', error);
+    }
+  }, []);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {

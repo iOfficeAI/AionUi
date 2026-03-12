@@ -228,9 +228,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
             </div>
           )}
 
-          <DragOverlay dropAnimation={null}>
-            {activeId && activeConversation ? <DragOverlayContent conversation={activeConversation} /> : null}
-          </DragOverlay>
+          <DragOverlay dropAnimation={null}>{activeId && activeConversation ? <DragOverlayContent conversation={activeConversation} /> : null}</DragOverlay>
         </DndContext>
 
         {timelineSections.map((section) => (
