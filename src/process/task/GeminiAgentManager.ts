@@ -11,11 +11,12 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
+import { ExtensionRegistry } from '@/extensions';
 import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
 import { detectSkillLoadRequest, AcpSkillManager, buildSkillContentText } from './AcpSkillManager';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
-import { AuthType, getOauthInfoWithCache } from '@office-ai/aioncli-core';
+import { AuthType, getOauthInfoWithCache, Storage } from '@office-ai/aioncli-core';
 import { GeminiApprovalStore } from '../../agent/gemini/GeminiApprovalStore';
 import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
 import { getDatabase } from '@process/database';
@@ -27,6 +28,7 @@ import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
+import * as fs from 'node:fs';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -133,9 +135,12 @@ export class GeminiAgentManager extends BaseAgentManager<
 
         if (needsGoogleOAuth) {
           try {
-            const oauthInfo = await getOauthInfoWithCache(config?.proxy);
-            if (oauthInfo && oauthInfo.email && config?.accountProjects) {
-              projectId = config.accountProjects[oauthInfo.email];
+            const credsPath = Storage.getOAuthCredsPath();
+            if (fs.existsSync(credsPath)) {
+              const oauthInfo = await getOauthInfoWithCache(config?.proxy);
+              if (oauthInfo && oauthInfo.email && config?.accountProjects) {
+                projectId = config.accountProjects[oauthInfo.email];
+              }
             }
           } catch {
             // If account retrieval fails, don't set projectId
@@ -223,19 +228,47 @@ export class GeminiAgentManager extends BaseAgentManager<
   private async getMcpServers(): Promise<Record<string, UiMcpServerConfig>> {
     try {
       const mcpServers = await ProcessConfig.get('mcp.config');
-      if (!mcpServers || !Array.isArray(mcpServers)) {
+      const allServers: IMcpServer[] = Array.isArray(mcpServers) ? mcpServers : [];
+
+      // Merge extension-contributed MCP servers
+      // 合并扩展贡献的 MCP servers
+      try {
+        const registry = ExtensionRegistry.getInstance();
+        const extServers = registry.getMcpServers();
+        for (const extServer of extServers) {
+          const transport = extServer.transport as IMcpServer['transport'];
+          if (!transport) continue;
+          // Only include enabled extension servers (they don't have status since they're declarative)
+          if (extServer.enabled === false) continue;
+          allServers.push({
+            id: String(extServer.id || ''),
+            name: String(extServer.name || ''),
+            description: extServer.description as string | undefined,
+            enabled: true,
+            transport,
+            status: 'connected', // Extension MCP servers are treated as available
+            createdAt: (extServer.createdAt as number) || Date.now(),
+            updatedAt: (extServer.updatedAt as number) || Date.now(),
+            originalJson: String(extServer.originalJson || '{}'),
+          });
+        }
+      } catch (extError) {
+        console.warn('[GeminiAgentManager] Failed to load extension MCP servers:', extError);
+      }
+
+      if (allServers.length === 0) {
         this.mcpFingerprint = '[]';
         return {};
       }
 
       // Store fingerprint for later change detection
       // 保存指纹用于后续变更检测
-      this.mcpFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
+      this.mcpFingerprint = GeminiAgentManager.computeMcpFingerprint(allServers);
 
       // 转换为 aioncli-core 期望的格式
       // MCPServerConfig supports: stdio (command/args/env), sse/http (url/type/headers)
       const mcpConfig: Record<string, UiMcpServerConfig> = {};
-      mcpServers
+      allServers
         .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
         .forEach((server: IMcpServer) => {
           if (server.transport.type === 'stdio') {

@@ -1,0 +1,7 @@
+{
+  "displayName": "Hello World Eklentisi",
+  "description": "Tüm AionUI eklenti yeteneklerini sergileyen eksiksiz bir demo eklenti",
+  "settingsTabs": {
+    "hello-settings": { "name": "Hello Ayarlar" }
+  }
+}

@@ -79,7 +79,16 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
           const source = latest || conversation;
           ipcBridge.conversation.createWithConversation
-            .invoke({ conversation: { ...source, id, createTime: Date.now(), modifyTime: Date.now() } })
+            .invoke({
+              conversation: {
+                ...source,
+                id,
+                createTime: Date.now(),
+                modifyTime: Date.now(),
+                // Clear ACP session fields to prevent new conversation from inheriting old session context
+                extra: source.type === 'acp' ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined } : source.extra,
+              } as TChatConversation,
+            })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
                 console.error('Navigation failed:', error);
@@ -150,7 +159,7 @@ const ChatConversation: React.FC<{
     if (!conversation || isGeminiConversation) return null;
     switch (conversation.type) {
       case 'acp':
-        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode}></AcpChat>;
+        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode} agentName={(conversation.extra as { agentName?: string })?.agentName}></AcpChat>;
       case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
         return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       case 'openclaw-gateway':

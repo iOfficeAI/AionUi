@@ -1,0 +1,12 @@
+[
+  {
+    "name": "hello-quick-summary",
+    "description": "Generate a short project summary with clear bullet points",
+    "file": "skills/quick-summary.md"
+  },
+  {
+    "name": "hello-issue-breakdown",
+    "description": "Break a user issue into reproducible steps and checks",
+    "file": "skills/issue-breakdown.md"
+  }
+]

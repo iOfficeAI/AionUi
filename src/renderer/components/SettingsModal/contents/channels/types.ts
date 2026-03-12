@@ -18,5 +18,9 @@ export interface ChannelConfig {
   isConnected?: boolean;
   botUsername?: string;
   defaultModel?: string;
+  /** Icon URL for the channel (resolved for current runtime) */
+  icon?: string;
+  /** Whether this channel comes from an extension (shows blue 'ext' badge) */
+  isExtension?: boolean;
   content: ReactNode;
 }

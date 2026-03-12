@@ -16,9 +16,18 @@ import initStorage from './initStorage';
 import './initBridge';
 import './i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@/channels';
+import { ExtensionRegistry } from '@/extensions';
 
 export const initializeProcess = async () => {
   await initStorage();
+
+  // Initialize Extension Registry (scan and resolve all extensions)
+  try {
+    await ExtensionRegistry.getInstance().initialize();
+  } catch (error) {
+    console.error('[Process] Failed to initialize ExtensionRegistry:', error);
+    // Don't fail app startup if extensions fail to initialize
+  }
 
   // Initialize Channel subsystem
   try {

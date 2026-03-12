@@ -8,6 +8,9 @@ import { channel } from '@/common/ipcBridge';
 import { getDatabase } from '@/process/database';
 import { getChannelManager } from '@/channels/core/ChannelManager';
 import { getPairingService } from '@/channels/pairing/PairingService';
+import { ExtensionRegistry } from '@/extensions';
+import { toAssetUrl } from '@/extensions/assetProtocol';
+import * as path from 'path';
 import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
 import { hasPluginCredentials, rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
 
@@ -21,19 +24,75 @@ export function initChannelBridge(): void {
   // ==================== Plugin Management ====================
 
   /**
-   * Get status of all plugins
+   * Get status of all plugins (including extension plugin metadata)
    */
   channel.getPluginStatus.provider(async () => {
     try {
-      const db = getDatabase();
-      const result = db.getChannelPlugins();
+      const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
-      if (!result.success || !result.data) {
-        return { success: false, msg: result.error };
+      let dbPlugins: import('@/channels/types').IChannelPluginConfig[] = [];
+      try {
+        const db = getDatabase();
+        const result = db.getChannelPlugins();
+        if (result.success && Array.isArray(result.data)) {
+          dbPlugins = result.data;
+        }
+      } catch (dbError) {
+        console.warn('[ChannelBridge] getChannelPlugins failed, proceeding with builtin-only list:', dbError);
       }
 
-      const statuses: IChannelPluginStatus[] = result.data.map((plugin) => {
-        return {
+      // Pre-fetch extension plugin metadata (lazy, cached by registry)
+      const registry = ExtensionRegistry.getInstance();
+
+      const extensions = registry.getLoadedExtensions();
+      const resolveExtensionMeta = (pluginType: string): IChannelPluginStatus['extensionMeta'] | undefined => {
+        try {
+          const meta = registry.getChannelPluginMeta(pluginType);
+          if (!meta || typeof meta !== 'object') return undefined;
+          const m = meta as Record<string, unknown>;
+          const extensionMeta: NonNullable<IChannelPluginStatus['extensionMeta']> = {
+            credentialFields: Array.isArray(m.credentialFields) ? m.credentialFields : undefined,
+            configFields: Array.isArray(m.configFields) ? m.configFields : undefined,
+            description: typeof m.description === 'string' ? m.description : undefined,
+          };
+
+          const ext = extensions.find((e) => e.manifest.contributes.channelPlugins?.some((cp) => cp.type === pluginType));
+          if (ext) {
+            extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
+            const iconField = typeof m.icon === 'string' ? m.icon : undefined;
+            if (iconField) {
+              if (iconField.startsWith('http://') || iconField.startsWith('https://') || iconField.startsWith('data:') || iconField.startsWith('file://') || iconField.startsWith('aion-asset://')) {
+                extensionMeta.icon = iconField;
+              } else {
+                const absPath = path.isAbsolute(iconField) ? iconField : path.resolve(ext.directory, iconField);
+                extensionMeta.icon = toAssetUrl(absPath);
+              }
+            }
+          }
+
+          return extensionMeta;
+        } catch {
+          return undefined;
+        }
+      };
+
+      // Build a set of channel types whose parent extension is currently enabled
+      const enabledExtChannelTypes = new Set<string>();
+      for (const [pluginType] of registry.getChannelPlugins()) {
+        enabledExtChannelTypes.add(pluginType);
+      }
+
+      const statusMap = new Map<string, IChannelPluginStatus>();
+
+      for (const plugin of dbPlugins) {
+        const isExtension = !BUILTIN_TYPES.has(plugin.type);
+
+        // Skip extension channels whose parent extension is not loaded/enabled
+        if (isExtension && !enabledExtChannelTypes.has(plugin.type)) {
+          continue;
+        }
+
+        statusMap.set(plugin.type, {
           id: plugin.id,
           type: plugin.type,
           name: plugin.name,
@@ -41,12 +100,58 @@ export function initChannelBridge(): void {
           connected: plugin.status === 'running',
           status: plugin.status,
           lastConnected: plugin.lastConnected,
-          activeUsers: 0, // Will be populated from PluginManager when implemented
+          activeUsers: 0,
           hasToken: hasPluginCredentials(plugin.type, plugin.credentials),
-        };
-      });
+          isExtension,
+          extensionMeta: isExtension ? resolveExtensionMeta(plugin.type) : undefined,
+        });
+      }
 
-      return { success: true, data: statuses };
+      // Ensure extension-contributed channel plugins are always visible in settings
+      // even before first enable (i.e. not yet persisted in DB).
+      for (const [pluginType, entry] of registry.getChannelPlugins()) {
+        if (statusMap.has(pluginType)) continue;
+        const extensionMeta = resolveExtensionMeta(pluginType);
+        const meta = entry.meta as { name?: string } | undefined;
+        statusMap.set(pluginType, {
+          id: pluginType,
+          type: pluginType,
+          name: meta?.name || pluginType,
+          enabled: false,
+          connected: false,
+          status: 'stopped',
+          activeUsers: 0,
+          hasToken: false,
+          isExtension: true,
+          extensionMeta,
+        });
+      }
+
+      // Ensure builtin channel types are always visible in settings
+      // even before user configures them (i.e. not yet persisted in DB).
+      const BUILTIN_NAMES: Record<string, string> = {
+        telegram: 'Telegram',
+        lark: 'Lark',
+        dingtalk: 'DingTalk',
+        slack: 'Slack',
+        discord: 'Discord',
+      };
+      for (const builtinType of BUILTIN_TYPES) {
+        if (statusMap.has(builtinType)) continue;
+        statusMap.set(builtinType, {
+          id: builtinType,
+          type: builtinType,
+          name: BUILTIN_NAMES[builtinType] || builtinType,
+          enabled: false,
+          connected: false,
+          status: 'stopped',
+          activeUsers: 0,
+          hasToken: false,
+          isExtension: false,
+        });
+      }
+
+      return { success: true, data: Array.from(statusMap.values()) };
     } catch (error: any) {
       console.error('[ChannelBridge] getPluginStatus error:', error);
       return { success: false, msg: error.message };

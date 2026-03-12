@@ -81,23 +81,25 @@ export function decryptString(encoded: string): string {
  * Encode credentials object
  * Only encodes sensitive fields (token)
  */
-export function encryptCredentials(credentials: { token?: string } | undefined): { token?: string } | undefined {
+export function encryptCredentials(credentials: Record<string, string | number | boolean | undefined> | undefined): Record<string, string | number | boolean | undefined> | undefined {
   if (!credentials) return undefined;
 
+  const token = credentials.token;
   return {
     ...credentials,
-    token: credentials.token ? encryptString(credentials.token) : undefined,
+    token: typeof token === 'string' && token ? encryptString(token) : token,
   };
 }
 
 /**
  * Decode credentials object
  */
-export function decryptCredentials(credentials: { token?: string } | undefined): { token?: string } | undefined {
+export function decryptCredentials(credentials: Record<string, string | number | boolean | undefined> | undefined): Record<string, string | number | boolean | undefined> | undefined {
   if (!credentials) return undefined;
 
+  const token = credentials.token;
   return {
     ...credentials,
-    token: credentials.token ? decryptString(credentials.token) : undefined,
+    token: typeof token === 'string' && token ? decryptString(token) : token,
   };
 }

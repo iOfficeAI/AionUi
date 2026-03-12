@@ -200,6 +200,13 @@ function killWindowsProcesses(imageNames) {
   }
 }
 
+function formatExecError(error) {
+  return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()]
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
 // Create DMG using electron-builder --prepackaged with .app path
 // This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
 function createDmgWithPrepackaged(appDir, targetArch) {
@@ -497,11 +504,49 @@ try {
     }
   }
 
-  if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
+  const isWindowsBuild = builderArgs.includes('--win') || builderArgs.includes('--all');
+  if (isWindowsBuild) {
     cleanupWindowsPackOutput();
   }
 
-  buildWithDmgRetry(`bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`, targetArch);
+  const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  try {
+    buildWithDmgRetry(builderCommand, targetArch);
+  } catch (error) {
+    const winExePath = path.join(outDir, 'win-unpacked', 'AionUi.exe');
+    const firstError = formatExecError(error);
+    const canRetryWithoutExecutableEdit = process.platform === 'win32'
+      && isWindowsBuild
+      && process.env.CI !== 'true'
+      && fs.existsSync(winExePath);
+
+    if (!canRetryWithoutExecutableEdit) {
+      throw error;
+    }
+
+    console.log('⚠️  Windows local build failed after AionUi.exe was produced.');
+    if (firstError) {
+      console.log('   First failure summary:');
+      console.log(firstError.split(/\r?\n/).slice(0, 6).map((line) => `   ${line}`).join('\n'));
+    }
+    console.log('   Retrying local build with win.signAndEditExecutable=false...');
+    console.log('   This fallback is intended for transient rcedit / file-lock failures on developer machines.');
+    killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+    cleanupWindowsPackOutput();
+
+    try {
+      buildWithDmgRetry(`${builderCommand} --config.win.signAndEditExecutable=false`, targetArch);
+    } catch (retryError) {
+      const retryFailure = formatExecError(retryError);
+      throw new Error([
+        'Windows local retry with win.signAndEditExecutable=false also failed.',
+        'First failure:',
+        firstError || String(error),
+        'Retry failure:',
+        retryFailure || String(retryError),
+      ].join('\n'));
+    }
+  }
 
   console.log('✅ Build completed!');
 } catch (error) {
