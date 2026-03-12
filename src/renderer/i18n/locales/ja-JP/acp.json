@@ -15,5 +15,8 @@
     "disconnected": "{{agent}} から切断されました",
     "error": "接続エラー",
     "unknown": "不明な状態"
+  },
+  "config": {
+    "reasoning_effort": "推論の深さ"
   }
 }

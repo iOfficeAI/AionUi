@@ -42,6 +42,7 @@
   "deleteSuccess": "删除成功",
   "deleteFailed": "删除失败",
   "default": "默认",
+  "defaultModel": "默认模型",
   "escToCancel": "按 ESC 取消",
   "create": "创建",
   "createSuccess": "创建成功",

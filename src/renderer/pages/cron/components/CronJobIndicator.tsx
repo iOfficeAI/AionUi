@@ -34,7 +34,7 @@ const CronJobIndicator: React.FC<CronJobIndicatorProps> = ({ status, size = 14, 
       theme: 'outline' as const,
       size,
       strokeWidth: 3,
-      fill: '#000000',
+      fill: iconColors.secondary,
       className: 'flex items-center',
     };
 

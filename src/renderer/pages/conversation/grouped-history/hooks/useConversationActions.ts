@@ -15,7 +15,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { useConversationTabs } from '../../context/ConversationTabsContext';
 import { isConversationPinned } from '../utils/groupingHelpers';
-import { useCronJobsMap } from '@/renderer/pages/cron';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -24,9 +23,10 @@ type UseConversationActionsParams = {
   selectedConversationIds: Set<string>;
   setSelectedConversationIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   toggleSelectedConversation: (conversation: TChatConversation) => void;
+  markAsRead: (conversationId: string) => void;
 };
 
-export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeChange, selectedConversationIds, setSelectedConversationIds, toggleSelectedConversation }: UseConversationActionsParams) => {
+export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeChange, selectedConversationIds, setSelectedConversationIds, toggleSelectedConversation, markAsRead }: UseConversationActionsParams) => {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [renameModalName, setRenameModalName] = useState<string>('');
   const [renameModalId, setRenameModalId] = useState<string | null>(null);
@@ -36,7 +36,6 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { openTab, closeAllTabs, activeTab, updateTabName } = useConversationTabs();
-  const { markAsRead } = useCronJobsMap();
 
   // Close dropdown when entering batch mode
   useEffect(() => {

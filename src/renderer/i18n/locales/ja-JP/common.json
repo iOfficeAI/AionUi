@@ -42,6 +42,7 @@
   "deleteSuccess": "削除に成功しました",
   "deleteFailed": "削除に失敗しました",
   "default": "デフォルト",
+  "defaultModel": "デフォルトモデル",
   "escToCancel": "ESC でキャンセル",
   "create": "作成",
   "createSuccess": "作成に成功しました",

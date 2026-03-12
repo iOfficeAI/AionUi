@@ -169,6 +169,44 @@ function dmgExists(outDir) {
   }
 }
 
+function tryRemoveDir(targetDir) {
+  if (!fs.existsSync(targetDir)) return true;
+  try {
+    fs.rmSync(targetDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+    return true;
+  } catch (error) {
+    console.log(`❌ Failed to remove ${targetDir}: ${error.message}`);
+    return false;
+  }
+}
+
+function isProcessRunningWindows(imageName) {
+  if (process.platform !== 'win32') return false;
+  try {
+    const result = execSync(`tasklist /FI "IMAGENAME eq ${imageName}"`, { stdio: ['ignore', 'pipe', 'ignore'] });
+    return result.toString().toLowerCase().includes(imageName.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+function killWindowsProcesses(imageNames) {
+  if (process.platform !== 'win32') return;
+  for (const name of imageNames) {
+    try {
+      execSync(`taskkill /F /IM ${name}`, { stdio: 'ignore' });
+    } catch {
+    }
+  }
+}
+
+function formatExecError(error) {
+  return [error?.message, error?.stdout?.toString?.(), error?.stderr?.toString?.()]
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
 // Create DMG using electron-builder --prepackaged with .app path
 // This preserves DMG styling from electron-builder.yml (window size, icon positions, background)
 function createDmgWithPrepackaged(appDir, targetArch) {
@@ -449,11 +487,66 @@ try {
     // Multi-arch builds: Architecture detection not supported yet
   }
 
-  if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
+  if (process.platform === 'win32' && builderArgs.includes('--win')) {
+    const winUnpackedDir = path.join(outDir, 'win-unpacked');
+    let cleaned = tryRemoveDir(winUnpackedDir);
+    if (!cleaned) {
+      const aionRunning = isProcessRunningWindows('AionUi.exe');
+      const electronRunning = isProcessRunningWindows('electron.exe');
+      if (aionRunning || electronRunning) {
+        console.log('⚠️  Detected running AionUi/Electron process. Attempting to close...');
+        killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+        cleaned = tryRemoveDir(winUnpackedDir);
+        if (!cleaned) {
+          console.log('⚠️  Directory still locked. Please close any running AionUi/Electron processes and retry.');
+        }
+      }
+    }
+  }
+
+  const isWindowsBuild = builderArgs.includes('--win') || builderArgs.includes('--all');
+  if (isWindowsBuild) {
     cleanupWindowsPackOutput();
   }
 
-  buildWithDmgRetry(`bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`, targetArch);
+  const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  try {
+    buildWithDmgRetry(builderCommand, targetArch);
+  } catch (error) {
+    const winExePath = path.join(outDir, 'win-unpacked', 'AionUi.exe');
+    const firstError = formatExecError(error);
+    const canRetryWithoutExecutableEdit = process.platform === 'win32'
+      && isWindowsBuild
+      && process.env.CI !== 'true'
+      && fs.existsSync(winExePath);
+
+    if (!canRetryWithoutExecutableEdit) {
+      throw error;
+    }
+
+    console.log('⚠️  Windows local build failed after AionUi.exe was produced.');
+    if (firstError) {
+      console.log('   First failure summary:');
+      console.log(firstError.split(/\r?\n/).slice(0, 6).map((line) => `   ${line}`).join('\n'));
+    }
+    console.log('   Retrying local build with win.signAndEditExecutable=false...');
+    console.log('   This fallback is intended for transient rcedit / file-lock failures on developer machines.');
+    killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+    cleanupWindowsPackOutput();
+
+    try {
+      buildWithDmgRetry(`${builderCommand} --config.win.signAndEditExecutable=false`, targetArch);
+    } catch (retryError) {
+      const retryFailure = formatExecError(retryError);
+      throw new Error([
+        'Windows local retry with win.signAndEditExecutable=false also failed.',
+        'First failure:',
+        firstError || String(error),
+        'Retry failure:',
+        retryFailure || String(retryError),
+      ].join('\n'));
+    }
+  }
 
   console.log('✅ Build completed!');
 } catch (error) {

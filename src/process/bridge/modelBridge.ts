@@ -12,6 +12,7 @@ import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
 import { ipcBridge } from '../../common';
 import { ProcessConfig } from '../initStorage';
+import { ExtensionRegistry } from '@/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
 
 /**
@@ -438,10 +439,10 @@ export function initModelBridge(): void {
   ipcBridge.mode.getModelConfig.provider(() => {
     return ProcessConfig.get('model.config')
       .then((data) => {
-        if (!data) return [];
+        const sourceList = Array.isArray(data) ? data : [];
 
         // Handle migration from old IModel format to new IProvider format
-        return data.map((v: any, _index: number) => {
+        const normalizedProviders = sourceList.map((v: any) => {
           // Check if this is old format (has 'selectedModel' field) vs new format (has 'useModel')
           if ('selectedModel' in v && !('useModel' in v)) {
             // Migrate from old format
@@ -451,7 +452,7 @@ export function initModelBridge(): void {
               id: v.id || uuid(),
               capabilities: v.capabilities || [], // Add missing capabilities field
               contextLimit: v.contextLimit, // Keep existing contextLimit if present
-            };
+            } as IProvider;
             // Note: we don't delete selectedModel here as this is read-only migration
           }
 
@@ -460,8 +461,39 @@ export function initModelBridge(): void {
             ...v,
             id: v.id || uuid(),
             useModel: v.useModel || v.selectedModel || '', // Fallback for edge cases
-          };
+          } as IProvider;
         });
+
+        // Merge extension-contributed model providers (with user overrides from persisted config)
+        try {
+          const registry = ExtensionRegistry.getInstance();
+          const extensionProviders = registry.getModelProviders();
+          if (!extensionProviders || extensionProviders.length === 0) {
+            return normalizedProviders;
+          }
+
+          const extensionIds = new Set(extensionProviders.map((provider) => provider.id));
+          const userProviders = normalizedProviders.filter((provider) => !extensionIds.has(provider.id));
+
+          const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
+            const existing = normalizedProviders.find((item) => item.id === provider.id);
+            return {
+              ...(existing || {}),
+              id: provider.id,
+              platform: provider.platform,
+              name: provider.name,
+              baseUrl: existing?.baseUrl || provider.baseUrl || '',
+              apiKey: existing?.apiKey || '',
+              model: Array.isArray(existing?.model) && existing.model.length > 0 ? existing.model : provider.models,
+              enabled: existing?.enabled ?? true,
+            } as IProvider;
+          });
+
+          return [...userProviders, ...mergedExtensionProviders];
+        } catch (error) {
+          console.warn('[ModelBridge] Failed to merge extension model providers:', error);
+          return normalizedProviders;
+        }
       })
       .catch(() => {
         return [] as IProvider[];
