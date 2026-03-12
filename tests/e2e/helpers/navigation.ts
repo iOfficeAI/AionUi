@@ -58,6 +58,12 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
   }
 
   await page.evaluate((h) => window.location.assign(h), hash);
+  // Wait for the URL hash to actually reflect the target route before proceeding
+  try {
+    await page.waitForFunction((h) => window.location.hash === h, hash, { timeout: 10_000 });
+  } catch {
+    // Best-effort: continue if URL didn't update (e.g. auth redirect)
+  }
   // Give React a tick to begin re-rendering after hash change
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   // Wait for body to have meaningful content (event-driven, no fixed sleep)

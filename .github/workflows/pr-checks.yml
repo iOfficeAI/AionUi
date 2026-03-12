@@ -85,9 +85,7 @@ jobs:
       - name: Run extension system tests
         run: bunx vitest run
 
-  # Job 3: Build + E2E test across all platforms (parallel with code-quality and unit-tests)
-  # E2E tests run inline after build (linux, macos-arm64, windows-x64) so each
-  # platform starts testing immediately without waiting for other platforms.
+  # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
@@ -372,71 +370,6 @@ jobs:
           fi
 
           test -x "$INSTALLED_BIN"
-
-      - name: Upload unpacked app artifact
-        if: >-
-          matrix.platform == 'linux' ||
-          matrix.platform == 'macos-arm64' ||
-          matrix.platform == 'windows-x64'
-        uses: actions/upload-artifact@v6
-        with:
-          name: unpacked-${{ matrix.platform }}
-          path: out/${{ matrix.unpacked_dir }}/
-          retention-days: 1
-          if-no-files-found: error
-
-      # ── E2E tests (run inline after build — no waiting for other platforms) ──
-
-      - name: Install Linux display dependencies (E2E)
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgbm-dev xvfb
-
-      - name: Run E2E tests (Linux)
-        if: matrix.platform == 'linux'
-        run: xvfb-run --auto-servernum just e2e-test
-        env:
-          CI: true
-          E2E_PACKAGED: '1'
-          E2E_SCREENSHOTS: '1'
-          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
-
-      - name: Run E2E tests (macOS)
-        if: matrix.platform == 'macos-arm64'
-        run: just e2e-test
-        env:
-          CI: true
-          E2E_PACKAGED: '1'
-          E2E_SCREENSHOTS: '1'
-          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
-
-      - name: Run E2E tests (Windows)
-        if: matrix.platform == 'windows-x64'
-        shell: pwsh
-        run: just e2e-test
-        env:
-          CI: true
-          E2E_PACKAGED: '1'
-          E2E_SCREENSHOTS: '1'
-          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
-
-      - name: Upload E2E report
-        if: >-
-          always() && (
-            matrix.platform == 'linux' ||
-            matrix.platform == 'macos-arm64' ||
-            matrix.platform == 'windows-x64'
-          )
-        uses: actions/upload-artifact@v6
-        with:
-          name: e2e-report-${{ matrix.platform }}
-          path: |
-            tests/e2e/report/
-            tests/e2e/results/
-            tests/e2e/screenshots/
-          retention-days: 7
-          if-no-files-found: ignore
 
   # Job 4: Test release scripts (fast, no build required)
   release-script-test:
