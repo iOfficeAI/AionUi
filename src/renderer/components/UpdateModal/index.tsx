@@ -75,9 +75,12 @@ const UpdateModal: React.FC = () => {
           }
           setStatus('available');
           return;
-        } else if (res?.msg) {
-          // 自动更新失败，切换到手动更新模式
-          console.warn('Auto-update check failed, falling back to manual mode:', res.msg);
+        } else {
+          // Auto-update check failed or found no update — fall back to manual mode
+          // This covers: error with msg, success but no updateInfo, or unexpected response
+          if (res?.msg) {
+            console.warn('Auto-update check failed, falling back to manual mode:', res.msg);
+          }
           setUseAutoUpdate(false);
         }
       }
