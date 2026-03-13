@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.8.25",
+  "version": "1.8.26",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": "./out/main/index.js",
   "engines": {
@@ -109,6 +109,9 @@
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@floating-ui/react": "^0.27.16",
     "@google/genai": "^1.16.0",
     "@grammyjs/transformer-throttler": "^1.2.1",
@@ -143,7 +146,6 @@
     "grammy": "^1.39.3",
     "html-to-text": "^9.0.5",
     "i18next": "^23.7.16",
-    "i18next-browser-languagedetector": "^7.2.0",
     "jsonrepair": "^3.13.0",
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.22",

@@ -325,7 +325,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             });
           }
 
-          if (message.type !== 'thought' && message.type !== 'acp_model_info') {
+          // Persist context usage to conversation extra for restore on page switch
+          if (message.type === 'acp_context_usage') {
+            const usageData = message.data as { used: number; size: number };
+            this.saveContextUsage(usageData);
+          }
+
+          if (message.type !== 'thought' && message.type !== 'acp_model_info' && message.type !== 'acp_context_usage') {
             const transformStart = Date.now();
             const tMessage = transformMessage(message as IResponseMessage);
             const transformDuration = Date.now() - transformStart;
@@ -931,6 +937,28 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       }
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to save model ID', error);
+    }
+  }
+
+  /**
+   * Save context usage to database for restore on page switch.
+   * 保存上下文使用量到数据库，以便在页面切换时恢复。
+   */
+  private saveContextUsage(usage: { used: number; size: number }): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          lastTokenUsage: { totalTokens: usage.used },
+          lastContextLimit: usage.size,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch {
+      // Non-critical metadata, silently ignore errors
     }
   }
 
