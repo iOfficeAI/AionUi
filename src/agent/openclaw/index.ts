@@ -320,6 +320,10 @@ export class OpenClawAgent {
     }
   }
 
+  private isFromOtherSession(sessionKey?: string): boolean {
+    return !!(sessionKey && this.connection?.sessionKey && sessionKey !== this.connection.sessionKey);
+  }
+
   private handleEvent(evt: EventFrame): void {
     // Handle different event types
     switch (evt.event) {
@@ -356,6 +360,8 @@ export class OpenClawAgent {
   }
 
   private handleChatEvent(event: ChatEvent): void {
+    // Filter out events from other sessions to prevent cross-session message contamination
+    if (this.isFromOtherSession(event.sessionKey)) return;
     switch (event.state) {
       case 'delta': {
         // Extract cumulative text from the message (gateway sends cumulative snapshots)
@@ -472,8 +478,9 @@ export class OpenClawAgent {
   }
 
   private handleAgentEvent(payload: unknown): void {
-    const event = payload as { stream: string; data: Record<string, unknown>; runId?: string };
-
+    const event = payload as { stream: string; data: Record<string, unknown>; runId?: string; sessionKey?: string };
+    // Filter out events from other sessions (defensive)
+    if (this.isFromOtherSession(event.sessionKey)) return;
     switch (event.stream) {
       case 'thinking':
       case 'thought': {
