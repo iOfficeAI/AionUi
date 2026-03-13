@@ -117,7 +117,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
-  differentialPackage: true
+  differentialPackage: false
 
 mac:
   target:

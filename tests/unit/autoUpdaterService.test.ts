@@ -414,22 +414,22 @@ describe('AutoUpdaterService', () => {
       expect(getUpdateChannel()).toBe('latest-win-arm64');
     });
 
-    it('should return latest-mac-arm64 for macOS ARM64', () => {
+    it('should return latest-arm64 for macOS ARM64 (electron-updater appends -mac)', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin', writable: true });
       Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
-      expect(getUpdateChannel()).toBe('latest-mac-arm64');
+      expect(getUpdateChannel()).toBe('latest-arm64');
     });
 
-    it('should return latest-mac-x64 for macOS x64', () => {
+    it('should return undefined for macOS x64 (default latest-mac.yml)', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin', writable: true });
       Object.defineProperty(process, 'arch', { value: 'x64', writable: true });
-      expect(getUpdateChannel()).toBe('latest-mac-x64');
+      expect(getUpdateChannel()).toBeUndefined();
     });
 
-    it('should return latest-linux-arm64 for Linux ARM64', () => {
+    it('should return undefined for Linux ARM64 (electron-updater appends -linux-arm64)', () => {
       Object.defineProperty(process, 'platform', { value: 'linux', writable: true });
       Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
-      expect(getUpdateChannel()).toBe('latest-linux-arm64');
+      expect(getUpdateChannel()).toBeUndefined();
     });
 
     it('should return undefined for Windows x64 (default channel)', () => {

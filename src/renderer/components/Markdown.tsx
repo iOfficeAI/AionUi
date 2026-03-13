@@ -315,6 +315,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
   img {
     max-width: 100%;
+    height: auto;
   }
    /* 给整个表格添加边框 */
   table {

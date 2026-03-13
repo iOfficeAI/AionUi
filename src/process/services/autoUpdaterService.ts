@@ -15,19 +15,27 @@ import { EventEmitter } from 'events';
  */
 export function getUpdateChannel(): string | undefined {
   const { platform, arch } = process;
+
+  // electron-updater appends a platform suffix to the channel name:
+  //   macOS  → "-mac"       (e.g. "latest" → "latest-mac.yml")
+  //   Linux  → "-linux"     (+ arch suffix for non-x64, e.g. "latest-linux-arm64.yml")
+  //   Windows → ""          (no suffix, e.g. "latest.yml")
+  //
+  // Linux arm64 is handled natively by electron-updater (appends "-linux-arm64"),
+  // so only Windows arm64 and macOS arm64 need a custom channel.
+
   if (platform === 'win32' && arch === 'arm64') {
+    // "latest-win-arm64" + "" → "latest-win-arm64.yml"
     return 'latest-win-arm64';
   }
   if (platform === 'darwin' && arch === 'arm64') {
-    return 'latest-mac-arm64';
+    // "latest-arm64" + "-mac" → "latest-arm64-mac.yml"
+    return 'latest-arm64';
   }
-  if (platform === 'darwin' && arch === 'x64') {
-    return 'latest-mac-x64';
-  }
-  if (platform === 'linux' && arch === 'arm64') {
-    return 'latest-linux-arm64';
-  }
-  // Default: Windows x64 and Linux x64 use latest.yml
+  // macOS x64  → default "latest" + "-mac"         → "latest-mac.yml"
+  // Linux x64  → default "latest" + "-linux"       → "latest-linux.yml"
+  // Linux arm64→ default "latest" + "-linux-arm64"  → "latest-linux-arm64.yml"
+  // Win x64    → default "latest" + ""             → "latest.yml"
   return undefined;
 }
 

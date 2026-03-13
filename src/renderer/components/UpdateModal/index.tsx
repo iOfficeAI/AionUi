@@ -71,10 +71,6 @@ const UpdateModal: React.FC = () => {
             if (manualRes.data?.latest) {
               setUpdateInfo(manualRes.data.latest);
               setReleasePageUrl(manualRes.data.latest.htmlUrl || '');
-              if (!manualRes.data.latest.recommendedAsset) {
-                setUseAutoUpdate(false);
-                setErrorMsg(t('update.noCompatibleAssetManual'));
-              }
             }
           }
           setStatus('available');
