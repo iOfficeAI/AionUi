@@ -45,10 +45,12 @@ export const useTaskCompletionNotification = () => {
     ipcBridge.systemSettings
       .getCronNotificationEnabled.invoke()
       .then((enabled) => {
+        console.log('[Notification] Cron notification enabled:', enabled);
         setCronNotificationEnabled(enabled);
       })
       .catch(() => {
         // Default to disabled on error
+        console.log('[Notification] Failed to fetch cron notification setting, defaulting to disabled');
         setCronNotificationEnabled(false);
       });
   }, []);
@@ -89,8 +91,17 @@ export const useTaskCompletionNotification = () => {
         const isUserTask = !!userMessage;
         const isCronTask = !isUserTask;
 
+        console.log('[Notification] Finish event:', {
+          conversationId,
+          isUserTask,
+          isCronTask,
+          cronNotificationEnabled,
+          hasUserMessage: !!userMessage,
+        });
+
         // For cron tasks, only notify if setting is enabled
         if (isCronTask && !cronNotificationEnabled) {
+          console.log('[Notification] Cron task notification blocked (setting disabled)');
           return;
         }
 
@@ -113,6 +124,8 @@ export const useTaskCompletionNotification = () => {
           }
 
           aiRepliesRef.current.delete(conversationId);
+
+          console.log('[Notification] Showing notification:', { title, body, conversationId });
 
           ipcBridge.notification.show
             .invoke({
