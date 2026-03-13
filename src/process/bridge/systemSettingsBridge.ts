@@ -54,6 +54,18 @@ export function initSystemSettingsBridge(): void {
     _changeListener?.(enabled);
   });
 
+  // 获取"任务完成通知"设置 / Get "task completion notification" setting
+  ipcBridge.systemSettings.getNotificationEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.notificationEnabled');
+    return value ?? true; // 默认开启 / Default enabled
+  });
+
+  // 设置"任务完成通知" / Set "task completion notification"
+  ipcBridge.systemSettings.setNotificationEnabled.provider(async ({ enabled }) => {
+    // 先持久化到配置存储
+    await ProcessConfig.set('system.notificationEnabled', enabled);
+  });
+
   // 语言变更通知，同步主进程 i18n 并通知托盘重建
   // Language change notification, sync main process i18n and notify tray rebuild
   ipcBridge.systemSettings.changeLanguage.provider(async ({ language }) => {

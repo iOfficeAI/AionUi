@@ -29,32 +29,7 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-
-/**
- * 截断文本到指定长度，超出部分用省略号代替
- * Truncate text to specified length with ellipsis
- */
-const truncateText = (text: string, maxLength: number): string => {
-  if (!text || text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-};
-
-/**
- * 格式化通知内容
- * Format notification content with user message and AI reply
- */
-const formatNotificationBody = (userMessage: string, aiReply: string): string => {
-  const MAX_USER_LENGTH = 8;
-  const MAX_REPLY_LENGTH = 12;
-
-  const truncatedUser = truncateText(userMessage, MAX_USER_LENGTH);
-  const truncatedReply = aiReply ? truncateText(aiReply, MAX_REPLY_LENGTH) : '';
-
-  if (truncatedReply) {
-    return `${truncatedUser}\n${truncatedReply}`;
-  }
-  return truncatedUser;
-};
+import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 interface NanobotDraftData {
   _type: 'nanobot';
@@ -86,11 +61,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     description: '',
     subject: '',
   });
-
-  // Track user message and AI reply for notification
-  // 跟踪用户消息和 AI 回复用于通知
-  const userMessageRef = useRef<string>('');
-  const aiReplyRef = useRef<string>('');
 
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -196,17 +166,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         case 'finish': {
           setThought({ subject: '', description: '' });
           setAiProcessing(false);
-          // 显示任务完成通知 / Show task completion notification
-          const notificationBody = formatNotificationBody(userMessageRef.current, aiReplyRef.current);
-          ipcBridge.notification.show
-            .invoke({
-              title: '任务完成',
-              body: notificationBody,
-              conversationId: conversation_id,
-            })
-            .catch((err) => {
-              console.warn('[Notification] Failed to show notification:', err);
-            });
           break;
         }
         case 'content':
@@ -214,14 +173,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         case 'user_content':
         default: {
           setThought({ subject: '', description: '' });
-          // Accumulate AI reply for notification
-          // 累积 AI 回复用于通知
-          if (message.type === 'content') {
-            const contentData = message.data as { content?: string } | undefined;
-            if (contentData?.content) {
-              aiReplyRef.current += contentData.content;
-            }
-          }
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -282,10 +233,9 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       createdAt: Date.now(),
     };
     // 保存用户消息用于通知 / Save user message for notification
-    userMessageRef.current = message;
+    setPendingUserMessage(conversation_id, message);
     // Reset AI reply for new turn
     // 重置 AI 回复用于新一轮
-    aiReplyRef.current = '';
     addOrUpdateMessage(userMessage, true);
     setAiProcessing(true);
     try {
@@ -346,10 +296,9 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           createdAt: Date.now(),
         };
         // 保存用户消息用于通知 / Save user message for notification
-        userMessageRef.current = input;
+        setPendingUserMessage(conversation_id, input);
         // Reset AI reply for new turn
         // 重置 AI 回复用于新一轮
-        aiReplyRef.current = '';
         addOrUpdateMessage(userMessage, true);
 
         await ipcBridge.conversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files });

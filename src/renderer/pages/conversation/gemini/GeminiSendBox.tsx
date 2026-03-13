@@ -30,32 +30,7 @@ import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
-
-/**
- * 截断文本到指定长度，超出部分用省略号代替
- * Truncate text to specified length with ellipsis
- */
-const truncateText = (text: string, maxLength: number): string => {
-  if (!text || text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-};
-
-/**
- * 格式化通知内容
- * Format notification content with user message and AI reply
- */
-const formatNotificationBody = (userMessage: string, aiReply: string): string => {
-  const MAX_USER_LENGTH = 8;
-  const MAX_REPLY_LENGTH = 12;
-
-  const truncatedUser = truncateText(userMessage, MAX_USER_LENGTH);
-  const truncatedReply = aiReply ? truncateText(aiReply, MAX_REPLY_LENGTH) : '';
-
-  if (truncatedReply) {
-    return `${truncatedUser}\n${truncatedReply}`;
-  }
-  return truncatedUser;
-};
+import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -77,11 +52,6 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // 当前活跃的消息 ID，用于过滤旧请求的事件（防止 abort 后的事件干扰新请求）
   // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
   const activeMsgIdRef = useRef<string | null>(null);
-
-  // Track user message and AI reply for notification
-  // 跟踪用户消息和 AI 回复用于通知
-  const userMessageRef = useRef<string>('');
-  const aiReplyRef = useRef<string>('');
 
   // Use refs to avoid useEffect re-subscription when these states change
   // 使用 ref 避免状态变化时 useEffect 重新订阅导致事件丢失
@@ -185,13 +155,6 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
 
-      // Cancel pending finish timeout if new message arrives
-      const pendingTimeout = (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout;
-      if (pendingTimeout && message.type !== 'finish') {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = undefined;
-      }
-
       switch (message.type) {
         case 'thought':
           // Auto-recover streamRunning if thought arrives after finish
@@ -204,39 +167,18 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         case 'start':
           setStreamRunning(true);
           streamRunningRef.current = true;
-          // Reset AI reply for new turn
-          // 重置 AI 回复用于新一轮
-          aiReplyRef.current = '';
           // Don't reset waitingResponse here - let tool completion flow handle it
           // 不在这里重置 waitingResponse - 让工具完成流程处理
           break;
         case 'finish':
           {
-            // If waitingResponse is true (tool just completed, waiting for AI to continue),
-            // don't start timeout - let AI continue naturally
-            // 如果 waitingResponse=true（工具刚完成，等待 AI 继续），不启动 timeout
-            if (!waitingResponseRef.current) {
-              // Use delayed reset to detect true end of task
-              const timeoutId = setTimeout(() => {
-                setStreamRunning(false);
-                streamRunningRef.current = false;
-                setWaitingResponse(false);
-                waitingResponseRef.current = false;
-                setThought({ subject: '', description: '' });
-                // 显示任务完成通知 / Show task completion notification
-                const notificationBody = formatNotificationBody(userMessageRef.current, aiReplyRef.current);
-                ipcBridge.notification.show
-                  .invoke({
-                    title: '任务完成',
-                    body: notificationBody,
-                    conversationId: conversation_id,
-                  })
-                  .catch((err) => {
-                    console.warn('[Notification] Failed to show notification:', err);
-                  });
-              }, 1000);
-              (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = timeoutId;
-            }
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setStreamRunning(false);
+            streamRunningRef.current = false;
+            setWaitingResponse(false);
+            waitingResponseRef.current = false;
+            setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             // Log request completion
             if (requestTraceRef.current) {
@@ -372,12 +314,6 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             if (message.type === 'content') {
               setWaitingResponse(false);
               waitingResponseRef.current = false;
-              // Accumulate AI reply for notification
-              // 累积 AI 回复用于通知
-              const contentData = message.data as { content?: string } | undefined;
-              if (contentData?.content) {
-                aiReplyRef.current += contentData.content;
-              }
             }
             // Auto-recover streamRunning if content arrives after finish
             if (!streamRunningRef.current) {
@@ -451,9 +387,6 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     setActiveMsgId,
     setWaitingResponse,
     resetState,
-    setUserMessage: (msg: string) => {
-      userMessageRef.current = msg;
-    },
   };
 };
 
@@ -665,7 +598,7 @@ const GeminiSendBox: React.FC<{
     [currentModel, handleSelectModel, isApiErrorMessage, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
-  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState, setUserMessage } = useGeminiMessage(conversation_id, handleGeminiError);
+  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(conversation_id, handleGeminiError);
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -822,7 +755,7 @@ const GeminiSendBox: React.FC<{
     // Set current active message ID to filter out events from old requests
     setActiveMsgId(msg_id);
     // 保存用户消息用于通知 / Save user message for notification
-    setUserMessage(message);
+    setPendingUserMessage(conversation_id, message);
     setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
 
     // 保存文件列表（清空前需要保存）/ Save file list before clearing

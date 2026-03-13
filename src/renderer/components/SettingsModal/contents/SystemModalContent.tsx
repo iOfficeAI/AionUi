@@ -107,11 +107,22 @@ const SystemModalContent: React.FC = () => {
   // 关闭到托盘状态 / Close to tray state
   const [closeToTray, setCloseToTray] = useState(false);
 
+  // 通知开关状态 / Notification enabled state
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+
   // 获取关闭到托盘设置 / Fetch close-to-tray setting
   useEffect(() => {
     ipcBridge.systemSettings.getCloseToTray
       .invoke()
       .then((enabled) => setCloseToTray(enabled))
+      .catch(() => {});
+  }, []);
+
+  // 获取通知开关设置 / Fetch notification enabled setting
+  useEffect(() => {
+    ipcBridge.systemSettings.getNotificationEnabled
+      .invoke()
+      .then((enabled) => setNotificationEnabled(enabled))
       .catch(() => {});
   }, []);
 
@@ -122,6 +133,16 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
       // 失败时回滚 UI 状态
       setCloseToTray(!checked);
+    });
+  }, []);
+
+  // 切换通知开关 / Toggle notification enabled
+  const handleNotificationEnabledChange = useCallback((checked: boolean) => {
+    setNotificationEnabled(checked);
+    // 通过 bridge 设置，provider 会处理持久化
+    ipcBridge.systemSettings.setNotificationEnabled.invoke({ enabled: checked }).catch(() => {
+      // 失败时回滚 UI 状态
+      setNotificationEnabled(!checked);
     });
   }, []);
 
@@ -144,6 +165,11 @@ const SystemModalContent: React.FC = () => {
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
     { key: 'closeToTray', label: t('settings.closeToTray'), component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} /> },
+    {
+      key: 'notificationEnabled',
+      label: t('settings.notificationEnabled', { defaultValue: 'Task Completion Notification' }),
+      component: <Switch checked={notificationEnabled} onChange={handleNotificationEnabledChange} />,
+    },
   ];
 
   // 目录配置保存确认 / Directory configuration save confirmation

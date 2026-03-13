@@ -15,6 +15,7 @@
 import { Notification, app } from 'electron';
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
+import { ProcessConfig } from '@/process/initStorage';
 import path from 'path';
 import fs from 'fs';
 
@@ -45,39 +46,68 @@ export function setMainWindow(window: BrowserWindow | null): void {
 
 export function initNotificationBridge(): void {
   ipcBridge.notification.show.provider(async ({ title, body, conversationId }) => {
+    // 检查通知开关是否开启 / Check if notification is enabled
+    const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');
+    if (notificationEnabled === false) {
+      console.log('[Notification] Disabled by user setting');
+      return;
+    }
+
     // 检查应用是否支持通知
     if (!Notification.isSupported()) {
       console.warn('[Notification] System notifications are not supported on this platform');
       return;
     }
 
+    // 检查主窗口是否可用
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      console.warn('[Notification] Main window is not available, notification click will not work');
+    }
+
     // 获取应用图标路径 / Get app icon path
     const iconPath = getNotificationIcon();
 
-    // 创建并显示通知 / Create and show notification
-    const notification = new Notification({
-      title,
-      body,
-      icon: iconPath,
-      // macOS 特定选项 / macOS specific options
-      silent: false, // 播放声音 / Play sound
-    });
+    try {
+      // 创建并显示通知 / Create and show notification
+      const notification = new Notification({
+        title,
+        body,
+        icon: iconPath,
+        // macOS 特定选项 / macOS specific options
+        silent: false, // 播放声音 / Play sound
+      });
 
-    // 点击通知时聚焦到主窗口并发送导航事件 / Focus main window and send navigation event when notification is clicked
-    notification.on('click', () => {
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
+      // 点击通知时聚焦到主窗口并发送导航事件 / Focus main window and send navigation event when notification is clicked
+      notification.on('click', () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.focus();
+
+          // 发送点击事件到渲染层 / Send click event to renderer
+          if (conversationId) {
+            console.log('[Notification] Clicked, navigating to conversation:', conversationId);
+            ipcBridge.notification.clicked.emit({ conversationId });
+          }
+        } else {
+          console.warn('[Notification] Main window not available on click');
         }
-        mainWindow.focus();
+      });
 
-        // 发送点击事件到渲染层 / Send click event to renderer
-        if (conversationId) {
-          ipcBridge.notification.clicked.emit({ conversationId });
-        }
-      }
-    });
+      // 处理通知错误 / Handle notification errors
+      notification.on('failed', (error) => {
+        console.error('[Notification] Failed to show:', error);
+      });
 
-    notification.show();
+      notification.on('close', () => {
+        console.log('[Notification] Closed');
+      });
+
+      notification.show();
+      console.log('[Notification] Showed successfully:', { title, body, conversationId });
+    } catch (error) {
+      console.error('[Notification] Error creating notification:', error);
+    }
   });
 }

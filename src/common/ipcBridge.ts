@@ -370,6 +370,8 @@ export const windowControls = {
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+  getNotificationEnabled: bridge.buildProvider<boolean, void>('system-settings:get-notification-enabled'),
+  setNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-notification-enabled'),
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
 };
 

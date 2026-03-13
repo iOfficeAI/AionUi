@@ -24,32 +24,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-
-/**
- * 截断文本到指定长度，超出部分用省略号代替
- * Truncate text to specified length with ellipsis
- */
-const truncateText = (text: string, maxLength: number): string => {
-  if (!text || text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-};
-
-/**
- * 格式化通知内容
- * Format notification content with user message and AI reply
- */
-const formatNotificationBody = (userMessage: string, aiReply: string): string => {
-  const MAX_USER_LENGTH = 8;
-  const MAX_REPLY_LENGTH = 12;
-
-  const truncatedUser = truncateText(userMessage, MAX_USER_LENGTH);
-  const truncatedReply = aiReply ? truncateText(aiReply, MAX_REPLY_LENGTH) : '';
-
-  if (truncatedReply) {
-    return `${truncatedUser}\n${truncatedReply}`;
-  }
-  return truncatedUser;
-};
+import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -72,11 +47,6 @@ const useAcpMessage = (conversation_id: string) => {
   // 使用 ref 同步状态，以便在事件处理程序中立即访问
   const runningRef = useRef(running);
   const aiProcessingRef = useRef(aiProcessing);
-
-  // Track user message and AI reply for notification
-  // 跟踪用户消息和 AI 回复用于通知
-  const userMessageRef = useRef<string>('');
-  const aiReplyRef = useRef<string>('');
 
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
@@ -145,14 +115,6 @@ const useAcpMessage = (conversation_id: string) => {
         return;
       }
 
-      // Cancel pending finish timeout if new message arrives
-      // 如果新消息到达，取消待处理的 finish timeout
-      const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-      if (pendingTimeout && message.type !== 'finish') {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-      }
-
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
@@ -167,35 +129,18 @@ const useAcpMessage = (conversation_id: string) => {
         case 'start':
           setRunning(true);
           runningRef.current = true;
-          // Reset AI reply for new turn
-          // 重置 AI 回复用于新一轮
-          aiReplyRef.current = '';
           // Don't reset aiProcessing here - let content arrival handle it
           // 不在这里重置 aiProcessing - 让 content 到达时处理
           break;
         case 'finish':
           {
-            // Use delayed reset to detect true end of task
-            // 使用延迟重置来检测任务的真正结束
-            const timeoutId = setTimeout(() => {
-              setRunning(false);
-              runningRef.current = false;
-              setAiProcessing(false);
-              aiProcessingRef.current = false;
-              setThought({ subject: '', description: '' });
-              // 显示任务完成通知 / Show task completion notification
-              const notificationBody = formatNotificationBody(userMessageRef.current, aiReplyRef.current);
-              ipcBridge.notification.show
-                .invoke({
-                  title: '任务完成',
-                  body: notificationBody,
-                  conversationId: conversation_id,
-                })
-                .catch((err) => {
-                  console.warn('[Notification] Failed to show notification:', err);
-                });
-            }, 1000);
-            (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setRunning(false);
+            runningRef.current = false;
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             // Log request completion
             if (requestTraceRef.current) {
@@ -215,12 +160,6 @@ const useAcpMessage = (conversation_id: string) => {
           }
           // Clear thought when final answer arrives
           setThought({ subject: '', description: '' });
-          // Accumulate AI reply for notification
-          // 累积 AI 回复用于通知
-          const contentData = message.data as { content?: string } | undefined;
-          if (contentData?.content) {
-            aiReplyRef.current += contentData.content;
-          }
           addOrUpdateMessage(transformedMessage);
           break;
         }
@@ -312,13 +251,6 @@ const useAcpMessage = (conversation_id: string) => {
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    // Clear pending finish timeout when conversation changes
-    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-    }
-
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
     hasContentInTurnRef.current = false;
@@ -343,13 +275,6 @@ const useAcpMessage = (conversation_id: string) => {
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
-    // Clear pending finish timeout
-    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-    }
-
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);
@@ -366,9 +291,6 @@ const useAcpMessage = (conversation_id: string) => {
     aiProcessing,
     setAiProcessing,
     resetState,
-    setUserMessage: (msg: string) => {
-      userMessageRef.current = msg;
-    },
   };
 };
 
@@ -412,7 +334,7 @@ const AcpSendBox: React.FC<{
   backend: AcpBackend;
   sessionMode?: string;
 }> = ({ conversation_id, backend, sessionMode }) => {
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState, setUserMessage } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
@@ -482,7 +404,7 @@ const AcpSendBox: React.FC<{
 
         // Start AI processing loading state (user message will be added via backend response)
         // 保存用户消息用于通知 / Save user message for notification
-        setUserMessage(input);
+        setPendingUserMessage(conversation_id, input);
         setAiProcessing(true);
 
         // Send the message
@@ -545,7 +467,7 @@ const AcpSendBox: React.FC<{
 
     // Start AI processing loading state
     // 保存用户消息用于通知 / Save user message for notification
-    setUserMessage(message);
+    setPendingUserMessage(conversation_id, message);
     setAiProcessing(true);
 
     // Send message via ACP

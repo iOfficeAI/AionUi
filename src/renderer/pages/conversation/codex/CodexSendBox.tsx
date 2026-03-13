@@ -24,32 +24,7 @@ import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-
-/**
- * 截断文本到指定长度，超出部分用省略号代替
- * Truncate text to specified length with ellipsis
- */
-const truncateText = (text: string, maxLength: number): string => {
-  if (!text || text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-};
-
-/**
- * 格式化通知内容
- * Format notification content with user message and AI reply
- */
-const formatNotificationBody = (userMessage: string, aiReply: string): string => {
-  const MAX_USER_LENGTH = 8;
-  const MAX_REPLY_LENGTH = 12;
-
-  const truncatedUser = truncateText(userMessage, MAX_USER_LENGTH);
-  const truncatedReply = aiReply ? truncateText(aiReply, MAX_REPLY_LENGTH) : '';
-
-  if (truncatedReply) {
-    return `${truncatedUser}\n${truncatedReply}`;
-  }
-  return truncatedUser;
-};
+import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -90,11 +65,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
-
-  // Track user message and AI reply for notification
-  // 跟踪用户消息和 AI 回复用于通知
-  const userMessageRef = useRef<string>('');
-  const aiReplyRef = useRef<string>('');
 
   // Think 消息节流：限制更新频率，减少渲染次数
   // Throttle thought updates to reduce render frequency
@@ -216,6 +186,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
       // All messages from Backend are already persisted via emitAndPersistMessage
       // Frontend only needs to update UI
+
       switch (message.type) {
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
@@ -227,20 +198,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           // Only reset when current turn has content output
           // Tool-only turns (no content) should not reset aiProcessing
           if (hasContentInTurnRef.current) {
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
             setRunning(false);
             setAiProcessing(false);
             setThought({ subject: '', description: '' });
-            // 显示任务完成通知 / Show task completion notification
-            const notificationBody = formatNotificationBody(userMessageRef.current, aiReplyRef.current);
-            ipcBridge.notification.show
-              .invoke({
-                title: '任务完成',
-                body: notificationBody,
-                conversationId: conversation_id,
-              })
-              .catch((err) => {
-                console.warn('[Notification] Failed to show notification:', err);
-              });
           }
           // Reset flag for next turn
           hasContentInTurnRef.current = false;
@@ -250,14 +212,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           // Mark that current turn has content output
           hasContentInTurnRef.current = true;
           setThought({ subject: '', description: '' });
-          // Accumulate AI reply for notification
-          // 累积 AI 回复用于通知
-          if (message.type === 'content') {
-            const contentData = message.data as { content?: string } | undefined;
-            if (contentData?.content) {
-              aiReplyRef.current += contentData.content;
-            }
-          }
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -346,10 +300,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
     addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
     // 保存用户消息用于通知 / Save user message for notification
-    userMessageRef.current = message;
-    // Reset AI reply for new turn
-    // 重置 AI 回复用于新一轮
-    aiReplyRef.current = '';
+    setPendingUserMessage(conversation_id, message);
     setAiProcessing(true);
     try {
       // 提取实际的文件路径发送给后端
@@ -424,10 +375,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           createdAt: Date.now(),
         };
         // 保存用户消息用于通知 / Save user message for notification
-        userMessageRef.current = input;
-        // Reset AI reply for new turn
-        // 重置 AI 回复用于新一轮
-        aiReplyRef.current = '';
+        setPendingUserMessage(conversation_id, input);
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理

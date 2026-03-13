@@ -29,32 +29,7 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-
-/**
- * 截断文本到指定长度，超出部分用省略号代替
- * Truncate text to specified length with ellipsis
- */
-const truncateText = (text: string, maxLength: number): string => {
-  if (!text || text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
-};
-
-/**
- * 格式化通知内容
- * Format notification content with user message and AI reply
- */
-const formatNotificationBody = (userMessage: string, aiReply: string): string => {
-  const MAX_USER_LENGTH = 8;
-  const MAX_REPLY_LENGTH = 12;
-
-  const truncatedUser = truncateText(userMessage, MAX_USER_LENGTH);
-  const truncatedReply = aiReply ? truncateText(aiReply, MAX_REPLY_LENGTH) : '';
-
-  if (truncatedReply) {
-    return `${truncatedUser}\n${truncatedReply}`;
-  }
-  return truncatedUser;
-};
+import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 interface OpenClawDraftData {
   _type: 'openclaw-gateway';
@@ -140,14 +115,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
 
-  // Track user message and AI reply for notification
-  // 跟踪用户消息和 AI 回复用于通知
-  const userMessageRef = useRef<string>('');
-  const aiReplyRef = useRef<string>('');
-
-  // Delayed finish timeout to detect true end of task
-  const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -221,12 +188,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    // Clear pending finish timeout when conversation changes
-    if (finishTimeoutRef.current) {
-      clearTimeout(finishTimeoutRef.current);
-      finishTimeoutRef.current = null;
-    }
-
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
@@ -283,12 +244,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         return;
       }
 
-      // Cancel pending finish timeout if new message arrives
-      if (finishTimeoutRef.current && message.type !== 'finish') {
-        clearTimeout(finishTimeoutRef.current);
-        finishTimeoutRef.current = null;
-      }
-
       switch (message.type) {
         case 'thought':
           // Auto-recover aiProcessing state if thought arrives after finish
@@ -301,25 +256,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         case 'finish':
           {
-            // Use delayed reset to detect true end of task
-            // 使用延迟重置来检测任务的真正结束
-            finishTimeoutRef.current = setTimeout(() => {
-              setAiProcessing(false);
-              aiProcessingRef.current = false;
-              setThought({ subject: '', description: '' });
-              finishTimeoutRef.current = null;
-              // 显示任务完成通知 / Show task completion notification
-              const notificationBody = formatNotificationBody(userMessageRef.current, aiReplyRef.current);
-              ipcBridge.notification.show
-                .invoke({
-                  title: '任务完成',
-                  body: notificationBody,
-                  conversationId: conversation_id,
-                })
-                .catch((err) => {
-                  console.warn('[Notification] Failed to show notification:', err);
-                });
-            }, 1000);
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
           }
           break;
@@ -333,14 +274,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
             aiProcessingRef.current = true;
           }
           setThought({ subject: '', description: '' });
-          // Accumulate AI reply for notification
-          // 累积 AI 回复用于通知
-          if (message.type === 'content') {
-            const contentData = message.data as { content?: string } | undefined;
-            if (contentData?.content) {
-              aiReplyRef.current += contentData.content;
-            }
-          }
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -435,10 +368,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       createdAt: Date.now(),
     };
     // 保存用户消息用于通知 / Save user message for notification
-    userMessageRef.current = message;
-    // Reset AI reply for new turn
-    // 重置 AI 回复用于新一轮
-    aiReplyRef.current = '';
+    setPendingUserMessage(conversation_id, message);
     addOrUpdateMessage(userMessage, true);
     setAiProcessing(true);
     aiProcessingRef.current = true;
@@ -505,10 +435,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           createdAt: Date.now(),
         };
         // 保存用户消息用于通知 / Save user message for notification
-        userMessageRef.current = input;
+        setPendingUserMessage(conversation_id, input);
         // Reset AI reply for new turn
         // 重置 AI 回复用于新一轮
-        aiReplyRef.current = '';
         addOrUpdateMessage(userMessage, true);
 
         await ipcBridge.openclawConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
@@ -538,12 +467,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
-      // Clear pending finish timeout
-      if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
-        finishTimeoutRef.current = null;
-      }
-
       setAiProcessing(false);
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });

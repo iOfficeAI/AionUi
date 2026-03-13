@@ -82,6 +82,8 @@ export interface IConfigStorageRefer {
   'migration.promptsI18nAdded'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
+  // 任务完成时显示系统通知 / Show system notification when task completes
+  'system.notificationEnabled'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

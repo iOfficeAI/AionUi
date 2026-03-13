@@ -16,6 +16,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDeepLink } from './hooks/useDeepLink';
 import { useNotificationClick } from './hooks/useNotificationClick';
+import { useTaskCompletionNotification } from './hooks/useTaskCompletionNotification';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
@@ -87,6 +88,7 @@ const Layout: React.FC<{
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
+  useTaskCompletionNotification();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
