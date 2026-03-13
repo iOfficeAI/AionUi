@@ -295,15 +295,22 @@ export class OpenClawAgent {
       }
     }
 
-    // Resolve or create default session via gateway so it exists before first chat.send
+    // For new conversations: reset creates/clears the session and returns the canonical key.
+    // sessions.reset is sufficient — no need for a subsequent sessions.resolve call.
     const defaultKey = this.id; // use conversation_id for per-conversation session isolation
     try {
-      const result = await this.connection.sessionsResolve({ key: defaultKey });
-      this.connection.sessionKey = result.key;
+      const resetResult = await this.connection.sessionsReset({ key: defaultKey, reason: 'new' });
+      this.connection.sessionKey = resetResult.key;
     } catch (err) {
-      // Fallback: assign key directly if resolve fails
-      console.warn('[OpenClawAgent] Failed to resolve default session, falling back:', err);
-      this.connection.sessionKey = defaultKey;
+      // Fallback: try plain resolve (handles race conditions where session already exists)
+      console.warn('[OpenClawAgent] Failed to reset session, trying plain resolve:', err);
+      try {
+        const result = await this.connection.sessionsResolve({ key: defaultKey });
+        this.connection.sessionKey = result.key;
+      } catch (resolveErr) {
+        console.warn('[OpenClawAgent] Failed to resolve default session, falling back:', resolveErr);
+        this.connection.sessionKey = defaultKey;
+      }
     }
 
     // Notify about session key
@@ -404,7 +411,7 @@ export class OpenClawAgent {
             });
           }
         }
-        // Fallback: if chat:delta was dropped but agent.stream="assistant" buffered text
+        // Layer 2 fallback: if chat:delta was dropped but agent.stream="assistant" buffered text
         if (!this.currentStreamMsgId && this.agentAssistantFallbackText) {
           const fallback = this.agentAssistantFallbackText;
           const fallbackMsgId = uuid();
@@ -417,6 +424,13 @@ export class OpenClawAgent {
             data: fallback,
           });
         }
+        // Layer 3 fallback: when Gateway suppresses all content events (e.g. isSilentReplyText),
+        // chat:final arrives with no message and no delta was received. Pull from chat.history instead.
+        if (!this.currentStreamMsgId && this.connection?.sessionKey) {
+          this.fetchAndEmitHistoryFallback(event.runId);
+          break; // handleEndTurn is called inside fetchAndEmitHistoryFallback
+        }
+
         this.handleEndTurn();
         break;
       }
@@ -620,6 +634,49 @@ export class OpenClawAgent {
 
   private handleClose(_code: number, reason: string): void {
     this.handleDisconnect(reason);
+  }
+
+  /**
+   * Layer 3 fallback: fetch last assistant message from chat.history when Gateway suppressed
+   * all content events (e.g. isSilentReplyText filter), causing chat:final to arrive without content.
+   */
+  private fetchAndEmitHistoryFallback(runId: string): void {
+    const sessionKey = this.connection?.sessionKey;
+    if (!sessionKey) {
+      this.handleEndTurn();
+      return;
+    }
+
+    this.connection!.chatHistory(sessionKey, 5)
+      .then((result: unknown) => {
+        const raw = result as { messages?: unknown[] } | unknown[];
+        const messages: unknown[] = Array.isArray(raw) ? raw : ((raw as { messages?: unknown[] })?.messages ?? []);
+
+        // Find the last assistant message for this run (fall back to any last assistant message)
+        const last = [...messages].reverse().find((m: unknown) => {
+          const msg = m as { role?: string; runId?: string };
+          return msg?.role === 'assistant' && (!runId || !msg.runId || msg.runId === runId);
+        }) as { content?: unknown } | undefined;
+
+        const text = this.extractTextFromMessage(last);
+        if (text) {
+          const msgId = uuid();
+          this.currentStreamMsgId = msgId;
+          this.accumulatedAssistantText = text;
+          this.onStreamEvent({
+            type: 'content',
+            conversation_id: this.id,
+            msg_id: msgId,
+            data: text,
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        console.warn('[OpenClawAgent] chat.history fallback failed:', err);
+      })
+      .finally(() => {
+        this.handleEndTurn();
+      });
   }
 
   private handleEndTurn(): void {

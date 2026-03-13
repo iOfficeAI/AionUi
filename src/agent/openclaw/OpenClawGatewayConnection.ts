@@ -6,7 +6,7 @@
 
 import WebSocket from 'ws';
 import { randomUUID } from 'crypto';
-import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResolveParams } from './types';
+import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResetParams, SessionsResolveParams } from './types';
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES, GATEWAY_CLOSE_CODE_HINTS, OPENCLAW_PROTOCOL_VERSION } from './types';
 import { buildDeviceAuthPayload, type DeviceIdentity, loadOrCreateDeviceIdentity, publicKeyRawBase64UrlFromPem, signDevicePayload } from './deviceIdentity';
 import { clearDeviceAuthToken, loadDeviceAuthToken, storeDeviceAuthToken } from './deviceAuthStore';
@@ -169,7 +169,6 @@ export class OpenClawGatewayConnection {
   async chatSend(params: Omit<ChatSendParams, 'idempotencyKey'>): Promise<unknown> {
     const fullParams: ChatSendParams = {
       ...params,
-      deliver: false,
       idempotencyKey: randomUUID(),
     };
     return this.request('chat.send', fullParams);
@@ -196,6 +195,15 @@ export class OpenClawGatewayConnection {
    */
   async sessionsResolve(params: SessionsResolveParams): Promise<{ key: string; sessionId: string }> {
     const result = await this.request<{ key: string; sessionId: string }>('sessions.resolve', params);
+    this._sessionKey = result.key;
+    return result;
+  }
+
+  /**
+   * Reset or create a session, returns the canonical session key
+   */
+  async sessionsReset(params: SessionsResetParams): Promise<{ key: string; sessionId: string }> {
+    const result = await this.request<{ key: string; sessionId: string }>('sessions.reset', params);
     this._sessionKey = result.key;
     return result;
   }
