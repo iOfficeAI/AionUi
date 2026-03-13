@@ -27,25 +27,33 @@ git status --short
 - **Not on `main`** → Stop: "Please switch to the main branch before running bump-version."
 - **Working tree is dirty** (output is non-empty) → Stop: "There are uncommitted changes. Please commit or stash them first."
 
-### Step 2 — Read Current Version
+### Step 2 — Pull Latest Code
+
+```bash
+git pull --rebase origin main
+```
+
+- **Fails** → Stop: "Failed to pull latest code. Please resolve conflicts or network issues first."
+
+### Step 3 — Read Current Version
 
 Read `package.json` and extract the `version` field value (e.g. `"1.8.16"`).
 
-### Step 3 — Determine Target Version
+### Step 4 — Determine Target Version
 
 - **Argument provided**: Use the supplied version string as-is.
 - **No argument**: Parse the current version as `major.minor.patch`, increment `patch` by 1, and assemble the new version string.
 
 Display: "Bumping version: {current} → {target}"
 
-### Step 4 — Update package.json
+### Step 5 — Update package.json
 
 Use the Edit tool to replace the `version` field in `package.json`:
 
 - old: `"version": "{current}"`
 - new: `"version": "{target}"`
 
-### Step 5 — Run bun install
+### Step 6 — Run bun install
 
 ```bash
 bun install
@@ -53,7 +61,7 @@ bun install
 
 This verifies dependency consistency. `bun.lock` should NOT change when only `version` is bumped.
 
-### Step 6 — Verify bun.lock is unchanged
+### Step 7 — Verify bun.lock is unchanged
 
 ```bash
 git diff bun.lock
@@ -62,7 +70,7 @@ git diff bun.lock
 - **No diff** → Proceed silently (normal case).
 - **Has diff** → Ask the user: "bun.lock changed unexpectedly after version bump. Continue?" Wait for confirmation before proceeding.
 
-### Step 7 — Run Quality Checks
+### Step 8 — Run Quality Checks
 
 ```bash
 bun run lint
@@ -73,26 +81,35 @@ bunx tsc --noEmit
 - **tsc fails** → Stop: "TypeScript errors found. Please fix them before bumping the version."
 - **Both pass** → Proceed silently.
 
-### Step 8 — Create Branch
+### Step 9 — Run Tests
+
+```bash
+bunx vitest run
+```
+
+- **Fails** → Stop: "Tests failed. Please fix failing tests before bumping the version."
+- **Passes** → Proceed silently.
+
+### Step 10 — Create Branch
 
 ```bash
 git checkout -b chore/bump-version-{target}
 ```
 
-### Step 9 — Commit
+### Step 11 — Commit
 
 ```bash
 git add package.json
 git commit -m "chore: bump version to {target}"
 ```
 
-### Step 10 — Push
+### Step 12 — Push
 
 ```bash
 git push -u origin chore/bump-version-{target}
 ```
 
-### Step 11 — Create PR
+### Step 13 — Create PR
 
 ```bash
 gh pr create --base main --title "chore: bump version to {target}" --body "Bump version to {target}"
