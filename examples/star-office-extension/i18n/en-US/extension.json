@@ -1,0 +1,9 @@
+{
+  "displayName": "Star Office Extension",
+  "description": "Star Office style activity visualization tab for all agents.",
+  "settingsTabs": {
+    "star-office": { "name": "Star Office" },
+    "aionui-home": { "name": "AionUI Home" },
+    "aionui-issues": { "name": "AionUI Issues" }
+  }
+}

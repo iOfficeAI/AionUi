@@ -175,5 +175,12 @@
     "request_sent": "İstek ajana gönderildi",
     "failed": "Oluşturulamadı",
     "preset_registered": "Ajan hazır ayarı başarıyla kaydedildi!"
-  }
+  },
+  "dropdown": {
+    "cliAgents": "CLI Agents",
+    "presetAssistants": "Preset Assistants"
+  },
+  "noAgentsAvailable": "No agents available",
+  "noModelConfigured": "No model configured. Please configure in settings.",
+  "createFailed": "Failed to create conversation"
 }

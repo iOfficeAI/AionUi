@@ -4,7 +4,7 @@
     "placeholder": "发消息、上传文件、打开文件夹或创建定时任务...",
     "uploadFile": "上传文件",
     "linkFolder": "打开文件夹",
-    "newConversation": "新对话",
+    "newConversation": "新会话",
     "multiAgentModeEnabled": "已进入多智能体模式",
     "selectModel": "选择模型",
     "useCliModel": "选择模型",
@@ -71,6 +71,13 @@
     "closeRight": "关闭右侧",
     "closeOthers": "关闭其他"
   },
+  "dropdown": {
+    "cliAgents": "CLI Agents",
+    "presetAssistants": "预设助手"
+  },
+  "noAgentsAvailable": "没有可用的 Agent",
+  "noModelConfigured": "未配置模型，请前往设置页面配置。",
+  "createFailed": "创建会话失败",
   "workspace": {
     "title": "工作空间",
     "pasteConfirm_title": "粘贴文件",

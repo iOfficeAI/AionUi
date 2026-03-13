@@ -28,6 +28,8 @@ import GeminiChat from './gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
+import { usePreviewContext } from './preview';
+import StarOfficeMonitorCard from './openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -79,7 +81,16 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
           const source = latest || conversation;
           ipcBridge.conversation.createWithConversation
-            .invoke({ conversation: { ...source, id, createTime: Date.now(), modifyTime: Date.now() } })
+            .invoke({
+              conversation: {
+                ...source,
+                id,
+                createTime: Date.now(),
+                modifyTime: Date.now(),
+                // Clear ACP session fields to prevent new conversation from inheriting old session context
+                extra: source.type === 'acp' ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined } : source.extra,
+              } as TChatConversation,
+            })
             .then(() => {
               Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
                 console.error('Navigation failed:', error);
@@ -142,6 +153,7 @@ const ChatConversation: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
   const { t } = useTranslation();
+  const { openPreview } = usePreviewContext();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
 
   const isGeminiConversation = conversation?.type === 'gemini';
@@ -150,7 +162,7 @@ const ChatConversation: React.FC<{
     if (!conversation || isGeminiConversation) return null;
     switch (conversation.type) {
       case 'acp':
-        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode}></AcpChat>;
+        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode} agentName={(conversation.extra as { agentName?: string })?.agentName}></AcpChat>;
       case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
         return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       case 'openclaw-gateway':
@@ -210,8 +222,28 @@ const ChatConversation: React.FC<{
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
+  const headerExtraNode = (
+    <div className='flex items-center gap-8px'>
+      {conversation?.type === 'openclaw-gateway' && (
+        <div className='shrink-0'>
+          <StarOfficeMonitorCard
+            conversationId={conversation.id}
+            onOpenUrl={(url, metadata) => {
+              openPreview(url, 'url', metadata);
+            }}
+          />
+        </div>
+      )}
+      {conversation ? (
+        <div className='shrink-0'>
+          <CronJobManager conversationId={conversation.id} />
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
-    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>
+    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={headerExtraNode} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>
       {conversationNode}
     </ChatLayout>
   );

@@ -1,0 +1,8 @@
+{
+  "displayName": "E2E Full Test Extension",
+  "description": "A comprehensive test extension covering all contribute types for E2E testing",
+  "settingsTabs": {
+    "e2e-settings": { "name": "E2E Settings" },
+    "e2e-before-about": { "name": "E2E Before About" }
+  }
+}

@@ -11,12 +11,13 @@ import { getDatabase } from '@process/database';
 import { cronService } from '@process/services/cron/CronService';
 import { ipcBridge } from '../../common';
 import { uuid } from '../../common/utils';
-import { ProcessChat } from '../initStorage';
+import { getSkillsDir, ProcessChat } from '../initStorage';
 import { ConversationService } from '../services/conversationService';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type NanoBotAgentManager from '../task/NanoBotAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
+import { prepareFirstMessage } from '../task/agentUtils';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
 import WorkerManage from '../WorkerManage';
@@ -414,8 +415,9 @@ export function initConversationBridge(): void {
         return { success: true, data: { commands: [] } };
       }
 
-      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager | undefined;
-      if (task?.type !== 'acp') {
+      // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+      const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager | undefined;
+      if (!task || task.type !== 'acp') {
         return { success: true, data: { commands: [] } };
       }
 
@@ -460,7 +462,21 @@ export function initConversationBridge(): void {
         await (task as CodexAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else if (task.type === 'openclaw-gateway') {
-        await (task as OpenClawAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        // Inject full skill content when requested (e.g. star-office-helper install flow).
+        // OpenClaw uses full-content mode (not index mode) because it may not proactively
+        // read SKILL.md files from paths like ACP agents (Claude Code CLI) do.
+        let agentContent = other.input;
+        if (other.injectSkills?.length) {
+          agentContent = await prepareFirstMessage(other.input, { enabledSkills: other.injectSkills });
+          // Provide absolute skills directory so agent can resolve relative script paths
+          // e.g. "skills/star-office-helper/scripts/..." → "${skillsDir}/star-office-helper/scripts/..."
+          const skillsDir = getSkillsDir();
+          agentContent = agentContent.replace('[User Request]', `[Skills Directory]\nSkills are installed at: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them as "${skillsDir}/{name}/scripts/...".\n\n[User Request]`);
+        }
+        // Save original user text to chat history (not the injected version),
+        // then send the injected content to the agent only.
+        const manager = task as OpenClawAgentManager;
+        await manager.sendMessage({ content: other.input, agentContent, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else if (task.type === 'nanobot') {
         await (task as NanoBotAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });

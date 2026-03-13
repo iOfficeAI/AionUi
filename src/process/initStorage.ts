@@ -385,7 +385,8 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     return candidates[0];
   };
 
-  const rulesDir = resolveBuiltinDir('rules');
+  const presetsNeedDefaultRulesDir = ASSISTANT_PRESETS.some((preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0);
+  const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
   const builtinSkillsDir = resolveBuiltinDir('skills');
   const userSkillsDir = getSkillsDir();
 
@@ -523,7 +524,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
-    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
+    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'star-office-helper' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
 
     assistants.push({
       id: `builtin-${preset.id}`,

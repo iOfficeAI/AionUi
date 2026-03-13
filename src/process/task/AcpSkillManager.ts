@@ -16,6 +16,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 import { getSkillsDir, getBuiltinSkillsDir } from '../initStorage';
+import { ExtensionRegistry } from '@/extensions';
 
 /**
  * Skill 定义（与 aioncli-core 兼容）
@@ -94,10 +95,13 @@ export class AcpSkillManager {
 
   private skills: Map<string, SkillDefinition> = new Map();
   private builtinSkills: Map<string, SkillDefinition> = new Map();
+  /** Extension-contributed skills loaded from ExtensionRegistry */
+  private extensionSkills: Map<string, SkillDefinition> = new Map();
   private skillsDir: string;
   private builtinSkillsDir: string;
   private initialized: boolean = false;
   private builtinInitialized: boolean = false;
+  private extensionInitialized: boolean = false;
 
   constructor(skillsDir?: string) {
     this.skillsDir = skillsDir || getSkillsDir();
@@ -185,12 +189,67 @@ export class AcpSkillManager {
   }
 
   /**
+   * 从 ExtensionRegistry 加载扩展贡献的 skills
+   * Load extension-contributed skills from ExtensionRegistry
+   *
+   * 扩展 skills 通过 aion-extension.json 的 contributes.skills 声明，
+   * 由 SkillResolver 解析后缓存在 ExtensionRegistry 中。
+   * 这里将它们合并到 AcpSkillManager 中，使 agent 能够按需加载。
+   */
+  private async discoverExtensionSkills(enabledSkills?: string[]): Promise<void> {
+    if (this.extensionInitialized) return;
+
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      const extSkills = registry.getSkills();
+
+      if (extSkills.length === 0) {
+        this.extensionInitialized = true;
+        return;
+      }
+
+      for (const extSkill of extSkills) {
+        // 如果指定了 enabledSkills，只加载被启用的扩展 skills
+        // If enabledSkills is specified, only load enabled extension skills
+        if (enabledSkills && enabledSkills.length > 0 && !enabledSkills.includes(extSkill.name)) {
+          continue;
+        }
+
+        // 避免与内置/可选 skills 冲突 / Avoid conflicts with builtin/optional skills
+        if (this.builtinSkills.has(extSkill.name) || this.skills.has(extSkill.name)) {
+          console.warn(`[AcpSkillManager] Extension skill "${extSkill.name}" conflicts with existing skill, skipping`);
+          continue;
+        }
+
+        const skillDef: SkillDefinition = {
+          name: extSkill.name,
+          description: extSkill.description,
+          location: extSkill.location,
+        };
+
+        this.extensionSkills.set(extSkill.name, skillDef);
+      }
+
+      if (this.extensionSkills.size > 0) {
+        console.log(`[AcpSkillManager] Loaded ${this.extensionSkills.size} extension skills`);
+      }
+    } catch (error) {
+      console.warn('[AcpSkillManager] Failed to load extension skills:', error);
+    }
+
+    this.extensionInitialized = true;
+  }
+
+  /**
    * 初始化：发现并加载所有 skills 的索引（不加载 body）
    * Initialize: discover and load index of all skills (without body)
    */
   async discoverSkills(enabledSkills?: string[]): Promise<void> {
     // 始终先加载内置 skills / Always load builtin skills first
     await this.discoverBuiltinSkills();
+
+    // 加载扩展贡献的 skills / Load extension-contributed skills
+    await this.discoverExtensionSkills(enabledSkills);
 
     if (this.initialized) return;
 
@@ -259,7 +318,8 @@ export class AcpSkillManager {
    * Includes builtin skills + optional skills
    */
   getSkillsIndex(): SkillIndex[] {
-    // 合并内置 skills 和可选 skills / Merge builtin and optional skills
+    // 合并内置 skills、可选 skills 和扩展 skills
+    // Merge builtin, optional, and extension skills
     const allSkills: SkillIndex[] = [];
 
     // 内置 skills 优先 / Builtin skills first
@@ -272,6 +332,14 @@ export class AcpSkillManager {
 
     // 然后是可选 skills / Then optional skills
     for (const skill of this.skills.values()) {
+      allSkills.push({
+        name: skill.name,
+        description: skill.description,
+      });
+    }
+
+    // 最后是扩展 skills / Then extension skills
+    for (const skill of this.extensionSkills.values()) {
       allSkills.push({
         name: skill.name,
         description: skill.description,
@@ -297,7 +365,7 @@ export class AcpSkillManager {
    * Check if there are any skills (builtin or optional)
    */
   hasAnySkills(): boolean {
-    return this.builtinSkills.size > 0 || this.skills.size > 0;
+    return this.builtinSkills.size > 0 || this.skills.size > 0 || this.extensionSkills.size > 0;
   }
 
   /**
@@ -312,6 +380,10 @@ export class AcpSkillManager {
     // 再查找可选 skills / Then search optional skills
     if (!skill) {
       skill = this.skills.get(name);
+    }
+    // 最后查找扩展 skills / Then search extension skills
+    if (!skill) {
+      skill = this.extensionSkills.get(name);
     }
     if (!skill) return null;
 
@@ -349,7 +421,7 @@ export class AcpSkillManager {
    * Check if a skill exists (including builtin and optional)
    */
   hasSkill(name: string): boolean {
-    return this.builtinSkills.has(name) || this.skills.has(name);
+    return this.builtinSkills.has(name) || this.skills.has(name) || this.extensionSkills.has(name);
   }
 
   /**
@@ -361,6 +433,9 @@ export class AcpSkillManager {
       skill.body = undefined;
     }
     for (const skill of this.skills.values()) {
+      skill.body = undefined;
+    }
+    for (const skill of this.extensionSkills.values()) {
       skill.body = undefined;
     }
   }

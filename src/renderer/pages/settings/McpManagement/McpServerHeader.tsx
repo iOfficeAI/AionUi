@@ -14,6 +14,8 @@ interface McpServerHeaderProps {
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
+  /** Extension-contributed servers are read-only */
+  isReadOnly?: boolean;
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
@@ -66,7 +68,7 @@ const getStatusText = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStat
   return t?.('settings.mcpDisconnected') || 'disconnected';
 };
 
-const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallStatus, isServerLoading, isTestingConnection, oauthStatus, isLoggingIn, onTestConnection, onEditServer, onDeleteServer, onToggleServer, onOAuthLogin }) => {
+const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallStatus, isServerLoading, isTestingConnection, oauthStatus, isLoggingIn, isReadOnly, onTestConnection, onEditServer, onDeleteServer, onToggleServer, onOAuthLogin }) => {
   const { t } = useTranslation();
 
   // 判断是否支持 OAuth（仅 HTTP/SSE）
@@ -82,41 +84,43 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
         <Tooltip content={statusText} position='top'>
           <span className='flex items-center cursor-default'>{statusIcon}</span>
         </Tooltip>
-        {needsLogin && onOAuthLogin && (
+        {isReadOnly && <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} alwaysVisible />}
+        {!isReadOnly && needsLogin && onOAuthLogin && (
           <Button size='mini' type='primary' icon={<Login size={'14'} />} title={t('settings.mcpLogin') || 'Login'} loading={isLoggingIn} onClick={() => onOAuthLogin(server)}>
             {t('settings.mcpLogin') || 'Login'}
           </Button>
         )}
-        {!needsLogin && <Button size='mini' icon={<Refresh size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />}
+        {!isReadOnly && !needsLogin && <Button size='mini' icon={<Refresh size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />}
       </div>
-      <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
-        <div className='flex items-center gap-2 invisible group-hover:visible'>
-          {/* agents */}
-          <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} />
-          <Dropdown
-            trigger='hover'
-            droplist={
-              <Menu>
-                <Menu.Item key='edit' onClick={() => onEditServer(server)}>
-                  <div className='flex items-center gap-2'>
-                    <Write size={'14'} />
-                    {t('settings.mcpEditServer')}
-                  </div>
-                </Menu.Item>
-                <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
-                  <div className='flex items-center gap-2 text-red-500'>
-                    <DeleteFour size={'14'} />
-                    {t('settings.mcpDeleteServer')}
-                  </div>
-                </Menu.Item>
-              </Menu>
-            }
-          >
-            <Button size='mini' icon={<SettingOne size={'14'} />} />
-          </Dropdown>
+      {!isReadOnly && (
+        <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
+          <div className='flex items-center gap-2 invisible group-hover:visible'>
+            <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} />
+            <Dropdown
+              trigger='hover'
+              droplist={
+                <Menu>
+                  <Menu.Item key='edit' onClick={() => onEditServer(server)}>
+                    <div className='flex items-center gap-2'>
+                      <Write size={'14'} />
+                      {t('settings.mcpEditServer')}
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
+                    <div className='flex items-center gap-2 text-red-500'>
+                      <DeleteFour size={'14'} />
+                      {t('settings.mcpDeleteServer')}
+                    </div>
+                  </Menu.Item>
+                </Menu>
+              }
+            >
+              <Button size='mini' icon={<SettingOne size={'14'} />} />
+            </Dropdown>
+          </div>
+          <Switch checked={server.enabled} onChange={(checked) => onToggleServer(server.id, checked)} size='small' disabled={server.status === 'testing'} />
         </div>
-        <Switch checked={server.enabled} onChange={(checked) => onToggleServer(server.id, checked)} size='small' disabled={server.status === 'testing'} />
-      </div>
+      )}
     </div>
   );
 };

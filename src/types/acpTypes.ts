@@ -32,6 +32,11 @@ export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'c
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.20.2';
+export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
+
+export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
+
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
  * Check if preset agent type should be routed through ACP backend
@@ -207,6 +212,23 @@ export interface AcpBackendConfig {
   env?: Record<string, string>;
 
   /**
+   * 扩展声明的 API Key 字段列表
+   * 用户可在 Settings UI 中配置这些值，配置后作为环境变量注入到子进程
+   *
+   * API Key fields declared by extensions for user configuration in Settings UI.
+   * User-entered values are injected as environment variables when spawning the process.
+   * Example: [{ key: "MY_API_KEY", label: "API Key", type: "password", required: true }]
+   */
+  apiKeyFields?: Array<{
+    key: string;
+    label: string;
+    type: 'text' | 'password' | 'select' | 'number' | 'boolean';
+    required?: boolean;
+    options?: string[];
+    default?: string | number | boolean;
+  }>;
+
+  /**
    * 启用 ACP 模式时的参数
    * 不同 CLI 使用不同约定：
    *   - ['--experimental-acp'] 用于 claude（未指定时的默认值）
@@ -243,6 +265,7 @@ export interface AcpBackendConfig {
    * - 'gemini': 创建 Gemini 对话
    * - 'claude': 创建使用 Claude 后端的 ACP 对话
    * - 'codex': 创建 Codex 对话
+   * - 任意字符串: 扩展贡献的 ACP 适配器 ID（如 'ext-buddy'）
    * 为向后兼容默认为 'gemini'
    *
    * The primary agent type for this preset (only applies when isPreset=true).
@@ -250,9 +273,10 @@ export interface AcpBackendConfig {
    * - 'gemini': Creates a Gemini conversation
    * - 'claude': Creates an ACP conversation with Claude backend
    * - 'codex': Creates a Codex conversation
+   * - any string: Extension-contributed ACP adapter ID (e.g. 'ext-buddy')
    * Defaults to 'gemini' for backward compatibility.
    */
-  presetAgentType?: PresetAgentType;
+  presetAgentType?: PresetAgentType | string;
 
   /**
    * 此助手可用的模型列表（仅 isPreset=true 时生效）
@@ -335,7 +359,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     id: 'codebuddy',
     name: 'CodeBuddy',
     cliCommand: 'codebuddy',
-    defaultCliPath: 'npx @tencent-ai/codebuddy-code',
+    defaultCliPath: `npx ${CODEBUDDY_ACP_NPX_PACKAGE}`,
     authRequired: true,
     enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
     supportsStreaming: false,
@@ -687,6 +711,38 @@ export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   };
 }
 
+/** Usage update notification from ACP backend (context window utilization, supported by claude-agent-acp and codex-acp) */
+export interface UsageUpdatePayload extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'usage_update';
+    /** Total tokens currently in context */
+    used: number;
+    /** Context window capacity (max tokens) */
+    size: number;
+    /** Cumulative session cost */
+    cost?: {
+      amount: number;
+      currency: string;
+    };
+  };
+}
+
+/** Per-turn token usage from PromptResponse (unstable ACP spec, supported by codex-acp) */
+export interface AcpPromptResponseUsage {
+  /** Total input tokens (includes context from previous turns) */
+  inputTokens: number;
+  /** Total output tokens for this turn */
+  outputTokens: number;
+  /** Sum of all token types */
+  totalTokens: number;
+  /** Tokens read from cache */
+  cachedReadTokens?: number | null;
+  /** Tokens written to cache */
+  cachedWriteTokens?: number | null;
+  /** Reasoning/thinking tokens */
+  thoughtTokens?: number | null;
+}
+
 // ===== ACP Models types (unstable API) =====
 
 /** An available model returned by session/new (unstable API) */
@@ -721,7 +777,7 @@ export interface AcpModelInfo {
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload;
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload | UsageUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
