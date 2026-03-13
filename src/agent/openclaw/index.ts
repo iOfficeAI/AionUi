@@ -209,6 +209,7 @@ export class OpenClawAgent {
       // Reset streaming state for new message
       this.currentStreamMsgId = null;
       this.accumulatedAssistantText = '';
+      this.agentAssistantFallbackText = '';
       this.adapter.resetMessageTracking();
 
       // Process file references
@@ -512,14 +513,26 @@ export class OpenClawAgent {
           update: 'in_progress',
           partialResult: 'in_progress',
         };
-        const status: 'pending' | 'in_progress' | 'completed' | 'failed' = toolData.phase === 'result' ? (toolData.isError ? 'failed' : 'completed') : (phaseToStatus[toolData.phase ?? ''] ?? ((toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending'));
+        let status: 'pending' | 'in_progress' | 'completed' | 'failed';
+        if (toolData.phase === 'result') {
+          status = toolData.isError ? 'failed' : 'completed';
+        } else {
+          status = phaseToStatus[toolData.phase ?? ''] ?? ((toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending');
+        }
 
         // Map name → kind
         const toolName = toolData.name ?? toolData.title ?? '';
         const kind = this.inferToolKind(toolName) ?? (toolData.kind as 'read' | 'edit' | 'execute') ?? 'execute';
 
         // Build content: prefer meta (result description), fallback to args
-        const content: ToolCallUpdate['update']['content'] = (toolData.content as ToolCallUpdate['update']['content']) ?? (toolData.meta ? [{ type: 'content', content: { type: 'text', text: toolData.meta } }] : toolData.args ? [{ type: 'content', content: { type: 'text', text: JSON.stringify(toolData.args, null, 2) } }] : undefined);
+        let content: ToolCallUpdate['update']['content'];
+        if (toolData.content) {
+          content = toolData.content as ToolCallUpdate['update']['content'];
+        } else if (toolData.meta) {
+          content = [{ type: 'content', content: { type: 'text', text: toolData.meta } }];
+        } else if (toolData.args) {
+          content = [{ type: 'content', content: { type: 'text', text: JSON.stringify(toolData.args, null, 2) } }];
+        }
 
         const acpUpdate: ToolCallUpdate = {
           sessionId: this.id,
@@ -591,6 +604,7 @@ export class OpenClawAgent {
 
     // Store pending and emit to UI
     this.pendingPermissions.set(requestId, {
+      // TODO: handle permission response once the UI returns a user decision
       resolve: (_response) => {},
       reject: (error) => {
         console.error('[OpenClawAgent] Permission error:', error);
