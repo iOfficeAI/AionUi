@@ -45,12 +45,10 @@ export const useTaskCompletionNotification = () => {
     ipcBridge.systemSettings
       .getCronNotificationEnabled.invoke()
       .then((enabled) => {
-        console.log('[Notification] Cron notification enabled:', enabled);
         setCronNotificationEnabled(enabled);
       })
       .catch(() => {
         // Default to disabled on error
-        console.log('[Notification] Failed to fetch cron notification setting, defaulting to disabled');
         setCronNotificationEnabled(false);
       });
   }, []);
@@ -91,21 +89,12 @@ export const useTaskCompletionNotification = () => {
         const isUserTask = !!userMessage;
         const isCronTask = !isUserTask;
 
-        console.log('[Notification] Finish event:', {
-          conversationId,
-          isUserTask,
-          isCronTask,
-          cronNotificationEnabled,
-          hasUserMessage: !!userMessage,
-        });
-
         // For cron tasks, only notify if setting is enabled
         if (isCronTask && !cronNotificationEnabled) {
-          console.log('[Notification] Cron task notification blocked (setting disabled)');
           return;
         }
 
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
           timersRef.current.delete(conversationId);
           const aiReply = aiRepliesRef.current.get(conversationId) || '';
 
@@ -118,14 +107,22 @@ export const useTaskCompletionNotification = () => {
             title = '任务完成';
             clearPendingUserMessage(conversationId);
           } else {
-            // Cron task
-            body = aiReply ? truncateText(aiReply, 20) : '定时任务已完成';
-            title = '定时任务完成';
+            // Cron task - get conversation title for better notification
+            let conversationTitle = '定时任务';
+            try {
+              const conv = await ipcBridge.conversation.get.invoke({ id: conversationId });
+              if (conv?.name) {
+                conversationTitle = conv.name;
+              }
+            } catch (err) {
+              // Failed to get conversation title, use default
+            }
+
+            title = `${conversationTitle}的定时任务完成`;
+            body = aiReply ? truncateText(aiReply, 20) : '任务已完成';
           }
 
           aiRepliesRef.current.delete(conversationId);
-
-          console.log('[Notification] Showing notification:', { title, body, conversationId });
 
           ipcBridge.notification.show
             .invoke({
