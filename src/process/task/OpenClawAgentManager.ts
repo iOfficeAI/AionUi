@@ -182,14 +182,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
     try {
       await this.bootstrap;
 
-      // Save user message to chat history
+      // Save user message to chat history (always use original content, not injected version)
       if (data.msg_id && data.content) {
         const userMessage: TMessage = {
           id: data.msg_id,
@@ -203,9 +203,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
         addMessage(this.conversation_id, userMessage);
       }
 
-      // Send message to agent
+      // Send message to agent (use agentContent if provided, e.g. with injected skills)
       const result = await this.agent.sendMessage({
-        content: data.content,
+        content: data.agentContent || data.content,
         files: data.files,
         msg_id: data.msg_id,
       });

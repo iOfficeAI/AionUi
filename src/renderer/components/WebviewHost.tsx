@@ -26,6 +26,9 @@ export interface WebviewHostProps {
   onDidFailLoad?: (errorCode: number, errorDescription: string) => void;
 }
 
+const MIN_ZOOM_FACTOR = 0.75;
+const MAX_ZOOM_FACTOR = 1.5;
+
 /**
  * Shared webview host component — extracted from URLViewer.
  *
@@ -36,21 +39,38 @@ export interface WebviewHostProps {
  * - Partition support for cache isolation
  * - Optional navigation bar (hidden by default for embedded use)
  */
-const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, partition, className, style, onDidFinishLoad, onDidFailLoad }) => {
+const WebviewHost: React.FC<WebviewHostProps> = ({ url, id: _id, showNavBar = false, partition, className, style, onDidFinishLoad, onDidFailLoad }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
+  const autoFitPendingRef = useRef(false);
 
   // Navigation state
   const [currentUrl, setCurrentUrl] = useState(url);
   const [inputUrl, setInputUrl] = useState(url);
   const [isLoading, setIsLoading] = useState(true);
+  const [zoomFactor, setZoomFactor] = useState(1);
+  const [webviewReady, setWebviewReady] = useState(false);
 
   // Self-managed history stacks
   const historyBackRef = useRef<string[]>([]);
   const historyForwardRef = useRef<string[]>([]);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
+
+  const isStarOfficeUrl = useCallback((targetUrl: string): boolean => {
+    try {
+      const parsed = new URL(targetUrl);
+      const host = parsed.hostname.toLowerCase();
+      const localHost = host === '127.0.0.1' || host === 'localhost';
+      const knownPort = ['18791', '18888', '19000'].includes(parsed.port);
+      return localHost && knownPort;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const isStarOffice = isStarOfficeUrl(currentUrl);
 
   // Reset when props.url changes
   useEffect(() => {
@@ -61,7 +81,20 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
     setCurrentUrl(url);
     setInputUrl(url);
     setIsLoading(true);
+    setZoomFactor(1);
+    setWebviewReady(false);
+    autoFitPendingRef.current = isStarOfficeUrl(url);
   }, [url]);
+
+  useEffect(() => {
+    const webviewEl = webviewRef.current as any;
+    if (!webviewReady || !webviewEl?.setZoomFactor) return;
+    try {
+      webviewEl.setZoomFactor(isStarOffice ? zoomFactor : 1);
+    } catch {
+      // Ignore zoom timing errors
+    }
+  }, [isStarOffice, zoomFactor, webviewReady]);
 
   // Navigate to new URL (add to history)
   const navigateToWithHistory = useCallback(
@@ -149,6 +182,24 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
           if (match && match[1]) {
             navigateToWithHistory(match[1]);
           }
+          return;
+        }
+
+        if (event.message.includes('__AIONUI_WEBVIEW_ZOOM__')) {
+          const match = event.message.match(/"deltaY":(-?\d+(\.\d+)?)/);
+          if (match && match[1]) {
+            const deltaY = Number(match[1]);
+            const step = deltaY < 0 ? 0.08 : -0.08;
+            setZoomFactor((prev) => {
+              const next = Number((prev + step).toFixed(2));
+              return Math.max(MIN_ZOOM_FACTOR, Math.min(MAX_ZOOM_FACTOR, next));
+            });
+          }
+          return;
+        }
+
+        if (event.message.includes('__AIONUI_WEBVIEW_ZOOM_RESET__')) {
+          setZoomFactor(1);
         }
       } catch {
         // Ignore parse errors
@@ -164,6 +215,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
     };
 
     const handleDomReady = () => {
+      setWebviewReady(true);
       injectClickInterceptor();
 
       // Inject viewport meta for responsive pages
@@ -197,6 +249,65 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
       `
         )
         .catch(() => {});
+
+      if (isStarOfficeUrl(currentUrl)) {
+        webviewEl
+          .executeJavaScript(
+            `
+          (function() {
+            if (window.__aionuiZoomInjected) return true;
+            window.__aionuiZoomInjected = true;
+            window.addEventListener('wheel', function(e) {
+              if (!(e.ctrlKey || e.metaKey)) return;
+              e.preventDefault();
+              console.log('__AIONUI_WEBVIEW_ZOOM__', JSON.stringify({ deltaY: e.deltaY }));
+            }, { passive: false, capture: true });
+            window.addEventListener('keydown', function(e) {
+              if (!(e.ctrlKey || e.metaKey)) return;
+              if (e.key === '0') {
+                e.preventDefault();
+                console.log('__AIONUI_WEBVIEW_ZOOM_RESET__');
+              }
+            }, { capture: true });
+            return true;
+          })();
+          true;
+        `
+          )
+          .catch(() => {});
+      }
+
+      if (isStarOfficeUrl(currentUrl) && autoFitPendingRef.current) {
+        window.setTimeout(() => {
+          const currentWebview = webviewRef.current;
+          const currentContent = contentRef.current;
+          if (!currentWebview || !currentContent) return;
+          void currentWebview
+            .executeJavaScript(
+              `
+            (() => {
+              try {
+                const stage = document.getElementById('main-stage');
+                const body = document.body;
+                const doc = document.documentElement;
+                const width = Math.max(stage?.scrollWidth || 0, body?.scrollWidth || 0, doc?.scrollWidth || 0, window.innerWidth || 0);
+                return { width };
+              } catch (e) {
+                return { width: window.innerWidth || 0 };
+              }
+            })();
+          `
+            )
+            .then((result: any) => {
+              const stageWidth = Number(result?.width || 0);
+              if (!stageWidth) return;
+              const next = Number((currentContent.clientWidth / stageWidth).toFixed(2));
+              setZoomFactor(Math.max(MIN_ZOOM_FACTOR, Math.min(MAX_ZOOM_FACTOR, next)));
+              autoFitPendingRef.current = false;
+            })
+            .catch(() => {});
+        }, 120);
+      }
     };
 
     const handleDidFinishLoad = () => {
@@ -228,7 +339,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
       webviewEl.removeEventListener('did-finish-load', handleDidFinishLoad);
       webviewEl.removeEventListener('did-fail-load', handleDidFailLoad as EventListener);
     };
-  }, [navigateToWithHistory, currentUrl, onDidFinishLoad, onDidFailLoad]);
+  }, [navigateToWithHistory, currentUrl, onDidFinishLoad, onDidFailLoad, isStarOfficeUrl]);
 
   // Resize observer for content area
   useEffect(() => {
@@ -250,6 +361,54 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
 
     return () => observer.disconnect();
   }, []);
+
+  const handleZoomReset = useCallback(() => {
+    if (!isStarOffice) return;
+    setZoomFactor(1);
+  }, [isStarOffice]);
+
+  const handleZoomFit = useCallback(() => {
+    const currentWebview = webviewRef.current;
+    const currentContent = contentRef.current;
+    if (!isStarOffice || !currentWebview || !currentContent) return;
+    void currentWebview
+      .executeJavaScript(
+        `
+      (() => {
+        try {
+          const stage = document.getElementById('main-stage');
+          const body = document.body;
+          const doc = document.documentElement;
+          const width = Math.max(stage?.scrollWidth || 0, body?.scrollWidth || 0, doc?.scrollWidth || 0, window.innerWidth || 0);
+          return { width };
+        } catch (e) {
+          return { width: window.innerWidth || 0 };
+        }
+      })();
+    `
+      )
+      .then((result: any) => {
+        const stageWidth = Number(result?.width || 0);
+        if (!stageWidth) return;
+        const next = Number((currentContent.clientWidth / stageWidth).toFixed(2));
+        setZoomFactor(Math.max(MIN_ZOOM_FACTOR, Math.min(MAX_ZOOM_FACTOR, next)));
+      })
+      .catch(() => {});
+  }, [isStarOffice]);
+
+  const handleOuterWheelZoom = useCallback(
+    (event: React.WheelEvent<HTMLDivElement>) => {
+      if (!isStarOffice) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      const step = event.deltaY < 0 ? 0.08 : -0.08;
+      setZoomFactor((prev) => {
+        const next = Number((prev + step).toFixed(2));
+        return Math.max(MIN_ZOOM_FACTOR, Math.min(MAX_ZOOM_FACTOR, next));
+      });
+    },
+    [isStarOffice]
+  );
 
   // Back
   const handleGoBack = useCallback(() => {
@@ -315,20 +474,122 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
 
   return (
     <div ref={containerRef} className={`h-full w-full flex flex-col ${className ?? ''}`} style={style}>
+      {showNavBar && (
+        <style>
+          {`
+            .aion-url-viewer-toolbar {
+              --viewer-border: var(--color-border-2);
+              --viewer-border-hover: var(--color-border-3);
+              --viewer-bg: var(--color-bg-3);
+              --viewer-bg-hover: var(--color-fill-2);
+              --viewer-text: var(--color-text-2);
+              --viewer-text-muted: var(--color-text-3);
+            }
+            .aion-url-viewer-toolbar .toolbar-btn {
+              -webkit-appearance: none;
+              appearance: none;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              height: 30px;
+              min-width: 30px;
+              padding: 0 10px;
+              border-radius: 10px;
+              border: 1px solid var(--viewer-border);
+              background: var(--viewer-bg);
+              color: var(--viewer-text);
+              line-height: 1;
+              font-size: 12px;
+              transition: all 150ms ease;
+              cursor: pointer;
+            }
+            .aion-url-viewer-toolbar .toolbar-btn.icon-btn {
+              width: 30px;
+              min-width: 30px;
+              padding: 0;
+            }
+            .aion-url-viewer-toolbar .toolbar-btn:hover:not(:disabled) {
+              background: var(--viewer-bg-hover);
+              border-color: var(--viewer-border-hover);
+            }
+            .aion-url-viewer-toolbar .toolbar-btn:active:not(:disabled) {
+              transform: translateY(0.5px);
+            }
+            .aion-url-viewer-toolbar .toolbar-btn:focus-visible {
+              outline: none;
+              border-color: rgb(var(--primary-6));
+              box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.12);
+            }
+            .aion-url-viewer-toolbar .toolbar-btn:disabled {
+              opacity: 0.55;
+              cursor: not-allowed;
+              color: var(--viewer-text-muted);
+              background: var(--color-bg-2);
+            }
+            .aion-url-viewer-toolbar .toolbar-chip {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              height: 30px;
+              min-width: 48px;
+              padding: 0 10px;
+              border-radius: 10px;
+              border: 1px solid var(--viewer-border);
+              background: var(--color-bg-2);
+              color: var(--viewer-text-muted);
+              font-size: 11px;
+              line-height: 1;
+            }
+            .aion-url-viewer-toolbar .toolbar-input {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 100%;
+              height: 30px;
+              padding: 0 12px;
+              border-radius: 10px;
+              border: 1px solid var(--viewer-border);
+              background: var(--viewer-bg);
+              color: var(--color-text-1);
+              font-size: 12px;
+              line-height: 30px;
+              transition: all 150ms ease;
+            }
+            .aion-url-viewer-toolbar .toolbar-input:hover {
+              border-color: var(--viewer-border-hover);
+            }
+            .aion-url-viewer-toolbar .toolbar-input:focus {
+              outline: none;
+              border-color: rgb(var(--primary-6));
+              box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.12);
+            }
+          `}
+        </style>
+      )}
       {/* Navigation bar (optional) */}
       {showNavBar && (
-        <div className='flex items-center gap-4px h-36px px-8px bg-bg-2 border-b border-border-1 flex-shrink-0'>
-          <button onClick={handleGoBack} disabled={!canGoBack} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoBack ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title='Back'>
+        <div className='aion-url-viewer-toolbar flex items-center gap-6px h-40px px-10px bg-bg-2 border-b border-border-1 flex-shrink-0'>
+          <button onClick={handleGoBack} disabled={!canGoBack} className='toolbar-btn icon-btn' title='Back'>
             <Left theme='outline' size={16} />
           </button>
-          <button onClick={handleGoForward} disabled={!canGoForward} className={`flex items-center justify-center w-28px h-28px transition-colors ${canGoForward ? 'hover:bg-bg-3 cursor-pointer text-t-secondary' : 'cursor-not-allowed text-t-quaternary'}`} title='Forward'>
+          <button onClick={handleGoForward} disabled={!canGoForward} className='toolbar-btn icon-btn' title='Forward'>
             <Right theme='outline' size={16} />
           </button>
-          <button onClick={handleRefresh} className='flex items-center justify-center w-28px h-28px hover:bg-bg-3 transition-colors cursor-pointer text-t-secondary' title='Refresh'>
+          <button onClick={handleRefresh} className='toolbar-btn icon-btn' title='Refresh'>
             {isLoading ? <Loading theme='outline' size={16} className='animate-spin' /> : <Refresh theme='outline' size={16} />}
           </button>
-          <form onSubmit={handleUrlSubmit} className='flex-1 ml-4px'>
-            <input type='text' value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} onKeyDown={handleUrlKeyDown} onFocus={(e) => e.target.select()} className='w-full h-26px pl-4px pr-0 rd-4px bg-bg-3 border border-border-1 text-12px text-t-primary outline-none focus:border-primary transition-colors' placeholder='Enter URL...' />
+          {isStarOffice && (
+            <div className='flex items-center gap-6px ml-2px'>
+              <button onClick={handleZoomReset} className='toolbar-btn' title='Reset zoom'>
+                100%
+              </button>
+              <button onClick={handleZoomFit} className='toolbar-btn' title='Fit'>
+                Fit
+              </button>
+              <span className='toolbar-chip'>{Math.round(zoomFactor * 100)}%</span>
+            </div>
+          )}
+          <form onSubmit={handleUrlSubmit} className='flex-1 ml-2px'>
+            <input type='text' value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} onKeyDown={handleUrlKeyDown} onFocus={(e) => e.target.select()} className='toolbar-input' placeholder='Enter URL...' />
           </form>
         </div>
       )}
@@ -341,7 +602,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id, showNavBar = false, 
       )}
 
       {/* Webview content area */}
-      <div ref={contentRef} className='flex-1 overflow-hidden relative' style={{ minHeight: 0 }}>
+      <div ref={contentRef} className='flex-1 overflow-hidden relative' style={{ minHeight: 0 }} onWheel={handleOuterWheelZoom}>
         <webview
           ref={webviewRef as any}
           src={currentUrl}
