@@ -48,4 +48,3 @@ Typical mapping:
 
 Rule:
 - In Aion preview panel, use frontend URL.
-
