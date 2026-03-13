@@ -21,6 +21,8 @@ import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
+import type { TokenUsageData } from '@/common/storage';
+import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
@@ -42,6 +44,8 @@ const useAcpMessage = (conversation_id: string) => {
   });
   const [acpStatus, setAcpStatus] = useState<'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null>(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
+  const [contextLimit, setContextLimit] = useState<number>(0);
 
   // Use refs to sync state for immediate access in event handlers
   // 使用 ref 同步状态，以便在事件处理程序中立即访问
@@ -216,6 +220,16 @@ const useAcpMessage = (conversation_id: string) => {
         case 'acp_model_info':
           // Model info updates are handled by AcpModelSelector, no action needed here
           break;
+        case 'acp_context_usage': {
+          const usageData = message.data as { used: number; size: number };
+          if (usageData && typeof usageData.used === 'number') {
+            setTokenUsage({ totalTokens: usageData.used });
+            if (usageData.size > 0) {
+              setContextLimit(usageData.size);
+            }
+          }
+          break;
+        }
         case 'request_trace':
           {
             const trace = message.data as Record<string, unknown>;
@@ -270,6 +284,8 @@ const useAcpMessage = (conversation_id: string) => {
 
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
+    setTokenUsage(null);
+    setContextLimit(0);
     hasContentInTurnRef.current = false;
 
     // Check actual conversation status from backend before resetting running/aiProcessing
@@ -288,6 +304,17 @@ const useAcpMessage = (conversation_id: string) => {
       runningRef.current = isRunning;
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
+
+      // Restore persisted context usage data
+      if (res.type === 'acp' && res.extra?.lastTokenUsage) {
+        const { lastTokenUsage, lastContextLimit } = res.extra;
+        if (lastTokenUsage.totalTokens > 0) {
+          setTokenUsage(lastTokenUsage);
+        }
+        if (lastContextLimit && lastContextLimit > 0) {
+          setContextLimit(lastContextLimit);
+        }
+      }
     });
   }, [conversation_id]);
 
@@ -307,7 +334,7 @@ const useAcpMessage = (conversation_id: string) => {
     hasContentInTurnRef.current = false;
   }, []);
 
-  return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing, resetState };
+  return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -351,7 +378,7 @@ const AcpSendBox: React.FC<{
   sessionMode?: string;
   agentName?: string;
 }> = ({ conversation_id, backend, sessionMode, agentName }) => {
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
@@ -640,6 +667,7 @@ const AcpSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
+        sendButtonPrefix={tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={contextLimit > 0 ? contextLimit : undefined} size={24} /> : undefined}
       ></SendBox>
     </div>
   );

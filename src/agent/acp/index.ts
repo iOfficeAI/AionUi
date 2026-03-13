@@ -11,7 +11,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 import type { SlashCommandItem } from '@/common/slash/types';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpResult, AcpSessionConfigOption, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpModelInfo, AcpPermissionRequest, AcpPromptResponseUsage, AcpResult, AcpSessionConfigOption, AcpSessionUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -141,6 +141,9 @@ export class AcpAgent {
   // Store permission request metadata for later use in confirmMessage
   private permissionRequestMeta = new Map<string, { kind?: string; title?: string; rawInput?: Record<string, unknown> }>();
 
+  // Whether usage_update session notifications have been received (if so, skip PromptResponse.usage fallback)
+  private hasReceivedUsageUpdate = false;
+
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
@@ -172,6 +175,9 @@ export class AcpAgent {
     };
     this.connection.onEndTurn = () => {
       this.handleEndTurn();
+    };
+    this.connection.onPromptUsage = (usage: AcpPromptResponseUsage) => {
+      this.handlePromptUsage(usage);
     };
     this.connection.onFileOperation = (operation) => {
       this.handleFileOperation(operation);
@@ -838,6 +844,22 @@ export class AcpAgent {
         }
       }
 
+      // Emit context usage data when usage_update arrives
+      if (data.update?.sessionUpdate === 'usage_update') {
+        this.hasReceivedUsageUpdate = true;
+        const usageUpdate = data.update as { used: number; size: number; cost?: { amount: number; currency: string } };
+        this.onStreamEvent({
+          type: 'acp_context_usage',
+          conversation_id: this.id,
+          msg_id: uuid(),
+          data: {
+            used: usageUpdate.used,
+            size: usageUpdate.size,
+            cost: usageUpdate.cost,
+          },
+        });
+      }
+
       // Emit updated model info when config_option_update arrives
       if (data.update?.sessionUpdate === 'config_option_update') {
         this.emitModelInfo();
@@ -943,6 +965,30 @@ export class AcpAgent {
         data: null,
       });
     }
+  }
+
+  /**
+   * Handle PromptResponse.usage from ACP backend (codex-acp PR #167).
+   * Used as fallback context usage when usage_update notifications are not available.
+   * Follows the same pattern as Gemini CLI's usageMetadata extraction.
+   */
+  private handlePromptUsage(usage: AcpPromptResponseUsage): void {
+    // Skip if usage_update notifications are already providing context usage data
+    if (this.hasReceivedUsageUpdate) {
+      return;
+    }
+
+    // Use totalTokens from PromptResponse as context usage indicator (fallback)
+    // size=0 tells the frontend to use model-based context limit lookup
+    this.onStreamEvent({
+      type: 'acp_context_usage',
+      conversation_id: this.id,
+      msg_id: uuid(),
+      data: {
+        used: usage.totalTokens,
+        size: 0,
+      },
+    });
   }
 
   /**

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { CSS_SYNC_RECENT_UPDATE_WINDOW_MS, computeCssSyncDecision } from '@/renderer/utils/themeCssSync';
+import { BACKGROUND_BLOCK_START } from '@/renderer/components/CssThemeSettings/backgroundUtils';
+import { CSS_SYNC_RECENT_UPDATE_WINDOW_MS, computeCssSyncDecision, resolveCssByActiveTheme } from '@/renderer/utils/themeCssSync';
 
 const NEW_CSS = '.new-theme-flag { color: rgb(1, 2, 3); }';
 const OLD_CSS = '.old-theme-flag { color: rgb(3, 2, 1); }';
@@ -58,5 +59,23 @@ describe('layout css sync decision', () => {
     expect(decision.shouldSkipApply).toBe(false);
     expect(decision.shouldHealStorage).toBe(false);
     expect(decision.effectiveCss).toContain('.old-theme-flag');
+  });
+
+  it('keeps background block for cover themes when resolving active theme css', () => {
+    const resolved = resolveCssByActiveTheme('cover-theme', [
+      {
+        id: 'cover-theme',
+        name: 'Cover Theme',
+        css: '.cover-theme-flag { color: #123456; }',
+        cover: 'data:image/png;base64,abc',
+        isPreset: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ]);
+
+    expect(resolved).toContain('.cover-theme-flag');
+    expect(resolved).toContain(BACKGROUND_BLOCK_START);
+    expect(resolved).toContain('background-image');
   });
 });

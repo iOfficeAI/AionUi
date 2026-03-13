@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
@@ -32,6 +32,10 @@ export const useConversations = () => {
   });
   const { id } = useParams();
   const { t } = useTranslation();
+
+  // Track whether auto-expand has already been performed to avoid
+  // re-expanding workspaces after a user manually collapses them (#1156)
+  const hasAutoExpandedRef = useRef(false);
 
   useEffect(() => {
     const refresh = () => {
@@ -83,9 +87,13 @@ export const useConversations = () => {
 
   const { pinnedConversations, timelineSections } = groupedHistory;
 
-  // Auto-expand all workspaces on first load
+  // Auto-expand all workspaces on first load only (#1156)
   useEffect(() => {
-    if (expandedWorkspaces.length > 0) return;
+    if (hasAutoExpandedRef.current) return;
+    if (expandedWorkspaces.length > 0) {
+      hasAutoExpandedRef.current = true;
+      return;
+    }
     const allWorkspaces: string[] = [];
     timelineSections.forEach((section) => {
       section.items.forEach((item) => {
@@ -96,8 +104,26 @@ export const useConversations = () => {
     });
     if (allWorkspaces.length > 0) {
       setExpandedWorkspaces(allWorkspaces);
+      hasAutoExpandedRef.current = true;
     }
-  }, [timelineSections, expandedWorkspaces.length]);
+  }, [timelineSections]);
+
+  // Remove stale workspace entries that no longer exist in the data
+  useEffect(() => {
+    const currentWorkspaces = new Set<string>();
+    timelineSections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.type === 'workspace' && item.workspaceGroup) {
+          currentWorkspaces.add(item.workspaceGroup.workspace);
+        }
+      });
+    });
+    if (currentWorkspaces.size === 0) return;
+    setExpandedWorkspaces((prev) => {
+      const filtered = prev.filter((ws) => currentWorkspaces.has(ws));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [timelineSections]);
 
   const handleToggleWorkspace = useCallback((workspace: string) => {
     setExpandedWorkspaces((prev) => {
