@@ -71,26 +71,72 @@ export interface PreviewContextValue {
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
 
-// 持久化 key / Persistence key
-const PREVIEW_STATE_KEY = 'aionui_preview_state';
+// 持久化 key / Persistence keys
+const PREVIEW_TABS_KEY = 'aionui_preview_tabs';
+const PREVIEW_ACTIVE_TAB_ID_KEY = 'aionui_preview_active_tab_id';
+const LEGACY_PREVIEW_STATE_KEY = 'aionui_preview_state';
+
+// 仅持久化小体积文本预览，避免大文本导致 localStorage 写入卡顿
+// Persist only lightweight text previews to avoid localStorage jank on large files
+const MAX_PERSISTED_TAB_CONTENT_LENGTH = 80_000;
+const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html', 'code', 'diff']);
+
+const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
+  return input
+    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.contentType))
+    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
+    .map((tab) => ({
+      ...tab,
+      isDirty: false,
+      originalContent: tab.content,
+    }));
+};
+
+const parsePersistedTabs = (value: unknown): PreviewTab[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((tab): tab is PreviewTab => {
+      if (!tab || typeof tab !== 'object') return false;
+      const candidate = tab as Partial<PreviewTab>;
+      return typeof candidate.id === 'string' && typeof candidate.title === 'string' && typeof candidate.content === 'string' && typeof candidate.contentType === 'string';
+    })
+    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.contentType))
+    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
+    .map((tab) => ({
+      ...tab,
+      originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
+      isDirty: false,
+    }));
+};
 
 // 从 localStorage 恢复状态 / Restore state from localStorage
 // 注意：isOpen 不从 localStorage 恢复，新会话时预览面板默认关闭
 // Note: isOpen is not restored from localStorage, preview panel is closed by default for new sessions
 const loadPersistedState = (): { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null } => {
   try {
-    const stored = localStorage.getItem(PREVIEW_STATE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // 验证数据结构 / Validate data structure
-      if (Array.isArray(parsed.tabs)) {
-        return {
-          isOpen: false, // 始终默认关闭 / Always start closed
-          tabs: parsed.tabs,
-          activeTabId: parsed.activeTabId || null,
-        };
+    let tabs = parsePersistedTabs(JSON.parse(localStorage.getItem(PREVIEW_TABS_KEY) || '[]'));
+    let activeTabId = localStorage.getItem(PREVIEW_ACTIVE_TAB_ID_KEY);
+
+    // 兼容旧版单 key 存储 / Backward compatibility for legacy single-key storage
+    if (tabs.length === 0) {
+      const legacyStored = localStorage.getItem(LEGACY_PREVIEW_STATE_KEY);
+      if (legacyStored) {
+        const parsed = JSON.parse(legacyStored) as { tabs?: unknown; activeTabId?: unknown };
+        tabs = parsePersistedTabs(parsed.tabs);
+        activeTabId = typeof parsed.activeTabId === 'string' ? parsed.activeTabId : activeTabId;
       }
     }
+
+    if (activeTabId && !tabs.some((tab) => tab.id === activeTabId)) {
+      activeTabId = tabs[0]?.id || null;
+    }
+
+    return {
+      isOpen: false, // 始终默认关闭 / Always start closed
+      tabs,
+      activeTabId,
+    };
   } catch {
     // 忽略解析错误 / Ignore parsing errors
   }
@@ -107,21 +153,36 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
-  // 持久化状态到 localStorage / Persist state to localStorage
+  // 持久化 tabs 到 localStorage（仅保存小体积文本 tab）
+  // Persist tabs to localStorage (only lightweight text tabs)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(sanitizeTabsForPersistence(tabs)));
+        // 迁移后清理旧 key，减少重复解析
+        // Remove legacy key after migration to avoid duplicate parsing
+        localStorage.removeItem(LEGACY_PREVIEW_STATE_KEY);
+      } catch {
+        // 忽略存储错误（如存储空间不足）/ Ignore storage errors (e.g., quota exceeded)
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [tabs]);
+
+  // 持久化 activeTabId（单独存储，避免切换 tab 时重复序列化大内容）
+  // Persist activeTabId separately to avoid re-serializing large tab content on tab switch
   useEffect(() => {
     try {
-      localStorage.setItem(
-        PREVIEW_STATE_KEY,
-        JSON.stringify({
-          isOpen,
-          tabs,
-          activeTabId,
-        })
-      );
+      if (activeTabId) {
+        localStorage.setItem(PREVIEW_ACTIVE_TAB_ID_KEY, activeTabId);
+      } else {
+        localStorage.removeItem(PREVIEW_ACTIVE_TAB_ID_KEY);
+      }
     } catch {
-      // 忽略存储错误（如存储空间不足）/ Ignore storage errors (e.g., quota exceeded)
+      // 忽略存储错误 / Ignore storage errors
     }
-  }, [isOpen, tabs, activeTabId]);
+  }, [activeTabId]);
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
@@ -129,7 +190,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 获取当前激活的 tab / Get active tab
   const activeTab = useMemo(() => {
     return tabs.find((tab) => tab.id === activeTabId) || null;
-  }, [tabs]);
+  }, [tabs, activeTabId]);
 
   const normalize = useCallback((value?: string | null) => value?.trim() || '', []);
 
