@@ -16,13 +16,15 @@
  */
 const TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
 
+const splitPathSegments = (targetPath: string): string[] => targetPath.split(/[\\/]+/).filter(Boolean);
+
 /**
  * Check if a workspace path is a temporary workspace
  * 检查工作空间路径是否为临时工作空间
  */
 export const isTemporaryWorkspace = (workspacePath: string): boolean => {
   // Extract the last path segment (directory name)
-  const parts = workspacePath.split('/').filter(Boolean);
+  const parts = splitPathSegments(workspacePath);
   const lastSegment = parts[parts.length - 1] || '';
 
   // Check if it matches the temporary workspace pattern
@@ -41,7 +43,7 @@ export const getWorkspaceDisplayName = (workspacePath: string, t?: (key: string)
   // Check for temporary workspace
   if (isTemporaryWorkspace(workspacePath)) {
     // Try to extract timestamp from temp workspace path using the generic pattern
-    const parts = workspacePath.split('/').filter(Boolean);
+    const parts = splitPathSegments(workspacePath);
     const lastSegment = parts[parts.length - 1] || '';
     const match = lastSegment.match(/-temp-(\d+)$/i);
 
@@ -56,7 +58,7 @@ export const getWorkspaceDisplayName = (workspacePath: string, t?: (key: string)
   }
 
   // For regular workspace, show the last directory name
-  const parts = workspacePath.split('/').filter(Boolean);
+  const parts = splitPathSegments(workspacePath);
   return parts[parts.length - 1] || workspacePath;
 };
 
@@ -65,6 +67,6 @@ export const getWorkspaceDisplayName = (workspacePath: string, t?: (key: string)
  * 从路径中获取最后一级目录名
  */
 export const getLastDirectoryName = (path: string): string => {
-  const parts = path.split('/').filter(Boolean);
+  const parts = splitPathSegments(path);
   return parts[parts.length - 1] || path;
 };
