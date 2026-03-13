@@ -1044,6 +1044,7 @@ export function initFsBridge(): void {
     try {
       const homedir = os.homedir();
       const candidates = [
+        { name: 'Global Agents', path: path.join(homedir, '.agents', 'skills') },
         { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills') },
         { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills') },
         { name: 'OpenCode', path: path.join(homedir, '.config', 'opencode', 'skills') },
@@ -1127,6 +1128,7 @@ export function initFsBridge(): void {
       const homedir = os.homedir();
       const userSkillsDir = getUserSkillsDir();
       const builtinCandidates = [
+        { name: 'Global Agents', path: path.join(homedir, '.agents', 'skills'), source: 'global-agents' },
         { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills'), source: 'gemini' },
         { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills'), source: 'claude' },
         { name: 'OpenCode', path: path.join(homedir, '.config', 'opencode', 'skills'), source: 'opencode' },
@@ -1246,8 +1248,8 @@ export function initFsBridge(): void {
         // Does not exist, proceed
       }
 
-      await copyDirectory(skillPath, targetDir);
-      console.log(`[fsBridge] Copied skill "${skillName}" to ${targetDir}`);
+      await fs.symlink(skillPath, targetDir, 'junction');
+      console.log(`[fsBridge] Created symlink for skill "${skillName}" at ${targetDir}`);
       return { success: true, data: { skillName }, msg: `Skill "${skillName}" imported successfully` };
     } catch (error) {
       console.error('[fsBridge] Failed to import skill with symlink:', error);

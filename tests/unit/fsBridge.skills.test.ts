@@ -387,11 +387,11 @@ describe('fsBridge skills functionality', () => {
       expect(result1.success).toBe(true);
       expect(result1.data.skillName).toBe('ValidSymlinkSkill');
 
-      // Check if copied to target
+      // Check if symlink created at target
       const expectedTarget = path.join(targetBase, 'ValidSymlinkSkill');
       expect(mockFsStore[expectedTarget]).toBeDefined();
-      expect(mockFsStore[path.join(expectedTarget, 'SKILL.md')]).toBeDefined();
-      expect(mockFsStore[path.join(expectedTarget, 'extra.txt')]).toBeDefined();
+      expect(mockFsStore[expectedTarget].isSymlink).toBe(true);
+      expect(mockFsStore[expectedTarget].target).toBe(srcPath);
 
       // Try importing same skill again
       const result2 = await handler({ skillPath: srcPath });
