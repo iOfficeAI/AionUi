@@ -74,6 +74,15 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
   }
 }
 
+async function navigateWithRetry(page: Page, hash: string): Promise<void> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await navigateTo(page, hash);
+    if (isAlreadyAt(page, hash)) {
+      return;
+    }
+  }
+}
+
 /**
  * Wait for the page to settle using event-driven detection.
  * If the condition is not met within timeout, simply continues (best-effort).
@@ -88,17 +97,17 @@ export async function waitForSettle(page: Page, timeoutMs = 3000): Promise<void>
 
 /** Navigate to the guid / chat page. */
 export async function goToGuid(page: Page): Promise<void> {
-  await navigateTo(page, ROUTES.guid);
+  await navigateWithRetry(page, ROUTES.guid);
 }
 
 /** Navigate to a settings tab. */
 export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> {
-  await navigateTo(page, ROUTES.settings[tab]);
+  await navigateWithRetry(page, ROUTES.settings[tab]);
 }
 
 /** Navigate to an extension-contributed settings tab by its ID. */
 export async function goToExtensionSettings(page: Page, tabId: string): Promise<void> {
-  await navigateTo(page, ROUTES.extensionSettings(tabId));
+  await navigateWithRetry(page, ROUTES.extensionSettings(tabId));
 }
 
 /** Track whether we have already navigated to the channels tab in this session. */

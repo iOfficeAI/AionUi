@@ -5,14 +5,16 @@
  */
 
 import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMessage } from '@/common/chatLib';
+import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { iconColors } from '@/renderer/theme/colors';
+import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
-import React, { createContext, useMemo } from 'react';
+import React, { createContext, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '../utils/common';
@@ -93,6 +95,7 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
 
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
+  const conversationContext = useConversationContextSafe();
   const { t } = useTranslation();
 
   // Pre-process message list to group Codex turn_diff messages
@@ -151,6 +154,39 @@ const MessageList: React.FC<{ className?: string }> = () => {
     messages: list,
     itemCount: processedList.length,
   });
+
+  useEffect(() => {
+    const handleMessageJump = (event: Event) => {
+      const detail = (event as CustomEvent<ChatMessageJumpDetail>).detail;
+      if (!detail || !detail.conversationId) return;
+      if (!conversationContext?.conversationId || detail.conversationId !== conversationContext.conversationId) return;
+
+      const targetIndex = processedList.findIndex((item) => {
+        if ((item as { type?: string }).type === 'file_summary' || (item as { type?: string }).type === 'tool_summary') {
+          return false;
+        }
+        const message = item as TMessage;
+        if (detail.messageId && message.id === detail.messageId) return true;
+        if (detail.msgId && message.msg_id === detail.msgId) return true;
+        return false;
+      });
+      if (targetIndex < 0) return;
+
+      hideScrollButton();
+      requestAnimationFrame(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: targetIndex,
+          align: detail.align || 'start',
+          behavior: detail.behavior || 'smooth',
+        });
+      });
+    };
+
+    window.addEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
+    return () => {
+      window.removeEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
+    };
+  }, [conversationContext?.conversationId, hideScrollButton, processedList, virtuosoRef]);
 
   // Click scroll button
   const handleScrollButtonClick = () => {
