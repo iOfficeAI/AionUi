@@ -601,6 +601,7 @@ export type I18nKey =
   | 'preview.html.printedToConsole'
   | 'preview.html.selectedLabel'
   | 'preview.html.viewElementInfo'
+  | 'preview.largeTextTruncatedHint'
   | 'preview.loadHistoryFailed'
   | 'preview.loading'
   | 'preview.noHistory'
@@ -1290,4 +1291,22 @@ export type I18nKey =
   | 'update.showInFolder'
   | 'update.upToDateTitle';
 
-export type I18nModule = 'common' | 'agentMode' | 'update' | 'login' | 'fileSelection' | 'preview' | 'conversation' | 'settings' | 'messages' | 'mcp' | 'acp' | 'codex' | 'tools' | 'gemini' | 'cron' | 'starOffice' | 'guid' | 'agent';
+export type I18nModule =
+  | 'common'
+  | 'agentMode'
+  | 'update'
+  | 'login'
+  | 'fileSelection'
+  | 'preview'
+  | 'conversation'
+  | 'settings'
+  | 'messages'
+  | 'mcp'
+  | 'acp'
+  | 'codex'
+  | 'tools'
+  | 'gemini'
+  | 'cron'
+  | 'starOffice'
+  | 'guid'
+  | 'agent';
