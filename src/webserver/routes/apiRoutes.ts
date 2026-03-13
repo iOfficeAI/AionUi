@@ -11,6 +11,7 @@ import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@/extensions';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
+import { getRemoteRuntimeHub } from '../remote';
 
 function normalizeMountPath(input: string): string {
   if (!input || input.trim() === '') return '/';
@@ -64,6 +65,24 @@ function runMiddlewareStack(req: Request, res: Response, next: NextFunction, sta
     }
   };
   dispatch();
+}
+
+function resolveAuthedUser(req: Request): { id: string; username: string } {
+  if (!req.user) {
+    throw new Error('Unauthorized user context missing');
+  }
+
+  return {
+    id: String(req.user.id),
+    username: req.user.username,
+  };
+}
+
+function toOptionalRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
 }
 
 type MatchedApiRoute = {
@@ -189,6 +208,7 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
  */
 export function registerApiRoutes(app: Express): void {
   const validateApiAccess = TokenMiddleware.validateToken({ responseType: 'json' });
+  const remoteHub = getRemoteRuntimeHub();
 
   /**
    * 目录 API - Directory API
@@ -222,6 +242,155 @@ export function registerApiRoutes(app: Express): void {
     }
 
     return res.sendFile(normalizedPath);
+  });
+
+  /**
+   * 远程运行时 API（参考 hapi/opencode web 设计）
+   * Remote runtime APIs (hapi/opencode web inspired)
+   */
+  app.get('/api/remote/overview', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    return res.json({
+      success: true,
+      data: remoteHub.getSnapshot(user.id),
+    });
+  });
+
+  app.get('/api/remote/devices', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    return res.json({
+      success: true,
+      data: remoteHub.listDevices(user.id),
+    });
+  });
+
+  app.get('/api/remote/sessions', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    return res.json({
+      success: true,
+      data: remoteHub.listSessions(user.id),
+    });
+  });
+
+  app.post('/api/remote/sessions', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    const body = toOptionalRecord(req.body) ?? {};
+
+    const title = typeof body.title === 'string' ? body.title : undefined;
+    const sessionId = typeof body.sessionId === 'string' ? body.sessionId : undefined;
+    const metadata = toOptionalRecord(body.metadata);
+
+    const session = remoteHub.openSession(user.id, title, metadata, sessionId);
+    return res.json({ success: true, data: session });
+  });
+
+  app.post('/api/remote/sessions/:sessionId/attach', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    const body = toOptionalRecord(req.body) ?? {};
+    const sessionIdRaw = req.params.sessionId;
+    const sessionId = Array.isArray(sessionIdRaw) ? sessionIdRaw[0] : sessionIdRaw;
+    const deviceId = typeof body.deviceId === 'string' ? body.deviceId : '';
+
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'sessionId is required' });
+    }
+
+    if (!deviceId) {
+      return res.status(400).json({ success: false, message: 'deviceId is required' });
+    }
+
+    const session = remoteHub.attachSession(user.id, sessionId, deviceId);
+    return res.json({ success: true, data: session });
+  });
+
+  app.post('/api/remote/sessions/:sessionId/detach', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    const body = toOptionalRecord(req.body) ?? {};
+    const sessionIdRaw = req.params.sessionId;
+    const sessionId = Array.isArray(sessionIdRaw) ? sessionIdRaw[0] : sessionIdRaw;
+    const deviceId = typeof body.deviceId === 'string' ? body.deviceId : '';
+
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'sessionId is required' });
+    }
+
+    if (!deviceId) {
+      return res.status(400).json({ success: false, message: 'deviceId is required' });
+    }
+
+    const session = remoteHub.detachSession(user.id, sessionId, deviceId);
+    return res.json({ success: true, data: session });
+  });
+
+  app.get('/api/remote/approvals', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    return res.json({ success: true, data: remoteHub.listApprovals(user.id) });
+  });
+
+  app.post('/api/remote/approvals', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    const body = toOptionalRecord(req.body) ?? {};
+
+    const title = typeof body.title === 'string' ? body.title : 'Approval request';
+    const summary = typeof body.summary === 'string' ? body.summary : 'Remote action requires approval';
+    const sessionId = typeof body.sessionId === 'string' ? body.sessionId : undefined;
+    const payload = toOptionalRecord(body.payload);
+    const ttlMs = typeof body.ttlMs === 'number' ? body.ttlMs : undefined;
+
+    const approval = remoteHub.createApproval({
+      userId: user.id,
+      title,
+      summary,
+      sessionId,
+      payload,
+      ttlMs,
+    });
+
+    return res.json({ success: true, data: approval });
+  });
+
+  app.post('/api/remote/approvals/:approvalId/resolve', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
+    const user = resolveAuthedUser(req);
+    const body = toOptionalRecord(req.body) ?? {};
+
+    const status = body.status;
+    if (status !== 'approved' && status !== 'rejected') {
+      return res.status(400).json({ success: false, message: 'status must be approved or rejected' });
+    }
+
+    const deviceId = typeof body.deviceId === 'string' ? body.deviceId : undefined;
+    const note = typeof body.note === 'string' ? body.note : undefined;
+
+    const approvalIdRaw = req.params.approvalId;
+    const approvalId = Array.isArray(approvalIdRaw) ? approvalIdRaw[0] : approvalIdRaw;
+
+    if (!approvalId) {
+      return res.status(400).json({ success: false, message: 'approvalId is required' });
+    }
+
+    const approval = remoteHub.resolveApproval(user.id, approvalId, status, deviceId, user.username, note);
+    return res.json({ success: true, data: approval });
+  });
+
+  app.get('/api/remote/tunnel', apiRateLimiter, validateApiAccess, (_req: Request, res: Response) => {
+    return res.json({ success: true, data: remoteHub.getTunnelStatus() });
+  });
+
+  app.post('/api/remote/tunnel/start', apiRateLimiter, validateApiAccess, async (req: Request, res: Response) => {
+    const body = toOptionalRecord(req.body) ?? {};
+    const provider = body.provider;
+
+    if (provider !== 'cloudflare' && provider !== 'custom') {
+      return res.status(400).json({ success: false, message: 'provider must be cloudflare or custom' });
+    }
+
+    const status = await remoteHub.startTunnel(provider);
+    return res.json({ success: true, data: status });
+  });
+
+  app.post('/api/remote/tunnel/stop', apiRateLimiter, validateApiAccess, async (_req: Request, res: Response) => {
+    const status = await remoteHub.stopTunnel();
+    return res.json({ success: true, data: status });
   });
 
   /**

@@ -69,6 +69,8 @@ export default defineConfig({
         'src/extensions/ExtensionLoader.ts',
         'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
         'src/extensions/resolvers/WebuiResolver.ts',
+        // Remote runtime (hapi/opencode-inspired)
+        'src/webserver/remote/{DeviceRegistry,SessionRegistry,ApprovalQueue,TunnelManager,RemoteRuntimeHub}.ts',
       ],
       thresholds: {
         statements: 30,

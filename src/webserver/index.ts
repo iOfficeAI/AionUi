@@ -18,6 +18,7 @@ import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerStaticRoutes } from './routes/staticRoutes';
 import { generateQRLoginUrlDirect } from '@/webserver/auth/qrTokenService';
+import { initRemoteRuntimeHub } from './remote';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts
@@ -245,6 +246,10 @@ export interface WebServerInstance {
 export async function startWebServerWithInstance(port: number, allowRemote = false): Promise<WebServerInstance> {
   // 设置服务器配置 / Set server configuration
   SERVER_CONFIG.setServerConfig(port, allowRemote);
+
+  // 初始化远程运行时中枢（会话接管、设备、审批、隧道）
+  // Initialize remote runtime hub (session handoff, devices, approvals, tunnel)
+  initRemoteRuntimeHub(port);
 
   // 创建 Express 应用和服务器 / Create Express app and server
   const app = express();

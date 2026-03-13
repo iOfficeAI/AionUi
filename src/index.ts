@@ -23,7 +23,6 @@ import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
-import { isLegacyChannelRuntime } from './runtime/mode';
 import { applyZoomToWindow } from './process/utils/zoom';
 import i18n from '@process/i18n';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
@@ -846,16 +845,8 @@ app.on('before-quit', async () => {
   // 在应用退出前清理工作进程
   WorkerManage.clear();
 
-  // Channel lifecycle is owned by standalone runtime mode by default.
-  // Only shutdown in-process ChannelManager when explicit legacy mode is enabled.
-  if (isLegacyChannelRuntime()) {
-    try {
-      const { getChannelManager } = await import('@/channels');
-      await getChannelManager().shutdown();
-    } catch (error) {
-      console.error('[App] Failed to shutdown ChannelManager (legacy mode):', error);
-    }
-  }
+  // Channel lifecycle is fully owned by runtime services.
+  // Main process no longer shuts down in-process ChannelManager.
 });
 
 app.on('will-quit', () => {

@@ -6,6 +6,7 @@
 
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
 import { AcpApprovalStore } from '@/agent/acp/ApprovalStore';
+import { resolvePermissionTimeoutMs } from '@/common/approval/permissionTimeout';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
@@ -637,14 +638,17 @@ export class OpenClawAgent {
       });
     }
 
-    // Timeout - reject pending to avoid silent hang
-    setTimeout(() => {
-      const pending = this.pendingPermissions.get(requestId);
-      if (pending) {
-        this.pendingPermissions.delete(requestId);
-        pending.reject(new Error('Permission request timed out'));
-      }
-    }, 70000);
+    const timeoutMs = resolvePermissionTimeoutMs(0, 'AIONUI_OPENCLAW_PERMISSION_REQUEST_TIMEOUT_MS');
+    if (timeoutMs !== null) {
+      // Timeout - reject pending to avoid silent hang
+      setTimeout(() => {
+        const pending = this.pendingPermissions.get(requestId);
+        if (pending) {
+          this.pendingPermissions.delete(requestId);
+          pending.reject(new Error('Permission request timed out'));
+        }
+      }, timeoutMs);
+    }
   }
 
   private handleHelloOk(_hello: HelloOk): void {}

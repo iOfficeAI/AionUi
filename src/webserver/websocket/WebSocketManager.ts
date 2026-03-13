@@ -7,12 +7,18 @@
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
+import crypto from 'crypto';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
+import { AuthService } from '@/webserver/auth/service/AuthService';
+import { getRemoteRuntimeHub } from '@/webserver/remote';
 import { WEBSOCKET_CONFIG } from '../config/constants';
 import { SHOW_OPEN_REQUEST_EVENT } from '../../adapter/constant';
 
 interface ClientInfo {
   token: string;
+  userId: string;
+  username: string;
+  deviceId: string;
   lastPing: number;
 }
 
@@ -23,6 +29,7 @@ interface ClientInfo {
 export class WebSocketManager {
   private clients: Map<WebSocket, ClientInfo> = new Map();
   private heartbeatTimer: NodeJS.Timeout | null = null;
+  private remoteHubUnsubscribers: Array<() => void> = [];
 
   constructor(private wss: WebSocketServer) {}
 
@@ -32,6 +39,7 @@ export class WebSocketManager {
    */
   initialize(): void {
     this.startHeartbeat();
+    this.bindRemoteHubEvents();
     console.log('[WebSocketManager] Initialized');
   }
 
@@ -42,17 +50,21 @@ export class WebSocketManager {
   setupConnectionHandler(onMessage: (name: string, data: any, ws: WebSocket) => void): void {
     this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       const token = TokenMiddleware.extractWebSocketToken(req);
+      const auth = this.validateConnection(ws, token);
 
-      if (!this.validateConnection(ws, token)) {
+      if (!auth || !token) {
         return;
       }
 
-      this.addClient(ws, token!);
+      const deviceId = this.resolveDeviceId(req);
+      this.addClient(ws, token, auth.userId, auth.username, deviceId);
+      this.registerRemoteDevice(ws, req);
       this.setupMessageHandler(ws, onMessage);
       this.setupCloseHandler(ws);
       this.setupErrorHandler(ws);
+      this.sendRemoteSnapshot(ws);
 
-      console.log('[WebSocketManager] Client connected');
+      console.log(`[WebSocketManager] Client connected (user=${auth.username}, device=${deviceId.slice(0, 8)})`);
     });
   }
 
@@ -60,36 +72,58 @@ export class WebSocketManager {
    * 验证连接
    * Validate connection
    */
-  private validateConnection(ws: WebSocket, token: string | null): boolean {
+  private validateConnection(ws: WebSocket, token: string | null): { userId: string; username: string } | null {
     if (!token) {
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'No token provided');
-      return false;
+      return null;
     }
 
-    if (!TokenMiddleware.validateWebSocketToken(token)) {
-      // Send auth-expired before closing so the client can redirect to login
-      // instead of entering an infinite reconnection loop.
-      // This mirrors the behavior in checkClients() heartbeat check.
+    const decoded = AuthService.verifyWebSocketToken(token);
+    if (!decoded) {
       try {
         ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
       } catch {
-        // Socket may not be ready for sending yet; close will still fire on client
+        // Socket may not be ready for sending yet
       }
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Invalid or expired token');
-      return false;
+      return null;
     }
 
-    return true;
+    return {
+      userId: decoded.userId,
+      username: decoded.username,
+    };
   }
 
   /**
    * 添加客户端
    * Add client
    */
-  private addClient(ws: WebSocket, token: string): void {
+  private addClient(ws: WebSocket, token: string, userId: string, username: string, deviceId: string): void {
     this.clients.set(ws, {
       token,
+      userId,
+      username,
+      deviceId,
       lastPing: Date.now(),
+    });
+  }
+
+  /**
+   * 注册远程设备
+   * Register remote device
+   */
+  private registerRemoteDevice(ws: WebSocket, req: IncomingMessage): void {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) return;
+
+    getRemoteRuntimeHub().registerDevice({
+      deviceId: clientInfo.deviceId,
+      userId: clientInfo.userId,
+      username: clientInfo.username,
+      userAgent: req.headers['user-agent'] || 'unknown',
+      ip: req.socket.remoteAddress,
+      capabilities: ['ws', 'handoff', 'approval'],
     });
   }
 
@@ -103,21 +137,17 @@ export class WebSocketManager {
         const parsed = JSON.parse(rawData.toString());
         const { name, data } = parsed;
 
-        // Handle pong response - update last ping time
-        if (name === 'pong') {
-          this.updateLastPing(ws);
+        if (this.handleSystemMessages(ws, name, data)) {
           return;
         }
 
-        // Handle file selection request - forward to client
-        if (name === 'subscribe-show-open') {
-          this.handleFileSelection(ws, data);
+        if (this.handleRemoteRuntimeMessages(ws, name, data)) {
           return;
         }
 
         // Forward other messages to bridge system
         onMessage(name, data, ws);
-      } catch (error) {
+      } catch {
         ws.send(
           JSON.stringify({
             error: 'Invalid message format',
@@ -126,6 +156,121 @@ export class WebSocketManager {
         );
       }
     });
+  }
+
+  private handleSystemMessages(ws: WebSocket, name: string, data: any): boolean {
+    if (name === 'pong') {
+      this.updateLastPing(ws);
+      const clientInfo = this.clients.get(ws);
+      if (clientInfo) {
+        getRemoteRuntimeHub().markDeviceAlive(clientInfo.userId, clientInfo.deviceId);
+      }
+      return true;
+    }
+
+    if (name === 'subscribe-show-open') {
+      this.handleFileSelection(ws, data);
+      return true;
+    }
+
+    return false;
+  }
+
+  private handleRemoteRuntimeMessages(ws: WebSocket, name: string, data: any): boolean {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) {
+      return false;
+    }
+
+    const remoteHub = getRemoteRuntimeHub();
+
+    try {
+      if (name === 'remote.snapshot.request') {
+        this.sendRemoteSnapshot(ws);
+        return true;
+      }
+
+      if (name === 'remote.session.open') {
+        const title = typeof data?.title === 'string' ? data.title : undefined;
+        const sessionId = typeof data?.sessionId === 'string' ? data.sessionId : undefined;
+        const metadata = this.toOptionalRecord(data?.metadata);
+        const session = remoteHub.openSession(clientInfo.userId, title, metadata, sessionId);
+        ws.send(JSON.stringify({ name: 'remote.session.opened', data: session }));
+        return true;
+      }
+
+      if (name === 'remote.session.attach') {
+        if (typeof data?.sessionId !== 'string' || data.sessionId.trim() === '') {
+          ws.send(JSON.stringify({ name: 'remote.error', data: { message: 'sessionId is required' } }));
+          return true;
+        }
+        const session = remoteHub.attachSession(clientInfo.userId, data.sessionId, clientInfo.deviceId);
+        ws.send(JSON.stringify({ name: 'remote.session.attached', data: session }));
+        return true;
+      }
+
+      if (name === 'remote.session.detach') {
+        if (typeof data?.sessionId !== 'string' || data.sessionId.trim() === '') {
+          ws.send(JSON.stringify({ name: 'remote.error', data: { message: 'sessionId is required' } }));
+          return true;
+        }
+        const session = remoteHub.detachSession(clientInfo.userId, data.sessionId, clientInfo.deviceId);
+        ws.send(JSON.stringify({ name: 'remote.session.detached', data: session }));
+        return true;
+      }
+
+      if (name === 'remote.approval.create') {
+        const title = typeof data?.title === 'string' ? data.title : 'Approval request';
+        const summary = typeof data?.summary === 'string' ? data.summary : 'Remote action requires approval';
+        const sessionId = typeof data?.sessionId === 'string' ? data.sessionId : undefined;
+        const payload = this.toOptionalRecord(data?.payload);
+        const ttlMs = typeof data?.ttlMs === 'number' ? data.ttlMs : undefined;
+
+        const approval = remoteHub.createApproval({
+          userId: clientInfo.userId,
+          title,
+          summary,
+          sessionId,
+          payload,
+          ttlMs,
+        });
+
+        ws.send(JSON.stringify({ name: 'remote.approval.created', data: approval }));
+        return true;
+      }
+
+      if (name === 'remote.approval.resolve') {
+        if (typeof data?.approvalId !== 'string' || data.approvalId.trim() === '') {
+          ws.send(JSON.stringify({ name: 'remote.error', data: { message: 'approvalId is required' } }));
+          return true;
+        }
+
+        const status = data?.status;
+        if (status !== 'approved' && status !== 'rejected') {
+          ws.send(JSON.stringify({ name: 'remote.error', data: { message: 'status must be approved or rejected' } }));
+          return true;
+        }
+
+        const note = typeof data?.note === 'string' ? data.note : undefined;
+        const approval = remoteHub.resolveApproval(clientInfo.userId, data.approvalId, status, clientInfo.deviceId, clientInfo.username, note);
+        ws.send(JSON.stringify({ name: 'remote.approval.resolved', data: approval }));
+        return true;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Remote runtime operation failed';
+      ws.send(JSON.stringify({ name: 'remote.error', data: { message } }));
+      return true;
+    }
+
+    return false;
+  }
+
+  private toOptionalRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    return value as Record<string, unknown>;
   }
 
   /**
@@ -150,6 +295,10 @@ export class WebSocketManager {
    */
   private setupCloseHandler(ws: WebSocket): void {
     ws.on('close', () => {
+      const clientInfo = this.clients.get(ws);
+      if (clientInfo) {
+        getRemoteRuntimeHub().unregisterDevice(clientInfo.userId, clientInfo.deviceId);
+      }
       this.clients.delete(ws);
       console.log('[WebSocketManager] Client disconnected');
     });
@@ -162,6 +311,10 @@ export class WebSocketManager {
   private setupErrorHandler(ws: WebSocket): void {
     ws.on('error', (error) => {
       console.error('[WebSocketManager] Client error:', error);
+      const clientInfo = this.clients.get(ws);
+      if (clientInfo) {
+        getRemoteRuntimeHub().unregisterDevice(clientInfo.userId, clientInfo.deviceId);
+      }
       this.clients.delete(ws);
     });
   }
@@ -200,15 +353,17 @@ export class WebSocketManager {
         console.log('[WebSocketManager] Client heartbeat timeout, closing connection');
         ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Heartbeat timeout');
         this.clients.delete(ws);
+        getRemoteRuntimeHub().unregisterDevice(clientInfo.userId, clientInfo.deviceId);
         continue;
       }
 
       // Validate if WebSocket token is still valid
-      if (!TokenMiddleware.validateWebSocketToken(clientInfo.token)) {
+      if (!AuthService.verifyWebSocketToken(clientInfo.token)) {
         console.log('[WebSocketManager] Token expired, closing connection');
         ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
         ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Token expired');
         this.clients.delete(ws);
+        getRemoteRuntimeHub().unregisterDevice(clientInfo.userId, clientInfo.deviceId);
         continue;
       }
 
@@ -242,7 +397,7 @@ export class WebSocketManager {
   broadcast(name: string, data: any): void {
     const message = JSON.stringify({ name, data });
 
-    for (const [ws, _clientInfo] of this.clients) {
+    for (const [ws] of this.clients) {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(message);
       }
@@ -267,6 +422,11 @@ export class WebSocketManager {
       this.heartbeatTimer = null;
     }
 
+    for (const unsubscribe of this.remoteHubUnsubscribers) {
+      unsubscribe();
+    }
+    this.remoteHubUnsubscribers = [];
+
     // Close all connections
     for (const [ws] of this.clients) {
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.NORMAL_CLOSURE, 'Server shutting down');
@@ -274,6 +434,82 @@ export class WebSocketManager {
 
     this.clients.clear();
     console.log('[WebSocketManager] Destroyed');
+  }
+
+  private bindRemoteHubEvents(): void {
+    const hub = getRemoteRuntimeHub();
+
+    const bind = (event: string, listener: (payload: any) => void) => {
+      hub.on(event, listener);
+      this.remoteHubUnsubscribers.push(() => {
+        hub.off(event, listener);
+      });
+    };
+
+    bind('remote.devices.updated', (payload: { userId: string; devices: unknown[] }) => {
+      this.broadcastToUser(payload.userId, 'remote.devices.updated', payload.devices);
+    });
+
+    bind('remote.sessions.updated', (payload: { userId: string; sessions: unknown[] }) => {
+      this.broadcastToUser(payload.userId, 'remote.sessions.updated', payload.sessions);
+    });
+
+    bind('remote.approvals.updated', (payload: { userId: string; approvals: unknown[] }) => {
+      this.broadcastToUser(payload.userId, 'remote.approvals.updated', payload.approvals);
+    });
+
+    bind('remote.tunnel.updated', (payload: { status: unknown }) => {
+      this.broadcast('remote.tunnel.updated', payload.status);
+    });
+  }
+
+  private broadcastToUser(userId: string, name: string, data: unknown): void {
+    const message = JSON.stringify({ name, data });
+
+    for (const [ws, clientInfo] of this.clients) {
+      if (clientInfo.userId !== userId) continue;
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    }
+  }
+
+  private sendRemoteSnapshot(ws: WebSocket): void {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) {
+      return;
+    }
+
+    const snapshot = getRemoteRuntimeHub().getSnapshot(clientInfo.userId);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ name: 'remote.snapshot', data: snapshot }));
+    }
+  }
+
+  private resolveDeviceId(req: IncomingMessage): string {
+    const fromHeader = req.headers['x-aionui-device-id'];
+    if (typeof fromHeader === 'string' && fromHeader.trim() !== '') {
+      return fromHeader.trim();
+    }
+
+    const cookieHeader = req.headers['cookie'];
+    if (typeof cookieHeader === 'string') {
+      const cookies = cookieHeader.split(';').reduce(
+        (acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          if (key && value) {
+            acc[key] = decodeURIComponent(value);
+          }
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+      if (cookies['aionui-device-id']) {
+        return cookies['aionui-device-id'];
+      }
+    }
+
+    return `dev_${crypto.randomUUID()}`;
   }
 }
 

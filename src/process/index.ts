@@ -15,9 +15,7 @@ if (app.isPackaged) {
 import initStorage from './initStorage';
 import './initBridge';
 import './i18n'; // Initialize i18n for main process
-import { getChannelManager } from '@/channels';
 import { ExtensionRegistry } from '@/extensions';
-import { isLegacyChannelRuntime } from '@/runtime/mode';
 
 export const initializeProcess = async () => {
   await initStorage();
@@ -30,16 +28,7 @@ export const initializeProcess = async () => {
     // Don't fail app startup if extensions fail to initialize
   }
 
-  // Channel lifecycle is fully replaced by standalone runtime mode by default.
-  // Keep legacy in-process mode only as an explicit rollback switch.
-  if (isLegacyChannelRuntime()) {
-    try {
-      await getChannelManager().initialize();
-    } catch (error) {
-      console.error('[Process] Failed to initialize ChannelManager (legacy mode):', error);
-      // Don't fail app startup if channel fails to initialize
-    }
-  } else {
-    console.log('[Process] Skip ChannelManager init: runtime mode enabled (AIONUI_CHANNEL_MODE!=legacy)');
-  }
+  // Channel lifecycle is fully managed by runtime services.
+  // Main process no longer initializes in-process ChannelManager.
+  console.log('[Process] ChannelManager init removed: runtime service is authoritative');
 };

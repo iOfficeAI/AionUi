@@ -21,6 +21,7 @@ import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, IFLOW_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
+import { resolvePermissionTimeoutMs } from '@/common/approval/permissionTimeout';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
 import { mainLog } from '@process/utils/mainLogger';
 
@@ -946,12 +947,15 @@ export class AcpAgent {
         return;
       }
 
-      setTimeout(() => {
-        if (this.pendingPermissions.has(requestId)) {
-          this.pendingPermissions.delete(requestId);
-          reject(new Error('Permission request timed out'));
-        }
-      }, 70000);
+      const timeoutMs = resolvePermissionTimeoutMs(0, 'AIONUI_ACP_PERMISSION_REQUEST_TIMEOUT_MS');
+      if (timeoutMs !== null) {
+        setTimeout(() => {
+          if (this.pendingPermissions.has(requestId)) {
+            this.pendingPermissions.delete(requestId);
+            reject(new Error('Permission request timed out'));
+          }
+        }, timeoutMs);
+      }
     });
   }
 

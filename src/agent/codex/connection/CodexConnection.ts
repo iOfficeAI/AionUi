@@ -13,6 +13,7 @@ import type { CodexEventParams } from '@/common/codex/types';
 import { loadFullShellEnvironment, mergePaths } from '@process/utils/shellEnv';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
+import { resolvePermissionTimeoutMs } from '@/common/approval/permissionTimeout';
 
 /**
  * Get Codex config file path based on platform
@@ -509,21 +510,23 @@ export class CodexConnection {
     return new Promise((resolve, reject) => {
       this.permissionResolvers.set(callId, { resolve, reject });
 
-      // Auto-timeout after 30 seconds
-      setTimeout(() => {
-        if (this.permissionResolvers.has(callId)) {
-          this.permissionResolvers.delete(callId);
+      const timeoutMs = resolvePermissionTimeoutMs(0, 'AIONUI_CODEX_PERMISSION_REQUEST_TIMEOUT_MS');
+      if (timeoutMs !== null) {
+        setTimeout(() => {
+          if (this.permissionResolvers.has(callId)) {
+            this.permissionResolvers.delete(callId);
 
-          // Emit error to frontend before rejecting promise
-          this.onError({
-            message: `Permission request timed out: ${callId}`,
-            type: 'timeout',
-            details: { callId },
-          });
+            // Emit error to frontend before rejecting promise
+            this.onError({
+              message: `Permission request timed out: ${callId}`,
+              type: 'timeout',
+              details: { callId },
+            });
 
-          reject(new Error('Permission request timed out'));
-        }
-      }, 30000);
+            reject(new Error('Permission request timed out'));
+          }
+        }, timeoutMs);
+      }
     });
   }
 
