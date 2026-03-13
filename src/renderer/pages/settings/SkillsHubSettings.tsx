@@ -307,7 +307,6 @@ const SkillsHubSettings: React.FC = () => {
                 </div>
 
                 <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-12px w-full lg:w-auto shrink-0'>
-
                   <div className='relative group shrink-0 w-full sm:w-[200px] lg:w-[240px]'>
                     <div className='absolute left-12px top-1/2 -translate-y-1/2 text-t-tertiary group-focus-within:text-primary-6 flex pointer-events-none transition-colors'>
                       <Search size={15} />
@@ -430,8 +429,7 @@ const SkillsHubSettings: React.FC = () => {
             {/* ======== Usage Tip ======== */}
             <div className='px-16px md:px-[24px] py-20px bg-base border border-b-base shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
               <Info size={18} className='text-primary-6 mt-2px shrink-0' />
-              <div>
-              </div>
+              <div></div>
             </div>
           </div>
         </div>
@@ -470,7 +468,9 @@ const SkillsHubSettings: React.FC = () => {
                     if (result && result.length > 0) {
                       setCustomPathValue(result[0]);
                     }
-                  } catch { }
+                  } catch (e) {
+                    console.error('Failed to select directory', e);
+                  }
                 }}
               >
                 <FolderOpen size={16} />
@@ -478,7 +478,7 @@ const SkillsHubSettings: React.FC = () => {
             </div>
           </div>
         </div>
-      </Modal >
+      </Modal>
     </>
   );
 };

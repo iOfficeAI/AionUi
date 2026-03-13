@@ -1007,9 +1007,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             <div className='flex-1 min-w-0'>
                               <div className='flex items-center gap-6px'>
                                 <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                                <span className='bg-[rgba(242,156,27,0.08)] text-[rgb(242,156,27)] border border-[rgba(242,156,27,0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>
-                                  {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
-                                </span>
+                                <span className='bg-[rgba(242,156,27,0.08)] text-[rgb(242,156,27)] border border-[rgba(242,156,27,0.2)] text-10px px-4px py-1px rd-4px font-medium uppercase'>{t('settings.skillsHub.custom', { defaultValue: 'Custom' })}</span>
                               </div>
                               {skill.description && <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>}
                             </div>
@@ -1110,12 +1108,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               </div>
             </div>
             <div className='flex items-center gap-4px shrink-0 ml-4px'>
-              <button
-                type='button'
-                className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2'
-                onClick={() => void handleRefreshExternal()}
-                title={t('common.refresh', { defaultValue: 'Refresh' })}
-              >
+              <button type='button' className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2' onClick={() => void handleRefreshExternal()} title={t('common.refresh', { defaultValue: 'Refresh' })}>
                 <Refresh theme='outline' size={16} className={refreshing ? 'animate-spin' : ''} />
               </button>
               <button type='button' className='outline-none border border-dashed border-border-1 hover:border-primary-4 cursor-pointer w-28px h-28px text-t-tertiary hover:text-primary-6 hover:bg-primary-1 rd-full transition-all duration-300 flex items-center justify-center bg-transparent shrink-0' onClick={() => setShowAddPathModal(true)} title={t('common.add', { defaultValue: 'Add Custom Path' })}>
@@ -1282,7 +1275,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     if (result && result.length > 0) {
                       setCustomPathValue(result[0]);
                     }
-                  } catch { }
+                  } catch (e) {
+                    console.error('Failed to select directory', e);
+                  }
                 }}
               >
                 <FolderOpen size={16} />
