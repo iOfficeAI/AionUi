@@ -6,7 +6,7 @@
 
 import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta, IMessageToolGroup, TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, IMessageText, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
@@ -77,7 +77,20 @@ export class GeminiAgentManager extends BaseAgentManager<
   readonly approvalStore = new GeminiApprovalStore();
 
   private async injectHistoryFromDatabase(): Promise<void> {
-    // ... (omitting injectHistoryFromDatabase for space)
+    try {
+      const result = getDatabase().getConversationMessages(this.conversation_id, 0, 10000);
+      const data = (result.data || []) as TMessage[];
+      const lines = data
+        .filter((m): m is IMessageText => m.type === 'text')
+        .slice(-20)
+        .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${m.content.content || ''}`);
+      const text = lines.join('\n').slice(-4000);
+      if (text) {
+        await this.postMessagePromise('init.history', { text });
+      }
+    } catch (e) {
+      // ignore history injection errors
+    }
   }
 
   /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */

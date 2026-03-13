@@ -1,3 +1,23 @@
+/**
+ * AssistantManagement — Settings page for managing assistants.
+ *
+ * Editing permissions by assistant type:
+ *
+ * | Field          | Builtin | Extension | Custom |
+ * |----------------|---------|-----------|--------|
+ * | Save button    |  yes    |  no       |  yes   |
+ * | Name           |  no     |  no       |  yes   |
+ * | Description    |  no     |  no       |  yes   |
+ * | Avatar         |  no     |  no       |  yes   |
+ * | Main Agent     |  yes    |  no       |  yes   |
+ * | Prompt editing |  no     |  no       |  yes   |
+ * | Delete         |  no     |  no       |  yes   |
+ *
+ * Builtin assistants allow switching Main Agent and saving,
+ * but their identity fields (name, description, avatar) and
+ * prompt content are read-only.
+ * Extension assistants are fully read-only.
+ */
 import { ipcBridge } from '@/common';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import { ConfigStorage } from '@/common/storage';
@@ -270,7 +290,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   }, [loadAssistants]);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
-  const isReadonlyAssistant = Boolean(activeAssistant && (activeAssistant.isBuiltin || isExtensionAssistant(activeAssistant)));
+  const isReadonlyAssistant = Boolean(activeAssistant && isExtensionAssistant(activeAssistant));
 
   // Check if string is an emoji (simple check for common emoji patterns)
   const isEmoji = useCallback((str: string) => {
@@ -740,7 +760,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 <span className='text-red-500'>*</span> {t('settings.assistantNameAvatar', { defaultValue: 'Name & Avatar' })}
               </Typography.Text>
               <div className='mt-10px flex items-center gap-12px'>
-                {isReadonlyAssistant ? (
+                {activeAssistant?.isBuiltin || isReadonlyAssistant ? (
                   <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px'>
                     {editAvatarImage ? <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} /> : editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
                   </Avatar>
@@ -753,12 +773,12 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     </div>
                   </EmojiPicker>
                 )}
-                <Input value={editName} onChange={(value) => setEditName(value)} disabled={isReadonlyAssistant} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1 rounded-4px bg-bg-1' />
+                <Input value={editName} onChange={(value) => setEditName(value)} disabled={activeAssistant?.isBuiltin || isReadonlyAssistant} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1 rounded-4px bg-bg-1' />
               </div>
             </div>
             <div className='flex-shrink-0'>
               <Typography.Text bold>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</Typography.Text>
-              <Input className='mt-10px rounded-4px bg-bg-1' value={editDescription} onChange={(value) => setEditDescription(value)} disabled={isReadonlyAssistant} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} />
+              <Input className='mt-10px rounded-4px bg-bg-1' value={editDescription} onChange={(value) => setEditDescription(value)} disabled={activeAssistant?.isBuiltin || isReadonlyAssistant} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} />
             </div>
             <div className='flex-shrink-0'>
               <Typography.Text bold>{t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}</Typography.Text>
@@ -800,7 +820,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               </Typography.Text>
               {/* Prompt Edit/Preview Tabs */}
               <div className='mt-10px border border-border-2 overflow-hidden rounded-4px' style={{ height: '300px' }}>
-                {!isReadonlyAssistant && (
+                {!activeAssistant?.isBuiltin && !isReadonlyAssistant && (
                   <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
                     <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setPromptViewMode('edit')}>
                       {t('settings.promptEdit', { defaultValue: 'Edit' })}
@@ -810,8 +830,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     </div>
                   </div>
                 )}
-                <div className='bg-fill-2' style={{ height: isReadonlyAssistant ? '100%' : 'calc(100% - 36px)', overflow: 'auto' }}>
-                  {promptViewMode === 'edit' && !isReadonlyAssistant ? (
+                <div className='bg-fill-2' style={{ height: activeAssistant?.isBuiltin || isReadonlyAssistant ? '100%' : 'calc(100% - 36px)', overflow: 'auto' }}>
+                  {promptViewMode === 'edit' && !activeAssistant?.isBuiltin && !isReadonlyAssistant ? (
                     <div ref={textareaWrapperRef} className='h-full'>
                       <Input.TextArea value={editContext} onChange={(value) => setEditContext(value)} placeholder={t('settings.assistantRulesPlaceholder', { defaultValue: 'Enter rules in Markdown format...' })} autoSize={false} className='border-none rounded-none bg-transparent h-full resize-none' />
                     </div>

@@ -14,7 +14,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { isTemporaryWorkspace as checkIsTemporaryWorkspace, getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace';
+import { getLastDirectoryName, isTemporaryWorkspace as checkIsTemporaryWorkspace, getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Down, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
@@ -623,7 +623,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             {/* Current workspace info */}
             <div className='text-14px mb-16px' style={{ color: 'var(--color-text-3)' }}>
               {t('conversation.workspace.migration.currentWorkspaceLabel')}
-              <span className='font-mono'>/{workspace.split('/').pop()}</span>
+              <span className='font-mono'>/{getLastDirectoryName(workspace)}</span>
             </div>
 
             {/* Target folder selection card */}

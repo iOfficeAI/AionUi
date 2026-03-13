@@ -194,30 +194,24 @@ export function initAcpConversationBridge(): void {
 
   // Get current session mode for ACP/Gemini agents
   // 获取 ACP/Gemini 代理的当前会话模式
-  ipcBridge.acpConversation.getMode.provider(async ({ conversationId }) => {
-    try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
-      if (!task || !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)) {
-        return { success: true, data: { mode: 'default', initialized: false } };
-      }
-      return { success: true, data: task.getMode() };
-    } catch {
-      return { success: true, data: { mode: 'default', initialized: false } };
+  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+  ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)) {
+      return Promise.resolve({ success: true, data: { mode: 'default', initialized: false } });
     }
+    return Promise.resolve({ success: true, data: task.getMode() });
   });
 
   // Get model info for ACP/Codex agents
   // 获取 ACP/Codex 代理的模型信息
-  ipcBridge.acpConversation.getModelInfo.provider(async ({ conversationId }) => {
-    try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
-      if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
-        return { success: true, data: { modelInfo: null } };
-      }
-      return { success: true, data: { modelInfo: task.getModelInfo() } };
-    } catch {
-      return { success: true, data: { modelInfo: null } };
+  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+  ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
+      return Promise.resolve({ success: true, data: { modelInfo: null } });
     }
+    return Promise.resolve({ success: true, data: { modelInfo: task.getModelInfo() } });
   });
 
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
@@ -298,16 +292,13 @@ export function initAcpConversationBridge(): void {
 
   // Get non-model config options for ACP agents (e.g., reasoning effort)
   // 获取 ACP 代理的非模型配置选项（如推理级别）
-  ipcBridge.acpConversation.getConfigOptions.provider(async ({ conversationId }) => {
-    try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
-      if (!task || !(task instanceof AcpAgentManager)) {
-        return { success: true, data: { configOptions: [] } };
-      }
-      return { success: true, data: { configOptions: task.getConfigOptions() } };
-    } catch {
-      return { success: true, data: { configOptions: [] } };
+  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+  ipcBridge.acpConversation.getConfigOptions.provider(({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || !(task instanceof AcpAgentManager)) {
+      return Promise.resolve({ success: true, data: { configOptions: [] } });
     }
+    return Promise.resolve({ success: true, data: { configOptions: task.getConfigOptions() } });
   });
 
   // Set a config option value for ACP agents (e.g., reasoning effort)

@@ -63,3 +63,14 @@ export type WorkspaceGroupedHistoryProps = {
   batchMode?: boolean;
   onBatchModeChange?: (value: boolean) => void;
 };
+
+export type DragItemType = 'conversation' | 'workspace';
+
+export type DragItem = {
+  type: DragItemType;
+  id: string;
+  conversation?: TChatConversation;
+  workspaceGroup?: WorkspaceGroup;
+  sourceSection: 'pinned' | string;
+  sourceWorkspace?: string;
+};

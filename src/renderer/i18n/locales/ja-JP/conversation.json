@@ -65,6 +65,13 @@
     "deleteSuccess": "削除しました",
     "deleteFailed": "削除に失敗しました"
   },
+  "dropdown": {
+    "cliAgents": "CLI Agents",
+    "presetAssistants": "プリセットアシスタント"
+  },
+  "noAgentsAvailable": "利用可能なエージェントはありません",
+  "noModelConfigured": "モデルが設定されていません。設定ページで設定してください。",
+  "createFailed": "会話の作成に失敗しました",
   "tabs": {
     "closeAll": "すべて閉じる",
     "closeLeft": "左側を閉じる",

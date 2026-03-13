@@ -12,6 +12,7 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import type { AcpBackendAll } from '@/types/acpTypes';
+import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
@@ -157,13 +158,28 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   }
 
   private handleSessionKeyUpdate(sessionKey: string): void {
-    console.log('[OpenClawAgentManager] Session key updated:', sessionKey);
-    // Persist session key to conversation extra for resume on reconnect
-    void ipcBridge.conversation.update.invoke({
-      id: this.conversation_id,
-      updates: { extra: { sessionKey } },
-      mergeExtra: true,
-    });
+    this.saveSessionKey(sessionKey);
+  }
+
+  /**
+   * Persist the resolved session key to the database for resume support.
+   * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
+   */
+  private saveSessionKey(sessionKey: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'openclaw-gateway') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          sessionKey,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[OpenClawAgentManager] Failed to save session key:', error);
+    }
   }
 
   async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {

@@ -158,6 +158,11 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'text') {
+        // User messages (right position) are complete — skip if already exists to prevent duplicates
+        if (message.position === 'right') {
+          return list;
+        }
+        // AI streaming messages (left position) — append chunks
         const newList = list.slice();
         newList[existingIdx] = {
           ...existingMsg,
