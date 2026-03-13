@@ -6,7 +6,7 @@
 
 import WebSocket from 'ws';
 import { randomUUID } from 'crypto';
-import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResolveParams } from './types';
+import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResetParams, SessionsResolveParams } from './types';
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES, GATEWAY_CLOSE_CODE_HINTS, OPENCLAW_PROTOCOL_VERSION } from './types';
 import { buildDeviceAuthPayload, type DeviceIdentity, loadOrCreateDeviceIdentity, publicKeyRawBase64UrlFromPem, signDevicePayload } from './deviceIdentity';
 import { clearDeviceAuthToken, loadDeviceAuthToken, storeDeviceAuthToken } from './deviceAuthStore';
@@ -91,7 +91,6 @@ export class OpenClawGatewayConnection {
     });
 
     this.ws.on('open', () => {
-      console.log('[OpenClawGateway] WebSocket connected, waiting for challenge...');
       this.queueConnect();
     });
 
@@ -99,7 +98,6 @@ export class OpenClawGatewayConnection {
 
     this.ws.on('close', (code, reason) => {
       const reasonText = this.rawDataToString(reason);
-      console.log(`[OpenClawGateway] WebSocket closed: ${code} ${reasonText}`);
       this.ws = null;
       this._isConnected = false;
       this.flushPendingErrors(new Error(`Gateway closed (${code}): ${reasonText}`));
@@ -173,7 +171,7 @@ export class OpenClawGatewayConnection {
       ...params,
       idempotencyKey: randomUUID(),
     };
-    return this.request('chat.send', fullParams, { expectFinal: true });
+    return this.request('chat.send', fullParams);
   }
 
   /**
@@ -197,6 +195,15 @@ export class OpenClawGatewayConnection {
    */
   async sessionsResolve(params: SessionsResolveParams): Promise<{ key: string; sessionId: string }> {
     const result = await this.request<{ key: string; sessionId: string }>('sessions.resolve', params);
+    this._sessionKey = result.key;
+    return result;
+  }
+
+  /**
+   * Reset or create a session, returns the canonical session key
+   */
+  async sessionsReset(params: SessionsResetParams): Promise<{ key: string; sessionId: string }> {
+    const result = await this.request<{ key: string; sessionId: string }>('sessions.reset', params);
     this._sessionKey = result.key;
     return result;
   }
@@ -267,6 +274,10 @@ export class OpenClawGatewayConnection {
         mode: this.opts.mode ?? GATEWAY_CLIENT_MODES.BACKEND,
         instanceId: this.opts.instanceId,
       },
+      // Declare capability to receive tool call related events (agent stream: tool, assistant text, chat:delta).
+      // Without this, the Gateway will not broadcast these events to this client,
+      // causing the final chat response to arrive with no content.
+      caps: ['tool-events'],
       role,
       scopes,
       auth,
@@ -275,8 +286,6 @@ export class OpenClawGatewayConnection {
 
     this.request<HelloOk>('connect', params)
       .then((helloOk) => {
-        console.log('[OpenClawGateway] Connected successfully:', helloOk.server.version);
-
         // Store device token if returned
         const authInfo = helloOk?.auth;
         if (authInfo?.deviceToken) {
@@ -286,7 +295,6 @@ export class OpenClawGatewayConnection {
             token: authInfo.deviceToken,
             scopes: authInfo.scopes ?? [],
           });
-          console.log('[OpenClawGateway] Device token stored for role:', authInfo.role ?? role);
         }
 
         this._isConnected = true;
@@ -307,7 +315,6 @@ export class OpenClawGatewayConnection {
             deviceId: this.deviceIdentity.deviceId,
             role,
           });
-          console.log('[OpenClawGateway] Cleared invalid device token');
         }
 
         this.opts.onConnectError?.(err instanceof Error ? err : new Error(String(err)));
@@ -319,60 +326,64 @@ export class OpenClawGatewayConnection {
     try {
       const parsed = JSON.parse(raw);
 
-      // Handle EVENT frame
-      if (parsed.type === 'event') {
-        const evt = parsed as EventFrame;
+      switch (parsed.type) {
+        case 'event': {
+          const evt = parsed as EventFrame;
 
-        // Handle connect challenge
-        if (evt.event === 'connect.challenge') {
-          const payload = evt.payload as { nonce?: string } | undefined;
-          const nonce = payload?.nonce;
-          if (nonce) {
-            this.connectNonce = nonce;
-            this.sendConnect();
+          // Handle connect challenge
+          if (evt.event === 'connect.challenge') {
+            const payload = evt.payload as { nonce?: string } | undefined;
+            const nonce = payload?.nonce;
+            if (nonce) {
+              this.connectNonce = nonce;
+              this.sendConnect();
+            }
+            return;
           }
-          return;
-        }
 
-        // Track sequence for gap detection
-        const seq = typeof evt.seq === 'number' ? evt.seq : null;
-        if (seq !== null) {
-          if (this.lastSeq !== null && seq > this.lastSeq + 1) {
-            console.warn(`[OpenClawGateway] Event gap: expected ${this.lastSeq + 1}, got ${seq}`);
+          // Track sequence for gap detection
+          const seq = typeof evt.seq === 'number' ? evt.seq : null;
+          if (seq !== null) {
+            if (this.lastSeq !== null && seq > this.lastSeq + 1) {
+              console.warn(`[OpenClawGateway] Event gap: expected ${this.lastSeq + 1}, got ${seq}`);
+            }
+            this.lastSeq = seq;
           }
-          this.lastSeq = seq;
+
+          // Handle tick event
+          if (evt.event === 'tick') {
+            this.lastTick = Date.now();
+          }
+
+          // Forward to handler
+          this.opts.onEvent?.(evt);
+          break;
         }
 
-        // Handle tick event
-        if (evt.event === 'tick') {
-          this.lastTick = Date.now();
+        case 'res': {
+          const res = parsed as ResponseFrame;
+          const pending = this.pending.get(res.id);
+          const payload = res.payload as { status?: string } | undefined;
+          if (!pending) {
+            break;
+          }
+
+          // If expecting final and got ack, keep waiting
+          if (pending.expectFinal && payload?.status === 'accepted') {
+            break;
+          }
+
+          this.pending.delete(res.id);
+          if (res.ok) {
+            pending.resolve(res.payload);
+          } else {
+            pending.reject(new Error(res.error?.message ?? 'Unknown error'));
+          }
+          break;
         }
 
-        // Forward to handler
-        this.opts.onEvent?.(evt);
-        return;
-      }
-
-      // Handle RESPONSE frame
-      if (parsed.type === 'res') {
-        const res = parsed as ResponseFrame;
-        const pending = this.pending.get(res.id);
-        if (!pending) {
-          return;
-        }
-
-        // If expecting final and got ack, keep waiting
-        const payload = res.payload as { status?: string } | undefined;
-        if (pending.expectFinal && payload?.status === 'accepted') {
-          return;
-        }
-
-        this.pending.delete(res.id);
-        if (res.ok) {
-          pending.resolve(res.payload);
-        } else {
-          pending.reject(new Error(res.error?.message ?? 'Unknown error'));
-        }
+        default:
+          console.warn('[OpenClawGateway] Unhandled message type:', parsed.type, raw);
       }
     } catch (err) {
       console.error('[OpenClawGateway] Parse error:', err);
@@ -409,6 +420,7 @@ export class OpenClawGatewayConnection {
     this.backoffMs = Math.min(this.backoffMs * 2, 30_000);
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
+      this.lastSeq = null; // reset seq tracking so gap detection starts fresh on new connection
       this.start();
     }, delay);
   }
