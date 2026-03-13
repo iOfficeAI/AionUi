@@ -14,6 +14,7 @@ const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { listCompiledRuntimeArtifacts, removeCompiledRuntimeArtifacts } = require('./runtimePackagingUtils');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -295,12 +296,13 @@ const skipVite = args.includes('--skip-vite');
 const skipNative = args.includes('--skip-native');
 const packOnly = args.includes('--pack-only');
 const forceBuild = args.includes('--force');
+const includeRuntimeExe = args.includes('--runtime-exe') || process.env.AIONUI_INCLUDE_RUNTIME_EXE === '1';
 
 const builderArgs = args
   .filter(arg => {
     // Filter out 'auto', architecture flags, and special flags
     if (arg === 'auto') return false;
-    if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force') return false;
+    if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force' || arg === '--runtime-exe') return false;
     if (archList.includes(arg)) return false;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return false;
     return true;
@@ -373,6 +375,8 @@ if (skipVite) console.log('⚡ --skip-vite: Will skip Vite compilation if output
 if (skipNative) console.log('⚡ --skip-native: Will skip native module rebuilding');
 if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distributable creation');
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
+if (includeRuntimeExe) console.log('⚡ Runtime mode: include compiled executables in package');
+else console.log('⚡ Runtime mode: lightweight JS runtime only');
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 
@@ -427,6 +431,46 @@ try {
   if (packOnly) {
     console.log('✅ Package completed! (skipped distributable creation)');
     return;
+  }
+
+  // 4.5 Build Bun runtime service bundles for packaging
+  // 默认仅生成 dist/runtime/*.js，供 electron-builder 通过 extraResources 轻量打包
+  const runtimeDistDir = path.resolve(__dirname, '../dist/runtime');
+  const runtimeBinDir = path.resolve(__dirname, '../dist/runtime-bin');
+
+  if (!fs.existsSync(runtimeDistDir)) {
+    fs.mkdirSync(runtimeDistDir, { recursive: true });
+  }
+  if (!fs.existsSync(runtimeBinDir)) {
+    fs.mkdirSync(runtimeBinDir, { recursive: true });
+  }
+
+  console.log('📦 Building Bun runtime JS bundles...');
+  execSync('bun run bun:build:remote && bun run bun:build:channel', {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+
+  // Remove stale compiled runtime artifacts from previous runs in lightweight mode
+  const removedRuntimeArtifacts = removeCompiledRuntimeArtifacts(runtimeDistDir);
+  if (removedRuntimeArtifacts.length > 0) {
+    console.log(`🧹 Removed stale compiled runtime artifacts: ${removedRuntimeArtifacts.join(', ')}`);
+  }
+
+  if (includeRuntimeExe) {
+    console.log('📦 Building compiled runtime executables...');
+    execSync('bun run bun:compile:services', {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+
+    const compiledArtifacts = listCompiledRuntimeArtifacts(runtimeBinDir);
+
+    for (const artifactName of compiledArtifacts) {
+      fs.copyFileSync(path.join(runtimeBinDir, artifactName), path.join(runtimeDistDir, artifactName));
+    }
+
+    console.log(`📦 Included compiled runtime artifacts: ${compiledArtifacts.join(', ') || 'none'}`);
   }
 
   // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）

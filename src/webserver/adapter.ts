@@ -5,7 +5,7 @@
  */
 
 import type { WebSocketServer } from 'ws';
-import { registerWebSocketBroadcaster, getBridgeEmitter } from '../adapter/main';
+import { getBridgeEmitter, registerWebSocketBroadcaster } from '@/adapter/bridgeHub';
 import { WebSocketManager } from './websocket/WebSocketManager';
 
 // 存储取消注册函数，用于服务器停止时清理

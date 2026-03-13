@@ -29,6 +29,78 @@ webui-remote:
 webui-prod:
     bun run webui:prod
 
+# Start standalone remote-control service (Bun runtime)
+service-remote:
+    bun run service:remote
+
+# Start standalone channel service (Bun runtime)
+service-channel:
+    bun run service:channel
+
+# Build standalone remote-control runtime bundle (.js)
+service-build-remote:
+    bun run bun:build:remote
+
+# Build standalone channel runtime bundle (.js)
+service-build-channel:
+    bun run bun:build:channel
+
+# Build standalone runtime JS bundles for both services
+service-build:
+    bun run bun:build:remote
+    bun run bun:build:channel
+
+# Compile standalone remote-control executable
+service-compile-remote:
+    bun run bun:compile:remote
+
+# Compile standalone channel executable
+service-compile-channel:
+    bun run bun:compile:channel
+
+# Compile standalone executables for both services
+service-compile:
+    bun run bun:compile:services
+
+# Packaging check (lightweight): ensure JS runtime artifacts exist
+service-package-test: service-build
+    if (Test-Path "dist/runtime") { \
+        @("remote-control", "remote-control.exe", "channel-service", "channel-service.exe") | ForEach-Object { \
+            $artifact = Join-Path "dist/runtime" $_; \
+            if (Test-Path $artifact) { Remove-Item $artifact -Force -ErrorAction SilentlyContinue } \
+        } \
+    }; \
+    if ((Test-Path "dist/runtime/remote-control.js") -and (Test-Path "dist/runtime/channel-service.js")) { \
+        Write-Host "Standalone JS runtime artifacts:"; \
+        Get-ChildItem dist/runtime -File | ForEach-Object { Write-Host "  $($_.Name)" } \
+    } else { \
+        Write-Host "runtime JS artifacts missing under dist/runtime"; \
+        exit 1 \
+    }; \
+    $unexpectedCompiled = @("dist/runtime/remote-control", "dist/runtime/remote-control.exe", "dist/runtime/channel-service", "dist/runtime/channel-service.exe") | Where-Object { Test-Path $_ }; \
+    if ($unexpectedCompiled.Count -gt 0) { \
+        Write-Host "unexpected compiled runtime artifacts in lightweight mode:"; \
+        $unexpectedCompiled | ForEach-Object { Write-Host "  $_" }; \
+        exit 1 \
+    }
+
+# Packaging check (full/perf): include compiled executables validation
+service-package-test-full: service-build service-compile
+    if ((Test-Path "dist/runtime/remote-control.js") -and (Test-Path "dist/runtime/channel-service.js")) { \
+        Write-Host "Standalone JS runtime artifacts:"; \
+        Get-ChildItem dist/runtime -File | ForEach-Object { Write-Host "  $($_.Name)" } \
+    } else { \
+        Write-Host "runtime JS artifacts missing under dist/runtime"; \
+        exit 1 \
+    }; \
+    if (((Test-Path "dist/runtime-bin/remote-control.exe") -or (Test-Path "dist/runtime-bin/remote-control")) -and ((Test-Path "dist/runtime-bin/channel-service.exe") -or (Test-Path "dist/runtime-bin/channel-service"))) { \
+        Write-Host "Compiled runtime artifacts:"; \
+        Get-ChildItem dist/runtime-bin -File | ForEach-Object { Write-Host "  $($_.Name)" } \
+    } else { \
+        Write-Host "compiled runtime artifacts missing under dist/runtime-bin"; \
+        exit 1 \
+    }
+
 # Run CLI mode
 cli:
     bun run cli
@@ -189,10 +261,12 @@ build-force: preflight clean
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     node scripts/build-with-builder.js auto --force
 
-# Build for Windows x64
+# Build for Windows x64 (lightweight runtime: JS only)
 build-win-x64: preflight
     Write-Host "Ensuring npm dependencies..."; \
     if (-not (Test-Path "node_modules")) { npm install } else { npm install --prefer-offline }; \
+    Write-Host "Building Bun standalone service artifacts (lightweight mode)..."; \
+    just service-package-test; \
     $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
     $env:npm_config_runtime = "electron"; \
     $env:npm_config_target = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
@@ -203,6 +277,23 @@ build-win-x64: preflight
     $env:MSVS_VERSION = "2022"; \
     $env:GYP_MSVS_VERSION = "2022"; \
     node scripts/build-with-builder.js x64 --win --x64
+
+# Build for Windows x64 (performance runtime: include compiled executables)
+build-win-x64-perf: preflight
+    Write-Host "Ensuring npm dependencies..."; \
+    if (-not (Test-Path "node_modules")) { npm install } else { npm install --prefer-offline }; \
+    Write-Host "Building Bun standalone service artifacts (performance mode)..."; \
+    just service-package-test-full; \
+    $env:NODE_OPTIONS = "--max-old-space-size=8192"; \
+    $env:npm_config_runtime = "electron"; \
+    $env:npm_config_target = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim(); \
+    $env:npm_config_arch = "x64"; \
+    $env:npm_config_target_arch = "x64"; \
+    $env:npm_config_disturl = "https://electronjs.org/headers"; \
+    $env:npm_config_build_from_source = "true"; \
+    $env:MSVS_VERSION = "2022"; \
+    $env:GYP_MSVS_VERSION = "2022"; \
+    node scripts/build-with-builder.js x64 --win --x64 --runtime-exe
 
 # Build for Windows arm64
 build-win-arm64: preflight

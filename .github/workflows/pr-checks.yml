@@ -13,6 +13,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: read
+  id-token: write
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -85,7 +86,53 @@ jobs:
       - name: Run extension system tests
         run: bunx vitest run
 
-  # Job 3: Build + E2E test across all platforms (parallel with code-quality and unit-tests)
+  # Job 3: Coverage report and Codecov upload (single Linux runner)
+  coverage-codecov:
+    name: Coverage (Codecov)
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Generate coverage report
+        run: bun run test:coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: aionui-pr-coverage
+          fail_ci_if_error: false
+
+  # Job 4: Build + E2E test across all platforms (parallel with code-quality and unit-tests)
   # E2E tests run inline after build (linux, macos-arm64, windows-x64) so each
   # platform starts testing immediately without waiting for other platforms.
   build-test:
@@ -438,7 +485,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # Job 4: Test release scripts (fast, no build required)
+  # Job 5: Test release scripts (fast, no build required)
   release-script-test:
     name: Release Script Test
     if: github.event.action != 'edited'
@@ -460,11 +507,11 @@ jobs:
         shell: bash
         run: bash scripts/verify-release-assets.sh release-assets
 
-  # Job 5: Trigger GPT AI review (only on first PR submission)
+  # Job 6: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality, unit-tests, build-test, release-script-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
+    needs: [code-quality, unit-tests, coverage-codecov, build-test, release-script-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.coverage-codecov.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -473,11 +520,11 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 6: Check if PR author is an external contributor
+  # Job 7: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality, unit-tests, build-test, release-script-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
+    needs: [code-quality, unit-tests, coverage-codecov, build-test, release-script-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.coverage-codecov.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
@@ -503,7 +550,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 7: Trigger GPT PR assessment for external contributors
+  # Job 8: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]

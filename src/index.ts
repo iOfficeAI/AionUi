@@ -846,11 +846,13 @@ app.on('before-quit', async () => {
   WorkerManage.clear();
 
   // Shutdown Channel subsystem
-  try {
-    const { getChannelManager } = await import('@/channels');
-    await getChannelManager().shutdown();
-  } catch (error) {
-    console.error('[App] Failed to shutdown ChannelManager:', error);
+  if (process.env.AIONUI_CHANNEL_MODE !== 'standalone') {
+    try {
+      const { getChannelManager } = await import('@/channels');
+      await getChannelManager().shutdown();
+    } catch (error) {
+      console.error('[App] Failed to shutdown ChannelManager:', error);
+    }
   }
 });
 

@@ -18,6 +18,8 @@ import './i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@/channels';
 import { ExtensionRegistry } from '@/extensions';
 
+const isStandaloneChannelMode = process.env.AIONUI_CHANNEL_MODE === 'standalone';
+
 export const initializeProcess = async () => {
   await initStorage();
 
@@ -30,10 +32,14 @@ export const initializeProcess = async () => {
   }
 
   // Initialize Channel subsystem
-  try {
-    await getChannelManager().initialize();
-  } catch (error) {
-    console.error('[Process] Failed to initialize ChannelManager:', error);
-    // Don't fail app startup if channel fails to initialize
+  if (!isStandaloneChannelMode) {
+    try {
+      await getChannelManager().initialize();
+    } catch (error) {
+      console.error('[Process] Failed to initialize ChannelManager:', error);
+      // Don't fail app startup if channel fails to initialize
+    }
+  } else {
+    console.log('[Process] Skip ChannelManager init: standalone channel mode enabled');
   }
 };

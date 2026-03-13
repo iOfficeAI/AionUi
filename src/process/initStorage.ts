@@ -7,7 +7,7 @@
 import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { app } from 'electron';
+import { runtimeApp } from '@/runtime/appContext';
 import { application } from '../common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
@@ -361,9 +361,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   // When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
   // 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
   const resolveBuiltinDir = (dirPath: string): string => {
-    const appPath = app.getAppPath();
+    const appPath = runtimeApp.getAppPath();
     let candidates: string[];
-    if (app.isPackaged) {
+    if (runtimeApp.isPackaged) {
       // asarUnpack extracts files to app.asar.unpacked directory
       // asarUnpack 会将文件解压到 app.asar.unpacked 目录
       const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');

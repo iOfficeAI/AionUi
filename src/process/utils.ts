@@ -5,13 +5,13 @@
  */
 
 import type { IDirOrFile } from '@/common/ipcBridge';
-import { app } from 'electron';
+import { runtimeApp } from '@/runtime/appContext';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
 export const getTempPath = () => {
-  const rootPath = app.getPath('temp');
+  const rootPath = runtimeApp.getPath('temp');
   return path.join(rootPath, 'aionui');
 };
 
@@ -30,7 +30,7 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
     return targetPath;
   }
 
-  const homePath = app.getPath('home');
+  const homePath = runtimeApp.getPath('home');
   const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
@@ -76,7 +76,7 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
  * 获取数据目录路径，macOS 上使用 ~/.aionui 符号链接。
  */
 export const getDataPath = (): string => {
-  const rootPath = app.getPath('userData');
+  const rootPath = runtimeApp.getPath('userData');
   const dataPath = path.join(rootPath, 'aionui');
   return ensureCliSafeSymlink(dataPath, '.aionui');
 };
@@ -86,7 +86,7 @@ export const getDataPath = (): string => {
  * 获取配置目录路径，macOS 上使用 ~/.aionui-config 符号链接。
  */
 export const getConfigPath = (): string => {
-  const rootPath = app.getPath('userData');
+  const rootPath = runtimeApp.getPath('userData');
   const configPath = path.join(rootPath, 'config');
   return ensureCliSafeSymlink(configPath, '.aionui-config');
 };

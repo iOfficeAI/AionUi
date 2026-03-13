@@ -1,0 +1,23 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+
+flags:
+  unittests:
+    paths:
+      - src/
+
+ignore:
+  - tests/
+  - docs/
+  - scripts/
