@@ -26,7 +26,7 @@ type AssistantSelectionAreaProps = {
 const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({ isPresetAgent, selectedAgentInfo, customAgents, localeKey, currentEffectiveAgentInfo, onSelectAssistant, onSetInput, onFocusInput }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Only render if there are preset agents
   if (!customAgents || !customAgents.some((a) => a.isPreset)) return null;
@@ -60,7 +60,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({ isPrese
               <span className='text-13px text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>
               <Down theme='outline' size={14} fill='rgb(var(--primary-6))' className={`transition-transform duration-300 ${isDescriptionExpanded ? 'rotate-180' : ''}`} />
             </div>
-            <div className={`overflow-hidden transition-all duration-300 ${isDescriptionExpanded ? 'max-h-500px mt-4px opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`overflow-hidden transition-all duration-300 ${isDescriptionExpanded ? 'max-h-240px mt-4px opacity-100' : 'max-h-0 opacity-0'}`}>
               <div
                 className='p-12px rd-14px text-13px text-3 text-t-secondary whitespace-pre-wrap leading-relaxed '
                 style={{

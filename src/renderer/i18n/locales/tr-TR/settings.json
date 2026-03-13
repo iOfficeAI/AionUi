@@ -595,5 +595,6 @@
     "waitingConnection": "Baglanti kuruluyor, lutfen bekleyin...",
     "agent": "Ajan",
     "agentDesc": "DingTalk sohbetleri icin kullanilir"
-  }
+  },
+  "extensionAssistantReadonly": "Uzantı asistanları salt okunurdur. Kopyalayıp düzenleyebilirsiniz."
 }

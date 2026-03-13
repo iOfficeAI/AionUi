@@ -1,4 +1,5 @@
 import { type ICssTheme } from '@/common/storage';
+import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from '@/renderer/components/CssThemeSettings/backgroundUtils';
 import { DEFAULT_THEME_ID, PRESET_THEMES } from '@/renderer/components/CssThemeSettings/presets';
 
 export const CSS_SYNC_RECENT_UPDATE_WINDOW_MS = 2000;
@@ -34,7 +35,18 @@ type ComputeCssSyncDecisionResult = {
 };
 
 export const resolveCssByActiveTheme = (activeThemeId: string, userThemes: ICssTheme[]): string => {
-  const allThemes = [...PRESET_THEMES, ...extensionThemesCache, ...(userThemes || [])];
+  const ensureBackgroundCss = (theme: ICssTheme): ICssTheme => {
+    if (theme.id === DEFAULT_THEME_ID) return theme;
+    if (theme.cover && theme.css && !theme.css.includes(BACKGROUND_BLOCK_START)) {
+      return {
+        ...theme,
+        css: injectBackgroundCssBlock(theme.css, theme.cover),
+      };
+    }
+    return theme;
+  };
+
+  const allThemes = [...PRESET_THEMES.map(ensureBackgroundCss), ...extensionThemesCache.map(ensureBackgroundCss), ...(userThemes || []).map(ensureBackgroundCss)];
   const resolvedId = activeThemeId || DEFAULT_THEME_ID;
   const match = allThemes.find((theme) => theme.id === resolvedId);
   if (match) return match.css || '';

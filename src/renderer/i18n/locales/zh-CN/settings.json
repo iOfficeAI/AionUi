@@ -596,5 +596,6 @@
     "agent": "对话Agent",
     "agentDesc": "用于与Channel进行对话"
   },
-  "addAssistant": "添加助手"
+  "addAssistant": "添加助手",
+  "extensionAssistantReadonly": "扩展助手为只读，你可以复制它并编辑副本。"
 }
