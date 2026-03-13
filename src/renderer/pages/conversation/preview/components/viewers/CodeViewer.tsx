@@ -8,6 +8,7 @@ import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
 import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import { iconColors } from '@/renderer/theme/colors';
+import { LARGE_TEXT_VIEWER_RENDER_LIMIT, LARGE_TEXT_VIEWER_THRESHOLD } from '../../constants';
 import { Close } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,11 +45,12 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
 
   // 对大文本禁用高亮与动画，避免 SyntaxHighlighter 导致卡顿
   // Disable highlight/animation for large texts to avoid UI freezes in SyntaxHighlighter
-  const isLargeContent = content.length > 120_000;
+  const isLargeContent = content.length > LARGE_TEXT_VIEWER_THRESHOLD;
 
   // 对超大文本只渲染前一部分，避免切换/关闭 Tab 时销毁超大 DOM 节点造成卡顿
   // Render only the first chunk for very large text to reduce tab switch/close jank
-  const renderedContent = isLargeContent ? content.slice(0, 60_000) : content;
+  const renderedContent = isLargeContent ? content.slice(0, LARGE_TEXT_VIEWER_RENDER_LIMIT) : content;
+  const isRenderedTruncated = renderedContent.length < content.length;
 
   // 🎯 使用流式打字动画 Hook / Use typing animation Hook
   const { displayedContent } = useTypingAnimation({
@@ -82,7 +84,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
   }, []);
 
   // 监听文本选择 / Monitor text selection
-  const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
+  const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef, !isLargeContent);
 
   // 下载代码文件 / Download code file
   const handleDownload = () => {
@@ -141,6 +143,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
 
       {/* 内容区域 / Content area */}
       <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
+        {isRenderedTruncated && <div className='mb-12px px-10px py-8px rd-6px bg-bg-2 text-12px text-t-secondary'>{t('preview.largeTextTruncatedHint', { count: renderedContent.length })}</div>}
         {viewMode === 'source' || isLargeContent ? (
           // 原文模式或大文本：显示纯文本，避免高亮器阻塞
           // Source mode or large text: render plain text to avoid highlighter blocking
