@@ -42,10 +42,14 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
   // 使用外部传入的 viewMode，否则使用内部状态 / Use external viewMode if provided, otherwise use internal state
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
+  // 对大文本禁用高亮与动画，避免 SyntaxHighlighter 导致卡顿
+  // Disable highlight/animation for large texts to avoid UI freezes in SyntaxHighlighter
+  const isLargeContent = content.length > 120_000;
+
   // 🎯 使用流式打字动画 Hook / Use typing animation Hook
   const { displayedContent } = useTypingAnimation({
     content,
-    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    enabled: viewMode === 'preview' && !isLargeContent, // 大文本直接展示完整内容 / Show full content directly for large text
     speed: 50, // 50 字符/秒 / 50 characters per second
   });
 
@@ -53,7 +57,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
   useAutoScroll({
     containerRef,
     content,
-    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    enabled: viewMode === 'preview' && !isLargeContent, // 大文本禁用自动滚动避免额外渲染 / Disable for large text
     threshold: 200, // 距离底部 200px 以内时跟随 / Follow when within 200px from bottom
   });
 
@@ -133,9 +137,10 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
 
       {/* 内容区域 / Content area */}
       <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
-        {viewMode === 'source' ? (
-          // 原文模式：显示原始代码 / Source mode: Show raw code
-          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{content}</pre>
+        {viewMode === 'source' || isLargeContent ? (
+          // 原文模式或大文本：显示纯文本，避免高亮器阻塞
+          // Source mode or large text: render plain text to avoid highlighter blocking
+          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{viewMode === 'source' ? content : displayedContent}</pre>
         ) : (
           // 预览模式：语法高亮 / Preview mode: Syntax highlighting
           <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={language} PreTag='div' wrapLongLines={language === 'text' || language === 'txt'} customStyle={language === 'text' || language === 'txt' ? { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } : undefined}>
