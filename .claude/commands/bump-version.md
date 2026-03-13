@@ -116,3 +116,47 @@ gh pr create --base main --title "chore: bump version to {target}" --body "Bump 
 ```
 
 Display the PR URL to the user when done.
+
+### Step 14 — Wait for PR to be Merged
+
+Display: "PR created: {URL}. Please notify a team member to merge it, then continue with the following steps."
+
+Pause here and wait for the user to confirm the PR has been merged before proceeding.
+
+### Step 15 — Switch Back to main and Pull Latest
+
+```bash
+git checkout main
+git pull --rebase origin main
+```
+
+### Step 16 — Delete Local Branch
+
+```bash
+git branch -d chore/bump-version-{target}
+```
+
+### Step 17 — Delete Remote Branch (if not auto-deleted by GitHub)
+
+Check whether the remote branch still exists:
+
+```bash
+git ls-remote --heads origin chore/bump-version-{target}
+```
+
+- **Has output** (branch exists) → delete it:
+  ```bash
+  git push origin --delete chore/bump-version-{target}
+  ```
+- **No output** (already deleted) → skip, nothing to do.
+
+### Step 18 — Create and Push Tag
+
+```bash
+git tag v{target}
+git push origin v{target}
+```
+
+Tag format: `v{target}` (e.g. `v1.8.27`).
+
+Display: "Tag v{target} created and pushed. Version bump complete!"
