@@ -66,6 +66,18 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('system.notificationEnabled', enabled);
   });
 
+  // 获取"定时任务通知"设置 / Get "scheduled task notification" setting
+  ipcBridge.systemSettings.getCronNotificationEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.cronNotificationEnabled');
+    return value ?? false; // 默认关闭 / Default disabled
+  });
+
+  // 设置"定时任务通知" / Set "scheduled task notification"
+  ipcBridge.systemSettings.setCronNotificationEnabled.provider(async ({ enabled }) => {
+    // 先持久化到配置存储
+    await ProcessConfig.set('system.cronNotificationEnabled', enabled);
+  });
+
   // 语言变更通知，同步主进程 i18n 并通知托盘重建
   // Language change notification, sync main process i18n and notify tray rebuild
   ipcBridge.systemSettings.changeLanguage.provider(async ({ language }) => {

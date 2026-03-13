@@ -105,6 +105,8 @@
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
   "closeToTray": "关闭到托盘",
+  "notificationEnabled": "任务完成通知",
+  "cronNotificationEnabled": "定时任务提醒",
   "gemini": "Gemini",
   "model": "模型",
   "system": "系统",

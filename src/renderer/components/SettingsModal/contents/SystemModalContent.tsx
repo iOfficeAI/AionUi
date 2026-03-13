@@ -110,6 +110,9 @@ const SystemModalContent: React.FC = () => {
   // 通知开关状态 / Notification enabled state
   const [notificationEnabled, setNotificationEnabled] = useState(true);
 
+  // 定时任务通知开关状态 / Cron notification enabled state
+  const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+
   // 获取关闭到托盘设置 / Fetch close-to-tray setting
   useEffect(() => {
     ipcBridge.systemSettings.getCloseToTray
@@ -123,6 +126,14 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getNotificationEnabled
       .invoke()
       .then((enabled) => setNotificationEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  // 获取定时任务通知开关设置 / Fetch cron notification enabled setting
+  useEffect(() => {
+    ipcBridge.systemSettings.getCronNotificationEnabled
+      .invoke()
+      .then((enabled) => setCronNotificationEnabled(enabled))
       .catch(() => {});
   }, []);
 
@@ -143,6 +154,16 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.setNotificationEnabled.invoke({ enabled: checked }).catch(() => {
       // 失败时回滚 UI 状态
       setNotificationEnabled(!checked);
+    });
+  }, []);
+
+  // 切换定时任务通知开关 / Toggle cron notification enabled
+  const handleCronNotificationEnabledChange = useCallback((checked: boolean) => {
+    setCronNotificationEnabled(checked);
+    // 通过 bridge 设置，provider 会处理持久化
+    ipcBridge.systemSettings.setCronNotificationEnabled.invoke({ enabled: checked }).catch(() => {
+      // 失败时回滚 UI 状态
+      setCronNotificationEnabled(!checked);
     });
   }, []);
 
@@ -169,6 +190,11 @@ const SystemModalContent: React.FC = () => {
       key: 'notificationEnabled',
       label: t('settings.notificationEnabled', { defaultValue: 'Task Completion Notification' }),
       component: <Switch checked={notificationEnabled} onChange={handleNotificationEnabledChange} />,
+    },
+    {
+      key: 'cronNotificationEnabled',
+      label: t('settings.cronNotificationEnabled', { defaultValue: 'Scheduled Task Notification' }),
+      component: <Switch checked={cronNotificationEnabled} onChange={handleCronNotificationEnabledChange} />,
     },
   ];
 

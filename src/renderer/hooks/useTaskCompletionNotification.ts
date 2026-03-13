@@ -7,10 +7,10 @@
 /**
  * Centralized task completion notification hook.
  * Mounted in layout.tsx (always alive), listens for finish events from ALL conversations.
- * Only notifies for user-initiated messages (not cron tasks).
+ * Supports notifications for both user-initiated and cron tasks (configurable).
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { getPendingUserMessage, clearPendingUserMessage } from './notificationState';
@@ -37,6 +37,21 @@ export const useTaskCompletionNotification = () => {
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Per-conversation accumulated AI replies
   const aiRepliesRef = useRef<Map<string, string>>(new Map());
+  // Cron notification enabled setting
+  const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+
+  // Fetch cron notification setting on mount
+  useEffect(() => {
+    ipcBridge.systemSettings
+      .getCronNotificationEnabled.invoke()
+      .then((enabled) => {
+        setCronNotificationEnabled(enabled);
+      })
+      .catch(() => {
+        // Default to disabled on error
+        setCronNotificationEnabled(false);
+      });
+  }, []);
 
   useEffect(() => {
     const handleMessage = (message: IResponseMessage) => {
@@ -68,21 +83,40 @@ export const useTaskCompletionNotification = () => {
 
       // Schedule notification on finish
       if (type === 'finish') {
-        // Only notify for user-initiated tasks (registered via setPendingUserMessage)
         const userMessage = getPendingUserMessage(conversationId);
-        if (!userMessage) return;
+
+        // Check if this is a user-initiated task or a cron task
+        const isUserTask = !!userMessage;
+        const isCronTask = !isUserTask;
+
+        // For cron tasks, only notify if setting is enabled
+        if (isCronTask && !cronNotificationEnabled) {
+          return;
+        }
 
         const timer = setTimeout(() => {
           timersRef.current.delete(conversationId);
           const aiReply = aiRepliesRef.current.get(conversationId) || '';
-          const body = formatNotificationBody(userMessage, aiReply);
 
-          clearPendingUserMessage(conversationId);
+          let body: string;
+          let title: string;
+
+          if (isUserTask) {
+            // User-initiated task
+            body = formatNotificationBody(userMessage, aiReply);
+            title = '任务完成';
+            clearPendingUserMessage(conversationId);
+          } else {
+            // Cron task
+            body = aiReply ? truncateText(aiReply, 20) : '定时任务已完成';
+            title = '定时任务完成';
+          }
+
           aiRepliesRef.current.delete(conversationId);
 
           ipcBridge.notification.show
             .invoke({
-              title: '任务完成',
+              title,
               body,
               conversationId,
             })
@@ -108,5 +142,5 @@ export const useTaskCompletionNotification = () => {
       }
       timersRef.current.clear();
     };
-  }, []);
+  }, [cronNotificationEnabled]);
 };
