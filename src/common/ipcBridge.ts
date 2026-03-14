@@ -412,6 +412,7 @@ export const webui = {
   stop: bridge.buildProvider<IBridgeResponse, void>('webui.stop'),
   // 修改密码（不需要当前密码）/ Change password (no current password required)
   changePassword: bridge.buildProvider<IBridgeResponse, { newPassword: string }>('webui.change-password'),
+  changeUsername: bridge.buildProvider<IBridgeResponse<{ username: string }>, { newUsername: string }>('webui.change-username'),
   // 重置密码（生成新随机密码）/ Reset password (generate new random password)
   resetPassword: bridge.buildProvider<IBridgeResponse<{ newPassword: string }>, void>('webui.reset-password'),
   // 生成二维码登录 token / Generate QR login token
