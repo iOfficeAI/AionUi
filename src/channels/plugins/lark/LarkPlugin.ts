@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import fs from 'fs/promises';
+import path from 'path';
 import * as lark from '@larksuiteoapi/node-sdk';
 
 import type { BotInfo, IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
 import { BasePlugin } from '../BasePlugin';
 import { extractCardAction, LARK_MESSAGE_LIMIT, toLarkSendParams, toUnifiedIncomingMessage } from './LarkAdapter';
+import { attachLocalPathToContext, buildDeterministicAttachmentPath, isImageFilePath, normalizeLarkMessage, resolveQuotedMessageId, sanitizeAttachmentName, type LarkConversationContext, type LarkFetchedMessage, type LarkResolvedMessageContext } from './LarkAttachmentUtils';
 
 /**
  * LarkPlugin - Lark/Feishu Bot integration for Personal Assistant
@@ -19,6 +22,8 @@ import { extractCardAction, LARK_MESSAGE_LIMIT, toLarkSendParams, toUnifiedIncom
 // Event deduplication settings
 const EVENT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const EVENT_CACHE_CLEANUP_INTERVAL = 60 * 1000; // 1 minute
+
+type LarkResourceDownloadType = 'image' | 'file';
 
 export class LarkPlugin extends BasePlugin {
   readonly type: PluginType = 'lark';
@@ -169,6 +174,13 @@ export class LarkPlugin extends BasePlugin {
     };
   }
 
+  private requireClient(): lark.Client {
+    if (!this.client) {
+      throw new Error('Client not initialized');
+    }
+    return this.client;
+  }
+
   /**
    * Get receive_id_type based on the ID prefix
    * - ou_ -> open_id (user's open_id)
@@ -188,10 +200,7 @@ export class LarkPlugin extends BasePlugin {
    * Note: For streaming support, we send text as interactive card (can be updated)
    */
   async sendMessage(chatId: string, message: IUnifiedOutgoingMessage): Promise<string> {
-    if (!this.client) {
-      throw new Error('Client not initialized');
-    }
-
+    const client = this.requireClient();
     await this.ensureAccessToken();
 
     const { contentType, content, rawText } = toLarkSendParams(message);
@@ -204,7 +213,7 @@ export class LarkPlugin extends BasePlugin {
       const card = this.buildTextCard(rawText);
 
       try {
-        const response = await this.client.im.message.create({
+        const response = await client.im.message.create({
           params: {
             receive_id_type: receiveIdType,
           },
@@ -224,7 +233,7 @@ export class LarkPlugin extends BasePlugin {
 
     // Send interactive card or other content types
     try {
-      const response = await this.client.im.message.create({
+      const response = await client.im.message.create({
         params: {
           receive_id_type: receiveIdType,
         },
@@ -265,10 +274,7 @@ export class LarkPlugin extends BasePlugin {
    * Since we send text as cards (see sendMessage), this should work for streaming updates
    */
   async editMessage(chatId: string, messageId: string, message: IUnifiedOutgoingMessage): Promise<void> {
-    if (!this.client) {
-      throw new Error('Client not initialized');
-    }
-
+    const client = this.requireClient();
     await this.ensureAccessToken();
 
     const { contentType, content, rawText } = toLarkSendParams(message);
@@ -289,7 +295,7 @@ export class LarkPlugin extends BasePlugin {
         cardContent = this.buildTextCard(rawText || JSON.stringify(content));
       }
 
-      await this.client.im.message.patch({
+      await client.im.message.patch({
         path: {
           message_id: messageId,
         },
@@ -316,6 +322,242 @@ export class LarkPlugin extends BasePlugin {
       console.error('[LarkPlugin] Failed to edit message:', error);
       throw error;
     }
+  }
+
+  async fetchMessageById(messageId: string): Promise<LarkFetchedMessage | null> {
+    const client = this.requireClient();
+    await this.ensureAccessToken();
+
+    const response = await client.im.message.get({
+      path: {
+        message_id: messageId,
+      },
+      params: {
+        user_id_type: 'open_id',
+      },
+    });
+
+    const item = response.data?.items?.[0];
+    if (!item?.message_id || !item.chat_id || !item.msg_type || !item.body?.content) {
+      return null;
+    }
+
+    return {
+      messageId: item.message_id,
+      chatId: item.chat_id,
+      msgType: item.msg_type,
+      content: item.body.content,
+      createTime: item.create_time ? parseInt(item.create_time, 10) : undefined,
+      parentId: item.parent_id,
+      rootId: item.root_id,
+      upperMessageId: item.upper_message_id,
+      mentions: (item.mentions || []).map((mention) => ({
+        key: mention.key,
+        id: mention.id,
+        idType: mention.id_type,
+        name: mention.name,
+      })),
+    };
+  }
+
+  private getHeaderValue(headers: Record<string, unknown> | undefined, key: string): string | undefined {
+    if (!headers) return undefined;
+    const value = headers[key] || headers[key.toLowerCase()];
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+    return undefined;
+  }
+
+  private getFileUploadType(filePath: string): 'opus' | 'mp4' | 'pdf' | 'doc' | 'xls' | 'ppt' | 'stream' {
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === '.opus') return 'opus';
+    if (ext === '.mp4') return 'mp4';
+    if (ext === '.pdf') return 'pdf';
+    if (ext === '.doc' || ext === '.docx') return 'doc';
+    if (ext === '.xls' || ext === '.xlsx' || ext === '.csv') return 'xls';
+    if (ext === '.ppt' || ext === '.pptx') return 'ppt';
+    return 'stream';
+  }
+
+  private async downloadMessageAttachment(options: { workspace: string; chatId: string; messageId: string; createTime?: number; segmentIndex: number; attachmentType: LarkResourceDownloadType; fileKey: string; fileName?: string }): Promise<string> {
+    const client = this.requireClient();
+    await this.ensureAccessToken();
+
+    const response = await client.im.messageResource.get({
+      params: {
+        type: options.attachmentType,
+      },
+      path: {
+        message_id: options.messageId,
+        file_key: options.fileKey,
+      },
+    });
+
+    const contentType = this.getHeaderValue(response.headers, 'content-type');
+    const originalName = sanitizeAttachmentName(options.fileName || options.fileKey);
+    const targetPath = buildDeterministicAttachmentPath({
+      workspace: options.workspace,
+      chatId: options.chatId,
+      messageId: options.messageId,
+      index: options.segmentIndex,
+      originalNameOrKey: originalName,
+      createTime: options.createTime,
+      contentType,
+    });
+
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    const exists = await fs
+      .access(targetPath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!exists) {
+      await response.writeFile(targetPath);
+    }
+
+    return targetPath;
+  }
+
+  private async resolveMessageContext(message: LarkFetchedMessage, workspace: string): Promise<LarkResolvedMessageContext> {
+    const normalized = normalizeLarkMessage(message);
+    const attachmentPaths = new Map<string, { localPath: string; error?: string }>();
+
+    let attachmentIndex = 0;
+    for (const segment of normalized.segments) {
+      if (segment.kind !== 'attachment') {
+        continue;
+      }
+
+      attachmentIndex += 1;
+      try {
+        const localPath = await this.downloadMessageAttachment({
+          workspace,
+          chatId: message.chatId,
+          messageId: message.messageId,
+          createTime: message.createTime,
+          segmentIndex: attachmentIndex,
+          attachmentType: segment.attachmentType,
+          fileKey: segment.fileKey,
+          fileName: segment.fileName,
+        });
+        attachmentPaths.set(segment.fileKey, { localPath });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`[LarkPlugin] Failed to download message resource ${segment.fileKey}: ${errorMessage}`);
+        attachmentPaths.set(segment.fileKey, { localPath: '', error: errorMessage });
+      }
+    }
+
+    return attachLocalPathToContext(normalized, attachmentPaths);
+  }
+
+  async resolveConversationContext(options: { messageId: string; workspace: string }): Promise<LarkConversationContext> {
+    const currentMessage = await this.fetchMessageById(options.messageId);
+    if (!currentMessage) {
+      throw new Error(`Unable to fetch Lark message ${options.messageId}`);
+    }
+
+    const current = await this.resolveMessageContext(currentMessage, options.workspace);
+    const quotedMessageId = resolveQuotedMessageId(currentMessage);
+    if (!quotedMessageId) {
+      return { current };
+    }
+
+    try {
+      const quotedMessage = await this.fetchMessageById(quotedMessageId);
+      if (!quotedMessage) {
+        return {
+          current,
+          quotedMessageId,
+          quoted: {
+            messageId: quotedMessageId,
+            chatId: currentMessage.chatId,
+            msgType: 'text',
+            segments: [{ kind: 'text', text: '[quoted message unavailable]' }],
+            attachmentPaths: [],
+          },
+        };
+      }
+
+      const quoted = await this.resolveMessageContext(quotedMessage, options.workspace);
+      return { current, quotedMessageId, quoted };
+    } catch (error) {
+      console.warn(`[LarkPlugin] Failed to resolve quoted message ${quotedMessageId}:`, error);
+      return {
+        current,
+        quotedMessageId,
+        quoted: {
+          messageId: quotedMessageId,
+          chatId: currentMessage.chatId,
+          msgType: 'text',
+          segments: [{ kind: 'text', text: '[quoted message unavailable]' }],
+          attachmentPaths: [],
+        },
+      };
+    }
+  }
+
+  async sendLocalAttachment(chatId: string, filePath: string): Promise<string> {
+    const client = this.requireClient();
+    await this.ensureAccessToken();
+
+    const receiveIdType = this.getReceiveIdType(chatId);
+    const fileBuffer = await fs.readFile(filePath);
+
+    if (isImageFilePath(filePath)) {
+      const uploadedImage = await client.im.image.create({
+        data: {
+          image_type: 'message',
+          image: fileBuffer,
+        },
+      });
+
+      if (!uploadedImage?.image_key) {
+        throw new Error(`Failed to upload image ${filePath}`);
+      }
+
+      const response = await client.im.message.create({
+        params: {
+          receive_id_type: receiveIdType,
+        },
+        data: {
+          receive_id: chatId,
+          msg_type: 'image',
+          content: JSON.stringify({
+            image_key: uploadedImage.image_key,
+          }),
+        },
+      });
+
+      return response.data?.message_id || '';
+    }
+
+    const uploadedFile = await client.im.file.create({
+      data: {
+        file_type: this.getFileUploadType(filePath),
+        file_name: path.basename(filePath),
+        file: fileBuffer,
+      },
+    });
+
+    if (!uploadedFile?.file_key) {
+      throw new Error(`Failed to upload file ${filePath}`);
+    }
+
+    const response = await client.im.message.create({
+      params: {
+        receive_id_type: receiveIdType,
+      },
+      data: {
+        receive_id: chatId,
+        msg_type: 'file',
+        content: JSON.stringify({
+          file_key: uploadedFile.file_key,
+        }),
+      },
+    });
+
+    return response.data?.message_id || '';
   }
 
   /**

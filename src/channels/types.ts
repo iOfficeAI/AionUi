@@ -259,6 +259,7 @@ export interface IUnifiedAttachment {
   mimeType?: string;
   size?: number;
   duration?: number;
+  localPath?: string;
 }
 
 /**

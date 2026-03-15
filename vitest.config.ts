@@ -69,6 +69,8 @@ export default defineConfig({
         'src/extensions/ExtensionLoader.ts',
         'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
         'src/extensions/resolvers/WebuiResolver.ts',
+        'src/channels/plugins/lark/LarkAttachmentUtils.ts',
+        'src/channels/gateway/ActionExecutor.ts',
       ],
       thresholds: {
         statements: 30,

@@ -146,7 +146,7 @@ export class ChannelMessageService {
    * @param onStream - Callback for streaming updates
    * @returns Promise that resolves when streaming is complete
    */
-  async sendMessage(_sessionId: string, conversationId: string, message: string, onStream: StreamCallback): Promise<string> {
+  async sendMessage(_sessionId: string, conversationId: string, message: string, onStream: StreamCallback, files?: string[]): Promise<string> {
     // 确保服务已初始化
     // Ensure service is initialized
     this.initialize();
@@ -201,7 +201,12 @@ export class ChannelMessageService {
 
       // Build payload based on agent type.
       // Gemini expects { input }, ACP/Codex expect { content }.
-      const payload: { input?: string; content?: string; msg_id: string } = task.type === 'gemini' ? { input: message, msg_id: msgId } : task.type === 'acp' || task.type === 'codex' ? { content: message, msg_id: msgId } : { content: message, msg_id: msgId };
+      const payload: { input?: string; content?: string; msg_id: string; files?: string[] } =
+        task.type === 'gemini'
+          ? { input: message, msg_id: msgId, files }
+          : task.type === 'acp' || task.type === 'codex'
+            ? { content: message, msg_id: msgId, files }
+            : { content: message, msg_id: msgId, files };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;

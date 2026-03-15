@@ -15,10 +15,11 @@ import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
 import type { PairingService } from '../pairing/PairingService';
-import type { PluginMessageHandler } from '../plugins/BasePlugin';
+import type { BasePlugin, PluginMessageHandler } from '../plugins/BasePlugin';
 import { getChannelConversationName, resolveChannelConvType } from '../types';
 import { createMainMenuCard, createErrorRecoveryCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
+import { buildLarkCodexPrompt, extractExplicitWorkspaceFilePaths, type LarkConversationContext } from '../plugins/lark/LarkAttachmentUtils';
 import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
@@ -26,6 +27,15 @@ import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
 import type { AcpBackend } from '@/types/acpTypes';
+
+type LarkAttachmentCapability = BasePlugin & {
+  resolveConversationContext: (options: { messageId: string; workspace: string }) => Promise<LarkConversationContext>;
+  sendLocalAttachment: (chatId: string, filePath: string) => Promise<string>;
+};
+
+function isLarkAttachmentCapability(plugin: BasePlugin | undefined): plugin is LarkAttachmentCapability {
+  return Boolean(plugin && typeof (plugin as LarkAttachmentCapability).resolveConversationContext === 'function' && typeof (plugin as LarkAttachmentCapability).sendLocalAttachment === 'function');
+}
 
 // ==================== Platform-specific Helpers ====================
 
@@ -424,6 +434,14 @@ export class ActionExecutor {
       }
       context.sessionId = session.id;
       context.conversationId = session.conversationId;
+      context.sessionAgentType = session.agentType;
+
+      const conversationResult = db.getConversation(session.conversationId);
+      const conversation = conversationResult.success ? conversationResult.data : null;
+      context.workspace = conversation?.extra?.workspace;
+
+      const larkAttachmentCapability = platform === 'lark' && isLarkAttachmentCapability(plugin) ? plugin : null;
+      const shouldUseLarkCodexAttachmentFlow = Boolean(platform === 'lark' && session.agentType === 'codex' && context.workspace && larkAttachmentCapability && !action && content.type !== 'action');
 
       // Route based on action or content
       if (action) {
@@ -432,6 +450,8 @@ export class ActionExecutor {
       } else if (content.type === 'action') {
         // Action encoded in content
         await this.executeAction(context, content.text, {});
+      } else if (shouldUseLarkCodexAttachmentFlow && larkAttachmentCapability) {
+        await this.handleLarkCodexMessage(context, larkAttachmentCapability);
       } else if (content.type === 'text' && content.text) {
         // Regular text message - send to AI
         await this.handleChatMessage(context, content.text);
@@ -453,6 +473,31 @@ export class ActionExecutor {
         replyMarkup: getErrorRecoveryMarkup(platform as PluginType, error.message),
       });
     }
+  }
+
+  private async handleLarkCodexMessage(context: IActionContext, plugin: LarkAttachmentCapability): Promise<void> {
+    if (!context.originalMessageId || !context.workspace) {
+      throw new Error('Lark Codex attachment flow requires message ID and workspace');
+    }
+
+    let conversationContext: LarkConversationContext;
+    try {
+      conversationContext = await plugin.resolveConversationContext({
+        messageId: context.originalMessageId,
+        workspace: context.workspace,
+      });
+    } catch (error) {
+      console.error('[ActionExecutor] Failed to resolve Lark conversation context:', error);
+      if (context.originalMessage.content.text) {
+        await this.handleChatMessage(context, context.originalMessage.content.text);
+        return;
+      }
+      throw error;
+    }
+
+    const files = Array.from(new Set([...(conversationContext.quoted?.attachmentPaths || []), ...conversationContext.current.attachmentPaths]));
+    const prompt = buildLarkCodexPrompt(conversationContext);
+    await this.handleChatMessage(context, prompt, files, plugin);
   }
 
   /**
@@ -490,7 +535,7 @@ export class ActionExecutor {
   /**
    * Handle chat message - send to AI and stream response
    */
-  private async handleChatMessage(context: IActionContext, text: string): Promise<void> {
+  private async handleChatMessage(context: IActionContext, text: string, files?: string[], larkAttachmentCapability?: LarkAttachmentCapability): Promise<void> {
     // Update session activity (scoped by chatId)
     if (context.channelUser) {
       this.sessionManager.updateSessionActivity(context.channelUser.id, context.chatId);
@@ -527,6 +572,7 @@ export class ActionExecutor {
       // 跟踪最后一条消息内容，用于流结束后添加操作按钮
       // Track last message content for adding action buttons after stream ends
       let lastMessageContent: IUnifiedOutgoingMessage | null = null;
+      let lastAssistantText = '';
 
       // 执行消息编辑的函数
       // Function to perform message edit
@@ -542,91 +588,101 @@ export class ActionExecutor {
 
       // 发送消息
       // Send message
-      await messageService.sendMessage(sessionId, conversationId, text, async (message: TMessage, isInsert: boolean) => {
-        const now = Date.now();
+      await messageService.sendMessage(
+        sessionId,
+        conversationId,
+        text,
+        async (message: TMessage, isInsert: boolean) => {
+          const now = Date.now();
 
-        // 转换消息格式（根据平台）
-        // Convert message format (based on platform)
-        const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
+          if (message.type === 'text') {
+            lastAssistantText = message.content.content || lastAssistantText;
+          }
 
-        // Strip replyMarkup during streaming to prevent premature card finalization.
-        // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
-        // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
-        // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
-        const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
+          // 转换消息格式（根据平台）
+          // Convert message format (based on platform)
+          const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
 
-        // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
-        // Save last message content (without replyMarkup, final message adds it separately)
-        lastMessageContent = streamOutgoing;
+          // Strip replyMarkup during streaming to prevent premature card finalization.
+          // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
+          // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
+          // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
+          const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
 
-        // IMPORTANT: Always treat first streaming message as update to thinking message
-        // This prevents async race condition where first insert's sendMessage takes time
-        // while subsequent messages arrive and get processed as updates
-        // 重要：始终将第一个流式消息视为更新thinking消息
-        // 这可以防止异步竞态条件：第一个insert的sendMessage耗时时，后续消息已到达并被当作update处理
-        if (isInsert && sentMessageIds.length === 1) {
-          // First streaming message: update thinking message instead of inserting
-          // 第一个流式消息：更新thinking消息而不是插入新消息
-          pendingMessage = streamOutgoing;
+          // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
+          // Save last message content (without replyMarkup, final message adds it separately)
+          lastMessageContent = streamOutgoing;
 
-          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-              pendingUpdateTimer = null;
-            }
-            await doEditMessage(streamOutgoing);
-          } else {
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-            }
-            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
-            pendingUpdateTimer = setTimeout(() => {
-              if (pendingMessage) {
-                void doEditMessage(pendingMessage);
-                pendingMessage = null;
+          // IMPORTANT: Always treat first streaming message as update to thinking message
+          // This prevents async race condition where first insert's sendMessage takes time
+          // while subsequent messages arrive and get processed as updates
+          // 重要：始终将第一个流式消息视为更新thinking消息
+          // 这可以防止异步竞态条件：第一个insert的sendMessage耗时时，后续消息已到达并被当作update处理
+          if (isInsert && sentMessageIds.length === 1) {
+            // First streaming message: update thinking message instead of inserting
+            // 第一个流式消息：更新thinking消息而不是插入新消息
+            pendingMessage = streamOutgoing;
+
+            if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
+                pendingUpdateTimer = null;
               }
-              pendingUpdateTimer = null;
-            }, delay);
-          }
-        } else if (isInsert) {
-          // 新消息：发送新消息
-          // New message: send new message
-          try {
-            const newMsgId = await context.sendMessage(streamOutgoing);
-            sentMessageIds.push(newMsgId);
-          } catch {
-            // Ignore send errors
-          }
-        } else {
-          // 更新消息：使用定时器节流，确保最后一条消息能被发送
-          // Update message: throttle with timer to ensure last message is sent
-          pendingMessage = streamOutgoing;
-
-          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
-            // 距离上次发送超过节流时间，立即发送
-            // Enough time has passed since last send, send immediately
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-              pendingUpdateTimer = null;
-            }
-            await doEditMessage(streamOutgoing);
-          } else {
-            // 在节流时间内，设置定时器延迟发送
-            // Within throttle window, set timer to send later
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-            }
-            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
-            pendingUpdateTimer = setTimeout(() => {
-              if (pendingMessage) {
-                void doEditMessage(pendingMessage);
-                pendingMessage = null;
+              await doEditMessage(streamOutgoing);
+            } else {
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
               }
-              pendingUpdateTimer = null;
-            }, delay);
+              const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+              pendingUpdateTimer = setTimeout(() => {
+                if (pendingMessage) {
+                  void doEditMessage(pendingMessage);
+                  pendingMessage = null;
+                }
+                pendingUpdateTimer = null;
+              }, delay);
+            }
+          } else if (isInsert) {
+            // 新消息：发送新消息
+            // New message: send new message
+            try {
+              const newMsgId = await context.sendMessage(streamOutgoing);
+              sentMessageIds.push(newMsgId);
+            } catch {
+              // Ignore send errors
+            }
+          } else {
+            // 更新消息：使用定时器节流，确保最后一条消息能被发送
+            // Update message: throttle with timer to ensure last message is sent
+            pendingMessage = streamOutgoing;
+
+            if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+              // 距离上次发送超过节流时间，立即发送
+              // Enough time has passed since last send, send immediately
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
+                pendingUpdateTimer = null;
+              }
+              await doEditMessage(streamOutgoing);
+            } else {
+              // 在节流时间内，设置定时器延迟发送
+              // Within throttle window, set timer to send later
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
+              }
+              const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+              pendingUpdateTimer = setTimeout(() => {
+                if (pendingMessage) {
+                  void doEditMessage(pendingMessage);
+                  pendingMessage = null;
+                }
+                pendingUpdateTimer = null;
+              }, delay);
+            }
           }
-        }
-      });
+        },
+        files
+      );
 
       // 清除待处理的定时器，确保最后一条消息被处理
       // Clear pending timer and ensure last message is processed
@@ -657,6 +713,27 @@ export class ActionExecutor {
       } catch {
         // 忽略最终编辑错误
         // Ignore final edit error
+      }
+      if (context.platform === 'lark' && context.workspace && larkAttachmentCapability && lastAssistantText.trim()) {
+        const referencedFiles = extractExplicitWorkspaceFilePaths(lastAssistantText, context.workspace);
+        const failedAttachments: string[] = [];
+
+        for (const filePath of referencedFiles) {
+          try {
+            await larkAttachmentCapability.sendLocalAttachment(context.chatId, filePath);
+          } catch (error) {
+            failedAttachments.push(filePath);
+            console.error(`[ActionExecutor] Failed to send Lark attachment ${filePath}:`, error);
+          }
+        }
+
+        if (failedAttachments.length > 0) {
+          await context.sendMessage({
+            type: 'text',
+            text: `Warning: failed to send ${failedAttachments.length} attachment(s).\n${failedAttachments.join('\n')}`,
+            parseMode: 'HTML',
+          });
+        }
       }
     } catch (error: any) {
       console.error(`[ActionExecutor] Chat processing failed:`, error);

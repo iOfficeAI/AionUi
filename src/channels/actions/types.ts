@@ -5,6 +5,7 @@
  */
 
 import type { ActionCategory, IChannelUser, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
+import type { ChannelAgentType } from '../types';
 
 /**
  * Action context passed to action handlers
@@ -25,6 +26,8 @@ export interface IActionContext {
   // Session information
   sessionId?: string;
   conversationId?: string;
+  workspace?: string;
+  sessionAgentType?: ChannelAgentType;
 
   // Original message
   originalMessage: IUnifiedIncomingMessage;
