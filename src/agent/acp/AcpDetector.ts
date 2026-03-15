@@ -5,7 +5,10 @@
  */
 
 import { execSync } from 'child_process';
-import type { AcpBackendAll, PresetAgentType } from '@/types/acpTypes';
+import { existsSync } from 'fs';
+import { homedir } from 'os';
+import path from 'path';
+import type { AcpBackendAll, PotentialAcpCli, PresetAgentType } from '@/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/types/acpTypes';
 import { ProcessConfig } from '@/process/initStorage';
 import { ExtensionRegistry } from '@/extensions';
@@ -26,12 +29,97 @@ interface DetectedAgent {
   extensionName?: string;
 }
 
+function resolveCliFallbackPath(cliCommand: string): string | undefined {
+  if (process.platform !== 'darwin') return undefined;
+
+  const fallbackCandidates: Record<string, string[]> = {
+    codex: [
+      '/Applications/Codex.app/Contents/Resources/codex',
+      path.join(homedir(), 'Applications', 'Codex.app', 'Contents', 'Resources', 'codex'),
+    ],
+  };
+
+  return fallbackCandidates[cliCommand]?.find((candidate) => existsSync(candidate));
+}
+
 /**
  * 全局ACP检测器 - 启动时检测一次，全局共享结果
  */
 class AcpDetector {
   private detectedAgents: DetectedAgent[] = [];
   private isDetected = false;
+
+  private resolveCliPath(cli: PotentialAcpCli, enhancedEnv: Record<string, string>): string | undefined {
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+
+    try {
+      const output = execSync(`${whichCommand} ${cli.cmd}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: 1000,
+        env: enhancedEnv,
+      });
+      const resolvedPath = output
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find(Boolean);
+
+      return resolvedPath || cli.cmd;
+    } catch {
+      const fallbackPath = resolveCliFallbackPath(cli.cmd);
+      if (fallbackPath) {
+        return fallbackPath;
+      }
+
+      if (!isWindows) return undefined;
+    }
+
+    try {
+      execSync(`powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cli.cmd} | Select-Object -First 1 | Out-Null"`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: 1000,
+        env: enhancedEnv,
+      });
+      return cli.cmd;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private createDetectedAgent(cli: PotentialAcpCli, enhancedEnv: Record<string, string>): DetectedAgent | null {
+    const cliPath = this.resolveCliPath(cli, enhancedEnv);
+    if (!cliPath) {
+      return null;
+    }
+
+    return {
+      backend: cli.backendId,
+      name: cli.name,
+      cliPath,
+      acpArgs: cli.args,
+    };
+  }
+
+  private reconcileBuiltinAgents(): void {
+    const enhancedEnv = getEnhancedEnv();
+    const existingBackends = new Set(this.detectedAgents.map((agent) => agent.backend));
+
+    for (const cli of POTENTIAL_ACP_CLIS) {
+      if (existingBackends.has(cli.backendId)) {
+        continue;
+      }
+
+      const detectedAgent = this.createDetectedAgent(cli, enhancedEnv);
+      if (!detectedAgent) {
+        continue;
+      }
+
+      this.detectedAgents.push(detectedAgent);
+      existingBackends.add(cli.backendId);
+    }
+  }
 
   /**
    * 将扩展贡献的 ACP adapter 添加到检测列表（即开即用，不落盘）
@@ -125,63 +213,15 @@ class AcpDetector {
     console.log('[ACP] Starting agent detection...');
     const startTime = Date.now();
 
-    const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
-
     // Get enhanced environment with user's shell PATH (includes ~/.local/bin, etc.)
     // 获取增强的环境变量，包含用户 shell 的 PATH（如 ~/.local/bin 等）
     const enhancedEnv = getEnhancedEnv();
-
-    const isCliAvailable = (cliCommand: string): boolean => {
-      // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
-      // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
-      try {
-        execSync(`${whichCommand} ${cliCommand}`, {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          timeout: 1000,
-          env: enhancedEnv,
-        });
-        return true;
-      } catch {
-        if (!isWindows) return false;
-      }
-
-      if (isWindows) {
-        try {
-          // PowerShell fallback for shim scripts like claude.ps1 (vfox)
-          // PowerShell 回退，支持 claude.ps1 这类 shim（例如 vfox）
-          execSync(`powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`, {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-            env: enhancedEnv,
-          });
-          return true;
-        } catch {
-          return false;
-        }
-      }
-
-      return false;
-    };
 
     const detected: DetectedAgent[] = [];
 
     // 并行检测所有潜在的 ACP CLI
     const detectionPromises = POTENTIAL_ACP_CLIS.map((cli) => {
-      return Promise.resolve().then(() => {
-        if (!isCliAvailable(cli.cmd)) {
-          return null;
-        }
-
-        return {
-          backend: cli.backendId,
-          name: cli.name,
-          cliPath: cli.cmd,
-          acpArgs: cli.args,
-        };
-      });
+      return Promise.resolve().then(() => this.createDetectedAgent(cli, enhancedEnv));
     });
 
     const results = await Promise.allSettled(detectionPromises);
@@ -219,6 +259,9 @@ class AcpDetector {
    * 获取检测结果
    */
   getDetectedAgents(): DetectedAgent[] {
+    if (this.isDetected) {
+      this.reconcileBuiltinAgents();
+    }
     return this.detectedAgents;
   }
 
@@ -226,6 +269,9 @@ class AcpDetector {
    * 是否有可用的ACP工具
    */
   hasAgents(): boolean {
+    if (this.isDetected) {
+      this.reconcileBuiltinAgents();
+    }
     return this.detectedAgents.length > 0;
   }
 
