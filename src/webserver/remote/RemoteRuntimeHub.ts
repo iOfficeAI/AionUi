@@ -131,14 +131,7 @@ export class RemoteRuntimeHub extends EventEmitter {
     return item;
   }
 
-  resolveApproval(
-    userId: string,
-    approvalId: string,
-    status: 'approved' | 'rejected',
-    resolvedByDeviceId?: string,
-    resolvedByUsername?: string,
-    resolutionNote?: string
-  ): ApprovalItem {
+  resolveApproval(userId: string, approvalId: string, status: 'approved' | 'rejected', resolvedByDeviceId?: string, resolvedByUsername?: string, resolutionNote?: string): ApprovalItem {
     const item = this.approvals.resolve({
       userId,
       approvalId,

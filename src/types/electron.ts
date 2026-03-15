@@ -1,3 +1,5 @@
+import type { OpenDialogOptions } from 'electron';
+
 // WebUI 状态接口 / WebUI status interface
 export interface WebUIStatus {
   running: boolean;
@@ -9,6 +11,12 @@ export interface WebUIStatus {
   adminUsername: string;
   initialPassword?: string;
 }
+
+export type ElectronShowOpenDialogOptions = {
+  defaultPath?: string;
+  properties?: OpenDialogOptions['properties'];
+  filters?: OpenDialogOptions['filters'];
+};
 
 // WebUI 重置密码结果 / WebUI reset password result
 export interface WebUIResetPasswordResult {
@@ -47,9 +55,10 @@ export interface ElectronBridgeAPI {
   // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
   getPathForFile?: (file: File) => string;
   // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
+  dialogShowOpen?: (options?: ElectronShowOpenDialogOptions) => Promise<string[] | undefined>;
   webuiResetPassword?: () => Promise<WebUIResetPasswordResult>;
   webuiGetStatus?: () => Promise<WebUIGetStatusResult>;
-  // 修改密码（不需要当前密码）/ Change password (no current password required)
+  // 修改密码（不需要当前密码）/ Change password without current password
   webuiChangePassword?: (newPassword: string) => Promise<WebUIChangePasswordResult>;
   // 生成二维��� token / Generate QR token
   webuiGenerateQRToken?: () => Promise<WebUIGenerateQRTokenResult>;

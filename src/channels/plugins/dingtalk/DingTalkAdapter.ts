@@ -133,6 +133,7 @@ export function toUnifiedIncomingMessage(data: DingTalkStreamMessage, actionInfo
     return {
       id: data.msgId || Date.now().toString(),
       platform: 'dingtalk',
+      pluginId: '', // Will be injected by BasePlugin message handler wrapper
       chatId,
       user: {
         id: userId,
@@ -160,6 +161,7 @@ export function toUnifiedIncomingMessage(data: DingTalkStreamMessage, actionInfo
   return {
     id: data.msgId || Date.now().toString(),
     platform: 'dingtalk',
+    pluginId: '', // Will be injected by BasePlugin message handler wrapper
     chatId,
     user,
     content,

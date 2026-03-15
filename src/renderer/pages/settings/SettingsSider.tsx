@@ -1,5 +1,6 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isElectronShellRuntime, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { getPageBuiltinSettingsTabIds } from '@/renderer/utils/settingsNavigation';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/useExtI18n';
 import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
@@ -9,9 +10,6 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/siderTooltip';
-
-/** Builtin settings tab IDs in display order (must match router paths). */
-const BUILTIN_TAB_IDS = ['gemini', 'model', 'agent', 'tools', 'display', 'webui', 'system', 'about'] as const;
 
 type SiderItem = {
   id: string;
@@ -26,7 +24,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const isDesktop = isElectronDesktop();
+  const isDesktop = isElectronShellRuntime();
 
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
   const { resolveExtTabName } = useExtI18n();
@@ -95,12 +93,13 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit />, path: 'tools' },
       display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
       webui: { id: 'webui', label: t('settings.webui'), icon: isDesktop ? <Earth /> : <Communication />, path: 'webui' },
+      channels: { id: 'channels', label: t('settings.channels'), icon: <Communication />, path: 'channels' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 
     // Start with ordered builtin IDs
-    const result: SiderItem[] = BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+    const result: SiderItem[] = getPageBuiltinSettingsTabIds(isDesktop).map((id) => builtinMap[id]);
 
     // Extension tabs with position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();

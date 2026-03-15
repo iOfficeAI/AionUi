@@ -46,8 +46,45 @@
 .actionSubmit {
   display: flex;
   align-items: center;
+  gap: 8px;
   flex-shrink: 0;
+  min-width: 0;
   margin-left: auto;
+}
+
+.workspaceShortcutButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(320px, 42vw);
+  padding-inline: 12px !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: 999px !important;
+  background: var(--color-fill-2) !important;
+  color: var(--color-text-2) !important;
+}
+
+.workspaceShortcutButtonCompact {
+  max-width: 100%;
+  width: min(100%, 320px);
+  justify-content: flex-start;
+}
+
+.workspaceShortcutButton:hover {
+  background: var(--color-fill-3) !important;
+  color: var(--color-text-1) !important;
+}
+
+.workspaceShortcutLabel {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceShortcutCaret {
+  flex-shrink: 0;
 }
 
 .lightPlaceholder::placeholder {
@@ -132,6 +169,25 @@
   .actionSubmit {
     flex-shrink: 0;
     margin-left: 8px;
+  }
+
+  .workspaceShortcutButton {
+    max-width: min(48vw, 220px);
+    padding-inline: 10px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .workspaceShortcutButton {
+    max-width: 44px;
+    min-width: 44px;
+    padding-inline: 0 !important;
+    justify-content: center;
+  }
+
+  .workspaceShortcutLabel,
+  .workspaceShortcutCaret {
+    display: none;
   }
 }
 

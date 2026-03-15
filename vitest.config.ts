@@ -65,12 +65,17 @@ export default defineConfig({
         // Renderer utils
         'src/renderer/messages/useAutoScroll.ts',
         'src/renderer/utils/emitter.ts',
+        'src/renderer/utils/settingsNavigation.ts',
         // Extension system (only files with existing tests)
         'src/extensions/ExtensionLoader.ts',
         'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
         'src/extensions/resolvers/WebuiResolver.ts',
         // Remote runtime (hapi/opencode-inspired)
         'src/webserver/remote/{DeviceRegistry,SessionRegistry,ApprovalQueue,TunnelManager,RemoteRuntimeHub}.ts',
+        // Channels
+        'src/channels/core/{BotRegistry,BotRuntime,SessionManager}.ts',
+        'src/channels/actions/SystemActions.ts',
+        'src/channels/utils/channelConversationConfig.ts',
       ],
       thresholds: {
         statements: 30,

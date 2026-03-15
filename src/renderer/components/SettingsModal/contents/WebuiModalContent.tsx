@@ -12,12 +12,14 @@ import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
 import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useSettingsViewMode } from '../settingsViewContext';
+import ChannelModalContent from './ChannelModalContent';
+import ChannelDebugBoundary from './channels/ChannelDebugBoundary';
 
 /**
  * 偏好设置行组件
@@ -44,7 +46,6 @@ const CHANNEL_LOGOS = [
   { src: ChannelDiscordLogo, alt: 'Discord' },
 ] as const;
 
-const ChannelModalContentLazy = React.lazy(() => import('./ChannelModalContent'));
 const QRCodeSVGLazy = React.lazy(async () => {
   const mod = await import('qrcode.react');
   return { default: mod.QRCodeSVG };
@@ -56,12 +57,14 @@ const QRCodeSVGLazy = React.lazy(async () => {
  */
 const WebuiModalContent: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [activeTab, setActiveTab] = useState<'webui' | 'channels'>('webui');
 
-  // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
-  const isDesktop = isElectronDesktop();
+  useEffect(() => {
+    console.log('[WebuiModal] activeTab changed:', activeTab);
+  }, [activeTab]);
 
   const [status, setStatus] = useState<IWebUIStatus | null>(null);
   const [loading, setLoading] = useState(false);
@@ -517,21 +520,14 @@ const WebuiModalContent: React.FC = () => {
   };
   const displayPassword = getDisplayPassword();
 
-  // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
-  if (!isDesktop) {
-    return (
-      <div className='flex flex-col h-full w-full'>
-        <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
-          <div className='space-y-16px'>
-            <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
-            <Suspense fallback={<div className='text-13px text-t-secondary'>{t('common.loading')}</div>}>
-              <ChannelModalContentLazy />
-            </Suspense>
-          </div>
-        </AionScrollArea>
-      </div>
-    );
-  }
+  const handleOpenChannels = useCallback(() => {
+    if (isPageMode) {
+      void navigate('/settings/channels');
+      return;
+    }
+
+    setActiveTab('channels');
+  }, [isPageMode, navigate]);
 
   const webuiPanel = (
     <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
@@ -554,20 +550,18 @@ const WebuiModalContent: React.FC = () => {
         </div>
 
         {/* Messaging 强引导入口 / Messaging primary entry */}
-        {false && (
-          <div className='rd-12px border border-line bg-2 px-12px py-10px flex items-center justify-between gap-10px'>
-            <div className='min-w-0 flex items-center gap-8px'>
-              <Communication theme='outline' size='18' className='text-[rgb(var(--primary-6))] shrink-0' />
-              <div className='min-w-0'>
-                <div className='text-13px text-t-primary font-500'>{t('settings.webui.featureChannelsTitle')}</div>
-                <div className='text-12px text-t-secondary truncate'>{t('settings.webui.featureChannelsDesc')}</div>
-              </div>
+        <div className='rd-12px border border-line bg-2 px-12px py-10px flex items-center justify-between gap-10px'>
+          <div className='min-w-0 flex items-center gap-8px'>
+            <Communication theme='outline' size='18' className='text-[rgb(var(--primary-6))] shrink-0' />
+            <div className='min-w-0'>
+              <div className='text-13px text-t-primary font-500'>{t('settings.webui.featureChannelsTitle')}</div>
+              <div className='text-12px text-t-secondary truncate'>{t('settings.webui.featureChannelsDesc')}</div>
             </div>
-            <Button type='primary' size='small' className='rd-100px' onClick={() => setActiveTab('channels')}>
-              {t('settings.webui.goToChannels')}
-            </Button>
           </div>
-        )}
+          <Button type='primary' size='small' className='rd-100px' onClick={handleOpenChannels}>
+            {t('settings.webui.goToChannels')}
+          </Button>
+        </div>
 
         {/* WebUI 服务卡片 / WebUI Service Card */}
         <div className='px-[12px] md:px-[28px] py-14px bg-2 rd-16px'>
@@ -695,9 +689,22 @@ const WebuiModalContent: React.FC = () => {
     </AionScrollArea>
   );
 
+  if (isPageMode) {
+    return webuiPanel;
+  }
+
   return (
     <div className='flex flex-col h-full w-full'>
-      <Tabs activeTab={activeTab} onChange={(key) => setActiveTab((key as 'webui' | 'channels') || 'webui')} type='line' className='mb-12px settings-remote-tabs'>
+      <Tabs
+        activeTab={activeTab}
+        onChange={(key) => {
+          const nextTab = (key as 'webui' | 'channels') || 'webui';
+          console.log('[WebuiModal] tab onChange:', { from: activeTab, to: nextTab, key });
+          setActiveTab(nextTab);
+        }}
+        type='line'
+        className='mb-12px settings-remote-tabs'
+      >
         <Tabs.TabPane
           key='webui'
           title={
@@ -729,9 +736,9 @@ const WebuiModalContent: React.FC = () => {
         webuiPanel
       ) : (
         <div className='flex-1 min-h-0'>
-          <Suspense fallback={<div className='px-[12px] md:px-[28px] text-13px text-t-secondary'>{t('common.loading')}</div>}>
-            <ChannelModalContentLazy />
-          </Suspense>
+          <ChannelDebugBoundary>
+            <ChannelModalContent />
+          </ChannelDebugBoundary>
         </div>
       )}
 

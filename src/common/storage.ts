@@ -93,6 +93,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Telegram channel chat mode / Telegram 渠道聊天模式
+  'assistant.telegram.chatMode'?: 'single' | 'group';
   // Lark assistant default model / Lark 助手默认模型
   'assistant.lark.defaultModel'?: {
     id: string;
@@ -104,6 +106,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Lark channel chat mode / Lark 渠道聊天模式
+  'assistant.lark.chatMode'?: 'single' | 'group';
   // DingTalk assistant default model / DingTalk 助手默认模型
   'assistant.dingtalk.defaultModel'?: {
     id: string;
@@ -115,6 +119,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // DingTalk channel chat mode / DingTalk 渠道聊天模式
+  'assistant.dingtalk.chatMode'?: 'single' | 'group';
 }
 
 export interface IEnvStorageRefer {
@@ -137,7 +143,7 @@ interface IChatConversation<T, Extra> {
   desc?: string;
   id: string;
   type: T;
-  extra: Extra;
+  extra: Extra & { pluginId?: string };
   model: TProviderWithModel;
   status?: 'pending' | 'running' | 'finished' | undefined;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */

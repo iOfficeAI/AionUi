@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execSync } from 'child_process';
 import { app } from 'electron';
 import http from 'http';
 import * as fs from 'fs';
@@ -131,25 +132,75 @@ function pruneRegistry(): CdpRegistryEntry[] {
   return alive;
 }
 
-/** Find the first available port not occupied by a live registry entry. */
+/** Read system-level TCP listening ports (best effort). */
+function getSystemListeningPorts(): Set<number> {
+  const ports = new Set<number>();
+
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync('netstat -ano -p tcp', {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+
+      for (const rawLine of output.split(/\r?\n/)) {
+        if (!/\bLISTENING\b/i.test(rawLine)) continue;
+        const line = rawLine.trim();
+        const parts = line.split(/\s+/);
+        if (parts.length < 2) continue;
+        const localAddr = parts[1] ?? '';
+        const match = localAddr.match(/:(\d+)$/);
+        if (!match) continue;
+        const port = Number(match[1]);
+        if (Number.isFinite(port) && port > 0) {
+          ports.add(port);
+        }
+      }
+      return ports;
+    }
+
+    const output = execSync('lsof -nP -iTCP -sTCP:LISTEN', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+
+    for (const rawLine of output.split(/\r?\n/)) {
+      const match = rawLine.match(/:(\d+)\s*\(LISTEN\)/);
+      if (!match) continue;
+      const port = Number(match[1]);
+      if (Number.isFinite(port) && port > 0) {
+        ports.add(port);
+      }
+    }
+  } catch {
+    // Best-effort detection only
+  }
+
+  return ports;
+}
+
+/** Find the first available port not occupied by registry nor system listeners. */
 function findAvailablePort(preferredPort: number): number {
   const liveEntries = pruneRegistry();
-  const usedPorts = new Set(liveEntries.map((e) => e.port));
+  const registryUsedPorts = new Set(liveEntries.map((e) => e.port));
+  const systemUsedPorts = getSystemListeningPorts();
+  const isPortUsed = (port: number): boolean => registryUsedPorts.has(port) || systemUsedPorts.has(port);
 
-  if (!usedPorts.has(preferredPort)) {
+  if (!isPortUsed(preferredPort)) {
     return preferredPort;
   }
 
-  console.log(`[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
+  const conflictSource = registryUsedPorts.has(preferredPort) ? 'registry' : 'system listener';
+  console.log(`[CDP] Port ${preferredPort} is occupied by ${conflictSource}, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
 
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
-    if (!usedPorts.has(p)) {
-      console.log(`[CDP] Found available port from registry: ${p}`);
+    if (!isPortUsed(p)) {
+      console.log(`[CDP] Found available port: ${p}`);
       return p;
     }
   }
 
-  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`);
+  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are occupied, trying ${preferredPort}`);
   return preferredPort;
 }
 

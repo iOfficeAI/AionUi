@@ -37,6 +37,7 @@ export function toUnifiedIncomingMessage(ctx: Context): IUnifiedIncomingMessage 
     return {
       id: callbackQuery.id,
       platform: 'telegram',
+      pluginId: '', // Will be injected by BasePlugin message handler wrapper
       chatId,
       user,
       content: {
@@ -60,6 +61,7 @@ export function toUnifiedIncomingMessage(ctx: Context): IUnifiedIncomingMessage 
   return {
     id: message.message_id.toString(),
     platform: 'telegram',
+    pluginId: '', // Will be injected by BasePlugin message handler wrapper
     chatId: message.chat.id.toString(),
     user,
     content,

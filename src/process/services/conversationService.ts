@@ -35,6 +35,8 @@ export interface ICreateGeminiConversationParams {
   name?: string;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channelChatId?: string;
+  /** Channel plugin instance ID for multi-instance isolation */
+  pluginId?: string;
 }
 
 /**
@@ -46,6 +48,8 @@ export interface ICreateConversationOptions extends ICreateConversationParams {
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channelChatId?: string;
+  /** Channel plugin instance ID for multi-instance isolation */
+  pluginId?: string;
 }
 
 /**
@@ -95,6 +99,12 @@ export class ConversationService {
       }
       if (params.channelChatId) {
         conversation.channelChatId = params.channelChatId;
+      }
+      if (params.pluginId) {
+        conversation.extra = {
+          ...conversation.extra,
+          pluginId: params.pluginId,
+        } as typeof conversation.extra;
       }
 
       // Save to database
@@ -169,6 +179,12 @@ export class ConversationService {
       if (params.channelChatId) {
         conversation.channelChatId = params.channelChatId;
       }
+      if (params.pluginId) {
+        conversation.extra = {
+          ...conversation.extra,
+          pluginId: params.pluginId,
+        } as typeof conversation.extra;
+      }
 
       // Save to database
       const db = getDatabase();
@@ -212,7 +228,7 @@ export class ConversationService {
 
     // Per-chat lookup: find existing conversation by source + channelChatId + type, or create new
     if (params.channelChatId) {
-      const latestConv = db.findChannelConversation(source, params.channelChatId, 'gemini');
+      const latestConv = db.findChannelConversation(source, params.channelChatId, 'gemini', undefined, undefined, params.pluginId);
       if (latestConv.success && latestConv.data) {
         console.log(`[ConversationService] Reusing existing ${source} conversation for chatId=${params.channelChatId}: ${latestConv.data.id}`);
         return { success: true, conversation: latestConv.data };

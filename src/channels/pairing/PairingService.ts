@@ -39,13 +39,13 @@ export class PairingService {
   /**
    * Generate a new pairing code for a user
    */
-  async generatePairingCode(platformUserId: string, platformType: PluginType, displayName?: string): Promise<{ code: string; expiresAt: number }> {
+  async generatePairingCode(platformUserId: string, platformType: PluginType, pluginId: string, displayName?: string): Promise<{ code: string; expiresAt: number }> {
     const db = getDatabase();
 
-    // Check for existing pending request
+    // Check for existing pending request in the same plugin instance
     const existingResult = db.getPendingPairingRequests();
     if (existingResult.success && existingResult.data) {
-      const existing = existingResult.data.find((r) => r.platformUserId === platformUserId && r.platformType === platformType && r.status === 'pending');
+      const existing = existingResult.data.find((r) => r.platformUserId === platformUserId && r.platformType === platformType && (r.pluginId ?? `${platformType}_default`) === pluginId && r.status === 'pending');
 
       // Return existing code if not expired
       if (existing && existing.expiresAt > Date.now()) {
@@ -66,6 +66,7 @@ export class PairingService {
       code,
       platformUserId,
       platformType,
+      pluginId,
       displayName,
       requestedAt: now,
       expiresAt,
@@ -86,29 +87,29 @@ export class PairingService {
   /**
    * Refresh pairing code for a user (generate new one)
    */
-  async refreshPairingCode(platformUserId: string, platformType: PluginType, displayName?: string): Promise<{ code: string; expiresAt: number }> {
+  async refreshPairingCode(platformUserId: string, platformType: PluginType, pluginId: string, displayName?: string): Promise<{ code: string; expiresAt: number }> {
     const db = getDatabase();
 
-    // Expire any existing pending codes
+    // Expire any existing pending codes for the same plugin instance
     const existingResult = db.getPendingPairingRequests();
     if (existingResult.success && existingResult.data) {
       for (const request of existingResult.data) {
-        if (request.platformUserId === platformUserId && request.platformType === platformType && request.status === 'pending') {
+        if (request.platformUserId === platformUserId && request.platformType === platformType && (request.pluginId ?? `${platformType}_default`) === pluginId && request.status === 'pending') {
           db.updatePairingRequestStatus(request.code, 'expired');
         }
       }
     }
 
     // Generate new code
-    return this.generatePairingCode(platformUserId, platformType, displayName);
+    return this.generatePairingCode(platformUserId, platformType, pluginId, displayName);
   }
 
   /**
    * Check if a user is already authorized
    */
-  isUserAuthorized(platformUserId: string, platformType: PluginType): boolean {
+  isUserAuthorized(platformUserId: string, platformType: PluginType, pluginId: string): boolean {
     const db = getDatabase();
-    const result = db.getChannelUserByPlatform(platformUserId, platformType);
+    const result = db.getChannelUserByPlatform(platformUserId, platformType, pluginId);
     return result.success && result.data !== null;
   }
 
@@ -124,7 +125,7 @@ export class PairingService {
   /**
    * Get pending pairing request for a user
    */
-  getPendingRequestForUser(platformUserId: string, platformType: PluginType): IChannelPairingRequest | null {
+  getPendingRequestForUser(platformUserId: string, platformType: PluginType, pluginId: string): IChannelPairingRequest | null {
     const db = getDatabase();
     const result = db.getPendingPairingRequests();
 
@@ -132,7 +133,7 @@ export class PairingService {
       return null;
     }
 
-    return result.data.find((r) => r.platformUserId === platformUserId && r.platformType === platformType && r.status === 'pending' && r.expiresAt > Date.now()) ?? null;
+    return result.data.find((r) => r.platformUserId === platformUserId && r.platformType === platformType && (r.pluginId ?? `${platformType}_default`) === pluginId && r.status === 'pending' && r.expiresAt > Date.now()) ?? null;
   }
 
   /**
@@ -159,7 +160,8 @@ export class PairingService {
     }
 
     // Check if user already exists
-    const existingUser = db.getChannelUserByPlatform(request.platformUserId, request.platformType);
+    const requestPluginId = request.pluginId ?? `${request.platformType}_default`;
+    const existingUser = db.getChannelUserByPlatform(request.platformUserId, request.platformType, requestPluginId);
     if (existingUser.success && existingUser.data) {
       db.updatePairingRequestStatus(code, 'approved');
       return { success: true, user: existingUser.data };
@@ -171,6 +173,7 @@ export class PairingService {
       id: userId,
       platformUserId: request.platformUserId,
       platformType: request.platformType,
+      pluginId: requestPluginId,
       displayName: request.displayName,
       authorizedAt: Date.now(),
     };

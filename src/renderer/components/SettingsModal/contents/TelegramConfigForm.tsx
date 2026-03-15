@@ -5,15 +5,20 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { acpConversation, channel } from '@/common/ipcBridge';
+import { channel, dialog } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import { WorkspaceSelectorPopover } from '@/renderer/pages/guid/components/WorkspaceShortcutSelector';
+import guidStyles from '@/renderer/pages/guid/index.module.css';
 import GeminiModelSelector from '@/renderer/pages/conversation/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
+import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ChannelAssistantOptionContent from './channels/ChannelAssistantOptionContent';
+import { getChannelAssistantKey, getChannelAssistantLabel, loadChannelAssistantOptions, type ChannelAssistantOption } from './channels/channelAssistantOptions';
 
 /**
  * Preference row component
@@ -54,26 +59,31 @@ interface TelegramConfigFormProps {
 }
 
 const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange, onTokenChange }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [telegramToken, setTelegramToken] = useState('');
   const [testLoading, setTestLoading] = useState(false);
-  const [tokenTested, setTokenTested] = useState(false);
-  const [testedBotUsername, setTestedBotUsername] = useState<string | null>(null);
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
   // Agent selection (used for Telegram conversations)
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean; isExtension?: boolean }>>([]);
+  const [availableAgents, setAvailableAgents] = useState<ChannelAssistantOption[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>({ backend: 'gemini' });
+  const [workspacePath, setWorkspacePath] = useState('');
+
+  const pluginId = pluginStatus?.id || 'telegram_default';
+  const pluginAgentKey = `assistant.plugin.${pluginId}.agent` as const;
+  const pluginWorkspaceKey = `assistant.plugin.${pluginId}.workspace` as const;
+  const platformWorkspaceKey = 'assistant.telegram.workspace' as const;
+  const isDefaultPluginInstance = pluginStatus ? pluginStatus.id === pluginStatus.type || pluginStatus.id.endsWith('_default') : true;
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
     setPairingLoading(true);
     try {
-      const result = await channel.getPendingPairings.invoke();
+      const result = await channel.getPendingPairings.invoke({ pluginId, platformType: 'telegram' });
       if (result.success && result.data) {
         setPendingPairings(result.data);
       }
@@ -82,61 +92,72 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     } finally {
       setPairingLoading(false);
     }
-  }, []);
+  }, [pluginId]);
 
   // Load authorized users
   const loadAuthorizedUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const result = await channel.getAuthorizedUsers.invoke();
+      const result = await channel.getAuthorizedUsers.invoke({ pluginId, platformType: 'telegram' });
       if (result.success && result.data) {
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'telegram'));
+        setAuthorizedUsers(result.data);
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load authorized users:', error);
     } finally {
       setUsersLoading(false);
     }
-  }, []);
+  }, [pluginId]);
 
-  // Initial load
+  // Refresh platform data when switching instances to avoid stale UI state
   useEffect(() => {
     void loadPendingPairings();
     void loadAuthorizedUsers();
-  }, [loadPendingPairings, loadAuthorizedUsers]);
+  }, [loadAuthorizedUsers, loadPendingPairings, pluginId]);
+
+  useEffect(() => {
+    setTelegramToken('');
+    setSelectedAgent({ backend: 'gemini' });
+    setWorkspacePath('');
+    onTokenChange?.('');
+  }, [onTokenChange, pluginId]);
 
   // Load available agents + saved selection
-  useEffect(() => {
-    const loadAgentsAndSelection = async () => {
-      try {
-        const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.telegram.agent')]);
+  const loadAgentsAndSelection = useCallback(async () => {
+    try {
+      const [assistantOptions, savedPluginAgent, savedPlatformAgent, savedPluginWorkspace, savedPlatformWorkspace] = await Promise.all([loadChannelAssistantOptions(i18n.language), ConfigStorage.get(pluginAgentKey as any), ConfigStorage.get('assistant.telegram.agent'), ConfigStorage.get(pluginWorkspaceKey as any), ConfigStorage.get(platformWorkspaceKey as any)]);
 
-        if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data.filter((a) => !a.isPreset).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset, isExtension: a.isExtension }));
-          setAvailableAgents(list);
-        }
+      setAvailableAgents(assistantOptions);
 
-        if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
-          setSelectedAgent({
-            backend: (saved as any).backend as AcpBackendAll,
-            customAgentId: (saved as any).customAgentId,
-            name: (saved as any).name,
-          });
-        } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as AcpBackendAll });
-        }
-      } catch (error) {
-        console.error('[TelegramConfig] Failed to load agents:', error);
+      const saved = savedPluginAgent ?? (isDefaultPluginInstance ? savedPlatformAgent : undefined);
+      if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
+        setSelectedAgent({
+          backend: (saved as any).backend as AcpBackendAll,
+          customAgentId: (saved as any).customAgentId,
+          name: (saved as any).name,
+        });
+      } else if (typeof saved === 'string') {
+        setSelectedAgent({ backend: saved as AcpBackendAll });
       }
-    };
 
+      const savedWorkspace = savedPluginWorkspace ?? (isDefaultPluginInstance ? savedPlatformWorkspace : undefined);
+      setWorkspacePath(typeof savedWorkspace === 'string' ? savedWorkspace : '');
+    } catch (error) {
+      console.error('[TelegramConfig] Failed to load channel settings:', error);
+    }
+  }, [i18n.language, isDefaultPluginInstance, platformWorkspaceKey, pluginAgentKey, pluginWorkspaceKey]);
+
+  useEffect(() => {
     void loadAgentsAndSelection();
-  }, []);
+  }, [loadAgentsAndSelection]);
 
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.telegram.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'telegram', agent }).catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
+      await ConfigStorage.set(pluginAgentKey as any, agent);
+      if (isDefaultPluginInstance) {
+        await ConfigStorage.set('assistant.telegram.agent', agent);
+      }
+      await channel.syncChannelSettings.invoke({ platform: 'telegram', agent, pluginId, change: 'agent' }).catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[TelegramConfig] Failed to save agent:', error);
@@ -144,9 +165,45 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     }
   };
 
+  const persistWorkspace = async (path: string) => {
+    const nextWorkspace = path.trim();
+    try {
+      await ConfigStorage.set(pluginWorkspaceKey as any, nextWorkspace);
+      if (isDefaultPluginInstance) {
+        await ConfigStorage.set(platformWorkspaceKey as any, nextWorkspace);
+      }
+      if (nextWorkspace) {
+        updateWorkspaceTime(nextWorkspace);
+      }
+      setWorkspacePath(nextWorkspace);
+      await channel.syncChannelSettings.invoke({ platform: 'telegram', agent: selectedAgent, pluginId, change: 'workspace' }).catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
+      Message.success(nextWorkspace ? t('settings.channels.workspaceSaved', '工作目录已保存') : t('settings.channels.workspaceCleared', '工作目录已清空'));
+    } catch (error) {
+      console.error('[TelegramConfig] Failed to save workspace:', error);
+      Message.error(t('common.saveFailed', 'Failed to save'));
+    }
+  };
+
+  const handleSelectWorkspace = async () => {
+    try {
+      const selected = await dialog.showOpen.invoke({
+        defaultPath: workspacePath || undefined,
+        properties: ['openDirectory'],
+      });
+      if (selected?.[0]) {
+        await persistWorkspace(selected[0]);
+      }
+    } catch (error) {
+      console.error('[TelegramConfig] Failed to pick workspace:', error);
+      Message.error(t('settings.channels.workspacePickFailed', '选择工作目录失败'));
+    }
+  };
+
   // Listen for pairing requests
   useEffect(() => {
     const unsubscribe = channel.pairingRequested.on((request) => {
+      if (request.platformType !== 'telegram') return;
+      if ((request.pluginId ?? 'telegram_default') !== pluginId) return;
       setPendingPairings((prev) => {
         const exists = prev.some((p) => p.code === request.code);
         if (exists) return prev;
@@ -154,11 +211,13 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
       });
     });
     return () => unsubscribe();
-  }, []);
+  }, [pluginId]);
 
   // Listen for user authorization
   useEffect(() => {
     const unsubscribe = channel.userAuthorized.on((user) => {
+      if (user.platformType !== 'telegram') return;
+      if ((user.pluginId ?? 'telegram_default') !== pluginId) return;
       setAuthorizedUsers((prev) => {
         const exists = prev.some((u) => u.id === user.id);
         if (exists) return prev;
@@ -167,7 +226,27 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
       setPendingPairings((prev) => prev.filter((p) => p.platformUserId !== user.platformUserId));
     });
     return () => unsubscribe();
-  }, []);
+  }, [pluginId]);
+
+  useEffect(() => {
+    const unsubscribe = channel.settingsChanged.on((event) => {
+      if (event.platformType !== 'telegram') return;
+      if ((event.pluginId ?? 'telegram_default') !== pluginId) return;
+
+      if (event.change === 'pairings') {
+        void loadPendingPairings();
+      }
+
+      if (event.change === 'authorized-users') {
+        void loadAuthorizedUsers();
+      }
+
+      if (event.change === 'agent' || event.change === 'workspace') {
+        void loadAgentsAndSelection();
+      }
+    });
+    return () => unsubscribe();
+  }, [loadAgentsAndSelection, loadAuthorizedUsers, loadPendingPairings, pluginId]);
 
   // Test Telegram connection
   const handleTestConnection = async () => {
@@ -177,27 +256,21 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     }
 
     setTestLoading(true);
-    setTokenTested(false);
-    setTestedBotUsername(null);
     try {
       const result = await channel.testPlugin.invoke({
-        pluginId: 'telegram_default',
+        pluginId,
         token: telegramToken.trim(),
       });
 
       if (result.success && result.data?.success) {
-        setTokenTested(true);
-        setTestedBotUsername(result.data.botUsername || null);
         Message.success(t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.data.botUsername || 'unknown'}`));
 
         // Auto-enable bot after successful test
         await handleAutoEnable();
       } else {
-        setTokenTested(false);
         Message.error(result.data?.error || t('settings.assistant.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
-      setTokenTested(false);
       Message.error(error.message || t('settings.assistant.connectionFailed', 'Connection failed'));
     } finally {
       setTestLoading(false);
@@ -208,7 +281,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   const handleAutoEnable = async () => {
     try {
       const result = await channel.enablePlugin.invoke({
-        pluginId: 'telegram_default',
+        pluginId,
         config: { token: telegramToken.trim() },
       });
 
@@ -216,7 +289,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
         Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
         const statusResult = await channel.getPluginStatus.invoke();
         if (statusResult.success && statusResult.data) {
-          const telegramPlugin = statusResult.data.find((p) => p.type === 'telegram');
+          const telegramPlugin = statusResult.data.find((p) => p.id === pluginId);
           onStatusChange(telegramPlugin || null);
         }
       }
@@ -228,8 +301,6 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   // Reset token tested state when token changes
   const handleTokenChange = (value: string) => {
     setTelegramToken(value);
-    setTokenTested(false);
-    setTestedBotUsername(null);
     onTokenChange?.(value);
   };
 
@@ -296,32 +367,38 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     return `${remaining} min`;
   };
 
+  const hasExistingUsers = Boolean(pluginStatus?.enabled) && authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini';
-  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const agentOptions: ChannelAssistantOption[] = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const selectedAgentOption = agentOptions.find((option) => getChannelAssistantKey(option) === getChannelAssistantKey(selectedAgent)) ?? {
+    backend: selectedAgent.backend,
+    customAgentId: selectedAgent.customAgentId,
+    name: getChannelAssistantLabel(availableAgents, selectedAgent),
+  };
 
   return (
     <div className='flex flex-col gap-24px'>
       <PreferenceRow label={t('settings.assistant.botToken', 'Bot Token')} description={t('settings.assistant.botTokenDesc', 'Open Telegram, find @BotFather and send /newbot to get your Bot Token.')}>
         <div className='flex items-center gap-8px'>
-          {authorizedUsers.length > 0 ? (
+          {hasExistingUsers ? (
             <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
               <span>
-                <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
+                <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={hasExistingUsers} />
               </span>
             </Tooltip>
           ) : (
-            <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
+            <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={hasExistingUsers} />
           )}
-          {authorizedUsers.length > 0 ? (
+          {hasExistingUsers ? (
             <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
               <span>
-                <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
+                <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={hasExistingUsers}>
                   {t('settings.assistant.testConnection', 'Test')}
                 </Button>
               </span>
             </Tooltip>
           ) : (
-            <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
+            <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={hasExistingUsers}>
               {t('settings.assistant.testConnection', 'Test')}
             </Button>
           )}
@@ -335,14 +412,14 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
             trigger='click'
             position='br'
             droplist={
-              <Menu selectedKeys={[selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend]}>
+              <Menu selectedKeys={[getChannelAssistantKey(selectedAgent)]}>
                 {agentOptions.map((a) => {
-                  const key = a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend;
+                  const key = getChannelAssistantKey(a);
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
-                        const currentKey = selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend;
+                        const currentKey = getChannelAssistantKey(selectedAgent);
                         if (key === currentKey) {
                           return;
                         }
@@ -351,7 +428,14 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
                         void persistSelectedAgent(next);
                       }}
                     >
-                      {a.name}
+                      <ChannelAssistantOptionContent
+                        assistant={{
+                          backend: a.backend,
+                          name: a.name,
+                          avatar: a.avatar,
+                          presetAgentType: a.presetAgentType,
+                        }}
+                      />
                     </Menu.Item>
                   );
                 })}
@@ -359,12 +443,39 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
             }
           >
             <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-              <span className='truncate'>{selectedAgent.name || availableAgents.find((a) => (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) === (selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend))?.name || selectedAgent.backend}</span>
+              <ChannelAssistantOptionContent
+                assistant={{
+                  backend: selectedAgentOption.backend,
+                  name: selectedAgentOption.name,
+                  avatar: selectedAgentOption.avatar,
+                  presetAgentType: selectedAgentOption.presetAgentType,
+                }}
+                nameClassName='truncate'
+              />
               <Down theme='outline' size={14} />
             </Button>
           </Dropdown>
         </PreferenceRow>
       </div>
+
+      <PreferenceRow label={t('settings.channels.workspace', '工作目录')} description={t('settings.channels.workspaceDesc', '用于该 Channel 对话的默认工作目录；留空时会自动创建临时工作区。')}>
+        <div className='flex items-center gap-8px'>
+          <WorkspaceSelectorPopover workspacePath={workspacePath} onSelectWorkspace={(nextWorkspacePath) => void persistWorkspace(nextWorkspacePath)} onPickWorkspace={() => void handleSelectWorkspace()}>
+            {({ visible, workspaceLabel, workspaceTooltip }) => (
+              <Tooltip content={workspaceTooltip} disabled={visible}>
+                <Button type='secondary' className={`${guidStyles.workspaceShortcutButton} ${guidStyles.workspaceShortcutButtonCompact}`} aria-label={workspaceTooltip}>
+                  {workspaceLabel}
+                </Button>
+              </Tooltip>
+            )}
+          </WorkspaceSelectorPopover>
+          {workspacePath ? (
+            <Button type='text' size='small' onClick={() => void persistWorkspace('')}>
+              {t('common.clear', '清空')}
+            </Button>
+          ) : null}
+        </div>
+      </PreferenceRow>
 
       {/* Default Model Selection */}
       <PreferenceRow label={t('settings.assistant.defaultModel', '对话模型')} description={t('settings.assistant.defaultModelDesc', '用于Agent对话时调用')}>

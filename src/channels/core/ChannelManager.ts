@@ -8,14 +8,14 @@ import { getDatabase } from '@/process/database';
 import { ExtensionRegistry } from '@/extensions';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelDefaultModel } from '../actions/SystemActions';
-import { ActionExecutor } from '../gateway/ActionExecutor';
-import { PluginManager, registerPlugin } from '../gateway/PluginManager';
+import { registerPlugin } from '../gateway/PluginManager';
 import { PairingService } from '../pairing/PairingService';
 import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
 import { isBuiltinChannelPlatform, resolveChannelConvType } from '../types';
 import type { ChannelPlatform, IChannelPluginConfig, PluginType } from '../types';
+import { BotRegistry } from './BotRegistry';
 import { SessionManager } from './SessionManager';
 
 /**
@@ -39,10 +39,9 @@ export class ChannelManager {
   private static instance: ChannelManager | null = null;
 
   private initialized = false;
-  private pluginManager: PluginManager | null = null;
+  private botRegistry: BotRegistry | null = null;
   private sessionManager: SessionManager | null = null;
   private pairingService: PairingService | null = null;
-  private actionExecutor: ActionExecutor | null = null;
 
   private constructor() {
     // Private constructor for singleton pattern
@@ -80,40 +79,7 @@ export class ChannelManager {
       // Initialize sub-components
       this.pairingService = new PairingService();
       this.sessionManager = new SessionManager();
-      this.pluginManager = new PluginManager(this.sessionManager);
-
-      // Create action executor and wire up message handling
-      this.actionExecutor = new ActionExecutor(this.pluginManager, this.sessionManager, this.pairingService);
-      this.pluginManager.setMessageHandler(this.actionExecutor.getMessageHandler());
-
-      // Set confirm handler for tool confirmations
-      // 设置工具确认处理器
-      this.pluginManager.setConfirmHandler(async (userId: string, platform: string, callId: string, value: string) => {
-        // 查找用户
-        // Find user
-        const db = getDatabase();
-        const userResult = db.getChannelUserByPlatform(userId, platform as PluginType);
-        if (!userResult.data) {
-          console.error(`[ChannelManager] User not found: ${userId}@${platform}`);
-          return;
-        }
-
-        // 查找 session 获取 conversationId
-        // Find session to get conversationId
-        const session = this.sessionManager?.getSession(userResult.data.id);
-        if (!session?.conversationId) {
-          console.error(`[ChannelManager] Session not found for user: ${userResult.data.id}`);
-          return;
-        }
-
-        // 调用 confirm
-        // Call confirm
-        try {
-          await getChannelMessageService().confirm(session.conversationId, callId, value);
-        } catch (error) {
-          console.error(`[ChannelManager] Tool confirmation failed:`, error);
-        }
-      });
+      this.botRegistry = new BotRegistry(this.sessionManager, this.pairingService);
 
       // Load and start enabled plugins from database
       await this.loadEnabledPlugins();
@@ -139,7 +105,7 @@ export class ChannelManager {
 
     try {
       // Stop all plugins
-      await this.pluginManager?.stopAll();
+      await this.botRegistry?.stopAll();
 
       // Stop pairing service cleanup interval
       this.pairingService?.stop();
@@ -148,10 +114,9 @@ export class ChannelManager {
       await getChannelMessageService().shutdown();
 
       // Cleanup
-      this.pluginManager = null;
+      this.botRegistry = null;
       this.sessionManager = null;
       this.pairingService = null;
-      this.actionExecutor = null;
 
       this.initialized = false;
       console.log('[ChannelManager] Shutdown complete');
@@ -214,10 +179,10 @@ export class ChannelManager {
    * Start a specific plugin
    */
   private async startPlugin(config: IChannelPluginConfig): Promise<void> {
-    if (!this.pluginManager) {
-      throw new Error('PluginManager not initialized');
+    if (!this.botRegistry) {
+      throw new Error('BotRegistry not initialized');
     }
-    await this.pluginManager.startPlugin(config);
+    await this.botRegistry.startBot(config);
   }
 
   /**
@@ -227,10 +192,11 @@ export class ChannelManager {
    */
   async enablePlugin(pluginId: string, config: Record<string, unknown>): Promise<{ success: boolean; error?: string }> {
     // Ensure manager is initialized
-    if (!this.initialized || !this.pluginManager) {
+    if (!this.initialized || !this.botRegistry) {
       console.error('[ChannelManager] Cannot enable plugin: manager not initialized');
       return { success: false, error: 'Assistant manager not initialized' };
     }
+    const botRegistry = this.botRegistry;
 
     const db = getDatabase();
 
@@ -245,23 +211,42 @@ export class ChannelManager {
 
     // Extract credentials based on plugin type
     if (pluginType === 'telegram') {
-      const token = config.token as string | undefined;
-      if (token) {
-        credentials = { token };
+      const token = typeof config.token === 'string' ? config.token.trim() : undefined;
+      const existingToken = typeof existing?.credentials?.token === 'string' ? existing.credentials.token.trim() : '';
+      const nextToken = token || existingToken;
+      if (nextToken) {
+        credentials = {
+          ...(existing?.credentials || {}),
+          token: nextToken,
+        };
       }
     } else if (pluginType === 'lark') {
-      const appId = config.appId as string | undefined;
-      const appSecret = config.appSecret as string | undefined;
-      const encryptKey = config.encryptKey as string | undefined;
-      const verificationToken = config.verificationToken as string | undefined;
-      if (appId && appSecret) {
-        credentials = { appId, appSecret, encryptKey, verificationToken };
+      const appId = typeof config.appId === 'string' ? config.appId.trim() : undefined;
+      const appSecret = typeof config.appSecret === 'string' ? config.appSecret.trim() : undefined;
+      const encryptKey = Object.prototype.hasOwnProperty.call(config, 'encryptKey') ? (typeof config.encryptKey === 'string' ? config.encryptKey.trim() : '') || undefined : existing?.credentials?.encryptKey;
+      const verificationToken = Object.prototype.hasOwnProperty.call(config, 'verificationToken') ? (typeof config.verificationToken === 'string' ? config.verificationToken.trim() : '') || undefined : existing?.credentials?.verificationToken;
+      const nextAppId = appId || (typeof existing?.credentials?.appId === 'string' ? existing.credentials.appId.trim() : '');
+      const nextAppSecret = appSecret || (typeof existing?.credentials?.appSecret === 'string' ? existing.credentials.appSecret.trim() : '');
+      if (nextAppId && nextAppSecret) {
+        credentials = {
+          ...(existing?.credentials || {}),
+          appId: nextAppId,
+          appSecret: nextAppSecret,
+          encryptKey,
+          verificationToken,
+        };
       }
     } else if (pluginType === 'dingtalk') {
-      const clientId = config.clientId as string | undefined;
-      const clientSecret = config.clientSecret as string | undefined;
-      if (clientId && clientSecret) {
-        credentials = { clientId, clientSecret };
+      const clientId = typeof config.clientId === 'string' ? config.clientId.trim() : undefined;
+      const clientSecret = typeof config.clientSecret === 'string' ? config.clientSecret.trim() : undefined;
+      const nextClientId = clientId || (typeof existing?.credentials?.clientId === 'string' ? existing.credentials.clientId.trim() : '');
+      const nextClientSecret = clientSecret || (typeof existing?.credentials?.clientSecret === 'string' ? existing.credentials.clientSecret.trim() : '');
+      if (nextClientId && nextClientSecret) {
+        credentials = {
+          ...(existing?.credentials || {}),
+          clientId: nextClientId,
+          clientSecret: nextClientSecret,
+        };
       }
     } else {
       // Extension or unknown plugin type:
@@ -318,6 +303,28 @@ export class ChannelManager {
       pluginRuntimeConfig = nextRuntimeConfig;
     }
 
+    if (pluginType === 'telegram') {
+      const currentToken = typeof credentials?.token === 'string' ? credentials.token.trim() : '';
+      if (!currentToken) {
+        return { success: false, error: 'Telegram bot token is required' };
+      }
+
+      const allPluginsResult = db.getChannelPlugins();
+      const allPlugins = allPluginsResult.data || [];
+      const conflictPlugin = allPlugins.find((plugin) => {
+        if (plugin.id === pluginId || plugin.type !== 'telegram' || !plugin.enabled) return false;
+        const otherToken = typeof plugin.credentials?.token === 'string' ? plugin.credentials.token.trim() : '';
+        return Boolean(otherToken) && otherToken === currentToken;
+      });
+
+      if (conflictPlugin) {
+        return {
+          success: false,
+          error: `Telegram token is already used by plugin ${conflictPlugin.id}. Please disable or delete that instance first.`,
+        };
+      }
+    }
+
     const pluginConfig: IChannelPluginConfig = {
       id: pluginId,
       type: pluginType,
@@ -351,7 +358,7 @@ export class ChannelManager {
 
     try {
       // Stop the plugin
-      await this.pluginManager?.stopPlugin(pluginId);
+      await this.botRegistry?.stopBot(pluginId);
 
       // Update database
       const existingResult = db.getChannelPlugin(pluginId);
@@ -376,7 +383,7 @@ export class ChannelManager {
    * For extension plugins that don't have a static testConnection method,
    * returns a generic "not supported" response.
    */
-  async testPlugin(pluginId: string, token: string, extraConfig?: { appId?: string; appSecret?: string }): Promise<{ success: boolean; botUsername?: string; error?: string }> {
+  async testPlugin(pluginId: string, token: string, extraConfig?: { appId?: string; appSecret?: string; clientId?: string; clientSecret?: string }): Promise<{ success: boolean; botUsername?: string; error?: string }> {
     const pluginType = this.getPluginTypeFromId(pluginId);
 
     if (pluginType === 'telegram') {
@@ -422,14 +429,23 @@ export class ChannelManager {
 
   /**
    * Get plugin type from plugin ID.
-   * For built-in plugins, derives from ID prefix. For others, returns the ID as type.
+   * For built-in plugins, derives from ID prefix (supports multi-instance IDs like 'telegram_work', 'lark_bot2').
+   * For extension plugins, returns the ID as type.
    */
   private getPluginTypeFromId(pluginId: string): PluginType {
-    if (pluginId.startsWith('telegram')) return 'telegram';
-    if (pluginId.startsWith('slack')) return 'slack';
-    if (pluginId.startsWith('discord')) return 'discord';
-    if (pluginId.startsWith('lark')) return 'lark';
-    if (pluginId.startsWith('dingtalk')) return 'dingtalk';
+    // Built-in patterns: match if ID starts with known type name followed by underscore or end of string
+    const builtinTypes: Array<[string, PluginType]> = [
+      ['telegram', 'telegram'],
+      ['slack', 'slack'],
+      ['discord', 'discord'],
+      ['lark', 'lark'],
+      ['dingtalk', 'dingtalk'],
+    ];
+    for (const [prefix, type] of builtinTypes) {
+      if (pluginId === prefix || pluginId.startsWith(`${prefix}_`)) {
+        return type;
+      }
+    }
     // Extension plugins: use pluginId as type (e.g., 'ext-feishu')
     return pluginId;
   }
@@ -483,8 +499,13 @@ export class ChannelManager {
    * Clears all cached sessions so the next incoming message re-evaluates
    * which conversation to use. For gemini type changes, also updates the
    * model field on existing conversations.
+   *
+   * @param platform - Platform type (e.g., 'telegram', 'lark')
+   * @param agent - Agent configuration
+   * @param model - Optional model configuration
+   * @param pluginId - Optional plugin instance ID for per-plugin settings sync
    */
-  async syncChannelSettings(platform: ChannelPlatform, agent: { backend: string; customAgentId?: string; name?: string }, model?: { id: string; useModel: string }): Promise<{ success: boolean; error?: string }> {
+  async syncChannelSettings(platform: ChannelPlatform, agent: { backend: string; customAgentId?: string; name?: string }, model?: { id: string; useModel: string }, pluginId?: string): Promise<{ success: boolean; error?: string }> {
     if (!this.initialized || !this.sessionManager) {
       return { success: false, error: 'Channel manager not initialized' };
     }
@@ -507,9 +528,9 @@ export class ChannelManager {
         }
       }
 
-      // Clear all sessions to force re-evaluation on next message
-      const cleared = this.sessionManager.clearAllSessions();
-      console.log(`[ChannelManager] syncChannelSettings: platform=${platform}, type=${newType}, cleared=${cleared}`);
+      // Clear only the affected sessions to keep multi-instance channels isolated.
+      const cleared = pluginId ? this.sessionManager.clearSessionsByPlugin(pluginId) : this.sessionManager.clearSessionsByPlatform(platform);
+      console.log(`[ChannelManager] syncChannelSettings: platform=${platform}, pluginId=${pluginId || '-'}, type=${newType}, cleared=${cleared}`);
 
       return { success: true };
     } catch (error: any) {
@@ -556,8 +577,8 @@ export class ChannelManager {
 
   // ==================== Accessors ====================
 
-  getPluginManager(): PluginManager | null {
-    return this.pluginManager;
+  getBotRegistry(): BotRegistry | null {
+    return this.botRegistry;
   }
 
   getSessionManager(): SessionManager | null {
@@ -566,10 +587,6 @@ export class ChannelManager {
 
   getPairingService(): PairingService | null {
     return this.pairingService;
-  }
-
-  getActionExecutor(): ActionExecutor | null {
-    return this.actionExecutor;
   }
 }
 

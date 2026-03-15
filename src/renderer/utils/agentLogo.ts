@@ -13,6 +13,7 @@
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
+import CoworkLogo from '@/renderer/assets/cowork.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
@@ -42,6 +43,7 @@ const AGENT_LOGO_MAP = {
   iflow: IflowLogo,
   codex: CodexLogo,
   codebuddy: CodeBuddyLogo,
+  cowork: CoworkLogo,
   droid: DroidLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,

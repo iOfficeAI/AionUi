@@ -128,6 +128,8 @@ export interface IChannelPluginStatus {
     extensionName?: string;
     /** Icon URL for the extension channel plugin */
     icon?: string;
+    /** Whether this extension channel supports multiple instances */
+    multiInstance?: boolean;
   };
 }
 
@@ -140,6 +142,7 @@ export interface IChannelUser {
   id: string;
   platformUserId: string;
   platformType: PluginType;
+  pluginId?: string; // Plugin instance ID that authorized this user
   displayName?: string;
   authorizedAt: number;
   lastActive?: number;
@@ -153,6 +156,7 @@ export interface IChannelUserRow {
   id: string;
   platform_user_id: string;
   platform_type: string;
+  plugin_id: string | null;
   display_name: string | null;
   authorized_at: number;
   last_active: number | null;
@@ -176,6 +180,7 @@ export interface IChannelSession {
   conversationId?: string;
   workspace?: string;
   chatId?: string; // Channel chat isolation ID (e.g. user:xxx, group:xxx)
+  pluginId?: string; // Plugin instance ID that initiated this session
   createdAt: number;
   lastActivity: number;
 }
@@ -190,6 +195,7 @@ export interface IChannelSessionRow {
   conversation_id: string | null;
   workspace: string | null;
   chat_id: string | null; // Channel chat isolation ID
+  plugin_id: string | null; // Plugin instance ID
   created_at: number;
   last_activity: number;
 }
@@ -208,6 +214,7 @@ export interface IChannelPairingRequest {
   code: string;
   platformUserId: string;
   platformType: PluginType;
+  pluginId?: string;
   displayName?: string;
   requestedAt: number;
   expiresAt: number;
@@ -221,6 +228,7 @@ export interface IChannelPairingCodeRow {
   code: string;
   platform_user_id: string;
   platform_type: string;
+  plugin_id: string | null;
   display_name: string | null;
   requested_at: number;
   expires_at: number;
@@ -285,12 +293,16 @@ export interface IMessageAction {
 export interface IUnifiedIncomingMessage {
   id: string;
   platform: PluginType;
+  /** Plugin instance ID (e.g., 'telegram_default', 'lark_bot2') for multi-instance routing */
+  pluginId: string;
   chatId: string;
   user: IUnifiedUser;
   content: IUnifiedMessageContent;
   timestamp: number;
   replyToMessageId?: string;
   action?: IMessageAction;
+  /** @mention targets extracted from the message text (e.g., ['@Gemini', '@Claude']) */
+  mentions?: string[];
   raw?: unknown;
 }
 
@@ -350,6 +362,7 @@ export interface IUnifiedAction {
   params?: Record<string, string>;
   context: {
     platform: PluginType;
+    pluginId: string;
     userId: string;
     chatId: string;
     messageId?: string;
@@ -411,6 +424,7 @@ export function rowToChannelUser(row: IChannelUserRow): IChannelUser {
     id: row.id,
     platformUserId: row.platform_user_id,
     platformType: row.platform_type as PluginType,
+    pluginId: row.plugin_id ?? `${row.platform_type}_default`,
     displayName: row.display_name ?? undefined,
     authorizedAt: row.authorized_at,
     lastActive: row.last_active ?? undefined,
@@ -426,6 +440,7 @@ export function channelUserToRow(user: IChannelUser): IChannelUserRow {
     id: user.id,
     platform_user_id: user.platformUserId,
     platform_type: user.platformType,
+    plugin_id: user.pluginId ?? `${user.platformType}_default`,
     display_name: user.displayName ?? null,
     authorized_at: user.authorizedAt,
     last_active: user.lastActive ?? null,
@@ -444,6 +459,7 @@ export function rowToChannelSession(row: IChannelSessionRow): IChannelSession {
     conversationId: row.conversation_id ?? undefined,
     workspace: row.workspace ?? undefined,
     chatId: row.chat_id ?? undefined,
+    pluginId: row.plugin_id ?? undefined,
     createdAt: row.created_at,
     lastActivity: row.last_activity,
   };
@@ -460,6 +476,7 @@ export function channelSessionToRow(session: IChannelSession): IChannelSessionRo
     conversation_id: session.conversationId ?? null,
     workspace: session.workspace ?? null,
     chat_id: session.chatId ?? null,
+    plugin_id: session.pluginId ?? null,
     created_at: session.createdAt,
     last_activity: session.lastActivity,
   };
@@ -473,6 +490,7 @@ export function rowToPairingRequest(row: IChannelPairingCodeRow): IChannelPairin
     code: row.code,
     platformUserId: row.platform_user_id,
     platformType: row.platform_type as PluginType,
+    pluginId: row.plugin_id ?? `${row.platform_type}_default`,
     displayName: row.display_name ?? undefined,
     requestedAt: row.requested_at,
     expiresAt: row.expires_at,
@@ -488,6 +506,7 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
     code: request.code,
     platform_user_id: request.platformUserId,
     platform_type: request.platformType,
+    plugin_id: request.pluginId ?? `${request.platformType}_default`,
     display_name: request.displayName ?? null,
     requested_at: request.requestedAt,
     expires_at: request.expiresAt,

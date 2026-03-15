@@ -5,6 +5,7 @@
  */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import type { ElectronShowOpenDialogOptions } from './types/electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from './adapter/constant';
 
 /**
@@ -37,6 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
+  dialogShowOpen: (options?: ElectronShowOpenDialogOptions) => ipcRenderer.invoke('dialog-direct-show-open', options),
   webuiResetPassword: () => ipcRenderer.invoke('webui-direct-reset-password'),
   webuiGetStatus: () => ipcRenderer.invoke('webui-direct-get-status'),
   // 修改密码不需要当前密码 / Change password without current password

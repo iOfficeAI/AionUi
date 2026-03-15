@@ -53,11 +53,47 @@ export class SessionManager {
   }
 
   /**
+   * Get all sessions for a user, optionally scoped to one plugin instance.
+   */
+  getSessionsForUser(userId: string, pluginId?: string): IChannelSession[] {
+    return Array.from(this.activeSessions.values()).filter((session) => {
+      if (session.userId !== userId) {
+        return false;
+      }
+      if (pluginId && session.pluginId !== pluginId) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Resolve the best session to use for a tool confirmation.
+   * Prefer the exact chat-scoped session; otherwise fall back to the most recently active
+   * session in the same plugin scope.
+   */
+  findConfirmationSession(userId: string, pluginId: string, chatId?: string): IChannelSession | null {
+    if (chatId) {
+      const exact = this.getSession(userId, chatId);
+      if (exact && exact.pluginId === pluginId) {
+        return exact;
+      }
+    }
+
+    const sessions = this.getSessionsForUser(userId, pluginId);
+    if (sessions.length === 0) {
+      return null;
+    }
+
+    return [...sessions].sort((a, b) => b.lastActivity - a.lastActivity)[0] ?? null;
+  }
+
+  /**
    * Get session by platform user (lookup user first, then get session)
    */
-  getSessionByPlatformUser(platformUserId: string, platformType: PluginType, chatId?: string): IChannelSession | null {
+  getSessionByPlatformUser(platformUserId: string, platformType: PluginType, pluginId?: string, chatId?: string): IChannelSession | null {
     const db = getDatabase();
-    const userResult = db.getChannelUserByPlatform(platformUserId, platformType);
+    const userResult = db.getChannelUserByPlatform(platformUserId, platformType, pluginId);
 
     if (!userResult.success || !userResult.data) {
       return null;
@@ -97,6 +133,7 @@ export class SessionManager {
       workspace,
       conversationId,
       chatId,
+      pluginId: user.pluginId,
       createdAt: now,
       lastActivity: now,
     };
@@ -107,8 +144,8 @@ export class SessionManager {
     // Update in-memory cache
     this.activeSessions.set(key, session);
 
-    // Update user's session reference
-    db.getChannelUserByPlatform(user.platformUserId, user.platformType);
+    // Touch user lookup in the same plugin scope for backward compatibility with legacy flows
+    db.getChannelUserByPlatform(user.platformUserId, user.platformType, user.pluginId);
 
     return session;
   }
@@ -187,13 +224,43 @@ export class SessionManager {
    * Used when channel settings change to force session re-evaluation on next message.
    */
   clearAllSessions(): number {
+    return this.clearSessionsByPredicate(() => true);
+  }
+
+  /**
+   * Clear all sessions for a specific plugin instance.
+   */
+  clearSessionsByPlugin(pluginId: string): number {
+    return this.clearSessionsByPredicate((session) => session.pluginId === pluginId);
+  }
+
+  /**
+   * Clear all sessions for a specific platform group.
+   * Builtin multi-instance plugins use the platform prefix in their plugin ID.
+   */
+  clearSessionsByPlatform(platform: PluginType): number {
+    return this.clearSessionsByPredicate((session) => {
+      const sessionPluginId = session.pluginId;
+      if (!sessionPluginId) {
+        return false;
+      }
+      return sessionPluginId === platform || sessionPluginId.startsWith(`${platform}_`);
+    });
+  }
+
+  private clearSessionsByPredicate(predicate: (session: IChannelSession) => boolean): number {
     const db = getDatabase();
     let cleared = 0;
+
     for (const [key, session] of this.activeSessions.entries()) {
+      if (!predicate(session)) {
+        continue;
+      }
       db.deleteChannelSession(session.id);
       this.activeSessions.delete(key);
       cleared++;
     }
+
     return cleared;
   }
 

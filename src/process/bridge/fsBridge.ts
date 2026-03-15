@@ -1044,6 +1044,7 @@ export function initFsBridge(): void {
     try {
       const homedir = os.homedir();
       const candidates = [
+        { name: 'CodeBuddy', path: path.join(homedir, '.codebuddy', 'skills') },
         { name: 'Gemini', path: path.join(homedir, '.gemini', 'skills') },
         { name: 'Claude', path: path.join(homedir, '.claude', 'skills') },
       ];

@@ -87,6 +87,7 @@ export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActio
     return {
       id: cardEvent.event?.token || Date.now().toString(),
       platform: 'lark',
+      pluginId: '', // Will be injected by BasePlugin message handler wrapper
       chatId,
       user: {
         id: userId,
@@ -120,6 +121,7 @@ export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActio
   return {
     id: message.message_id || Date.now().toString(),
     platform: 'lark',
+    pluginId: '', // Will be injected by BasePlugin message handler wrapper
     chatId: message.chat_id || userId,
     user,
     content,

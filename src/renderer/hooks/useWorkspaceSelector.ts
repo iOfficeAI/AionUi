@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { Message } from '@arco-design/web-react';
 import { emitter } from '@/renderer/utils/emitter';
+import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import { useTranslation } from 'react-i18next';
 import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
@@ -47,6 +48,7 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
       }
 
       // 手动刷新 SWR 缓存以及广播给工作区和会话列表 / Refresh SWR cache and notify workspace/history
+      updateWorkspaceTime(workspacePath);
       await mutate(`conversation/${conversationId}`, { ...conversation, extra: nextExtra }, false);
       emitter.emit(`${eventPrefix}.workspace.refresh`);
       emitter.emit('chat.history.refresh');

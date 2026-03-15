@@ -2,7 +2,8 @@ import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/SettingsModal/settingsViewContext';
-import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isElectronShellRuntime, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { getPageBuiltinSettingsTabIds } from '@/renderer/utils/settingsNavigation';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +22,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { t } = useTranslation();
-  const isDesktop = isElectronDesktop();
+  const isDesktop = isElectronShellRuntime();
 
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
 
@@ -37,16 +38,19 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   type NavItem = { label: string; icon: React.ReactElement; path: string; id: string };
 
   const menuItems = React.useMemo(() => {
-    const builtins: NavItem[] = [
-      { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
-      { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
-      { id: 'agent', label: t('settings.assistants', { defaultValue: 'Assistants' }), icon: <Robot theme='outline' size='16' />, path: 'agent' },
-      { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
-      { id: 'display', label: t('settings.display'), icon: <Computer theme='outline' size='16' />, path: 'display' },
-      { id: 'webui', label: t('settings.webui'), icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />, path: 'webui' },
-      { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
-      { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
-    ];
+    const builtinMap: Record<string, NavItem> = {
+      gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
+      model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
+      agent: { id: 'agent', label: t('settings.assistants', { defaultValue: 'Assistants' }), icon: <Robot theme='outline' size='16' />, path: 'agent' },
+      tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
+      display: { id: 'display', label: t('settings.display'), icon: <Computer theme='outline' size='16' />, path: 'display' },
+      webui: { id: 'webui', label: t('settings.webui'), icon: <Earth theme='outline' size='16' />, path: 'webui' },
+      channels: { id: 'channels', label: t('settings.channels'), icon: <Communication theme='outline' size='16' />, path: 'channels' },
+      system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
+      about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
+    };
+
+    const builtins: NavItem[] = getPageBuiltinSettingsTabIds(isDesktop).map((id) => builtinMap[id]);
 
     // Insert extension tabs before system (unanchored default) or at anchor position
     const result = [...builtins];

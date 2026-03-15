@@ -435,12 +435,30 @@ export class AionUIDatabase {
    * For ACP conversations, `backend` distinguishes between claude, iflow, codebuddy, etc.
    * (stored in `extra.backend` JSON field).
    */
-  findChannelConversation(source: ConversationSource, channelChatId: string, type: string, backend?: string, userId?: string): IQueryResult<TChatConversation | null> {
+  findChannelConversation(source: ConversationSource, channelChatId: string, type: string, backend?: string, userId?: string, pluginId?: string): IQueryResult<TChatConversation | null> {
     try {
       const finalUserId = userId || this.defaultUserId;
+      const defaultPluginId = `${source}_default`;
+      const allowLegacyDefaultConversation = pluginId === defaultPluginId ? 1 : 0;
 
       let row: IConversationRow | undefined;
-      if (backend) {
+      if (backend && pluginId) {
+        row = this.db
+          .prepare(
+            `
+            SELECT * FROM conversations
+            WHERE user_id = ? AND source = ? AND channel_chat_id = ? AND type = ?
+              AND json_extract(extra, '$.backend') = ?
+              AND (
+                json_extract(extra, '$.pluginId') = ?
+                OR (? = 1 AND json_extract(extra, '$.pluginId') IS NULL)
+              )
+            ORDER BY updated_at DESC
+            LIMIT 1
+          `
+          )
+          .get(finalUserId, source, channelChatId, type, backend, pluginId, allowLegacyDefaultConversation) as IConversationRow | undefined;
+      } else if (backend) {
         row = this.db
           .prepare(
             `
@@ -452,6 +470,21 @@ export class AionUIDatabase {
           `
           )
           .get(finalUserId, source, channelChatId, type, backend) as IConversationRow | undefined;
+      } else if (pluginId) {
+        row = this.db
+          .prepare(
+            `
+            SELECT * FROM conversations
+            WHERE user_id = ? AND source = ? AND channel_chat_id = ? AND type = ?
+              AND (
+                json_extract(extra, '$.pluginId') = ?
+                OR (? = 1 AND json_extract(extra, '$.pluginId') IS NULL)
+              )
+            ORDER BY updated_at DESC
+            LIMIT 1
+          `
+          )
+          .get(finalUserId, source, channelChatId, type, pluginId, allowLegacyDefaultConversation) as IConversationRow | undefined;
       } else {
         row = this.db
           .prepare(
@@ -932,9 +965,10 @@ export class AionUIDatabase {
   /**
    * Get assistant user by platform user ID
    */
-  getChannelUserByPlatform(platformUserId: string, platformType: PluginType): IQueryResult<IChannelUser | null> {
+  getChannelUserByPlatform(platformUserId: string, platformType: PluginType, pluginId?: string): IQueryResult<IChannelUser | null> {
     try {
-      const row = this.db.prepare('SELECT * FROM assistant_users WHERE platform_user_id = ? AND platform_type = ?').get(platformUserId, platformType) as IChannelUserRow | undefined;
+      const resolvedPluginId = pluginId ?? `${platformType}_default`;
+      const row = this.db.prepare('SELECT * FROM assistant_users WHERE platform_user_id = ? AND platform_type = ? AND plugin_id = ?').get(platformUserId, platformType, resolvedPluginId) as IChannelUserRow | undefined;
 
       return { success: true, data: row ? rowToChannelUser(row) : null };
     } catch (error: any) {
@@ -948,11 +982,11 @@ export class AionUIDatabase {
   createChannelUser(user: IChannelUser): IQueryResult<IChannelUser> {
     try {
       const stmt = this.db.prepare(`
-        INSERT INTO assistant_users (id, platform_user_id, platform_type, display_name, authorized_at, last_active, session_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO assistant_users (id, platform_user_id, platform_type, plugin_id, display_name, authorized_at, last_active, session_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(user.id, user.platformUserId, user.platformType, user.displayName ?? null, user.authorizedAt, user.lastActive ?? null, user.sessionId ?? null);
+      stmt.run(user.id, user.platformUserId, user.platformType, user.pluginId ?? `${user.platformType}_default`, user.displayName ?? null, user.authorizedAt, user.lastActive ?? null, user.sessionId ?? null);
 
       return { success: true, data: user };
     } catch (error: any) {
@@ -1023,17 +1057,18 @@ export class AionUIDatabase {
     try {
       const now = Date.now();
       const stmt = this.db.prepare(`
-        INSERT INTO assistant_sessions (id, user_id, agent_type, conversation_id, workspace, chat_id, created_at, last_activity)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO assistant_sessions (id, user_id, agent_type, conversation_id, workspace, chat_id, plugin_id, created_at, last_activity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           agent_type = excluded.agent_type,
           conversation_id = excluded.conversation_id,
           workspace = excluded.workspace,
           chat_id = excluded.chat_id,
+          plugin_id = excluded.plugin_id,
           last_activity = excluded.last_activity
       `);
 
-      stmt.run(session.id, session.userId, session.agentType, session.conversationId ?? null, session.workspace ?? null, session.chatId ?? null, session.createdAt || now, session.lastActivity || now);
+      stmt.run(session.id, session.userId, session.agentType, session.conversationId ?? null, session.workspace ?? null, session.chatId ?? null, session.pluginId ?? null, session.createdAt || now, session.lastActivity || now);
 
       return { success: true, data: true };
     } catch (error: any) {
@@ -1091,11 +1126,11 @@ export class AionUIDatabase {
   createPairingRequest(request: IChannelPairingRequest): IQueryResult<IChannelPairingRequest> {
     try {
       const stmt = this.db.prepare(`
-        INSERT INTO assistant_pairing_codes (code, platform_user_id, platform_type, display_name, requested_at, expires_at, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO assistant_pairing_codes (code, platform_user_id, platform_type, plugin_id, display_name, requested_at, expires_at, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(request.code, request.platformUserId, request.platformType, request.displayName ?? null, request.requestedAt, request.expiresAt, request.status);
+      stmt.run(request.code, request.platformUserId, request.platformType, request.pluginId ?? `${request.platformType}_default`, request.displayName ?? null, request.requestedAt, request.expiresAt, request.status);
 
       return { success: true, data: request };
     } catch (error: any) {

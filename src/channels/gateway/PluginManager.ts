@@ -16,6 +16,14 @@ import type { IChannelPluginConfig, IChannelPluginStatus, IUnifiedIncomingMessag
 type PluginConstructor = new () => BasePlugin;
 const pluginRegistry: Map<PluginType, PluginConstructor> = new Map();
 
+export function createPluginInstance(type: PluginType): BasePlugin {
+  const Constructor = pluginRegistry.get(type);
+  if (!Constructor) {
+    throw new Error(`Unknown plugin type: ${type}`);
+  }
+  return new Constructor();
+}
+
 /**
  * Register a plugin type
  * Called during initialization to register available plugins
@@ -109,6 +117,13 @@ export class PluginManager {
    */
   getAllPlugins(): BasePlugin[] {
     return Array.from(this.plugins.values());
+  }
+
+  /**
+   * Get all active plugins of a specific type (for multi-instance support)
+   */
+  getPluginsByType(type: string): BasePlugin[] {
+    return Array.from(this.plugins.values()).filter((p) => p.type === type);
   }
 
   /**
@@ -263,7 +278,7 @@ export class PluginManager {
       type: config.type,
       name: config.name,
       enabled: config.enabled,
-      connected: plugin?.status === 'running',
+      connected: plugin?.isConnected() ?? false,
       status: plugin?.status ?? config.status,
       lastConnected: config.lastConnected,
       error: errorMessage,

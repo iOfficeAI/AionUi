@@ -5,6 +5,7 @@
  */
 
 import type { IChannelPluginConfig, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType, PluginStatus } from '../types';
+import { parseMentions } from '../utils/mentionParser';
 
 /**
  * Plugin event handler type
@@ -16,10 +17,11 @@ export type PluginMessageHandler = (message: IUnifiedIncomingMessage) => Promise
  * 工具确认处理器类型
  * @param userId - Platform user ID
  * @param platform - Platform type (telegram, etc.)
+ * @param pluginId - Plugin instance ID
  * @param callId - Tool call ID
  * @param value - Confirmation value
  */
-export type PluginConfirmHandler = (userId: string, platform: string, callId: string, value: string) => Promise<void>;
+export type PluginConfirmHandler = (userId: string, platform: string, pluginId: string, chatId: string | undefined, callId: string, value: string) => Promise<void>;
 
 /**
  * BasePlugin - Abstract base class for all platform plugins
@@ -80,6 +82,14 @@ export abstract class BasePlugin {
    */
   get error(): string | null {
     return this.errorMessage;
+  }
+
+  /**
+   * Whether the plugin transport is currently connected.
+   * Subclasses can override this when runtime connectivity differs from lifecycle status.
+   */
+  isConnected(): boolean {
+    return this._status === 'running';
   }
 
   /**
@@ -157,11 +167,29 @@ export abstract class BasePlugin {
   }
 
   /**
-   * Register message handler
-   * Called by PluginManager to set the callback for incoming messages
+   * Register message handler.
+   * Called by PluginManager to set the callback for incoming messages.
+   * The handler is wrapped to auto-inject pluginId and parse @mentions for multi-instance/multi-agent support.
    */
   onMessage(handler: PluginMessageHandler): void {
-    this.messageHandler = handler;
+    // Wrap handler to auto-inject pluginId and parse @mentions
+    this.messageHandler = async (message: IUnifiedIncomingMessage) => {
+      let enriched = message.pluginId ? message : { ...message, pluginId: this.pluginId };
+
+      // Parse @mentions from text content (only for text messages without pre-existing mentions)
+      // Keep original text unchanged for backward compatibility in single-chat mode.
+      if (!enriched.mentions && enriched.content.type === 'text' && enriched.content.text) {
+        const parsed = parseMentions(enriched.content.text);
+        if (parsed.hasMentions) {
+          enriched = {
+            ...enriched,
+            mentions: parsed.mentions.map((m) => m.name),
+          };
+        }
+      }
+
+      return handler(enriched);
+    };
   }
 
   /**
@@ -174,8 +202,16 @@ export abstract class BasePlugin {
   }
 
   /**
+   * Get the plugin instance ID (from config)
+   */
+  get pluginId(): string {
+    return this.config?.id ?? `${this.type}_default`;
+  }
+
+  /**
    * Emit an incoming message to the handler
-   * Called by subclass when a message is received from the platform
+   * Called by subclass when a message is received from the platform.
+   * pluginId is automatically injected by the wrapped messageHandler (see onMessage).
    */
   protected async emitMessage(message: IUnifiedIncomingMessage): Promise<void> {
     if (this.messageHandler) {

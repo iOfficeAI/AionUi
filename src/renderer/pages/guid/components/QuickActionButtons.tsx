@@ -5,11 +5,13 @@
  */
 
 import { webui } from '@/common/ipcBridge';
-import { Earth } from '@icon-park/react';
+import { Communication, Earth } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import styles from '../index.module.css';
+import { isElectronShellRuntime } from '@/renderer/utils/platform';
+import { getConnectivitySettingsPath } from '@/renderer/utils/settingsNavigation';
 
 type QuickActionButtonsProps = {
   onOpenLink: (url: string) => void;
@@ -28,10 +30,15 @@ let webuiStatusCache: {
 const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, inactiveBorderColor, activeShadow }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isDesktopRuntime = isElectronShellRuntime();
   const [hoveredQuickAction, setHoveredQuickAction] = useState<'feedback' | 'repo' | 'webui' | null>(null);
   const [webuiQuickStatus, setWebuiQuickStatus] = useState<WebuiQuickStatus>('checking');
 
   useEffect(() => {
+    if (!isDesktopRuntime) {
+      return;
+    }
+
     let alive = true;
     const loadStatus = async () => {
       const now = Date.now();
@@ -70,7 +77,7 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
       alive = false;
       unsubscribe();
     };
-  }, []);
+  }, [isDesktopRuntime]);
 
   const quickActionStyle = useCallback(
     (isActive: boolean) => ({
@@ -83,11 +90,12 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
   );
 
   const handleOpenWebUI = useCallback(() => {
-    void navigate('/settings/webui');
-  }, [navigate]);
+    void navigate(getConnectivitySettingsPath(isDesktopRuntime));
+  }, [isDesktopRuntime, navigate]);
 
   const webuiStatusLabel = webuiQuickStatus === 'running' ? t('settings.webui.running', { defaultValue: 'Running' }) : webuiQuickStatus === 'checking' ? t('settings.webui.starting', { defaultValue: 'Checking' }) : webuiQuickStatus === 'error' ? t('settings.webui.operationFailed', { defaultValue: 'Unavailable' }) : t('settings.webui.enable', { defaultValue: 'Start' });
   const webuiIconColor = webuiQuickStatus === 'running' ? 'rgb(var(--success-6))' : webuiQuickStatus === 'checking' ? 'rgb(var(--primary-6))' : webuiQuickStatus === 'error' ? 'var(--color-text-3)' : 'var(--color-text-4)';
+  const connectivityLabel = isDesktopRuntime ? `${t('settings.webui', { defaultValue: 'WebUI' })} · ${webuiStatusLabel}` : t('settings.channels', { defaultValue: 'Channels' });
 
   return (
     <div className={`absolute left-50% -translate-x-1/2 flex flex-col justify-center items-center ${styles.guidQuickActions}`}>
@@ -112,13 +120,9 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ onOpenLink, ina
         </div>
         <div className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-200px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out' style={quickActionStyle(hoveredQuickAction === 'webui')} onMouseEnter={() => setHoveredQuickAction('webui')} onMouseLeave={() => setHoveredQuickAction(null)} onClick={handleOpenWebUI}>
           <div className='relative w-20px h-20px flex-shrink-0 leading-none'>
-            <div className='absolute inset-0 flex items-center justify-center'>
-              <Earth theme='outline' size={20} fill='currentColor' className='block transition-colors duration-360' style={{ color: webuiIconColor }} />
-            </div>
+            <div className='absolute inset-0 flex items-center justify-center'>{isDesktopRuntime ? <Earth theme='outline' size={20} fill='currentColor' className='block transition-colors duration-360' style={{ color: webuiIconColor }} /> : <Communication theme='outline' size={20} fill='currentColor' className='block transition-colors duration-360' style={{ color: 'rgb(var(--primary-6))' }} />}</div>
           </div>
-          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-160px transition-all duration-360 ease-in-out'>
-            {t('settings.webui', { defaultValue: 'WebUI' })} · {webuiStatusLabel}
-          </span>
+          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-160px transition-all duration-360 ease-in-out'>{connectivityLabel}</span>
         </div>
       </div>
     </div>

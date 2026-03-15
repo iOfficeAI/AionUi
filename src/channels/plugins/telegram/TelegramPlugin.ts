@@ -365,7 +365,7 @@ export class TelegramPlugin extends BasePlugin {
         const value = parts.slice(2).join(':'); // value 可能包含冒号
         // 直接调用 confirmHandler，不通过 messageHandler
         // Call confirmHandler directly, not through messageHandler
-        void this.confirmHandler(userId, 'telegram', callId, value)
+        void this.confirmHandler(userId, 'telegram', this.pluginId, ctx.chat?.id?.toString(), callId, value)
           .then(async () => {
             // 确认成功后移除按钮
             // Remove buttons after confirmation success
@@ -573,8 +573,18 @@ export class TelegramPlugin extends BasePlugin {
   /**
    * Handle polling errors with exponential backoff reconnection
    */
-  private async handlePollingError(_error: unknown): Promise<void> {
+  private async handlePollingError(error: unknown): Promise<void> {
     if (this.status !== 'running') return;
+
+    const errorMessage = error instanceof Error ? error.message : String(error || 'Unknown polling error');
+    const isTelegramConflict409 = error instanceof GrammyError && error.error_code === 409;
+
+    if (isTelegramConflict409) {
+      const finalMessage = 'Telegram polling conflict (409): this token is already used by another running bot instance.';
+      console.error(`[TelegramPlugin] ${finalMessage}`, error);
+      this.setStatus('error', finalMessage);
+      return;
+    }
 
     this.reconnectAttempts++;
 
@@ -600,6 +610,7 @@ export class TelegramPlugin extends BasePlugin {
         await this.startPolling();
         this.reconnectAttempts = 0;
       } catch (retryError) {
+        console.error('[TelegramPlugin] Polling retry failed:', errorMessage);
         await this.handlePollingError(retryError);
       }
     }

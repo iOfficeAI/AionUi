@@ -13,6 +13,7 @@
         "description": "企业微信 Bot 模式示例：加密回调 + 流式轮询响应。注意：仅开启 WebUI 远程访问(LAN)通常不足以通过企微回调校验，生产需公网 HTTPS 地址。",
         "icon": "assets/ext-wecom-bot.svg",
         "entryPoint": "channels/ext-wecom-bot-channel.js",
+        "multiInstance": true,
         "credentialFields": [
           {
             "key": "token",

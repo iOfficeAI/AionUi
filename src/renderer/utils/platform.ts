@@ -18,6 +18,14 @@ export const isElectronDesktop = (): boolean => {
 };
 
 /**
+ * Check if the current renderer is hosted by Electron.
+ * 检测当前渲染进程是否由 Electron 承载。
+ */
+export const isElectronShellRuntime = (): boolean => {
+  return typeof window !== 'undefined' && Boolean(window.electronAPI) && typeof navigator !== 'undefined' && /electron/i.test(navigator.userAgent);
+};
+
+/**
  * Check if running on macOS
  * 检测是否运行在 macOS
  */

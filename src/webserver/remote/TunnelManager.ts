@@ -25,8 +25,7 @@ class CloudflareTunnelAdapter implements TunnelAdapter {
     }
 
     return {
-      message:
-        'Cloudflare adapter is ready, but no public URL is configured. Set AIONUI_REMOTE_PUBLIC_URL or implement cloudflared process bootstrap.',
+      message: 'Cloudflare adapter is ready, but no public URL is configured. Set AIONUI_REMOTE_PUBLIC_URL or implement cloudflared process bootstrap.',
     };
   }
 

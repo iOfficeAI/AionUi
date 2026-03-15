@@ -61,7 +61,7 @@ export class DingTalkPlugin extends BasePlugin {
   readonly type: PluginType = 'dingtalk';
 
   private client: DWClient | null = null;
-  private isConnected: boolean = false;
+  private connectedState = false;
 
   // Credentials
   private clientId: string = '';
@@ -152,7 +152,7 @@ export class DingTalkPlugin extends BasePlugin {
 
       // Connect
       await this.client.connect();
-      this.isConnected = true;
+      this.connectedState = true;
 
       // Start event cache cleanup timer
       this.startEventCleanup();
@@ -184,7 +184,7 @@ export class DingTalkPlugin extends BasePlugin {
     this.processedEvents.clear();
     this.aiCardSessions.clear();
     this.webhookCache.clear();
-    this.isConnected = false;
+    this.connectedState = false;
 
     console.log('[DingTalkPlugin] Stopped and cleaned up');
   }
@@ -205,6 +205,10 @@ export class DingTalkPlugin extends BasePlugin {
       id: this.clientId,
       displayName: 'Aion Assistant',
     };
+  }
+
+  override isConnected(): boolean {
+    return this.connectedState;
   }
 
   /**
@@ -385,7 +389,16 @@ export class DingTalkPlugin extends BasePlugin {
       // Handle tool confirmation specially
       if (actionInfo.name === 'system.confirm' && actionInfo.params?.callId && actionInfo.params?.value) {
         if (this.confirmHandler) {
-          void this.confirmHandler(userId, 'dingtalk', actionInfo.params.callId, actionInfo.params.value).catch((error) => {
+          const confirmChatId = encodeChatId({
+            senderStaffId: userId,
+            senderNick: `User ${userId.slice(-6)}`,
+            msgId: streamMessageId,
+            conversationType: data.conversationType || '1',
+            conversationId: data.conversationId,
+            chatbotUserId: data.chatbotUserId,
+            createAt: Date.now(),
+          });
+          void this.confirmHandler(userId, 'dingtalk', this.pluginId, confirmChatId, actionInfo.params.callId, actionInfo.params.value).catch((error) => {
             console.error('[DingTalkPlugin] Confirm handler error:', error);
           });
         }

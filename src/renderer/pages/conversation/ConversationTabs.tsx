@@ -19,6 +19,7 @@ import { useConversationTabs } from './context/ConversationTabsContext';
 import { useConversationAgents } from './hooks/useConversationAgents';
 import { applyDefaultConversationName } from './utils/newConversationName';
 import { buildCliAgentParams, buildPresetAssistantParams } from './utils/createConversationParams';
+import { buildConversationHandoffMessage, persistInitialConversationMessage } from './utils/contextHandoff';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { iconColors } from '@/renderer/theme/colors';
 
@@ -169,13 +170,18 @@ const ConversationTabs: React.FC = () => {
   // 创建新会话 - 通过下拉菜单选择 Agent/助手后创建
   const handleCreateConversation = useCallback(
     async (key: string) => {
-      const currentTab = openTabs.find((tab) => tab.id === activeTabId);
-      if (!currentTab?.workspace) {
+      if (!activeTabId) {
         void navigate('/guid');
         return;
       }
 
-      const workspace = currentTab.workspace;
+      const sourceConversation = await ipcBridge.conversation.get.invoke({ id: activeTabId }).catch((): undefined => undefined);
+      const workspace = sourceConversation?.extra?.workspace || openTabs.find((tab) => tab.id === activeTabId)?.workspace;
+
+      if (!workspace) {
+        void navigate('/guid');
+        return;
+      }
 
       try {
         // [BUG-3] Build params inside try block: getDefaultGeminiModel() may throw if no model configured
@@ -203,11 +209,18 @@ const ConversationTabs: React.FC = () => {
           return;
         }
 
-        // Use conversation.create (calls ConversationService) not createWithConversation (direct DB insert)
         const newConversation = await ipcBridge.conversation.create.invoke(applyDefaultConversationName(params, defaultConversationName));
 
-        // [BUG-5] Order matters: closeAllTabs() must come before openTab() to prevent append behavior
-        closeAllTabs();
+        const handoffMessage = sourceConversation
+          ? await buildConversationHandoffMessage({
+              sourceConversationId: sourceConversation.id,
+            })
+          : '';
+
+        persistInitialConversationMessage(newConversation, {
+          input: handoffMessage,
+        });
+
         updateWorkspaceTime(workspace);
         openTab(newConversation);
         void navigate(`/conversation/${newConversation.id}`);
@@ -218,7 +231,7 @@ const ConversationTabs: React.FC = () => {
         Message.error(t('conversation.createFailed'));
       }
     },
-    [navigate, openTabs, activeTabId, cliAgents, presetAssistants, closeAllTabs, openTab, t, i18n.language, defaultConversationName]
+    [navigate, activeTabId, openTabs, cliAgents, presetAssistants, openTab, t, i18n.language, defaultConversationName]
   );
 
   // 渲染 Agent 下拉菜单

@@ -5,3 +5,4 @@
  */
 
 export * from './credentialCrypto';
+export * from './mentionParser';

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { PairingService } from '../pairing/PairingService';
 import type { ActionCategory, IChannelUser, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 
 /**
@@ -13,6 +14,9 @@ export interface IActionContext {
   // Platform information
   platform: PluginType;
   pluginId: string;
+
+  // Runtime services
+  pairingService: PairingService;
 
   // User information (from message)
   userId: string;

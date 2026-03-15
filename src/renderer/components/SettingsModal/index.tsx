@@ -7,16 +7,18 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
-import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { isElectronShellRuntime, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { getModalBuiltinSettingsTabIds, resolveSettingsTabForRuntime } from '@/renderer/utils/settingsNavigation';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/useExtI18n';
 import { Tabs } from '@arco-design/web-react';
-import { Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
+import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AboutModalContent from './contents/AboutModalContent';
 import AgentModalContent from './contents/AgentModalContent';
+import ChannelModalContent from './contents/ChannelModalContent';
 import ExtensionSettingsTabContent from './contents/ExtensionSettingsTabContent';
 import GeminiModalContent from './contents/GeminiModalContent';
 import ModelModalContent from './contents/ModelModalContent';
@@ -54,7 +56,7 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 内置设置标签页类型 / Built-in settings tab type
  */
-export type BuiltinSettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'webui' | 'system' | 'about';
+export type BuiltinSettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'webui' | 'channels' | 'system' | 'about';
 
 /**
  * 设置标签页类型（内置 + 扩展）/ Settings tab type (built-in + extension)
@@ -175,7 +177,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   }, [visible]);
 
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
-  const isDesktop = isElectronDesktop();
+  const isDesktop = isElectronShellRuntime();
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const runtimeTab = resolveSettingsTabForRuntime(defaultTab as BuiltinSettingTab, isDesktop);
+    setActiveTab(runtimeTab);
+  }, [defaultTab, isDesktop, visible]);
 
   const { resolveExtTabName } = useExtI18n();
 
@@ -193,22 +204,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const menuItems = useMemo((): Array<{ key: SettingTab; label: string; icon: React.ReactNode }> => {
     type MenuItem = { key: string; label: string; icon: React.ReactNode };
 
-    // Modal built-in tabs (subset — no display/agent route pages)
-    const builtinItems: MenuItem[] = [
-      { key: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='20' fill={iconColors.secondary} /> },
-      { key: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} /> },
-      { key: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} /> },
-    ];
+    const builtinMap: Record<string, MenuItem> = {
+      gemini: { key: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='20' fill={iconColors.secondary} /> },
+      model: { key: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} /> },
+      tools: { key: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} /> },
+      webui: { key: 'webui', label: t('settings.webui'), icon: <Earth theme='outline' size='20' fill={iconColors.secondary} /> },
+      channels: { key: 'channels', label: t('settings.channels'), icon: <Communication theme='outline' size='20' fill={iconColors.secondary} /> },
+      system: { key: 'system', label: t('settings.system'), icon: <Computer theme='outline' size='20' fill={iconColors.secondary} /> },
+      about: { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> },
+    };
 
-    if (isDesktop) {
-      builtinItems.push({
-        key: 'webui',
-        label: t('settings.webui'),
-        icon: <Earth theme='outline' size='20' fill={iconColors.secondary} />,
-      });
-    }
-
-    builtinItems.push({ key: 'system', label: t('settings.system'), icon: <Computer theme='outline' size='20' fill={iconColors.secondary} /> }, { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> });
+    const builtinItems: MenuItem[] = getModalBuiltinSettingsTabIds(isDesktop).map((id) => builtinMap[id]);
 
     // Extension tabs — position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -292,6 +298,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return <ToolsModalContent />;
       case 'webui':
         return <WebuiModalContent />;
+      case 'channels':
+        return <ChannelModalContent />;
       case 'system':
         return <SystemModalContent />;
       case 'about':

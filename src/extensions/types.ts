@@ -251,6 +251,8 @@ export const ExtChannelPluginSchema = z.object({
   description: z.string().optional(),
   icon: z.string().optional(),
   entryPoint: z.string().min(1, 'entryPoint is required'),
+  /** Whether this extension channel supports creating multiple plugin instances */
+  multiInstance: z.boolean().optional(),
   credentialFields: z.array(ExtFieldSchema).optional(),
   configFields: z.array(ExtFieldSchema).optional(),
 });

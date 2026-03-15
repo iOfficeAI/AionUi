@@ -134,8 +134,18 @@ export const starOffice = {
   detectUrl: bridge.buildProvider<IBridgeResponse<{ url: string | null }>, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>('star-office.detect-url'),
 };
 
+const legacyShowOpenBridge = bridge.buildProvider<string[] | undefined, { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] } | undefined>('show-open');
+
 export const dialog = {
-  showOpen: bridge.buildProvider<string[] | undefined, { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] } | undefined>('show-open'), // 打开文件/文件夹选择窗口
+  showOpen: {
+    invoke: (options?: { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }) => {
+      if (typeof window !== 'undefined' && window.electronAPI?.dialogShowOpen) {
+        return window.electronAPI.dialogShowOpen(options);
+      }
+      return legacyShowOpenBridge.invoke(options);
+    },
+    provider: (handler: Parameters<typeof legacyShowOpenBridge.provider>[0]) => legacyShowOpenBridge.provider(handler),
+  }, // 打开文件/文件夹选择窗口
 };
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
@@ -711,22 +721,41 @@ export const channel = {
   testPlugin: bridge.buildProvider<IBridgeResponse<{ success: boolean; botUsername?: string; error?: string }>, { pluginId: string; token: string; extraConfig?: { appId?: string; appSecret?: string } }>('channel.test-plugin'),
 
   // Pairing Management
-  getPendingPairings: bridge.buildProvider<IBridgeResponse<IChannelPairingRequest[]>, void>('channel.get-pending-pairings'),
+  getPendingPairings: bridge.buildProvider<IBridgeResponse<IChannelPairingRequest[]>, { pluginId?: string; platformType?: string }>('channel.get-pending-pairings'),
   approvePairing: bridge.buildProvider<IBridgeResponse, { code: string }>('channel.approve-pairing'),
   rejectPairing: bridge.buildProvider<IBridgeResponse, { code: string }>('channel.reject-pairing'),
 
   // User Management
-  getAuthorizedUsers: bridge.buildProvider<IBridgeResponse<IChannelUser[]>, void>('channel.get-authorized-users'),
+  getAuthorizedUsers: bridge.buildProvider<IBridgeResponse<IChannelUser[]>, { pluginId?: string; platformType?: string }>('channel.get-authorized-users'),
   revokeUser: bridge.buildProvider<IBridgeResponse, { userId: string }>('channel.revoke-user'),
 
   // Session Management (MVP: read-only view)
   getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
 
   // Settings Sync
-  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: string; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
+  syncChannelSettings: bridge.buildProvider<
+    IBridgeResponse,
+    {
+      platform: string;
+      agent: { backend: string; customAgentId?: string; name?: string };
+      model?: { id: string; useModel: string };
+      pluginId?: string;
+      change?: 'agent' | 'model' | 'chatMode' | 'workspace';
+    }
+  >('channel.sync-channel-settings'),
+
+  // Plugin Instances
+  createPluginInstance: bridge.buildProvider<IBridgeResponse<{ pluginId: string }>, { platform?: 'telegram' | 'lark' | 'dingtalk'; pluginType?: string }>('channel.create-plugin-instance'),
+  renamePluginInstance: bridge.buildProvider<IBridgeResponse, { pluginId: string; pluginType?: string; name: string }>('channel.rename-plugin-instance'),
+  deletePluginInstance: bridge.buildProvider<IBridgeResponse, { pluginId: string }>('channel.delete-plugin-instance'),
 
   // Events
   pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),
   pluginStatusChanged: bridge.buildEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
+  settingsChanged: bridge.buildEmitter<{
+    platformType: string;
+    pluginId?: string;
+    change: 'agent' | 'model' | 'chatMode' | 'workspace' | 'plugin-instance-created' | 'plugin-instance-renamed' | 'plugin-instance-deleted' | 'pairings' | 'authorized-users';
+  }>('channel.settings-changed'),
 };

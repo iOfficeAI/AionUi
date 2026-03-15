@@ -32,6 +32,7 @@ import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
+import { buildConversationHandoffMessage, persistInitialConversationMessage } from '@/renderer/pages/conversation/utils/contextHandoff';
 
 const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
   claude: ClaudeLogo,
@@ -135,18 +136,14 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
           return;
         }
 
-        // Store initial message for the new conversation to send automatically
-        // 存储初始消息，让新会话自动发送
-        if (initialMessage) {
-          const messageData = { input: initialMessage, files: [] as string[] };
-          if (isGemini) {
-            sessionStorage.setItem(`gemini_initial_message_${newConversation.id}`, JSON.stringify(messageData));
-          } else if (isCodex) {
-            sessionStorage.setItem(`codex_initial_message_${newConversation.id}`, JSON.stringify(messageData));
-          } else {
-            sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(messageData));
-          }
-        }
+        const handoffMessage = await buildConversationHandoffMessage({
+          sourceConversationId: conversationId,
+          latestUserMessage: initialMessage,
+        });
+
+        persistInitialConversationMessage(newConversation, {
+          input: handoffMessage,
+        });
 
         // Show success notification and navigate
         Message.success(

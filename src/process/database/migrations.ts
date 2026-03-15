@@ -900,13 +900,124 @@ const migration_v15: IMigration = {
 };
 
 /**
+ * Migration v15 -> v16: Scope assistant users/pairings/sessions by plugin instance
+ */
+const migration_v16: IMigration = {
+  version: 16,
+  name: 'Scope channel auth data by plugin instance',
+  up: (db) => {
+    const userTableInfo = db.prepare('PRAGMA table_info(assistant_users)').all() as Array<{ name: string }>;
+    const pairingTableInfo = db.prepare('PRAGMA table_info(assistant_pairing_codes)').all() as Array<{ name: string }>;
+    const sessionTableInfo = db.prepare('PRAGMA table_info(assistant_sessions)').all() as Array<{ name: string }>;
+
+    const hasUserPluginId = userTableInfo.some((col) => col.name === 'plugin_id');
+    const hasPairingPluginId = pairingTableInfo.some((col) => col.name === 'plugin_id');
+    const hasSessionPluginId = sessionTableInfo.some((col) => col.name === 'plugin_id');
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_users_new (
+        id TEXT PRIMARY KEY,
+        platform_user_id TEXT NOT NULL,
+        platform_type TEXT NOT NULL,
+        plugin_id TEXT NOT NULL,
+        display_name TEXT,
+        authorized_at INTEGER NOT NULL,
+        last_active INTEGER,
+        session_id TEXT,
+        UNIQUE(platform_user_id, platform_type, plugin_id)
+      );
+    `);
+
+    if (hasUserPluginId) {
+      db.exec(`
+        INSERT OR IGNORE INTO assistant_users_new (id, platform_user_id, platform_type, plugin_id, display_name, authorized_at, last_active, session_id)
+        SELECT id, platform_user_id, platform_type, COALESCE(plugin_id, platform_type || '_default'), display_name, authorized_at, last_active, session_id
+        FROM assistant_users;
+      `);
+    } else {
+      db.exec(`
+        INSERT OR IGNORE INTO assistant_users_new (id, platform_user_id, platform_type, plugin_id, display_name, authorized_at, last_active, session_id)
+        SELECT id, platform_user_id, platform_type, platform_type || '_default', display_name, authorized_at, last_active, session_id
+        FROM assistant_users;
+      `);
+    }
+
+    db.exec(`
+      DROP TABLE IF EXISTS assistant_users;
+      ALTER TABLE assistant_users_new RENAME TO assistant_users;
+      CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, plugin_id, platform_user_id);
+      CREATE INDEX IF NOT EXISTS idx_assistant_users_plugin ON assistant_users(plugin_id, authorized_at DESC);
+    `);
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_pairing_codes_new (
+        code TEXT PRIMARY KEY,
+        platform_user_id TEXT NOT NULL,
+        platform_type TEXT NOT NULL,
+        plugin_id TEXT NOT NULL,
+        display_name TEXT,
+        requested_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'expired'))
+      );
+    `);
+
+    if (hasPairingPluginId) {
+      db.exec(`
+        INSERT OR IGNORE INTO assistant_pairing_codes_new (code, platform_user_id, platform_type, plugin_id, display_name, requested_at, expires_at, status)
+        SELECT code, platform_user_id, platform_type, COALESCE(plugin_id, platform_type || '_default'), display_name, requested_at, expires_at, status
+        FROM assistant_pairing_codes;
+      `);
+    } else {
+      db.exec(`
+        INSERT OR IGNORE INTO assistant_pairing_codes_new (code, platform_user_id, platform_type, plugin_id, display_name, requested_at, expires_at, status)
+        SELECT code, platform_user_id, platform_type, platform_type || '_default', display_name, requested_at, expires_at, status
+        FROM assistant_pairing_codes;
+      `);
+    }
+
+    db.exec(`
+      DROP TABLE IF EXISTS assistant_pairing_codes;
+      ALTER TABLE assistant_pairing_codes_new RENAME TO assistant_pairing_codes;
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_expires ON assistant_pairing_codes(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_status ON assistant_pairing_codes(status);
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_plugin ON assistant_pairing_codes(platform_type, plugin_id, status, expires_at);
+    `);
+
+    if (!hasSessionPluginId) {
+      db.exec(`ALTER TABLE assistant_sessions ADD COLUMN plugin_id TEXT;`);
+    }
+
+    db.exec(`
+      UPDATE assistant_sessions
+      SET plugin_id = COALESCE(
+        plugin_id,
+        (
+          SELECT assistant_users.plugin_id
+          FROM assistant_users
+          WHERE assistant_users.id = assistant_sessions.user_id
+        )
+      )
+      WHERE plugin_id IS NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_plugin ON assistant_sessions(plugin_id, last_activity DESC);
+    `);
+
+    console.log('[Migration v16] Scoped channel auth data by plugin instance');
+  },
+  down: (_db) => {
+    console.warn('[Migration v16] Rollback skipped to avoid merging plugin-scoped auth records.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14, migration_v15,
+  migration_v13, migration_v14, migration_v15, migration_v16,
 ];
 
 /**

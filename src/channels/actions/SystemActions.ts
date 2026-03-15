@@ -7,20 +7,19 @@
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import type { TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
-import { ConversationService } from '@/process/services/conversationService';
 import WorkerManage from '@/process/WorkerManage';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
-import { getChannelConversationName, resolveChannelConvType } from '../types';
+import { getChannelConversationName } from '../types';
+import { createChannelConversation, loadStoredChannelAgent } from '../utils/channelConversationConfig';
 import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMainMenuCard, createPairingGuideCard, createSessionStatusCard, createSettingsCard, createTipsCard } from '../plugins/lark/LarkCards';
 import { createAgentSelectionCard as createDingTalkAgentSelectionCard, createFeaturesCard as createDingTalkFeaturesCard, createHelpCard as createDingTalkHelpCard, createMainMenuCard as createDingTalkMainMenuCard, createPairingGuideCard as createDingTalkPairingGuideCard, createSessionStatusCard as createDingTalkSessionStatusCard, createSettingsCard as createDingTalkSettingsCard, createTipsCard as createDingTalkTipsCard } from '../plugins/dingtalk/DingTalkCards';
 import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
-import type { AcpBackend } from '@/types/acpTypes';
 
 /**
  * Get the default model for Channel assistant (Telegram/Lark)
@@ -95,6 +94,37 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
   };
 }
 
+const getPluginAgentKey = (pluginId: string) => `assistant.plugin.${pluginId}.agent` as const;
+
+const getPlatformAgentKey = (platform: PluginType) => `assistant.${platform}.agent` as const;
+
+function isDefaultPluginInstance(platform: PluginType, pluginId: string): boolean {
+  return pluginId === platform || pluginId === `${platform}_default`;
+}
+
+function toStoredChannelAgent(agentType: ChannelAgentType, availableAgents: AgentDisplayInfo[]): { backend: string; customAgentId?: string; name?: string } | null {
+  const selectedAgent = availableAgents.find((agent) => agent.type === agentType);
+  if (!selectedAgent) {
+    return null;
+  }
+
+  const backendMap: Record<ChannelAgentType, string> = {
+    gemini: 'gemini',
+    acp: 'claude',
+    codex: 'codex',
+    'openclaw-gateway': 'openclaw-gateway',
+  };
+
+  return {
+    backend: backendMap[agentType],
+    name: selectedAgent.name,
+  };
+}
+
+function isSameStoredAgentSelection(currentAgent: { backend: string; customAgentId?: string }, nextAgent: { backend: string; customAgentId?: string }): boolean {
+  return currentAgent.backend === nextAgent.backend && currentAgent.customAgentId === nextAgent.customAgentId;
+}
+
 /**
  * SystemActions - Handlers for system-level actions
  *
@@ -138,70 +168,26 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const platform = context.platform;
   const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 
-  // Selected agent (defaults to Gemini)
-  let savedAgent: unknown = undefined;
-  try {
-    savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : platform === 'dingtalk' ? ProcessConfig.get('assistant.dingtalk.agent') : ProcessConfig.get('assistant.telegram.agent'));
-  } catch {
-    // ignore
-  }
-  const backend = (savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string' ? (savedAgent as any).backend : 'gemini') as string;
-  const customAgentId = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).customAgentId as string | undefined) : undefined;
-  const agentName = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
-
   // Provider model is required by typing; ACP/Codex will ignore it.
   const model = await getChannelDefaultModel(platform);
 
   // Always create a NEW conversation for "session.new" (scoped by chatId)
   const channelChatId = context.chatId;
-  const { convType, convBackend } = resolveChannelConvType(backend);
-  const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
-  const result =
-    backend === 'codex'
-      ? await ConversationService.createConversation({
-          type: 'codex',
-          model,
-          source,
-          name,
-          channelChatId,
-          extra: {},
-        })
-      : backend === 'gemini'
-        ? await ConversationService.createGeminiConversation({
-            model,
-            source,
-            name,
-            channelChatId,
-          })
-        : backend === 'openclaw-gateway'
-          ? await ConversationService.createConversation({
-              type: 'openclaw-gateway',
-              model,
-              source,
-              name,
-              channelChatId,
-              extra: {},
-            })
-          : await ConversationService.createConversation({
-              type: 'acp',
-              model,
-              source,
-              name,
-              channelChatId,
-              extra: {
-                backend: backend as AcpBackend,
-                customAgentId,
-                agentName,
-              },
-            });
+  const result = await createChannelConversation({
+    platform,
+    pluginId: context.pluginId,
+    source,
+    chatId: channelChatId,
+    name: getChannelConversationName(platform, undefined, undefined, channelChatId),
+    model,
+  });
 
-  if (!result.success || !result.conversation) {
+  if (!result.success || !result.conversation || !result.channelAgentType) {
     return createErrorResponse(`Failed to create session: ${result.error || 'Unknown error'}`);
   }
 
-  // Create session with the new conversation ID (scoped by chatId)
-  const agentType = convType as ChannelAgentType;
-  const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, agentType, undefined, channelChatId);
+  const workspace = typeof result.conversation.extra?.workspace === 'string' ? result.conversation.extra.workspace : result.workspace;
+  const session = sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, result.channelAgentType, workspace, channelChatId);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : context.platform === 'dingtalk' ? createDingTalkMainMenuCard() : createMainMenuKeyboard();
   return createSuccessResponse({
@@ -409,7 +395,8 @@ export const handleAgentShow: ActionHandler = async (context) => {
   // Get current agent type from session (scoped by chatId)
   const userId = context.channelUser?.id;
   const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
-  const currentAgent = session?.agentType || 'gemini';
+  const savedAgent = session ? null : await loadStoredChannelAgent(context.platform, context.pluginId);
+  const currentAgent = session?.agentType ?? (savedAgent ? backendToChannelAgentType(savedAgent.backend) : null) ?? 'gemini';
 
   // Get available agents dynamically
   const availableAgents = getAvailableChannelAgents();
@@ -462,16 +449,18 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
 
   // Validate agent type is available
   const availableAgents = getAvailableChannelAgents();
-  const isValidAgent = availableAgents.some((agent) => agent.type === newAgentType);
-  if (!newAgentType || !isValidAgent) {
+  const selectedAgent = newAgentType ? toStoredChannelAgent(newAgentType, availableAgents) : null;
+  if (!newAgentType || !selectedAgent) {
     return createErrorResponse('Invalid or unavailable agent type');
   }
 
   // Get current session (scoped by chatId)
   const existingSession = sessionManager.getSession(context.channelUser.id, context.chatId);
+  const savedAgent = await loadStoredChannelAgent(context.platform, context.pluginId);
+  const settingsChanged = !isSameStoredAgentSelection(savedAgent, selectedAgent);
 
   // If same agent, no need to switch
-  if (existingSession?.agentType === newAgentType) {
+  if (!settingsChanged && existingSession?.agentType === newAgentType) {
     const markup = context.platform === 'lark' ? createMainMenuCard() : context.platform === 'dingtalk' ? createDingTalkMainMenuCard() : createMainMenuKeyboard();
     return createSuccessResponse({
       type: 'text',
@@ -479,6 +468,22 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
       parseMode: 'HTML',
       replyMarkup: markup,
     });
+  }
+
+  if (settingsChanged) {
+    try {
+      await ProcessConfig.set(getPluginAgentKey(context.pluginId) as any, selectedAgent);
+      if (isDefaultPluginInstance(context.platform, context.pluginId)) {
+        await ProcessConfig.set(getPlatformAgentKey(context.platform) as any, selectedAgent);
+      }
+    } catch (error: any) {
+      return createErrorResponse(`Failed to save agent selection: ${error.message || 'Unknown error'}`);
+    }
+
+    const syncResult = await manager.syncChannelSettings(context.platform, selectedAgent, undefined, context.pluginId);
+    if (!syncResult.success) {
+      return createErrorResponse(syncResult.error || 'Failed to sync channel settings');
+    }
   }
 
   // Clear existing session and agent (scoped by chatId)
@@ -496,8 +501,24 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
   }
   sessionManager.clearSession(context.channelUser.id, context.chatId);
 
-  // Create new session with the selected agent type (scoped by chatId)
-  const session = sessionManager.createSession(context.channelUser, newAgentType, undefined, context.chatId);
+  const platform = context.platform;
+  const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
+  const model = await getChannelDefaultModel(platform);
+  const result = await createChannelConversation({
+    platform,
+    pluginId: context.pluginId,
+    source,
+    chatId: context.chatId,
+    name: getChannelConversationName(platform, undefined, undefined, context.chatId),
+    model,
+  });
+
+  if (!result.success || !result.conversation || !result.channelAgentType) {
+    return createErrorResponse(`Failed to switch agent: ${result.error || 'Unknown error'}`);
+  }
+
+  const workspace = typeof result.conversation.extra?.workspace === 'string' ? result.conversation.extra.workspace : result.workspace;
+  sessionManager.createSessionWithConversation(context.channelUser, result.conversation.id, result.channelAgentType, workspace, context.chatId);
 
   const markup = context.platform === 'lark' ? createMainMenuCard() : context.platform === 'dingtalk' ? createDingTalkMainMenuCard() : createMainMenuKeyboard();
   return createSuccessResponse({
@@ -525,7 +546,7 @@ function getAgentDisplayName(agentType: ChannelAgentType): string {
  * Map backend type to ChannelAgentType
  * Only returns types that are supported by channels
  */
-function backendToChannelAgentType(backend: string): ChannelAgentType | null {
+export function backendToChannelAgentType(backend: string): ChannelAgentType | null {
   const mapping: Record<string, ChannelAgentType> = {
     gemini: 'gemini',
     claude: 'acp',
@@ -552,7 +573,7 @@ function getAgentEmoji(backend: string): string {
  * Get available agents for channel selection
  * Filters detected agents to only those supported by channels
  */
-function getAvailableChannelAgents(): AgentDisplayInfo[] {
+export function getAvailableChannelAgents(): AgentDisplayInfo[] {
   const detectedAgents = acpDetector.getDetectedAgents();
   const availableAgents: AgentDisplayInfo[] = [];
   const seenTypes = new Set<ChannelAgentType>();

@@ -10,22 +10,24 @@ import { ProcessConfig } from '@/process/initStorage';
 import { ConversationService } from '@/process/services/conversationService';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
-import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
+import { backendToChannelAgentType, getAvailableChannelAgents, getChannelDefaultModel, systemActions } from '../actions/SystemActions';
 import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
 import type { PairingService } from '../pairing/PairingService';
-import type { PluginMessageHandler } from '../plugins/BasePlugin';
+import type { BasePlugin, PluginConfirmHandler, PluginMessageHandler } from '../plugins/BasePlugin';
 import { getChannelConversationName, resolveChannelConvType } from '../types';
+import { createChannelConversation, loadStoredChannelWorkspace } from '../utils/channelConversationConfig';
 import { createMainMenuCard, createErrorRecoveryCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
 import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
-import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
-import type { PluginManager } from './PluginManager';
+import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
+
 import type { AcpBackend } from '@/types/acpTypes';
+import { formatChannelProgressText } from './channelProgressText';
 
 // ==================== Platform-specific Helpers ====================
 
@@ -231,7 +233,16 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
       };
     }
 
-    default:
+    default: {
+      const progressText = formatChannelProgressText(message);
+      if (progressText) {
+        return {
+          type: 'text',
+          text: formatTextForPlatform(progressText, platform),
+          parseMode: 'HTML',
+        };
+      }
+
       // 其他类型暂不支持，显示通用消息
       // Other types not supported yet, show generic message
       return {
@@ -239,6 +250,7 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
         text: '⏳ Processing...',
         parseMode: 'HTML',
       };
+    }
   }
 }
 
@@ -252,15 +264,15 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
  * - Execute action handlers with proper context
  */
 export class ActionExecutor {
-  private pluginManager: PluginManager;
+  private plugin: BasePlugin;
   private sessionManager: SessionManager;
   private pairingService: PairingService;
 
   // Action registry
   private actionRegistry: Map<string, IRegisteredAction> = new Map();
 
-  constructor(pluginManager: PluginManager, sessionManager: SessionManager, pairingService: PairingService) {
-    this.pluginManager = pluginManager;
+  constructor(plugin: BasePlugin, sessionManager: SessionManager, pairingService: PairingService) {
+    this.plugin = plugin;
     this.sessionManager = sessionManager;
     this.pairingService = pairingService;
 
@@ -275,35 +287,43 @@ export class ActionExecutor {
     return this.handleIncomingMessage.bind(this);
   }
 
+  getConfirmHandler(): PluginConfirmHandler {
+    return this.handleToolConfirmation.bind(this);
+  }
+
   /**
    * Handle incoming message from plugin
    */
   private async handleIncomingMessage(message: IUnifiedIncomingMessage): Promise<void> {
     const { platform, chatId, user, content, action } = message;
 
-    // Get plugin for sending responses
-    const plugin = this.getPluginForMessage(message);
-    if (!plugin) {
-      console.error(`[ActionExecutor] No plugin found for platform: ${platform}`);
+    if (!message.pluginId) {
+      console.error('[ActionExecutor] Missing pluginId on incoming message');
+      return;
+    }
+
+    if (message.pluginId !== this.plugin.pluginId) {
+      console.warn(`[ActionExecutor] Ignoring message for plugin ${message.pluginId} on runtime ${this.plugin.pluginId}`);
       return;
     }
 
     // Build action context
     const context: IActionContext = {
       platform,
-      pluginId: `${platform}_default`, // TODO: Get actual plugin ID
+      pluginId: message.pluginId,
       userId: user.id,
       chatId,
       displayName: user.displayName,
       originalMessage: message,
       originalMessageId: message.id,
-      sendMessage: async (msg) => plugin.sendMessage(chatId, msg),
-      editMessage: async (msgId, msg) => plugin.editMessage(chatId, msgId, msg),
+      pairingService: this.pairingService,
+      sendMessage: async (msg) => this.plugin.sendMessage(chatId, msg),
+      editMessage: async (msgId, msg) => this.plugin.editMessage(chatId, msgId, msg),
     };
 
     try {
       // Check if user is authorized
-      const isAuthorized = this.pairingService.isUserAuthorized(user.id, platform);
+      const isAuthorized = this.pairingService.isUserAuthorized(user.id, platform, context.pluginId);
 
       // Handle /start command - always show pairing
       if (content.type === 'command' && content.text === '/start') {
@@ -325,7 +345,7 @@ export class ActionExecutor {
 
       // User is authorized - look up the assistant user
       const db = getDatabase();
-      const userResult = db.getChannelUserByPlatform(user.id, platform);
+      const userResult = db.getChannelUserByPlatform(user.id, platform, context.pluginId);
       const channelUser = userResult.data;
 
       if (!channelUser) {
@@ -343,75 +363,30 @@ export class ActionExecutor {
 
       // Get or create session (scoped by chatId for per-chat isolation)
       let session = this.sessionManager.getSession(channelUser.id, chatId);
+      const configuredWorkspace = await loadStoredChannelWorkspace(platform as PluginType, context.pluginId);
+      const sessionWorkspace = typeof session?.workspace === 'string' && session.workspace.trim() ? session.workspace.trim() : undefined;
+      if (session && sessionWorkspace !== configuredWorkspace) {
+        console.log(`[ActionExecutor] Session workspace changed for plugin=${context.pluginId}: ${sessionWorkspace || '-'} -> ${configuredWorkspace || '-'}`);
+        this.sessionManager.clearSession(channelUser.id, chatId);
+        session = null;
+      }
+
       if (!session || !session.conversationId) {
         const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 
-        // Read selected agent for this platform (defaults to Gemini)
-        let savedAgent: unknown = undefined;
-        try {
-          savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : platform === 'dingtalk' ? ProcessConfig.get('assistant.dingtalk.agent') : ProcessConfig.get('assistant.telegram.agent'));
-        } catch {
-          // ignore
-        }
-        const backend = (savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string' ? (savedAgent as any).backend : 'gemini') as string;
-        const customAgentId = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).customAgentId as string | undefined) : undefined;
-        const agentName = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
-
-        // Always resolve a provider model (required by ICreateConversationParams typing; ignored by ACP/Codex)
         const model = await getChannelDefaultModel(platform);
+        const result = await createChannelConversation({
+          platform,
+          pluginId: context.pluginId,
+          source,
+          chatId,
+          name: getChannelConversationName(platform, undefined, undefined, chatId),
+          model,
+        });
 
-        // Map backend to conversation type for lookup
-        const { convType, convBackend } = resolveChannelConvType(backend);
-        const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
-
-        // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
-        const db2 = getDatabase();
-        const latest = db2.findChannelConversation(source, chatId, convType, convBackend);
-        const existing = latest.success ? latest.data : null;
-
-        const result = existing
-          ? { success: true as const, conversation: existing }
-          : backend === 'codex'
-            ? await ConversationService.createConversation({
-                type: 'codex',
-                model,
-                name: conversationName,
-                source,
-                channelChatId: chatId,
-                extra: {},
-              })
-            : backend === 'gemini'
-              ? await ConversationService.createGeminiConversation({
-                  model,
-                  name: conversationName,
-                  source,
-                  channelChatId: chatId,
-                })
-              : backend === 'openclaw-gateway'
-                ? await ConversationService.createConversation({
-                    type: 'openclaw-gateway',
-                    model,
-                    name: conversationName,
-                    source,
-                    channelChatId: chatId,
-                    extra: {},
-                  })
-                : await ConversationService.createConversation({
-                    type: 'acp',
-                    model,
-                    name: conversationName,
-                    source,
-                    channelChatId: chatId,
-                    extra: {
-                      backend: backend as AcpBackend,
-                      customAgentId,
-                      agentName,
-                    },
-                  });
-
-        if (result.success && result.conversation) {
-          const { convType: agentType } = resolveChannelConvType(backend);
-          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType as ChannelAgentType, undefined, chatId);
+        if (result.success && result.conversation && result.channelAgentType) {
+          const workspace = typeof result.conversation.extra?.workspace === 'string' ? result.conversation.extra.workspace : result.workspace;
+          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, result.channelAgentType, workspace, chatId);
         } else {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
@@ -433,8 +408,15 @@ export class ActionExecutor {
         // Action encoded in content
         await this.executeAction(context, content.text, {});
       } else if (content.type === 'text' && content.text) {
-        // Regular text message - send to AI
-        await this.handleChatMessage(context, content.text);
+        const chatMode = await this.getChannelChatMode(platform as 'telegram' | 'lark' | 'dingtalk', context.pluginId);
+
+        // @mention routing is only enabled in group mode
+        if (chatMode === 'group' && message.mentions && message.mentions.length > 0) {
+          await this.handleMentionRoutedChat(context, content.text, message.mentions);
+        } else {
+          // Single mode (compat) or no mentions: send to default AI
+          await this.handleChatMessage(context, content.text);
+        }
       } else {
         // Unsupported content type
         await context.sendMessage({
@@ -673,12 +655,426 @@ export class ActionExecutor {
   }
 
   /**
-   * Get plugin instance for a message
+   * Get chat mode for a channel plugin instance.
+   * Priority: per-plugin config -> per-platform config -> default('single').
    */
-  private getPluginForMessage(message: IUnifiedIncomingMessage) {
-    // For now, get the first plugin of the matching type
-    const plugins = this.pluginManager.getAllPlugins();
-    return plugins.find((p) => p.type === message.platform);
+  private async getChannelChatMode(platform: 'telegram' | 'lark' | 'dingtalk', pluginId: string): Promise<'single' | 'group'> {
+    try {
+      const pluginModeKey = `assistant.plugin.${pluginId}.chatMode`;
+      const pluginMode = await ProcessConfig.get(pluginModeKey as any);
+      if (pluginMode === 'group' || pluginMode === 'single') {
+        return pluginMode;
+      }
+
+      const platformMode = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.chatMode') : platform === 'dingtalk' ? ProcessConfig.get('assistant.dingtalk.chatMode') : ProcessConfig.get('assistant.telegram.chatMode'));
+      if (platformMode === 'group' || platformMode === 'single') {
+        return platformMode;
+      }
+    } catch {
+      // ignore and fallback to default
+    }
+    return 'single';
+  }
+
+  // ==================== @Mention Multi-Agent Routing ====================
+
+  /**
+   * Resolve a mention name to an agent backend identifier.
+   *
+   * Matching strategy (in order of priority):
+   * 1. Exact match on agent type ('gemini', 'acp', 'codex', 'openclaw-gateway')
+   * 2. Well-known aliases ('claude' → 'acp', 'openclaw' → 'openclaw-gateway')
+   * 3. Name match against available agents (case-insensitive)
+   *
+   * @returns The backend string (e.g., 'gemini', 'claude') or null if unrecognized
+   */
+  private resolveMentionToBackend(mentionName: string): string | null {
+    const normalized = mentionName.toLowerCase();
+
+    // Well-known direct mappings: mentionName → backend
+    const aliasMap: Record<string, string> = {
+      gemini: 'gemini',
+      claude: 'claude',
+      codex: 'codex',
+      openclaw: 'openclaw-gateway',
+      'openclaw-gateway': 'openclaw-gateway',
+    };
+
+    if (aliasMap[normalized]) {
+      return aliasMap[normalized];
+    }
+
+    // Check available agents by name (e.g., user might mention a custom agent name)
+    const availableAgents = getAvailableChannelAgents();
+    for (const agent of availableAgents) {
+      // Match by display name (case-insensitive)
+      if (agent.name.toLowerCase() === normalized) {
+        // Reverse-map ChannelAgentType → backend
+        const reverseMap: Record<string, string> = {
+          gemini: 'gemini',
+          acp: 'claude',
+          codex: 'codex',
+          'openclaw-gateway': 'openclaw-gateway',
+        };
+        return reverseMap[agent.type] || null;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Handle a chat message that was routed via @mention.
+   *
+   * For each mentioned agent, creates a separate session/conversation (if needed)
+   * and sends the message text to that agent. Multiple agents respond in parallel.
+   * Each agent's response is prefixed with its name for clarity.
+   *
+   * @param context - The action context (with default session already set)
+   * @param text - The cleaned message text (mentions already stripped by BasePlugin)
+   * @param mentions - Array of lowercase mention names (e.g., ['gemini', 'claude'])
+   */
+  private async handleMentionRoutedChat(context: IActionContext, text: string, mentions: string[]): Promise<void> {
+    // Resolve mentions to backends, filtering out unrecognized ones
+    const resolvedAgents: Array<{ mentionName: string; backend: string }> = [];
+    const unrecognized: string[] = [];
+
+    for (const mention of mentions) {
+      const backend = this.resolveMentionToBackend(mention);
+      if (backend) {
+        // Deduplicate by backend
+        if (!resolvedAgents.some((a) => a.backend === backend)) {
+          resolvedAgents.push({ mentionName: mention, backend });
+        }
+      } else {
+        unrecognized.push(`@${mention}`);
+      }
+    }
+
+    // If no valid agents resolved, notify and fallback to default
+    if (resolvedAgents.length === 0) {
+      await context.sendMessage({
+        type: 'text',
+        text: `⚠️ Unrecognized agent(s): ${unrecognized.join(', ')}. Routing to default agent.`,
+        parseMode: 'HTML',
+      });
+      await this.handleChatMessage(context, text);
+      return;
+    }
+
+    // Notify about unrecognized mentions (if any)
+    if (unrecognized.length > 0) {
+      await context.sendMessage({
+        type: 'text',
+        text: `⚠️ Skipping unrecognized: ${unrecognized.join(', ')}`,
+        parseMode: 'HTML',
+      });
+    }
+
+    // Single agent: route directly (most common case)
+    if (resolvedAgents.length === 1) {
+      const agent = resolvedAgents[0];
+      await this.routeToAgent(context, text, agent.backend, agent.mentionName);
+      return;
+    }
+
+    // Multiple agents: route in parallel
+    // Each agent gets its own "thinking" message and response stream
+    const routePromises = resolvedAgents.map((agent) =>
+      this.routeToAgent(context, text, agent.backend, agent.mentionName).catch((error) => {
+        console.error(`[ActionExecutor] Mention route to ${agent.mentionName} failed:`, error);
+        // Send error for this specific agent
+        return context.sendMessage({
+          type: 'text',
+          text: `❌ @${agent.mentionName}: ${error.message}`,
+          parseMode: 'HTML',
+        });
+      })
+    );
+
+    await Promise.allSettled(routePromises);
+  }
+
+  /**
+   * Route a message to a specific agent backend.
+   *
+   * Creates a dedicated conversation for the agent if one doesn't exist,
+   * then sends the message through the standard chat message flow.
+   */
+  private async routeToAgent(context: IActionContext, text: string, backend: string, agentLabel: string): Promise<void> {
+    const { platform, chatId, channelUser } = context;
+    if (!channelUser) {
+      throw new Error('User not authorized');
+    }
+
+    const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
+    const channelAgentType = backendToChannelAgentType(backend);
+    if (!channelAgentType) {
+      throw new Error(`Unsupported agent backend: ${backend}`);
+    }
+
+    // Build a mention-scoped session key: userId + chatId + agentType
+    // This allows multiple agents to have independent sessions within the same chat
+    const mentionSessionKey = `${chatId}:@${agentLabel}`;
+    let session = this.sessionManager.getSession(channelUser.id, mentionSessionKey);
+
+    if (!session || !session.conversationId) {
+      // Resolve model and create conversation for this agent
+      const model = await getChannelDefaultModel(platform);
+      const { convType, convBackend } = resolveChannelConvType(backend);
+      const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
+
+      const db = getDatabase();
+      const latest = db.findChannelConversation(source, chatId, convType, convBackend, undefined, context.pluginId);
+      const existing = latest.success ? latest.data : null;
+
+      const result = existing
+        ? { success: true as const, conversation: existing }
+        : backend === 'codex'
+          ? await ConversationService.createConversation({
+              type: 'codex',
+              model,
+              name: conversationName,
+              source,
+              channelChatId: chatId,
+              pluginId: context.pluginId,
+              extra: {},
+            })
+          : backend === 'gemini'
+            ? await ConversationService.createGeminiConversation({
+                model,
+                name: conversationName,
+                source,
+                channelChatId: chatId,
+                pluginId: context.pluginId,
+              })
+            : backend === 'openclaw-gateway'
+              ? await ConversationService.createConversation({
+                  type: 'openclaw-gateway',
+                  model,
+                  name: conversationName,
+                  source,
+                  channelChatId: chatId,
+                  pluginId: context.pluginId,
+                  extra: {},
+                })
+              : await ConversationService.createConversation({
+                  type: 'acp',
+                  model,
+                  name: conversationName,
+                  source,
+                  channelChatId: chatId,
+                  pluginId: context.pluginId,
+                  extra: {
+                    backend: backend as AcpBackend,
+                  },
+                });
+
+      if (!result.success || !result.conversation) {
+        throw new Error(`Failed to create conversation for @${agentLabel}: ${result.error || 'Unknown error'}`);
+      }
+
+      session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, channelAgentType, undefined, mentionSessionKey);
+    }
+
+    // Build a scoped context for this agent's response
+    const agentContext: IActionContext = {
+      ...context,
+      sessionId: session.id,
+      conversationId: session.conversationId,
+    };
+
+    // Prefix the thinking indicator with agent name
+    await this.handleChatMessageWithLabel(agentContext, text, agentLabel);
+  }
+
+  /**
+   * Handle chat message with an agent label prefix.
+   * Similar to handleChatMessage but prefixes messages with the agent name
+   * so the user can distinguish responses from different agents.
+   */
+  private async handleChatMessageWithLabel(context: IActionContext, text: string, agentLabel: string): Promise<void> {
+    // Update session activity
+    if (context.channelUser) {
+      const sessionKey = context.chatId;
+      this.sessionManager.updateSessionActivity(context.channelUser.id, sessionKey);
+    }
+
+    const emoji = this.getAgentEmoji(agentLabel);
+    const labelPrefix = `${emoji} <b>@${agentLabel}</b>\n`;
+
+    // Send "thinking" indicator with agent label
+    const thinkingMsgId = await context.sendMessage({
+      type: 'text',
+      text: `${labelPrefix}⏳ Thinking...`,
+      parseMode: 'HTML',
+    });
+
+    try {
+      const sessionId = context.sessionId;
+      const conversationId = context.conversationId;
+
+      if (!sessionId || !conversationId) {
+        throw new Error('Session not initialized');
+      }
+
+      const messageService = getChannelMessageService();
+
+      let lastUpdateTime = 0;
+      const UPDATE_THROTTLE_MS = 500;
+      let pendingUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+      let pendingMessage: IUnifiedOutgoingMessage | null = null;
+      const sentMessageIds: string[] = [thinkingMsgId];
+      let lastMessageContent: IUnifiedOutgoingMessage | null = null;
+
+      const doEditMessage = async (msg: IUnifiedOutgoingMessage) => {
+        lastUpdateTime = Date.now();
+        const targetMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
+        try {
+          // Prefix with agent label
+          const labeledMsg: IUnifiedOutgoingMessage = {
+            ...msg,
+            text: msg.text ? `${labelPrefix}${msg.text}` : msg.text,
+          };
+          await context.editMessage(targetMsgId, labeledMsg);
+        } catch {
+          // Ignore edit errors
+        }
+      };
+
+      await messageService.sendMessage(sessionId, conversationId, text, async (message: TMessage, isInsert: boolean) => {
+        const now = Date.now();
+        const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
+        const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
+        lastMessageContent = streamOutgoing;
+
+        if (isInsert && sentMessageIds.length === 1) {
+          pendingMessage = streamOutgoing;
+          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+              pendingUpdateTimer = null;
+            }
+            await doEditMessage(streamOutgoing);
+          } else {
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+            }
+            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+            pendingUpdateTimer = setTimeout(() => {
+              if (pendingMessage) {
+                void doEditMessage(pendingMessage);
+                pendingMessage = null;
+              }
+              pendingUpdateTimer = null;
+            }, delay);
+          }
+        } else if (isInsert) {
+          try {
+            const labeledMsg: IUnifiedOutgoingMessage = {
+              ...streamOutgoing,
+              text: streamOutgoing.text ? `${labelPrefix}${streamOutgoing.text}` : streamOutgoing.text,
+            };
+            const newMsgId = await context.sendMessage(labeledMsg);
+            sentMessageIds.push(newMsgId);
+          } catch {
+            // Ignore send errors
+          }
+        } else {
+          pendingMessage = streamOutgoing;
+          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+              pendingUpdateTimer = null;
+            }
+            await doEditMessage(streamOutgoing);
+          } else {
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+            }
+            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+            pendingUpdateTimer = setTimeout(() => {
+              if (pendingMessage) {
+                void doEditMessage(pendingMessage);
+                pendingMessage = null;
+              }
+              pendingUpdateTimer = null;
+            }, delay);
+          }
+        }
+      });
+
+      // Flush pending
+      if (pendingUpdateTimer) {
+        clearTimeout(pendingUpdateTimer);
+        pendingUpdateTimer = null;
+      }
+      if (pendingMessage) {
+        try {
+          await doEditMessage(pendingMessage);
+        } catch {
+          // Ignore
+        }
+        pendingMessage = null;
+      }
+
+      // Final message with action buttons
+      const lastMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
+      try {
+        const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, lastMessageContent?.text);
+        const finalText = lastMessageContent?.text ? `${labelPrefix}${lastMessageContent.text}` : `${labelPrefix}✅ Done`;
+        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, text: finalText, replyMarkup: responseMarkup } : { type: 'text', text: finalText, parseMode: 'HTML', replyMarkup: responseMarkup };
+        await context.editMessage(lastMsgId, finalMessage);
+      } catch {
+        // Ignore
+      }
+    } catch (error: any) {
+      console.error(`[ActionExecutor] Chat processing failed for @${agentLabel}:`, error);
+      const errorResponse = buildChatErrorResponse(error.message);
+      await context.editMessage(thinkingMsgId, {
+        type: 'text',
+        text: `${labelPrefix}${errorResponse.text}`,
+        parseMode: errorResponse.parseMode,
+        replyMarkup: errorResponse.replyMarkup,
+      });
+    }
+  }
+
+  /**
+   * Get emoji for an agent mention label
+   */
+  private getAgentEmoji(agentLabel: string): string {
+    const emojis: Record<string, string> = {
+      gemini: '🤖',
+      claude: '🧠',
+      codex: '⚡',
+      openclaw: '🦞',
+      'openclaw-gateway': '🦞',
+    };
+    return emojis[agentLabel.toLowerCase()] || '🤖';
+  }
+
+  private async handleToolConfirmation(userId: string, platform: string, pluginId: string, chatId: string | undefined, callId: string, value: string): Promise<void> {
+    if (pluginId !== this.plugin.pluginId) {
+      console.warn(`[ActionExecutor] Ignoring tool confirmation for plugin ${pluginId} on runtime ${this.plugin.pluginId}`);
+      return;
+    }
+
+    const db = getDatabase();
+    const platformType = platform as PluginType;
+    const userResult = db.getChannelUserByPlatform(userId, platformType, pluginId);
+    if (!userResult.data) {
+      console.error(`[ActionExecutor] Tool confirmation user not found: ${userId}@${platform} (${pluginId})`);
+      return;
+    }
+
+    const session = this.sessionManager.findConfirmationSession(userResult.data.id, pluginId, chatId);
+    if (!session?.conversationId) {
+      console.error(`[ActionExecutor] Confirmation session not found for user=${userResult.data.id}, plugin=${pluginId}, chat=${chatId || '-'}`);
+      return;
+    }
+
+    await getChannelMessageService().confirm(session.conversationId, callId, value);
   }
 
   /**

@@ -97,6 +97,13 @@
     "refresh": "刷新",
     "temporarySpace": "临时空间",
     "changeWorkspace": "更换工作空间",
+    "workspaceSelector": {
+      "actionsTitle": "从空文件夹开始",
+      "openFolder": "打开新文件夹",
+      "recentTitle": "最近使用",
+      "searchPlaceholder": "搜索工作空间",
+      "empty": "没有匹配的工作空间"
+    },
     "migration": {
       "title": "更换工作空间",
       "currentWorkspaceLabel": "当前临时工作空间：",

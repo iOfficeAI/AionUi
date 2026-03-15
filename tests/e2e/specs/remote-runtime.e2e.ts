@@ -66,11 +66,7 @@ async function loginByQr(page: import('@playwright/test').Page, port: number): P
   return payload.token;
 }
 
-async function requestJson<T>(
-  url: string,
-  token: string,
-  init?: Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }
-): Promise<T> {
+async function requestJson<T>(url: string, token: string, init?: Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }): Promise<T> {
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -104,11 +100,7 @@ async function waitForOpen(ws: WebSocket, timeoutMs = 5_000): Promise<void> {
   });
 }
 
-async function waitForWsMessage(
-  ws: WebSocket,
-  predicate: (message: WsEnvelope) => boolean,
-  timeoutMs = 8_000
-): Promise<WsEnvelope> {
+async function waitForWsMessage(ws: WebSocket, predicate: (message: WsEnvelope) => boolean, timeoutMs = 8_000): Promise<WsEnvelope> {
   return new Promise<WsEnvelope>((resolve, reject) => {
     const timer = setTimeout(() => {
       ws.off('message', onMessage);
@@ -161,69 +153,43 @@ test.describe('Remote Runtime API + WebSocket', () => {
     try {
       const token = await loginByQr(page, port);
 
-      const overview = await requestJson<{ success: boolean; data: { devices: unknown[]; sessions: unknown[] } }>(
-        `http://localhost:${port}/api/remote/overview`,
-        token
-      );
+      const overview = await requestJson<{ success: boolean; data: { devices: unknown[]; sessions: unknown[] } }>(`http://localhost:${port}/api/remote/overview`, token);
       expect(overview.success).toBe(true);
       expect(Array.isArray(overview.data.devices)).toBe(true);
 
-      const createdSession = await requestJson<{ success: boolean; data: { id: string; title: string } }>(
-        `http://localhost:${port}/api/remote/sessions`,
-        token,
-        {
-          method: 'POST',
-          body: JSON.stringify({ title: 'e2e remote session', metadata: { from: 'e2e' } }),
-        }
-      );
+      const createdSession = await requestJson<{ success: boolean; data: { id: string; title: string } }>(`http://localhost:${port}/api/remote/sessions`, token, {
+        method: 'POST',
+        body: JSON.stringify({ title: 'e2e remote session', metadata: { from: 'e2e' } }),
+      });
       expect(createdSession.success).toBe(true);
 
-      const sessions = await requestJson<{ success: boolean; data: Array<{ id: string }> }>(
-        `http://localhost:${port}/api/remote/sessions`,
-        token
-      );
+      const sessions = await requestJson<{ success: boolean; data: Array<{ id: string }> }>(`http://localhost:${port}/api/remote/sessions`, token);
       expect(sessions.data.some((item) => item.id === createdSession.data.id)).toBe(true);
 
-      const createdApproval = await requestJson<{ success: boolean; data: { id: string; status: string } }>(
-        `http://localhost:${port}/api/remote/approvals`,
-        token,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            title: 'Approve e2e action',
-            summary: 'approval from e2e',
-            sessionId: createdSession.data.id,
-          }),
-        }
-      );
+      const createdApproval = await requestJson<{ success: boolean; data: { id: string; status: string } }>(`http://localhost:${port}/api/remote/approvals`, token, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: 'Approve e2e action',
+          summary: 'approval from e2e',
+          sessionId: createdSession.data.id,
+        }),
+      });
       expect(createdApproval.data.status).toBe('pending');
 
-      const resolvedApproval = await requestJson<{ success: boolean; data: { status: string } }>(
-        `http://localhost:${port}/api/remote/approvals/${createdApproval.data.id}/resolve`,
-        token,
-        {
-          method: 'POST',
-          body: JSON.stringify({ status: 'approved', note: 'ok' }),
-        }
-      );
+      const resolvedApproval = await requestJson<{ success: boolean; data: { status: string } }>(`http://localhost:${port}/api/remote/approvals/${createdApproval.data.id}/resolve`, token, {
+        method: 'POST',
+        body: JSON.stringify({ status: 'approved', note: 'ok' }),
+      });
       expect(resolvedApproval.data.status).toBe('approved');
 
-      const startedTunnel = await requestJson<{ success: boolean; data: { enabled: boolean; provider: string } }>(
-        `http://localhost:${port}/api/remote/tunnel/start`,
-        token,
-        {
-          method: 'POST',
-          body: JSON.stringify({ provider: 'custom' }),
-        }
-      );
+      const startedTunnel = await requestJson<{ success: boolean; data: { enabled: boolean; provider: string } }>(`http://localhost:${port}/api/remote/tunnel/start`, token, {
+        method: 'POST',
+        body: JSON.stringify({ provider: 'custom' }),
+      });
       expect(startedTunnel.data.enabled).toBe(true);
       expect(startedTunnel.data.provider).toBe('custom');
 
-      const stoppedTunnel = await requestJson<{ success: boolean; data: { enabled: boolean; provider: string } }>(
-        `http://localhost:${port}/api/remote/tunnel/stop`,
-        token,
-        { method: 'POST', body: JSON.stringify({}) }
-      );
+      const stoppedTunnel = await requestJson<{ success: boolean; data: { enabled: boolean; provider: string } }>(`http://localhost:${port}/api/remote/tunnel/stop`, token, { method: 'POST', body: JSON.stringify({}) });
       expect(stoppedTunnel.data.enabled).toBe(false);
       expect(stoppedTunnel.data.provider).toBe('none');
     } finally {

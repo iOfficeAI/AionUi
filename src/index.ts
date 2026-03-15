@@ -752,7 +752,7 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Verify CDP is ready and log status
-  const { cdpPort, verifyCdpReady } = await import('./utils/configureChromium');
+  const { cdpPort, verifyCdpReady, unregisterInstance } = await import('./utils/configureChromium');
   if (cdpPort) {
     const cdpReady = await verifyCdpReady(cdpPort);
     if (cdpReady) {
@@ -760,6 +760,7 @@ const handleAppReady = async (): Promise<void> => {
       console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
     } else {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
+      unregisterInstance();
     }
   }
 

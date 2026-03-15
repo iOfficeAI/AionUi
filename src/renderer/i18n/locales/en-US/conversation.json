@@ -97,6 +97,13 @@
     "refresh": "Refresh",
     "temporarySpace": "Temporary Space",
     "changeWorkspace": "Change Workspace",
+    "workspaceSelector": {
+      "actionsTitle": "Start from an empty folder",
+      "openFolder": "Open a new folder",
+      "recentTitle": "Recent workspaces",
+      "searchPlaceholder": "Search workspaces",
+      "empty": "No matching workspaces"
+    },
     "migration": {
       "title": "Change Workspace",
       "currentWorkspaceLabel": "Current temporary workspace: ",

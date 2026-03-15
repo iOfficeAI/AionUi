@@ -27,7 +27,9 @@ export class LarkPlugin extends BasePlugin {
   private wsClient: lark.WSClient | null = null;
   private eventDispatcher: lark.EventDispatcher | null = null;
   private botInfo: { appId: string; name?: string } | null = null;
-  private isConnected: boolean = false;
+
+  private readonly wsReadyTimeoutMs = 15_000;
+  private readonly wsPollIntervalMs = 200;
 
   // Token management
   private accessToken: string | null = null;
@@ -107,15 +109,17 @@ export class LarkPlugin extends BasePlugin {
       });
 
       // Start WebSocket connection with event dispatcher
-      this.wsClient
-        .start({
-          eventDispatcher: this.eventDispatcher,
-        })
-        .catch((err: unknown) => {
-          console.error(`[LarkPlugin] WebSocket start() error:`, err);
-        });
+      const startPromise = this.wsClient.start({
+        eventDispatcher: this.eventDispatcher,
+      });
 
-      this.isConnected = true;
+      await Promise.race([startPromise.then(() => this.waitForWebSocketReady()), this.waitForWebSocketReady()]);
+
+      void startPromise.catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        this.setError(errorMessage);
+        console.error(`[LarkPlugin] WebSocket start() error:`, err);
+      });
 
       // Start event cache cleanup timer
       this.startEventCleanup();
@@ -135,7 +139,11 @@ export class LarkPlugin extends BasePlugin {
     this.stopEventCleanup();
 
     if (this.wsClient) {
-      // WSClient doesn't have a stop method, we just set to null
+      try {
+        this.wsClient.close({ force: true });
+      } catch (error) {
+        console.warn('[LarkPlugin] Failed to close WebSocket client cleanly:', error);
+      }
       this.wsClient = null;
     }
 
@@ -146,7 +154,6 @@ export class LarkPlugin extends BasePlugin {
     this.tokenExpiresAt = 0;
     this.activeUsers.clear();
     this.processedEvents.clear();
-    this.isConnected = false;
 
     console.log('[LarkPlugin] Stopped and cleaned up');
   }
@@ -167,6 +174,29 @@ export class LarkPlugin extends BasePlugin {
       id: this.botInfo.appId,
       displayName: this.botInfo.name || 'Aion Assistant',
     };
+  }
+
+  override isConnected(): boolean {
+    const ws = this.getActiveWebSocket();
+    return ws?.readyState === 1;
+  }
+
+  private getActiveWebSocket(): { readyState?: number } | null {
+    const wsConfig = (this.wsClient as unknown as { wsConfig?: { getWSInstance?: () => { readyState?: number } | null } } | null)?.wsConfig;
+    return wsConfig?.getWSInstance?.() ?? null;
+  }
+
+  private async waitForWebSocketReady(): Promise<void> {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < this.wsReadyTimeoutMs) {
+      if (this.isConnected()) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, this.wsPollIntervalMs));
+    }
+
+    throw new Error('Lark WebSocket did not become ready. Please verify Feishu event subscription is set to persistent connection mode and avoid running multiple bot instances for the same app.');
   }
 
   /**
@@ -463,6 +493,7 @@ export class LarkPlugin extends BasePlugin {
       const unifiedMessage = {
         id: eventId,
         platform: 'lark' as const,
+        pluginId: '', // Will be enriched by BasePlugin message handler wrapper
         chatId,
         user: {
           id: userId,

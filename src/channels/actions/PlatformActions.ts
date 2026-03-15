@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IActionContext, IActionResult, IRegisteredAction, ActionHandler } from './types';
+import type { IRegisteredAction, ActionHandler } from './types';
 import { PlatformActionNames, createSuccessResponse, createErrorResponse } from './types';
-import { getPairingService } from '../pairing/PairingService';
 import { createPairingCodeKeyboard, createPairingStatusKeyboard, createMainMenuKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { createPairingCard, createPairingStatusCard, createMainMenuCard, createPairingHelpCard } from '../plugins/lark/LarkCards';
 import { createMainMenuCard as createDingTalkMainMenuCard, createPairingCard as createDingTalkPairingCard, createPairingStatusCard as createDingTalkPairingStatusCard, createPairingHelpCard as createDingTalkPairingHelpCard } from '../plugins/dingtalk/DingTalkCards';
@@ -77,11 +76,11 @@ function getPairingHelpMarkup(platform: string) {
  * Called when user sends /start or first message
  */
 export const handlePairingShow: ActionHandler = async (context) => {
-  const pairingService = getPairingService();
+  const pairingService = context.pairingService;
   const platform = context.platform;
 
   // Check if user is already authorized
-  if (pairingService.isUserAuthorized(context.userId, platform)) {
+  if (pairingService.isUserAuthorized(context.userId, platform, context.pluginId)) {
     return createSuccessResponse({
       type: 'text',
       text: ['✅ <b>Authorized</b>', '', 'Your account is already paired and ready to use.', '', 'Send a message to start chatting, or use the buttons below.'].join('\n'),
@@ -92,7 +91,7 @@ export const handlePairingShow: ActionHandler = async (context) => {
 
   // Generate pairing code
   try {
-    const { code, expiresAt } = await pairingService.generatePairingCode(context.userId, platform, context.displayName);
+    const { code, expiresAt } = await pairingService.generatePairingCode(context.userId, platform, context.pluginId, context.displayName);
 
     const expiresInMinutes = Math.ceil((expiresAt - Date.now()) / 1000 / 60);
 
@@ -111,11 +110,11 @@ export const handlePairingShow: ActionHandler = async (context) => {
  * Handle pairing.refresh - Refresh pairing code
  */
 export const handlePairingRefresh: ActionHandler = async (context) => {
-  const pairingService = getPairingService();
+  const pairingService = context.pairingService;
   const platform = context.platform;
 
   // Check if user is already authorized
-  if (pairingService.isUserAuthorized(context.userId, platform)) {
+  if (pairingService.isUserAuthorized(context.userId, platform, context.pluginId)) {
     return createSuccessResponse({
       type: 'text',
       text: '✅ You are already paired. No need to refresh the pairing code.',
@@ -126,7 +125,7 @@ export const handlePairingRefresh: ActionHandler = async (context) => {
 
   // Generate new pairing code
   try {
-    const { code, expiresAt } = await pairingService.refreshPairingCode(context.userId, platform, context.displayName);
+    const { code, expiresAt } = await pairingService.refreshPairingCode(context.userId, platform, context.pluginId, context.displayName);
 
     const expiresInMinutes = Math.ceil((expiresAt - Date.now()) / 1000 / 60);
 
@@ -145,11 +144,11 @@ export const handlePairingRefresh: ActionHandler = async (context) => {
  * Handle pairing.check - Check pairing status
  */
 export const handlePairingCheck: ActionHandler = async (context) => {
-  const pairingService = getPairingService();
+  const pairingService = context.pairingService;
   const platform = context.platform;
 
   // Check if user is already authorized
-  if (pairingService.isUserAuthorized(context.userId, platform)) {
+  if (pairingService.isUserAuthorized(context.userId, platform, context.pluginId)) {
     return createSuccessResponse({
       type: 'text',
       text: ['✅ <b>Pairing Successful!</b>', '', 'Your account is now paired and ready to use.', '', 'Send a message to chat with the AI assistant.'].join('\n'),
@@ -159,7 +158,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
   }
 
   // Check for pending request
-  const pendingRequest = pairingService.getPendingRequestForUser(context.userId, platform);
+  const pendingRequest = pairingService.getPendingRequestForUser(context.userId, platform, context.pluginId);
 
   if (pendingRequest) {
     const expiresInMinutes = Math.ceil((pendingRequest.expiresAt - Date.now()) / 1000 / 60);

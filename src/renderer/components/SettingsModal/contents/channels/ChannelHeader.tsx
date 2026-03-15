@@ -10,17 +10,16 @@ import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
 import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { Switch, Tag } from '@arco-design/web-react';
+import { Tag } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChannelConfig } from './types';
 
 interface ChannelHeaderProps {
   channel: ChannelConfig;
-  onToggleEnabled?: (enabled: boolean) => void;
 }
 
-const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled }) => {
+const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel }) => {
   const { t } = useTranslation();
   const channelLogoMap: Record<string, { src: string; alt: string }> = {
     telegram: { src: ChannelTelegramLogo, alt: 'Telegram' },
@@ -29,26 +28,40 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
     slack: { src: ChannelSlackLogo, alt: 'Slack' },
     discord: { src: ChannelDiscordLogo, alt: 'Discord' },
   };
-  const builtinLogo = channelLogoMap[channel.id];
-  // Extension channels may provide a custom icon via ChannelConfig
-  // Resolve aion-asset:// or file:// URLs for the current environment
+  const builtinLogo = channelLogoMap[channel.id] || (channel.id.startsWith('telegram_') ? channelLogoMap.telegram : channel.id.startsWith('lark_') ? channelLogoMap.lark : channel.id.startsWith('dingtalk_') ? channelLogoMap.dingtalk : channel.id.startsWith('slack_') ? channelLogoMap.slack : channel.id.startsWith('discord_') ? channelLogoMap.discord : undefined);
   const logoSrc = builtinLogo?.src || resolveExtensionAssetUrl(channel.icon);
   const logoAlt = builtinLogo?.alt || channel.title;
-  const isDisabled = channel.status === 'coming_soon' || channel.disabled;
 
   return (
-    <div className='flex items-center justify-between group' data-channel-header={channel.id}>
-      <div className='flex items-center gap-8px flex-1 min-w-0'>
-        {logoSrc && <img src={logoSrc} alt={logoAlt} className='w-14px h-14px object-contain shrink-0' />}
-        <span className='text-14px text-t-primary'>{channel.title}</span>
-        {channel.status === 'coming_soon' && (
-          <Tag size='small' color='gray'>
-            {t('settings.channels.comingSoon', 'Coming Soon')}
-          </Tag>
-        )}
-      </div>
-      <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
-        <Switch data-channel-switch-for={channel.id} data-channel-switch-disabled={isDisabled ? 'true' : 'false'} aria-disabled={isDisabled ? 'true' : undefined} checked={channel.enabled} onChange={onToggleEnabled} size='small' disabled={isDisabled} />
+    <div className='flex items-start justify-between gap-12px group' data-channel-header={channel.id}>
+      <div className='flex items-start gap-8px flex-1 min-w-0'>
+        {logoSrc && <img src={logoSrc} alt={logoAlt} className='w-14px h-14px object-contain shrink-0 mt-2px' />}
+        <div className='min-w-0 flex-1'>
+          <div className='flex items-center gap-8px min-w-0'>
+            <span className='text-14px text-t-primary truncate'>{channel.title}</span>
+            {channel.isExtension ? (
+              <Tag size='small' color='arcoblue'>
+                {t('settings.channels.extensionTag', 'EXT')}
+              </Tag>
+            ) : null}
+            {channel.instances && channel.instances.length > 1 ? (
+              <Tag size='small' color='orangered'>
+                {t('settings.channels.instanceCount', { defaultValue: '{{count}} instances', count: channel.instances.length })}
+              </Tag>
+            ) : null}
+            {channel.status === 'coming_soon' ? (
+              <Tag size='small' color='gray'>
+                {t('settings.channels.comingSoon', 'Coming Soon')}
+              </Tag>
+            ) : null}
+            {channel.status === 'active' && channel.enabled ? (
+              <Tag size='small' color={channel.isConnected ? 'green' : 'orange'}>
+                {channel.isConnected ? t('settings.channels.connected', 'Connected') : t('settings.channels.connecting', 'Connecting')}
+              </Tag>
+            ) : null}
+          </div>
+          {channel.description ? <div className='text-12px text-t-tertiary mt-2px truncate'>{channel.description}</div> : null}
+        </div>
       </div>
     </div>
   );

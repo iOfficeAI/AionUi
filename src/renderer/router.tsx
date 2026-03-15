@@ -2,11 +2,14 @@ import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from './components/AppLoader';
 import { useAuth } from './context/AuthContext';
+import { isElectronShellRuntime } from './utils/platform';
+import { getConnectivitySettingsPath } from './utils/settingsNavigation';
 
 const Conversation = React.lazy(() => import('./pages/conversation'));
 const Guid = React.lazy(() => import('./pages/guid'));
 const About = React.lazy(() => import('./pages/settings/About'));
 const AgentSettings = React.lazy(() => import('./pages/settings/AgentSettings'));
+const ChannelsSettings = React.lazy(() => import('./pages/settings/ChannelsSettings'));
 const DisplaySettings = React.lazy(() => import('./pages/settings/DisplaySettings'));
 const GeminiSettings = React.lazy(() => import('./pages/settings/GeminiSettings'));
 const ModeSettings = React.lazy(() => import('./pages/settings/ModeSettings'));
@@ -39,6 +42,8 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
 
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
+  const isDesktopRuntime = isElectronShellRuntime();
+  const connectivitySettingsPath = getConnectivitySettingsPath(isDesktopRuntime);
 
   return (
     <HashRouter>
@@ -52,7 +57,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
           <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
-          <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
+          <Route path='/settings/webui' element={isDesktopRuntime ? withRouteFallback(WebuiSettings) : <Navigate to={connectivitySettingsPath} replace />} />
+          <Route path='/settings/channels' element={withRouteFallback(ChannelsSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(About)} />
           <Route path='/settings/tools' element={withRouteFallback(ToolsSettings)} />
