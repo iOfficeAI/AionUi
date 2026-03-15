@@ -13,7 +13,7 @@
     "builtin": "Built-in",
     "manualImport": "Import from Folder",
     "tipTitle": "Usage Tip:",
-    "tipContent": "Skills configured here can be enabled for any assistant in the \"Assistants\" setup page.",
+    "tipContent": "Skills configured here can be enabled for any assistant in the \"Assistants\" setup page; skills are imported and exported using symbolic links.",
     "fetchError": "Failed to fetch skills",
     "importSuccess": "Skill imported successfully",
     "importFailed": "Failed to import skill",

@@ -429,7 +429,10 @@ const SkillsHubSettings: React.FC = () => {
             {/* ======== Usage Tip ======== */}
             <div className='px-16px md:px-[24px] py-20px bg-base border border-b-base shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
               <Info size={18} className='text-primary-6 mt-2px shrink-0' />
-              <div></div>
+              <div className='flex flex-col gap-4px'>
+                <span className='font-bold text-t-primary text-14px'>{t('settings.skillsHub.tipTitle', { defaultValue: '使用贴士：' })}</span>
+                <span className='text-13px leading-relaxed'>{t('settings.skillsHub.tipContent')}</span>
+              </div>
             </div>
           </div>
         </div>

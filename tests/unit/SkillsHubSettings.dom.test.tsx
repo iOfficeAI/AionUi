@@ -270,4 +270,9 @@ describe('SkillsHubSettings Component', () => {
       expect(mockAddCustomExternalPath).toHaveBeenCalledWith({ name: 'NewPath', path: '/foo/bar' });
     });
   });
+
+  it('should render usage tips correctly', () => {
+    render(<SkillsHubSettings />);
+    expect(screen.getByText('使用贴士：')).toBeInTheDocument();
+  });
 });
