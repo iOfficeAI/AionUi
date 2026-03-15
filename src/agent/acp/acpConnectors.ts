@@ -181,7 +181,9 @@ export function spawnNpxBackend(backend: string, npxPackage: string, npxCommand:
   // detached: true creates a new session (setsid) so the child has no controlling terminal.
   // Required for backends (e.g. CodeBuddy) that write to /dev/tty — without it, SIGTTOU
   // would suspend the entire Electron process group and freeze the UI.
-  const child = spawn(npxCommand, spawnArgs, {
+  // On Windows, prefix with chcp 65001 to switch console to UTF-8, preventing GBK garbling.
+  const effectiveCommand = isWindows ? `chcp 65001 >nul && "${npxCommand}"` : npxCommand;
+  const child = spawn(effectiveCommand, spawnArgs, {
     cwd: workingDir,
     stdio: ['pipe', 'pipe', 'pipe'],
     env: cleanEnv,
