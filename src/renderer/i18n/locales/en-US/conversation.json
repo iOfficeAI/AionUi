@@ -111,7 +111,11 @@
       "selectFolderError": "Failed to select folder",
       "success": "Workspace migrated successfully",
       "error": "Failed to migrate workspace",
-      "migrating": "Migrating..."
+      "migrating": "Migrating...",
+      "cronMigrationTitle": "Scheduled Tasks Found",
+      "cronMigrationHint": "This conversation has scheduled tasks. Do you want to migrate them to the new workspace?",
+      "cronMigrationConfirm": "Migrate Tasks",
+      "cronMigrationSkip": "Do Not Migrate (Will be deleted)"
     },
     "dragOverlayTitle": "Drop to import",
     "dragOverlayDesc": "Drag files or folders here to copy them into this workspace.",

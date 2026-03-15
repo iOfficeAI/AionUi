@@ -43,5 +43,13 @@
   "message.badge": "定时任务",
   "allScheduledTasks": "全部定时任务",
   "noTasks": "暂无定时任务",
-  "runNowSuccess": "任务已触发执行"
+  "runNowSuccess": "任务已触发执行",
+  "error": {
+    "alreadyExists": "该会话已存在定时任务 \"{{name}}\" (ID: {{id}})。请先删除它，或使用 [CRON_LIST] 查看已有任务。",
+    "missedJob": "⏰ 定时任务 \"{{name}}\" 在系统休眠期间未执行。\n预定时间：{{time}}\n计时器已重启，将在下次预定时间运行。",
+    "jobNotFound": "未找到脚本: {{id}}",
+    "conversationNotFound": "未找到会话",
+    "scheduledTimePassed": "定时时间已过",
+    "conversationBusy": "会话繁忙，在 {{count}} 次尝试后跳过"
+  }
 }
