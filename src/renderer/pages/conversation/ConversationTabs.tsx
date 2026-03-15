@@ -182,9 +182,13 @@ const ConversationTabs: React.FC = () => {
         let params;
 
         if (key.startsWith('cli:')) {
-          const backend = key.slice(4);
+          const agentId = key.slice(4);
+          // Extension agents use key format "ext:<extensionName>"; regular agents use their backend name.
           // [BUG-6] Null check: find() may return undefined
-          const agent = cliAgents.find((a) => a.backend === backend);
+          const agent = cliAgents.find((a) => {
+            const id = a.isExtension ? `ext:${a.extensionName ?? a.backend}` : a.backend;
+            return id === agentId;
+          });
           if (!agent) {
             Message.error(t('conversation.createFailed'));
             return;
@@ -228,9 +232,11 @@ const ConversationTabs: React.FC = () => {
         {cliAgents.length > 0 && (
           <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
             {cliAgents.map((agent) => {
-              const logo = getAgentLogo(agent.backend);
+              // Extension agents get a unique key to avoid collisions when multiple extensions share backend="custom".
+              const agentId = agent.isExtension ? `ext:${agent.extensionName ?? agent.backend}` : agent.backend;
+              const logo = getAgentLogo(agent.extensionName ?? agent.backend);
               return (
-                <Menu.Item key={`cli:${agent.backend}`}>
+                <Menu.Item key={`cli:${agentId}`}>
                   <div className='flex items-center gap-8px'>
                     {logo ? <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} /> : <Robot size='16' />}
                     <span>{agent.name}</span>

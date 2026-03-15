@@ -17,7 +17,7 @@ export function splitConversationDropdownAgents(availableAgents: AvailableAgent[
   presetAssistants: AvailableAgent[];
 } {
   return {
-    cliAgents: availableAgents.filter((agent) => agent.backend !== 'custom' && !agent.isPreset),
+    cliAgents: availableAgents.filter((agent) => (agent.backend !== 'custom' || agent.isExtension) && !agent.isPreset),
     presetAssistants: availableAgents.filter((agent) => agent.isPreset === true),
   };
 }
