@@ -135,6 +135,12 @@
     "expand": "Çalışma Alanını Genişlet",
     "collapse": "Çalışma Alanını Daralt"
   },
+  "minimap": {
+    "searchAria": "Sohbeti ara",
+    "searchHint": "Anahtar kelime aramak için buraya tıkla",
+    "empty": "Henüz soru-cevap içeriği yok",
+    "noMatch": "Eşleşen içerik bulunamadı"
+  },
   "chat": {
     "noModelSelected": "Mevcut oturum için model seçilmedi, mesaj gönderilemiyor",
     "sendMessageTo": "{{model}} modeline mesaj gönder",
