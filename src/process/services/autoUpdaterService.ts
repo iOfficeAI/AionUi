@@ -184,6 +184,14 @@ class AutoUpdaterService extends EventEmitter {
 
     register('update-available', (info: UpdateInfo) => {
       log.info(`Update available: ${info.version}`);
+
+      // 忽略预发布版本，如果用户未开启（例如从 latest.yml 中拉取到了 dev 版本情况）
+      if (!this._allowPrerelease && info.version.includes('-')) {
+        log.info(`Ignoring prerelease version ${info.version} because allowPrerelease is false`);
+        this.broadcastStatus({ status: 'not-available' });
+        return;
+      }
+
       this.broadcastStatus({
         status: 'available',
         version: info.version,

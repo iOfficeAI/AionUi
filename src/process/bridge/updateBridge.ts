@@ -506,6 +506,13 @@ export function initUpdateBridge(): void {
         // Only report update when the remote version is actually newer than the current version.
         // electron-updater's checkForUpdates() always returns updateInfo regardless of availability.
         const currentVersion = app.getVersion();
+
+        // 过滤掉 dev/prerelease 版本（如果用户在设置中未勾选）
+        // Filter out dev/prerelease versions if includePrerelease is false
+        if (!includePrerelease && semver.prerelease(result.updateInfo.version)) {
+          return { success: true, data: {} };
+        }
+
         if (!semver.gt(result.updateInfo.version, currentVersion)) {
           return { success: true, data: {} };
         }
