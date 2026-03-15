@@ -7,6 +7,7 @@
 import type { TChatConversation } from '@/common/storage';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import AionModal from '@/renderer/components/base/AionModal';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -45,7 +46,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
 
   const { selectedConversationIds, setSelectedConversationIds, selectedCount, allSelected, toggleSelectedConversation, handleToggleSelectAll } = useBatchSelection(batchMode, conversations);
 
-  const { renameModalVisible, renameModalName, setRenameModalName, renameLoading, dropdownVisibleId, handleConversationClick, handleDeleteClick, handleBatchDelete, handleEditStart, handleRenameConfirm, handleRenameCancel, handleTogglePin, handleMenuVisibleChange, handleOpenMenu } = useConversationActions({
+  const { renameModalVisible, renameModalName, setRenameModalName, renameLoading, dropdownVisibleId, deleteConfirmVisible, isBatchDeleteConfirm, deleteConfirmLoading, handleConversationClick, handleDeleteClick, handleBatchDelete, handleDeleteConfirm, handleDeleteCancel, handleEditStart, handleRenameConfirm, handleRenameCancel, handleTogglePin, handleMenuVisibleChange, handleOpenMenu } = useConversationActions({
     batchMode,
     onSessionClick,
     onBatchModeChange,
@@ -113,6 +114,31 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
       <Modal title={t('conversation.history.renameTitle')} visible={renameModalVisible} onOk={handleRenameConfirm} onCancel={handleRenameCancel} okText={t('conversation.history.saveName')} cancelText={t('conversation.history.cancelEdit')} confirmLoading={renameLoading} okButtonProps={{ disabled: !renameModalName.trim() }} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
         <Input autoFocus value={renameModalName} onChange={setRenameModalName} onPressEnter={handleRenameConfirm} placeholder={t('conversation.history.renamePlaceholder')} allowClear />
       </Modal>
+
+      <AionModal
+        visible={deleteConfirmVisible}
+        onCancel={handleDeleteCancel}
+        header={{ title: isBatchDeleteConfirm ? t('conversation.history.batchDelete') : t('conversation.history.deleteTitle'), showClose: false }}
+        footer={{
+          render: () => (
+            <div className='flex items-center justify-end gap-8px p-16px'>
+              <Button onClick={handleDeleteCancel}>{t('conversation.history.cancelDelete')}</Button>
+              <Button status='danger' type='primary' loading={deleteConfirmLoading} onClick={() => void handleDeleteConfirm()}>
+                {t('conversation.history.confirmDelete')}
+              </Button>
+            </div>
+          ),
+        }}
+        style={{ width: '400px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+      >
+        <div className='px-20px pb-8px'>
+          <p className='text-14px text-t-secondary m-0'>
+            {isBatchDeleteConfirm ? t('conversation.history.batchDeleteConfirm', { count: selectedConversationIds.size }) : t('conversation.history.deleteConfirm')}
+          </p>
+        </div>
+      </AionModal>
 
       <Modal visible={exportModalVisible} title={t('conversation.history.exportDialogTitle')} onCancel={closeExportModal} footer={null} style={{ borderRadius: '12px' }} className='conversation-export-modal' alignCenter getPopupContainer={() => document.body}>
         <div className='py-8px'>

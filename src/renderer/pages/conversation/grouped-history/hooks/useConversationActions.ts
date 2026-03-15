@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/focus';
-import { Message, Modal } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -32,6 +32,10 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
   const [renameModalId, setRenameModalId] = useState<string | null>(null);
   const [renameLoading, setRenameLoading] = useState(false);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isBatchDeleteConfirm, setIsBatchDeleteConfirm] = useState(false);
+  const [deleteConfirmLoading, setDeleteConfirmLoading] = useState(false);
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -100,32 +104,11 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
 
   const handleDeleteClick = useCallback(
     (conversationId: string) => {
-      Modal.confirm({
-        title: t('conversation.history.deleteTitle'),
-        content: t('conversation.history.deleteConfirm'),
-        okText: t('conversation.history.confirmDelete'),
-        cancelText: t('conversation.history.cancelDelete'),
-        okButtonProps: { status: 'warning' },
-        onOk: async () => {
-          try {
-            const success = await removeConversation(conversationId);
-            if (success) {
-              emitter.emit('chat.history.refresh');
-              Message.success(t('conversation.history.deleteSuccess'));
-            } else {
-              Message.error(t('conversation.history.deleteFailed'));
-            }
-          } catch (error) {
-            console.error('Failed to remove conversation:', error);
-            Message.error(t('conversation.history.deleteFailed'));
-          }
-        },
-        style: { borderRadius: '12px' },
-        alignCenter: true,
-        getPopupContainer: () => document.body,
-      });
+      setDeleteTargetId(conversationId);
+      setIsBatchDeleteConfirm(false);
+      setDeleteConfirmVisible(true);
     },
-    [removeConversation, t]
+    []
   );
 
   const handleBatchDelete = useCallback(() => {
@@ -133,37 +116,49 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
       Message.warning(t('conversation.history.batchNoSelection'));
       return;
     }
+    setIsBatchDeleteConfirm(true);
+    setDeleteTargetId(null);
+    setDeleteConfirmVisible(true);
+  }, [selectedConversationIds, t]);
 
-    Modal.confirm({
-      title: t('conversation.history.batchDelete'),
-      content: t('conversation.history.batchDeleteConfirm', { count: selectedConversationIds.size }),
-      okText: t('conversation.history.confirmDelete'),
-      cancelText: t('conversation.history.cancelDelete'),
-      okButtonProps: { status: 'warning' },
-      onOk: async () => {
+  const handleDeleteConfirm = useCallback(async () => {
+    setDeleteConfirmLoading(true);
+    try {
+      if (isBatchDeleteConfirm) {
         const selectedIds = Array.from(selectedConversationIds);
-        try {
-          const results = await Promise.all(selectedIds.map((conversationId) => removeConversation(conversationId)));
-          const successCount = results.filter(Boolean).length;
-          emitter.emit('chat.history.refresh');
-          if (successCount > 0) {
-            Message.success(t('conversation.history.batchDeleteSuccess', { count: successCount }));
-          } else {
-            Message.error(t('conversation.history.deleteFailed'));
-          }
-        } catch (error) {
-          console.error('Failed to batch delete conversations:', error);
+        const results = await Promise.all(selectedIds.map((conversationId) => removeConversation(conversationId)));
+        const successCount = results.filter(Boolean).length;
+        emitter.emit('chat.history.refresh');
+        if (successCount > 0) {
+          Message.success(t('conversation.history.batchDeleteSuccess', { count: successCount }));
+        } else {
           Message.error(t('conversation.history.deleteFailed'));
-        } finally {
-          setSelectedConversationIds(new Set());
-          onBatchModeChange?.(false);
         }
-      },
-      style: { borderRadius: '12px' },
-      alignCenter: true,
-      getPopupContainer: () => document.body,
-    });
-  }, [onBatchModeChange, removeConversation, selectedConversationIds, t, setSelectedConversationIds]);
+        setSelectedConversationIds(new Set());
+        onBatchModeChange?.(false);
+      } else if (deleteTargetId) {
+        const success = await removeConversation(deleteTargetId);
+        if (success) {
+          emitter.emit('chat.history.refresh');
+          Message.success(t('conversation.history.deleteSuccess'));
+        } else {
+          Message.error(t('conversation.history.deleteFailed'));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      Message.error(t('conversation.history.deleteFailed'));
+    } finally {
+      setDeleteConfirmLoading(false);
+      setDeleteConfirmVisible(false);
+      setDeleteTargetId(null);
+    }
+  }, [isBatchDeleteConfirm, deleteTargetId, selectedConversationIds, removeConversation, t, setSelectedConversationIds, onBatchModeChange]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteConfirmVisible(false);
+    setDeleteTargetId(null);
+  }, []);
 
   const handleEditStart = useCallback((conversation: TChatConversation) => {
     setRenameModalId(conversation.id);
@@ -248,9 +243,14 @@ export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeC
     setRenameModalName,
     renameLoading,
     dropdownVisibleId,
+    deleteConfirmVisible,
+    isBatchDeleteConfirm,
+    deleteConfirmLoading,
     handleConversationClick,
     handleDeleteClick,
     handleBatchDelete,
+    handleDeleteConfirm,
+    handleDeleteCancel,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
