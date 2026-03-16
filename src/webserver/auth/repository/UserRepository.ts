@@ -166,6 +166,14 @@ export const UserRepository = {
     }
   },
 
+  updateUsername(userId: string, username: string): void {
+    const db = getDatabase();
+    const result = db.updateUserUsername(userId, username);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update username');
+    }
+  },
+
   /**
    * 更新用户最后登录时间
    * Update user's last login time
