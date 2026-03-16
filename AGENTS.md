@@ -132,4 +132,20 @@ See [docs/tech/architecture.md](docs/tech/architecture.md) for IPC, WebUI, and C
 
 ## Internationalization
 
-Translation files: `src/renderer/i18n/locales/*.json`. Always use i18n keys for user-facing text — never hardcode strings in components.
+Translation files: `src/renderer/i18n/locales/<lang>/<module>.json`. Always use i18n keys for user-facing text — never hardcode strings in components.
+
+Supported languages: `en-US` (reference), `zh-CN`, `zh-TW`, `ja-JP`, `ko-KR`, `tr-TR`.
+
+When adding or modifying user-facing text, **always update all language files**. After changes, run the i18n validation script to verify completeness:
+
+```bash
+node scripts/check-i18n.js
+```
+
+This script checks: directory structure, missing keys across locales, empty translations, invalid `t()` key usages, and type definition sync. **Fix all errors before committing.**
+
+If you added new i18n keys, also regenerate the type definitions:
+
+```bash
+bun run i18n:types
+```
