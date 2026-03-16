@@ -75,7 +75,12 @@ export enum StreamConnectionState {
 }
 
 // Connection Event Types / 连接事件类型
-export type StreamConnectionEvent = { type: 'state_change'; state: StreamConnectionState; reason?: string } | { type: 'heartbeat_timeout'; lastEventTime: number } | { type: 'retry_attempt'; attempt: number; maxRetries: number; delayMs: number } | { type: 'reconnect_success'; attempt: number } | { type: 'reconnect_failed'; error: Error };
+export type StreamConnectionEvent =
+  | { type: 'state_change'; state: StreamConnectionState; reason?: string }
+  | { type: 'heartbeat_timeout'; lastEventTime: number }
+  | { type: 'retry_attempt'; attempt: number; maxRetries: number; delayMs: number }
+  | { type: 'reconnect_success'; attempt: number }
+  | { type: 'reconnect_failed'; error: Error };
 
 // Stream Monitor / 流监控器
 export class StreamMonitor {
@@ -85,7 +90,10 @@ export class StreamMonitor {
   private config: StreamResilienceConfig;
   private onConnectionEvent?: (event: StreamConnectionEvent) => void;
 
-  constructor(config: Partial<StreamResilienceConfig> = {}, onConnectionEvent?: (event: StreamConnectionEvent) => void) {
+  constructor(
+    config: Partial<StreamResilienceConfig> = {},
+    onConnectionEvent?: (event: StreamConnectionEvent) => void
+  ) {
     this.config = { ...DEFAULT_STREAM_RESILIENCE_CONFIG, ...config };
     this.onConnectionEvent = onConnectionEvent;
   }
@@ -195,7 +203,11 @@ export class StreamMonitor {
  * 带弹性处理的流包装器
  * 包装原始流，添加心跳检测和超时处理
  */
-export async function* wrapStreamWithResilience<T extends ServerGeminiStreamEvent>(stream: AsyncIterable<T>, config: Partial<StreamResilienceConfig> = {}, onConnectionEvent?: (event: StreamConnectionEvent) => void): AsyncGenerator<T, void, unknown> {
+export async function* wrapStreamWithResilience<T extends ServerGeminiStreamEvent>(
+  stream: AsyncIterable<T>,
+  config: Partial<StreamResilienceConfig> = {},
+  onConnectionEvent?: (event: StreamConnectionEvent) => void
+): AsyncGenerator<T, void, unknown> {
   const fullConfig = { ...DEFAULT_STREAM_RESILIENCE_CONFIG, ...config };
   const monitor = new StreamMonitor(fullConfig, onConnectionEvent);
 
@@ -252,7 +264,14 @@ export function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     // Network related errors / 网络相关错误
-    if (message.includes('fetch failed') || message.includes('network') || message.includes('timeout') || message.includes('connection') || message.includes('econnreset') || message.includes('socket hang up')) {
+    if (
+      message.includes('fetch failed') ||
+      message.includes('network') ||
+      message.includes('timeout') ||
+      message.includes('connection') ||
+      message.includes('econnreset') ||
+      message.includes('socket hang up')
+    ) {
       return true;
     }
     // HTTP Status Code related / HTTP 状态码相关

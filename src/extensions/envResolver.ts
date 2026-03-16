@@ -44,7 +44,10 @@ export function resolveEnvTemplates(value: string, options?: EnvResolverOptions)
     if (envValue === undefined) {
       undefinedVars.push(varName);
       if (strictMode) {
-        throw new UndefinedEnvVariableError(varName, `[Extensions] Strict mode: Required environment variable "${varName}" is not defined. Set the variable or disable strict mode (AIONUI_STRICT_ENV=0).`);
+        throw new UndefinedEnvVariableError(
+          varName,
+          `[Extensions] Strict mode: Required environment variable "${varName}" is not defined. Set the variable or disable strict mode (AIONUI_STRICT_ENV=0).`
+        );
       }
       console.warn(`[Extensions] Environment variable not defined: ${varName}`);
       return '';
@@ -53,7 +56,9 @@ export function resolveEnvTemplates(value: string, options?: EnvResolverOptions)
   });
 
   if (!strictMode && undefinedVars.length > 0) {
-    console.warn(`[Extensions] ${undefinedVars.length} undefined environment variable(s): ${undefinedVars.join(', ')}. Enable strict mode (AIONUI_STRICT_ENV=1) to catch these errors early.`);
+    console.warn(
+      `[Extensions] ${undefinedVars.length} undefined environment variable(s): ${undefinedVars.join(', ')}. Enable strict mode (AIONUI_STRICT_ENV=1) to catch these errors early.`
+    );
   }
 
   return result;

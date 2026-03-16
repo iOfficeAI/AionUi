@@ -157,16 +157,22 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Authenticated endpoints reuse shared limiter keyed by user/IP
   // 已登录接口复用按用户/IP 计数的限流器
-  app.post('/logout', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
-    // 将当前 token 加入黑名单 / Blacklist current token
-    const token = TokenUtils.extractFromRequest(req);
-    if (token) {
-      AuthService.blacklistToken(token);
-    }
+  app.post(
+    '/logout',
+    apiRateLimiter,
+    AuthMiddleware.authenticateToken,
+    authenticatedActionLimiter,
+    (req: Request, res: Response) => {
+      // 将当前 token 加入黑名单 / Blacklist current token
+      const token = TokenUtils.extractFromRequest(req);
+      if (token) {
+        AuthService.blacklistToken(token);
+      }
 
-    res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
-    res.json({ success: true, message: 'Logged out successfully' });
-  });
+      res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
+      res.json({ success: true, message: 'Logged out successfully' });
+    }
+  );
 
   /**
    * 获取认证状态 - Get authentication status
@@ -200,79 +206,91 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Add rate limiting for authenticated user info endpoint
   // 为已认证用户信息端点添加速率限制
-  app.get('/api/auth/user', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
-    res.json({
-      success: true,
-      user: req.user,
-    });
-  });
+  app.get(
+    '/api/auth/user',
+    apiRateLimiter,
+    AuthMiddleware.authenticateToken,
+    authenticatedActionLimiter,
+    (req: Request, res: Response) => {
+      res.json({
+        success: true,
+        user: req.user,
+      });
+    }
+  );
 
   /**
    * 修改密码 - Change password endpoint (protected route)
    * POST /api/auth/change-password
    */
-  app.post('/api/auth/change-password', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, async (req: Request, res: Response) => {
-    try {
-      const { currentPassword, newPassword } = req.body;
+  app.post(
+    '/api/auth/change-password',
+    apiRateLimiter,
+    AuthMiddleware.authenticateToken,
+    authenticatedActionLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const { currentPassword, newPassword } = req.body;
 
-      if (!currentPassword || !newPassword) {
-        res.status(400).json({
-          success: false,
-          error: 'Current password and new password are required',
+        if (!currentPassword || !newPassword) {
+          res.status(400).json({
+            success: false,
+            error: 'Current password and new password are required',
+          });
+          return;
+        }
+
+        // Validate new password strength
+        const passwordValidation = AuthService.validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+          res.status(400).json({
+            success: false,
+            error: 'New password does not meet security requirements',
+            details: passwordValidation.errors,
+          });
+          return;
+        }
+
+        // Get current user
+        const user = UserRepository.findById(req.user!.id);
+        if (!user) {
+          res.status(404).json({
+            success: false,
+            error: 'User not found',
+          });
+          return;
+        }
+
+        // Verify current password
+        const isValidPassword = await AuthService.verifyPassword(currentPassword, user.password_hash);
+        if (!isValidPassword) {
+          res.status(401).json({
+            success: false,
+            error: 'Current password is incorrect',
+          });
+          return;
+        }
+
+        // Hash new password
+        const newPasswordHash = await AuthService.hashPassword(newPassword);
+
+        // Update password
+        UserRepository.updatePassword(user.id, newPasswordHash);
+        AuthService.invalidateAllTokens();
+
+        res.json({
+          success: true,
+          message: 'Password changed successfully',
         });
-        return;
-      }
-
-      // Validate new password strength
-      const passwordValidation = AuthService.validatePasswordStrength(newPassword);
-      if (!passwordValidation.isValid) {
-        res.status(400).json({
+      } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
           success: false,
-          error: 'New password does not meet security requirements',
-          details: passwordValidation.errors,
+          error: 'Internal server error',
         });
-        return;
       }
-
-      // Get current user
-      const user = UserRepository.findById(req.user!.id);
-      if (!user) {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
-        return;
-      }
-
-      // Verify current password
-      const isValidPassword = await AuthService.verifyPassword(currentPassword, user.password_hash);
-      if (!isValidPassword) {
-        res.status(401).json({
-          success: false,
-          error: 'Current password is incorrect',
-        });
-        return;
-      }
-
-      // Hash new password
-      const newPasswordHash = await AuthService.hashPassword(newPassword);
-
-      // Update password
-      UserRepository.updatePassword(user.id, newPasswordHash);
-      AuthService.invalidateAllTokens();
-
-      res.json({
-        success: true,
-        message: 'Password changed successfully',
-      });
-    } catch (error) {
-      console.error('Change password error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-      });
     }
-  });
+  );
 
   /**
    * Token 刷新 - Token refresh endpoint

@@ -89,7 +89,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
 
   const copyButton = (
     <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
-      <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto' onClick={handleCopy} style={{ lineHeight: 0 }}>
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+        onClick={handleCopy}
+        style={{ lineHeight: 0 }}
+      >
         <Copy theme='outline' size='16' fill={iconColors.secondary} />
       </div>
     </Tooltip>
@@ -126,7 +130,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
-              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+              <MarkdownView
+                codeStyle={{ marginTop: 4, marginBlock: 4 }}
+              >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
             </CollapsibleContent>
           ) : (
             <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
@@ -141,7 +147,16 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           {copyButton}
         </div>
       </div>
-      {showCopyAlert && <Alert type='success' content={t('messages.copySuccess')} showIcon className='fixed top-20px left-50% transform -translate-x-50% z-9999 w-max max-w-[80%]' style={{ boxShadow: '0px 2px 12px rgba(0,0,0,0.12)' }} closable={false} />}
+      {showCopyAlert && (
+        <Alert
+          type='success'
+          content={t('messages.copySuccess')}
+          showIcon
+          className='fixed top-20px left-50% transform -translate-x-50% z-9999 w-max max-w-[80%]'
+          style={{ boxShadow: '0px 2px 12px rgba(0,0,0,0.12)' }}
+          closable={false}
+        />
+      )}
     </>
   );
 };

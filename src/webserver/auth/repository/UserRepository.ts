@@ -11,7 +11,10 @@ import type { IUser, IQueryResult } from '@process/database/types';
  * 认证用户类型，仅包含必要的认证字段
  * Authentication user type containing only essential auth fields
  */
-export type AuthUser = Pick<IUser, 'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'>;
+export type AuthUser = Pick<
+  IUser,
+  'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'
+>;
 
 /**
  * 解包数据库查询结果，失败时抛出异常

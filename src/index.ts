@@ -110,7 +110,9 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
-    const deepLinkUrl = (additionalData as { deepLinkUrl?: string })?.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+    const deepLinkUrl =
+      (additionalData as { deepLinkUrl?: string })?.deepLinkUrl ||
+      argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
     if (deepLinkUrl) {
       handleDeepLinkUrl(deepLinkUrl);
     }
@@ -277,7 +279,10 @@ const resolveWebUIPort = (config: WebUIUserConfig): number => {
   const cliPort = parsePortValue(getSwitchValue('port') ?? getSwitchValue('webui-port'), 'CLI (--port)');
   if (cliPort) return cliPort;
 
-  const envPort = parsePortValue(process.env.AIONUI_PORT ?? process.env.PORT, 'environment variable (AIONUI_PORT/PORT)');
+  const envPort = parsePortValue(
+    process.env.AIONUI_PORT ?? process.env.PORT,
+    'environment variable (AIONUI_PORT/PORT)'
+  );
   if (envPort) return envPort;
 
   const configPort = parsePortValue(config.port, 'webui.config.json');
@@ -308,7 +313,10 @@ const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
     const enabled = (await ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY)) === true;
     if (!enabled) return;
 
-    const [allowRemotePref, portPref] = await Promise.all([ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY), ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY)]);
+    const [allowRemotePref, portPref] = await Promise.all([
+      ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY),
+      ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY),
+    ]);
     const allowRemote = allowRemotePref === true;
     // 直接使用数字类型，提供默认值 / Use number type directly with default
     const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : SERVER_CONFIG.DEFAULT_PORT;
@@ -361,7 +369,9 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
       const { getDatabase } = await import('./process/database');
       const db = getDatabase();
       const result = db.getUserConversations(undefined, 0, 5);
-      return (result.data || []).slice(0, 5).map((conv) => ({ id: conv.id, title: conv.name || i18n.t('common.tray.untitled') }));
+      return (result.data || [])
+        .slice(0, 5)
+        .map((conv) => ({ id: conv.id, title: conv.name || i18n.t('common.tray.untitled') }));
     } catch {
       return [];
     }
@@ -633,7 +643,8 @@ const createWindow = (): void => {
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
   const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
-  const disableAutoUpdater = process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
+  const disableAutoUpdater =
+    process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
   if (!disableAutoUpdater) {
     Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
@@ -939,7 +950,9 @@ const handleAppReady = async (): Promise<void> => {
     const cdpReady = await verifyCdpReady(cdpPort);
     if (cdpReady) {
       console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
-      console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
+      console.log(
+        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`
+      );
     } else {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
     }

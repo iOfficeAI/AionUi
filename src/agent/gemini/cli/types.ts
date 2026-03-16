@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SerializableConfirmationDetails, ToolCallConfirmationDetails, ToolResultDisplay } from '@office-ai/aioncli-core';
+import type {
+  SerializableConfirmationDetails,
+  ToolCallConfirmationDetails,
+  ToolResultDisplay,
+} from '@office-ai/aioncli-core';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {
@@ -136,7 +140,21 @@ export type HistoryItemCompression = HistoryItemBase & {
 // type inference e.g. historyItem.type === 'tool_group' isn't auto-inferring that
 // 'tools' in historyItem.
 // Individually exported types extending HistoryItemBase
-export type HistoryItemWithoutId = HistoryItemUser | HistoryItemUserShell | HistoryItemGemini | HistoryItemGeminiContent | HistoryItemInfo | HistoryItemError | HistoryItemAbout | HistoryItemHelp | HistoryItemToolGroup | HistoryItemStats | HistoryItemModelStats | HistoryItemToolStats | HistoryItemQuit | HistoryItemCompression;
+export type HistoryItemWithoutId =
+  | HistoryItemUser
+  | HistoryItemUserShell
+  | HistoryItemGemini
+  | HistoryItemGeminiContent
+  | HistoryItemInfo
+  | HistoryItemError
+  | HistoryItemAbout
+  | HistoryItemHelp
+  | HistoryItemToolGroup
+  | HistoryItemStats
+  | HistoryItemModelStats
+  | HistoryItemToolStats
+  | HistoryItemQuit
+  | HistoryItemCompression;
 
 export type HistoryItem = HistoryItemWithoutId & { id: number };
 

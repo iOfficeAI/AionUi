@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Modal, Radio, Message, Dropdown, Menu, List, Spin, Empty, Typography, Input } from '@arco-design/web-react';
+import {
+  Button,
+  Modal,
+  Radio,
+  Message,
+  Dropdown,
+  Menu,
+  List,
+  Spin,
+  Empty,
+  Typography,
+  Input,
+} from '@arco-design/web-react';
 import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
@@ -98,17 +110,39 @@ Please acknowledge receiving this rule/skill and confirm you will apply it.
   };
 
   return (
-    <Modal title={t('conversation.skill_generator.load_title', { defaultValue: 'Load Rule/Skill' })} visible={visible} onCancel={onCancel} footer={null} className='w-[90vw] md:w-[500px]'>
+    <Modal
+      title={t('conversation.skill_generator.load_title', { defaultValue: 'Load Rule/Skill' })}
+      visible={visible}
+      onCancel={onCancel}
+      footer={null}
+      className='w-[90vw] md:w-[500px]'
+    >
       <Spin loading={loading} style={{ display: 'block' }}>
         {files.length === 0 ? (
-          <Empty description={t('conversation.skill_generator.no_files', { defaultValue: 'No relevant files found in workspace' })} />
+          <Empty
+            description={t('conversation.skill_generator.no_files', {
+              defaultValue: 'No relevant files found in workspace',
+            })}
+          />
         ) : (
           <List
             dataSource={files}
             render={(file, index) => (
-              <List.Item key={index} actionLayout='vertical' style={{ cursor: 'pointer', padding: '12px 0' }} onClick={() => handleSelectFile(file)} className='hover:bg-[var(--color-fill-2)] px-2 rounded transition-colors'>
+              <List.Item
+                key={index}
+                actionLayout='vertical'
+                style={{ cursor: 'pointer', padding: '12px 0' }}
+                onClick={() => handleSelectFile(file)}
+                className='hover:bg-[var(--color-fill-2)] px-2 rounded transition-colors'
+              >
                 <div className='flex items-center gap-3'>
-                  <div className='bg-[var(--color-primary-light-1)] p-2 rounded'>{file.name.endsWith('.py') ? <Lightning size={18} fill='var(--color-primary-6)' /> : <FolderOpen size={18} fill='var(--color-primary-6)' />}</div>
+                  <div className='bg-[var(--color-primary-light-1)] p-2 rounded'>
+                    {file.name.endsWith('.py') ? (
+                      <Lightning size={18} fill='var(--color-primary-6)' />
+                    ) : (
+                      <FolderOpen size={18} fill='var(--color-primary-6)' />
+                    )}
+                  </div>
                   <div className='flex-1'>
                     <Typography.Text bold>{file.name}</Typography.Text>
                     <div className='text-[var(--color-text-3)] text-xs truncate'>{file.relativePath || file.name}</div>
@@ -139,7 +173,9 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId,
     }
 
     if (!presetName.trim()) {
-      Message.warning(t('conversation.skill_generator.name_required', { defaultValue: 'Please enter a name for the preset' }));
+      Message.warning(
+        t('conversation.skill_generator.name_required', { defaultValue: 'Please enter a name for the preset' })
+      );
       return;
     }
 
@@ -155,7 +191,9 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId,
       });
 
       if (!messages || messages.length === 0) {
-        Message.warning(t('conversation.skill_generator.no_history', { defaultValue: 'No conversation history found' }));
+        Message.warning(
+          t('conversation.skill_generator.no_history', { defaultValue: 'No conversation history found' })
+        );
         setLoading(false);
         return;
       }
@@ -241,7 +279,9 @@ Requirements:
       customAgents.push(presetAgent);
       await ConfigStorage.set('acp.customAgents', customAgents);
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
-      Message.success(t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' }));
+      Message.success(
+        t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })
+      );
     } catch (error) {
       console.error('Failed to register preset:', error);
     }
@@ -267,26 +307,59 @@ Requirements:
   return (
     <>
       <Dropdown droplist={menu} trigger='click' position='br'>
-        <Button type='text' icon={<Magic />} style={{ color: 'var(--color-text-2)' }} aria-label={t('conversation.skill_generator.title', { defaultValue: 'Skill & Rules' })} />
+        <Button
+          type='text'
+          icon={<Magic />}
+          style={{ color: 'var(--color-text-2)' }}
+          aria-label={t('conversation.skill_generator.title', { defaultValue: 'Skill & Rules' })}
+        />
       </Dropdown>
 
       {/* Generate Modal */}
-      <Modal title={t('conversation.skill_generator.title', { defaultValue: 'Generate Skill/Rule' })} visible={generateVisible} onOk={handleGenerate} onCancel={() => setGenerateVisible(false)} okText={t('conversation.skill_generator.generate', { defaultValue: 'Generate' })} confirmLoading={loading} className='w-[90vw] md:w-[500px]'>
+      <Modal
+        title={t('conversation.skill_generator.title', { defaultValue: 'Generate Skill/Rule' })}
+        visible={generateVisible}
+        onOk={handleGenerate}
+        onCancel={() => setGenerateVisible(false)}
+        okText={t('conversation.skill_generator.generate', { defaultValue: 'Generate' })}
+        confirmLoading={loading}
+        className='w-[90vw] md:w-[500px]'
+      >
         <div style={{ marginBottom: 16 }}>
           <div className='mb-4'>
-            <Typography.Text>{t('conversation.skill_generator.name_label', { defaultValue: 'Agent Name:' })}</Typography.Text>
-            <Input className='mt-2' placeholder={t('conversation.skill_generator.name_placeholder', { defaultValue: 'e.g. Excel Translator' })} value={presetName} onChange={setPresetName} />
+            <Typography.Text>
+              {t('conversation.skill_generator.name_label', { defaultValue: 'Agent Name:' })}
+            </Typography.Text>
+            <Input
+              className='mt-2'
+              placeholder={t('conversation.skill_generator.name_placeholder', {
+                defaultValue: 'e.g. Excel Translator',
+              })}
+              value={presetName}
+              onChange={setPresetName}
+            />
           </div>
-          <p>{t('conversation.skill_generator.description', { defaultValue: 'Analyze conversation history to generate:' })}</p>
+          <p>
+            {t('conversation.skill_generator.description', {
+              defaultValue: 'Analyze conversation history to generate:',
+            })}
+          </p>
         </div>
         <Radio.Group value={type} onChange={setType}>
-          <Radio value='skill'>{t('conversation.skill_generator.type_skill', { defaultValue: 'Skill (Python)' })}</Radio>
+          <Radio value='skill'>
+            {t('conversation.skill_generator.type_skill', { defaultValue: 'Skill (Python)' })}
+          </Radio>
           <Radio value='rule'>{t('conversation.skill_generator.type_rule', { defaultValue: 'Rule (JSON/MD)' })}</Radio>
         </Radio.Group>
       </Modal>
 
       {/* Load Modal */}
-      <LoadRuleModal visible={loadVisible} onCancel={() => setLoadVisible(false)} workspace={workspace} conversationId={conversationId} />
+      <LoadRuleModal
+        visible={loadVisible}
+        onCancel={() => setLoadVisible(false)}
+        workspace={workspace}
+        conversationId={conversationId}
+      />
     </>
   );
 };

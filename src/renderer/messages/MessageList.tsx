@@ -52,11 +52,15 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
     const { message } = props as { message: TMessage };
     return (
       <div
-        className={classNames('min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
-          'justify-center': message.position === 'center',
-          'justify-end': message.position === 'right',
-          'justify-start': message.position === 'left',
-        })}
+        className={classNames(
+          'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
+          message.type,
+          {
+            'justify-center': message.position === 'center',
+            'justify-end': message.position === 'right',
+            'justify-start': message.position === 'left',
+          }
+        )}
       >
         {props.children}
       </div>
@@ -91,7 +95,11 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }
   }),
-  (prev, next) => prev.message.id === next.message.id && prev.message.content === next.message.content && prev.message.position === next.message.position && prev.message.type === next.message.type
+  (prev, next) =>
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.position === next.message.position &&
+    prev.message.type === next.message.type
 );
 
 const MessageList: React.FC<{ className?: string }> = () => {
@@ -130,7 +138,15 @@ const MessageList: React.FC<{ className?: string }> = () => {
       }
       if (message.type === 'tool_group') {
         if (message.content.length === 1) {
-          const writeFileResults = message.content.filter((item) => item.name === 'WriteFile' && item.resultDisplay && typeof item.resultDisplay === 'object' && 'fileDiff' in item.resultDisplay).map((item) => item.resultDisplay as WriteFileResult);
+          const writeFileResults = message.content
+            .filter(
+              (item) =>
+                item.name === 'WriteFile' &&
+                item.resultDisplay &&
+                typeof item.resultDisplay === 'object' &&
+                'fileDiff' in item.resultDisplay
+            )
+            .map((item) => item.resultDisplay as WriteFileResult);
           if (writeFileResults.length && writeFileResults[0].fileDiff) {
             pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName));
             continue;
@@ -151,7 +167,15 @@ const MessageList: React.FC<{ className?: string }> = () => {
   }, [list]);
 
   // Use auto-scroll hook
-  const { virtuosoRef, handleScroll, handleAtBottomStateChange, handleFollowOutput, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
+  const {
+    virtuosoRef,
+    handleScroll,
+    handleAtBottomStateChange,
+    handleFollowOutput,
+    showScrollButton,
+    scrollToBottom,
+    hideScrollButton,
+  } = useAutoScroll({
     messages: list,
     itemCount: processedList.length,
   });
@@ -163,7 +187,10 @@ const MessageList: React.FC<{ className?: string }> = () => {
       if (!conversationContext?.conversationId || detail.conversationId !== conversationContext.conversationId) return;
 
       const targetIndex = processedList.findIndex((item) => {
-        if ((item as { type?: string }).type === 'file_summary' || (item as { type?: string }).type === 'tool_summary') {
+        if (
+          (item as { type?: string }).type === 'file_summary' ||
+          (item as { type?: string }).type === 'tool_summary'
+        ) {
           return false;
         }
         const message = item as TMessage;
@@ -198,7 +225,10 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
-        <div key={item.id} className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}>
+        <div
+          key={item.id}
+          className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}
+        >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
           {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
         </div>
@@ -237,7 +267,12 @@ const MessageList: React.FC<{ className?: string }> = () => {
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
           {/* Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
-            <div className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
+            <div
+              className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3'
+              onClick={handleScrollButtonClick}
+              title={t('messages.scrollToBottom')}
+              style={{ lineHeight: 0 }}
+            >
               <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />
             </div>
           </div>

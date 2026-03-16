@@ -112,7 +112,10 @@ function getContextFileNames(config: ExtensionConfigFile): string[] {
  * 根据启用的扩展名列表标记扩展的激活状态
  * Mark extension activation status based on enabled extension names list
  */
-export function annotateActiveExtensions(extensions: GeminiCLIExtension[], enabledExtensionNames: string[]): GeminiCLIExtension[] {
+export function annotateActiveExtensions(
+  extensions: GeminiCLIExtension[],
+  enabledExtensionNames: string[]
+): GeminiCLIExtension[] {
   // 如果没有指定启用列表，所有扩展都激活
   if (enabledExtensionNames.length === 0) {
     return extensions.map((ext) => ({ ...ext, isActive: true }));

@@ -6,9 +6,26 @@
 
 import WebSocket from 'ws';
 import { randomUUID } from 'crypto';
-import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResetParams, SessionsResolveParams } from './types';
+import type {
+  ChatAbortParams,
+  ChatSendParams,
+  ConnectParams,
+  EventFrame,
+  HelloOk,
+  OpenClawGatewayClientOptions,
+  RequestFrame,
+  ResponseFrame,
+  SessionsResetParams,
+  SessionsResolveParams,
+} from './types';
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES, GATEWAY_CLOSE_CODE_HINTS, OPENCLAW_PROTOCOL_VERSION } from './types';
-import { buildDeviceAuthPayload, type DeviceIdentity, loadOrCreateDeviceIdentity, publicKeyRawBase64UrlFromPem, signDevicePayload } from './deviceIdentity';
+import {
+  buildDeviceAuthPayload,
+  type DeviceIdentity,
+  loadOrCreateDeviceIdentity,
+  publicKeyRawBase64UrlFromPem,
+  signDevicePayload,
+} from './deviceIdentity';
 import { clearDeviceAuthToken, loadDeviceAuthToken, storeDeviceAuthToken } from './deviceAuthStore';
 
 interface PendingRequest {
@@ -301,7 +318,8 @@ export class OpenClawGatewayConnection {
         this._helloOk = helloOk;
         this.backoffMs = 1000;
         this.reconnectAttempts = 0;
-        this.tickIntervalMs = typeof helloOk.policy?.tickIntervalMs === 'number' ? helloOk.policy.tickIntervalMs : 30_000;
+        this.tickIntervalMs =
+          typeof helloOk.policy?.tickIntervalMs === 'number' ? helloOk.policy.tickIntervalMs : 30_000;
         this.lastTick = Date.now();
         this.startTickWatch();
         this.opts.onHelloOk?.(helloOk);

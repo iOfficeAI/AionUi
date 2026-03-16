@@ -83,7 +83,9 @@ class CronService {
       for (const job of allJobs) {
         const result = db.getConversation(job.metadata.conversationId);
         if (!result.success || !result.data) {
-          console.log(`[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`);
+          console.log(
+            `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`
+          );
           this.stopTimer(job.id);
           cronStore.delete(job.id);
           ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
@@ -410,7 +412,9 @@ class CronService {
         lastStatus = 'error';
         lastError = err instanceof Error ? err.message : i18n.t('cron:error.conversationNotFound');
         this.updateNextRunTime(job);
-        cronStore.update(job.id, { state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError } });
+        cronStore.update(job.id, {
+          state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError },
+        });
         const notFoundJob = cronStore.getById(job.id);
         if (notFoundJob) {
           ipcBridge.cron.onJobUpdated.emit(notFoundJob);
@@ -422,7 +426,9 @@ class CronService {
         lastStatus = 'error';
         lastError = i18n.t('cron:error.conversationNotFound');
         this.updateNextRunTime(job);
-        cronStore.update(job.id, { state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError } });
+        cronStore.update(job.id, {
+          state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError },
+        });
         const notFoundJob = cronStore.getById(job.id);
         if (notFoundJob) {
           ipcBridge.cron.onJobUpdated.emit(notFoundJob);
@@ -573,7 +579,10 @@ class CronService {
 
         // Update job state to reflect missed execution
         job.state.lastStatus = 'missed';
-        job.state.lastError = i18n.t('cron:error.missedJob', { name: job.name, time: new Date(nextRunAt).toLocaleString() });
+        job.state.lastError = i18n.t('cron:error.missedJob', {
+          name: job.name,
+          time: new Date(nextRunAt).toLocaleString(),
+        });
         this.updateNextRunTime(job);
         cronStore.update(job.id, { state: job.state });
         ipcBridge.cron.onJobUpdated.emit(job);

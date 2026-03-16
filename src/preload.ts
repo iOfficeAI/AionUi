@@ -48,7 +48,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events
-const trayEvents = ['tray:navigate-to-guid', 'tray:navigate-to-conversation', 'tray:open-about', 'tray:pause-all-tasks', 'tray:check-update'];
+const trayEvents = [
+  'tray:navigate-to-guid',
+  'tray:navigate-to-conversation',
+  'tray:open-about',
+  'tray:pause-all-tasks',
+  'tray:check-update',
+];
 
 for (const channel of trayEvents) {
   ipcRenderer.on(channel, (_event, ...args) => {

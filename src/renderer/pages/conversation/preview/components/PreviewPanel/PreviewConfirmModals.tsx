@@ -81,13 +81,31 @@ interface PreviewConfirmModalsProps {
  * 包含退出编辑确认和关闭 Tab 确认两个对话框
  * Contains exit edit confirmation and close tab confirmation dialogs
  */
-const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({ showExitConfirm, closeTabConfirm, onConfirmExit, onCancelExit, onSaveAndCloseTab, onCloseWithoutSave, onCancelCloseTab }) => {
+const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
+  showExitConfirm,
+  closeTabConfirm,
+  onConfirmExit,
+  onCancelExit,
+  onSaveAndCloseTab,
+  onCloseWithoutSave,
+  onCancelCloseTab,
+}) => {
   const { t } = useTranslation();
 
   return (
     <>
       {/* 退出编辑确认对话框 / Exit edit confirmation modal */}
-      <Modal visible={showExitConfirm} title={t('preview.unsavedChangesTitle')} onCancel={onCancelExit} onOk={onConfirmExit} okText={t('preview.confirmExit')} cancelText={t('preview.continueEdit')} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
+      <Modal
+        visible={showExitConfirm}
+        title={t('preview.unsavedChangesTitle')}
+        onCancel={onCancelExit}
+        onOk={onConfirmExit}
+        okText={t('preview.confirmExit')}
+        cancelText={t('preview.continueEdit')}
+        style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+      >
         <div className='text-14px text-t-secondary'>{t('preview.unsavedChangesMessage')}</div>
       </Modal>
 
@@ -104,13 +122,22 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({ showExitCon
         getPopupContainer={() => document.body}
         footer={
           <div className='flex justify-end gap-8px'>
-            <button className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary' onClick={onCancelCloseTab}>
+            <button
+              className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary'
+              onClick={onCancelCloseTab}
+            >
               {t('common.cancel')}
             </button>
-            <button className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary' onClick={onCloseWithoutSave}>
+            <button
+              className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary'
+              onClick={onCloseWithoutSave}
+            >
               {t('preview.closeWithoutSave')}
             </button>
-            <button className='px-16px py-6px cursor-pointer border-none bg-primary text-white hover:opacity-80 transition-opacity text-14px' onClick={onSaveAndCloseTab}>
+            <button
+              className='px-16px py-6px cursor-pointer border-none bg-primary text-white hover:opacity-80 transition-opacity text-14px'
+              onClick={onSaveAndCloseTab}
+            >
               {t('preview.saveAndClose')}
             </button>
           </div>

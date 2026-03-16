@@ -49,7 +49,15 @@ export function setMainWindow(window: BrowserWindow | null): void {
  * Show a system notification.
  * Can be called directly from main process or via IPC from renderer.
  */
-export async function showNotification({ title, body, conversationId }: { title: string; body: string; conversationId?: string }): Promise<void> {
+export async function showNotification({
+  title,
+  body,
+  conversationId,
+}: {
+  title: string;
+  body: string;
+  conversationId?: string;
+}): Promise<void> {
   // Check if notification is enabled
   const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');
   if (notificationEnabled === false) {

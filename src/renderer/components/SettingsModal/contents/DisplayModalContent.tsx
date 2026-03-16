@@ -47,7 +47,12 @@ const DisplayModalContent: React.FC = () => {
   const isPageMode = viewMode === 'page';
 
   // 渲染折叠面板的展开/收起图标 / Render expand/collapse icon for collapse panel
-  const renderExpandIcon = (active: boolean) => (active ? <Up theme='outline' size='16' fill='var(--text-secondary)' /> : <Down theme='outline' size='16' fill='var(--text-secondary)' />);
+  const renderExpandIcon = (active: boolean) =>
+    active ? (
+      <Up theme='outline' size='16' fill='var(--text-secondary)' />
+    ) : (
+      <Down theme='outline' size='16' fill='var(--text-secondary)' />
+    );
 
   // 显示设置项配置 / Display items configuration
   const displayItems = [
@@ -72,8 +77,20 @@ const DisplayModalContent: React.FC = () => {
           </div>
 
           {/* CSS 主题设置 / CSS Theme Settings - Collapsible */}
-          <AionCollapse className='!bg-transparent !py-0 !px-0 !gap-0' bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-            <AionCollapse.Item name='css' header={<span className='text-14px text-t-primary leading-22px'>{t('settings.cssSettings')}</span>} className='bg-2 rd-16px px-16px md:px-24px lg:px-28px py-12px md:py-14px' headerClassName='py-4px' contentStyle={{ padding: '10px 0 0' }}>
+          <AionCollapse
+            className='!bg-transparent !py-0 !px-0 !gap-0'
+            bordered={false}
+            defaultActiveKey={['css']}
+            expandIcon={renderExpandIcon}
+            expandIconPosition='right'
+          >
+            <AionCollapse.Item
+              name='css'
+              header={<span className='text-14px text-t-primary leading-22px'>{t('settings.cssSettings')}</span>}
+              className='bg-2 rd-16px px-16px md:px-24px lg:px-28px py-12px md:py-14px'
+              headerClassName='py-4px'
+              contentStyle={{ padding: '10px 0 0' }}
+            >
               <CssThemeSettings />
             </AionCollapse.Item>
           </AionCollapse>

@@ -19,9 +19,21 @@ const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) =>
   const { unified_diff } = data;
 
   const fileInfo = useMemo(() => parseDiff(unified_diff), [unified_diff]);
-  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: unified_diff, displayName: fileInfo.fileName, filePath: fileInfo.fullPath });
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({
+    diffText: unified_diff,
+    displayName: fileInfo.fileName,
+    filePath: fileInfo.fullPath,
+  });
 
-  return <FileChangesPanel title={t('messages.fileChangesCount', { count: 1 })} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
+  return (
+    <FileChangesPanel
+      title={t('messages.fileChangesCount', { count: 1 })}
+      files={[fileInfo]}
+      onFileClick={handleFileClick}
+      onDiffClick={handleDiffClick}
+      defaultExpanded={true}
+    />
+  );
 };
 
 export default TurnDiffDisplay;

@@ -244,7 +244,12 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       // Detect missing command (npx/node not installed)
       // 检测命令不存在（npx/node 未安装）
-      if (errorCode === 'ENOENT' || errorMessage.includes('ENOENT') || errorMessage.includes('spawn') || errorMessage.includes('not found')) {
+      if (
+        errorCode === 'ENOENT' ||
+        errorMessage.includes('ENOENT') ||
+        errorMessage.includes('spawn') ||
+        errorMessage.includes('not found')
+      ) {
         const cmd = transport.command;
         const isNpx = cmd === 'npx' || cmd.endsWith('/npx') || cmd.endsWith('\\npx');
         if (isNpx) {
@@ -272,7 +277,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       if (errorMessage.includes('ENOTEMPTY') && retryCount < 1) {
         try {
           // 清理 npm 缓存并重试
-          await Promise.race([safeExec('npm cache clean --force').then(() => fs.rm(getNpxCacheDir(), { recursive: true, force: true })), new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))]);
+          await Promise.race([
+            safeExec('npm cache clean --force').then(() => fs.rm(getNpxCacheDir(), { recursive: true, force: true })),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000)),
+          ]);
 
           return await this.testStdioConnection(transport, retryCount + 1);
         } catch (cleanupError) {
@@ -312,7 +320,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
    * 测试SSE连接的通用实现
    * 使用 MCP SDK 进行正确的协议通信
    */
-  protected async testSseConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
+  protected async testSseConnection(transport: {
+    url: string;
+    headers?: Record<string, string>;
+  }): Promise<McpConnectionTestResult> {
     let mcpClient: Client | null = null;
 
     try {
@@ -401,7 +412,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
    * MCP Streamable HTTP servers may respond with JSON or SSE (text/event-stream).
    * Try raw JSON-RPC first; if the response is SSE, fall back to StreamableHTTPClientTransport.
    */
-  protected async testHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
+  protected async testHttpConnection(transport: {
+    url: string;
+    headers?: Record<string, string>;
+  }): Promise<McpConnectionTestResult> {
     try {
       // app imported statically
 
@@ -498,7 +512,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
    * 测试Streamable HTTP连接的通用实现
    * 使用 MCP SDK 进行正确的协议通信
    */
-  protected async testStreamableHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
+  protected async testStreamableHttpConnection(transport: {
+    url: string;
+    headers?: Record<string, string>;
+  }): Promise<McpConnectionTestResult> {
     let mcpClient: Client | null = null;
 
     try {

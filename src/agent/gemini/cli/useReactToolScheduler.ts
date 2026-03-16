@@ -4,7 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AllToolCallsCompleteHandler, CancelledToolCall, CompletedToolCall, Config, Status as CoreStatus, EditorType, ExecutingToolCall, OutputUpdateHandler, ScheduledToolCall, ToolCall, ToolCallRequestInfo, ToolCallsUpdateHandler, ValidatingToolCall, WaitingToolCall } from '@office-ai/aioncli-core';
+import type {
+  AllToolCallsCompleteHandler,
+  CancelledToolCall,
+  CompletedToolCall,
+  Config,
+  Status as CoreStatus,
+  EditorType,
+  ExecutingToolCall,
+  OutputUpdateHandler,
+  ScheduledToolCall,
+  ToolCall,
+  ToolCallRequestInfo,
+  ToolCallsUpdateHandler,
+  ValidatingToolCall,
+  WaitingToolCall,
+} from '@office-ai/aioncli-core';
 import { CoreToolScheduler } from '@office-ai/aioncli-core';
 import { useCallback, useMemo, useState } from 'react';
 import type { HistoryItemToolGroup, HistoryItemWithoutId, IndividualToolCallDisplay } from './types';
@@ -32,11 +47,22 @@ export type TrackedCancelledToolCall = CancelledToolCall & {
   responseSubmittedToGemini?: boolean;
 };
 
-export type TrackedToolCall = TrackedScheduledToolCall | TrackedValidatingToolCall | TrackedWaitingToolCall | TrackedExecutingToolCall | TrackedCompletedToolCall | TrackedCancelledToolCall;
+export type TrackedToolCall =
+  | TrackedScheduledToolCall
+  | TrackedValidatingToolCall
+  | TrackedWaitingToolCall
+  | TrackedExecutingToolCall
+  | TrackedCompletedToolCall
+  | TrackedCancelledToolCall;
 
 // aioncli-core v0.18.4: onEditorClose 回调已从 CoreToolSchedulerOptions 中移除
 // aioncli-core v0.18.4: onEditorClose callback was removed from CoreToolSchedulerOptions
-export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) => Promise<void>, config: Config, setPendingHistoryItem: React.Dispatch<React.SetStateAction<HistoryItemWithoutId | null>>, getPreferredEditor: () => EditorType | undefined): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
+export function useReactToolScheduler(
+  onComplete: (tools: CompletedToolCall[]) => Promise<void>,
+  config: Config,
+  setPendingHistoryItem: React.Dispatch<React.SetStateAction<HistoryItemWithoutId | null>>,
+  getPreferredEditor: () => EditorType | undefined
+): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
   const [toolCallsForDisplay, setToolCallsForDisplay] = useState<TrackedToolCall[]>([]);
 
   const outputUpdateHandler: OutputUpdateHandler = useCallback(
@@ -45,7 +71,11 @@ export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) =
         if (prevItem?.type === 'tool_group') {
           return {
             ...prevItem,
-            tools: prevItem.tools.map((toolDisplay) => (toolDisplay.callId === toolCallId && toolDisplay.status === ToolCallStatus.Executing ? { ...toolDisplay, resultDisplay: outputChunk } : toolDisplay)),
+            tools: prevItem.tools.map((toolDisplay) =>
+              toolDisplay.callId === toolCallId && toolDisplay.status === ToolCallStatus.Executing
+                ? { ...toolDisplay, resultDisplay: outputChunk }
+                : toolDisplay
+            ),
           };
         }
         return prevItem;
@@ -109,7 +139,11 @@ export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) =
   );
 
   const markToolsAsSubmitted: MarkToolsAsSubmittedFn = useCallback((callIdsToMark: string[]) => {
-    setToolCallsForDisplay((prevCalls) => prevCalls.map((tc) => (callIdsToMark.includes(tc.request.callId) ? { ...tc, responseSubmittedToGemini: true } : tc)));
+    setToolCallsForDisplay((prevCalls) =>
+      prevCalls.map((tc) =>
+        callIdsToMark.includes(tc.request.callId) ? { ...tc, responseSubmittedToGemini: true } : tc
+      )
+    );
   }, []);
 
   return [toolCallsForDisplay, schedule, markToolsAsSubmitted];

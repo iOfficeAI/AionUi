@@ -30,7 +30,12 @@ import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import i18n from '@process/i18n';
-import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
+import {
+  getConfiguredAppClientName,
+  getConfiguredAppClientVersion,
+  getConfiguredCodexMcpProtocolVersion,
+  setAppConfig,
+} from '../../common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -82,7 +87,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       },
       this
     );
-    const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
+    const fileOperationHandler = new CodexFileOperationHandler(
+      data.workspace || process.cwd(),
+      data.conversation_id,
+      this
+    );
 
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     // Use async bootstrap to read config and initialize agent
@@ -186,11 +195,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       let suggestions: string[] = [];
 
       if (errorMessage.includes('timed out')) {
-        suggestions = ['Check if Codex CLI is installed: run "codex --version"', 'Verify authentication: run "codex auth status"', 'Check network connectivity', 'Try restarting the application'];
+        suggestions = [
+          'Check if Codex CLI is installed: run "codex --version"',
+          'Verify authentication: run "codex auth status"',
+          'Check network connectivity',
+          'Try restarting the application',
+        ];
       } else if (errorMessage.includes('command not found')) {
-        suggestions = ['Install Codex CLI: https://codex.com/install', 'Add Codex to your PATH environment variable', 'Restart your terminal/application after installation'];
+        suggestions = [
+          'Install Codex CLI: https://codex.com/install',
+          'Add Codex to your PATH environment variable',
+          'Restart your terminal/application after installation',
+        ];
       } else if (errorMessage.includes('authentication')) {
-        suggestions = ['Run "codex auth" to authenticate with your account', 'Check if your authentication token is valid', 'Try logging out and logging back in'];
+        suggestions = [
+          'Run "codex auth" to authenticate with your account',
+          'Check if your authentication token is valid',
+          'Try logging out and logging back in',
+        ];
       }
 
       // Log troubleshooting suggestions for debugging
@@ -215,7 +237,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.status = 'running';
     try {
       await this.bootstrap;
-      const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
+      const contentToSend = data.content?.includes(AIONUI_FILES_MARKER)
+        ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd()
+        : data.content;
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
       if (data.msg_id && data.content) {
@@ -402,7 +426,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Use standardized permission decision mapping
     // Maps UI options to Codex CLI's ReviewDecision (snake_case format)
-    const decisionKey = data in PERMISSION_DECISION_MAP ? (data as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
+    const decisionKey =
+      data in PERMISSION_DECISION_MAP ? (data as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
     const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
 
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
@@ -463,7 +488,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     switch (error.type) {
       case 'cloudflare_blocked':
         userMessage = i18n.t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
-        recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', { returnObjects: true }) as string[];
+        recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', {
+          returnObjects: true,
+        }) as string[];
         break;
 
       case 'network_timeout':
@@ -473,7 +500,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       case 'connection_refused':
         userMessage = i18n.t('codex.network.connection_refused_title');
-        recoveryActions = i18n.t('codex.network.recovery_actions.connection_refused', { returnObjects: true }) as string[];
+        recoveryActions = i18n.t('codex.network.recovery_actions.connection_refused', {
+          returnObjects: true,
+        }) as string[];
         break;
 
       default:

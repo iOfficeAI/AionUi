@@ -30,7 +30,16 @@ const CAPABILITY_PATTERNS: Record<ModelType, RegExp> = {
 const CAPABILITY_EXCLUSIONS: Record<ModelType, RegExp[]> = {
   text: [],
   vision: [/embed|rerank|dall-e|flux|stable-diffusion/i],
-  function_calling: [/aqa(?:-[\\w-]+)?/i, /imagen(?:-[\\w-]+)?/i, /o1-mini/i, /o1-preview/i, /gemini-1(?:\\.[\\w-]+)?/i, /dall-e/i, /embed/i, /rerank/i],
+  function_calling: [
+    /aqa(?:-[\\w-]+)?/i,
+    /imagen(?:-[\\w-]+)?/i,
+    /o1-mini/i,
+    /o1-preview/i,
+    /gemini-1(?:\\.[\\w-]+)?/i,
+    /dall-e/i,
+    /embed/i,
+    /rerank/i,
+  ],
   image_generation: [],
   web_search: [],
   reasoning: [],
@@ -165,7 +174,11 @@ export const hasModelCapability = (model: IProvider, type: ModelType): boolean |
  * @param modelName - 具体模型名
  * @param type - 能力类型
  */
-export const hasSpecificModelCapability = (platformModel: IProvider, modelName: string, type: ModelType): boolean | undefined => {
+export const hasSpecificModelCapability = (
+  platformModel: IProvider,
+  modelName: string,
+  type: ModelType
+): boolean | undefined => {
   const baseModelName = getBaseModelName(modelName);
   const exclusions = CAPABILITY_EXCLUSIONS[type];
   const pattern = CAPABILITY_PATTERNS[type];

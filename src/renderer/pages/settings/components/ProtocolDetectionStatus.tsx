@@ -42,7 +42,10 @@ const PROTOCOL_ICONS: Record<ProtocolType, { color: string; bgColor: string }> =
  * 获取翻译后的建议消息
  * Get translated suggestion message
  */
-const getSuggestionMessage = (suggestion: ProtocolDetectionResponse['suggestion'], t: (key: string, params?: Record<string, string>) => string): string => {
+const getSuggestionMessage = (
+  suggestion: ProtocolDetectionResponse['suggestion'],
+  t: (key: string, params?: Record<string, string>) => string
+): string => {
   if (!suggestion) return '';
 
   // 优先使用 i18n key 进行翻译
@@ -58,7 +61,12 @@ const getSuggestionMessage = (suggestion: ProtocolDetectionResponse['suggestion'
   return suggestion.message;
 };
 
-const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({ isDetecting, result, currentPlatform, onSwitchPlatform }) => {
+const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({
+  isDetecting,
+  result,
+  currentPlatform,
+  onSwitchPlatform,
+}) => {
   const { t } = useTranslation();
 
   // 正在检测
@@ -81,7 +89,10 @@ const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({ isDet
 
   // 检测成功
   if (success && suggestion) {
-    const showSwitchButton = suggestion.type === 'switch_platform' && suggestion.suggestedPlatform && suggestion.suggestedPlatform !== currentPlatform;
+    const showSwitchButton =
+      suggestion.type === 'switch_platform' &&
+      suggestion.suggestedPlatform &&
+      suggestion.suggestedPlatform !== currentPlatform;
 
     return (
       <div className='flex flex-col gap-4px py-4px'>
@@ -123,7 +134,16 @@ const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({ isDet
         {/* 多 Key 测试结果 / Multi-key test result */}
         {multiKeyResult && multiKeyResult.total > 1 && (
           <div className='flex items-center gap-6px text-11px text-t-tertiary pl-22px'>
-            <span>{multiKeyResult.invalid === 0 ? t('settings.multiKeyAllValid', { total: String(multiKeyResult.total) }) : multiKeyResult.valid === 0 ? t('settings.multiKeyAllInvalid', { total: String(multiKeyResult.total) }) : t('settings.multiKeyPartialValid', { valid: String(multiKeyResult.valid), invalid: String(multiKeyResult.invalid) })}</span>
+            <span>
+              {multiKeyResult.invalid === 0
+                ? t('settings.multiKeyAllValid', { total: String(multiKeyResult.total) })
+                : multiKeyResult.valid === 0
+                  ? t('settings.multiKeyAllInvalid', { total: String(multiKeyResult.total) })
+                  : t('settings.multiKeyPartialValid', {
+                      valid: String(multiKeyResult.valid),
+                      invalid: String(multiKeyResult.invalid),
+                    })}
+            </span>
           </div>
         )}
       </div>

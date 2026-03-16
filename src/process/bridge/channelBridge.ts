@@ -56,12 +56,20 @@ export function initChannelBridge(): void {
             description: typeof m.description === 'string' ? m.description : undefined,
           };
 
-          const ext = extensions.find((e) => e.manifest.contributes.channelPlugins?.some((cp) => cp.type === pluginType));
+          const ext = extensions.find((e) =>
+            e.manifest.contributes.channelPlugins?.some((cp) => cp.type === pluginType)
+          );
           if (ext) {
             extensionMeta.extensionName = ext.manifest.displayName || ext.manifest.name;
             const iconField = typeof m.icon === 'string' ? m.icon : undefined;
             if (iconField) {
-              if (iconField.startsWith('http://') || iconField.startsWith('https://') || iconField.startsWith('data:') || iconField.startsWith('file://') || iconField.startsWith('aion-asset://')) {
+              if (
+                iconField.startsWith('http://') ||
+                iconField.startsWith('https://') ||
+                iconField.startsWith('data:') ||
+                iconField.startsWith('file://') ||
+                iconField.startsWith('aion-asset://')
+              ) {
                 extensionMeta.icon = iconField;
               } else {
                 const absPath = path.isAbsolute(iconField) ? iconField : path.resolve(ext.directory, iconField);

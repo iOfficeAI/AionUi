@@ -35,7 +35,11 @@ export const copyText = async (text: string): Promise<void> => {
     }
   } finally {
     document.body.removeChild(textArea);
-    if (previousActiveElement && typeof previousActiveElement.focus === 'function' && document.contains(previousActiveElement)) {
+    if (
+      previousActiveElement &&
+      typeof previousActiveElement.focus === 'function' &&
+      document.contains(previousActiveElement)
+    ) {
       previousActiveElement.focus();
     }
   }

@@ -200,7 +200,12 @@ const LoginPage: React.FC = () => {
 
       <div className='login-page__card'>
         <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
-          <select id='lang-select' className='login-page__lang-select' value={i18n.language} onChange={handleLanguageChange}>
+          <select
+            id='lang-select'
+            className='login-page__lang-select'
+            value={i18n.language}
+            onChange={handleLanguageChange}
+          >
             {supportedLanguages.map((lang) => (
               <option key={lang.code} value={lang.code}>
                 {lang.label}
@@ -223,11 +228,28 @@ const LoginPage: React.FC = () => {
               {t('login.username')}
             </label>
             <div className='login-page__input-wrapper'>
-              <svg className='login-page__input-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' aria-hidden='true'>
+              <svg
+                className='login-page__input-icon'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                aria-hidden='true'
+              >
                 <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
                 <circle cx='12' cy='7' r='4' />
               </svg>
-              <input ref={usernameRef} id='username' name='username' className='login-page__input' placeholder={t('login.usernamePlaceholder')} autoComplete='username' value={username} onChange={(event) => setUsername(event.target.value)} aria-required='true' />
+              <input
+                ref={usernameRef}
+                id='username'
+                name='username'
+                className='login-page__input'
+                placeholder={t('login.usernamePlaceholder')}
+                autoComplete='username'
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                aria-required='true'
+              />
             </div>
           </div>
 
@@ -236,12 +258,35 @@ const LoginPage: React.FC = () => {
               {t('login.password')}
             </label>
             <div className='login-page__input-wrapper'>
-              <svg className='login-page__input-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' aria-hidden='true'>
+              <svg
+                className='login-page__input-icon'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                aria-hidden='true'
+              >
                 <rect x='3' y='11' width='18' height='11' rx='2' ry='2' />
                 <path d='M7 11V7a5 5 0 0 1 10 0v4' />
               </svg>
-              <input ref={passwordRef} id='password' name='password' type={passwordVisible ? 'text' : 'password'} className='login-page__input' placeholder={t('login.passwordPlaceholder')} autoComplete='current-password' value={password} onChange={(event) => setPassword(event.target.value)} aria-required='true' />
-              <button type='button' className='login-page__toggle-password' onClick={() => setPasswordVisible((prev) => !prev)} aria-label={passwordVisible ? t('login.hidePassword') : t('login.showPassword')}>
+              <input
+                ref={passwordRef}
+                id='password'
+                name='password'
+                type={passwordVisible ? 'text' : 'password'}
+                className='login-page__input'
+                placeholder={t('login.passwordPlaceholder')}
+                autoComplete='current-password'
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                aria-required='true'
+              />
+              <button
+                type='button'
+                className='login-page__toggle-password'
+                onClick={() => setPasswordVisible((prev) => !prev)}
+                aria-label={passwordVisible ? t('login.hidePassword') : t('login.showPassword')}
+              >
                 <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                   {passwordVisible ? (
                     <>
@@ -260,20 +305,40 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className='login-page__checkbox'>
-            <input type='checkbox' id='remember-me' checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+            <input
+              type='checkbox'
+              id='remember-me'
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+            />
             <label htmlFor='remember-me'>{t('login.rememberMe')}</label>
           </div>
 
           <button type='submit' className='login-page__submit' disabled={loading}>
             {loading && (
               <svg className='login-page__spinner' viewBox='0 0 24 24' width='18' height='18'>
-                <circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='3' fill='none' strokeDasharray='50' strokeDashoffset='25' strokeLinecap='round' />
+                <circle
+                  cx='12'
+                  cy='12'
+                  r='10'
+                  stroke='currentColor'
+                  strokeWidth='3'
+                  fill='none'
+                  strokeDasharray='50'
+                  strokeDashoffset='25'
+                  strokeLinecap='round'
+                />
               </svg>
             )}
             <span>{loading ? t('login.submitting') : t('login.submit')}</span>
           </button>
 
-          <div role='alert' aria-live='polite' className={`login-page__message ${message ? 'login-page__message--visible' : ''} ${message ? (message.type === 'success' ? 'login-page__message--success' : 'login-page__message--error') : ''}`} hidden={!message}>
+          <div
+            role='alert'
+            aria-live='polite'
+            className={`login-page__message ${message ? 'login-page__message--visible' : ''} ${message ? (message.type === 'success' ? 'login-page__message--success' : 'login-page__message--error') : ''}`}
+            hidden={!message}
+          >
             {message?.text}
           </div>
         </form>

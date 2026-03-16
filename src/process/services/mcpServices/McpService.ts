@@ -59,11 +59,14 @@ export class McpService {
       try {
         // PowerShell fallback for shim scripts like *.ps1 (vfox)
         // PowerShell 回退，支持 *.ps1 shim（例如 vfox）
-        execSync(`powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`, {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          timeout: 1000,
-        });
+        execSync(
+          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`,
+          {
+            encoding: 'utf-8',
+            stdio: 'pipe',
+            timeout: 1000,
+          }
+        );
         return true;
       } catch {
         return false;
@@ -117,7 +120,9 @@ export class McpService {
    * Ensure native Gemini CLI is in the agent list (if installed but not present).
    * AcpDetector returns fork Gemini (cliPath=undefined), but MCP operations need native Gemini CLI too.
    */
-  private addNativeGeminiIfNeeded(agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }>): Array<{ backend: AcpBackend; name: string; cliPath?: string }> {
+  private addNativeGeminiIfNeeded(
+    agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }>
+  ): Array<{ backend: AcpBackend; name: string; cliPath?: string }> {
     const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cliPath === 'gemini');
     if (hasNativeGemini) return agents;
 
@@ -173,7 +178,9 @@ export class McpService {
           }
 
           const servers = await agentInstance.detectMcpServers(agent.cliPath);
-          console.log(`[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cliPath: ${agent.cliPath || 'default'})`);
+          console.log(
+            `[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cliPath: ${agent.cliPath || 'default'})`
+          );
 
           if (servers.length > 0) {
             return {

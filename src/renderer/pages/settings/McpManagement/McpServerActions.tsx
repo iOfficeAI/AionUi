@@ -11,7 +11,12 @@ interface McpServerActionsProps {
   onToggleServer: (serverId: string, enabled: boolean) => void;
 }
 
-const McpServerActions: React.FC<McpServerActionsProps> = ({ server, onEditServer, onDeleteServer, onToggleServer }) => {
+const McpServerActions: React.FC<McpServerActionsProps> = ({
+  server,
+  onEditServer,
+  onDeleteServer,
+  onToggleServer,
+}) => {
   const { t } = useTranslation();
 
   return (
@@ -38,7 +43,12 @@ const McpServerActions: React.FC<McpServerActionsProps> = ({ server, onEditServe
         <Button size='mini' icon={<SettingOne size={'14'} />} />
       </Dropdown>
 
-      <Switch checked={server.enabled} onChange={(checked) => onToggleServer(server.id, checked)} size='small' disabled={server.status === 'testing'} />
+      <Switch
+        checked={server.enabled}
+        onChange={(checked) => onToggleServer(server.id, checked)}
+        size='small'
+        disabled={server.status === 'testing'}
+      />
     </>
   );
 };

@@ -18,11 +18,18 @@ declare global {
   }
 }
 
-const RESIZE_OBSERVER_PATTERNS = ['resizeobserver loop limit exceeded', 'resizeobserver loop completed with undelivered notifications'];
+const RESIZE_OBSERVER_PATTERNS = [
+  'resizeobserver loop limit exceeded',
+  'resizeobserver loop completed with undelivered notifications',
+];
 
 // Silence Arco Design Message component key warnings (internal library issue)
 // 抑制 Arco Design Message 组件的 key 警告（第三方库内部问题）
-const ARCO_MESSAGE_KEY_PATTERNS = ['each child in a list should have a unique "key" prop', 'check the render method of `layout`', 'check the render method of `message`'];
+const ARCO_MESSAGE_KEY_PATTERNS = [
+  'each child in a list should have a unique "key" prop',
+  'check the render method of `layout`',
+  'check the render method of `message`',
+];
 
 // Silence React 19 ref deprecation warnings from third-party libraries
 // 抑制第三方库中 React 19 ref 废弃警告（等待库更新）
@@ -41,7 +48,11 @@ const extractMessage = (value: unknown): string | undefined => {
 const shouldSilence = (message?: string) => {
   if (!message) return false;
   const normalized = message.toLowerCase();
-  return RESIZE_OBSERVER_PATTERNS.some((pattern) => normalized.includes(pattern)) || ARCO_MESSAGE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern)) || REACT_19_REF_PATTERNS.some((pattern) => normalized.includes(pattern));
+  return (
+    RESIZE_OBSERVER_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
+    ARCO_MESSAGE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern)) ||
+    REACT_19_REF_PATTERNS.some((pattern) => normalized.includes(pattern))
+  );
 };
 
 const patchGlobalErrorListeners = () => {
@@ -54,7 +65,8 @@ const patchGlobalErrorListeners = () => {
   window.addEventListener = ((type: any, listener: any, options: any) => {
     if ((type === 'error' || type === 'unhandledrejection') && listener) {
       const wrapped: EventListenerOrEventListenerObject = (event: any) => {
-        const message = type === 'error' ? (extractMessage(event.error) ?? event.message) : extractMessage(event.reason);
+        const message =
+          type === 'error' ? (extractMessage(event.error) ?? event.message) : extractMessage(event.reason);
         if (shouldSilence(message)) {
           event.preventDefault?.();
           event.stopImmediatePropagation?.();

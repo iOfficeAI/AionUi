@@ -12,7 +12,11 @@ import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionMan
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { ApprovalStore, createExecApprovalKey, createPatchApprovalKey } from './ApprovalStore';
 import type { ReviewDecision } from './ApprovalStore';
-import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
+import {
+  getConfiguredAppClientName,
+  getConfiguredAppClientVersion,
+  getConfiguredCodexMcpProtocolVersion,
+} from '../../../common/utils/appConfig';
 import { lt } from 'semver';
 
 interface LegacyNetworkErrorDetails {
@@ -111,7 +115,13 @@ export class CodexAgent {
       // Provide more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('timed out')) {
-          throw new Error('Codex initialization timed out. This may indicate:\n' + '1. Codex CLI is not responding\n' + '2. Network connectivity issues\n' + '3. Authentication problems\n' + 'Please check: codex auth status, network connection, and try again.');
+          throw new Error(
+            'Codex initialization timed out. This may indicate:\n' +
+              '1. Codex CLI is not responding\n' +
+              '2. Network connectivity issues\n' +
+              '3. Authentication problems\n' +
+              'Please check: codex auth status, network connection, and try again.'
+          );
         } else if (error.message.includes('command not found')) {
           throw new Error("Codex CLI not found. Please install Codex CLI and ensure it's in your PATH.");
         } else if (error.message.includes('authentication')) {
@@ -298,7 +308,11 @@ export class CodexAgent {
     }
   }
 
-  private handleError(error: { message: string; type?: 'network' | 'stream' | 'timeout' | 'process'; details?: unknown }): void {
+  private handleError(error: {
+    message: string;
+    type?: 'network' | 'stream' | 'timeout' | 'process';
+    details?: unknown;
+  }): void {
     // 统一错误处理，直接调用 MessageProcessor 的错误处理方法
     try {
       if (error.type === 'network') {
@@ -320,7 +334,11 @@ export class CodexAgent {
     }
   }
 
-  private convertToLegacyNetworkError(error: { message: string; type?: string; details?: LegacyNetworkErrorDetails }): NetworkError {
+  private convertToLegacyNetworkError(error: {
+    message: string;
+    type?: string;
+    details?: LegacyNetworkErrorDetails;
+  }): NetworkError {
     const details = error.details || {};
     return {
       type: this.mapNetworkErrorType(details.networkErrorType || 'unknown'),

@@ -65,7 +65,11 @@ interface UseScrollSyncReturn {
  * @param options - 滚动同步配置 / Scroll sync configuration
  * @returns 滚动事件处理函数 / Scroll event handlers
  */
-export const useScrollSync = ({ enabled, editorContainerRef, previewContainerRef }: UseScrollSyncOptions): UseScrollSyncReturn => {
+export const useScrollSync = ({
+  enabled,
+  editorContainerRef,
+  previewContainerRef,
+}: UseScrollSyncOptions): UseScrollSyncReturn => {
   const isSyncingRef = useRef(false);
 
   const handleEditorScroll = useCallback(

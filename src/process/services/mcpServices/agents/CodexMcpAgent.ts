@@ -11,7 +11,9 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec } from '@process/utils/safeExec';
 
 /** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
-const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
+const getExecEnv = () => ({
+  env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv,
+});
 
 /**
  * Codex CLI MCP代理实现
@@ -175,11 +177,15 @@ export class CodexMcpAgent extends AbstractMcpAgent {
 
             // Add bearer token env var if available in headers
             if ('headers' in server.transport && server.transport.headers) {
-              const authHeader = Object.entries(server.transport.headers).find(([key]) => key.toLowerCase() === 'authorization');
+              const authHeader = Object.entries(server.transport.headers).find(
+                ([key]) => key.toLowerCase() === 'authorization'
+              );
               if (authHeader) {
                 // Codex expects --bearer-token-env-var, not direct token
                 // For now, just log a warning
-                console.warn(`[CodexMcpAgent] ${server.name}: Codex CLI uses --bearer-token-env-var for auth, manual header not supported`);
+                console.warn(
+                  `[CodexMcpAgent] ${server.name}: Codex CLI uses --bearer-token-env-var for auth, manual header not supported`
+                );
               }
             }
 
@@ -221,7 +227,10 @@ export class CodexMcpAgent extends AbstractMcpAgent {
           if (result.stdout && (result.stdout.includes('removed') || result.stdout.includes('Removed'))) {
             console.log(`[CodexMcpAgent] Removed MCP server: ${mcpServerName}`);
             return { success: true };
-          } else if (result.stdout && (result.stdout.includes('not found') || result.stdout.includes('No such server'))) {
+          } else if (
+            result.stdout &&
+            (result.stdout.includes('not found') || result.stdout.includes('No such server'))
+          ) {
             // 服务器不存在，也认为成功
             console.log(`[CodexMcpAgent] MCP server '${mcpServerName}' not found, nothing to remove`);
             return { success: true };
@@ -231,7 +240,10 @@ export class CodexMcpAgent extends AbstractMcpAgent {
           }
         } catch (cmdError) {
           // 如果命令执行失败，检查是否是因为服务器不存在
-          if (cmdError instanceof Error && (cmdError.message.includes('not found') || cmdError.message.includes('does not exist'))) {
+          if (
+            cmdError instanceof Error &&
+            (cmdError.message.includes('not found') || cmdError.message.includes('does not exist'))
+          ) {
             return { success: true };
           }
           return { success: false, error: cmdError instanceof Error ? cmdError.message : String(cmdError) };

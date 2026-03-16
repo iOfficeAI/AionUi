@@ -18,10 +18,31 @@
     "quick_switch_title": "💡 **Hızlı Geçiş Seçenekleri:**",
     "quick_switch_content": "Mevcut servis ağ kısıtlamalarıyla karşılaştığında şunları yapabilirsiniz:\n\n1. **AI Asistanını Hemen Değiştir**: Sol panelden diğer mevcut asistanları seçin\n2. **Servis Durumunu Kontrol Et**: Farklı AI servislerinin kullanılabilirliği bölgeye göre değişebilir\n3. **Ağ Optimizasyonu**: Bağlantı başarı oranını artırmak için kararlı bir ağ ortamı kullanın\n4. **Daha Sonra Tekrar Dene**: Ağ kısıtlamaları genellikle geçicidir\n\n**İpucu**: İş sürekliliğini sağlamak için alternatif olarak birden fazla AI servisi yapılandırmanız önerilir.",
     "recovery_actions": {
-      "cloudflare_blocked": ["• VPN veya proxy servisi kullanın", "• Ağ ortamını değiştirin (mobil hotspot gibi)", "• 10-30 dakika bekleyin ve tekrar deneyin", "• Tarayıcı önbelleğini ve çerezleri temizleyin", "• Diğer mevcut servislere geçin: ChatGPT, Claude, Qwen, Gemini"],
-      "network_timeout": ["• Ağ bağlantısının kararlı olup olmadığını kontrol edin", "• Bağlantı işlemini tekrar deneyin", "• Daha kararlı bir ağ ortamına geçin", "• Güvenlik duvarı ayarlarını kontrol edin"],
-      "connection_refused": ["• Codex CLI'nın düzgün yüklendiğini kontrol edin", "• Servis yapılandırmasını ve API anahtarlarını doğrulayın", "• Uygulamayı yeniden başlatın", "• Yerel portların meşgul olup olmadığını kontrol edin"],
-      "unknown": ["• Ağ bağlantı durumunu kontrol edin", "• Mevcut işlemi tekrar deneyin", "• Ağ ortamını değiştirin", "• Teknik destek ile iletişime geçin"]
+      "cloudflare_blocked": [
+        "• VPN veya proxy servisi kullanın",
+        "• Ağ ortamını değiştirin (mobil hotspot gibi)",
+        "• 10-30 dakika bekleyin ve tekrar deneyin",
+        "• Tarayıcı önbelleğini ve çerezleri temizleyin",
+        "• Diğer mevcut servislere geçin: ChatGPT, Claude, Qwen, Gemini"
+      ],
+      "network_timeout": [
+        "• Ağ bağlantısının kararlı olup olmadığını kontrol edin",
+        "• Bağlantı işlemini tekrar deneyin",
+        "• Daha kararlı bir ağ ortamına geçin",
+        "• Güvenlik duvarı ayarlarını kontrol edin"
+      ],
+      "connection_refused": [
+        "• Codex CLI'nın düzgün yüklendiğini kontrol edin",
+        "• Servis yapılandırmasını ve API anahtarlarını doğrulayın",
+        "• Uygulamayı yeniden başlatın",
+        "• Yerel portların meşgul olup olmadığını kontrol edin"
+      ],
+      "unknown": [
+        "• Ağ bağlantı durumunu kontrol edin",
+        "• Mevcut işlemi tekrar deneyin",
+        "• Ağ ortamını değiştirin",
+        "• Teknik destek ile iletişime geçin"
+      ]
     }
   },
   "thinking": {

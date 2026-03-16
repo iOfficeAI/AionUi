@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './ConversationTitleMinimap.module.css';
 
 interface ConversationTitleMinimapProps {
+  title?: React.ReactNode;
   conversationId?: string;
 }
 
@@ -43,12 +44,9 @@ const PANEL_MIN_WIDTH = 420;
 const PANEL_MAX_WIDTH = 980;
 const PANEL_WIDTH_RATIO = 0.72;
 const PANEL_HEIGHT = 420;
-const PANEL_MIN_HEIGHT = 200;
 const PANEL_MARGIN = 12;
 const PANEL_OFFSET = 8;
 const HEADER_HEIGHT = 52;
-const ITEM_ROW_ESTIMATED_HEIGHT = 80;
-const PANEL_VISIBLE_ITEM_CAP = 5;
 
 const defaultVisualStyle: MinimapVisualStyle = {
   background: 'var(--color-bg-5)',
@@ -242,7 +240,7 @@ const buildTurnPreview = (messages: TMessage[]): TurnPreviewItem[] => {
   return turns;
 };
 
-const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ conversationId }) => {
+const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ title, conversationId }) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -256,9 +254,17 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
   const triggerRef = useRef<HTMLSpanElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<RefInputType | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
   const isSearchInputComposingRef = useRef(false);
   const pendingCloseAfterCompositionRef = useRef(false);
   const searchKeywordRef = useRef('');
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     setVisible(false);
@@ -294,6 +300,13 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
     };
   }, []);
 
+  useEffect(
+    () => () => {
+      clearHideTimer();
+    },
+    [clearHideTimer]
+  );
+
   const fetchTurnPreview = useCallback(async () => {
     if (!conversationId) {
       setItems([]);
@@ -315,60 +328,50 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
     }
   }, [conversationId]);
 
-  const normalizedKeyword = useMemo(() => normalizeText(searchKeyword).toLowerCase(), [searchKeyword]);
-
-  const filteredItems = useMemo(() => {
-    if (!normalizedKeyword) return items;
-    return items.filter((item) => {
-      return item.questionRaw.toLowerCase().includes(normalizedKeyword) || item.answerRaw.toLowerCase().includes(normalizedKeyword) || isIndexMatch(item.index, normalizedKeyword);
-    });
-  }, [items, normalizedKeyword]);
-
-  const panelHeight = useMemo(() => {
-    if (loading) return PANEL_MIN_HEIGHT;
-    if (!items.length || !filteredItems.length) return PANEL_MIN_HEIGHT;
-    const visibleRows = Math.min(filteredItems.length, PANEL_VISIBLE_ITEM_CAP);
-    const computed = HEADER_HEIGHT + 12 + visibleRows * ITEM_ROW_ESTIMATED_HEIGHT;
-    return Math.max(PANEL_MIN_HEIGHT, Math.min(PANEL_HEIGHT, computed));
-  }, [filteredItems.length, items.length, loading]);
-
-  const updatePanelLayout = useCallback((height = PANEL_HEIGHT) => {
+  const updatePanelLayout = useCallback(() => {
     if (typeof window === 'undefined' || !triggerRef.current) return;
     const width = getPanelWidth();
     const rect = triggerRef.current.getBoundingClientRect();
     let left = rect.left;
     left = Math.max(PANEL_MARGIN, Math.min(left, window.innerWidth - width - PANEL_MARGIN));
     let top = rect.bottom + PANEL_OFFSET;
-    const maxTop = window.innerHeight - height - PANEL_MARGIN;
+    const maxTop = window.innerHeight - PANEL_HEIGHT - PANEL_MARGIN;
     if (top > maxTop) {
-      top = Math.max(PANEL_MARGIN, rect.top - height - PANEL_OFFSET);
+      top = Math.max(PANEL_MARGIN, rect.top - PANEL_HEIGHT - PANEL_OFFSET);
     }
     setPanelWidth(width);
     setPanelPos({ left: Math.round(left), top: Math.round(top) });
   }, []);
 
+  const openPanel = useCallback(() => {
+    clearHideTimer();
+    updatePanelLayout();
+    setVisualStyle(readPopoverVisualStyle());
+    setVisible(true);
+    void fetchTurnPreview();
+  }, [clearHideTimer, fetchTurnPreview, updatePanelLayout]);
+
   const openSearchPanel = useCallback(() => {
     if (!conversationId) return;
-    updatePanelLayout(panelHeight);
+    clearHideTimer();
+    updatePanelLayout();
     setVisualStyle(readPopoverVisualStyle());
     setVisible(true);
     setIsSearchMode(true);
     void fetchTurnPreview();
-  }, [conversationId, fetchTurnPreview, panelHeight, updatePanelLayout]);
+  }, [clearHideTimer, conversationId, fetchTurnPreview, updatePanelLayout]);
 
-  const togglePanel = useCallback(() => {
-    setVisible((prev) => {
-      const next = !prev;
-      if (next) {
-        updatePanelLayout(panelHeight);
-        setVisualStyle(readPopoverVisualStyle());
-        void fetchTurnPreview();
-      } else {
-        setIsSearchMode(false);
+  const scheduleClosePanel = useCallback(() => {
+    clearHideTimer();
+    hideTimerRef.current = window.setTimeout(() => {
+      if (isSearchInputComposingRef.current) {
+        hideTimerRef.current = null;
+        return;
       }
-      return next;
-    });
-  }, [fetchTurnPreview, panelHeight, updatePanelLayout]);
+      setVisible(false);
+      hideTimerRef.current = null;
+    }, 120);
+  }, [clearHideTimer]);
 
   const collapseSearchModeIfIdle = useCallback(() => {
     if (isSearchInputComposingRef.current) return;
@@ -402,10 +405,10 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
 
   useLayoutEffect(() => {
     if (!visible) return;
-    updatePanelLayout(panelHeight);
+    updatePanelLayout();
     setVisualStyle(readPopoverVisualStyle());
     const handleViewportChange = () => {
-      updatePanelLayout(panelHeight);
+      updatePanelLayout();
     };
     window.addEventListener('resize', handleViewportChange);
     window.addEventListener('scroll', handleViewportChange, true);
@@ -413,7 +416,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('scroll', handleViewportChange, true);
     };
-  }, [panelHeight, visible, updatePanelLayout]);
+  }, [visible, updatePanelLayout]);
 
   useEffect(() => {
     if (!visible) return;
@@ -426,12 +429,10 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
         return;
       }
       setVisible(false);
-      setIsSearchMode(false);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setVisible(false);
-        setIsSearchMode(false);
       }
     };
     document.addEventListener('mousedown', handleMouseDown, true);
@@ -470,6 +471,19 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
     };
   }, [isSearchMode, visible]);
 
+  const normalizedKeyword = useMemo(() => normalizeText(searchKeyword).toLowerCase(), [searchKeyword]);
+
+  const filteredItems = useMemo(() => {
+    if (!normalizedKeyword) return items;
+    return items.filter((item) => {
+      return (
+        item.questionRaw.toLowerCase().includes(normalizedKeyword) ||
+        item.answerRaw.toLowerCase().includes(normalizedKeyword) ||
+        isIndexMatch(item.index, normalizedKeyword)
+      );
+    });
+  }, [items, normalizedKeyword]);
+
   useEffect(() => {
     if (!visible || !isSearchMode || loading || !filteredItems.length) {
       setActiveResultIndex(-1);
@@ -484,7 +498,9 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
   useEffect(() => {
     if (!visible || !isSearchMode) return;
     if (activeResultIndex < 0 || !filteredItems.length) return;
-    const currentItem = panelRef.current?.querySelector<HTMLButtonElement>(`[data-minimap-item-index="${activeResultIndex}"]`);
+    const currentItem = panelRef.current?.querySelector<HTMLButtonElement>(
+      `[data-minimap-item-index="${activeResultIndex}"]`
+    );
     currentItem?.scrollIntoView({ block: 'nearest' });
   }, [activeResultIndex, filteredItems.length, isSearchMode, visible]);
 
@@ -499,7 +515,6 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
         behavior: 'smooth',
       });
       setVisible(false);
-      setIsSearchMode(false);
     },
     [conversationId]
   );
@@ -541,7 +556,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
     const frameStyle: React.CSSProperties = {
       width: '100%',
       minWidth: `${PANEL_MIN_WIDTH}px`,
-      height: `${panelHeight}px`,
+      height: `${PANEL_HEIGHT}px`,
       boxSizing: 'border-box',
       overflow: 'hidden',
       background: visualStyle.background,
@@ -554,10 +569,16 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
       <span
         className={classNames('conversation-minimap-count shrink-0 text-12px font-semibold leading-none', styles.count)}
         style={{
-          color: normalizedKeyword ? (filteredItems.length > 0 ? 'rgb(var(--primary-6))' : 'var(--color-danger)') : 'var(--color-text-2)',
+          color: normalizedKeyword
+            ? filteredItems.length > 0
+              ? 'rgb(var(--primary-6))'
+              : 'var(--color-danger)'
+            : 'var(--color-text-2)',
         }}
       >
-        {normalizedKeyword ? `${filteredItems.length}/${items.length}` : t('conversation.minimap.count', { count: items.length })}
+        {normalizedKeyword
+          ? `${filteredItems.length}/${items.length}`
+          : t('conversation.minimap.count', { count: items.length })}
       </span>
     );
 
@@ -570,7 +591,11 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
             readOnly={!isSearchMode}
             allowClear={isSearchMode}
             aria-label={t('conversation.minimap.searchAria')}
-            className={classNames('conversation-minimap-search-input min-w-0 flex-1', styles.searchInput, !isSearchMode && styles.searchInputIdle)}
+            className={classNames(
+              'conversation-minimap-search-input min-w-0 flex-1',
+              styles.searchInput,
+              !isSearchMode && styles.searchInputIdle
+            )}
             value={searchKeyword}
             onClick={() => {
               if (!isSearchMode) {
@@ -631,8 +656,14 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
     return (
       <div className='conversation-minimap-panel' style={frameStyle}>
         {titleNode}
-        <div className='conversation-minimap-body-shell box-border' style={{ height: `calc(100% - ${HEADER_HEIGHT}px)`, padding: '10px 12px 12px' }}>
-          <div className='conversation-minimap-body h-full overflow-y-auto overflow-x-hidden box-border' style={{ paddingRight: '14px', scrollbarGutter: 'stable' }}>
+        <div
+          className='conversation-minimap-body-shell box-border'
+          style={{ height: `calc(100% - ${HEADER_HEIGHT}px)`, padding: '10px 12px 12px' }}
+        >
+          <div
+            className='conversation-minimap-body h-full overflow-y-auto overflow-x-hidden box-border'
+            style={{ paddingRight: '14px', scrollbarGutter: 'stable' }}
+          >
             <div className='conversation-minimap-list flex flex-col gap-6px'>
               {filteredItems.map((item, idx) => (
                 <button
@@ -640,7 +671,10 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
                   type='button'
                   data-minimap-item-index={idx}
                   aria-selected={activeResultIndex === idx}
-                  className={classNames('conversation-minimap-item w-full text-left px-12px py-10px border-none rounded-10px hover:bg-fill-2 transition-colors cursor-pointer block', isSearchMode && activeResultIndex === idx ? 'bg-fill-2' : 'bg-transparent')}
+                  className={classNames(
+                    'conversation-minimap-item w-full text-left px-12px py-10px border-none rounded-10px hover:bg-fill-2 transition-colors cursor-pointer block',
+                    isSearchMode && activeResultIndex === idx ? 'bg-fill-2' : 'bg-transparent'
+                  )}
                   onMouseEnter={() => {
                     if (!isSearchMode) return;
                     setActiveResultIndex(idx);
@@ -649,12 +683,27 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
                     jumpToItem(item);
                   }}
                 >
-                  <div className={classNames('text-11px mb-2px', isIndexMatch(item.index, normalizedKeyword) ? 'text-[rgb(var(--primary-6))] font-semibold' : 'text-t-secondary')}>#{item.index}</div>
-                  <div className='text-13px text-t-primary font-medium leading-18px' style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                  <div
+                    className={classNames(
+                      'text-11px mb-2px',
+                      isIndexMatch(item.index, normalizedKeyword)
+                        ? 'text-[rgb(var(--primary-6))] font-semibold'
+                        : 'text-t-secondary'
+                    )}
+                  >
+                    #{item.index}
+                  </div>
+                  <div
+                    className='text-13px text-t-primary font-medium leading-18px'
+                    style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                  >
                     Q: {renderHighlightedText(item.questionRaw || item.question, normalizedKeyword)}
                   </div>
                   {item.answer && (
-                    <div className='text-12px text-t-secondary leading-18px mt-2px' style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                    <div
+                      className='text-12px text-t-secondary leading-18px mt-2px'
+                      style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                    >
                       A: {renderHighlightedText(item.answerRaw || item.answer, normalizedKeyword)}
                     </div>
                   )}
@@ -665,28 +714,36 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
         </div>
       </div>
     );
-  }, [activeResultIndex, filteredItems, isSearchMode, items.length, jumpToItem, loading, normalizedKeyword, panelHeight, searchKeyword, t, visualStyle.borderColor, visualStyle.border, visualStyle.borderRadius, visualStyle.boxShadow, visualStyle.background]);
+    // eslint-disable-next-line max-len
+  }, [
+    activeResultIndex,
+    filteredItems,
+    isSearchMode,
+    items.length,
+    jumpToItem,
+    loading,
+    normalizedKeyword,
+    searchKeyword,
+    t,
+    visualStyle.borderColor,
+    visualStyle.border,
+    visualStyle.borderRadius,
+    visualStyle.boxShadow,
+    visualStyle.background,
+  ]);
 
   return (
     <>
       <span
         ref={triggerRef}
-        role='button'
-        tabIndex={0}
-        aria-expanded={visible}
-        aria-haspopup='dialog'
-        aria-label={t('conversation.minimap.searchAria', { defaultValue: 'Search conversation' })}
-        title={t('conversation.minimap.searchHint', { defaultValue: '点击这里搜索关键词' })}
-        className={classNames('conversation-minimap-trigger inline-flex h-24px w-24px items-center justify-center cursor-pointer rounded-full border border-solid border-transparent bg-transparent text-t-secondary transition-all duration-150 focus:outline-none hover:border-[color:color-mix(in_srgb,var(--color-border-2)_72%,transparent)] hover:bg-fill-3 hover:text-[rgb(var(--primary-6))] focus:border-[color:color-mix(in_srgb,var(--color-border-2)_72%,transparent)] focus:bg-fill-3 focus:text-[rgb(var(--primary-6))]', visible && 'border-[color:color-mix(in_srgb,var(--color-border-2)_72%,transparent)] bg-fill-3 text-[rgb(var(--primary-6))]')}
-        onClick={togglePanel}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            togglePanel();
-          }
-        }}
+        className={classNames(
+          'conversation-minimap-trigger font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap max-w-full cursor-pointer',
+          visible && 'text-[rgb(var(--primary-6))]'
+        )}
+        onMouseEnter={openPanel}
+        onMouseLeave={scheduleClosePanel}
       >
-        <IconSearch className={classNames('text-15px transition-all duration-150', visible ? 'scale-103 opacity-100 text-[rgb(var(--primary-6))]' : 'opacity-76 hover:scale-103 hover:opacity-100 focus:scale-103 focus:opacity-100')} />
+        {title}
       </span>
       {visible &&
         typeof document !== 'undefined' &&
@@ -694,6 +751,8 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
           <div
             ref={panelRef}
             className='conversation-minimap-layer'
+            onMouseEnter={clearHideTimer}
+            onMouseLeave={scheduleClosePanel}
             style={{
               position: 'fixed',
               left: `${panelPos.left}px`,

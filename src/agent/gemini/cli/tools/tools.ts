@@ -49,7 +49,10 @@ export interface ToolInvocation<TParams extends object, TResult extends ToolResu
 /**
  * A convenience base class for ToolInvocation.
  */
-export abstract class BaseToolInvocation<TParams extends object, TResult extends ToolResult> implements ToolInvocation<TParams, TResult> {
+export abstract class BaseToolInvocation<TParams extends object, TResult extends ToolResult> implements ToolInvocation<
+  TParams,
+  TResult
+> {
   constructor(readonly params: TParams) {}
 
   abstract getDescription(): string;
@@ -121,7 +124,10 @@ export interface ToolBuilder<TParams extends object, TResult extends ToolResult>
  * New base class for tools that separates validation from execution.
  * New tools should extend this class.
  */
-export abstract class DeclarativeTool<TParams extends object, TResult extends ToolResult> implements ToolBuilder<TParams, TResult> {
+export abstract class DeclarativeTool<TParams extends object, TResult extends ToolResult> implements ToolBuilder<
+  TParams,
+  TResult
+> {
   constructor(
     readonly name: string,
     readonly displayName: string,
@@ -169,7 +175,11 @@ export abstract class DeclarativeTool<TParams extends object, TResult extends To
    * @param updateOutput Optional callback to stream output.
    * @returns The result of the tool execution.
    */
-  async buildAndExecute(params: TParams, signal: AbortSignal, updateOutput?: (output: string) => void): Promise<TResult> {
+  async buildAndExecute(
+    params: TParams,
+    signal: AbortSignal,
+    updateOutput?: (output: string) => void
+  ): Promise<TResult> {
     const invocation = this.build(params);
     return invocation.execute(signal, updateOutput);
   }
@@ -233,7 +243,10 @@ export abstract class DeclarativeTool<TParams extends object, TResult extends To
  * validates parameters before deferring to a `createInvocation` method for
  * the final `ToolInvocation` object instantiation.
  */
-export abstract class BaseDeclarativeTool<TParams extends object, TResult extends ToolResult> extends DeclarativeTool<TParams, TResult> {
+export abstract class BaseDeclarativeTool<TParams extends object, TResult extends ToolResult> extends DeclarativeTool<
+  TParams,
+  TResult
+> {
   build(params: TParams): ToolInvocation<TParams, TResult> {
     const validationError = this.validateToolParams(params);
     if (validationError) {
@@ -426,7 +439,11 @@ export interface ToolInfoConfirmationDetails {
   urls?: string[];
 }
 
-export type ToolCallConfirmationDetails = ToolEditConfirmationDetails | ToolExecuteConfirmationDetails | ToolMcpConfirmationDetails | ToolInfoConfirmationDetails;
+export type ToolCallConfirmationDetails =
+  | ToolEditConfirmationDetails
+  | ToolExecuteConfirmationDetails
+  | ToolMcpConfirmationDetails
+  | ToolInfoConfirmationDetails;
 
 export enum ToolConfirmationOutcome {
   ProceedOnce = 'proceed_once',

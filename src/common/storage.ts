@@ -429,7 +429,11 @@ export interface IMcpServerTransportStreamableHTTP {
   headers?: Record<string, string>;
 }
 
-export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP | IMcpServerTransportStreamableHTTP;
+export type IMcpServerTransport =
+  | IMcpServerTransportStdio
+  | IMcpServerTransportSSE
+  | IMcpServerTransportHTTP
+  | IMcpServerTransportStreamableHTTP;
 
 export interface IMcpServer {
   id: string;

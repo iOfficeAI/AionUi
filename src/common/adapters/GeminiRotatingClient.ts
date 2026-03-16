@@ -2,7 +2,11 @@ import { GoogleGenAI } from '@google/genai';
 import { AuthType } from '@office-ai/aioncli-core';
 import type { RotatingApiClientOptions } from '../RotatingApiClient';
 import { RotatingApiClient } from '../RotatingApiClient';
-import { OpenAI2GeminiConverter, type OpenAIChatCompletionParams, type OpenAIChatCompletionResponse } from './OpenAI2GeminiConverter';
+import {
+  OpenAI2GeminiConverter,
+  type OpenAIChatCompletionParams,
+  type OpenAIChatCompletionResponse,
+} from './OpenAI2GeminiConverter';
 
 export interface GeminiClientConfig {
   model?: string;
@@ -14,7 +18,12 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   private readonly config: GeminiClientConfig;
   private readonly converter: OpenAI2GeminiConverter;
 
-  constructor(apiKeys: string, config: GeminiClientConfig = {}, options: RotatingApiClientOptions = {}, authType: AuthType = AuthType.USE_GEMINI) {
+  constructor(
+    apiKeys: string,
+    config: GeminiClientConfig = {},
+    options: RotatingApiClientOptions = {},
+    authType: AuthType = AuthType.USE_GEMINI
+  ) {
     const createClient = (apiKey: string) => {
       const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
       const clientConfig: {
@@ -66,7 +75,10 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   }
 
   // OpenAI-compatible createChatCompletion method for unified interface
-  async createChatCompletion(params: OpenAIChatCompletionParams, options?: { signal?: AbortSignal; timeout?: number }): Promise<OpenAIChatCompletionResponse> {
+  async createChatCompletion(
+    params: OpenAIChatCompletionParams,
+    options?: { signal?: AbortSignal; timeout?: number }
+  ): Promise<OpenAIChatCompletionResponse> {
     // Handle request cancellation
     if (options?.signal?.aborted) {
       throw new Error('Request was aborted');

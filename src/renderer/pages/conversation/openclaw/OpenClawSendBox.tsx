@@ -60,7 +60,8 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
   const mismatches: string[] = [];
 
   const norm = (v?: string | null) => (v || '').trim();
-  const eqPath = (a?: string | null, b?: string | null) => norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
+  const eqPath = (a?: string | null, b?: string | null) =>
+    norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
 
   if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.workspace)) {
     mismatches.push(`workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`);
@@ -384,7 +385,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAtPath([]);
       setUploadFile([]);
 
-      const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+      const filePaths = [
+        ...currentUploadFile,
+        ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+      ];
       const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
 
       const userMessage: TMessage = {
@@ -416,7 +420,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         throw error;
       }
     },
-    [conversation_id, atPath, uploadFile, workspacePath, addOrUpdateMessage, checkAndUpdateTitle, setAtPath, setUploadFile]
+    [
+      conversation_id,
+      atPath,
+      uploadFile,
+      workspacePath,
+      addOrUpdateMessage,
+      checkAndUpdateTitle,
+      setAtPath,
+      setUploadFile,
+    ]
   );
 
   const onSendHandler = async (message: string) => {
@@ -478,7 +491,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.openclawConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
+        await ipcBridge.openclawConversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          msg_id,
+          conversation_id,
+          files,
+          loading_id,
+        });
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
@@ -535,13 +554,24 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
-        tools={<Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />}
+        tools={
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={openFileSelector}
+          />
+        }
         prefix={
           <>
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
                 ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -552,7 +582,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                         key={path}
                         path={path}
                         onRemove={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
                           emitter.emit('openclaw-gateway.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}

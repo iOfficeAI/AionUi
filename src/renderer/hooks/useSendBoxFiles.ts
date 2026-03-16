@@ -7,7 +7,10 @@ import type { FileOrFolderItem } from '@/renderer/types/files';
  * 创建通用的setUploadFile函数
  * 支持函数式更新，避免闭包陷阱
  */
-export const createSetUploadFile = (mutate: (fn: (prev: Record<string, unknown> | undefined) => Record<string, unknown>) => void, data: unknown) => {
+export const createSetUploadFile = (
+  mutate: (fn: (prev: Record<string, unknown> | undefined) => Record<string, unknown>) => void,
+  data: unknown
+) => {
   return useCallback(
     (uploadFile: string[] | ((prev: string[]) => string[])) => {
       mutate((prev) => {

@@ -146,7 +146,12 @@ export class ChannelMessageService {
    * @param onStream - Callback for streaming updates
    * @returns Promise that resolves when streaming is complete
    */
-  async sendMessage(_sessionId: string, conversationId: string, message: string, onStream: StreamCallback): Promise<string> {
+  async sendMessage(
+    _sessionId: string,
+    conversationId: string,
+    message: string,
+    onStream: StreamCallback
+  ): Promise<string> {
     // 确保服务已初始化
     // Ensure service is initialized
     this.initialize();
@@ -163,7 +168,11 @@ export class ChannelMessageService {
       // Check conversation source, enable yoloMode if it's from a Channel
       const db = getDatabase();
       const dbResult = db.getConversation(conversationId);
-      const isFromChannel = dbResult.success && (dbResult.data?.source === 'lark' || dbResult.data?.source === 'telegram' || dbResult.data?.source === 'dingtalk');
+      const isFromChannel =
+        dbResult.success &&
+        (dbResult.data?.source === 'lark' ||
+          dbResult.data?.source === 'telegram' ||
+          dbResult.data?.source === 'dingtalk');
 
       task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
         yoloMode: isFromChannel,
@@ -201,12 +210,25 @@ export class ChannelMessageService {
 
       // Build payload based on agent type.
       // Gemini expects { input }, ACP/Codex expect { content }.
-      const payload: { input?: string; content?: string; msg_id: string } = task.type === 'gemini' ? { input: message, msg_id: msgId } : task.type === 'acp' || task.type === 'codex' ? { content: message, msg_id: msgId } : { content: message, msg_id: msgId };
+      const payload: { input?: string; content?: string; msg_id: string } =
+        task.type === 'gemini'
+          ? { input: message, msg_id: msgId }
+          : task.type === 'acp' || task.type === 'codex'
+            ? { content: message, msg_id: msgId }
+            : { content: message, msg_id: msgId };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
         console.error(`[ChannelMessageService] Send error:`, error);
-        onStream({ type: 'tips', id: uuid(), conversation_id: conversationId, content: { type: 'error', content: errorMessage } }, true);
+        onStream(
+          {
+            type: 'tips',
+            id: uuid(),
+            conversation_id: conversationId,
+            content: { type: 'error', content: errorMessage },
+          },
+          true
+        );
         this.activeStreams.delete(conversationId);
         reject(error);
       });
