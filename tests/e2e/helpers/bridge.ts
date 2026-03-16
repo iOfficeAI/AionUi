@@ -10,7 +10,12 @@ type ElectronApi = {
  * The @office-ai/platform provider protocol is:
  *   emit('subscribe-{key}', { id, data }) -> on('subscribe.callback-{key}{id}', result)
  */
-export async function invokeBridge<T = unknown>(page: Page, key: string, data?: unknown, timeoutMs = 10_000): Promise<T> {
+export async function invokeBridge<T = unknown>(
+  page: Page,
+  key: string,
+  data?: unknown,
+  timeoutMs = 10_000
+): Promise<T> {
   return page.evaluate(
     async ({ requestKey, requestData, requestTimeoutMs }) => {
       const api = (window as unknown as { electronAPI?: ElectronApi }).electronAPI;
@@ -27,7 +32,10 @@ export async function invokeBridge<T = unknown>(page: Page, key: string, data?: 
         const off = api.on?.((payload) => {
           try {
             const rawValue = payload?.value;
-            const parsed = typeof rawValue === 'string' ? (JSON.parse(rawValue) as { name?: string; data?: unknown }) : (rawValue as { name?: string; data?: unknown });
+            const parsed =
+              typeof rawValue === 'string'
+                ? (JSON.parse(rawValue) as { name?: string; data?: unknown })
+                : (rawValue as { name?: string; data?: unknown });
             if (parsed?.name !== callbackEventName) return;
             if (settled) return;
             settled = true;

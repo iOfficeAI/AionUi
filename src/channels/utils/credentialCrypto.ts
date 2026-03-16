@@ -81,7 +81,9 @@ export function decryptString(encoded: string): string {
  * Encode credentials object
  * Only encodes sensitive fields (token)
  */
-export function encryptCredentials(credentials: Record<string, string | number | boolean | undefined> | undefined): Record<string, string | number | boolean | undefined> | undefined {
+export function encryptCredentials(
+  credentials: Record<string, string | number | boolean | undefined> | undefined
+): Record<string, string | number | boolean | undefined> | undefined {
   if (!credentials) return undefined;
 
   const token = credentials.token;
@@ -94,7 +96,9 @@ export function encryptCredentials(credentials: Record<string, string | number |
 /**
  * Decode credentials object
  */
-export function decryptCredentials(credentials: Record<string, string | number | boolean | undefined> | undefined): Record<string, string | number | boolean | undefined> | undefined {
+export function decryptCredentials(
+  credentials: Record<string, string | number | boolean | undefined> | undefined
+): Record<string, string | number | boolean | undefined> | undefined {
   if (!credentials) return undefined;
 
   const token = credentials.token;

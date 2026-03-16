@@ -60,7 +60,8 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
   const mismatches: string[] = [];
 
   const norm = (v?: string | null) => (v || '').trim();
-  const eqPath = (a?: string | null, b?: string | null) => norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
+  const eqPath = (a?: string | null, b?: string | null) =>
+    norm(a).replace(/[\\/]+$/, '') === norm(b).replace(/[\\/]+$/, '');
 
   if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.workspace)) {
     mismatches.push(`workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`);
@@ -115,9 +116,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   // Track whether the current turn was triggered by a Star Office install request
   const starOfficeInstallInFlightRef = useRef(false);
-
-  // Delayed finish timeout to detect true end of task
-  const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -192,12 +190,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    // Clear pending finish timeout when conversation changes
-    if (finishTimeoutRef.current) {
-      clearTimeout(finishTimeoutRef.current);
-      finishTimeoutRef.current = null;
-    }
-
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
@@ -254,12 +246,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         return;
       }
 
-      // Cancel pending finish timeout if new message arrives
-      if (finishTimeoutRef.current && message.type !== 'finish') {
-        clearTimeout(finishTimeoutRef.current);
-        finishTimeoutRef.current = null;
-      }
-
       switch (message.type) {
         case 'thought':
           // Auto-recover aiProcessing state if thought arrives after finish
@@ -272,19 +258,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         case 'finish':
           {
-            // Use delayed reset to detect true end of task
-            // 使用延迟重置来检测任务的真正结束
-            finishTimeoutRef.current = setTimeout(() => {
-              setAiProcessing(false);
-              aiProcessingRef.current = false;
-              setThought({ subject: '', description: '' });
-              finishTimeoutRef.current = null;
-              // Notify StarOfficeMonitorCard to re-detect and auto-open panel
-              if (starOfficeInstallInFlightRef.current) {
-                starOfficeInstallInFlightRef.current = false;
-                emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
-              }
-            }, 1000);
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
+            // Notify StarOfficeMonitorCard to re-detect and auto-open panel
+            if (starOfficeInstallInFlightRef.current) {
+              starOfficeInstallInFlightRef.current = false;
+              emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
+            }
             hasContentInTurnRef.current = false;
           }
           break;
@@ -402,7 +385,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setAtPath([]);
       setUploadFile([]);
 
-      const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+      const filePaths = [
+        ...currentUploadFile,
+        ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+      ];
       const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
 
       const userMessage: TMessage = {
@@ -434,7 +420,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         throw error;
       }
     },
-    [conversation_id, atPath, uploadFile, workspacePath, addOrUpdateMessage, checkAndUpdateTitle, setAtPath, setUploadFile]
+    [
+      conversation_id,
+      atPath,
+      uploadFile,
+      workspacePath,
+      addOrUpdateMessage,
+      checkAndUpdateTitle,
+      setAtPath,
+      setUploadFile,
+    ]
   );
 
   const onSendHandler = async (message: string) => {
@@ -492,9 +487,17 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
+        // Reset AI reply for new turn
+        // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.openclawConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
+        await ipcBridge.openclawConversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          msg_id,
+          conversation_id,
+          files,
+          loading_id,
+        });
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
@@ -521,12 +524,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
-      // Clear pending finish timeout
-      if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
-        finishTimeoutRef.current = null;
-      }
-
       setAiProcessing(false);
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });
@@ -557,13 +554,24 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
-        tools={<Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />}
+        tools={
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={openFileSelector}
+          />
+        }
         prefix={
           <>
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
                 ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -574,7 +582,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                         key={path}
                         path={path}
                         onRemove={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
                           emitter.emit('openclaw-gateway.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}

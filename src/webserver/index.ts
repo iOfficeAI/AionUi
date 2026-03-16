@@ -143,7 +143,8 @@ async function initializeDefaultAdmin(): Promise<{ username: string; password: s
 
   // 已存在且密码有效则视为完成初始化
   // Treat existing admin with valid password as already initialized
-  const hasValidPassword = (user: typeof existingAdmin): boolean => !!user && typeof user.password_hash === 'string' && user.password_hash.trim().length > 0;
+  const hasValidPassword = (user: typeof existingAdmin): boolean =>
+    !!user && typeof user.password_hash === 'string' && user.password_hash.trim().length > 0;
 
   // 如果已经有有效的管理员用户，直接跳过初始化
   // Skip initialization if a valid admin already exists
@@ -188,7 +189,12 @@ async function initializeDefaultAdmin(): Promise<{ username: string; password: s
  * 在控制台显示初始凭证信息
  * Display initial credentials in console
  */
-function displayInitialCredentials(credentials: { username: string; password: string }, localUrl: string, allowRemote: boolean, networkUrl?: string): void {
+function displayInitialCredentials(
+  credentials: { username: string; password: string },
+  localUrl: string,
+  allowRemote: boolean,
+  networkUrl?: string
+): void {
   const port = parseInt(localUrl.split(':').pop() || '3000', 10);
   const { qrUrl } = generateQRLoginUrlDirect(port, allowRemote);
 

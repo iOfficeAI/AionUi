@@ -162,7 +162,10 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
     try {
       routeModule = nativeRequire(routeMatch.routeEntry);
     } catch (error) {
-      console.error(`[WebUI] Failed to load API route module: ${routeMatch.routeEntry} (${routeMatch.extensionName})`, error);
+      console.error(
+        `[WebUI] Failed to load API route module: ${routeMatch.routeEntry} (${routeMatch.extensionName})`,
+        error
+      );
       res.status(500).json({ message: 'Failed to load extension API route' });
       return;
     }
@@ -211,17 +214,31 @@ export function registerApiRoutes(app: Express): void {
     const normalizedPath = path.resolve(rawPath);
     const registry = ExtensionRegistry.getInstance();
     const allowedRoots = registry.getLoadedExtensions().map((ext) => path.resolve(ext.directory));
-    const isAllowed = allowedRoots.some((root) => normalizedPath === root || normalizedPath.startsWith(`${root}${path.sep}`));
 
-    if (!isAllowed) {
+    // Find which trusted root contains this path
+    const matchingRoot = allowedRoots.find(
+      (root) => normalizedPath === root || normalizedPath.startsWith(`${root}${path.sep}`)
+    );
+
+    if (!matchingRoot) {
       return res.status(403).json({ message: 'Access denied: path is outside extension directories' });
     }
 
-    if (!fs.existsSync(normalizedPath) || !fs.statSync(normalizedPath).isFile()) {
+    // Reconstruct path from the trusted root so CodeQL can verify no path traversal occurs.
+    // path.relative() computes the relative portion; verifying it doesn't start with '..'
+    // confirms containment; path.join() re-anchors to the trusted base.
+    const relativePath = path.relative(matchingRoot, normalizedPath);
+    if (relativePath.startsWith('..')) {
+      return res.status(403).json({ message: 'Access denied: path is outside extension directories' });
+    }
+
+    const safePath = path.join(matchingRoot, relativePath);
+
+    if (!fs.existsSync(safePath) || !fs.statSync(safePath).isFile()) {
       return res.status(404).json({ message: 'Asset not found' });
     }
 
-    return res.sendFile(normalizedPath);
+    return res.sendFile(safePath);
   });
 
   /**

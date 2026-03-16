@@ -88,6 +88,10 @@ export interface IConfigStorageRefer {
   'migration.promptsI18nAdded'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
+  // 任务完成时显示系统通知 / Show system notification when task completes
+  'system.notificationEnabled'?: boolean;
+  // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes
+  'system.cronNotificationEnabled'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -121,6 +125,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Skills Market: whether the aionui-skills builtin skill is enabled
+  'skillsMarket.enabled'?: boolean;
 }
 
 export interface IEnvStorageRefer {
@@ -425,7 +431,11 @@ export interface IMcpServerTransportStreamableHTTP {
   headers?: Record<string, string>;
 }
 
-export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP | IMcpServerTransportStreamableHTTP;
+export type IMcpServerTransport =
+  | IMcpServerTransportStdio
+  | IMcpServerTransportSSE
+  | IMcpServerTransportHTTP
+  | IMcpServerTransportStreamableHTTP;
 
 export interface IMcpServer {
   id: string;

@@ -70,7 +70,10 @@ function convertTheme(theme: ExtTheme, ext: LoadedExtension): ICssTheme | null {
       updatedAt: now,
     };
   } catch (error) {
-    console.warn(`[Extensions] Failed to read theme file ${absolutePath}:`, error instanceof Error ? error.message : error);
+    console.warn(
+      `[Extensions] Failed to read theme file ${absolutePath}:`,
+      error instanceof Error ? error.message : error
+    );
     return null;
   }
 }

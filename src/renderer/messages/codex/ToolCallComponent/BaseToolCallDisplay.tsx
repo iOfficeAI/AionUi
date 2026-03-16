@@ -43,7 +43,15 @@ interface BaseToolCallDisplayProps {
   children?: ReactNode; // 特定工具的详细信息内容
 }
 
-const BaseToolCallDisplay: React.FC<BaseToolCallDisplayProps> = ({ toolCallId, title, status, description, icon, additionalTags, children }) => {
+const BaseToolCallDisplay: React.FC<BaseToolCallDisplayProps> = ({
+  toolCallId,
+  title,
+  status,
+  description,
+  icon,
+  additionalTags,
+  children,
+}) => {
   return (
     <Card className='w-full mb-2' size='small' bordered>
       <div className='flex items-start gap-3'>

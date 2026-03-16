@@ -21,7 +21,8 @@
     "goTo": "View Chat",
     "pause": "Pause",
     "resume": "Resume",
-    "delete": "Delete"
+    "delete": "Delete",
+    "runNow": "Şimdi Çalıştır"
   },
   "confirmDelete": "Are you sure you want to delete this scheduled task?",
   "deleteSuccess": "Task deleted",
@@ -39,5 +40,22 @@
   "drawer.nextRun": "Next Run",
   "drawer.save": "Save",
   "drawer.saveSuccess": "Saved successfully",
-  "message.badge": "Scheduled"
+  "message.badge": "Scheduled",
+  "allScheduledTasks": "Tüm zamanlanmış görevler",
+  "noTasks": "Zamanlanmış görev yok",
+  "runNowSuccess": "Görev çalıştırma tetiklendi",
+  "notification": {
+    "taskComplete": "Görev Tamamlandı",
+    "scheduledTask": "Zamanlanmış Görev",
+    "scheduledTaskComplete": "{{title}} - Zamanlanmış görev tamamlandı",
+    "taskDone": "Görev bitti"
+  },
+  "error": {
+    "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Önce silin veya mevcut görevleri görmek için [CRON_LIST] kullanın.",
+    "missedJob": "⏰ \"{{name}}\" zamanlanmış görevi sistem uykusu sırasında çalışmadı.\nPlanlanan saat: {{time}}\nZamanlayıcı yeniden başlatıldı, bir sonraki planlanan saatte çalışacak.",
+    "jobNotFound": "Betik bulunamadı: {{id}}",
+    "conversationNotFound": "Konuşma bulunamadı",
+    "scheduledTimePassed": "Zamanlanmış saat geçti",
+    "conversationBusy": "Konuşma meşgul, {{count}} denemeden sonra atlandı"
+  }
 }

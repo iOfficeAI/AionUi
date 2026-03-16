@@ -1,5 +1,8 @@
 import { type ICssTheme } from '@/common/storage';
-import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from '@/renderer/components/CssThemeSettings/backgroundUtils';
+import {
+  BACKGROUND_BLOCK_START,
+  injectBackgroundCssBlock,
+} from '@/renderer/components/CssThemeSettings/backgroundUtils';
 import { DEFAULT_THEME_ID, PRESET_THEMES } from '@/renderer/components/CssThemeSettings/presets';
 
 export const CSS_SYNC_RECENT_UPDATE_WINDOW_MS = 2000;
@@ -46,7 +49,11 @@ export const resolveCssByActiveTheme = (activeThemeId: string, userThemes: ICssT
     return theme;
   };
 
-  const allThemes = [...PRESET_THEMES.map(ensureBackgroundCss), ...extensionThemesCache.map(ensureBackgroundCss), ...(userThemes || []).map(ensureBackgroundCss)];
+  const allThemes = [
+    ...PRESET_THEMES.map(ensureBackgroundCss),
+    ...extensionThemesCache.map(ensureBackgroundCss),
+    ...(userThemes || []).map(ensureBackgroundCss),
+  ];
   const resolvedId = activeThemeId || DEFAULT_THEME_ID;
   const match = allThemes.find((theme) => theme.id === resolvedId);
   if (match) return match.css || '';
@@ -57,7 +64,14 @@ export const resolveCssByActiveTheme = (activeThemeId: string, userThemes: ICssT
   return '';
 };
 
-export const computeCssSyncDecision = ({ savedCss, activeThemeId, savedThemes, currentUiCss, lastUiCssUpdateAt, now = Date.now() }: ComputeCssSyncDecisionParams): ComputeCssSyncDecisionResult => {
+export const computeCssSyncDecision = ({
+  savedCss,
+  activeThemeId,
+  savedThemes,
+  currentUiCss,
+  lastUiCssUpdateAt,
+  now = Date.now(),
+}: ComputeCssSyncDecisionParams): ComputeCssSyncDecisionResult => {
   const normalizedSavedCss = savedCss || '';
   const expectedCss = resolveCssByActiveTheme(activeThemeId || '', savedThemes || []);
 

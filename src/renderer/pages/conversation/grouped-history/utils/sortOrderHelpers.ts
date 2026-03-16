@@ -54,7 +54,9 @@ export function needsReindex(items: Array<{ sortOrder?: number }>): boolean {
 /**
  * Batch reindex sortOrders with even spacing
  */
-export function reindexSortOrders(items: Array<{ id: string; sortOrder?: number }>): Array<{ id: string; sortOrder: number }> {
+export function reindexSortOrders(
+  items: Array<{ id: string; sortOrder?: number }>
+): Array<{ id: string; sortOrder: number }> {
   return items.map((item, index) => ({
     id: item.id,
     sortOrder: (index + 1) * SORT_ORDER_GAP,
@@ -65,7 +67,9 @@ export function reindexSortOrders(items: Array<{ id: string; sortOrder?: number 
  * Assign initial sortOrders to a list of items that don't have them yet,
  * preserving their current order.
  */
-export function assignInitialSortOrders(items: Array<{ id: string; sortOrder?: number }>): Array<{ id: string; sortOrder: number }> {
+export function assignInitialSortOrders(
+  items: Array<{ id: string; sortOrder?: number }>
+): Array<{ id: string; sortOrder: number }> {
   return items.map((item, index) => ({
     id: item.id,
     sortOrder: item.sortOrder ?? (index + 1) * SORT_ORDER_GAP,

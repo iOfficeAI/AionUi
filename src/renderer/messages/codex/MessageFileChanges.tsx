@@ -37,7 +37,12 @@ export interface MessageFileChangesProps {
  * 显示会话中所有已生成/修改的文件，点击可打开预览
  * Display all generated/modified files in the conversation, click to preview
  */
-const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges = [], writeFileChanges = [], diffsChanges = [], className }) => {
+const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
+  turnDiffChanges = [],
+  writeFileChanges = [],
+  diffsChanges = [],
+  className,
+}) => {
   const { t } = useTranslation();
   const { launchPreview } = usePreviewLauncher();
 
@@ -105,7 +110,15 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
     return null;
   }
 
-  return <FileChangesPanel title={t('messages.fileChangesCount', { count: fileChanges.length })} files={fileChanges} onFileClick={handleFileClick} onDiffClick={handleDiffClick} className={className} />;
+  return (
+    <FileChangesPanel
+      title={t('messages.fileChangesCount', { count: fileChanges.length })}
+      files={fileChanges}
+      onFileClick={handleFileClick}
+      onDiffClick={handleDiffClick}
+      className={className}
+    />
+  );
 };
 
 export default React.memo(MessageFileChanges);

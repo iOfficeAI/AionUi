@@ -87,7 +87,16 @@ test.describe('Extension: Lifecycle – Loaded Extensions List', () => {
     const names = snapshot.loadedExtensions.map((e) => e.name);
 
     // Should have at least these example extensions
-    expect(names).toEqual(expect.arrayContaining(['e2e-full-extension', 'hello-world', 'example-acp-adapter', 'ext-feishu', 'ext-wecom-bot', 'star-office']));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'e2e-full-extension',
+        'hello-world',
+        'example-acp-adapter',
+        'ext-feishu',
+        'ext-wecom-bot',
+        'star-office',
+      ])
+    );
   });
 
   test('each loaded extension has name, displayName, version', async ({ page }) => {

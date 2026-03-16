@@ -309,7 +309,9 @@ export const useMessageLstCache = (key: string) => {
             if (!sameConversation.length) return messages;
             const dbIds = new Set(messages.map((m) => m.id));
             const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
-            const streamingOnly = sameConversation.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
+            const streamingOnly = sameConversation.filter(
+              (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
+            );
             if (!streamingOnly.length) return messages;
             return [...messages, ...streamingOnly];
           });

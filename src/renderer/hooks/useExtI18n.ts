@@ -56,7 +56,8 @@ export function useExtI18n(): {
       const nsData = extI18nData[ns] as NestedRecord | undefined;
       const localTabId = getLocalSettingsTabId(tab);
       if (nsData) {
-        const translated = deepGet(nsData, `extension.settingsTabs.${localTabId}.name`) ?? deepGet(nsData, `settings.tab.${localTabId}`);
+        const translated =
+          deepGet(nsData, `extension.settingsTabs.${localTabId}.name`) ?? deepGet(nsData, `settings.tab.${localTabId}`);
         if (translated) return translated;
       }
       return tab.name;

@@ -37,7 +37,11 @@ export const useMcpAgentStatus = () => {
 
   // 处理agent配置数据的通用函数
   const processAgentConfigs = useCallback(
-    (servers: IMcpServer[], agentConfigs: Array<{ source: string; servers: Array<{ name: string }> }>, targetServerName?: string) => {
+    (
+      servers: IMcpServer[],
+      agentConfigs: Array<{ source: string; servers: Array<{ name: string }> }>,
+      targetServerName?: string
+    ) => {
       // 基于当前状态创建新状态，避免重置其他服务器的状态
       const installStatus: Record<string, string[]> = { ...agentInstallStatus };
 

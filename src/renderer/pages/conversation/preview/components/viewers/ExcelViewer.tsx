@@ -57,7 +57,9 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
       left: (
         <div className='flex items-center gap-8px'>
           <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
-          {typeof sheetCount === 'number' && <span className='text-12px text-t-secondary'>{t('preview.excel.sheetCount', { count: sheetCount })}</span>}
+          {typeof sheetCount === 'number' && (
+            <span className='text-12px text-t-secondary'>{t('preview.excel.sheetCount', { count: sheetCount })}</span>
+          )}
         </div>
       ),
       right: null,
@@ -217,7 +219,8 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
               {Array.from({ length: totalRows }).map((_, rowIndex) => {
                 const rowData = Array.isArray(rows[rowIndex]) ? rows[rowIndex] : [];
                 const rowKey = `${sheetName}-row-${rowIndex}`;
-                const backgroundColor = rowIndex % 2 === 0 ? 'var(--color-bg-1, #ffffff)' : 'var(--color-fill-1, #f2f3f5)';
+                const backgroundColor =
+                  rowIndex % 2 === 0 ? 'var(--color-bg-1, #ffffff)' : 'var(--color-fill-1, #f2f3f5)';
 
                 return (
                   <tr key={rowKey} style={{ backgroundColor }}>
@@ -298,9 +301,16 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
           </div>
 
           <div className='flex items-center gap-8px'>
-            <span className='text-12px text-t-secondary'>{t('preview.excel.sheetCount', { count: excelData.sheets.length })}</span>
+            <span className='text-12px text-t-secondary'>
+              {t('preview.excel.sheetCount', { count: excelData.sheets.length })}
+            </span>
             {filePath && (
-              <Button size='mini' type='text' onClick={handleOpenInSystem} title={t('preview.openWithApp', { app: 'Excel' })}>
+              <Button
+                size='mini'
+                type='text'
+                onClick={handleOpenInSystem}
+                title={t('preview.openWithApp', { app: 'Excel' })}
+              >
                 <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                   <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
                   <polyline points='15 3 21 3 21 9' />

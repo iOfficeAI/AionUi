@@ -61,7 +61,16 @@ const arcoLocales: Record<string, typeof enUS> = {
   'en-US': enUS,
 };
 
-const AppProviders: React.FC<PropsWithChildren> = ({ children }) => React.createElement(AuthProvider, null, React.createElement(ThemeProvider, null, React.createElement(PreviewProvider, null, React.createElement(ConversationTabsProvider, null, children))));
+const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
+  React.createElement(
+    AuthProvider,
+    null,
+    React.createElement(
+      ThemeProvider,
+      null,
+      React.createElement(PreviewProvider, null, React.createElement(ConversationTabsProvider, null, children))
+    )
+  );
 
 const Config: React.FC<PropsWithChildren> = ({ children }) => {
   const {

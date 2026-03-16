@@ -12,7 +12,17 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ExportTask, ExportZipFile } from '../types';
-import { appendWorkspaceFilesToZip, buildConversationJson, buildConversationMarkdown, buildTopicFolderName, EXPORT_IO_TIMEOUT_MS, formatTimestamp, joinFilePath, sanitizeFileName, withTimeout } from '../utils/exportHelpers';
+import {
+  appendWorkspaceFilesToZip,
+  buildConversationJson,
+  buildConversationMarkdown,
+  buildTopicFolderName,
+  EXPORT_IO_TIMEOUT_MS,
+  formatTimestamp,
+  joinFilePath,
+  sanitizeFileName,
+  withTimeout,
+} from '../utils/exportHelpers';
 
 type UseExportParams = {
   conversations: TChatConversation[];
@@ -21,7 +31,12 @@ type UseExportParams = {
   onBatchModeChange?: (value: boolean) => void;
 };
 
-export const useExport = ({ conversations, selectedConversationIds, setSelectedConversationIds, onBatchModeChange }: UseExportParams) => {
+export const useExport = ({
+  conversations,
+  selectedConversationIds,
+  setSelectedConversationIds,
+  onBatchModeChange,
+}: UseExportParams) => {
   const [exportTask, setExportTask] = useState<ExportTask>(null);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportTargetPath, setExportTargetPath] = useState('');
@@ -33,7 +48,11 @@ export const useExport = ({ conversations, selectedConversationIds, setSelectedC
 
   const fileExists = useCallback(async (filePath: string): Promise<boolean> => {
     try {
-      await withTimeout(ipcBridge.fs.getFileMetadata.invoke({ path: filePath }), EXPORT_IO_TIMEOUT_MS, `getFileMetadata:${filePath}`);
+      await withTimeout(
+        ipcBridge.fs.getFileMetadata.invoke({ path: filePath }),
+        EXPORT_IO_TIMEOUT_MS,
+        `getFileMetadata:${filePath}`
+      );
       return true;
     } catch {
       return false;
@@ -168,7 +187,10 @@ export const useExport = ({ conversations, selectedConversationIds, setSelectedC
 
   const buildConversationExportFiles = useCallback(
     async (conversation: TChatConversation, topicFolderName: string): Promise<ExportZipFile[]> => {
-      const [messages, workspaceTree] = await Promise.all([fetchConversationMessages(conversation.id), fetchConversationWorkspaceTree(conversation)]);
+      const [messages, workspaceTree] = await Promise.all([
+        fetchConversationMessages(conversation.id),
+        fetchConversationWorkspaceTree(conversation),
+      ]);
       const files: ExportZipFile[] = [
         {
           name: `${topicFolderName}/conversation/conversation.json`,
@@ -186,15 +208,22 @@ export const useExport = ({ conversations, selectedConversationIds, setSelectedC
     [fetchConversationMessages, fetchConversationWorkspaceTree]
   );
 
-  const runCreateZip = useCallback(async (path: string, files: ExportZipFile[], requestId: string): Promise<boolean> => {
-    try {
-      return await withTimeout(ipcBridge.fs.createZip.invoke({ path, files, requestId }), EXPORT_IO_TIMEOUT_MS * 8, `createZip:${requestId}`);
-    } catch (error) {
-      // Ensure background zip task is stopped when renderer-side timeout/cancel happens.
-      void ipcBridge.fs.cancelZip.invoke({ requestId });
-      throw error;
-    }
-  }, []);
+  const runCreateZip = useCallback(
+    async (path: string, files: ExportZipFile[], requestId: string): Promise<boolean> => {
+      try {
+        return await withTimeout(
+          ipcBridge.fs.createZip.invoke({ path, files, requestId }),
+          EXPORT_IO_TIMEOUT_MS * 8,
+          `createZip:${requestId}`
+        );
+      } catch (error) {
+        // Ensure background zip task is stopped when renderer-side timeout/cancel happens.
+        void ipcBridge.fs.cancelZip.invoke({ requestId });
+        throw error;
+      }
+    },
+    []
+  );
 
   const handleExportConversation = useCallback(
     (conversation: TChatConversation) => {
@@ -260,7 +289,9 @@ export const useExport = ({ conversations, selectedConversationIds, setSelectedC
         return;
       }
 
-      const selectedConversations = conversations.filter((conversation) => exportTask.conversationIds.includes(conversation.id));
+      const selectedConversations = conversations.filter((conversation) =>
+        exportTask.conversationIds.includes(conversation.id)
+      );
       if (selectedConversations.length === 0) {
         Message.warning(t('conversation.history.batchNoSelection'));
         return;
@@ -301,7 +332,17 @@ export const useExport = ({ conversations, selectedConversationIds, setSelectedC
       setCurrentExportRequestId(null);
       exportCanceledRef.current = false;
     }
-  }, [buildConversationExportFiles, conversations, createUniqueFilePath, exportTargetPath, exportTask, onBatchModeChange, runCreateZip, t, setSelectedConversationIds]);
+  }, [
+    buildConversationExportFiles,
+    conversations,
+    createUniqueFilePath,
+    exportTargetPath,
+    exportTask,
+    onBatchModeChange,
+    runCreateZip,
+    t,
+    setSelectedConversationIds,
+  ]);
 
   return {
     exportTask,

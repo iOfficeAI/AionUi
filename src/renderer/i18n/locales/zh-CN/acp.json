@@ -17,6 +17,7 @@
     "unknown": "未知状态"
   },
   "config": {
-    "reasoning_effort": "推理深度"
+    "reasoning_effort": "推理深度",
+    "default": "默认"
   }
 }

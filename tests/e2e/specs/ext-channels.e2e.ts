@@ -4,7 +4,14 @@
  * Validates extension-contributed channel plugins on the channels settings page.
  */
 import { test, expect } from '../fixtures';
-import { goToChannelsTab, expectBodyContainsAny, takeScreenshot, waitForSettle, ARCO_SWITCH, waitForClassChange } from '../helpers';
+import {
+  goToChannelsTab,
+  expectBodyContainsAny,
+  takeScreenshot,
+  waitForSettle,
+  ARCO_SWITCH,
+  waitForClassChange,
+} from '../helpers';
 
 test.describe('Extension: Channel Plugins', () => {
   test('channels page renders', async ({ page }) => {

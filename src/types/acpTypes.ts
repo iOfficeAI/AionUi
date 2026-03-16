@@ -27,12 +27,18 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'ope
  * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
  * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
  */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex', 'qwen'] as const;
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = [
+  'claude',
+  'codebuddy',
+  'opencode',
+  'codex',
+  'qwen',
+] as const;
 
-export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
+export const CODEX_ACP_BRIDGE_VERSION = '0.10.0';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
-export const CLAUDE_ACP_BRIDGE_VERSION = '0.20.2';
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
 export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
@@ -478,7 +484,9 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
 };
 
 // 仅启用的后端配置 / Enabled backends only
-export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled));
+export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(
+  Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled)
+);
 
 // 当前启用的后端类型 / Currently enabled backend types
 export type AcpBackend = keyof typeof ACP_BACKENDS_ALL;
@@ -531,7 +539,12 @@ export interface AcpError {
 export type AcpResult<T = unknown> = { success: true; data: T } | { success: false; error: AcpError };
 
 // 创建 ACP 错误的辅助函数 / Helper function to create ACP errors
-export function createAcpError(type: AcpErrorType, message: string, retryable: boolean = false, details?: unknown): AcpError {
+export function createAcpError(
+  type: AcpErrorType,
+  message: string,
+  retryable: boolean = false,
+  details?: unknown
+): AcpError {
   return {
     type,
     code: type.toString(),
@@ -789,7 +802,16 @@ export interface AcpModelInfo {
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload | UsageUpdatePayload;
+export type AcpSessionUpdate =
+  | AgentMessageChunkUpdate
+  | AgentThoughtChunkUpdate
+  | ToolCallUpdate
+  | ToolCallUpdateStatus
+  | PlanUpdate
+  | AvailableCommandsUpdate
+  | UserMessageChunkUpdate
+  | ConfigOptionsUpdatePayload
+  | UsageUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
@@ -923,4 +945,8 @@ export interface AcpFileWriteMessage {
  * ACP incoming message union type.
  * TypeScript can automatically narrow the type based on the method field.
  */
-export type AcpIncomingMessage = AcpSessionUpdateNotification | AcpPermissionRequestMessage | AcpFileReadMessage | AcpFileWriteMessage;
+export type AcpIncomingMessage =
+  | AcpSessionUpdateNotification
+  | AcpPermissionRequestMessage
+  | AcpFileReadMessage
+  | AcpFileWriteMessage;

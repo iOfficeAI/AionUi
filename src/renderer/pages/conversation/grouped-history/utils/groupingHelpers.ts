@@ -30,7 +30,10 @@ export const getConversationPinnedAt = (conversation: TChatConversation): number
   return 0;
 };
 
-export const groupConversationsByTimelineAndWorkspace = (conversations: TChatConversation[], t: (key: string) => string): TimelineSection[] => {
+export const groupConversationsByTimelineAndWorkspace = (
+  conversations: TChatConversation[],
+  t: (key: string) => string
+): TimelineSection[] => {
   const allWorkspaceGroups = new Map<string, TChatConversation[]>();
   const withoutWorkspaceConvs: TChatConversation[] = [];
 
@@ -76,7 +79,12 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
     withoutWorkspaceByTimeline.get(timeline)!.push(conv);
   });
 
-  const timelineOrder = ['conversation.history.today', 'conversation.history.yesterday', 'conversation.history.recent7Days', 'conversation.history.earlier'];
+  const timelineOrder = [
+    'conversation.history.today',
+    'conversation.history.yesterday',
+    'conversation.history.recent7Days',
+    'conversation.history.earlier',
+  ];
   const sections: TimelineSection[] = [];
 
   timelineOrder.forEach((timelineKey) => {
@@ -117,7 +125,10 @@ export const groupConversationsByTimelineAndWorkspace = (conversations: TChatCon
   return sections;
 };
 
-export const buildGroupedHistory = (conversations: TChatConversation[], t: (key: string) => string): GroupedHistoryResult => {
+export const buildGroupedHistory = (
+  conversations: TChatConversation[],
+  t: (key: string) => string
+): GroupedHistoryResult => {
   const pinnedConversations = conversations
     .filter((conversation) => isConversationPinned(conversation))
     .sort((a, b) => {

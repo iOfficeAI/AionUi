@@ -279,7 +279,8 @@ export class LarkPlugin extends BasePlugin {
       // For text messages, build a card (since we send text as cards)
       if (contentType === 'text' && rawText !== undefined) {
         // Truncate if too long
-        const truncatedText = rawText.length > LARK_MESSAGE_LIMIT ? rawText.slice(0, LARK_MESSAGE_LIMIT - 3) + '...' : rawText;
+        const truncatedText =
+          rawText.length > LARK_MESSAGE_LIMIT ? rawText.slice(0, LARK_MESSAGE_LIMIT - 3) + '...' : rawText;
         cardContent = this.buildTextCard(truncatedText);
       } else if (contentType === 'interactive') {
         // Already a card
@@ -395,7 +396,9 @@ export class LarkPlugin extends BasePlugin {
         }
 
         // Process in background to avoid blocking
-        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling message:`, error));
+        void this.messageHandler(unifiedMessage).catch((error) =>
+          console.error(`[LarkPlugin] Error handling message:`, error)
+        );
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing message event:', error);
@@ -481,7 +484,9 @@ export class LarkPlugin extends BasePlugin {
       };
 
       if (this.messageHandler) {
-        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling bot menu action:`, error));
+        void this.messageHandler(unifiedMessage).catch((error) =>
+          console.error(`[LarkPlugin] Error handling bot menu action:`, error)
+        );
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing bot menu event:', error);
@@ -523,7 +528,9 @@ export class LarkPlugin extends BasePlugin {
       // Convert to unified message with action
       const unifiedMessage = toUnifiedIncomingMessage(event, actionInfo);
       if (unifiedMessage && this.messageHandler) {
-        void this.messageHandler(unifiedMessage).catch((error) => console.error(`[LarkPlugin] Error handling card action:`, error));
+        void this.messageHandler(unifiedMessage).catch((error) =>
+          console.error(`[LarkPlugin] Error handling card action:`, error)
+        );
       }
     } catch (error) {
       console.error('[LarkPlugin] Error processing card action:', error);
@@ -614,7 +621,10 @@ export class LarkPlugin extends BasePlugin {
    * @param appId - Lark App ID
    * @param appSecret - Lark App Secret (optional parameter for BasePlugin compatibility)
    */
-  static async testConnection(appId: string, appSecret?: string): Promise<{ success: boolean; botInfo?: { name?: string }; error?: string }> {
+  static async testConnection(
+    appId: string,
+    appSecret?: string
+  ): Promise<{ success: boolean; botInfo?: { name?: string }; error?: string }> {
     if (!appSecret) {
       return { success: false, error: 'App Secret is required for Lark' };
     }

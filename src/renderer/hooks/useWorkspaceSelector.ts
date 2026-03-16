@@ -32,7 +32,9 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
       }
 
       // 获取最新的会话数据 / Fetch latest conversation data
-      const conversation = (await ipcBridge.conversation.get.invoke({ id: conversationId })) as TChatConversation | null;
+      const conversation = (await ipcBridge.conversation.get.invoke({
+        id: conversationId,
+      })) as TChatConversation | null;
       if (!conversation) {
         Message.error(t('common.saveFailed'));
         return;

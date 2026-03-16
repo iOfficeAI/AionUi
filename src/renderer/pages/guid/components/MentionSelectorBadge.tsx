@@ -17,7 +17,14 @@ type MentionSelectorBadgeProps = {
   onResetQuery: () => void;
 };
 
-const MentionSelectorBadge: React.FC<MentionSelectorBadgeProps> = ({ visible, open, onOpenChange, agentLabel, mentionMenu, onResetQuery }) => {
+const MentionSelectorBadge: React.FC<MentionSelectorBadgeProps> = ({
+  visible,
+  open,
+  onOpenChange,
+  agentLabel,
+  mentionMenu,
+  onResetQuery,
+}) => {
   if (!visible) return null;
 
   return (

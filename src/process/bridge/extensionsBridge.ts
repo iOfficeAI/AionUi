@@ -5,7 +5,12 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AgentActivityState, IExtensionAgentActivityEvent, IExtensionAgentActivityItem, IExtensionAgentActivitySnapshot } from '@/common/ipcBridge';
+import type {
+  AgentActivityState,
+  IExtensionAgentActivityEvent,
+  IExtensionAgentActivityItem,
+  IExtensionAgentActivitySnapshot,
+} from '@/common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
 import type { TChatConversation } from '@/common/storage';
 import { ExtensionRegistry } from '@/extensions';
@@ -24,7 +29,11 @@ const normalizeRuntimeStatus = (status?: string): 'pending' | 'running' | 'finis
   return 'unknown';
 };
 
-const mapStatusToState = (runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown', lastStatus?: string, recentEvents: IExtensionAgentActivityEvent[] = []): AgentActivityState => {
+const mapStatusToState = (
+  runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown',
+  lastStatus?: string,
+  recentEvents: IExtensionAgentActivityEvent[] = []
+): AgentActivityState => {
   if (lastStatus === 'error' || recentEvents.some((e) => /error|失败|异常/i.test(e.text))) return 'error';
 
   const hasWriteEvent = recentEvents.some((e) => /write|patch|edit|写入|修改|生成文件/i.test(e.text));
@@ -65,7 +74,12 @@ const toEventText = (message: TMessage): { kind: 'status' | 'tool' | 'message'; 
     return { kind: 'status', text: `状态: ${String(content.status || 'unknown')}`, at };
   }
 
-  if (message.type === 'tool_call' || message.type === 'acp_tool_call' || message.type === 'codex_tool_call' || message.type === 'tool_group') {
+  if (
+    message.type === 'tool_call' ||
+    message.type === 'acp_tool_call' ||
+    message.type === 'codex_tool_call' ||
+    message.type === 'tool_group'
+  ) {
     return { kind: 'tool', text: '工具执行中', at };
   }
 
@@ -117,7 +131,9 @@ const buildActivitySnapshot = (): IExtensionAgentActivitySnapshot => {
         })
       );
 
-    const lastStatus = recentMessages.find((m) => m.type === 'agent_status')?.content as { status?: string } | undefined;
+    const lastStatus = recentMessages.find((m) => m.type === 'agent_status')?.content as
+      | { status?: string }
+      | undefined;
     const state = mapStatusToState(runtimeStatus, lastStatus?.status, events);
 
     const key = `${backend}::${agentName}`;

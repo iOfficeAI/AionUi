@@ -21,6 +21,7 @@ import { useLatestRef } from '../hooks/useLatestRef';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
+import './sendbox.css';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -45,7 +46,25 @@ const SendBox: React.FC<{
   sendButtonPrefix?: React.ReactNode;
   slashCommands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix, slashCommands = [], onSlashBuiltinCommand }) => {
+}> = ({
+  onSend,
+  onStop,
+  prefix,
+  className,
+  loading,
+  tools,
+  disabled,
+  placeholder,
+  value: input = '',
+  onChange: setInput = constVoid,
+  onFilesAdded,
+  supportedExts = allSupportedExts,
+  defaultMultiLine = false,
+  lockMultiLine = false,
+  sendButtonPrefix,
+  slashCommands = [],
+  onSlashBuiltinCommand,
+}) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
@@ -293,7 +312,9 @@ const SendBox: React.FC<{
     // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
     let finalMessage = input;
     if (domSnippets.length > 0) {
-      const snippetsHtml = domSnippets.map((s) => `\n\n---\nDOM Snippet (${s.tag}):\n\`\`\`html\n${s.html}\n\`\`\``).join('');
+      const snippetsHtml = domSnippets
+        .map((s) => `\n\n---\nDOM Snippet (${s.tag}):\n\`\`\`html\n${s.html}\n\`\`\``)
+        .join('');
       finalMessage = input + snippetsHtml;
     }
 
@@ -387,15 +408,27 @@ const SendBox: React.FC<{
           {domSnippets.length > 0 && (
             <div className='flex flex-wrap gap-6px mb-8px'>
               {domSnippets.map((snippet) => (
-                <Tag key={snippet.id} closable closeIcon={<CloseSmall theme='outline' size='12' />} onClose={() => removeDomSnippet(snippet.id)} className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'>
+                <Tag
+                  key={snippet.id}
+                  closable
+                  closeIcon={<CloseSmall theme='outline' size='12' />}
+                  onClose={() => removeDomSnippet(snippet.id)}
+                  className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'
+                >
                   {snippet.tag}
                 </Tag>
               ))}
             </div>
           )}
         </div>
-        <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
-          {isSingleLine && <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>{tools}</div>}
+        <div
+          className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
+        >
+          {isSingleLine && (
+            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>
+              {tools}
+            </div>
+          )}
           <Input.TextArea
             autoFocus={!isMobile}
             disabled={disabled}
@@ -434,7 +467,17 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
+              {isLoading || loading ? (
+                <Button
+                  shape='circle'
+                  type='secondary'
+                  className='bg-animate'
+                  icon={<div className='mx-auto size-12px bg-6'></div>}
+                  onClick={stopHandler}
+                ></Button>
+              ) : (
+                sendButton
+              )}
             </div>
           )}
         </div>
@@ -443,7 +486,17 @@ const SendBox: React.FC<{
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
+              {isLoading || loading ? (
+                <Button
+                  shape='circle'
+                  type='secondary'
+                  className='bg-animate'
+                  icon={<div className='mx-auto size-12px bg-6'></div>}
+                  onClick={stopHandler}
+                ></Button>
+              ) : (
+                sendButton
+              )}
             </div>
           </div>
         )}

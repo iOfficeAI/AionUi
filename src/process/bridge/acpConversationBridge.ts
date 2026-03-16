@@ -38,7 +38,10 @@ export function initAcpConversationBridge(): void {
       return Promise.resolve({ success: true, data: { path: agent.cliPath } });
     }
 
-    return Promise.resolve({ success: false, msg: `${backend} CLI not found. Please install it and ensure it's accessible.` });
+    return Promise.resolve({
+      success: false,
+      msg: `${backend} CLI not found. Please install it and ensure it's accessible.`,
+    });
   });
 
   // 新的ACP检测接口 - 基于全局标记位
@@ -124,7 +127,13 @@ export function initAcpConversationBridge(): void {
         const errorMsg = error instanceof Error ? error.message : String(error);
         const lowerError = errorMsg.toLowerCase();
 
-        if (lowerError.includes('auth') || lowerError.includes('login') || lowerError.includes('api key') || lowerError.includes('not found') || lowerError.includes('command not found')) {
+        if (
+          lowerError.includes('auth') ||
+          lowerError.includes('login') ||
+          lowerError.includes('api key') ||
+          lowerError.includes('not found') ||
+          lowerError.includes('command not found')
+        ) {
           return {
             success: false,
             msg: `codex not available`,
@@ -176,7 +185,14 @@ export function initAcpConversationBridge(): void {
       const lowerError = errorMsg.toLowerCase();
 
       // Check for authentication-related errors
-      if (lowerError.includes('auth') || lowerError.includes('login') || lowerError.includes('credential') || lowerError.includes('api key') || lowerError.includes('unauthorized') || lowerError.includes('forbidden')) {
+      if (
+        lowerError.includes('auth') ||
+        lowerError.includes('login') ||
+        lowerError.includes('credential') ||
+        lowerError.includes('api key') ||
+        lowerError.includes('unauthorized') ||
+        lowerError.includes('forbidden')
+      ) {
         return {
           success: false,
           msg: `${backend} not authenticated`,
@@ -197,7 +213,10 @@ export function initAcpConversationBridge(): void {
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
     const task = WorkerManage.getTaskById(conversationId);
-    if (!task || !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)) {
+    if (
+      !task ||
+      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+    ) {
       return Promise.resolve({ success: true, data: { mode: 'default', initialized: false } });
     }
     return Promise.resolve({ success: true, data: task.getMode() });
@@ -280,7 +299,9 @@ export function initAcpConversationBridge(): void {
       if (!task) {
         return { success: false, msg: 'Conversation not found' };
       }
-      if (!(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)) {
+      if (
+        !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
+      ) {
         return { success: false, msg: 'Mode switching not supported for this agent type' };
       }
       return await task.setMode(mode);

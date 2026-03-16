@@ -13,7 +13,14 @@ interface AddMcpServerModalProps {
   importMode?: 'json' | 'oneclick';
 }
 
-const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, onCancel, onSubmit, onBatchImport, importMode = 'json' }) => {
+const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
+  visible,
+  server,
+  onCancel,
+  onSubmit,
+  onBatchImport,
+  importMode = 'json',
+}) => {
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [showOneClickModal, setShowOneClickModal] = useState(false);
 
@@ -64,7 +71,13 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
 
   return (
     <>
-      <JsonImportModal visible={showJsonModal} server={server} onCancel={handleModalCancel} onSubmit={onSubmit} onBatchImport={onBatchImport} />
+      <JsonImportModal
+        visible={showJsonModal}
+        server={server}
+        onCancel={handleModalCancel}
+        onSubmit={onSubmit}
+        onBatchImport={onBatchImport}
+      />
       <OneClickImportModal visible={showOneClickModal} onCancel={handleModalCancel} onBatchImport={onBatchImport} />
     </>
   );

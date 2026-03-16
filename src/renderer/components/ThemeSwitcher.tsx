@@ -26,7 +26,11 @@ export const ThemeSwitcher = () => {
   ];
 
   return (
-    <div className='relative inline-grid grid-cols-2 p-6px rd-full border border-solid border-[var(--color-border-2)] bg-1 w-full max-w-240px md:w-auto md:min-w-216px' role='radiogroup' aria-label={t('settings.theme')}>
+    <div
+      className='relative inline-grid grid-cols-2 p-6px rd-full border border-solid border-[var(--color-border-2)] bg-1 w-full max-w-240px md:w-auto md:min-w-216px'
+      role='radiogroup'
+      aria-label={t('settings.theme')}
+    >
       <span
         aria-hidden='true'
         className='absolute rd-full border border-solid border-[var(--color-border-2)] transition-all duration-260 ease-[cubic-bezier(0.2,0.8,0.2,1)]'
@@ -52,7 +56,11 @@ export const ThemeSwitcher = () => {
             aria-checked={isActive}
             className='relative z-1 h-33px min-w-0 px-10px md:px-12px rd-full text-13px font-500 inline-flex items-center justify-center gap-6px transition-all duration-180 active:scale-[0.985] disabled:cursor-not-allowed'
             style={{
-              color: isActive ? (theme === 'dark' ? 'var(--color-text-1)' : 'rgb(var(--primary-6))') : 'var(--color-text-2)',
+              color: isActive
+                ? theme === 'dark'
+                  ? 'var(--color-text-1)'
+                  : 'rgb(var(--primary-6))'
+                : 'var(--color-text-2)',
               backgroundColor: 'transparent',
               border: '1px solid transparent',
               cursor: isActive ? 'default' : 'pointer',

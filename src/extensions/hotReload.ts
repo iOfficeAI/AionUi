@@ -6,7 +6,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { getUserExtensionsDir, getAppDataExtensionsDir, getEnvExtensionsDirs, EXTENSION_MANIFEST_FILE } from './constants';
+import {
+  getUserExtensionsDir,
+  getAppDataExtensionsDir,
+  getEnvExtensionsDirs,
+  EXTENSION_MANIFEST_FILE,
+} from './constants';
 import { ExtensionRegistry } from './ExtensionRegistry';
 
 const DEBOUNCE_MS = 1000;

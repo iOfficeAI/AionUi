@@ -151,7 +151,14 @@ const GeminiModalContent: React.FC = () => {
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
           <div className='px-[12px] py-[24px] md:px-[32px] bg-2 rd-12px md:rd-16px border border-border-2'>
-            <Form form={form} layout='horizontal' labelCol={{ flex: '140px' }} labelAlign='left' wrapperCol={{ flex: '1' }} onValuesChange={debouncedSave}>
+            <Form
+              form={form}
+              layout='horizontal'
+              labelCol={{ flex: '140px' }}
+              labelAlign='left'
+              wrapperCol={{ flex: '1' }}
+              onValuesChange={debouncedSave}
+            >
               <Form.Item label={t('settings.personalAuth')} field='googleAccount' layout='horizontal'>
                 {(props) => (
                   <div
@@ -195,18 +202,24 @@ const GeminiModalContent: React.FC = () => {
                               if (result.success) {
                                 loadGoogleAuthStatus(form.getFieldValue('proxy'));
                                 if (result.data?.account) {
-                                  message.success(t('settings.googleLoginSuccess', { defaultValue: 'Successfully logged in' }));
+                                  message.success(
+                                    t('settings.googleLoginSuccess', { defaultValue: 'Successfully logged in' })
+                                  );
                                 }
                               } else {
                                 // 登录失败，显示错误消息
                                 // Login failed, show error message
-                                const errorMsg = result.msg || t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' });
+                                const errorMsg =
+                                  result.msg ||
+                                  t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' });
                                 message.error(errorMsg);
                                 console.error('[GoogleAuth] Login failed:', result.msg);
                               }
                             })
                             .catch((error) => {
-                              message.error(t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' }));
+                              message.error(
+                                t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' })
+                              );
                               console.error('Failed to login to Google:', error);
                             })
                             .finally(() => {
@@ -222,7 +235,12 @@ const GeminiModalContent: React.FC = () => {
               </Form.Item>
               <Divider className='mt-0px mb-20px' />
 
-              <Form.Item label={t('settings.proxyConfig')} field='proxy' layout='vertical' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
+              <Form.Item
+                label={t('settings.proxyConfig')}
+                field='proxy'
+                layout='vertical'
+                rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}
+              >
                 <Input className='aion-input' placeholder={t('settings.proxyHttpOnly')} />
               </Form.Item>
               <Divider className='mt-0px mb-20px' />

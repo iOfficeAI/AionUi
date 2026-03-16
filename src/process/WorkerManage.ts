@@ -125,7 +125,10 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
   }
 };
 
-const getTaskByIdRollbackBuild = async (id: string, options?: BuildConversationOptions): Promise<AgentBaseTask<unknown>> => {
+const getTaskByIdRollbackBuild = async (
+  id: string,
+  options?: BuildConversationOptions
+): Promise<AgentBaseTask<unknown>> => {
   console.log(`[WorkerManage] getTaskByIdRollbackBuild: id=${id}, options=${JSON.stringify(options)}`);
 
   // If not skipping cache, check for existing task

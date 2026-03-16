@@ -60,7 +60,10 @@ const useScrollIntoView = (id: string) => {
   }, [id]);
 };
 
-const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({ onSessionClick, collapsed = false }) => {
+const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
+  onSessionClick,
+  collapsed = false,
+}) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
@@ -184,30 +187,52 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
     const cronStatus = getJobStatus(conversation.id);
 
     return (
-      <Tooltip key={conversation.id} {...siderTooltipProps} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
+      <Tooltip
+        key={conversation.id}
+        {...siderTooltipProps}
+        content={conversation.name || t('conversation.welcome.newConversation')}
+        position='right'
+      >
         <div
           id={'c-' + conversation.id}
-          className={classNames('chat-history__item hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-            '!bg-active ': isSelected,
-          })}
+          className={classNames(
+            'chat-history__item hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px',
+            {
+              '!bg-active ': isSelected,
+            }
+          )}
           onClick={handleSelect.bind(null, conversation)}
         >
           <MessageOne theme='outline' size='20' className='mt-2px flex' />
           <FlexFullContainer className='h-24px collapsed-hidden ml-10px min-w-0'>
             {isEditing ? (
-              <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' />
+              <Input
+                className='chat-history__item-editor text-14px lh-24px h-24px w-full'
+                value={editingName}
+                onChange={setEditingName}
+                onKeyDown={handleEditKeyDown}
+                onBlur={handleEditSave}
+                autoFocus
+                size='small'
+              />
             ) : (
               <div className='flex items-center gap-4px w-full'>
-                <div className='chat-history__item-name text-nowrap overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>{conversation.name}</div>
+                <div className='chat-history__item-name text-nowrap overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>
+                  {conversation.name}
+                </div>
                 <CronJobIndicator status={cronStatus} size={14} />
               </div>
             )}
           </FlexFullContainer>
           {!isEditing && (
             <div
-              className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}
+              className={classNames(
+                'absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px'
+              )}
               style={{
-                backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--aou-2) 50%)` : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
+                backgroundImage: isSelected
+                  ? `linear-gradient(to right, transparent, var(--aou-2) 50%)`
+                  : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
               }}
               onClick={(event) => {
                 event.stopPropagation();
@@ -272,7 +297,11 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
             const timeline = formatTimeline(item);
             return (
               <React.Fragment key={item.id}>
-                {timeline && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{timeline}</div>}
+                {timeline && (
+                  <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>
+                    {timeline}
+                  </div>
+                )}
                 {renderConversation(item)}
               </React.Fragment>
             );

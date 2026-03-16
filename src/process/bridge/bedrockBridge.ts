@@ -14,7 +14,8 @@ export function initBedrockBridge(): void {
   ipcBridge.bedrock.testConnection.provider(async ({ bedrockConfig }) => {
     try {
       // Dynamically import BedrockContentGenerator to avoid loading unnecessary dependencies
-      const { BedrockContentGenerator } = await import('@office-ai/aioncli-core/dist/src/core/bedrockContentGenerator.js');
+      const { BedrockContentGenerator } =
+        await import('@office-ai/aioncli-core/dist/src/core/bedrockContentGenerator.js');
 
       // Store original environment variables to restore later
       const originalEnv = {

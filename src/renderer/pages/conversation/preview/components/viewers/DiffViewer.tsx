@@ -29,7 +29,12 @@ interface DiffPreviewProps {
 /**
  * Diff preview component with rich diff2html rendering
  */
-const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false, viewMode: externalViewMode, onViewModeChange }) => {
+const DiffPreview: React.FC<DiffPreviewProps> = ({
+  content,
+  hideToolbar = false,
+  viewMode: externalViewMode,
+  onViewModeChange,
+}) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const diffContainerRef = useRef<HTMLDivElement>(null);
@@ -118,22 +123,44 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
       {!hideToolbar && (
         <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0'>
           <div className='flex items-center gap-4px'>
-            <div className={`px-12px py-4px rd-4px cursor-pointer transition-colors text-12px ${viewMode === 'source' ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => handleViewModeChange('source')}>
+            <div
+              className={`px-12px py-4px rd-4px cursor-pointer transition-colors text-12px ${viewMode === 'source' ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`}
+              onClick={() => handleViewModeChange('source')}
+            >
               {t('preview.source')}
             </div>
-            <div className={`px-12px py-4px rd-4px cursor-pointer transition-colors text-12px ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => handleViewModeChange('preview')}>
+            <div
+              className={`px-12px py-4px rd-4px cursor-pointer transition-colors text-12px ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`}
+              onClick={() => handleViewModeChange('preview')}
+            >
               {t('preview.preview')}
             </div>
           </div>
 
           <div className='flex items-center gap-8px'>
             {viewMode === 'preview' && (
-              <Checkbox className='whitespace-nowrap text-12px' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
+              <Checkbox
+                className='whitespace-nowrap text-12px'
+                checked={sideBySide}
+                onChange={(value) => setSideBySide(value)}
+              >
                 <span className='text-12px text-t-secondary'>side-by-side</span>
               </Checkbox>
             )}
-            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadDiff')}>
-              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+            <div
+              className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
+              onClick={handleDownload}
+              title={t('preview.downloadDiff')}
+            >
+              <svg
+                width='14'
+                height='14'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                className='text-t-secondary'
+              >
                 <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
                 <polyline points='7 10 12 15 17 10' />
                 <line x1='12' y1='15' x2='12' y2='3' />
@@ -146,15 +173,28 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
 
       <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
         {viewMode === 'source' ? (
-          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language='diff' PreTag='div' showLineNumbers wrapLongLines>
+          <SyntaxHighlighter
+            style={currentTheme === 'dark' ? vs2015 : vs}
+            language='diff'
+            PreTag='div'
+            showLineNumbers
+            wrapLongLines
+          >
             {content}
           </SyntaxHighlighter>
         ) : (
           <div
             ref={diffContainerRef}
-            className={classNames('w-full max-w-full min-w-0', '![&_.line-num1]:hidden ![&_.line-num2]:w-30px', '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px', '[&_div.d2h-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]', '[&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3', {
-              'd2h-dark-color-scheme': currentTheme === 'dark',
-            })}
+            className={classNames(
+              'w-full max-w-full min-w-0',
+              '![&_.line-num1]:hidden ![&_.line-num2]:w-30px',
+              '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px',
+              '[&_div.d2h-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]',
+              '[&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3',
+              {
+                'd2h-dark-color-scheme': currentTheme === 'dark',
+              }
+            )}
             dangerouslySetInnerHTML={{ __html: diffHtmlContent }}
           />
         )}
@@ -170,7 +210,9 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
           operatorRef.current
         )}
 
-      {selectedText && <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />}
+      {selectedText && (
+        <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />
+      )}
     </div>
   );
 };

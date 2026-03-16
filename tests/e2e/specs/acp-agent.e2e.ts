@@ -9,7 +9,16 @@
  *  - MCP tools page loads
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, expectBodyContainsAny, expectUrlContains, takeScreenshot, AGENT_PILL, AGENT_PILL_SELECTED, settingsSiderItemById } from '../helpers';
+import {
+  goToGuid,
+  goToSettings,
+  expectBodyContainsAny,
+  expectUrlContains,
+  takeScreenshot,
+  AGENT_PILL,
+  AGENT_PILL_SELECTED,
+  settingsSiderItemById,
+} from '../helpers';
 
 test.describe('ACP Agent', () => {
   test('agent settings page has management UI', async ({ page }) => {

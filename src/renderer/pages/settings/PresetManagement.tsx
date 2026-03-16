@@ -63,7 +63,9 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
     if (!editingPreset) return;
     try {
       const allAgents = (await ConfigStorage.get('acp.customAgents')) || [];
-      const updatedAgents = allAgents.map((a) => (a.id === editingPreset.id ? { ...a, name: editName, context: editContext } : a));
+      const updatedAgents = allAgents.map((a) =>
+        a.id === editingPreset.id ? { ...a, name: editName, context: editContext } : a
+      );
       await ConfigStorage.set('acp.customAgents', updatedAgents);
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
@@ -91,10 +93,19 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
 
   return (
     <div>
-      <Collapse.Item header={<div className='flex items-center justify-between'>{t('settings.preset_agents', { defaultValue: 'Custom Presets (Rules & Skills)' })}</div>} name='preset-management'>
+      <Collapse.Item
+        header={
+          <div className='flex items-center justify-between'>
+            {t('settings.preset_agents', { defaultValue: 'Custom Presets (Rules & Skills)' })}
+          </div>
+        }
+        name='preset-management'
+      >
         <div className='py-2'>
           {presets.length === 0 ? (
-            <div className='text-center py-4 text-t-secondary'>{t('settings.no_presets', { defaultValue: 'No custom presets generated yet.' })}</div>
+            <div className='text-center py-4 text-t-secondary'>
+              {t('settings.no_presets', { defaultValue: 'No custom presets generated yet.' })}
+            </div>
           ) : (
             <div className='space-y-2'>
               {presets.map((preset) => (
@@ -105,7 +116,12 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
                       <div className='font-medium'>{preset.name}</div>
                     </div>
                     <div className='flex gap-2'>
-                      <Button type='text' size='small' icon={<EditTwo size={'14'} />} onClick={() => handleEdit(preset)} />
+                      <Button
+                        type='text'
+                        size='small'
+                        icon={<EditTwo size={'14'} />}
+                        onClick={() => handleEdit(preset)}
+                      />
                       <Button
                         type='text'
                         size='small'
@@ -118,7 +134,9 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
                       />
                     </div>
                   </div>
-                  <div className='text-xs text-t-secondary mt-2 truncate max-w-[400px]'>{preset.context?.substring(0, 100)}...</div>
+                  <div className='text-xs text-t-secondary mt-2 truncate max-w-[400px]'>
+                    {preset.context?.substring(0, 100)}...
+                  </div>
                 </div>
               ))}
             </div>
@@ -127,23 +145,43 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
       </Collapse.Item>
 
       {/* Edit Modal */}
-      <Modal title={t('settings.edit_preset', { defaultValue: 'Edit Preset' })} visible={editVisible} onOk={handleSave} onCancel={() => setEditVisible(false)} style={{ width: 600 }}>
+      <Modal
+        title={t('settings.edit_preset', { defaultValue: 'Edit Preset' })}
+        visible={editVisible}
+        onOk={handleSave}
+        onCancel={() => setEditVisible(false)}
+        style={{ width: 600 }}
+      >
         <div className='space-y-4'>
           <div>
             <Typography.Text bold>{t('settings.agent_name', { defaultValue: 'Agent Name' })}</Typography.Text>
             <Input className='mt-2' value={editName} onChange={setEditName} />
           </div>
           <div>
-            <Typography.Text bold>{t('settings.rule_content', { defaultValue: 'Rule Content / Instructions' })}</Typography.Text>
+            <Typography.Text bold>
+              {t('settings.rule_content', { defaultValue: 'Rule Content / Instructions' })}
+            </Typography.Text>
             <div className='mt-2 border rounded overflow-hidden'>
-              <CodeMirror value={editContext} height='300px' theme={theme} extensions={[markdown()]} onChange={setEditContext} />
+              <CodeMirror
+                value={editContext}
+                height='300px'
+                theme={theme}
+                extensions={[markdown()]}
+                onChange={setEditContext}
+              />
             </div>
           </div>
         </div>
       </Modal>
 
       {/* Delete Confirm */}
-      <Modal title={t('common.confirm', { defaultValue: 'Confirm Delete' })} visible={deleteVisible} onOk={handleDelete} onCancel={() => setDeleteVisible(false)} okButtonProps={{ status: 'danger' }}>
+      <Modal
+        title={t('common.confirm', { defaultValue: 'Confirm Delete' })}
+        visible={deleteVisible}
+        onOk={handleDelete}
+        onCancel={() => setDeleteVisible(false)}
+        okButtonProps={{ status: 'danger' }}
+      >
         <p>{t('settings.delete_preset_confirm', { defaultValue: 'Are you sure you want to delete this preset?' })}</p>
         <Typography.Text bold>{presetToDelete?.name}</Typography.Text>
       </Modal>

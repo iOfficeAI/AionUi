@@ -25,7 +25,10 @@ export interface FileOperation {
  * 提供统一的文件读写、权限管理和操作反馈
  */
 export class CodexFileOperationHandler {
-  private readonly pendingOperations = new Map<string, { resolve: (result: unknown) => void; reject: (error: unknown) => void }>();
+  private readonly pendingOperations = new Map<
+    string,
+    { resolve: (result: unknown) => void; reject: (error: unknown) => void }
+  >();
   private readonly workingDirectory: string;
 
   constructor(
@@ -201,7 +204,10 @@ export class CodexFileOperationHandler {
     actualFilenames.forEach((filename) => {
       const atFilename = `@${filename}`;
       if (processedContent.includes(atFilename)) {
-        processedContent = processedContent.replace(new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), filename);
+        processedContent = processedContent.replace(
+          new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          filename
+        );
       }
     });
 

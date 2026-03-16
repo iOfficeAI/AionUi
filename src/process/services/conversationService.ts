@@ -9,7 +9,13 @@ import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import path from 'path';
-import { createAcpAgent, createCodexAgent, createGeminiAgent, createNanobotAgent, createOpenClawAgent } from '../initAgent';
+import {
+  createAcpAgent,
+  createCodexAgent,
+  createGeminiAgent,
+  createNanobotAgent,
+  createOpenClawAgent,
+} from '../initAgent';
 import WorkerManage from '../WorkerManage';
 
 /**
@@ -79,7 +85,19 @@ export class ConversationService {
       }
 
       // Create conversation object
-      const conversation = await createGeminiAgent(params.model, params.workspace, params.defaultFiles, params.webSearchEngine, params.customWorkspace, contextFileName, params.presetRules, params.enabledSkills, params.presetAssistantId, undefined, params.isHealthCheck);
+      const conversation = await createGeminiAgent(
+        params.model,
+        params.workspace,
+        params.defaultFiles,
+        params.webSearchEngine,
+        params.customWorkspace,
+        contextFileName,
+        params.presetRules,
+        params.enabledSkills,
+        params.presetAssistantId,
+        undefined,
+        params.isHealthCheck
+      );
 
       // Apply custom ID and name if provided
       if (params.id) {
@@ -108,7 +126,9 @@ export class ConversationService {
       // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
       WorkerManage.buildConversation(conversation);
 
-      console.log(`[ConversationService] Created conversation ${conversation.id} with source=${params.source || 'aionui'}, chatId=${params.channelChatId || 'none'}`);
+      console.log(
+        `[ConversationService] Created conversation ${conversation.id} with source=${params.source || 'aionui'}, chatId=${params.channelChatId || 'none'}`
+      );
       return { success: true, conversation };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -143,7 +163,19 @@ export class ConversationService {
         const enabledSkills = extraWithPresets.enabledSkills;
         const presetAssistantId = extraWithPresets.presetAssistantId;
 
-        conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId, extra.sessionMode, extra.isHealthCheck);
+        conversation = await createGeminiAgent(
+          model,
+          extra.workspace,
+          extra.defaultFiles,
+          extra.webSearchEngine,
+          extra.customWorkspace,
+          contextFileName,
+          presetRules,
+          enabledSkills,
+          presetAssistantId,
+          extra.sessionMode,
+          extra.isHealthCheck
+        );
       } else if (type === 'acp') {
         conversation = await createAcpAgent(params);
       } else if (type === 'codex') {
@@ -182,7 +214,9 @@ export class ConversationService {
       // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called.
       WorkerManage.buildConversation(conversation);
 
-      console.log(`[ConversationService] Created ${type} conversation ${conversation.id} with source=${source || 'aionui'}`);
+      console.log(
+        `[ConversationService] Created ${type} conversation ${conversation.id} with source=${source || 'aionui'}`
+      );
       return { success: true, conversation };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -206,7 +240,9 @@ export class ConversationService {
    * 优先复用最后一个对应 source 的会话，没有则创建新会话
    * Prefers reusing the latest conversation with matching source, creates new if none exists
    */
-  static async getOrCreateChannelConversation(params: ICreateGeminiConversationParams & { source: ConversationSource }): Promise<ICreateConversationResult> {
+  static async getOrCreateChannelConversation(
+    params: ICreateGeminiConversationParams & { source: ConversationSource }
+  ): Promise<ICreateConversationResult> {
     const db = getDatabase();
     const source = params.source;
 
@@ -214,7 +250,9 @@ export class ConversationService {
     if (params.channelChatId) {
       const latestConv = db.findChannelConversation(source, params.channelChatId, 'gemini');
       if (latestConv.success && latestConv.data) {
-        console.log(`[ConversationService] Reusing existing ${source} conversation for chatId=${params.channelChatId}: ${latestConv.data.id}`);
+        console.log(
+          `[ConversationService] Reusing existing ${source} conversation for chatId=${params.channelChatId}: ${latestConv.data.id}`
+        );
         return { success: true, conversation: latestConv.data };
       }
     }
@@ -223,7 +261,11 @@ export class ConversationService {
     return this.createGeminiConversation({
       ...params,
       source,
-      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source, 'gemini', undefined, params.channelChatId) : `${source} Assistant`),
+      name:
+        params.name ||
+        (isChannelPlatform(source)
+          ? getChannelConversationName(source, 'gemini', undefined, params.channelChatId)
+          : `${source} Assistant`),
     });
   }
 }
@@ -231,4 +273,5 @@ export class ConversationService {
 // Export convenience functions
 export const createGeminiConversation = ConversationService.createGeminiConversation.bind(ConversationService);
 export const createConversation = ConversationService.createConversation.bind(ConversationService);
-export const getOrCreateChannelConversation = ConversationService.getOrCreateChannelConversation.bind(ConversationService);
+export const getOrCreateChannelConversation =
+  ConversationService.getOrCreateChannelConversation.bind(ConversationService);

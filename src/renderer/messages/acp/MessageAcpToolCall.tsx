@@ -32,16 +32,33 @@ const StatusTag: React.FC<{ status: string }> = ({ status }) => {
 // Diff content display as a separate component to ensure hooks are called unconditionally
 const DiffContentView: React.FC<{ oldText: string; newText: string; path: string }> = ({ oldText, newText, path }) => {
   const displayName = path.split(/[/\\]/).pop() || path || 'Unknown file';
-  const formattedDiff = useMemo(() => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }), [displayName, oldText, newText]);
+  const formattedDiff = useMemo(
+    () => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }),
+    [displayName, oldText, newText]
+  );
   const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
-  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: formattedDiff, displayName, filePath: path || displayName });
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({
+    diffText: formattedDiff,
+    displayName,
+    filePath: path || displayName,
+  });
 
-  return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
+  return (
+    <FileChangesPanel
+      title={displayName}
+      files={[fileInfo]}
+      onFileClick={handleFileClick}
+      onDiffClick={handleDiffClick}
+      defaultExpanded={true}
+    />
+  );
 };
 
 const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update']['content'][0] }> = ({ content }) => {
   if (content.type === 'diff') {
-    return <DiffContentView oldText={content.oldText || ''} newText={content.newText || ''} path={content.path || ''} />;
+    return (
+      <DiffContentView oldText={content.oldText || ''} newText={content.newText || ''} path={content.path || ''} />
+    );
   }
 
   // 处理 content 类型，包含 text 内容
@@ -89,7 +106,15 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
             <span className='font-medium text-t-primary'>{title || getKindDisplayName(kind)}</span>
             <StatusTag status={status} />
           </div>
-          {rawInput && <div className='text-sm'>{typeof rawInput === 'string' ? <MarkdownView>{`\`\`\`\n${rawInput}\n\`\`\``}</MarkdownView> : <pre className='bg-1 p-2 rounded text-xs overflow-x-auto'>{JSON.stringify(rawInput, null, 2)}</pre>}</div>}
+          {rawInput && (
+            <div className='text-sm'>
+              {typeof rawInput === 'string' ? (
+                <MarkdownView>{`\`\`\`\n${rawInput}\n\`\`\``}</MarkdownView>
+              ) : (
+                <pre className='bg-1 p-2 rounded text-xs overflow-x-auto'>{JSON.stringify(rawInput, null, 2)}</pre>
+              )}
+            </div>
+          )}
           {diffContent && diffContent.length > 0 && (
             <div>
               {diffContent.map((content, index) => (

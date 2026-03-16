@@ -33,7 +33,19 @@ export interface LarkCard {
       tag: 'plain_text';
       content: string;
     };
-    template?: 'blue' | 'wathet' | 'turquoise' | 'green' | 'yellow' | 'orange' | 'red' | 'carmine' | 'violet' | 'purple' | 'indigo' | 'grey';
+    template?:
+      | 'blue'
+      | 'wathet'
+      | 'turquoise'
+      | 'green'
+      | 'yellow'
+      | 'orange'
+      | 'red'
+      | 'carmine'
+      | 'violet'
+      | 'purple'
+      | 'indigo'
+      | 'grey';
   };
   elements: LarkCardElement[];
 }
@@ -154,7 +166,17 @@ export function createPairingCard(pairingCode: string): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['Please pair your account with AionUi:', '', `**Pairing Code:** \`${pairingCode}\``, '', '1. Open AionUi settings', '2. Go to Channels → Lark', '3. Enter this pairing code', '', 'Code expires in 10 minutes.'].join('\n'),
+        content: [
+          'Please pair your account with AionUi:',
+          '',
+          `**Pairing Code:** \`${pairingCode}\``,
+          '',
+          '1. Open AionUi settings',
+          '2. Go to Channels → Lark',
+          '3. Enter this pairing code',
+          '',
+          'Code expires in 10 minutes.',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -191,7 +213,16 @@ export function createPairingStatusCard(pairingCode: string): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['Your pairing request is pending approval.', '', `**Pairing Code:** \`${pairingCode}\``, '', 'Please approve in AionUi settings:', '1. Open AionUi app', '2. Go to WebUI → Channels', '3. Click "Approve" for this code'].join('\n'),
+        content: [
+          'Your pairing request is pending approval.',
+          '',
+          `**Pairing Code:** \`${pairingCode}\``,
+          '',
+          'Please approve in AionUi settings:',
+          '1. Open AionUi app',
+          '2. Go to WebUI → Channels',
+          '3. Click "Approve" for this code',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -228,7 +259,23 @@ export function createPairingHelpCard(): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['**What is pairing?**', 'Pairing links your Lark/Feishu account with the local AionUi application.', 'You need to pair before using the AI assistant.', '', '**How to pair:**', '1. Send any message to this bot', '2. You will receive a pairing code', '3. Open AionUi desktop app', '4. Go to WebUI → Channels → Lark', '5. Click "Approve" for your code', '', '**FAQ:**', '• Pairing code valid for 10 minutes', '• AionUi app must be running', '• One account can only pair once'].join('\n'),
+        content: [
+          '**What is pairing?**',
+          'Pairing links your Lark/Feishu account with the local AionUi application.',
+          'You need to pair before using the AI assistant.',
+          '',
+          '**How to pair:**',
+          '1. Send any message to this bot',
+          '2. You will receive a pairing code',
+          '3. Open AionUi desktop app',
+          '4. Go to WebUI → Channels → Lark',
+          '5. Click "Approve" for your code',
+          '',
+          '**FAQ:**',
+          '• Pairing code valid for 10 minutes',
+          '• AionUi app must be running',
+          '• One account can only pair once',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -249,7 +296,10 @@ export function createPairingHelpCard(): LarkCard {
  * Create agent selection card
  * Shows available agents with current selection marked
  */
-export function createAgentSelectionCard(availableAgents: AgentDisplayInfo[], currentAgent?: ChannelAgentType): LarkCard {
+export function createAgentSelectionCard(
+  availableAgents: AgentDisplayInfo[],
+  currentAgent?: ChannelAgentType
+): LarkCard {
   const agentButtons: LarkButtonElement[] = availableAgents.map((agent) => ({
     tag: 'button',
     text: {
@@ -291,7 +341,12 @@ export function createAgentSelectionCard(availableAgents: AgentDisplayInfo[], cu
 /**
  * Create session status card
  */
-export function createSessionStatusCard(session?: { id: string; agentType: ChannelAgentType; createdAt: number; lastActivity: number }): LarkCard {
+export function createSessionStatusCard(session?: {
+  id: string;
+  agentType: ChannelAgentType;
+  createdAt: number;
+  lastActivity: number;
+}): LarkCard {
   if (!session) {
     return {
       config: { wide_screen_mode: true },
@@ -331,7 +386,12 @@ export function createSessionStatusCard(session?: { id: string; agentType: Chann
     elements: [
       {
         tag: 'markdown',
-        content: [`🤖 **Agent:** ${session.agentType}`, `⏱ **Duration:** ${duration} min`, `📝 **Last activity:** ${lastActivity} sec ago`, `🔖 **Session ID:** \`${session.id.slice(-8)}\``].join('\n'),
+        content: [
+          `🤖 **Agent:** ${session.agentType}`,
+          `⏱ **Duration:** ${duration} min`,
+          `📝 **Last activity:** ${lastActivity} sec ago`,
+          `🔖 **Session ID:** \`${session.id.slice(-8)}\``,
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -367,7 +427,17 @@ export function createHelpCard(): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['A remote assistant to interact with AionUi via Lark.', '', '**Common Actions:**', '• 🆕 New Chat - Start a new session', '• 🔄 Agent - Switch AI agent', '• 📊 Status - View current session status', '• ❓ Help - Show this help message', '', 'Send a message to chat with the AI assistant.'].join('\n'),
+        content: [
+          'A remote assistant to interact with AionUi via Lark.',
+          '',
+          '**Common Actions:**',
+          '• 🆕 New Chat - Start a new session',
+          '• 🔄 Agent - Switch AI agent',
+          '• 📊 Status - View current session status',
+          '• ❓ Help - Show this help message',
+          '',
+          'Send a message to chat with the AI assistant.',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -414,7 +484,22 @@ export function createFeaturesCard(): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['**AI Chat**', '• Natural language conversation', '• Streaming output, real-time display', '• Context memory support', '', '**Session Management**', '• Single session mode', '• Clear context anytime', '• View session status', '', '**Message Actions**', '• Copy reply content', '• Regenerate reply', '• Continue conversation'].join('\n'),
+        content: [
+          '**AI Chat**',
+          '• Natural language conversation',
+          '• Streaming output, real-time display',
+          '• Context memory support',
+          '',
+          '**Session Management**',
+          '• Single session mode',
+          '• Clear context anytime',
+          '• View session status',
+          '',
+          '**Message Actions**',
+          '• Copy reply content',
+          '• Regenerate reply',
+          '• Continue conversation',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -444,7 +529,18 @@ export function createPairingGuideCard(): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['**First-time Setup:**', '1. Send any message to the bot', '2. Bot displays pairing code', '3. Approve pairing in AionUi settings', '4. Ready to use after pairing', '', '**Notes:**', '• Pairing code valid for 10 minutes', '• AionUi app must be running', '• One Lark account can only pair once'].join('\n'),
+        content: [
+          '**First-time Setup:**',
+          '1. Send any message to the bot',
+          '2. Bot displays pairing code',
+          '3. Approve pairing in AionUi settings',
+          '4. Ready to use after pairing',
+          '',
+          '**Notes:**',
+          '• Pairing code valid for 10 minutes',
+          '• AionUi app must be running',
+          '• One Lark account can only pair once',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -474,7 +570,17 @@ export function createTipsCard(): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['**Effective Conversations:**', '• Be clear and specific', '• Feel free to ask follow-ups', '• Regenerate if not satisfied', '', '**Quick Actions:**', '• Use card buttons for quick access', '• Tap message buttons for actions', '• New chat clears history context'].join('\n'),
+        content: [
+          '**Effective Conversations:**',
+          '• Be clear and specific',
+          '• Feel free to ask follow-ups',
+          '• Regenerate if not satisfied',
+          '',
+          '**Quick Actions:**',
+          '• Use card buttons for quick access',
+          '• Tap message buttons for actions',
+          '• New chat clears history context',
+        ].join('\n'),
       },
       {
         tag: 'action',
@@ -574,7 +680,12 @@ export function createErrorRecoveryCard(errorMessage?: string): LarkCard {
  * @param callId - The tool call ID for tracking
  * @param options - Array of { label, value } options
  */
-export function createToolConfirmationCard(callId: string, title: string, description: string, options: Array<{ label: string; value: string }>): LarkCard {
+export function createToolConfirmationCard(
+  callId: string,
+  title: string,
+  description: string,
+  options: Array<{ label: string; value: string }>
+): LarkCard {
   const buttons: LarkButtonElement[] = options.map((opt) => ({
     tag: 'button',
     text: { tag: 'plain_text', content: opt.label },
@@ -652,7 +763,11 @@ export function createSettingsCard(): LarkCard {
     elements: [
       {
         tag: 'markdown',
-        content: ['Channel settings need to be configured in the AionUi app.', '', 'Open AionUi → WebUI → Channels'].join('\n'),
+        content: [
+          'Channel settings need to be configured in the AionUi app.',
+          '',
+          'Open AionUi → WebUI → Channels',
+        ].join('\n'),
       },
       {
         tag: 'action',

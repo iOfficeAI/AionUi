@@ -5,7 +5,10 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { loadPresetAssistantResources, type PresetAssistantResourceDeps } from '../../src/renderer/shared/agents/presetAssistantResources';
+import {
+  loadPresetAssistantResources,
+  type PresetAssistantResourceDeps,
+} from '../../src/renderer/shared/agents/presetAssistantResources';
 
 function createDeps(overrides: Partial<PresetAssistantResourceDeps> = {}): PresetAssistantResourceDeps {
   return {

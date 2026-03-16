@@ -26,19 +26,14 @@ export function initCronBridge(): void {
 
   // CRUD handlers
   ipcBridge.cron.addJob.provider(async (params) => {
-    const job = await cronService.addJob(params);
-    ipcBridge.cron.onJobCreated.emit(job);
-    return job;
+    return cronService.addJob(params);
   });
 
   ipcBridge.cron.updateJob.provider(async ({ jobId, updates }) => {
-    const job = await cronService.updateJob(jobId, updates);
-    ipcBridge.cron.onJobUpdated.emit(job);
-    return job;
+    return cronService.updateJob(jobId, updates);
   });
 
   ipcBridge.cron.removeJob.provider(async ({ jobId }) => {
     await cronService.removeJob(jobId);
-    ipcBridge.cron.onJobRemoved.emit({ jobId });
   });
 }
