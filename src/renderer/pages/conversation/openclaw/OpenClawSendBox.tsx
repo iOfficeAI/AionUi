@@ -116,9 +116,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Track whether the current turn was triggered by a Star Office install request
   const starOfficeInstallInFlightRef = useRef(false);
 
-  // Delayed finish timeout to detect true end of task
-  const finishTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -192,12 +189,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    // Clear pending finish timeout when conversation changes
-    if (finishTimeoutRef.current) {
-      clearTimeout(finishTimeoutRef.current);
-      finishTimeoutRef.current = null;
-    }
-
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
@@ -254,12 +245,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         return;
       }
 
-      // Cancel pending finish timeout if new message arrives
-      if (finishTimeoutRef.current && message.type !== 'finish') {
-        clearTimeout(finishTimeoutRef.current);
-        finishTimeoutRef.current = null;
-      }
-
       switch (message.type) {
         case 'thought':
           // Auto-recover aiProcessing state if thought arrives after finish
@@ -272,19 +257,16 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         case 'finish':
           {
-            // Use delayed reset to detect true end of task
-            // 使用延迟重置来检测任务的真正结束
-            finishTimeoutRef.current = setTimeout(() => {
-              setAiProcessing(false);
-              aiProcessingRef.current = false;
-              setThought({ subject: '', description: '' });
-              finishTimeoutRef.current = null;
-              // Notify StarOfficeMonitorCard to re-detect and auto-open panel
-              if (starOfficeInstallInFlightRef.current) {
-                starOfficeInstallInFlightRef.current = false;
-                emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
-              }
-            }, 1000);
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
+            // Notify StarOfficeMonitorCard to re-detect and auto-open panel
+            if (starOfficeInstallInFlightRef.current) {
+              starOfficeInstallInFlightRef.current = false;
+              emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
+            }
             hasContentInTurnRef.current = false;
           }
           break;
@@ -492,6 +474,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
+        // Reset AI reply for new turn
+        // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
         await ipcBridge.openclawConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
@@ -521,12 +505,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
-      // Clear pending finish timeout
-      if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
-        finishTimeoutRef.current = null;
-      }
-
       setAiProcessing(false);
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });

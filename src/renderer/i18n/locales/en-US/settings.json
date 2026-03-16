@@ -106,6 +106,8 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "Language",
   "closeToTray": "Close to Tray",
+  "notification": "Notifications",
+  "cronNotificationEnabled": "Scheduled Task Completion",
   "gemini": "Gemini",
   "model": "Model",
   "system": "System",

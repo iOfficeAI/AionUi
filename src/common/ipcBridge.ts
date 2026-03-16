@@ -386,9 +386,26 @@ export const windowControls = {
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
+  getNotificationEnabled: bridge.buildProvider<boolean, void>('system-settings:get-notification-enabled'),
+  setNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-notification-enabled'),
+  getCronNotificationEnabled: bridge.buildProvider<boolean, void>('system-settings:get-cron-notification-enabled'),
+  setCronNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-cron-notification-enabled'),
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
   // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
+};
+
+// 系统通知接口 / System notification API
+export type INotificationOptions = {
+  title: string;
+  body: string;
+  icon?: string;
+  conversationId?: string;
+};
+
+export const notification = {
+  show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
+  clicked: bridge.buildEmitter<{ conversationId?: string }>('notification.clicked'),
 };
 
 // 任务管理接口 / Task management API

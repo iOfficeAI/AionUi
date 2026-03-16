@@ -5,7 +5,7 @@
  */
 
 import i18n from 'i18next';
-import { ConfigStorage } from '@/common/storage';
+import { ProcessConfig } from '@process/initStorage';
 import { DEFAULT_LANGUAGE, normalizeLanguageCode, mergeWithFallback, ensureAndSwitch, type LocaleData } from '@/common/i18n';
 
 // Static imports – Vite bundles these into the main-process output so they
@@ -39,7 +39,8 @@ function getLocaleModules(locale: string): Record<string, unknown> {
   return mergeWithFallback(fallbackData, data);
 }
 
-const initPromise = (async (): Promise<void> => {
+/** Resolves when i18n is fully initialized with the user's language */
+export const i18nReady = (async (): Promise<void> => {
   await i18n.init({
     resources: {
       [DEFAULT_LANGUAGE]: { translation: getLocaleModules(DEFAULT_LANGUAGE) },
@@ -48,29 +49,30 @@ const initPromise = (async (): Promise<void> => {
     debug: false,
     interpolation: { escapeValue: false },
   });
+
+  const language = await ProcessConfig.get('language');
+  if (language) {
+    await ensureAndSwitch(i18n, language, getLocaleModules);
+  }
 })().catch((error) => {
   console.error('[Main Process] Failed to initialize i18n:', error);
 });
 
 /**
- * 设置初始语言（在存储准备好后调用）/ Set initial language (called after storage is ready)
- * 由 index.ts 在存储准备好后调用 / Called by index.ts after storage is ready
+ * Set initial language (called after storage is ready)
  */
 export async function setInitialLanguage(language: string | undefined): Promise<void> {
-  await initPromise;
+  await i18nReady;
   if (language) {
     await ensureAndSwitch(i18n, language, getLocaleModules);
   }
 }
 
 /**
- * 切换语言 / Change language
- *
- * 可以在其他地方调用此函数来切换主进程的语言
- * Can be called from elsewhere to change the main process language
+ * Change language
  */
 export async function changeLanguage(language: string): Promise<void> {
-  await initPromise;
+  await i18nReady;
   await ensureAndSwitch(i18n, language, getLocaleModules);
 }
 

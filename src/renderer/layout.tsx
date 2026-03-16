@@ -15,6 +15,7 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDeepLink } from './hooks/useDeepLink';
+import { useNotificationClick } from './hooks/useNotificationClick';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
@@ -87,6 +88,7 @@ const Layout: React.FC<{
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
+  useNotificationClick();
   const navigate = useNavigate();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');

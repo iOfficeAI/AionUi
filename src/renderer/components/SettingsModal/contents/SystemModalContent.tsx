@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import { Alert, Button, Collapse, Form, Modal, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderOpen, FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -107,11 +107,33 @@ const SystemModalContent: React.FC = () => {
   // 关闭到托盘状态 / Close to tray state
   const [closeToTray, setCloseToTray] = useState(false);
 
+  // 全局通知总开关 / Global notification master switch
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+
+  // 任务完成通知子开关 / Task completion notification sub-switch
+  const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+
   // 获取关闭到托盘设置 / Fetch close-to-tray setting
   useEffect(() => {
     ipcBridge.systemSettings.getCloseToTray
       .invoke()
       .then((enabled) => setCloseToTray(enabled))
+      .catch(() => {});
+  }, []);
+
+  // 获取通知开关设置 / Fetch notification enabled setting
+  useEffect(() => {
+    ipcBridge.systemSettings.getNotificationEnabled
+      .invoke()
+      .then((enabled) => setNotificationEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  // 获取定时任务通知开关设置 / Fetch cron notification enabled setting
+  useEffect(() => {
+    ipcBridge.systemSettings.getCronNotificationEnabled
+      .invoke()
+      .then((enabled) => setCronNotificationEnabled(enabled))
       .catch(() => {});
   }, []);
 
@@ -122,6 +144,22 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
       // 失败时回滚 UI 状态
       setCloseToTray(!checked);
+    });
+  }, []);
+
+  // 切换全局通知总开关 / Toggle global notification master switch
+  const handleNotificationEnabledChange = useCallback((checked: boolean) => {
+    setNotificationEnabled(checked);
+    ipcBridge.systemSettings.setNotificationEnabled.invoke({ enabled: checked }).catch(() => {
+      setNotificationEnabled(!checked);
+    });
+  }, []);
+
+  // 切换定时任务通知开关 / Toggle cron notification enabled
+  const handleCronNotificationEnabledChange = useCallback((checked: boolean) => {
+    setCronNotificationEnabled(checked);
+    ipcBridge.systemSettings.setCronNotificationEnabled.invoke({ enabled: checked }).catch(() => {
+      setCronNotificationEnabled(!checked);
     });
   }, []);
 
@@ -215,6 +253,37 @@ const SystemModalContent: React.FC = () => {
                 </PreferenceRow>
               ))}
             </div>
+            {/* Notification settings with collapsible sub-options */}
+            <Collapse
+              bordered={false}
+              activeKey={notificationEnabled ? ['notification'] : []}
+              onChange={(_, keys) => {
+                const shouldExpand = (keys as string[]).includes('notification');
+                if (shouldExpand && !notificationEnabled) {
+                  handleNotificationEnabledChange(true);
+                } else if (!shouldExpand && notificationEnabled) {
+                  handleNotificationEnabledChange(false);
+                }
+              }}
+              className='[&_.arco-collapse-item]:!border-none [&_.arco-collapse-item-header]:!px-0 [&_.arco-collapse-item-header-title]:!flex-1 [&_.arco-collapse-item-content-box]:!px-0 [&_.arco-collapse-item-content-box]:!pb-0'
+            >
+              <Collapse.Item
+                name='notification'
+                showExpandIcon={false}
+                header={
+                  <div className='flex flex-1 items-center justify-between w-full'>
+                    <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
+                    <Switch checked={notificationEnabled} onClick={(e) => e.stopPropagation()} onChange={handleNotificationEnabledChange} />
+                  </div>
+                }
+              >
+                <div className='pl-12px'>
+                  <PreferenceRow label={t('settings.cronNotificationEnabled')}>
+                    <Switch checked={cronNotificationEnabled} disabled={!notificationEnabled} onChange={handleCronNotificationEnabledChange} />
+                  </PreferenceRow>
+                </div>
+              </Collapse.Item>
+            </Collapse>
             <Form form={form} layout='vertical' className='space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
               <DirInputItem label={t('settings.workDir')} field='workDir' />

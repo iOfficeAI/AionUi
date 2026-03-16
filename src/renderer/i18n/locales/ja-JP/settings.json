@@ -106,6 +106,8 @@
   "cacheClearFailed": "Failed to clear cache",
   "language": "言語",
   "closeToTray": "トレイに最小化",
+  "notification": "通知",
+  "cronNotificationEnabled": "定期タスク完了通知",
   "gemini": "Gemini",
   "model": "モデル",
   "system": "システム",
