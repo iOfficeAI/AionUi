@@ -120,7 +120,10 @@ async function launchApp(): Promise<ElectronApplication> {
   if (usePackaged) {
     const packaged = resolvePackagedApp();
     if (!packaged) {
-      throw new Error('E2E packaged mode: could not find packaged app under out/. ' + 'Run `node scripts/build-with-builder.js auto --<platform> --pack-only` first.');
+      throw new Error(
+        'E2E packaged mode: could not find packaged app under out/. ' +
+          'Run `node scripts/build-with-builder.js auto --<platform> --pack-only` first.'
+      );
     }
 
     console.log(`[E2E] Launching PACKAGED app: ${packaged.executablePath}`);

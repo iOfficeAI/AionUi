@@ -23,7 +23,9 @@ function permissionsByName(items: PermissionSummary[]): Map<string, PermissionSu
 
 test.describe('Extension: Permissions Query', () => {
   test('hello-world exposes its declared permission summary', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'hello-world' })) as PermissionSummary[];
+    const result = (await invokeBridge(page, 'extensions.get-permissions', {
+      name: 'hello-world',
+    })) as PermissionSummary[];
 
     expect(Array.isArray(result)).toBeTruthy();
     expect(result.length).toBeGreaterThan(0);
@@ -37,7 +39,9 @@ test.describe('Extension: Permissions Query', () => {
   });
 
   test('e2e-full-extension falls back to default safe permission summary', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'e2e-full-extension' })) as PermissionSummary[];
+    const result = (await invokeBridge(page, 'extensions.get-permissions', {
+      name: 'e2e-full-extension',
+    })) as PermissionSummary[];
 
     expect(Array.isArray(result)).toBeTruthy();
     expect(result).toHaveLength(1);
@@ -49,7 +53,9 @@ test.describe('Extension: Permissions Query', () => {
   });
 
   test('permissions query for nonexistent extension returns gracefully', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-permissions', { name: 'nonexistent-extension-xyz' })) as PermissionSummary[];
+    const result = (await invokeBridge(page, 'extensions.get-permissions', {
+      name: 'nonexistent-extension-xyz',
+    })) as PermissionSummary[];
 
     expect(Array.isArray(result)).toBeTruthy();
     expect(result).toHaveLength(0);
@@ -70,7 +76,9 @@ test.describe('Extension: Risk Level Assessment', () => {
   });
 
   test('risk level query for nonexistent extension returns safe fallback', async ({ page }) => {
-    const result = (await invokeBridge(page, 'extensions.get-risk-level', { name: 'nonexistent-extension-xyz' })) as RiskLevel;
+    const result = (await invokeBridge(page, 'extensions.get-risk-level', {
+      name: 'nonexistent-extension-xyz',
+    })) as RiskLevel;
 
     expect(['safe', 'moderate', 'dangerous']).toContain(result);
     expect(result).toBe('safe');

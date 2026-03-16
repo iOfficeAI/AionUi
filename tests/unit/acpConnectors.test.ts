@@ -10,9 +10,16 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
-  execFile: vi.fn((_cmd: string, _args: string[], _opts: unknown, cb: (err: null, result: { stdout: string; stderr: string }) => void) => {
-    cb(null, { stdout: '', stderr: '' });
-  }),
+  execFile: vi.fn(
+    (
+      _cmd: string,
+      _args: string[],
+      _opts: unknown,
+      cb: (err: null, result: { stdout: string; stderr: string }) => void
+    ) => {
+      cb(null, { stdout: '', stderr: '' });
+    }
+  ),
   execFileSync: vi.fn(() => 'v20.0.0\n'),
 }));
 
@@ -46,7 +53,11 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
   it('uses npxCommand directly on non-Windows (no chcp prefix)', () => {
     spawnNpxBackend('claude', '@pkg/cli@1.0.0', '/usr/local/bin/npx', {}, '/cwd', false, false);
 
-    expect(mockSpawn).toHaveBeenCalledWith('/usr/local/bin/npx', expect.any(Array), expect.objectContaining({ shell: false }));
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/usr/local/bin/npx',
+      expect.any(Array),
+      expect.objectContaining({ shell: false })
+    );
   });
 
   it('prefixes command with chcp 65001 on Windows to enable UTF-8', () => {

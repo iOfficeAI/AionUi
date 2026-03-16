@@ -45,7 +45,27 @@ export async function getExtensionSnapshot(page: Page): Promise<ExtensionSnapsho
     return [];
   };
 
-  const [loadedExtensions, acpAdapters, mcpServers, assistants, agents, skills, themes, settingsTabs, webuiContributions] = await Promise.all([invokeBridge(page, 'extensions.get-loaded-extensions'), invokeBridge(page, 'extensions.get-acp-adapters'), invokeBridge(page, 'extensions.get-mcp-servers'), invokeBridge(page, 'extensions.get-assistants'), invokeBridge(page, 'extensions.get-agents'), invokeBridge(page, 'extensions.get-skills'), invokeBridge(page, 'extensions.get-themes'), invokeBridge(page, 'extensions.get-settings-tabs'), invokeBridge(page, 'extensions.get-webui-contributions')]);
+  const [
+    loadedExtensions,
+    acpAdapters,
+    mcpServers,
+    assistants,
+    agents,
+    skills,
+    themes,
+    settingsTabs,
+    webuiContributions,
+  ] = await Promise.all([
+    invokeBridge(page, 'extensions.get-loaded-extensions'),
+    invokeBridge(page, 'extensions.get-acp-adapters'),
+    invokeBridge(page, 'extensions.get-mcp-servers'),
+    invokeBridge(page, 'extensions.get-assistants'),
+    invokeBridge(page, 'extensions.get-agents'),
+    invokeBridge(page, 'extensions.get-skills'),
+    invokeBridge(page, 'extensions.get-themes'),
+    invokeBridge(page, 'extensions.get-settings-tabs'),
+    invokeBridge(page, 'extensions.get-webui-contributions'),
+  ]);
 
   return {
     loadedExtensions: unwrapArray(loadedExtensions),

@@ -217,7 +217,12 @@ function ConversationPage() {
   return (
     <>
       {messageContext}
-      <ChatWorkspace conversation_id={conversationId} workspace={workspacePath} eventPrefix='gemini' messageApi={messageApi} />
+      <ChatWorkspace
+        conversation_id={conversationId}
+        workspace={workspacePath}
+        eventPrefix='gemini'
+        messageApi={messageApi}
+      />
     </>
   );
 }

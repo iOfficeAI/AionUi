@@ -226,9 +226,20 @@ describe('i18n Build Safety Tests', () => {
 
   it('hardcoded English strings should not exist in TSX component files', () => {
     // Check known files that previously had hardcoded strings
-    const filesToCheck = [path.resolve(__dirname, '../../src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'), path.resolve(__dirname, '../../src/renderer/pages/conversation/preview/components/viewers/URLViewer.tsx'), path.resolve(__dirname, '../../src/renderer/pages/conversation/workspace/index.tsx')];
+    const filesToCheck = [
+      path.resolve(__dirname, '../../src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/preview/components/viewers/URLViewer.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/workspace/index.tsx'),
+    ];
 
-    const hardcodedPatterns = [/\{'Health status cleared'\}/, /\{'Clear status'\}/, /\{'Latency'\}/, /\{'Health Check'\}/, /title=\{'Forward'\}/, /aria-label=\{'More'\}/];
+    const hardcodedPatterns = [
+      /\{'Health status cleared'\}/,
+      /\{'Clear status'\}/,
+      /\{'Latency'\}/,
+      /\{'Health Check'\}/,
+      /title=\{'Forward'\}/,
+      /aria-label=\{'More'\}/,
+    ];
 
     for (const file of filesToCheck) {
       if (!fs.existsSync(file)) continue;

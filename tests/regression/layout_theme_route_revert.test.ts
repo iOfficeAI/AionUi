@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { BACKGROUND_BLOCK_START } from '@/renderer/components/CssThemeSettings/backgroundUtils';
-import { CSS_SYNC_RECENT_UPDATE_WINDOW_MS, computeCssSyncDecision, resolveCssByActiveTheme } from '@/renderer/utils/themeCssSync';
+import {
+  CSS_SYNC_RECENT_UPDATE_WINDOW_MS,
+  computeCssSyncDecision,
+  resolveCssByActiveTheme,
+} from '@/renderer/utils/themeCssSync';
 
 const NEW_CSS = '.new-theme-flag { color: rgb(1, 2, 3); }';
 const OLD_CSS = '.old-theme-flag { color: rgb(3, 2, 1); }';

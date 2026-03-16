@@ -372,7 +372,12 @@ describe('getEnhancedEnv Windows extra paths (cross-platform mock)', () => {
 
     vi.doMock('fs', async () => {
       const actual = await vi.importActual<typeof import('fs')>('fs');
-      return { ...actual, existsSync: vi.fn(() => false), readdirSync: actual.readdirSync, accessSync: actual.accessSync };
+      return {
+        ...actual,
+        existsSync: vi.fn(() => false),
+        readdirSync: actual.readdirSync,
+        accessSync: actual.accessSync,
+      };
     });
 
     vi.doMock('child_process', () => ({

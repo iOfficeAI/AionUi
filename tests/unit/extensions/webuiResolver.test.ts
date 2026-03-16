@@ -13,7 +13,10 @@ import { resolveWebuiContributions } from '../../../src/extensions/resolvers/Web
 
 const tempRoots: string[] = [];
 
-function createTempExtension(name: string, webui: NonNullable<LoadedExtension['manifest']['contributes']['webui']>): LoadedExtension {
+function createTempExtension(
+  name: string,
+  webui: NonNullable<LoadedExtension['manifest']['contributes']['webui']>
+): LoadedExtension {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), `aionui-ext-${name}-`));
   tempRoots.push(root);
 
