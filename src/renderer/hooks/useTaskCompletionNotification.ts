@@ -34,7 +34,7 @@ const formatNotificationBody = (userMessage: string, aiReply: string): string =>
 const TASK_ACTIVE_TYPES = new Set(['start', 'thought', 'content', 'tool_group', 'acp_permission', 'codex_permission']);
 
 export const useTaskCompletionNotification = () => {
-  const { t } = useTranslation('cron');
+  const { t } = useTranslation();
   // Per-conversation notification timers
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Per-conversation accumulated AI replies
@@ -118,11 +118,11 @@ export const useTaskCompletionNotification = () => {
           if (isUserTask) {
             // User-initiated task
             body = formatNotificationBody(userMessage, aiReply);
-            title = t('notification.taskComplete');
+            title = t('cron.notification.taskComplete');
             clearPendingUserMessage(conversationId);
           } else {
             // Cron task - get conversation title for better notification
-            let conversationTitle = t('notification.scheduledTask');
+            let conversationTitle = t('cron.notification.scheduledTask');
             try {
               const conv = await ipcBridge.conversation.get.invoke({ id: conversationId });
               if (conv?.name) {
@@ -132,8 +132,8 @@ export const useTaskCompletionNotification = () => {
               // Failed to get conversation title, use default
             }
 
-            title = t('notification.scheduledTaskComplete', { title: conversationTitle });
-            body = aiReply ? truncateText(aiReply, 20) : t('notification.taskDone');
+            title = t('cron.notification.scheduledTaskComplete', { title: conversationTitle });
+            body = aiReply ? truncateText(aiReply, 20) : t('cron.notification.taskDone');
           }
 
           aiRepliesRef.current.delete(conversationId);

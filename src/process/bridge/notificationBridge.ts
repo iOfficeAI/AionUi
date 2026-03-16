@@ -20,6 +20,8 @@ import path from 'path';
 import fs from 'fs';
 
 let mainWindow: BrowserWindow | null = null;
+// Keep a strong reference to active notifications to prevent GC before macOS renders them
+const activeNotifications = new Set<Notification>();
 
 /**
  * 获取应用图标路径 / Get app icon path for notifications
@@ -77,8 +79,13 @@ export function initNotificationBridge(): void {
         silent: false, // 播放声音 / Play sound
       });
 
+      // Prevent GC from collecting the notification before macOS renders it
+      activeNotifications.add(notification);
+      const release = () => activeNotifications.delete(notification);
+
       // 点击通知时聚焦到主窗口并发送导航事件 / Focus main window and send navigation event when notification is clicked
       notification.on('click', () => {
+        release();
         if (mainWindow && !mainWindow.isDestroyed()) {
           if (mainWindow.isMinimized()) {
             mainWindow.restore();
@@ -97,10 +104,12 @@ export function initNotificationBridge(): void {
 
       // 处理通知错误 / Handle notification errors
       notification.on('failed', (error) => {
+        release();
         console.error('[Notification] Failed to show:', error);
       });
 
       notification.on('close', () => {
+        release();
         console.log('[Notification] Closed');
       });
 

@@ -106,6 +106,8 @@
   "cacheClearFailed": "Önbellek temizlenemedi",
   "language": "Dil",
   "closeToTray": "Tepsiye Kapat",
+  "notification": "Bildirimler",
+  "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
   "gemini": "Gemini",
   "model": "Model",
   "system": "Sistem",

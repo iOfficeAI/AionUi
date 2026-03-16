@@ -14,7 +14,7 @@
  * are skipped (e.g. disabled by user, conversation deleted).
  */
 
-const TTL_MS = 5 * 60 * 1000; // 5 minutes
+const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours — agent tasks can run for a long time
 
 type PendingEntry = { message: string; timestamp: number };
 
