@@ -447,6 +447,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   };
 
   const hasExistingUsers = Boolean(pluginStatus?.enabled) && authorizedUsers.length > 0;
+  const isTransportConnected = pluginStatus?.transportConnected ?? pluginStatus?.connected ?? false;
+  const isRoutingHealthy = pluginStatus?.routingHealthy;
+  const isConnectedHealthy = isTransportConnected && isRoutingHealthy !== false;
+  const statusToneClass = pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : isConnectedHealthy ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
+  const statusBadgeClass = pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : isConnectedHealthy ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300';
+  const statusLabel = pluginStatus?.error ? t('settings.lark.statusError', 'Error') : !isTransportConnected ? t('settings.lark.statusConnecting', 'Connecting...') : isRoutingHealthy === false ? t('settings.channels.routingDegraded', 'Routing Degraded') : t('settings.lark.statusConnected', 'Connected');
   const isGeminiAgent = selectedAgent.backend === 'gemini';
   const agentOptions: ChannelAssistantOption[] = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
   const selectedAgentOption = agentOptions.find((option) => getChannelAssistantKey(option) === getChannelAssistantKey(selectedAgent)) ?? {

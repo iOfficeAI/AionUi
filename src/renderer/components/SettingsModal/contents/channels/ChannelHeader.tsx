@@ -55,8 +55,8 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel }) => {
               </Tag>
             ) : null}
             {channel.status === 'active' && channel.enabled ? (
-              <Tag size='small' color={channel.isConnected ? 'green' : 'orange'}>
-                {channel.isConnected ? t('settings.channels.connected', 'Connected') : t('settings.channels.connecting', 'Connecting')}
+              <Tag size='small' color={channel.routingHealthy === false ? 'orange' : (channel.transportConnected ?? channel.isConnected) ? 'green' : 'orange'}>
+                {channel.routingHealthy === false ? t('settings.channels.routingDegraded', 'Routing Degraded') : (channel.transportConnected ?? channel.isConnected) ? t('settings.channels.connected', 'Connected') : t('settings.channels.connecting', 'Connecting')}
               </Tag>
             ) : null}
           </div>

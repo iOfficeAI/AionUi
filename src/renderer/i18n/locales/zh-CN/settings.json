@@ -315,6 +315,8 @@
   "channels.guide": "连接 Telegram、飞书、钉钉等消息应用，让你的 AI Agent 随时在线可控。",
   "channels.selectFirst": "选择一个渠道并完成凭据配置。",
   "channels.enableAfterConfig": "启用该渠道后，即可开始与 AI Agent 对话。",
+  "channels.routingDegraded": "路由异常",
+  "channels.routingDegradedHint": "传输连接已建立，但最近未检测到入站路由事件。请确认仅有一个机器人接收实例处于激活状态。",
   "display": "显示",
   "imageGeneration": "图像生成",
   "imageGenerationToggle": "启用图像生成工具",
