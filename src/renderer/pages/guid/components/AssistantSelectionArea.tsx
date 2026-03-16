@@ -154,7 +154,10 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
               <div
                 key={assistant.id}
                 className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid bg-fill-0 hover:bg-fill-1 select-none'
-                style={{ borderWidth: '1px', borderColor: 'var(--bg-3)' }}
+                style={{
+                  borderWidth: '1px',
+                  borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)',
+                }}
                 onClick={() => onSelectAssistant(`custom:${assistant.id}`)}
               >
                 {isImageAvatar ? (
@@ -172,7 +175,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           })}
         <div
           className='group flex items-center justify-center h-28px w-max min-w-28px max-w-28px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap b-1 b-dashed select-none transition-all duration-500 ease-out hover:min-w-0 hover:max-w-320px hover:rd-100px hover:px-16px hover:justify-start hover:gap-8px hover:bg-fill-2'
-          style={{ borderWidth: '1px', borderColor: 'var(--bg-3)' }}
+          style={{ borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
           onClick={() => navigate('/settings/agent')}
         >
           <Plus

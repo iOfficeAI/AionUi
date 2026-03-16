@@ -33,6 +33,7 @@ import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
+import './workspace.css';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
 import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';
@@ -244,6 +245,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const handleOpenMigrationModal = useCallback(() => {
     setShowMigrationModal(true);
   }, []);
+
+  const handleOpenWorkspaceRoot = useCallback(async () => {
+    try {
+      await ipcBridge.shell.showItemInFolder.invoke(workspace);
+    } catch (error) {
+      messageApi.error(t('conversation.workspace.contextMenu.revealFailed'));
+    }
+  }, [messageApi, t, workspace]);
 
   // Handle directory selection from DirectorySelectionModal (webui)
   const handleSelectDirectoryFromModal = useCallback((paths: string[] | undefined) => {
@@ -912,9 +921,32 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 fill={iconColors.primary}
                 className={`line-height-0 transition-transform duration-200 flex-shrink-0 ${isWorkspaceCollapsed ? '-rotate-90' : 'rotate-0'}`}
               />
-              <span className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap'>
-                {workspaceDisplayName}
-              </span>
+              {isTemporaryWorkspace ? (
+                <Tooltip content={t('conversation.workspace.contextMenu.openLocation')}>
+                  <span
+                    role='button'
+                    tabIndex={0}
+                    className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap transition-colors hover:text-[rgb(var(--primary-6))] hover:underline underline-offset-3'
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleOpenWorkspaceRoot();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void handleOpenWorkspaceRoot();
+                      }
+                    }}
+                  >
+                    {workspaceDisplayName}
+                  </span>
+                </Tooltip>
+              ) : (
+                <span className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap'>
+                  {workspaceDisplayName}
+                </span>
+              )}
             </div>
             <div className='workspace-toolbar-actions flex items-center gap-8px flex-shrink-0'>
               {isTemporaryWorkspace && (
