@@ -52,6 +52,10 @@ export default defineConfig({
       include: [
         // Process / bridge
         'src/process/services/autoUpdaterService.ts',
+        'src/process/services/cron/CronService.ts',
+        'src/process/services/cron/CronStore.ts',
+        'src/process/bridge/cronBridge.ts',
+        'src/process/bridge/conversationBridge.ts',
         'src/process/bridge/updateBridge.ts',
         'src/process/bridge/applicationBridge.ts',
         'src/utils/configureChromium.ts',
