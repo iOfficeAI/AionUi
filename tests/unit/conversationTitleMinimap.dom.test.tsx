@@ -123,4 +123,21 @@ describe('ConversationTitleMinimap', () => {
       expect(screen.getByRole('textbox', { name: 'Search conversation' })).not.toHaveAttribute('readonly');
     });
   });
+
+  it('closes the minimap after an outside click finishes IME composition', async () => {
+    const input = await openSearchInput();
+
+    fireEvent.compositionStart(input);
+    fireEvent.mouseDown(document.body);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: 'Search conversation' })).not.toHaveAttribute('readonly');
+    });
+
+    fireEvent.compositionEnd(input);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('textbox', { name: 'Search conversation' })).not.toBeInTheDocument();
+    });
+  });
 });

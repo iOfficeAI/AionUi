@@ -256,6 +256,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ tit
   const searchInputRef = useRef<RefInputType | null>(null);
   const hideTimerRef = useRef<number | null>(null);
   const isSearchInputComposingRef = useRef(false);
+  const pendingCloseAfterCompositionRef = useRef(false);
   const searchKeywordRef = useRef('');
 
   const clearHideTimer = useCallback(() => {
@@ -274,6 +275,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ tit
     setIsSearchMode(false);
     setActiveResultIndex(-1);
     isSearchInputComposingRef.current = false;
+    pendingCloseAfterCompositionRef.current = false;
   }, [conversationId]);
 
   useEffect(() => {
@@ -386,10 +388,16 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ tit
 
   const handleSearchInputCompositionStart = useCallback(() => {
     isSearchInputComposingRef.current = true;
+    pendingCloseAfterCompositionRef.current = false;
   }, []);
 
   const handleSearchInputCompositionEnd = useCallback(() => {
     isSearchInputComposingRef.current = false;
+    if (pendingCloseAfterCompositionRef.current) {
+      pendingCloseAfterCompositionRef.current = false;
+      setVisible(false);
+      return;
+    }
     window.setTimeout(() => {
       collapseSearchModeIfIdle();
     }, 0);
@@ -413,10 +421,13 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ tit
   useEffect(() => {
     if (!visible) return;
     const handleMouseDown = (event: MouseEvent) => {
-      if (isSearchInputComposingRef.current) return;
       const target = event.target as Node;
       if (triggerRef.current?.contains(target)) return;
       if (panelRef.current?.contains(target)) return;
+      if (isSearchInputComposingRef.current) {
+        pendingCloseAfterCompositionRef.current = true;
+        return;
+      }
       setVisible(false);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
