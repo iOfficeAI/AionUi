@@ -39,20 +39,32 @@ export const useTaskCompletionNotification = () => {
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Per-conversation accumulated AI replies
   const aiRepliesRef = useRef<Map<string, string>>(new Map());
-  // Cron notification enabled setting
-  const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+  // Cron notification enabled setting (use ref to always read latest value without re-subscribing listeners)
+  const cronNotificationEnabledRef = useRef(false);
 
-  // Fetch cron notification setting on mount
+  // Fetch cron notification setting on mount and listen for changes
   useEffect(() => {
-    ipcBridge.systemSettings.getCronNotificationEnabled
-      .invoke()
-      .then((enabled) => {
-        setCronNotificationEnabled(enabled);
-      })
-      .catch(() => {
-        // Default to disabled on error
-        setCronNotificationEnabled(false);
-      });
+    const fetchSetting = () => {
+      ipcBridge.systemSettings.getCronNotificationEnabled
+        .invoke()
+        .then((enabled) => {
+          cronNotificationEnabledRef.current = enabled;
+        })
+        .catch(() => {});
+    };
+    fetchSetting();
+
+    // Re-fetch when settings page may have changed the value
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') fetchSetting();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Also poll periodically to catch changes from settings toggle
+    const interval = setInterval(fetchSetting, 30_000);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -92,7 +104,7 @@ export const useTaskCompletionNotification = () => {
         const isCronTask = !isUserTask;
 
         // For cron tasks, only notify if setting is enabled
-        if (isCronTask && !cronNotificationEnabled) {
+        if (isCronTask && !cronNotificationEnabledRef.current) {
           return;
         }
 
@@ -154,5 +166,5 @@ export const useTaskCompletionNotification = () => {
       }
       timersRef.current.clear();
     };
-  }, [cronNotificationEnabled]);
+  }, [t]);
 };
