@@ -16,7 +16,10 @@
     "none": "Hiçbiri",
     "quickActionsTitle": "AionUi neler yapabilir?",
     "quickActionFeedback": "Geri bildirim veya öneriniz mi var?",
-    "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!"
+    "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "Ajanların topluluk Skills'lerini ihtiyaç duyduğunda aramasını ve kullanmasını sağlayın. Bir kez yapılandırın, tüm ajanlarda geçerli.",
+    "skillsMarketDetails": "Ayrıntılar >>"
   },
   "history": {
     "today": "Bugün",

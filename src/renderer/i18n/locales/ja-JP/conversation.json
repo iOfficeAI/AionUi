@@ -16,7 +16,10 @@
     "none": "None",
     "quickActionsTitle": "AionUi で何ができる？",
     "quickActionFeedback": "フィードバックや提案は？",
-    "quickActionStar": "気に入った？スターをください！"
+    "quickActionStar": "気に入った？スターをください！",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "エージェントがコミュニティ Skills をオンデマンドで検索・利用可能。一度設定すれば全エージェント共通.",
+    "skillsMarketDetails": "詳細 >>"
   },
   "history": {
     "today": "今日",

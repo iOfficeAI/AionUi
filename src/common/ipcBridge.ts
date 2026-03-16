@@ -247,6 +247,9 @@ export const fs = {
   detectCommonSkillPaths: bridge.buildProvider<IBridgeResponse<Array<{ name: string; path: string }>>, void>(
     'detect-common-skill-paths'
   ),
+  // Skills Market: inject/remove the aionui-skills builtin skill
+  enableSkillsMarket: bridge.buildProvider<IBridgeResponse, void>('enable-skills-market'),
+  disableSkillsMarket: bridge.buildProvider<IBridgeResponse, void>('disable-skills-market'),
 };
 
 export const fileWatch = {

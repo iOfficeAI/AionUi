@@ -16,7 +16,10 @@
     "none": "None",
     "quickActionsTitle": "AionUi 能做什麼？",
     "quickActionFeedback": "想吐槽或提建議?",
-    "quickActionStar": "喜歡我們？點個星吧"
+    "quickActionStar": "喜歡我們？點個星吧",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "讓 Agent 按需搜尋並調用社區 Skills，一次設定，全 Agent 通用.",
+    "skillsMarketDetails": "詳情 >>"
   },
   "history": {
     "today": "今天",

@@ -16,7 +16,10 @@
     "none": "None",
     "quickActionsTitle": "What can AionUi do?",
     "quickActionFeedback": "Got feedback or suggestions?",
-    "quickActionStar": "Like us? Give us a star!"
+    "quickActionStar": "Like us? Give us a star!",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "Let agents search and use community Skills on demand. Configure once, works for all agents.",
+    "skillsMarketDetails": "Details >>"
   },
   "history": {
     "today": "Today",
