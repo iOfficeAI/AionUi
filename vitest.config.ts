@@ -58,6 +58,7 @@ export default defineConfig({
         // ACP
         'src/agent/acp/AcpAdapter.ts',
         'src/agent/acp/AcpConnection.ts',
+        'src/agent/acp/acpConnectors.ts',
         'src/agent/acp/modelInfo.ts',
         // Common
         'src/common/chatLib.ts',

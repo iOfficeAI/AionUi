@@ -133,7 +133,8 @@ export function createGenericSpawnConfig(cliPath: string, workingDir: string, ac
     //
     // chcp 65001: switch console to UTF-8 so stderr/stdout doesn't get garbled
     // (Chinese Windows defaults to CP936/GBK).
-    spawnCommand = `chcp 65001 >nul && ${cliPath}`;
+    // Quotes around cliPath handle paths with spaces (e.g. "C:\Program Files\agent.exe").
+    spawnCommand = `chcp 65001 >nul && "${cliPath}"`;
     spawnArgs = effectiveAcpArgs;
   } else {
     // Unix: simple command or path. If cliPath contains spaces (e.g., "goose acp"),
