@@ -205,7 +205,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       {
         key: 'gemini',
         label: t('settings.gemini'),
-        icon: <Gemini theme='outline' size='20' fill={iconColors.secondary} />,
+        icon: <Gemini theme='outline' size='20' fill={iconColors.secondary}  strokeWidth={1} />,
       },
       {
         key: 'model',
