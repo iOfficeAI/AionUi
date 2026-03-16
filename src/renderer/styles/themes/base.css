@@ -108,6 +108,43 @@
   box-shadow: none;
 }
 
+.chat-layout-header--glass {
+  position: relative;
+  isolation: isolate;
+  contain: paint;
+  background-color: color-mix(in srgb, var(--bg-1) 92%, transparent) !important;
+}
+
+.chat-layout-header--glass::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -12px;
+  height: 12px;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 68%, transparent) 0%, transparent 100%);
+}
+
+@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+  .chat-layout-header--glass {
+    -webkit-backdrop-filter: saturate(110%) blur(6px);
+    backdrop-filter: saturate(110%) blur(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+  .chat-layout-header--glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--bg-1) !important;
+  }
+
+  .chat-layout-header--glass::after {
+    display: none;
+  }
+}
+
 .app-titlebar__menu {
   -webkit-app-region: no-drag;
   display: flex;
