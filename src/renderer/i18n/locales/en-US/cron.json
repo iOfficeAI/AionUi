@@ -39,5 +39,9 @@
   "drawer.nextRun": "Next Run",
   "drawer.save": "Save",
   "drawer.saveSuccess": "Saved successfully",
-  "message.badge": "Scheduled"
+  "message.badge": "Scheduled",
+  "notification.taskComplete": "Task Complete",
+  "notification.scheduledTask": "Scheduled Task",
+  "notification.scheduledTaskComplete": "{{title}} - Scheduled task complete",
+  "notification.taskDone": "Task done"
 }

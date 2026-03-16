@@ -43,5 +43,9 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "全部定時任務",
   "noTasks": "暫無定時任務",
-  "runNowSuccess": "任務已觸發執行"
+  "runNowSuccess": "任務已觸發執行",
+  "notification.taskComplete": "任務完成",
+  "notification.scheduledTask": "定時任務",
+  "notification.scheduledTaskComplete": "{{title}}的定時任務完成",
+  "notification.taskDone": "任務已完成"
 }

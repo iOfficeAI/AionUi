@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { getPendingUserMessage, clearPendingUserMessage } from './notificationState';
@@ -33,6 +34,7 @@ const formatNotificationBody = (userMessage: string, aiReply: string): string =>
 const TASK_ACTIVE_TYPES = new Set(['start', 'thought', 'content', 'tool_group', 'acp_permission', 'codex_permission']);
 
 export const useTaskCompletionNotification = () => {
+  const { t } = useTranslation('cron');
   // Per-conversation notification timers
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   // Per-conversation accumulated AI replies
@@ -42,8 +44,8 @@ export const useTaskCompletionNotification = () => {
 
   // Fetch cron notification setting on mount
   useEffect(() => {
-    ipcBridge.systemSettings
-      .getCronNotificationEnabled.invoke()
+    ipcBridge.systemSettings.getCronNotificationEnabled
+      .invoke()
       .then((enabled) => {
         setCronNotificationEnabled(enabled);
       })
@@ -104,11 +106,11 @@ export const useTaskCompletionNotification = () => {
           if (isUserTask) {
             // User-initiated task
             body = formatNotificationBody(userMessage, aiReply);
-            title = '任务完成';
+            title = t('notification.taskComplete');
             clearPendingUserMessage(conversationId);
           } else {
             // Cron task - get conversation title for better notification
-            let conversationTitle = '定时任务';
+            let conversationTitle = t('notification.scheduledTask');
             try {
               const conv = await ipcBridge.conversation.get.invoke({ id: conversationId });
               if (conv?.name) {
@@ -118,8 +120,8 @@ export const useTaskCompletionNotification = () => {
               // Failed to get conversation title, use default
             }
 
-            title = `${conversationTitle}的定时任务完成`;
-            body = aiReply ? truncateText(aiReply, 20) : '任务已完成';
+            title = t('notification.scheduledTaskComplete', { title: conversationTitle });
+            body = aiReply ? truncateText(aiReply, 20) : t('notification.taskDone');
           }
 
           aiRepliesRef.current.delete(conversationId);

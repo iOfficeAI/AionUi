@@ -43,5 +43,9 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "すべてのスケジュールタスク",
   "noTasks": "スケジュールタスクがありません",
-  "runNowSuccess": "タスクの実行をトリガーしました"
+  "runNowSuccess": "タスクの実行をトリガーしました",
+  "notification.taskComplete": "タスク完了",
+  "notification.scheduledTask": "スケジュールタスク",
+  "notification.scheduledTaskComplete": "{{title}}のスケジュールタスク完了",
+  "notification.taskDone": "タスク完了"
 }

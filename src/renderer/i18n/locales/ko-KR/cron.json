@@ -43,5 +43,9 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "모든 예약 작업",
   "noTasks": "예약 작업 없음",
-  "runNowSuccess": "작업 실행이 트리거되었습니다"
+  "runNowSuccess": "작업 실행이 트리거되었습니다",
+  "notification.taskComplete": "작업 완료",
+  "notification.scheduledTask": "예약 작업",
+  "notification.scheduledTaskComplete": "{{title}} - 예약 작업 완료",
+  "notification.taskDone": "작업 완료"
 }
