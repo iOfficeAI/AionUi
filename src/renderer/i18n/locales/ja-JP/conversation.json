@@ -144,6 +144,12 @@
       "revealFailed": "フォルダーを開けませんでした"
     }
   },
+  "minimap": {
+    "searchAria": "会話を検索",
+    "searchHint": "ここをクリックしてキーワードを検索",
+    "empty": "まだQ&Aがありません",
+    "noMatch": "一致する内容が見つかりません"
+  },
   "chat": {
     "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",
     "sendMessageTo": "{{model}}にメッセージを送信",

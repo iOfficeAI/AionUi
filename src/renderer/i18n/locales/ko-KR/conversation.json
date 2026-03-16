@@ -144,6 +144,12 @@
       "revealFailed": "포함 폴더 열기 실패"
     }
   },
+  "minimap": {
+    "searchAria": "대화 검색",
+    "searchHint": "여기를 클릭해 키워드를 검색하세요",
+    "empty": "아직 문답 내용이 없습니다",
+    "noMatch": "일치하는 내용이 없습니다"
+  },
   "chat": {
     "noModelSelected": "현재 세션에 선택된 모델이 없어 메시지를 보낼 수 없습니다",
     "sendMessageTo": "{{model}}에게 메시지 보내기",
