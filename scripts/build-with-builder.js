@@ -264,7 +264,7 @@ function cleanupWindowsPackOutput() {
 
   const removed = [];
   const winUnpackedDirRe = /^win(?:-[a-z0-9]+)?-unpacked$/i;
-  const winArtifactFileRe = /-win-[^.]+\.(?:exe|msi|zip|7z|blockmap)$/i;
+  const winArtifactFileRe = /-win-[^.]+\.(?:exe|msi|zip|7z)$/i;
 
   for (const entry of fs.readdirSync(outDir, { withFileTypes: true })) {
     const fullPath = path.join(outDir, entry.name);

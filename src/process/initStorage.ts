@@ -779,11 +779,15 @@ export const ProcessChatMessage = chatMessageFile;
 export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
+  // electron-log writes to the platform-standard logs directory
+  const logDir = path.join(app.getPath('logs'));
+
   return {
     cacheDir: cacheDir,
     // getDataPath() returns CLI-safe path (symlink on macOS) to avoid spaces
     // getDataPath() 返回 CLI 安全路径（macOS 上的符号链接）以避免空格问题
     workDir: dirConfig?.workDir || getDataPath(),
+    logDir,
     platform: process.platform as PlatformType,
     arch: process.arch as ArchitectureType,
   };

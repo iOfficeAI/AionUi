@@ -29,10 +29,10 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'ope
  */
 export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex', 'qwen'] as const;
 
-export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
+export const CODEX_ACP_BRIDGE_VERSION = '0.10.0';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
-export const CLAUDE_ACP_BRIDGE_VERSION = '0.20.2';
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
 export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';

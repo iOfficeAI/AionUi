@@ -17,10 +17,11 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import { getLastDirectoryName, isTemporaryWorkspace as checkIsTemporaryWorkspace, getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Down, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
+import { Down, FileText, FolderOpen, Refresh, Search, AlarmClock } from '@icon-park/react';
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useCronJobs } from '@/renderer/pages/cron/hooks/useCronJobs';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import { uuid } from '@/common/utils';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
@@ -72,6 +73,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [showDirectorySelector, setShowDirectorySelector] = useState(false);
   const [selectedTargetPath, setSelectedTargetPath] = useState('');
   const [migrationLoading, setMigrationLoading] = useState(false);
+  const [showCronMigrationPrompt, setShowCronMigrationPrompt] = useState(false);
+
+  // Cron jobs hook
+  const { jobs, loading: cronLoading } = useCronJobs(conversation_id);
 
   // Workspace tree collapse state - 全局统一的折叠状态
   // 切换会话时保持折叠状态不变，只更新工作目录内容
@@ -247,6 +252,97 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     }
   }, [messageApi, t]);
 
+  const executeMigration = useCallback(
+    async (migrateCron: boolean) => {
+      const targetWorkspace = selectedTargetPath.trim();
+      setMigrationLoading(true);
+
+      try {
+        // Get current conversation data
+        const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
+        const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
+
+        if (!currentConversation) {
+          throw new Error('Current conversation not found');
+        }
+
+        // Get all files from the workspace
+        const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
+          conversation_id,
+          workspace,
+          path: workspace,
+        });
+
+        // Recursively collect all file paths
+        const collectFilePaths = (items: IDirOrFile[]): string[] => {
+          const paths: string[] = [];
+          for (const item of items) {
+            if (item.isFile && item.fullPath) {
+              paths.push(item.fullPath);
+            }
+            if (item.children && item.children.length > 0) {
+              paths.push(...collectFilePaths(item.children));
+            }
+          }
+          return paths;
+        };
+
+        const filePaths = collectFilePaths(workspaceFiles);
+
+        // Copy all files to the target workspace / 复制所有文件到目标工作区
+        if (filePaths.length > 0) {
+          const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
+            filePaths,
+            workspace: targetWorkspace,
+            sourceRoot: workspace,
+          });
+          if (!copyResult?.success) {
+            throw new Error(copyResult?.msg || 'Failed to copy workspace files');
+          }
+        }
+
+        // Create new conversation with the new workspace / 使用新工作区创建会话
+        const newId = uuid();
+        const newConversation = {
+          ...currentConversation,
+          id: newId,
+          name: currentConversation.name,
+          createTime: Date.now(),
+          modifyTime: Date.now(),
+        };
+
+        // Update the workspace in extra field / 更新 extra 中的 workspace 信息
+        newConversation.extra = {
+          ...(currentConversation.extra ?? {}),
+          workspace: targetWorkspace,
+          customWorkspace: true,
+        };
+
+        await ipcBridge.conversation.createWithConversation.invoke({
+          conversation: newConversation,
+          sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
+          migrateCron,
+        });
+
+        // Close modal and reset state / 关闭弹窗并重置状态
+        setShowMigrationModal(false);
+        setShowCronMigrationPrompt(false);
+        setSelectedTargetPath('');
+        setMigrationLoading(false);
+
+        // Navigate to new conversation / 跳转到新的会话
+        void navigate(`/conversation/${newId}`);
+        emitter.emit('chat.history.refresh');
+        messageApi.success(t('conversation.workspace.migration.success'));
+      } catch (error) {
+        console.error('Failed to migrate workspace:', error);
+        messageApi.error(t('conversation.workspace.migration.error'));
+        setMigrationLoading(false);
+      }
+    },
+    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate]
+  );
+
   const handleMigrationConfirm = useCallback(async () => {
     if (!isTemporaryWorkspace) {
       messageApi.error(t('conversation.workspace.migration.error'));
@@ -264,93 +360,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       return;
     }
 
-    setMigrationLoading(true);
-
-    try {
-      // Get current conversation data
-      const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
-      const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
-
-      if (!currentConversation) {
-        throw new Error('Current conversation not found');
-      }
-
-      // Get all files from the workspace
-      const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
-        conversation_id,
-        workspace,
-        path: workspace,
-      });
-
-      // Recursively collect all file paths
-      const collectFilePaths = (items: IDirOrFile[]): string[] => {
-        const paths: string[] = [];
-        for (const item of items) {
-          if (item.isFile && item.fullPath) {
-            paths.push(item.fullPath);
-          }
-          if (item.children && item.children.length > 0) {
-            paths.push(...collectFilePaths(item.children));
-          }
-        }
-        return paths;
-      };
-
-      const filePaths = collectFilePaths(workspaceFiles);
-
-      // Copy all files to the target workspace / 复制所有文件到目标工作区
-      if (filePaths.length > 0) {
-        const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
-          filePaths,
-          workspace: targetWorkspace,
-          sourceRoot: workspace,
-        });
-        if (!copyResult?.success) {
-          throw new Error(copyResult?.msg || 'Failed to copy workspace files');
-        }
-      }
-
-      // Create new conversation with the new workspace / 使用新工作区创建会话
-      const newId = uuid();
-      const newConversation = {
-        ...currentConversation,
-        id: newId,
-        name: currentConversation.name,
-        createTime: Date.now(),
-        modifyTime: Date.now(),
-      };
-
-      // Update the workspace in extra field / 更新 extra 中的 workspace 信息
-      newConversation.extra = {
-        ...(currentConversation.extra ?? {}),
-        workspace: targetWorkspace,
-        customWorkspace: true,
-      };
-
-      await ipcBridge.conversation.createWithConversation.invoke({
-        conversation: newConversation,
-        sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
-      });
-
-      // Close modal and reset state / 关闭弹窗并重置状态
-      setShowMigrationModal(false);
-      setSelectedTargetPath('');
-      setMigrationLoading(false);
-
-      // Navigate to new conversation / 跳转到新的会话
-      void navigate(`/conversation/${newId}`);
-      emitter.emit('chat.history.refresh');
-      messageApi.success(t('conversation.workspace.migration.success'));
-    } catch (error) {
-      console.error('Failed to migrate workspace:', error);
-      messageApi.error(t('conversation.workspace.migration.error'));
-      setMigrationLoading(false);
+    // Check if jobs are still loading
+    if (cronLoading) {
+      console.log('[Workspace] Waiting for cron jobs to load before migration...');
+      messageApi.info(t('common.loading'));
+      return;
     }
-  }, [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate]);
+
+    console.log('[Workspace] handleMigrationConfirm triggered. Current jobs count:', jobs.length);
+
+    // Check for cron jobs before migrating
+    if (jobs.length > 0) {
+      setShowCronMigrationPrompt(true);
+      return;
+    }
+
+    await executeMigration(false);
+  }, [jobs, cronLoading, isTemporaryWorkspace, selectedTargetPath, workspace, t, messageApi, executeMigration]);
 
   const handleCloseMigrationModal = useCallback(() => {
     if (!migrationLoading) {
       setShowMigrationModal(false);
+      setShowCronMigrationPrompt(false);
       setSelectedTargetPath('');
     }
   }, [migrationLoading]);
@@ -694,6 +725,49 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 disabled={migrationLoading || !selectedTargetPath}
               >
                 {migrationLoading ? t('conversation.workspace.migration.migrating') : t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Cron Migration Modal */}
+        <Modal visible={showCronMigrationPrompt} title={t('conversation.workspace.migration.cronMigrationTitle')} onCancel={handleCloseMigrationModal} footer={null} style={{ borderRadius: '12px' }} className='cron-migration-modal' alignCenter getPopupContainer={() => document.body}>
+          <div className='py-8px'>
+            <div className='flex items-center gap-12px p-16px rounded-12px mb-16px' style={{ backgroundColor: 'var(--color-fill-1)' }}>
+              <div className='w-40px h-40px rounded-full flex items-center justify-center' style={{ backgroundColor: 'rgba(var(--primary-6), 0.1)' }}>
+                <AlarmClock theme='outline' size='22' fill='rgb(var(--primary-6))' />
+              </div>
+              <div className='flex-1'>
+                <div className='text-15px font-medium mb-4px'>{t('conversation.workspace.migration.cronMigrationTitle')}</div>
+                <div className='text-13px text-t-secondary'>{t('conversation.workspace.migration.cronMigrationHint')}</div>
+              </div>
+            </div>
+
+            <div className='flex gap-12px justify-end'>
+              <button
+                className='px-20px py-8px rounded-20px text-14px font-medium transition-all'
+                style={{
+                  border: '1px solid var(--color-border-2)',
+                  backgroundColor: 'var(--color-fill-2)',
+                  color: 'var(--color-text-1)',
+                }}
+                onClick={() => executeMigration(false)}
+                disabled={migrationLoading}
+              >
+                {t('conversation.workspace.migration.cronMigrationSkip')}
+              </button>
+              <button
+                className='px-20px py-8px rounded-20px text-14px font-medium transition-all'
+                style={{
+                  border: 'none',
+                  backgroundColor: 'var(--color-text-1)',
+                  color: 'var(--color-bg-1)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => executeMigration(true)}
+                disabled={migrationLoading}
+              >
+                {t('conversation.workspace.migration.cronMigrationConfirm')}
               </button>
             </div>
           </div>

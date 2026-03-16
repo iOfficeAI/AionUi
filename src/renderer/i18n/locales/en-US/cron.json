@@ -39,5 +39,22 @@
   "drawer.nextRun": "Next Run",
   "drawer.save": "Save",
   "drawer.saveSuccess": "Saved successfully",
-  "message.badge": "Scheduled"
+  "message.badge": "Scheduled",
+  "allScheduledTasks": "All Scheduled Tasks",
+  "noTasks": "No scheduled tasks",
+  "runNowSuccess": "Task execution triggered",
+  "notification": {
+    "taskComplete": "Task Complete",
+    "scheduledTask": "Scheduled Task",
+    "scheduledTaskComplete": "{{title}} - Scheduled task complete",
+    "taskDone": "Task done"
+  },
+  "error": {
+    "alreadyExists": "This conversation already has a scheduled task \"{{name}}\" (ID: {{id}}). Please delete it first before creating a new one, or use [CRON_LIST] to view existing tasks.",
+    "missedJob": "⏰ Scheduled task \"{{name}}\" was not executed during system sleep.\nScheduled time: {{time}}\nThe timer has been restarted and will run at the next scheduled time.",
+    "jobNotFound": "Task not found: {{id}}",
+    "conversationNotFound": "Conversation not found",
+    "scheduledTimePassed": "Scheduled time has passed",
+    "conversationBusy": "Conversation busy after {{count}} retries"
+  }
 }

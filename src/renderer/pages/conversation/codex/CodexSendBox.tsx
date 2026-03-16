@@ -186,6 +186,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
       // All messages from Backend are already persisted via emitAndPersistMessage
       // Frontend only needs to update UI
+
       switch (message.type) {
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
@@ -197,6 +198,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           // Only reset when current turn has content output
           // Tool-only turns (no content) should not reset aiProcessing
           if (hasContentInTurnRef.current) {
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
             setRunning(false);
             setAiProcessing(false);
             setThought({ subject: '', description: '' });

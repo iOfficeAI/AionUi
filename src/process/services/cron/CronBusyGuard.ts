@@ -16,8 +16,11 @@ interface ConversationState {
  * Service to track conversation busy state
  * Used by CronService to avoid sending messages to busy conversations
  */
+type IdleCallback = () => void;
+
 class CronBusyGuard {
   private states = new Map<string, ConversationState>();
+  private idleCallbacks = new Map<string, IdleCallback[]>();
 
   /**
    * Check if a conversation is currently processing a message
@@ -37,6 +40,29 @@ class CronBusyGuard {
       state.lastActiveAt = Date.now();
     }
     this.states.set(conversationId, state);
+
+    // Fire idle callbacks when processing completes
+    if (!value) {
+      const callbacks = this.idleCallbacks.get(conversationId);
+      if (callbacks) {
+        this.idleCallbacks.delete(conversationId);
+        for (const cb of callbacks) cb();
+      }
+    }
+  }
+
+  /**
+   * Register a one-time callback for when a conversation becomes idle.
+   * If already idle, fires immediately.
+   */
+  onceIdle(conversationId: string, callback: IdleCallback): void {
+    if (!this.isProcessing(conversationId)) {
+      callback();
+      return;
+    }
+    const existing = this.idleCallbacks.get(conversationId) ?? [];
+    existing.push(callback);
+    this.idleCallbacks.set(conversationId, existing);
   }
 
   /**

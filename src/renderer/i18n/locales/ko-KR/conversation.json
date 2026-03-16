@@ -111,7 +111,11 @@
       "selectFolderError": "폴더 선택 실패",
       "success": "워크스페이스 마이그레이션 성공",
       "error": "워크스페이스 마이그레이션 실패",
-      "migrating": "마이그레이션 중..."
+      "migrating": "마이그레이션 중...",
+      "cronMigrationTitle": "예약 작업 발견",
+      "cronMigrationHint": "현재 대화에 예약 작업이 포함되어 있습니다. 새 워크스페이스로 이동하시겠습니까?",
+      "cronMigrationConfirm": "이동 및 업데이트",
+      "cronMigrationSkip": "이동 안 함 (삭제됨)"
     },
     "dragOverlayTitle": "놓아서 가져오기",
     "dragOverlayDesc": "파일이나 폴더를 여기로 드래그하여 이 워크스페이스로 복사하세요.",
@@ -139,6 +143,13 @@
       "openFailed": "열기 실패",
       "revealFailed": "포함 폴더 열기 실패"
     }
+  },
+  "minimap": {
+    "searchAria": "대화 검색",
+    "searchHint": "여기를 클릭해 키워드를 검색하세요",
+    "empty": "아직 문답 내용이 없습니다",
+    "noMatch": "일치하는 내용이 없습니다",
+    "count": "{{count}} 건"
   },
   "chat": {
     "noModelSelected": "현재 세션에 선택된 모델이 없어 메시지를 보낼 수 없습니다",

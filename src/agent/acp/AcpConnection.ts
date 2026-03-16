@@ -14,7 +14,7 @@ import os from 'os';
 import path from 'path';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
 import { mainLog } from '@process/utils/mainLogger';
-import { resolveNpxPath } from '@process/utils/shellEnv';
+import { getNpxCacheDir, resolveNpxPath } from '@process/utils/shellEnv';
 import { ACP_PERF_LOG, connectClaude, connectCodebuddy, connectCodex, prepareCleanEnv, spawnGenericBackend } from './acpConnectors';
 import type { SpawnResult } from './acpConnectors';
 import { killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
@@ -136,8 +136,7 @@ export class AcpConnection {
         // existing directory. Fix: delete the _npx cache and retry from scratch.
         console.warn(`[ACP] Detected corrupted npx cache for ${backend}, cleaning _npx and retrying...`);
         try {
-          const npmCacheBase = process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache') : path.join(os.homedir(), '.npm');
-          const npxCacheDir = path.join(npmCacheBase, '_npx');
+          const npxCacheDir = getNpxCacheDir();
           await fs.rm(npxCacheDir, { recursive: true, force: true });
           console.warn(`[ACP] Cleaned corrupted npx cache: ${npxCacheDir}`);
         } catch (cleanError) {

@@ -5,6 +5,7 @@
  */
 
 import { app } from 'electron';
+import { promises as fs } from 'fs';
 import { safeExec } from '@process/utils/safeExec';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
@@ -13,7 +14,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { getEnhancedEnv, resolveNpxPath } from '@/process/utils/shellEnv';
+import { getEnhancedEnv, getNpxCacheDir, resolveNpxPath } from '@/process/utils/shellEnv';
 
 /**
  * MCP源类型 - 包括所有ACP后端和AionUi内置
@@ -271,7 +272,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       if (errorMessage.includes('ENOTEMPTY') && retryCount < 1) {
         try {
           // 清理 npm 缓存并重试
-          await Promise.race([safeExec('npm cache clean --force && rm -rf ~/.npm/_npx'), new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))]);
+          await Promise.race([safeExec('npm cache clean --force').then(() => fs.rm(getNpxCacheDir(), { recursive: true, force: true })), new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))]);
 
           return await this.testStdioConnection(transport, retryCount + 1);
         } catch (cleanupError) {

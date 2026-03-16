@@ -24,10 +24,12 @@ import { initModelBridge } from './modelBridge';
 import { initPreviewHistoryBridge } from './previewHistoryBridge';
 import { initShellBridge } from './shellBridge';
 import { initStarOfficeBridge } from './starOfficeBridge';
+import { initTaskBridge } from './taskBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
+import { initNotificationBridge } from './notificationBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 
 /**
@@ -57,6 +59,8 @@ export function initAllBridges(): void {
   initChannelBridge();
   initCronBridge();
   initSystemSettingsBridge();
+  initNotificationBridge();
+  initTaskBridge();
   initExtensionsBridge();
   initStarOfficeBridge();
 }
@@ -74,7 +78,8 @@ export async function initializeAcpDetector(): Promise<void> {
 
 // 导出初始化函数供单独使用
 
-export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initBedrockBridge, initChannelBridge, initConversationBridge, initCronBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initExtensionsBridge, initFsBridge, initGeminiBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initPreviewHistoryBridge, initShellBridge, initStarOfficeBridge, initSystemSettingsBridge, initUpdateBridge, initWebuiBridge, initWindowControlsBridge };
+export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initBedrockBridge, initChannelBridge, initConversationBridge, initCronBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initExtensionsBridge, initFsBridge, initGeminiBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initNotificationBridge, initPreviewHistoryBridge, initShellBridge, initStarOfficeBridge, initSystemSettingsBridge, initTaskBridge, initUpdateBridge, initWebuiBridge, initWindowControlsBridge };
+export { setMainWindow } from './notificationBridge';
 
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

@@ -56,5 +56,14 @@
   "more": "その他",
   "refresh": "更新",
   "tray.showWindow": "AionUi を表示",
-  "tray.quit": "終了"
+  "tray.newChat": "新しいチャット",
+  "tray.closeToTray": "トレイに閉じる",
+  "tray.about": "AionUi について",
+  "tray.restart": "アプリを再起動",
+  "tray.quit": "終了",
+  "tray.runningTasks": "実行中のタスク",
+  "tray.pauseAll": "すべてのタスクを一時停止",
+  "tray.checkUpdate": "更新を確認",
+  "tray.recentChats": "最近のチャット",
+  "tray.untitled": "無題"
 }
