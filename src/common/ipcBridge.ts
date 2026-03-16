@@ -391,6 +391,12 @@ export const systemSettings = {
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
 };
 
+// 任务管理接口 / Task management API
+export const task = {
+  stopAll: bridge.buildProvider<{ success: boolean; count: number }, void>('task.stop-all'),
+  getRunningCount: bridge.buildProvider<{ success: boolean; count: number }, void>('task.get-running-count'),
+};
+
 // WebUI 服务管理接口 / WebUI service management API
 export interface IWebUIStatus {
   running: boolean;

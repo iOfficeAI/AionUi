@@ -48,14 +48,20 @@ const initPromise = (async (): Promise<void> => {
     debug: false,
     interpolation: { escapeValue: false },
   });
-
-  const language = await ConfigStorage.get('language');
-  if (language) {
-    await ensureAndSwitch(i18n, language, getLocaleModules);
-  }
 })().catch((error) => {
   console.error('[Main Process] Failed to initialize i18n:', error);
 });
+
+/**
+ * 设置初始语言（在存储准备好后调用）/ Set initial language (called after storage is ready)
+ * 由 index.ts 在存储准备好后调用 / Called by index.ts after storage is ready
+ */
+export async function setInitialLanguage(language: string | undefined): Promise<void> {
+  await initPromise;
+  if (language) {
+    await ensureAndSwitch(i18n, language, getLocaleModules);
+  }
+}
 
 /**
  * 切换语言 / Change language
