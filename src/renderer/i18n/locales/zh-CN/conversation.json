@@ -154,7 +154,10 @@
       "addToChat": "添加到聊天",
       "addedToChat": "已添加到聊天",
       "openFailed": "打开失败",
-      "revealFailed": "无法打开所在目录"
+      "revealFailed": "无法打开所在目录",
+      "download": "下载",
+      "downloadSuccess": "下载成功",
+      "downloadFailed": "下载失败"
     }
   },
   "minimap": {

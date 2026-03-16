@@ -435,6 +435,50 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     [closeContextMenu, ensureNodeSelected, setRenameModal]
   );
 
+  /**
+   * 下载文件到本地（直接从磁盘读取二进制，不经过预览）
+   * Download file to local system (read binary directly from disk, bypassing preview)
+   */
+  const handleDownloadFile = useCallback(
+    async (nodeData: IDirOrFile | null) => {
+      if (!nodeData || !nodeData.isFile || !nodeData.fullPath) return;
+      closeContextMenu();
+
+      try {
+        // 通过 getImageBase64 以 base64 字符串读取文件，兼容 WebUI 的 WebSocket 传输
+        // Read file as base64 string via getImageBase64, compatible with WebUI WebSocket transport
+        const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
+
+        // 在内存中用 atob 解码 base64，避免 fetch data: URL 被 CSP 阻断
+        // Decode base64 in-memory with atob to avoid CSP blocking fetch of data: URLs
+        const base64 = dataUrl.split(',')[1];
+        const binaryStr = atob(base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        // 从 data URL 中提取 MIME 类型 / Extract MIME type from data URL
+        const mimeMatch = dataUrl.match(/^data:([^;]+);/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = nodeData.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        messageApi.success(t('conversation.workspace.contextMenu.downloadSuccess'));
+      } catch (error) {
+        console.error('[Workspace] Failed to download file:', error);
+        messageApi.error(t('conversation.workspace.contextMenu.downloadFailed'));
+      }
+    },
+    [closeContextMenu, messageApi, t]
+  );
+
   return {
     handleOpenNode,
     handleRevealNode,
@@ -444,5 +488,6 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     handleAddToChat,
     handlePreviewFile,
     openRenameModal,
+    handleDownloadFile,
   };
 }

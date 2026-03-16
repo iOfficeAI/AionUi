@@ -154,7 +154,10 @@
       "addToChat": "チャットに追加",
       "addedToChat": "チャットに追加しました",
       "openFailed": "開けませんでした",
-      "revealFailed": "フォルダーを開けませんでした"
+      "revealFailed": "フォルダーを開けませんでした",
+      "download": "ダウンロード",
+      "downloadSuccess": "ダウンロードしました",
+      "downloadFailed": "ダウンロードに失敗しました"
     }
   },
   "minimap": {

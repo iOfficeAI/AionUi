@@ -147,7 +147,10 @@
       "addToChat": "Sohbete ekle",
       "addedToChat": "Sohbete eklendi",
       "openFailed": "Açılamadı",
-      "revealFailed": "İçeren klasör açılamadı"
+      "revealFailed": "İçeren klasör açılamadı",
+      "download": "İndir",
+      "downloadSuccess": "İndirme başarılı",
+      "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
     "collapse": "Çalışma Alanını Daralt"
