@@ -158,6 +158,11 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'text') {
+        // User messages (right position) are complete — skip if already exists to prevent duplicates
+        if (message.position === 'right') {
+          return list;
+        }
+        // AI streaming messages (left position) — append chunks
         const newList = list.slice();
         newList[existingIdx] = {
           ...existingMsg,
@@ -173,6 +178,22 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     const newIdx = list.length;
     index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
+  }
+
+  // agent_status / tips / plan and other msg_id-based messages:
+  // replace the existing item in place instead of appending duplicates.
+  if (message.msg_id) {
+    const existingIdx = index.msgIdIndex.get(message.msg_id);
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      const newList = list.slice();
+      newList[existingIdx] = {
+        ...existingMsg,
+        ...message,
+        content: message.content,
+      } as TMessage;
+      return newList;
+    }
   }
 
   // Other types: fallback to last message check

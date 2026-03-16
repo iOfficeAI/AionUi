@@ -66,13 +66,16 @@ export const useGuidMention = ({ availableAgents, customAgentAvatarMap, selected
       if (agent.customAgentId) {
         tokens.add(agent.customAgentId.toLowerCase());
       }
+      const mappedAvatarImage = avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined;
+      const avatarImage = mappedAvatarImage || (avatar && /^(https?:|file:|data:|aion-asset:|\/)/.test(avatar) ? avatar : undefined);
       return {
         key,
         label,
         tokens,
         avatar,
-        avatarImage: avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined,
+        avatarImage,
         logo: getAgentLogo(agent.backend) || undefined,
+        isExtension: agent.isExtension,
       };
     });
   }, [availableAgents, customAgentAvatarMap]);

@@ -5,7 +5,7 @@
  */
 
 // 复用现有的业务类型定义
-import type { TChatConversation, IConfigStorageRefer } from '@/common/storage';
+import type { ConversationSource, TChatConversation, IConfigStorageRefer } from '@/common/storage';
 import type { TMessage } from '@/common/chatLib';
 
 /**
@@ -74,7 +74,7 @@ export interface IConversationRow {
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
-  source?: 'aionui' | 'telegram' | 'lark' | 'dingtalk'; // 会话来源 / Conversation source
+  source?: ConversationSource; // 会话来源 / Conversation source
   channel_chat_id?: string; // Channel chat isolation ID (e.g. user:xxx or group:xxx)
   created_at: number;
   updated_at: number;

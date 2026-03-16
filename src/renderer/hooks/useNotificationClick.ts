@@ -21,9 +21,7 @@ export const useNotificationClick = () => {
       if (payload.conversationId) {
         // Navigate to the conversation page / 导航到会话页面
         console.log('[useNotificationClick] Navigating to conversation:', payload.conversationId);
-        void navigate(`/conversation/${payload.conversationId}`).catch((error) => {
-          console.error('[useNotificationClick] Navigation failed:', error);
-        });
+        void navigate(`/conversation/${payload.conversationId}`);
       } else {
         console.warn('[useNotificationClick] No conversationId in payload');
       }

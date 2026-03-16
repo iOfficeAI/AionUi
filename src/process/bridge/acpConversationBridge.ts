@@ -6,12 +6,14 @@
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import { AcpConnection } from '@/agent/acp/AcpConnection';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@/agent/acp/modelInfo';
 import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
 import WorkerManage from '@/process/WorkerManage';
 import AcpAgentManager from '@/process/task/AcpAgentManager';
 import CodexAgentManager from '@/process/task/CodexAgentManager';
 import { GeminiAgentManager } from '@/process/task/GeminiAgentManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
+import { mainLog, mainWarn } from '@/process/utils/mainLogger';
 import { ipcBridge } from '../../common';
 import * as os from 'os';
 
@@ -192,29 +194,66 @@ export function initAcpConversationBridge(): void {
 
   // Get current session mode for ACP/Gemini agents
   // 获取 ACP/Gemini 代理的当前会话模式
-  ipcBridge.acpConversation.getMode.provider(async ({ conversationId }) => {
-    try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
-      if (!task || !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)) {
-        return { success: true, data: { mode: 'default', initialized: false } };
-      }
-      return { success: true, data: task.getMode() };
-    } catch {
-      return { success: true, data: { mode: 'default', initialized: false } };
+  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+  ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)) {
+      return Promise.resolve({ success: true, data: { mode: 'default', initialized: false } });
     }
+    return Promise.resolve({ success: true, data: task.getMode() });
   });
 
   // Get model info for ACP/Codex agents
   // 获取 ACP/Codex 代理的模型信息
-  ipcBridge.acpConversation.getModelInfo.provider(async ({ conversationId }) => {
+  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+  ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
+      return Promise.resolve({ success: true, data: { modelInfo: null } });
+    }
+    return Promise.resolve({ success: true, data: { modelInfo: task.getModelInfo() } });
+  });
+
+  ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
+    const agents = acpDetector.getDetectedAgents();
+    const agent = agents.find((item) => item.backend === backend);
+
+    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codebuddy' && backend !== 'codex') {
+      return {
+        success: false,
+        msg: `${backend} CLI not found`,
+      };
+    }
+
+    const connection = new AcpConnection();
+    const tempDir = os.tmpdir();
+
     try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
-      if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
-        return { success: true, data: { modelInfo: null } };
+      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
+      await connection.newSession(tempDir);
+
+      const modelInfo = buildAcpModelInfo(connection.getConfigOptions(), connection.getModels());
+      if (backend === 'codex') {
+        const initializeResult = connection.getInitializeResponse() as unknown as Record<string, unknown> | null;
+        mainLog('[ACP codex]', 'probeModelInfo completed', {
+          initializeAgentInfo: initializeResult?.agentInfo || null,
+          modelInfo: summarizeAcpModelInfo(modelInfo),
+        });
       }
-      return { success: true, data: { modelInfo: task.getModelInfo() } };
-    } catch {
-      return { success: true, data: { modelInfo: null } };
+
+      return { success: true, data: { modelInfo } };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (backend === 'codex') {
+        mainWarn('[ACP codex]', 'probeModelInfo failed', errorMsg);
+      }
+      return { success: false, msg: errorMsg };
+    } finally {
+      try {
+        await connection.disconnect();
+      } catch {
+        // Ignore cleanup failures for best-effort probes
+      }
     }
   });
 
@@ -245,6 +284,33 @@ export function initAcpConversationBridge(): void {
         return { success: false, msg: 'Mode switching not supported for this agent type' };
       }
       return await task.setMode(mode);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      return { success: false, msg: errorMsg };
+    }
+  });
+
+  // Get non-model config options for ACP agents (e.g., reasoning effort)
+  // 获取 ACP 代理的非模型配置选项（如推理级别）
+  // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
+  ipcBridge.acpConversation.getConfigOptions.provider(({ conversationId }) => {
+    const task = WorkerManage.getTaskById(conversationId);
+    if (!task || !(task instanceof AcpAgentManager)) {
+      return Promise.resolve({ success: true, data: { configOptions: [] } });
+    }
+    return Promise.resolve({ success: true, data: { configOptions: task.getConfigOptions() } });
+  });
+
+  // Set a config option value for ACP agents (e.g., reasoning effort)
+  // 设置 ACP 代理的配置选项值（如推理级别）
+  ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
+    try {
+      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      if (!task || !(task instanceof AcpAgentManager)) {
+        return { success: false, msg: 'Conversation not found or not an ACP agent' };
+      }
+      const configOptions = await task.setConfigOption(configId, value);
+      return { success: true, data: { configOptions } };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       return { success: false, msg: errorMsg };

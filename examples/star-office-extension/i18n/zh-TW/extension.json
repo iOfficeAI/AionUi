@@ -1,0 +1,9 @@
+{
+  "displayName": "星辰辦公擴充",
+  "description": "Star Office 風格的全 Agent 活動視覺化面板。",
+  "settingsTabs": {
+    "star-office": { "name": "星辰辦公" },
+    "aionui-home": { "name": "AionUI 首頁" },
+    "aionui-issues": { "name": "AionUI 問題" }
+  }
+}

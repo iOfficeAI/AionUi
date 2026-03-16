@@ -5,7 +5,10 @@
   "autoEdit": "Auto Edit",
   "yolo": "YOLO",
   "bypass": "Bypass (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Akıllı",
   "build": "Build Mode",
+  "permission": "İzin",
   "switchMode": "Switch Mode",
   "switchSuccess": "Mode switched successfully",
   "switchFailed": "Failed to switch mode"

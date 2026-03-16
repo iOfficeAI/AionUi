@@ -9,6 +9,28 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
 
+/**
+ * Returns the appropriate update channel name based on the current platform and architecture.
+ * Returns undefined for the default channel (Windows x64 / Linux x64).
+ */
+export function getUpdateChannel(): string | undefined {
+  const { platform, arch } = process;
+  if (platform === 'win32' && arch === 'arm64') {
+    return 'latest-win-arm64';
+  }
+  if (platform === 'darwin' && arch === 'arm64') {
+    return 'latest-mac-arm64';
+  }
+  if (platform === 'darwin' && arch === 'x64') {
+    return 'latest-mac-x64';
+  }
+  if (platform === 'linux' && arch === 'arm64') {
+    return 'latest-linux-arm64';
+  }
+  // Default: Windows x64 and Linux x64 use latest.yml
+  return undefined;
+}
+
 export interface AutoUpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
   version?: string;
@@ -48,6 +70,14 @@ class AutoUpdaterService extends EventEmitter {
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+
+    // Set the correct update channel based on platform and architecture before
+    // any update checks are performed
+    const channel = getUpdateChannel();
+    if (channel !== undefined) {
+      autoUpdater.channel = channel;
+      log.info(`Update channel set to: ${channel}`);
+    }
   }
 
   /**

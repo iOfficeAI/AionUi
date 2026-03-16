@@ -11,6 +11,7 @@ import type { IProvider } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -54,6 +55,9 @@ const AcpModelSelector: React.FC<{
         if (cancelled) return;
         if (result.success && result.data?.modelInfo) {
           const info = result.data.modelInfo;
+          if (backend === 'codex') {
+            console.log('[AcpModelSelector][codex] Initial model info:', info);
+          }
           // When agent is not fully initialized, getModelInfo returns
           // canSwitch=false with empty availableModels. Prefer cached data
           // in that case to keep the dropdown functional.
@@ -85,6 +89,9 @@ const AcpModelSelector: React.FC<{
         if (isCancelled) return;
         const cachedInfo = cached?.[backendKey];
         if (cachedInfo?.availableModels?.length > 0) {
+          if (backendKey === 'codex') {
+            console.log('[AcpModelSelector][codex] Loaded cached model info:', cachedInfo);
+          }
           const effectiveModelId = initialModelId || cachedInfo.currentModelId || null;
           setModelInfo({
             ...cachedInfo,
@@ -104,6 +111,9 @@ const AcpModelSelector: React.FC<{
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
+        if (backend === 'codex') {
+          console.log('[AcpModelSelector][codex] Stream model info:', incoming);
+        }
         // Preserve pre-selected model from Guid page until user manually switches.
         // The agent emits its default model during start (before re-apply), which
         // would otherwise overwrite the user's Guid page selection.
@@ -153,7 +163,14 @@ const AcpModelSelector: React.FC<{
     [conversationId]
   );
 
-  const displayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || t('conversation.welcome.useCliModel');
+  const defaultModelLabel = t('common.defaultModel');
+  const rawDisplayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || '';
+  const displayLabel = getModelDisplayLabel({
+    selectedValue: modelInfo?.currentModelId,
+    selectedLabel: rawDisplayLabel,
+    defaultModelLabel,
+    fallbackLabel: t('conversation.welcome.useCliModel'),
+  });
   const compact = isPreviewOpen || layout?.isMobile;
   const isMobileCompact = Boolean(layout?.isMobile);
 

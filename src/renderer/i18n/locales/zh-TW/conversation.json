@@ -4,7 +4,7 @@
     "placeholder": "發送訊息、上傳檔案、開啟資料夾或建立定時任務...",
     "uploadFile": "上傳檔案",
     "linkFolder": "開啟資料夾",
-    "newConversation": "新對話",
+    "newConversation": "新會話",
     "multiAgentModeEnabled": "已進入多智能體模式",
     "selectModel": "選擇模型",
     "useCliModel": "選擇模型",
@@ -65,6 +65,13 @@
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗"
   },
+  "dropdown": {
+    "cliAgents": "CLI Agents",
+    "presetAssistants": "預設助手"
+  },
+  "noAgentsAvailable": "沒有可用的 Agent",
+  "noModelConfigured": "未設定模型，請前往設定頁面設定。",
+  "createFailed": "建立對話失敗",
   "tabs": {
     "closeAll": "全部關閉",
     "closeLeft": "關閉左側",
@@ -84,7 +91,7 @@
     "empty": "空的",
     "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
     "searchPlaceholder": "搜尋檔案...",
-    "createNewConversation": "當前空間創建新對話",
+    "createNewConversation": "當前空間創建新會話",
     "search.empty": "搜索結果為空",
     "addFile": "新增檔案",
     "refresh": "重新整理",

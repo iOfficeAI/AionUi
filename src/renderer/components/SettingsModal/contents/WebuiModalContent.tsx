@@ -5,6 +5,7 @@
  */
 
 import { shell, webui, type IWebUIStatus } from '@/common/ipcBridge';
+import { ConfigStorage } from '@/common/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
@@ -15,11 +16,9 @@ import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
-import { QRCodeSVG } from 'qrcode.react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
-import ChannelModalContent from './ChannelModalContent';
 
 /**
  * 偏好设置行组件
@@ -46,6 +45,15 @@ const CHANNEL_LOGOS = [
   { src: ChannelDiscordLogo, alt: 'Discord' },
 ] as const;
 
+const ChannelModalContentLazy = React.lazy(() => import('./ChannelModalContent'));
+const QRCodeSVGLazy = React.lazy(async () => {
+  const mod = await import('qrcode.react');
+  return { default: mod.QRCodeSVG };
+});
+
+const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
+const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
+
 /**
  * WebUI 设置内容组件
  * WebUI settings content component
@@ -63,7 +71,8 @@ const WebuiModalContent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
   const [port] = useState(25808);
-  const [allowRemote, setAllowRemote] = useState(false);
+  const [webuiEnabled, setWebuiEnabled] = useState(false);
+  const [allowRemotePreference, setAllowRemotePreference] = useState(false);
   const [cachedIP, setCachedIP] = useState<string | null>(null);
   const [cachedPassword, setCachedPassword] = useState<string | null>(null);
   // 标记密码是否可以明文显示（首次启动且未复制过）/ Flag for plaintext password display (first startup and not copied)
@@ -84,6 +93,10 @@ const WebuiModalContent: React.FC = () => {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
+      const [savedEnabled, savedAllowRemote] = await Promise.all([ConfigStorage.get(DESKTOP_WEBUI_ENABLED_KEY).catch(() => false), ConfigStorage.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY).catch(() => false)]);
+      setWebuiEnabled(savedEnabled === true);
+      setAllowRemotePreference(savedAllowRemote === true);
+
       let result: { success: boolean; data?: IWebUIStatus } | null = null;
 
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
@@ -97,7 +110,6 @@ const WebuiModalContent: React.FC = () => {
 
       if (result && result.success && result.data) {
         setStatus(result.data);
-        setAllowRemote(result.data.allowRemote);
         if (result.data.lanIP) {
           setCachedIP(result.data.lanIP);
         } else if (result.data.networkUrl) {
@@ -203,26 +215,31 @@ const WebuiModalContent: React.FC = () => {
   const getDisplayUrl = useCallback(() => {
     const currentIP = getLocalIP();
     const currentPort = status?.port || port;
-    if (allowRemote && currentIP) {
+    const useRemote = status?.running ? status.allowRemote : allowRemotePreference;
+    if (useRemote && currentIP) {
       return `http://${currentIP}:${currentPort}`;
     }
     return `http://localhost:${currentPort}`;
-  }, [allowRemote, getLocalIP, status?.port, port]);
+  }, [allowRemotePreference, getLocalIP, status?.allowRemote, status?.port, status?.running, port]);
 
   // 启动/停止 WebUI / Start/Stop WebUI
   const handleToggle = async (enabled: boolean) => {
     // 使用缓存的 IP，不再阻塞获取 / Use cached IP, no longer block to fetch
     const currentIP = getLocalIP();
 
+    // 保存原始值用于回滚 / Save original value for rollback
+    const previousEnabled = webuiEnabled;
+
     // 立即显示 loading / Immediately show loading
     setStartLoading(true);
+    setWebuiEnabled(enabled);
 
     try {
       if (enabled) {
         const localUrl = `http://localhost:${port}`;
 
         // 减少启动超时到3秒（服务器启动很快）/ Reduce start timeout to 3s (server starts quickly)
-        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
+        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote: allowRemotePreference }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
 
         if (startResult && startResult.success && startResult.data) {
           const responseIP = startResult.data.lanIP || currentIP;
@@ -238,9 +255,9 @@ const WebuiModalContent: React.FC = () => {
             ...(prev || { adminUsername: 'admin' }),
             running: true,
             port,
-            allowRemote,
+            allowRemote: allowRemotePreference,
             localUrl,
-            networkUrl: allowRemote && responseIP ? `http://${responseIP}:${port}` : undefined,
+            networkUrl: allowRemotePreference && responseIP ? `http://${responseIP}:${port}` : undefined,
             lanIP: responseIP,
             initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
           }));
@@ -249,24 +266,27 @@ const WebuiModalContent: React.FC = () => {
             ...(prev || { adminUsername: 'admin' }),
             running: true,
             port,
-            allowRemote,
+            allowRemote: allowRemotePreference,
             localUrl,
             lanIP: currentIP || prev?.lanIP,
-            networkUrl: allowRemote && currentIP ? `http://${currentIP}:${port}` : undefined,
+            networkUrl: allowRemotePreference && currentIP ? `http://${currentIP}:${port}` : undefined,
             initialPassword: cachedPassword || prev?.initialPassword,
           }));
         }
 
+        // 启动成功后再持久化 / Persist only after successful start
+        await ConfigStorage.set(DESKTOP_WEBUI_ENABLED_KEY, true);
         Message.success(t('settings.webui.startSuccess'));
-        // 启动返回的数据已经足够，不再需要延迟获取状态
-        // Start result contains all needed data, no need for delayed status fetch
       } else {
         // 立即更新UI，异步停止服务器 / Update UI immediately, stop server async
         setStatus((prev) => (prev ? { ...prev, running: false } : null));
+        await ConfigStorage.set(DESKTOP_WEBUI_ENABLED_KEY, false);
         Message.success(t('settings.webui.stopSuccess'));
         webui.stop.invoke().catch((err) => console.error('WebUI stop error:', err));
       }
     } catch (error) {
+      // 回滚 UI 状态 / Rollback UI state
+      setWebuiEnabled(previousEnabled);
       console.error('Toggle WebUI error:', error);
       Message.error(t('settings.webui.operationFailed'));
     } finally {
@@ -277,6 +297,10 @@ const WebuiModalContent: React.FC = () => {
   // 处理允许远程访问切换 / Handle allow remote toggle
   // 需要重启服务器才能更改绑定地址 / Need to restart server to change binding address
   const handleAllowRemoteChange = async (checked: boolean) => {
+    // 保存原始值用于回滚 / Save original value for rollback
+    const previousAllowRemote = allowRemotePreference;
+    setAllowRemotePreference(checked);
+
     const wasRunning = status?.running;
 
     // 如果服务器正在运行，需要重启以应用新的绑定设置
@@ -301,7 +325,6 @@ const WebuiModalContent: React.FC = () => {
           if (responseIP) setCachedIP(responseIP);
           if (responsePassword) setCachedPassword(responsePassword);
 
-          setAllowRemote(checked);
           setStatus((prev) => ({
             ...(prev || { adminUsername: 'admin' }),
             running: true,
@@ -313,6 +336,8 @@ const WebuiModalContent: React.FC = () => {
             initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
           }));
 
+          // 成功后再持久化 / Persist only after success
+          await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
           Message.success(t('settings.webui.restartSuccess'));
         } else {
           // 响应为空或失败，但服务器可能已启动，检查状态
@@ -329,50 +354,61 @@ const WebuiModalContent: React.FC = () => {
             const responseIP = statusResult.data.lanIP;
             if (responseIP) setCachedIP(responseIP);
 
-            setAllowRemote(checked);
             setStatus(statusResult.data);
+            // 成功后再持久化 / Persist only after success
+            await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
             Message.success(t('settings.webui.restartSuccess'));
           } else {
-            // 真的启动失败 / Really failed to start
+            // 真的启动失败，回滚 / Really failed to start, rollback
+            setAllowRemotePreference(previousAllowRemote);
             Message.error(t('settings.webui.operationFailed'));
             setStatus((prev) => (prev ? { ...prev, running: false } : null));
           }
         }
       } catch (error) {
+        // 回滚 UI 状态 / Rollback UI state
+        setAllowRemotePreference(previousAllowRemote);
         console.error('[WebuiModal] Restart error:', error);
         Message.error(t('settings.webui.operationFailed'));
       } finally {
         setStartLoading(false);
       }
     } else {
-      // 服务器未运行，只更新状态 / Server not running, just update state
-      setAllowRemote(checked);
-
-      // 获取 IP 用于显示 / Get IP for display
-      let newIP: string | undefined;
+      // 服务器未运行，直接持久化 / Server not running, persist directly
       try {
-        if (window.electronAPI?.webuiGetStatus) {
-          const result = await window.electronAPI.webuiGetStatus();
-          if (result?.success && result?.data?.lanIP) {
-            newIP = result.data.lanIP;
-            setCachedIP(newIP);
-          }
-        }
-      } catch {
-        // ignore
-      }
+        await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
 
-      const existingIP = newIP || cachedIP || status?.lanIP;
-      setStatus((prev) =>
-        prev
-          ? {
-              ...prev,
-              allowRemote: checked,
-              lanIP: existingIP || prev.lanIP,
-              networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
+        // 获取 IP 用于显示 / Get IP for display
+        let newIP: string | undefined;
+        try {
+          if (window.electronAPI?.webuiGetStatus) {
+            const result = await window.electronAPI.webuiGetStatus();
+            if (result?.success && result?.data?.lanIP) {
+              newIP = result.data.lanIP;
+              setCachedIP(newIP);
             }
-          : null
-      );
+          }
+        } catch {
+          // ignore
+        }
+
+        const existingIP = newIP || cachedIP || status?.lanIP;
+        setStatus((prev) =>
+          prev
+            ? {
+                ...prev,
+                allowRemote: checked,
+                lanIP: existingIP || prev.lanIP,
+                networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
+              }
+            : null
+        );
+      } catch (error) {
+        // 回滚 UI 状态 / Rollback UI state
+        setAllowRemotePreference(previousAllowRemote);
+        console.error('[WebuiModal] Failed to persist allowRemote:', error);
+        Message.error(t('settings.webui.operationFailed'));
+      }
     }
   };
 
@@ -470,7 +506,7 @@ const WebuiModalContent: React.FC = () => {
 
   // 当服务器启动且允许远程访问时自动生成二维码 / Auto-generate QR code when server starts and remote access is allowed
   useEffect(() => {
-    if (status?.running && allowRemote && !qrUrl) {
+    if (status?.running && status.allowRemote && !qrUrl) {
       void generateQRCode();
     }
     // 清理定时器 / Cleanup timer
@@ -479,11 +515,11 @@ const WebuiModalContent: React.FC = () => {
         clearTimeout(qrRefreshTimerRef.current);
       }
     };
-  }, [status?.running, allowRemote, generateQRCode, qrUrl]);
+  }, [status?.allowRemote, status?.running, generateQRCode, qrUrl]);
 
   // 服务器停止或关闭远程访问时清除二维码 / Clear QR code when server stops or remote access is disabled
   useEffect(() => {
-    if (!status?.running || !allowRemote) {
+    if (!status?.running || !status.allowRemote) {
       setQrUrl(null);
       setQrExpiresAt(null);
       if (qrRefreshTimerRef.current) {
@@ -491,7 +527,7 @@ const WebuiModalContent: React.FC = () => {
         qrRefreshTimerRef.current = null;
       }
     }
-  }, [status?.running, allowRemote]);
+  }, [status?.allowRemote, status?.running]);
 
   // 格式化过期时间 / Format expiration time
   const formatExpiresAt = (timestamp: number) => {
@@ -520,7 +556,9 @@ const WebuiModalContent: React.FC = () => {
         <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
           <div className='space-y-16px'>
             <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
-            <ChannelModalContent />
+            <Suspense fallback={<div className='text-13px text-t-secondary'>{t('common.loading')}</div>}>
+              <ChannelModalContentLazy />
+            </Suspense>
           </div>
         </AionScrollArea>
       </div>
@@ -573,7 +611,7 @@ const WebuiModalContent: React.FC = () => {
 
           {/* 启用 WebUI / Enable WebUI */}
           <PreferenceRow label={t('settings.webui.enable')} extra={startLoading ? <span className='text-12px text-warning'>{t('settings.webui.starting')}</span> : status?.running ? <span className='text-12px text-success'>✓ {t('settings.webui.running')}</span> : null}>
-            <Switch checked={status?.running || startLoading} loading={startLoading} onChange={handleToggle} />
+            <Switch checked={webuiEnabled} loading={startLoading} onChange={handleToggle} />
           </PreferenceRow>
 
           {/* 访问地址（仅运行时显示）/ Access URL (only when running) */}
@@ -605,7 +643,7 @@ const WebuiModalContent: React.FC = () => {
               </span>
             }
           >
-            <Switch checked={allowRemote} onChange={handleAllowRemoteChange} />
+            <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />
           </PreferenceRow>
         </div>
 
@@ -640,7 +678,7 @@ const WebuiModalContent: React.FC = () => {
           </div>
 
           {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
-          {status?.running && allowRemote && (
+          {status?.running && status.allowRemote && (
             <>
               <div className='border-t border-line my-12px' />
               <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
@@ -655,7 +693,15 @@ const WebuiModalContent: React.FC = () => {
                     </div>
                   ) : qrUrl ? (
                     <div className='p-8px bg-white rd-8px'>
-                      <QRCodeSVG value={qrUrl} size={140} level='M' />
+                      <Suspense
+                        fallback={
+                          <div className='w-140px h-140px flex items-center justify-center'>
+                            <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                          </div>
+                        }
+                      >
+                        <QRCodeSVGLazy value={qrUrl} size={140} level='M' />
+                      </Suspense>
                     </div>
                   ) : (
                     <div className='w-140px h-140px flex items-center justify-center'>
@@ -687,7 +733,7 @@ const WebuiModalContent: React.FC = () => {
         <Tabs.TabPane
           key='webui'
           title={
-            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+            <span data-webui-tab='webui' className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
               <Earth theme='outline' size='15' />
               <span>WebUI</span>
             </span>
@@ -696,7 +742,7 @@ const WebuiModalContent: React.FC = () => {
         <Tabs.TabPane
           key='channels'
           title={
-            <span className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
+            <span data-webui-tab='channels' className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}>
               <Communication theme='outline' size='15' />
               <span>Channels</span>
               <span className='inline-flex items-center gap-4px ml-2px'>
@@ -715,7 +761,9 @@ const WebuiModalContent: React.FC = () => {
         webuiPanel
       ) : (
         <div className='flex-1 min-h-0'>
-          <ChannelModalContent />
+          <Suspense fallback={<div className='px-[12px] md:px-[28px] text-13px text-t-secondary'>{t('common.loading')}</div>}>
+            <ChannelModalContentLazy />
+          </Suspense>
         </div>
       )}
 

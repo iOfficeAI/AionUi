@@ -16,8 +16,8 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   const { t } = useTranslation();
 
   // 使用自定义hooks管理各种状态和操作
-  const { mcpServers, saveMcpServers } = useMcpServers();
-  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } = useMcpAgentStatus();
+  const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
+  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkAgentInstallStatus, checkSingleServerInstallStatus } = useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
 
   // OAuth hook
@@ -133,6 +133,17 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     void loadAgents();
   }, []);
 
+  const allMcpServers = React.useMemo(() => [...mcpServers, ...extensionMcpServers], [mcpServers, extensionMcpServers]);
+
+  // 初始化和变更时刷新所有 MCP 的 agent 安装状态（包含扩展贡献）
+  React.useEffect(() => {
+    if (allMcpServers.length === 0) {
+      setAgentInstallStatus({});
+      return;
+    }
+    void checkAgentInstallStatus(allMcpServers, true);
+  }, [allMcpServers, checkAgentInstallStatus, setAgentInstallStatus]);
+
   // 初始化时检查所有 HTTP/SSE 服务器的 OAuth 状态
   React.useEffect(() => {
     const httpServers = mcpServers.filter((s) => s.transport.type === 'http' || s.transport.type === 'sse');
@@ -208,9 +219,13 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         name={'mcp-servers'}
       >
         <div>
-          {mcpServers.length === 0 ? <div className='text-center py-8 text-t-secondary'>{t('settings.mcpNoServersFound')}</div> : mcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />)}
+          {mcpServers.length === 0 && extensionMcpServers.length === 0 ? (
+            <div className='text-center py-8 text-t-secondary'>{t('settings.mcpNoServersFound')}</div>
+          ) : (
+            mcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />)
+          )}
+          {extensionMcpServers.length > 0 && extensionMcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={() => {}} onDeleteServer={() => {}} onToggleServer={() => Promise.resolve()} isReadOnly />)}
         </div>
-        <div>{mcpServers.length === 0 ? <div className='text-center py-8 text-t-secondary'>{t('settings.mcpNoServersFound')}</div> : mcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} />)}</div>
       </Collapse.Item>
 
       <AddMcpServerModal visible={showMcpModal} server={editingMcpServer} onCancel={hideMcpModal} onSubmit={editingMcpServer ? (serverData) => wrappedHandleEditMcpServer(editingMcpServer, serverData) : wrappedHandleAddMcpServer} onBatchImport={wrappedHandleBatchImportMcpServers} importMode={importMode} />

@@ -9,7 +9,21 @@ import { joinPath } from '@/common/chatLib';
 import type { PreviewContentType } from '@/common/types/preview';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { LARGE_TEXT_PREVIEW_MAX_LENGTH, LARGE_TEXT_PREVIEW_THRESHOLD } from '@/renderer/pages/conversation/preview/constants';
 import { useCallback, useState } from 'react';
+
+const LARGE_TEXT_PREVIEW_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html', 'diff']);
+
+const normalizeLargeTextPreview = (content: string, contentType: PreviewContentType): { content: string; truncated: boolean } => {
+  if (!LARGE_TEXT_PREVIEW_TYPES.has(contentType) || content.length <= LARGE_TEXT_PREVIEW_THRESHOLD) {
+    return { content, truncated: false };
+  }
+
+  return {
+    content: content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH),
+    truncated: true,
+  };
+};
 
 /**
  * 预览启动选项 / Preview launch options
@@ -80,9 +94,10 @@ export const usePreviewLauncher = () => {
       // 1. 乐观预览：如果有回退内容（如 Diff 中提取的内容），立即显示 / Optimistic preview: Show fallback content immediately if available
       let hasOpened = false;
       if (typeof fallbackContent === 'string') {
-        openPreview(fallbackContent, contentType, {
+        const normalizedFallback = normalizeLargeTextPreview(fallbackContent, contentType);
+        openPreview(normalizedFallback.content, contentType, {
           ...metadata,
-          editable,
+          editable: normalizedFallback.truncated ? false : editable,
         });
         hasOpened = true;
       }
@@ -115,9 +130,10 @@ export const usePreviewLauncher = () => {
 
             // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
             const content = await Promise.race([ipcBridge.fs.readFile.invoke({ path: pathToRead! }), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000))]);
-            openPreview(content, contentType, {
+            const normalizedContent = normalizeLargeTextPreview(content, contentType);
+            openPreview(normalizedContent.content, contentType, {
               ...metadata,
-              editable,
+              editable: normalizedContent.truncated ? false : editable,
             });
             return;
           } catch (error) {

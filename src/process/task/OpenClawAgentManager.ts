@@ -12,6 +12,7 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import type { AcpBackendAll } from '@/types/acpTypes';
+import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
@@ -157,19 +158,38 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   }
 
   private handleSessionKeyUpdate(sessionKey: string): void {
-    // Store updated session key for resume
-    // This could be persisted to conversation extra data
-    console.log('[OpenClawAgentManager] Session key updated:', sessionKey);
+    this.saveSessionKey(sessionKey);
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+  /**
+   * Persist the resolved session key to the database for resume support.
+   * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
+   */
+  private saveSessionKey(sessionKey: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'openclaw-gateway') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          sessionKey,
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      console.error('[OpenClawAgentManager] Failed to save session key:', error);
+    }
+  }
+
+  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
     try {
       await this.bootstrap;
 
-      // Save user message to chat history
+      // Save user message to chat history (always use original content, not injected version)
       if (data.msg_id && data.content) {
         const userMessage: TMessage = {
           id: data.msg_id,
@@ -183,9 +203,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
         addMessage(this.conversation_id, userMessage);
       }
 
-      // Send message to agent
+      // Send message to agent (use agentContent if provided, e.g. with injected skills)
       const result = await this.agent.sendMessage({
-        content: data.content,
+        content: data.agentContent || data.content,
         files: data.files,
         msg_id: data.msg_id,
       });

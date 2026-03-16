@@ -91,7 +91,6 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
-
 const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -114,6 +113,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Track whether the current turn was triggered by a Star Office install request
+  const starOfficeInstallInFlightRef = useRef(false);
 
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -185,7 +187,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
-
+  const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
     setOpenClawStatus(null);
@@ -261,6 +263,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
             setAiProcessing(false);
             aiProcessingRef.current = false;
             setThought({ subject: '', description: '' });
+            // Notify StarOfficeMonitorCard to re-detect and auto-open panel
+            if (starOfficeInstallInFlightRef.current) {
+              starOfficeInstallInFlightRef.current = false;
+              emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
+            }
             hasContentInTurnRef.current = false;
           }
           break;
@@ -281,11 +288,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         case 'agent_status': {
-          // Auto-recover aiProcessing state if agent_status arrives after finish
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
           const statusData = message.data as { status: string; message: string };
           setOpenClawStatus(statusData.status);
           const transformedMessage = transformMessage(message);
@@ -295,13 +297,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         default: {
-          // Mark that current turn has content output
-          hasContentInTurnRef.current = true;
-          // Auto-recover aiProcessing state if other messages arrive after finish
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -318,6 +313,40 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       setWorkspacePath(res.extra.workspace);
     });
   }, [conversation_id]);
+
+  useAddEventListener(
+    'staroffice.install.request',
+    ({ conversationId, text }) => {
+      if (conversationId !== conversation_id) return;
+      // Show the simplified prompt to user, inject star-office-helper skill via main process
+      const msg_id = uuid();
+      const userMessage: TMessage = {
+        id: msg_id,
+        msg_id,
+        conversation_id,
+        type: 'text',
+        position: 'right',
+        content: { content: text },
+        createdAt: Date.now(),
+      };
+      addOrUpdateMessage(userMessage, true);
+      setAiProcessing(true);
+      aiProcessingRef.current = true;
+      starOfficeInstallInFlightRef.current = true;
+      ipcBridge.openclawConversation.sendMessage
+        .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
+        .then(() => {
+          void checkAndUpdateTitle(conversation_id, text);
+          emitter.emit('chat.history.refresh');
+        })
+        .catch(() => {
+          setAiProcessing(false);
+          aiProcessingRef.current = false;
+          starOfficeInstallInFlightRef.current = false;
+        });
+    },
+    [conversation_id, addOrUpdateMessage, checkAndUpdateTitle]
+  );
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
@@ -342,53 +371,67 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     }, 10);
   });
 
-  const onSendHandler = async (message: string) => {
-    const runtimeOk = await validateRuntimeMismatch(conversation_id);
-    if (!runtimeOk) return;
+  const sendOpenClawMessage = useCallback(
+    async (message: string) => {
+      const runtimeOk = await validateRuntimeMismatch(conversation_id);
+      if (!runtimeOk) return;
 
-    const msg_id = uuid();
-    // Content is already cleared by the shared SendBox component (setInput(''))
-    // before calling onSend — no need to clear again here.
-    emitter.emit('openclaw-gateway.selected.file.clear');
-    const currentAtPath = [...atPath];
-    const currentUploadFile = [...uploadFile];
-    setAtPath([]);
-    setUploadFile([]);
+      const msg_id = uuid();
+      // Content is already cleared by the shared SendBox component (setInput(''))
+      // before calling onSend — no need to clear again here.
+      emitter.emit('openclaw-gateway.selected.file.clear');
+      const currentAtPath = [...atPath];
+      const currentUploadFile = [...uploadFile];
+      setAtPath([]);
+      setUploadFile([]);
 
-    const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
-    const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
+      const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+      const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
 
-    const userMessage: TMessage = {
-      id: msg_id,
-      msg_id,
-      conversation_id,
-      type: 'text',
-      position: 'right',
-      content: { content: displayMessage },
-      createdAt: Date.now(),
-    };
-    // 保存用户消息用于通知 / Save user message for notification
-    setPendingUserMessage(conversation_id, message);
-    addOrUpdateMessage(userMessage, true);
-    setAiProcessing(true);
-    aiProcessingRef.current = true;
-    try {
-      const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
-      await ipcBridge.openclawConversation.sendMessage.invoke({
-        input: displayMessage,
+      const userMessage: TMessage = {
+        id: msg_id,
         msg_id,
         conversation_id,
-        files: [...currentUploadFile, ...atPathStrings],
-      });
-      void checkAndUpdateTitle(conversation_id, message);
-      emitter.emit('chat.history.refresh');
-    } catch (error) {
-      // Only reset aiProcessing on error, normal flow is reset by 'finish' event
-      setAiProcessing(false);
-      aiProcessingRef.current = false;
-      throw error;
-    }
+        type: 'text',
+        position: 'right',
+        content: { content: displayMessage },
+        createdAt: Date.now(),
+      };
+      // 保存用户消息用于通知 / Save user message for notification
+      setPendingUserMessage(conversation_id, message);
+      addOrUpdateMessage(userMessage, true);
+      setAiProcessing(true);
+      aiProcessingRef.current = true;
+      try {
+        const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
+        await ipcBridge.openclawConversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files: [...currentUploadFile, ...atPathStrings],
+        });
+        void checkAndUpdateTitle(conversation_id, message);
+        emitter.emit('chat.history.refresh');
+      } catch (error) {
+        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        throw error;
+      }
+    },
+    [conversation_id, atPath, uploadFile, workspacePath, addOrUpdateMessage, checkAndUpdateTitle, setAtPath, setUploadFile]
+  );
+
+  const onSendHandler = async (message: string) => {
+    await sendOpenClawMessage(message);
   };
+
+  useEffect(() => {
+    immediateSendRef.current = sendOpenClawMessage;
+    return () => {
+      immediateSendRef.current = null;
+    };
+  }, [sendOpenClawMessage]);
 
   const appendSelectedFiles = useCallback(
     (files: string[]) => {

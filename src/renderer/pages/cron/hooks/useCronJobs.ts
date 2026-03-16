@@ -322,6 +322,7 @@ export function useCronJobsMap() {
         const newLastRunAt = job.state.lastRunAtMs;
         if (newLastRunAt && newLastRunAt !== prevLastRunAt) {
           lastRunAtMapRef.current.set(job.id, newLastRunAt);
+
           // Mark as unread only if user is not currently viewing this conversation
           // Use ref to access the latest activeConversationId value
           if (activeConversationIdRef.current !== convId) {
@@ -332,8 +333,8 @@ export function useCronJobsMap() {
               return newSet;
             });
           }
+
           // Refresh conversation list to update sorting (modifyTime was updated after execution)
-          console.log('[useCronJobsMap] onJobUpdated with new execution, triggering chat.history.refresh');
           emitter.emit('chat.history.refresh');
         }
 
@@ -417,11 +418,19 @@ export function useCronJobsMap() {
   const markAsRead = useCallback((conversationId: string) => {
     activeConversationIdRef.current = conversationId;
     setUnreadConversations((prev) => {
-      if (!prev.has(conversationId)) return prev;
+      if (!prev.has(conversationId)) {
+        return prev;
+      }
       const newSet = new Set(prev);
       newSet.delete(conversationId);
       return newSet;
     });
+  }, []);
+
+  // Update active conversation ref without triggering state update
+  // Use this to sync the ref when route changes (e.g., URL navigation)
+  const setActiveConversation = useCallback((conversationId: string) => {
+    activeConversationIdRef.current = conversationId;
   }, []);
 
   // Check if a conversation has unread cron executions
@@ -440,10 +449,11 @@ export function useCronJobsMap() {
       getJobsForConversation,
       getJobStatus,
       markAsRead,
+      setActiveConversation,
       hasUnread,
       refetch: fetchAllJobs,
     }),
-    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, hasUnread, fetchAllJobs]
+    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, setActiveConversation, hasUnread, fetchAllJobs]
   );
 }
 

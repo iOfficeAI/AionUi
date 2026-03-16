@@ -10,7 +10,7 @@ import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
 import type { SlashCommandItem } from './slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
+import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, AutoUpdateStatus } from './updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
@@ -92,7 +92,7 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
-  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
+  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; logDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
@@ -128,6 +128,10 @@ export const autoUpdate = {
   quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
   /** Auto-update status events */
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
+};
+
+export const starOffice = {
+  detectUrl: bridge.buildProvider<IBridgeResponse<{ url: string | null }>, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>('star-office.detect-url'),
 };
 
 export const dialog = {
@@ -244,8 +248,11 @@ export const acpConversation = {
         isPreset?: boolean;
         context?: string;
         avatar?: string;
-        presetAgentType?: PresetAgentType;
+        // Allow extension-contributed adapter IDs in addition to built-in PresetAgentType values
+        presetAgentType?: PresetAgentType | string;
         supportedTransports?: string[];
+        isExtension?: boolean;
+        extensionName?: string;
       }>
     >,
     void
@@ -262,9 +269,18 @@ export const acpConversation = {
   // Get model info for ACP agents (model name and available models)
   // 获取 ACP 代理的模型信息（模型名称和可用模型）
   getModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>('acp.get-model-info'),
+  // Probe model info for an ACP backend without creating a visible conversation
+  // 预探测 ACP 后端的模型信息，不创建可见会话
+  probeModelInfo: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { backend: AcpBackend }>('acp.probe-model-info'),
   // Set model for ACP agents
   // 设置 ACP 代理的模型
   setModel: bridge.buildProvider<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string; modelId: string }>('acp.set-model'),
+  // Get non-model config options for ACP agents (e.g., reasoning effort)
+  // 获取 ACP 代理的非模型配置选项（如推理级别）
+  getConfigOptions: bridge.buildProvider<IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>, { conversationId: string }>('acp.get-config-options'),
+  // Set a config option value for ACP agents (e.g., reasoning effort)
+  // 设置 ACP 代理的配置选项值（如推理级别）
+  setConfigOption: bridge.buildProvider<IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>, { conversationId: string; configId: string; value: string }>('acp.set-config-option'),
 };
 
 // MCP 服务相关接口
@@ -375,6 +391,8 @@ export const systemSettings = {
   getCronNotificationEnabled: bridge.buildProvider<boolean, void>('system-settings:get-cron-notification-enabled'),
   setCronNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-cron-notification-enabled'),
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
+  // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
+  languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
 };
 
 // 系统通知接口 / System notification API
@@ -485,6 +503,8 @@ interface ISendMessageParams {
   conversation_id: string;
   files?: string[];
   loading_id?: string;
+  /** Skill names to inject into the message (used by agents with file-reading ability) */
+  injectSkills?: string[];
 }
 
 // Unified confirm message params for all agents (Gemini, ACP, Codex)
@@ -584,6 +604,119 @@ interface IBridgeResponse<D = {}> {
   msg?: string;
 }
 
+// ==================== Extensions API ====================
+
+export interface IExtensionInfo {
+  name: string;
+  displayName: string;
+  version: string;
+  description?: string;
+  source: string;
+  directory: string;
+  /** Whether the extension is currently enabled */
+  enabled: boolean;
+  /** Overall permission risk level */
+  riskLevel: 'safe' | 'moderate' | 'dangerous';
+  /** Whether the extension has lifecycle hooks */
+  hasLifecycle: boolean;
+}
+
+/** Permission summary for extension management UI (Figma-inspired) */
+export interface IExtensionPermissionSummary {
+  name: string;
+  description: string;
+  level: 'safe' | 'moderate' | 'dangerous';
+  granted: boolean;
+}
+
+/** Settings tab contributed by an extension, consumed by settings UI */
+export interface IExtensionSettingsTab {
+  id: string;
+  name: string;
+  icon?: string;
+  /** aion-asset:// local page or external https:// URL */
+  entryUrl: string;
+  /** Position anchor relative to a built-in or other extension tab */
+  position?: { anchor: string; placement: 'before' | 'after' };
+  /** Fallback numeric order when multiple tabs share the same anchor+placement. Lower = first */
+  order: number;
+  _extensionName: string;
+}
+
+/** WebUI contributions exposed for diagnostics/e2e validation */
+export interface IExtensionWebuiContribution {
+  extensionName: string;
+  apiRoutes: Array<{ path: string; auth: boolean }>;
+  staticAssets: Array<{ urlPrefix: string; directory: string }>;
+}
+
+export type AgentActivityState = 'idle' | 'writing' | 'researching' | 'executing' | 'syncing' | 'error';
+
+export interface IExtensionAgentActivityEvent {
+  conversationId: string;
+  at: number;
+  kind: 'status' | 'tool' | 'message';
+  text: string;
+}
+
+export interface IExtensionAgentActivityItem {
+  id: string;
+  backend: string;
+  agentName: string;
+  state: AgentActivityState;
+  runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown';
+  conversations: number;
+  activeConversations: number;
+  lastActiveAt: number;
+  lastStatus?: string;
+  currentTask?: string;
+  recentEvents: IExtensionAgentActivityEvent[];
+}
+
+export interface IExtensionAgentActivitySnapshot {
+  generatedAt: number;
+  totalConversations: number;
+  runningConversations: number;
+  agents: IExtensionAgentActivityItem[];
+}
+
+export const extensions = {
+  /** Get all extension-contributed CSS themes */
+  getThemes: bridge.buildProvider<ICssTheme[], void>('extensions.get-themes'),
+  /** Get summary of all loaded extensions */
+  getLoadedExtensions: bridge.buildProvider<IExtensionInfo[], void>('extensions.get-loaded-extensions'),
+  /** Get all extension-contributed assistants */
+  getAssistants: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-assistants'),
+  /** Get all extension-contributed agents (autonomous agent presets) */
+  getAgents: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-agents'),
+  /** Get all extension-contributed ACP adapters */
+  getAcpAdapters: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-acp-adapters'),
+  /** Get all extension-contributed MCP servers */
+  getMcpServers: bridge.buildProvider<Record<string, unknown>[], void>('extensions.get-mcp-servers'),
+  /** Get all extension-contributed skills */
+  getSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string }>, void>('extensions.get-skills'),
+  /** Get all extension-contributed settings tabs */
+  getSettingsTabs: bridge.buildProvider<IExtensionSettingsTab[], void>('extensions.get-settings-tabs'),
+  /** Get extension-contributed webui routes/assets metadata */
+  getWebuiContributions: bridge.buildProvider<IExtensionWebuiContribution[], void>('extensions.get-webui-contributions'),
+  /** Snapshot of all agent activities, for extension settings tabs */
+  getAgentActivitySnapshot: bridge.buildProvider<IExtensionAgentActivitySnapshot, void>('extensions.get-agent-activity-snapshot'),
+  /** Get merged extension i18n translations for a specific locale (falls back to en-US) */
+  getExtI18nForLocale: bridge.buildProvider<Record<string, unknown>, { locale: string }>('extensions.get-ext-i18n-for-locale'),
+
+  // --- Extension Management API (NocoBase-inspired) ---
+  /** Enable a disabled extension */
+  enableExtension: bridge.buildProvider<IBridgeResponse, { name: string }>('extensions.enable'),
+  /** Disable an extension */
+  disableExtension: bridge.buildProvider<IBridgeResponse, { name: string; reason?: string }>('extensions.disable'),
+  /** Get permission summary for an extension (Figma-inspired) */
+  getPermissions: bridge.buildProvider<IExtensionPermissionSummary[], { name: string }>('extensions.get-permissions'),
+  /** Get overall risk level for an extension */
+  getRiskLevel: bridge.buildProvider<string, { name: string }>('extensions.get-risk-level'),
+  /** Extension state change events (push to renderer when enable/disable happens) */
+  stateChanged: bridge.buildEmitter<{ name: string; enabled: boolean; reason?: string }>('extensions.state-changed'),
+};
+
 // ==================== Channel API ====================
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@/channels/types';
@@ -608,7 +741,7 @@ export const channel = {
   getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
 
   // Settings Sync
-  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: 'telegram' | 'lark' | 'dingtalk'; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
+  syncChannelSettings: bridge.buildProvider<IBridgeResponse, { platform: string; agent: { backend: string; customAgentId?: string; name?: string }; model?: { id: string; useModel: string } }>('channel.sync-channel-settings'),
 
   // Events
   pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),

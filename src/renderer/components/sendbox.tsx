@@ -5,7 +5,8 @@
  */
 
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
-import { getScrollTopForActiveItem, useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
+import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/SlashCommandMenu';
+import { useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/focus';
@@ -54,8 +55,6 @@ const SendBox: React.FC<{
   const isInputActive = isInputFocused;
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
-  const slashDropdownRef = useRef<HTMLDivElement>(null);
-  const slashItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const mobileUserFocusIntentUntilRef = useRef(0);
@@ -221,25 +220,16 @@ const SendBox: React.FC<{
     },
   });
 
-  useEffect(() => {
-    if (!slashController.isOpen) {
-      return;
-    }
-    const container = slashDropdownRef.current;
-    const activeItem = slashItemRefs.current[slashController.activeIndex];
-    if (!container || !activeItem) {
-      return;
-    }
-    const nextScrollTop = getScrollTopForActiveItem({
-      containerScrollTop: container.scrollTop,
-      containerHeight: container.clientHeight,
-      itemOffsetTop: activeItem.offsetTop,
-      itemOffsetHeight: activeItem.offsetHeight,
-    });
-    if (nextScrollTop !== container.scrollTop) {
-      container.scrollTop = nextScrollTop;
-    }
-  }, [slashController.activeIndex, slashController.isOpen, slashController.filteredCommands.length]);
+  const slashMenuItems = useMemo<SlashCommandMenuItem[]>(
+    () =>
+      slashController.filteredCommands.map((command) => ({
+        key: command.name,
+        label: `/${command.name}`,
+        description: command.description,
+        badge: command.hint,
+      })),
+    [slashController.filteredCommands]
+  );
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
@@ -372,28 +362,22 @@ const SendBox: React.FC<{
         {...dragHandlers}
       >
         {slashController.isOpen && (
-          <div ref={slashDropdownRef} className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-50 max-h-220px overflow-auto rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] shadow-lg p-6px flex flex-col gap-4px'>
-            {slashController.filteredCommands.map((command, index) => (
-              <button
-                key={command.name}
-                type='button'
-                ref={(el) => {
-                  slashItemRefs.current[index] = el;
-                }}
-                className={`w-full text-left px-10px py-8px rounded-8px transition-all border border-solid ${slashController.activeIndex === index ? 'bg-fill-2 b-color-border-3 shadow-sm' : 'b-transparent hover:bg-fill-1 hover:b-color-border-2'}`}
-                onMouseEnter={() => slashController.setActiveIndex(index)}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  slashController.onSelectByIndex(index);
-                }}
-              >
-                <div className='flex items-center justify-between gap-8px'>
-                  <div className='text-13px text-t-primary font-600'>/{command.name}</div>
-                  {command.hint && <div className='text-11px text-t-tertiary'>{command.hint}</div>}
-                </div>
-                <div className='text-12px text-t-secondary mt-2px'>{command.description}</div>
-              </button>
-            ))}
+          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+            <SlashCommandMenu
+              title={t('messages.slash.title', { defaultValue: 'Commands' })}
+              hint={t('messages.slash.hint', { defaultValue: 'Type / to open command menu' })}
+              items={slashMenuItems}
+              activeIndex={slashController.activeIndex}
+              loading={false}
+              onHoverItem={slashController.setActiveIndex}
+              onSelectItem={(item) => {
+                const targetIndex = slashController.filteredCommands.findIndex((command) => command.name === item.key);
+                if (targetIndex >= 0) {
+                  slashController.onSelectByIndex(targetIndex);
+                }
+              }}
+              emptyText={t('messages.slash.empty', { defaultValue: 'No commands found' })}
+            />
           </div>
         )}
         <div style={{ width: '100%' }}>
@@ -411,7 +395,7 @@ const SendBox: React.FC<{
           )}
         </div>
         <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
-          {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
+          {isSingleLine && <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>{tools}</div>}
           <Input.TextArea
             autoFocus={!isMobile}
             disabled={disabled}
@@ -456,7 +440,7 @@ const SendBox: React.FC<{
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <div className='sendbox-tools'>{tools}</div>
+            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
               {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}

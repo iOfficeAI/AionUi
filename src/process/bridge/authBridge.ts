@@ -11,6 +11,13 @@ import * as fs from 'node:fs';
 export function initAuthBridge(): void {
   ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
     try {
+      const credsPath = Storage.getOAuthCredsPath();
+      if (!fs.existsSync(credsPath)) {
+        // 凭证文件不存在时直接返回，避免触发底层 ENOENT 日志
+        // Return early when credential file is missing to avoid noisy ENOENT logs
+        return { success: false };
+      }
+
       // 首先尝试从缓存获取用户信息
       // First try to get user info from cache
       const info = await getOauthInfoWithCache(proxy);
@@ -22,21 +29,17 @@ export function initAuthBridge(): void {
       // 这种情况可能是：终端已登录但 google_accounts.json 的 active 为 null
       // This can happen when: terminal is logged in but google_accounts.json has active: null
       try {
-        const credsPath = Storage.getOAuthCredsPath();
-        const credsExist = fs.existsSync(credsPath);
-        if (credsExist) {
-          // 凭证文件存在但 getOauthInfoWithCache 失败，可能是令牌需要刷新
-          // Credentials file exists but getOauthInfoWithCache failed, token may need refresh
-          // 读取凭证文件检查是否有 refresh_token
-          // Read credentials file to check for refresh_token
-          const credsContent = fs.readFileSync(credsPath, 'utf-8');
-          const creds = JSON.parse(credsContent);
-          if (creds.refresh_token) {
-            // 有 refresh_token，凭证有效但可能需要在使用时刷新
-            // Has refresh_token, credentials are valid but may need refresh when used
-            console.log('[Auth] Credentials exist with refresh_token, returning success');
-            return { success: true, data: { account: 'Logged in (refresh needed)' } };
-          }
+        // 凭证文件存在但 getOauthInfoWithCache 失败，可能是令牌需要刷新
+        // Credentials file exists but getOauthInfoWithCache failed, token may need refresh
+        // 读取凭证文件检查是否有 refresh_token
+        // Read credentials file to check for refresh_token
+        const credsContent = fs.readFileSync(credsPath, 'utf-8');
+        const creds = JSON.parse(credsContent);
+        if (creds.refresh_token) {
+          // 有 refresh_token，凭证有效但可能需要在使用时刷新
+          // Has refresh_token, credentials are valid but may need refresh when used
+          console.log('[Auth] Credentials exist with refresh_token, returning success');
+          return { success: true, data: { account: 'Logged in (refresh needed)' } };
         }
       } catch (fsError) {
         // 忽略文件系统错误，继续返回 false
