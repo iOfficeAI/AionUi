@@ -22,6 +22,7 @@ import { processCustomCss } from './utils/customCssProcessor';
 import { cleanupSiderTooltips } from './utils/siderTooltip';
 import { isElectronDesktop } from './utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from './utils/themeCssSync';
+import './layout.css';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);

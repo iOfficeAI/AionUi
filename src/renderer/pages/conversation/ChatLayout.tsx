@@ -20,6 +20,7 @@ import { WORKSPACE_HAS_FILES_EVENT, WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceSta
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import './chat-layout.css';
 
 const MIN_CHAT_RATIO = 25;
 const MIN_WORKSPACE_RATIO = 12;

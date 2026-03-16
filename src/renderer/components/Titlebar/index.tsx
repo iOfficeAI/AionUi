@@ -10,6 +10,7 @@ import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/u
 import type { WorkspaceStateDetail } from '@renderer/utils/workspaceEvents';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
+import './titlebar.css';
 
 interface TitlebarProps {
   workspaceAvailable: boolean;

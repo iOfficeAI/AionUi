@@ -20,6 +20,7 @@ import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/useDeepLink';
+import '../model-provider.css';
 
 /**
  * 获取协议显示标签颜色

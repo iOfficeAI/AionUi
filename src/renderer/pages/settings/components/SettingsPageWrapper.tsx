@@ -8,6 +8,7 @@ import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot,
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/useExtI18n';
+import '../settings.css';
 
 interface SettingsPageWrapperProps {
   children: React.ReactNode;

@@ -18,6 +18,7 @@ import React, { createContext, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '../utils/common';
+import './messages.css';
 import HOC from '../utils/HOC';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';

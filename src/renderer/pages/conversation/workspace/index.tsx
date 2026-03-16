@@ -29,6 +29,7 @@ import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
+import './workspace.css';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
 import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';

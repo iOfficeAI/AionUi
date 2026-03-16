@@ -13,6 +13,7 @@ import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
+import './Diff2Html.css';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
