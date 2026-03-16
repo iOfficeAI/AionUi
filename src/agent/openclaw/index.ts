@@ -10,7 +10,7 @@ import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 import { uuid } from '@/common/utils';
-import type { AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpResult, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import net from 'node:net';
 import { OpenClawGatewayConnection } from './OpenClawGatewayConnection';
@@ -71,11 +71,15 @@ export class OpenClawAgent {
   private approvalStore = new AcpApprovalStore();
   private pendingPermissions = new Map<string, { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }>();
   private statusMessageId: string | null = null;
+  private disconnectTipMessageId: string | null = null;
   private pendingNavigationTools = new Set<string>();
 
-  // Streaming message state - independent from AcpAdapter
+  // Streaming message state - driven by chat.delta events
   private currentStreamMsgId: string | null = null;
   private accumulatedAssistantText = '';
+  // Fallback text buffered from agent.stream="assistant" events,
+  // used when chat:delta is dropped (dropIfSlow) and chat:final has no message.
+  private agentAssistantFallbackText = '';
 
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
@@ -111,12 +115,6 @@ export class OpenClawAgent {
       const token = gatewayConfig.token ?? getGatewayAuthToken() ?? undefined;
       const password = gatewayConfig.password ?? getGatewayAuthPassword() ?? undefined;
 
-      if (token) {
-        console.log('[OpenClawAgent] Using gateway auth token from config');
-      } else if (password) {
-        console.log('[OpenClawAgent] Using gateway auth password from config');
-      }
-
       // Start gateway process if not using external
       if (!useExternal) {
         // If a gateway is already listening on the target port, don't try to spawn another one.
@@ -124,7 +122,7 @@ export class OpenClawAgent {
         const probeHost = host === 'localhost' ? '127.0.0.1' : host;
         const alreadyListening = await isTcpPortOpen(probeHost, port);
         if (alreadyListening) {
-          console.log(`[OpenClawAgent] Gateway already listening on ${probeHost}:${port}, skip spawning`);
+          // Gateway already running, skip spawning
         } else {
           this.gatewayManager = new OpenClawGatewayManager({
             cliPath: gatewayConfig.cliPath || 'openclaw',
@@ -212,6 +210,7 @@ export class OpenClawAgent {
       // Reset streaming state for new message
       this.currentStreamMsgId = null;
       this.accumulatedAssistantText = '';
+      this.agentAssistantFallbackText = '';
       this.adapter.resetMessageTracking();
 
       // Process file references
@@ -292,22 +291,38 @@ export class OpenClawAgent {
       try {
         const result = await this.connection.sessionsResolve({ key: resumeKey });
         this.connection.sessionKey = result.key;
-        console.log('[OpenClawAgent] Resumed session:', result.key);
         return;
       } catch (err) {
         console.warn('[OpenClawAgent] Failed to resume session, using default:', err);
       }
     }
 
-    // Use "main" as default session key - OpenClaw will create it if needed
-    const defaultKey = 'main';
-    this.connection.sessionKey = defaultKey;
-    console.log('[OpenClawAgent] Using default session key:', defaultKey);
+    // For new conversations: reset creates/clears the session and returns the canonical key.
+    // sessions.reset is sufficient — no need for a subsequent sessions.resolve call.
+    const defaultKey = this.id; // use conversation_id for per-conversation session isolation
+    try {
+      const resetResult = await this.connection.sessionsReset({ key: defaultKey, reason: 'new' });
+      this.connection.sessionKey = resetResult.key;
+    } catch (err) {
+      // Fallback: try plain resolve (handles race conditions where session already exists)
+      console.warn('[OpenClawAgent] Failed to reset session, trying plain resolve:', err);
+      try {
+        const result = await this.connection.sessionsResolve({ key: defaultKey });
+        this.connection.sessionKey = result.key;
+      } catch (resolveErr) {
+        console.warn('[OpenClawAgent] Failed to resolve default session, falling back:', resolveErr);
+        this.connection.sessionKey = defaultKey;
+      }
+    }
 
     // Notify about session key
-    if (defaultKey !== resumeKey) {
-      this.onSessionKeyUpdate?.(defaultKey);
+    if (this.connection.sessionKey !== resumeKey) {
+      this.onSessionKeyUpdate?.(this.connection.sessionKey!);
     }
+  }
+
+  private isFromOtherSession(sessionKey?: string): boolean {
+    return !!(sessionKey && this.connection?.sessionKey && sessionKey !== this.connection.sessionKey);
   }
 
   private handleEvent(evt: EventFrame): void {
@@ -332,7 +347,6 @@ export class OpenClawAgent {
 
       // Gateway shutdown
       case 'shutdown':
-        console.log('[OpenClawAgent] Gateway shutdown:', evt.payload);
         this.handleDisconnect('Gateway shutdown');
         break;
 
@@ -342,140 +356,238 @@ export class OpenClawAgent {
         break;
 
       default:
-        // Log unknown events for debugging
-        console.log('[OpenClawAgent] Unhandled event:', evt.event, evt.payload);
+        break;
     }
   }
 
   private handleChatEvent(event: ChatEvent): void {
-    // Skip delta processing when handleAgentEvent is already handling the assistant stream
-    // This prevents duplicate messages with different msg_ids
-    if (event.state === 'delta' && this.currentStreamMsgId) {
-      // Agent stream is active, skip to avoid duplicate content
-      return;
-    }
+    // Filter out events from other sessions to prevent cross-session message contamination
+    if (this.isFromOtherSession(event.sessionKey)) return;
+    switch (event.state) {
+      case 'delta': {
+        // Extract cumulative text from the message (gateway sends cumulative snapshots)
+        const cumulative = this.extractTextFromMessage(event.message);
+        if (!cumulative) return;
 
-    // Convert to ACP session update format for adapter reuse
-    if (event.state === 'delta' && event.message) {
-      // Convert OpenClaw message format to ACP format
-      const acpUpdate = this.convertToAcpFormat(event);
-      if (acpUpdate) {
-        const messages = this.adapter.convertSessionUpdate(acpUpdate);
-        for (const message of messages) {
-          this.emitMessage(message);
+        // chat:delta is working — clear fallback buffer so it won't be reused
+        this.agentAssistantFallbackText = '';
+
+        // Initialize stable msg_id for this turn on first delta
+        if (!this.currentStreamMsgId) {
+          this.currentStreamMsgId = uuid();
+          this.accumulatedAssistantText = '';
         }
+
+        // Compute incremental delta from cumulative text
+        let delta: string;
+        if (cumulative.length >= this.accumulatedAssistantText.length && cumulative.startsWith(this.accumulatedAssistantText)) {
+          delta = cumulative.substring(this.accumulatedAssistantText.length);
+          this.accumulatedAssistantText = cumulative;
+        } else {
+          // Not cumulative — treat as incremental
+          delta = cumulative;
+          this.accumulatedAssistantText += cumulative;
+        }
+
+        if (!delta) return;
+
+        this.onStreamEvent({
+          type: 'content',
+          conversation_id: this.id,
+          msg_id: this.currentStreamMsgId!, // initialized above
+          data: delta,
+        });
+        break;
       }
-    } else if (event.state === 'final' || event.state === 'aborted') {
-      // End of turn
-      this.handleEndTurn();
-    } else if (event.state === 'error') {
-      this.emitErrorMessage(event.errorMessage || 'Unknown error');
-      this.handleEndTurn();
+
+      case 'final': {
+        // If delta events were missed (WebSocket gap), recover full text from final message
+        if (event.message) {
+          const finalText = this.extractTextFromMessage(event.message);
+          if (finalText && finalText.length > this.accumulatedAssistantText.length) {
+            if (!this.currentStreamMsgId) {
+              this.currentStreamMsgId = uuid();
+              this.accumulatedAssistantText = '';
+            }
+            const delta = finalText.substring(this.accumulatedAssistantText.length);
+            this.accumulatedAssistantText = finalText;
+            this.onStreamEvent({
+              type: 'content',
+              conversation_id: this.id,
+              msg_id: this.currentStreamMsgId!,
+              data: delta,
+            });
+          }
+        }
+        // Layer 2 fallback: if chat:delta was dropped but agent.stream="assistant" buffered text
+        if (!this.currentStreamMsgId && this.agentAssistantFallbackText) {
+          const fallback = this.agentAssistantFallbackText;
+          const fallbackMsgId = uuid();
+          this.currentStreamMsgId = fallbackMsgId;
+          this.accumulatedAssistantText = fallback;
+          this.onStreamEvent({
+            type: 'content',
+            conversation_id: this.id,
+            msg_id: fallbackMsgId,
+            data: fallback,
+          });
+        }
+        // Layer 3 fallback: when Gateway suppresses all content events (e.g. isSilentReplyText),
+        // chat:final arrives with no message and no delta was received. Pull from chat.history instead.
+        if (!this.currentStreamMsgId && this.connection?.sessionKey) {
+          this.fetchAndEmitHistoryFallback(event.runId);
+          break; // handleEndTurn is called inside fetchAndEmitHistoryFallback
+        }
+
+        this.handleEndTurn();
+        break;
+      }
+
+      case 'aborted':
+        this.handleEndTurn();
+        break;
+
+      case 'error':
+        this.emitErrorMessage(event.errorMessage || 'Unknown error');
+        this.handleEndTurn();
+        break;
+
+      default:
+        console.warn('[OpenClawAgent] handleChatEvent: unknown state:', (event as { state: unknown }).state);
     }
   }
 
+  /**
+   * Extract text from a chat message payload.
+   * Gateway sends content as string, array of blocks, or top-level text field.
+   */
+  private extractTextFromMessage(message: unknown): string | null {
+    if (!message || typeof message !== 'object') return null;
+    const m = message as Record<string, unknown>;
+    const content = m.content;
+    if (typeof content === 'string') return content || null;
+    if (Array.isArray(content)) {
+      const text = content
+        .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+        .filter((item) => item.type === 'text')
+        .map((item) => (typeof item.text === 'string' ? item.text : ''))
+        .join('');
+      return text || null;
+    }
+    if (typeof m.text === 'string') return m.text || null;
+    return null;
+  }
+
   private handleAgentEvent(payload: unknown): void {
-    // Convert agent events to messages
-    const event = payload as { stream: string; data: Record<string, unknown>; runId?: string };
-
-    // Map agent event streams to ACP update types
-    if ((event.stream === 'assistant' || event.stream === 'message') && event.data) {
-      // Use delta for streaming, fallback to text for full content
-      const rawDelta = (event.data.delta as string) || (event.data.text as string);
-      if (!rawDelta) return;
-
-      // Initialize msg_id for this streaming session if not set
-      if (!this.currentStreamMsgId) {
-        this.currentStreamMsgId = uuid();
-        this.accumulatedAssistantText = '';
-      }
-
-      // Heuristic: detect if rawDelta is cumulative text or incremental delta.
-      // NOTE: This prefix-matching approach can misidentify incremental deltas as cumulative
-      // if the delta content happens to start with the accumulated text. A protocol-level
-      // indicator from the gateway would be more reliable.
-      let actualDelta: string;
-      const isCumulative = rawDelta.startsWith(this.accumulatedAssistantText) && this.accumulatedAssistantText.length > 0;
-
-      if (isCumulative) {
-        // OpenClaw returns cumulative text, extract only the new part
-        actualDelta = rawDelta.substring(this.accumulatedAssistantText.length);
-        this.accumulatedAssistantText = rawDelta;
-      } else if (this.accumulatedAssistantText.length === 0) {
-        // First chunk
-        actualDelta = rawDelta;
-        this.accumulatedAssistantText = rawDelta;
-      } else {
-        // True incremental delta
-        actualDelta = rawDelta;
-        this.accumulatedAssistantText += rawDelta;
-      }
-
-      if (!actualDelta) {
-        return;
-      }
-
-      // Emit content directly with stable msg_id - bypass adapter
-      this.onStreamEvent({
-        type: 'content',
-        conversation_id: this.id,
-        msg_id: this.currentStreamMsgId!, // Non-null after initialization above
-        data: actualDelta,
-      });
-    } else if ((event.stream === 'thinking' || event.stream === 'thought') && event.data) {
-      const delta = (event.data.delta as string) || (event.data.text as string);
-      if (!delta) return;
-
-      // Emit thought as signal event (not persisted)
-      if (this.onSignalEvent) {
-        this.onSignalEvent({
+    const event = payload as { stream: string; data: Record<string, unknown>; runId?: string; sessionKey?: string };
+    // Filter out events from other sessions (defensive)
+    if (this.isFromOtherSession(event.sessionKey)) return;
+    switch (event.stream) {
+      case 'thinking':
+      case 'thought': {
+        if (!event.data) break;
+        const delta = (event.data.delta as string) || (event.data.text as string);
+        if (!delta) break;
+        this.onSignalEvent?.({
           type: 'thought',
           conversation_id: this.id,
           msg_id: uuid(),
           data: { subject: 'Thinking', description: delta },
         });
+        break;
       }
-    } else if (event.stream === 'lifecycle') {
-      // Handle lifecycle events (start/end)
-      const phase = event.data.phase as string;
-      if (phase === 'end') {
-        this.handleEndTurn();
-      }
-    } else if (event.stream === 'tool_call') {
-      // Handle tool calls
-      const toolData = event.data as {
-        toolCallId?: string;
-        status?: string;
-        title?: string;
-        kind?: string;
-        content?: unknown[];
-      };
 
-      const acpUpdate: ToolCallUpdate = {
-        sessionId: this.id,
-        update: {
-          sessionUpdate: 'tool_call',
-          toolCallId: toolData.toolCallId || uuid(),
-          status: (toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending',
-          title: toolData.title || 'Tool Call',
-          kind: (toolData.kind as 'read' | 'edit' | 'execute') || 'execute',
-          content: toolData.content as ToolCallUpdate['update']['content'],
-        },
-      };
+      case 'tool':
+      case 'tool_call': {
+        if (!event.data) break;
+        const toolData = event.data as {
+          // Gateway actual fields
+          phase?: string; // 'start' | 'update' | 'result' | 'partialResult'
+          name?: string; // tool name e.g. 'exec', 'read', 'write'
+          toolCallId?: string;
+          args?: Record<string, unknown>;
+          meta?: string; // result description
+          isError?: boolean;
+          // Legacy / fallback fields
+          status?: string;
+          title?: string;
+          kind?: string;
+          content?: unknown[];
+        };
 
-      // Check for navigation tools
-      if (NavigationInterceptor.isNavigationTool(acpUpdate.update.title)) {
-        const url = NavigationInterceptor.extractUrl(acpUpdate.update);
-        if (url) {
-          const previewMessage = NavigationInterceptor.createPreviewMessage(url, this.id);
-          this.onStreamEvent(previewMessage);
+        // Map phase → status
+        const phaseToStatus: Record<string, 'pending' | 'in_progress' | 'completed' | 'failed'> = {
+          start: 'in_progress',
+          update: 'in_progress',
+          partialResult: 'in_progress',
+        };
+        let status: 'pending' | 'in_progress' | 'completed' | 'failed';
+        if (toolData.phase === 'result') {
+          status = toolData.isError ? 'failed' : 'completed';
+        } else {
+          status = phaseToStatus[toolData.phase ?? ''] ?? ((toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending');
         }
+
+        // Map name → kind
+        const toolName = toolData.name ?? toolData.title ?? '';
+        const kind = this.inferToolKind(toolName) ?? (toolData.kind as 'read' | 'edit' | 'execute') ?? 'execute';
+
+        // Build content: prefer meta (result description), fallback to args
+        let content: ToolCallUpdate['update']['content'];
+        if (toolData.content) {
+          content = toolData.content as ToolCallUpdate['update']['content'];
+        } else if (toolData.meta) {
+          content = [{ type: 'content', content: { type: 'text', text: toolData.meta } }];
+        } else if (toolData.args) {
+          content = [{ type: 'content', content: { type: 'text', text: JSON.stringify(toolData.args, null, 2) } }];
+        }
+
+        const acpUpdate: ToolCallUpdate = {
+          sessionId: this.id,
+          update: {
+            sessionUpdate: 'tool_call',
+            toolCallId: toolData.toolCallId || uuid(),
+            status,
+            title: toolName || 'Tool Call',
+            kind,
+            content,
+          },
+        };
+
+        // Check for navigation tools
+        if (NavigationInterceptor.isNavigationTool(acpUpdate.update.title)) {
+          const url = NavigationInterceptor.extractUrl(acpUpdate.update);
+          if (url) {
+            const previewMessage = NavigationInterceptor.createPreviewMessage(url, this.id);
+            this.onStreamEvent(previewMessage);
+          }
+        }
+
+        const messages = this.adapter.convertSessionUpdate(acpUpdate);
+        for (const message of messages) {
+          this.emitMessage(message);
+        }
+        break;
       }
 
-      const messages = this.adapter.convertSessionUpdate(acpUpdate);
-      for (const message of messages) {
-        this.emitMessage(message);
+      case 'lifecycle':
+        // Intentionally ignored — turn lifecycle is driven by chat.state events (final/aborted/error)
+        break;
+
+      case 'assistant': {
+        // Buffer assistant text as fallback for when chat:delta events are dropped (dropIfSlow).
+        // Primary text delivery is via chat:delta; this is only used when chat:final arrives
+        // with no message and no delta was received.
+        if (!event.data) break;
+        const text = (event.data.text as string) || '';
+        if (text) {
+          this.agentAssistantFallbackText = text;
+        }
+        break;
       }
+
+      default:
+        console.warn('[OpenClawAgent] Unhandled agent stream:', event.stream, event);
     }
   }
 
@@ -500,9 +612,8 @@ export class OpenClawAgent {
 
     // Store pending and emit to UI
     this.pendingPermissions.set(requestId, {
-      resolve: (response) => {
-        console.log('[OpenClawAgent] Permission response:', response);
-      },
+      // TODO: handle permission response once the UI returns a user decision
+      resolve: (_response) => {},
       reject: (error) => {
         console.error('[OpenClawAgent] Permission error:', error);
       },
@@ -536,38 +647,85 @@ export class OpenClawAgent {
     }, 70000);
   }
 
-  private handleHelloOk(hello: HelloOk): void {
-    console.log('[OpenClawAgent] Connected to gateway:', hello.server.version);
-  }
+  private handleHelloOk(_hello: HelloOk): void {}
 
   private handleConnectError(err: Error): void {
     console.error('[OpenClawAgent] Connection error:', err);
     this.emitErrorMessage(`Connection error: ${err.message}`);
   }
 
-  private handleClose(code: number, reason: string): void {
-    console.log('[OpenClawAgent] Connection closed:', code, reason);
+  private handleClose(_code: number, reason: string): void {
     this.handleDisconnect(reason);
+  }
+
+  /**
+   * Layer 3 fallback: fetch last assistant message from chat.history when Gateway suppressed
+   * all content events (e.g. isSilentReplyText filter), causing chat:final to arrive without content.
+   */
+  private fetchAndEmitHistoryFallback(runId: string): void {
+    const sessionKey = this.connection?.sessionKey;
+    if (!sessionKey) {
+      this.handleEndTurn();
+      return;
+    }
+
+    this.connection!.chatHistory(sessionKey, 5)
+      .then((result: unknown) => {
+        const raw = result as { messages?: unknown[] } | unknown[];
+        const messages: unknown[] = Array.isArray(raw) ? raw : ((raw as { messages?: unknown[] })?.messages ?? []);
+
+        // Find the last assistant message for this run (fall back to any last assistant message)
+        const last = [...messages].reverse().find((m: unknown) => {
+          const msg = m as { role?: string; runId?: string };
+          return msg?.role === 'assistant' && (!runId || !msg.runId || msg.runId === runId);
+        }) as { content?: unknown } | undefined;
+
+        const text = this.extractTextFromMessage(last);
+        if (text) {
+          const msgId = uuid();
+          this.currentStreamMsgId = msgId;
+          this.accumulatedAssistantText = text;
+          this.onStreamEvent({
+            type: 'content',
+            conversation_id: this.id,
+            msg_id: msgId,
+            data: text,
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        console.warn('[OpenClawAgent] chat.history fallback failed:', err);
+      })
+      .finally(() => {
+        this.handleEndTurn();
+      });
   }
 
   private handleEndTurn(): void {
     // Reset streaming state for next turn
     this.currentStreamMsgId = null;
     this.accumulatedAssistantText = '';
+    this.agentAssistantFallbackText = '';
 
-    if (this.onSignalEvent) {
-      this.onSignalEvent({
-        type: 'finish',
-        conversation_id: this.id,
-        msg_id: uuid(),
-        data: null,
-      });
-    }
+    this.onSignalEvent?.({
+      type: 'finish',
+      conversation_id: this.id,
+      msg_id: uuid(),
+      data: null,
+    });
+  }
+
+  private inferToolKind(name: string): 'read' | 'edit' | 'execute' | null {
+    const n = name.toLowerCase();
+    if (/read|view|list|search|grep|glob|find|get|fetch/.test(n)) return 'read';
+    if (/write|edit|create|delete|patch|update|insert|remove/.test(n)) return 'edit';
+    if (/exec|run|bash|shell|terminal/.test(n)) return 'execute';
+    return null;
   }
 
   private handleDisconnect(reason: string): void {
     this.emitStatusMessage('disconnected');
-    this.emitErrorMessage(`Gateway disconnected: ${reason}`);
+    this.emitErrorMessage(`Gateway disconnected: ${reason}`, 'disconnect');
 
     if (this.onSignalEvent) {
       this.onSignalEvent({
@@ -582,43 +740,6 @@ export class OpenClawAgent {
     this.pendingPermissions.clear();
     this.approvalStore.clear();
     this.pendingNavigationTools.clear();
-    this.statusMessageId = null;
-  }
-
-  /**
-   * Convert OpenClaw chat event to ACP format for adapter reuse
-   */
-  private convertToAcpFormat(event: ChatEvent): AcpSessionUpdate | null {
-    const message = event.message as {
-      role?: string;
-      content?: string | Array<{ type: string; text?: string }>;
-    } | null;
-
-    if (!message) return null;
-
-    // Extract text content
-    let text = '';
-    if (typeof message.content === 'string') {
-      text = message.content;
-    } else if (Array.isArray(message.content)) {
-      text = message.content
-        .filter((item) => item.type === 'text')
-        .map((item) => item.text || '')
-        .join('');
-    }
-
-    if (!text) return null;
-
-    return {
-      sessionId: event.sessionKey,
-      update: {
-        sessionUpdate: 'agent_message_chunk',
-        content: {
-          type: 'text',
-          text,
-        },
-      },
-    };
   }
 
   // ========== Message Emission ==========
@@ -645,9 +766,11 @@ export class OpenClawAgent {
     this.emitMessage(message);
   }
 
-  private emitErrorMessage(error: string): void {
+  private emitErrorMessage(error: string, kind: 'generic' | 'disconnect' = 'generic'): void {
+    const messageId = kind === 'disconnect' ? (this.disconnectTipMessageId ??= uuid()) : uuid();
     const message: TMessage = {
-      id: uuid(),
+      id: messageId,
+      msg_id: messageId,
       conversation_id: this.id,
       type: 'tips',
       position: 'center',

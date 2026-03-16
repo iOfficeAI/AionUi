@@ -11,19 +11,7 @@ import SlashCommandMenu from '../../src/renderer/components/SlashCommandMenu';
 
 describe('SlashCommandMenu', () => {
   it('renders loading text from props and exposes aria-busy', () => {
-    render(
-      <SlashCommandMenu
-        title='Commands'
-        hint='Type / to search'
-        items={[]}
-        activeIndex={0}
-        loading
-        loadingText='请稍候...'
-        onHoverItem={vi.fn()}
-        onSelectItem={vi.fn()}
-        emptyText='No commands found'
-      />
-    );
+    render(<SlashCommandMenu title='Commands' hint='Type / to search' items={[]} activeIndex={0} loading loadingText='请稍候...' onHoverItem={vi.fn()} onSelectItem={vi.fn()} emptyText='No commands found' />);
 
     expect(screen.getByText('请稍候...')).toBeInTheDocument();
     expect(screen.getByRole('listbox')).toHaveAttribute('aria-busy', 'true');

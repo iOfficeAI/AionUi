@@ -28,6 +28,8 @@ import GeminiChat from './gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
+import { usePreviewContext } from './preview';
+import StarOfficeMonitorCard from './openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -151,6 +153,7 @@ const ChatConversation: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
   const { t } = useTranslation();
+  const { openPreview } = usePreviewContext();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
 
   const isGeminiConversation = conversation?.type === 'gemini';
@@ -219,8 +222,28 @@ const ChatConversation: React.FC<{
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
+  const headerExtraNode = (
+    <div className='flex items-center gap-8px'>
+      {conversation?.type === 'openclaw-gateway' && (
+        <div className='shrink-0'>
+          <StarOfficeMonitorCard
+            conversationId={conversation.id}
+            onOpenUrl={(url, metadata) => {
+              openPreview(url, 'url', metadata);
+            }}
+          />
+        </div>
+      )}
+      {conversation ? (
+        <div className='shrink-0'>
+          <CronJobManager conversationId={conversation.id} />
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
-    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>
+    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={headerExtraNode} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>
       {conversationNode}
     </ChatLayout>
   );

@@ -7,6 +7,7 @@ import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
+import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import { blurActiveElement } from '@/renderer/utils/focus';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
@@ -405,7 +406,7 @@ const ChatLayout: React.FC<{
       <ArcoLayout.Header className={classNames('h-36px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header overflow-hidden', layout?.isMobile && 'chat-layout-header--mobile-unified')}>
         <div className='shrink-0'>{props.headerLeft}</div>
         <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
-          {!layout?.isMobile && !hasTabs && <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap max-w-full'>{props.title}</span>}
+          {!layout?.isMobile && !hasTabs && <ConversationTitleMinimap title={props.title} conversationId={conversationId} />}
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
@@ -446,15 +447,17 @@ const ChatLayout: React.FC<{
                     <div className='flex flex-col relative' style={{ flexGrow: 0, flexShrink: 0, flexBasis: `${chatFlex}%`, minWidth: '240px' }} onClick={() => layout?.isMobile && !rightSiderCollapsed && setRightSiderCollapsed(true)}>
                       <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
                     </div>
-                    <div className='preview-panel flex flex-col relative overflow-hidden mt-[6px] mb-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, border: '1px solid var(--bg-3)', minWidth: '260px' }}>
+                    <div className='preview-panel flex flex-col relative overflow-visible mt-[6px] mb-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, border: '1px solid var(--bg-3)', minWidth: '260px' }}>
                       {createPreviewDragHandle({
-                        className: 'absolute left-0 top-0 bottom-0',
-                        style: {},
-                        linePlacement: 'start',
+                        className: 'absolute top-0 bottom-0 z-30',
+                        style: { width: '20px', left: '-20px' },
+                        linePlacement: 'end',
                         lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                         lineStyle: { width: '2px' },
                       })}
-                      <PreviewPanel />
+                      <div className='h-full w-full overflow-hidden rounded-[15px]'>
+                        <PreviewPanel />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -486,15 +489,17 @@ const ChatLayout: React.FC<{
                   <div className='flex flex-col relative' style={{ flexGrow: 0, flexShrink: 0, flexBasis: `${chatFlex}%`, minWidth: '240px' }} onClick={() => layout?.isMobile && !rightSiderCollapsed && setRightSiderCollapsed(true)}>
                     <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
                   </div>
-                  <div className='preview-panel flex flex-col relative overflow-hidden mt-[6px] mb-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, border: '1px solid var(--bg-3)', minWidth: '260px' }}>
+                  <div className='preview-panel flex flex-col relative overflow-visible mt-[6px] mb-[12px] mr-[12px] ml-[8px] rounded-[15px]' style={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, border: '1px solid var(--bg-3)', minWidth: '260px' }}>
                     {createPreviewDragHandle({
-                      className: 'absolute left-0 top-0 bottom-0',
-                      style: {},
-                      linePlacement: 'start',
+                      className: 'absolute top-0 bottom-0 z-30',
+                      style: { width: '20px', left: '-20px' },
+                      linePlacement: 'end',
                       lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                       lineStyle: { width: '2px' },
                     })}
-                    <PreviewPanel />
+                    <div className='h-full w-full overflow-hidden rounded-[15px]'>
+                      <PreviewPanel />
+                    </div>
                   </div>
                 </div>
               </>
@@ -515,7 +520,7 @@ const ChatLayout: React.FC<{
             </div>
             {isPreviewOpen && (
               <div
-                className={classNames('preview-panel flex flex-col relative overflow-hidden rounded-[15px]', layout?.isMobile ? 'm-[8px]' : 'my-[12px] mr-[12px] ml-[8px]')}
+                className={classNames('preview-panel flex flex-col relative overflow-visible rounded-[15px]', layout?.isMobile ? 'm-[8px]' : 'my-[12px] mr-[12px] ml-[8px]')}
                 style={{
                   flexGrow: 1,
                   flexShrink: 1,
@@ -529,13 +534,15 @@ const ChatLayout: React.FC<{
               >
                 {!layout?.isMobile &&
                   createPreviewDragHandle({
-                    className: 'absolute left-0 top-0 bottom-0',
-                    style: {},
-                    linePlacement: 'start',
+                    className: 'absolute top-0 bottom-0 z-30',
+                    style: { width: '20px', left: '-20px' },
+                    linePlacement: 'end',
                     lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                     lineStyle: { width: '2px' },
                   })}
-                <PreviewPanel />
+                <div className='h-full w-full overflow-hidden rounded-[15px]'>
+                  <PreviewPanel />
+                </div>
               </div>
             )}
             {workspaceEnabled && !layout?.isMobile && (

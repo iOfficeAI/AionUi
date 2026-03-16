@@ -35,6 +35,8 @@ export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRID
 export const CLAUDE_ACP_BRIDGE_VERSION = '0.20.2';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
+export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
+
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
  * Check if preset agent type should be routed through ACP backend
@@ -61,6 +63,7 @@ export type AcpBackendAll =
   | 'openclaw-gateway' // OpenClaw Gateway WebSocket
   | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
+  | 'cursor' // Cursor AI Agent CLI
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -357,7 +360,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     id: 'codebuddy',
     name: 'CodeBuddy',
     cliCommand: 'codebuddy',
-    defaultCliPath: 'npx @tencent-ai/codebuddy-code',
+    defaultCliPath: `npx ${CODEBUDDY_ACP_NPX_PACKAGE}`,
     authRequired: true,
     enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
     supportsStreaming: false,
@@ -452,6 +455,17 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true,
     supportsStreaming: false,
+  },
+  cursor: {
+    id: 'cursor',
+    name: 'Cursor Agent',
+    // Note: Cursor CLI uses the generic command name "agent". Detection relies on `which agent`
+    // which may match other tools. Users should ensure the Cursor CLI is the `agent` on their PATH.
+    cliCommand: 'agent',
+    authRequired: true, // Requires active Cursor subscription
+    enabled: true, // ✅ Cursor AI Agent CLI, launched via `agent acp`
+    supportsStreaming: false,
+    acpArgs: ['acp'], // Cursor uses `agent acp` subcommand
   },
   custom: {
     id: 'custom',
