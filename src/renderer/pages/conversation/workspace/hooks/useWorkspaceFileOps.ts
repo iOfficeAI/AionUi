@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
+import { LARGE_TEXT_PREVIEW_MAX_LENGTH, LARGE_TEXT_PREVIEW_THRESHOLD } from '@/renderer/pages/conversation/preview/constants';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
@@ -264,6 +265,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
 
         let contentType: PreviewContentType = 'code';
         let content = '';
+        let isLargeTextTruncated = false;
 
         // 根据扩展名判断文件类型 / Determine file type based on extension
         if (ext === 'md' || ext === 'markdown') {
@@ -298,6 +300,13 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
         } else {
           // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
           content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+
+          // 大文本仅保留前一段预览内容，避免切换/关闭 tab 时卡顿
+          // Keep only first chunk for large text preview to reduce tab switch/close jank
+          if (contentType === 'code' && content.length > LARGE_TEXT_PREVIEW_THRESHOLD) {
+            content = content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH);
+            isLargeTextTruncated = true;
+          }
         }
 
         // 打开预览面板并传入文件元数据 / Open preview panel with file metadata
@@ -309,7 +318,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
           language: ext,
           // Markdown 和图片文件默认为只读模式
           // Markdown and image files default to read-only mode
-          editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+          editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
         });
       } catch (error) {
         messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));

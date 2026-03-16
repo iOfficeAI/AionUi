@@ -63,6 +63,7 @@ export type AcpBackendAll =
   | 'openclaw-gateway' // OpenClaw Gateway WebSocket
   | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
+  | 'cursor' // Cursor AI Agent CLI
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -454,6 +455,17 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true,
     supportsStreaming: false,
+  },
+  cursor: {
+    id: 'cursor',
+    name: 'Cursor Agent',
+    // Note: Cursor CLI uses the generic command name "agent". Detection relies on `which agent`
+    // which may match other tools. Users should ensure the Cursor CLI is the `agent` on their PATH.
+    cliCommand: 'agent',
+    authRequired: true, // Requires active Cursor subscription
+    enabled: true, // ✅ Cursor AI Agent CLI, launched via `agent acp`
+    supportsStreaming: false,
+    acpArgs: ['acp'], // Cursor uses `agent acp` subcommand
   },
   custom: {
     id: 'custom',

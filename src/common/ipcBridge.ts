@@ -130,6 +130,10 @@ export const autoUpdate = {
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
 };
 
+export const starOffice = {
+  detectUrl: bridge.buildProvider<IBridgeResponse<{ url: string | null }>, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>('star-office.detect-url'),
+};
+
 export const dialog = {
   showOpen: bridge.buildProvider<string[] | undefined, { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] } | undefined>('show-open'), // 打开文件/文件夹选择窗口
 };
@@ -481,6 +485,8 @@ interface ISendMessageParams {
   conversation_id: string;
   files?: string[];
   loading_id?: string;
+  /** Skill names to inject into the message (used by agents with file-reading ability) */
+  injectSkills?: string[];
 }
 
 // Unified confirm message params for all agents (Gemini, ACP, Codex)

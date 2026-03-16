@@ -202,6 +202,11 @@ export interface SessionsListParams {
   search?: string;
 }
 
+export interface SessionsResetParams {
+  key: string;
+  reason?: 'new' | 'reset';
+}
+
 export interface SessionsPatchParams {
   key: string;
   label?: string | null;

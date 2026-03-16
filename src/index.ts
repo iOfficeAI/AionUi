@@ -14,6 +14,7 @@ import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from './extensions/assetProtocol';
 import { initializeProcess } from './process';
+import { setWebServerInstance } from './process/bridge/webuiBridge';
 import { ProcessConfig } from './process/initStorage';
 import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
@@ -21,7 +22,7 @@ import { registerWindowMaximizeListeners } from './process/bridge/windowControls
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
-import { startWebServer } from './webserver';
+import { startWebServer, startWebServerWithInstance } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
 import i18n from '@process/i18n';
@@ -226,6 +227,9 @@ const getSwitchValue = (flag: string): string | undefined => {
 const hasCommand = (cmd: string) => process.argv.includes(cmd);
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
+const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
+const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
+const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 
 type WebUIUserConfig = {
   port?: number | string;
@@ -291,6 +295,24 @@ const resolveRemoteAccess = (config: WebUIUserConfig): boolean => {
   const configRemote = config.allowRemote === true;
 
   return isRemoteMode || hostRequestsRemote || envRemote === true || configRemote;
+};
+
+const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
+  try {
+    const enabled = (await ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY)) === true;
+    if (!enabled) return;
+
+    const [allowRemotePref, portPref] = await Promise.all([ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY), ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY)]);
+    const allowRemote = allowRemotePref === true;
+    // 直接使用数字类型，提供默认值 / Use number type directly with default
+    const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : SERVER_CONFIG.DEFAULT_PORT;
+
+    const instance = await startWebServerWithInstance(preferredPort, allowRemote);
+    setWebServerInstance(instance);
+    console.log(`[WebUI] Auto-restored from desktop preferences (port=${preferredPort}, allowRemote=${allowRemote})`);
+  } catch (error) {
+    console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);
+  }
 };
 
 const isWebUIMode = hasSwitch('webui');
@@ -717,6 +739,13 @@ const handleAppReady = async (): Promise<void> => {
     onLanguageChanged(() => {
       refreshTrayMenu();
     });
+
+    if (!isE2ETestMode) {
+      // 窗口创建后异步恢复 WebUI，不阻塞 UI / Restore WebUI async after window creation, non-blocking
+      restoreDesktopWebUIFromPreferences().catch((error) => {
+        console.error('[WebUI] Failed to auto-restore:', error);
+      });
+    }
 
     // Flush pending deep-link URL (received before window was ready)
     if (pendingDeepLinkUrl) {
