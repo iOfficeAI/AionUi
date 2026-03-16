@@ -13,6 +13,7 @@ vi.mock('electron', () => ({
   app: {
     getVersion: vi.fn(() => '1.0.0'),
     isPackaged: true,
+    exit: vi.fn(),
   },
 }));
 
@@ -234,10 +235,17 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('quitAndInstall', () => {
-    it('should call quitAndInstall on autoUpdater', () => {
-      autoUpdaterService.quitAndInstall();
+    it('should call quitAndInstall on autoUpdater and force exit after delay', async () => {
+      vi.useFakeTimers();
+      const { app } = vi.mocked(await import('electron'));
 
-      expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
+      autoUpdaterService.quitAndInstall();
+      expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(true, true);
+
+      // app.exit is called after a 1s delay
+      vi.advanceTimersByTime(1000);
+      expect(app.exit).toHaveBeenCalledWith(0);
+      vi.useRealTimers();
     });
   });
 

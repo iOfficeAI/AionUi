@@ -6,6 +6,7 @@
 
 import { autoUpdater } from 'electron-updater';
 import type { ProgressInfo, UpdateInfo } from 'electron-updater';
+import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
 
@@ -301,7 +302,15 @@ class AutoUpdaterService extends EventEmitter {
 
   quitAndInstall(): void {
     log.info('Quitting and installing update...');
-    autoUpdater.quitAndInstall(false, true);
+    // On macOS, autoUpdater.quitAndInstall() closes all windows but the
+    // 'window-all-closed' handler does NOT call app.quit() (standard macOS
+    // behavior + close-to-tray). This leaves the process alive and Squirrel
+    // cannot finish replacing the app bundle. Force-exit after a short delay
+    // to let Squirrel receive the install signal.
+    autoUpdater.quitAndInstall(true, true);
+    setTimeout(() => {
+      app.exit(0);
+    }, 1000);
   }
 
   /**
