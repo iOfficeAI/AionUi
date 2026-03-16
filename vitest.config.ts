@@ -51,6 +51,10 @@ export default defineConfig({
       // 例如: 'src/process/services/newService.ts'
       include: [
         // Process / bridge
+        'src/process/bridge/services/WebuiService.ts',
+        'src/process/database/index.ts',
+        'src/webserver/auth/service/AuthService.ts',
+        'src/webserver/auth/repository/UserRepository.ts',
         'src/process/services/autoUpdaterService.ts',
         'src/process/services/cron/CronService.ts',
         'src/process/services/cron/CronStore.ts',

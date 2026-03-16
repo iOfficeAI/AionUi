@@ -496,7 +496,7 @@ export function initWebuiBridge(): void {
   ipcMain.handle('webui-direct-change-username', async (_event, { newUsername }: { newUsername: string }) => {
     return WebuiService.handleAsync(async () => {
       const username = await WebuiService.changeUsername(newUsername);
-      return { success: true, username };
+      return { success: true, data: { username } };
     }, 'Direct IPC: Change username');
   });
 
