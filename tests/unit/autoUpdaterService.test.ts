@@ -259,19 +259,18 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('setAllowPrerelease', () => {
-    it('should enable prerelease updates', () => {
+    it('should store prerelease preference without setting autoUpdater.allowPrerelease', () => {
       autoUpdaterService.setAllowPrerelease(true);
 
       expect(autoUpdaterService.allowPrerelease).toBe(true);
-      expect(autoUpdater.allowPrerelease).toBe(true);
-      expect(autoUpdater.allowDowngrade).toBe(true);
+      // autoUpdater.allowPrerelease must NOT be set — it conflicts with custom channel names
+      expect(autoUpdater.allowPrerelease).toBe(false);
     });
 
-    it('should disable prerelease updates', () => {
+    it('should disable prerelease preference', () => {
       autoUpdaterService.setAllowPrerelease(false);
 
       expect(autoUpdaterService.allowPrerelease).toBe(false);
-      expect(autoUpdater.allowPrerelease).toBe(false);
     });
   });
 
