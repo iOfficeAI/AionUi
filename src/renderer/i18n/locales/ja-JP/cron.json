@@ -49,5 +49,13 @@
     "scheduledTask": "スケジュールタスク",
     "scheduledTaskComplete": "{{title}}のスケジュールタスク完了",
     "taskDone": "タスク完了"
+  },
+  "error": {
+    "alreadyExists": "このセッションには既に \"{{name}}\" (ID: {{id}}) というスケジュールタスクが存在します。まず削除するか、[CRON_LIST] を使用して既存のタスクを確認してください。",
+    "missedJob": "⏰ スケジュールタスク \"{{name}}\" はシステムスリープ中に実行されませんでした。\n予定時刻：{{time}}\nタイマーが再起動され、次回の予定時刻に実行されます。",
+    "jobNotFound": "スクリプトが見つかりません: {{id}}",
+    "conversationNotFound": "会話が見つかりません",
+    "scheduledTimePassed": "予定時刻が過ぎました",
+    "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました"
   }
 }

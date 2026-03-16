@@ -17,6 +17,7 @@
     "unknown": "Bilinmeyen durum"
   },
   "config": {
-    "reasoning_effort": "Akıl Yürütme Çabası"
+    "reasoning_effort": "Akıl Yürütme Çabası",
+    "default": "Varsayılan"
   }
 }

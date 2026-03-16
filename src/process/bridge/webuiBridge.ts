@@ -9,7 +9,7 @@ import { ipcMain } from 'electron';
 import { webui } from '@/common/ipcBridge';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
+import { SERVER_CONFIG } from '@/webserver/config/constants';
 import { WebuiService } from './services/WebuiService';
 // 预加载 webserver 模块避免启动时延迟 / Preload webserver module to avoid startup delay
 import { startWebServerWithInstance } from '@/webserver/index';
@@ -131,11 +131,11 @@ export async function verifyQRTokenDirect(qrToken: string, clientIP?: string): P
     tokenData.used = true;
 
     // 获取管理员用户 / Get admin user
-    const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
+    const adminUser = UserRepository.getSystemUser();
     if (!adminUser) {
       return {
         success: false,
-        msg: 'Admin user not found',
+        msg: 'WebUI user not found',
       };
     }
 
@@ -321,6 +321,13 @@ export function initWebuiBridge(): void {
     }, 'Change password');
   });
 
+  webui.changeUsername.provider(async ({ newUsername }) => {
+    return WebuiService.handleAsync(async () => {
+      const username = await WebuiService.changeUsername(newUsername);
+      return { success: true, data: { username } };
+    }, 'Change username');
+  });
+
   // 重置密码（生成新随机密码）/ Reset password (generate new random password)
   // 注意：由于 @office-ai/platform bridge 的 provider 模式不支持返回值，
   // 我们通过 emitter 发送结果，前端监听 resetPasswordResult 事件
@@ -425,11 +432,11 @@ export function initWebuiBridge(): void {
       tokenData.used = true;
 
       // 获取管理员用户 / Get admin user
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
+      const adminUser = UserRepository.getSystemUser();
       if (!adminUser) {
         return {
           success: false,
-          msg: 'Admin user not found',
+          msg: 'WebUI user not found',
         };
       }
 
@@ -484,6 +491,13 @@ export function initWebuiBridge(): void {
       await WebuiService.changePassword(newPassword);
       return { success: true };
     }, 'Direct IPC: Change password');
+  });
+
+  ipcMain.handle('webui-direct-change-username', async (_event, { newUsername }: { newUsername: string }) => {
+    return WebuiService.handleAsync(async () => {
+      const username = await WebuiService.changeUsername(newUsername);
+      return { success: true, data: { username } };
+    }, 'Direct IPC: Change username');
   });
 
   // 直接 IPC: 生成二维码 token / Direct IPC: Generate QR token

@@ -111,7 +111,11 @@
       "selectFolderError": "選擇資料夾失敗",
       "success": "工作空間遷移成功",
       "error": "工作空間遷移失敗",
-      "migrating": "遷移中..."
+      "migrating": "遷移中...",
+      "cronMigrationTitle": "發現定時任務",
+      "cronMigrationHint": "當前對話包含定時任務，是否將其遷移到新工作空間？",
+      "cronMigrationConfirm": "遷移並更新",
+      "cronMigrationSkip": "不遷移 (將刪除)"
     },
     "dragOverlayTitle": "拖曳匯入",
     "dragOverlayDesc": "將檔案或資料夾拖曳到此處即可複製到目前工作空間。",
@@ -139,6 +143,13 @@
       "openFailed": "開啟失敗",
       "revealFailed": "無法開啟所在資料夾"
     }
+  },
+  "minimap": {
+    "searchAria": "搜尋對話",
+    "searchHint": "點擊這裡搜尋關鍵詞",
+    "empty": "暫無問答內容",
+    "noMatch": "未找到相符內容",
+    "count": "{{count}} 條"
   },
   "chat": {
     "noModelSelected": "當前會話未選擇模型，無法發送訊息",

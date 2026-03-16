@@ -56,5 +56,14 @@
   "more": "Daha Fazla",
   "refresh": "Yenile",
   "tray.showWindow": "AionUi'yi Göster",
-  "tray.quit": "Çıkış"
+  "tray.newChat": "Yeni Sohbet",
+  "tray.closeToTray": "Sistem Tepsisine Kapat",
+  "tray.about": "AionUi Hakkında",
+  "tray.restart": "Uygulamayı Yeniden Başlat",
+  "tray.quit": "Çıkış",
+  "tray.runningTasks": "Çalışan Görevler",
+  "tray.pauseAll": "Tüm Görevleri Duraklat",
+  "tray.checkUpdate": "Güncelleştirme Kontrolü",
+  "tray.recentChats": "Son Sohbetler",
+  "tray.untitled": "Adsız"
 }

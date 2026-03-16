@@ -104,7 +104,11 @@
       "selectFolderError": "Klasör seçilemedi",
       "success": "Çalışma alanı başarıyla taşındı",
       "error": "Çalışma alanı taşınamadı",
-      "migrating": "Taşınıyor..."
+      "migrating": "Taşınıyor...",
+      "cronMigrationTitle": "Zamanlanmış görevler bulundu",
+      "cronMigrationHint": "Mevcut konuşmada zamanlanmış görevler var. Bunları yeni çalışma alanına taşımak ister misiniz?",
+      "cronMigrationConfirm": "Taşı ve güncelle",
+      "cronMigrationSkip": "Taşıma (silinecek)"
     },
     "dragOverlayTitle": "İçe aktarmak için bırakın",
     "dragOverlayDesc": "Dosyaları veya klasörleri bu çalışma alanına kopyalamak için buraya sürükleyin.",
@@ -134,6 +138,13 @@
     },
     "expand": "Çalışma Alanını Genişlet",
     "collapse": "Çalışma Alanını Daralt"
+  },
+  "minimap": {
+    "searchAria": "Sohbeti ara",
+    "searchHint": "Anahtar kelime aramak için buraya tıkla",
+    "empty": "Henüz soru-cevap içeriği yok",
+    "noMatch": "Eşleşen içerik bulunamadı",
+    "count": "{{count}} dönüş"
   },
   "chat": {
     "noModelSelected": "Mevcut oturum için model seçilmedi, mesaj gönderilemiyor",

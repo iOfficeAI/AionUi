@@ -15,7 +15,7 @@ export type CronSchedule = { kind: 'at'; atMs: number; description: string } | {
 /**
  * Cron job definition
  */
-export interface CronJob {
+export type CronJob = {
   id: string;
   name: string;
   enabled: boolean;
@@ -40,12 +40,12 @@ export interface CronJob {
     retryCount: number;
     maxRetries: number;
   };
-}
+};
 
 /**
  * Database row structure for cron_jobs table
  */
-interface CronJobRow {
+type CronJobRow = {
   id: string;
   name: string;
   enabled: number;
@@ -67,7 +67,7 @@ interface CronJobRow {
   run_count: number;
   retry_count: number;
   max_retries: number;
-}
+};
 
 /**
  * Convert CronJob to database row
@@ -224,14 +224,14 @@ class CronStore {
         name = ?, enabled = ?,
         schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_description = ?,
         payload_message = ?,
-        conversation_title = ?,
+        conversation_id = ?, conversation_title = ?, agent_type = ?,
         updated_at = ?,
         next_run_at = ?, last_run_at = ?, last_status = ?, last_error = ?,
         run_count = ?, retry_count = ?, max_retries = ?
       WHERE id = ?
     `
       )
-      .run(row.name, row.enabled, row.schedule_kind, row.schedule_value, row.schedule_tz, row.schedule_description, row.payload_message, row.conversation_title, row.updated_at, row.next_run_at, row.last_run_at, row.last_status, row.last_error, row.run_count, row.retry_count, row.max_retries, jobId);
+      .run(row.name, row.enabled, row.schedule_kind, row.schedule_value, row.schedule_tz, row.schedule_description, row.payload_message, row.conversation_id, row.conversation_title, row.agent_type, row.updated_at, row.next_run_at, row.last_run_at, row.last_status, row.last_error, row.run_count, row.retry_count, row.max_retries, jobId);
   }
 
   /**

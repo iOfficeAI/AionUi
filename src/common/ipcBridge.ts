@@ -24,7 +24,7 @@ export const shell = {
 //通用会话能力
 export const conversation = {
   create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话
-  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation; sourceConversationId?: string }>('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移）
+  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation; sourceConversationId?: string; migrateCron?: boolean }>('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移）
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
   getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>('get-associated-conversation'), // 获取关联对话
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
@@ -396,17 +396,22 @@ export const systemSettings = {
 };
 
 // 系统通知接口 / System notification API
-export interface INotificationOptions {
+export type INotificationOptions = {
   title: string;
   body: string;
-  icon?: string; // 自定义图标路径（可选）/ Custom icon path (optional)
-  conversationId?: string; // 会话 ID（可选）/ Conversation ID (optional)
-}
+  icon?: string;
+  conversationId?: string;
+};
 
 export const notification = {
   show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
-  // 通知点击事件 / Notification clicked event
   clicked: bridge.buildEmitter<{ conversationId?: string }>('notification.clicked'),
+};
+
+// 任务管理接口 / Task management API
+export const task = {
+  stopAll: bridge.buildProvider<{ success: boolean; count: number }, void>('task.stop-all'),
+  getRunningCount: bridge.buildProvider<{ success: boolean; count: number }, void>('task.get-running-count'),
 };
 
 // WebUI 服务管理接口 / WebUI service management API
@@ -430,6 +435,7 @@ export const webui = {
   stop: bridge.buildProvider<IBridgeResponse, void>('webui.stop'),
   // 修改密码（不需要当前密码）/ Change password (no current password required)
   changePassword: bridge.buildProvider<IBridgeResponse, { newPassword: string }>('webui.change-password'),
+  changeUsername: bridge.buildProvider<IBridgeResponse<{ username: string }>, { newUsername: string }>('webui.change-username'),
   // 重置密码（生成新随机密码）/ Reset password (generate new random password)
   resetPassword: bridge.buildProvider<IBridgeResponse<{ newPassword: string }>, void>('webui.reset-password'),
   // 生成二维码登录 token / Generate QR login token

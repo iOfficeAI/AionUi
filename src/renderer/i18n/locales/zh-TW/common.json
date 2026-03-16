@@ -56,5 +56,14 @@
   "more": "更多",
   "refresh": "重新整理",
   "tray.showWindow": "顯示 AionUi",
-  "tray.quit": "結束"
+  "tray.newChat": "新建對話",
+  "tray.closeToTray": "關閉到托盤",
+  "tray.about": "關於 AionUi",
+  "tray.restart": "重啟應用",
+  "tray.quit": "結束",
+  "tray.runningTasks": "運行中的任務",
+  "tray.pauseAll": "暫停所有任務",
+  "tray.checkUpdate": "檢查更新",
+  "tray.recentChats": "最近對話",
+  "tray.untitled": "未命名"
 }

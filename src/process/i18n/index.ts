@@ -59,10 +59,17 @@ export const i18nReady = (async (): Promise<void> => {
 });
 
 /**
- * 切换语言 / Change language
- *
- * 可以在其他地方调用此函数来切换主进程的语言
- * Can be called from elsewhere to change the main process language
+ * Set initial language (called after storage is ready)
+ */
+export async function setInitialLanguage(language: string | undefined): Promise<void> {
+  await i18nReady;
+  if (language) {
+    await ensureAndSwitch(i18n, language, getLocaleModules);
+  }
+}
+
+/**
+ * Change language
  */
 export async function changeLanguage(language: string): Promise<void> {
   await i18nReady;

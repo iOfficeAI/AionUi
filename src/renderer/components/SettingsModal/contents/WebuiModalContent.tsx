@@ -81,7 +81,10 @@ const WebuiModalContent: React.FC = () => {
   // 设置新密码弹窗 / Set new password modal
   const [setPasswordModalVisible, setSetPasswordModalVisible] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [setUsernameModalVisible, setSetUsernameModalVisible] = useState(false);
+  const [usernameLoading, setUsernameLoading] = useState(false);
   const [form] = Form.useForm();
+  const [usernameForm] = Form.useForm();
 
   // 二维码登录相关状态 / QR code login related state
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -424,6 +427,13 @@ const WebuiModalContent: React.FC = () => {
     setSetPasswordModalVisible(true);
   };
 
+  const handleResetUsername = () => {
+    usernameForm.setFieldsValue({
+      newUsername: status?.adminUsername || 'admin',
+    });
+    setSetUsernameModalVisible(true);
+  };
+
   // 提交新密码 / Submit new password
   const handleSetNewPassword = async () => {
     try {
@@ -458,6 +468,38 @@ const WebuiModalContent: React.FC = () => {
       Message.error(t('settings.webui.passwordChangeFailed'));
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleSetNewUsername = async () => {
+    try {
+      const values = await usernameForm.validate();
+      setUsernameLoading(true);
+
+      let result: { success: boolean; msg?: string; data?: { username: string } };
+
+      if (window.electronAPI?.webuiChangeUsername) {
+        result = await window.electronAPI.webuiChangeUsername(values.newUsername);
+      } else {
+        result = await webui.changeUsername.invoke({
+          newUsername: values.newUsername,
+        });
+      }
+
+      const nextUsername = result.data?.username ?? values.newUsername.trim();
+      if (result.success) {
+        Message.success(t('settings.webui.usernameChanged'));
+        setSetUsernameModalVisible(false);
+        usernameForm.resetFields();
+        setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
+      } else {
+        Message.error(result.msg || t('settings.webui.usernameChangeFailed'));
+      }
+    } catch (error) {
+      console.error('Set new username error:', error);
+      Message.error(t('settings.webui.usernameChangeFailed'));
+    } finally {
+      setUsernameLoading(false);
     }
   };
 
@@ -548,6 +590,7 @@ const WebuiModalContent: React.FC = () => {
     return t('settings.webui.passwordHidden');
   };
   const displayPassword = getDisplayPassword();
+  const displayUsername = status?.adminUsername || 'admin';
 
   // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
   if (!isDesktop) {
@@ -655,10 +698,15 @@ const WebuiModalContent: React.FC = () => {
           <div className='flex items-center justify-between gap-12px py-12px'>
             <span className='text-14px text-t-secondary shrink-0'>{t('settings.webui.username')}:</span>
             <div className='inline-flex items-center gap-8px rd-100px border border-line bg-fill-1 px-10px py-4px min-w-0'>
-              <span className='text-14px text-t-primary truncate'>{status?.adminUsername || 'admin'}</span>
+              <span className='text-14px text-t-primary truncate'>{displayUsername}</span>
               <Tooltip content={t('common.copy')}>
-                <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={() => handleCopy(status?.adminUsername || 'admin')}>
+                <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={() => handleCopy(displayUsername)}>
                   <Copy size={14} />
+                </Button>
+              </Tooltip>
+              <Tooltip content={t('settings.webui.editUsernameTooltip')}>
+                <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={handleResetUsername}>
+                  <EditTwo size={14} />
                 </Button>
               </Tooltip>
             </div>
@@ -766,6 +814,51 @@ const WebuiModalContent: React.FC = () => {
           </Suspense>
         </div>
       )}
+
+      <AionModal visible={setUsernameModalVisible} onCancel={() => setSetUsernameModalVisible(false)} onOk={handleSetNewUsername} confirmLoading={usernameLoading} title={t('settings.webui.setNewUsername')} size='small'>
+        <Form form={usernameForm} layout='vertical' className='pt-16px'>
+          <Form.Item
+            label={t('settings.webui.newUsername')}
+            field='newUsername'
+            rules={[
+              { required: true, message: t('settings.webui.newUsernameRequired') },
+              {
+                validator: (value, callback) => {
+                  if (typeof value !== 'string') {
+                    callback();
+                    return;
+                  }
+
+                  const trimmed = value.trim();
+                  if (trimmed.length < 3) {
+                    callback(t('settings.webui.usernameMinLength'));
+                    return;
+                  }
+
+                  if (trimmed.length > 32) {
+                    callback(t('settings.webui.usernameMaxLength'));
+                    return;
+                  }
+
+                  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+                    callback(t('settings.webui.usernameFormatError'));
+                    return;
+                  }
+
+                  if (/^[_-]|[_-]$/.test(trimmed)) {
+                    callback(t('settings.webui.usernameEdgeError'));
+                    return;
+                  }
+
+                  callback();
+                },
+              },
+            ]}
+          >
+            <Input placeholder={t('settings.webui.newUsernamePlaceholder')} />
+          </Form.Item>
+        </Form>
+      </AionModal>
 
       {/* 设置新密码弹窗 / Set New Password Modal */}
       <AionModal visible={setPasswordModalVisible} onCancel={() => setSetPasswordModalVisible(false)} onOk={handleSetNewPassword} confirmLoading={passwordLoading} title={t('settings.webui.setNewPassword')} size='small'>
