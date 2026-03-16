@@ -148,7 +148,8 @@
     "searchAria": "搜索会话",
     "searchHint": "点击这里搜索关键词",
     "empty": "暂无问答内容",
-    "noMatch": "未找到匹配内容"
+    "noMatch": "未找到匹配内容",
+    "count": "{{count}} 条"
   },
   "chat": {
     "noModelSelected": "当前会话未选择模型，无法发送消息",

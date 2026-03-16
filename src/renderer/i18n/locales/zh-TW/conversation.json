@@ -148,7 +148,8 @@
     "searchAria": "搜尋對話",
     "searchHint": "點擊這裡搜尋關鍵詞",
     "empty": "暫無問答內容",
-    "noMatch": "未找到相符內容"
+    "noMatch": "未找到相符內容",
+    "count": "{{count}} 條"
   },
   "chat": {
     "noModelSelected": "當前會話未選擇模型，無法發送訊息",

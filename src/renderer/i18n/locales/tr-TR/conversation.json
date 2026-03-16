@@ -143,7 +143,8 @@
     "searchAria": "Sohbeti ara",
     "searchHint": "Anahtar kelime aramak için buraya tıkla",
     "empty": "Henüz soru-cevap içeriği yok",
-    "noMatch": "Eşleşen içerik bulunamadı"
+    "noMatch": "Eşleşen içerik bulunamadı",
+    "count": "{{count}} dönüş"
   },
   "chat": {
     "noModelSelected": "Mevcut oturum için model seçilmedi, mesaj gönderilemiyor",

@@ -78,6 +78,8 @@ export default defineConfig({
         'src/extensions/ExtensionLoader.ts',
         'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
         'src/extensions/resolvers/WebuiResolver.ts',
+        // Renderer components
+        'src/renderer/pages/conversation/components/ConversationTitleMinimap.tsx',
       ],
       thresholds: {
         statements: 30,
