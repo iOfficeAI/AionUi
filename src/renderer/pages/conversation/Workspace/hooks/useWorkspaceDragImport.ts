@@ -9,6 +9,7 @@ import type { DragEvent } from 'react';
 import type { TFunction } from 'i18next';
 import { ipcBridge } from '@/common';
 import { FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { MessageApi } from '../types';
 
 interface UseWorkspaceDragImportOptions {
@@ -47,6 +48,8 @@ export function useWorkspaceDragImport({
   conversationId,
 }: UseWorkspaceDragImportOptions) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const dragCounterRef = useRef(0);
 
   const resetDragState = useCallback(() => {
@@ -89,8 +92,38 @@ export function useWorkspaceDragImport({
         item: (index: number) => files[index] || null,
       }) as unknown as FileList;
 
-      const processed = await FileService.processDroppedFiles(pseudoList, conversationId);
-      return processed.map((meta) => ({ path: meta.path, name: meta.name, kind: 'file' as const }));
+      // Only show progress UI in WebUI remote mode (Electron uses fast local IPC)
+      const showProgress = !isElectronDesktop();
+      if (showProgress) {
+        setIsUploading(true);
+        setUploadPct(0);
+      }
+
+      const progressMap = new Map<string, number>();
+      files.forEach((f) => progressMap.set(f.name, 0));
+      const getOverallPct = () => {
+        const vals = Array.from(progressMap.values());
+        return Math.round(vals.reduce((a, b) => a + b, 0) / files.length);
+      };
+
+      try {
+        const processed = await FileService.processDroppedFiles(
+          pseudoList,
+          conversationId,
+          showProgress
+            ? (name, pct) => {
+                progressMap.set(name, pct);
+                setUploadPct(getOverallPct());
+              }
+            : undefined
+        );
+        return processed.map((meta) => ({ path: meta.path, name: meta.name, kind: 'file' as const }));
+      } finally {
+        if (showProgress) {
+          setIsUploading(false);
+          setUploadPct(0);
+        }
+      }
     },
     [conversationId]
   );
@@ -222,5 +255,7 @@ export function useWorkspaceDragImport({
   return {
     isDragging,
     dragHandlers,
+    isUploading,
+    uploadPct,
   };
 }

@@ -14,32 +14,51 @@ const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 /**
  * Upload a file to the server via HTTP multipart (WebUI mode).
  * Conversation-bound uploads go to the workspace uploads directory; pre-conversation uploads go to temp storage.
+ * Uses XHR to enable upload progress tracking.
  */
-export async function uploadFileViaHttp(file: File, conversationId?: string): Promise<string> {
-  if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-    throw new Error('FILE_TOO_LARGE');
-  }
-  const formData = new FormData();
-  formData.append('file', file);
-  if (conversationId) {
-    formData.append('conversationId', conversationId);
-  }
-  const response = await fetch('/api/upload', {
-    method: 'POST',
-    credentials: 'include',
-    body: formData,
-  });
-  if (!response.ok) {
-    if (response.status === 413) {
-      throw new Error('FILE_TOO_LARGE');
+export function uploadFileViaHttp(
+  file: File,
+  conversationId?: string,
+  onProgress?: (pct: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      reject(new Error('FILE_TOO_LARGE'));
+      return;
     }
-    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-  }
-  const result = (await response.json()) as { success: boolean; data?: { path: string } };
-  if (!result.success || !result.data) {
-    throw new Error('Upload failed: server returned unsuccessful response');
-  }
-  return result.data.path;
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', file);
+    if (conversationId) formData.append('conversationId', conversationId);
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+    }
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const result = JSON.parse(xhr.responseText) as { success: boolean; data?: { path: string } };
+          if (result.success && result.data?.path) {
+            resolve(result.data.path);
+          } else {
+            reject(new Error('Upload failed: server returned unsuccessful response'));
+          }
+        } catch {
+          reject(new Error('Invalid upload response'));
+        }
+      } else if (xhr.status === 413) {
+        reject(new Error('FILE_TOO_LARGE'));
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during file upload'));
+    xhr.onabort = () => reject(new Error('Upload aborted'));
+    xhr.open('POST', '/api/upload');
+    xhr.withCredentials = true;
+    xhr.send(formData);
+  });
 }
 // Simple formatBytes implementation moved from deleted updateConfig
 function formatBytes(bytes: number, decimals = 2): string {
@@ -222,8 +241,13 @@ class FileServiceClass {
   /**
    * Process files from drag and drop events, creating temporary files for files without valid paths.
    * In WebUI mode, uploads files via HTTP to the conversation workspace uploads directory.
+   * @param onProgress Optional callback for upload progress per file (WebUI mode only)
    */
-  async processDroppedFiles(files: FileList, conversationId?: string): Promise<FileMetadata[]> {
+  async processDroppedFiles(
+    files: FileList,
+    conversationId?: string,
+    onProgress?: (fileName: string, pct: number) => void
+  ): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -238,7 +262,11 @@ class FileServiceClass {
         try {
           if (!isElectronDesktop()) {
             // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
-            filePath = await uploadFileViaHttp(file, conversationId || '');
+            filePath = await uploadFileViaHttp(
+              file,
+              conversationId,
+              onProgress ? (pct) => onProgress(file.name, pct) : undefined
+            );
           } else {
             // Electron: use IPC to create temp file
             const arrayBuffer = await file.arrayBuffer();

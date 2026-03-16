@@ -229,6 +229,23 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </div>
         )}
 
+        {dragImportHook.isUploading && (
+          <div className='absolute inset-0 pointer-events-none z-30 flex items-center justify-center px-32px'>
+            <div
+              className='w-full max-w-480px text-center text-white rounded-16px px-32px py-28px'
+              style={{
+                background: 'rgba(6, 11, 25, 0.85)',
+                border: '1px dashed rgb(var(--primary-6))',
+                boxShadow: '0 20px 60px rgba(15, 23, 42, 0.45)',
+              }}
+            >
+              <div className='text-18px font-semibold mb-8px'>
+                {t('fileUpload.uploading', 'Uploading')}: {dragImportHook.uploadPct}%
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Paste Confirm Modal */}
         <PasteConfirmModal
           pasteConfirm={modalsHook.pasteConfirm}

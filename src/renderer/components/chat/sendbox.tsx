@@ -195,7 +195,7 @@ const SendBox: React.FC<{
   }, [input, lockMultiLine]);
 
   // 使用拖拽 hook
-  const { isFileDragging, dragHandlers } = useDragUpload({
+  const { isFileDragging, dragHandlers, isUploading } = useDragUpload({
     supportedExts,
     onFilesAdded,
     conversationId: conversationContext?.conversationId,
@@ -344,7 +344,7 @@ const SendBox: React.FC<{
   };
 
   // Calculate button disabled state and style
-  const isButtonDisabled = disabled || (!input.trim() && domSnippets.length === 0);
+  const isButtonDisabled = disabled || isUploading || (!input.trim() && domSnippets.length === 0);
   const buttonStyle = {
     backgroundColor: isButtonDisabled ? undefined : '#000000',
     borderColor: isButtonDisabled ? undefined : '#000000',
