@@ -163,23 +163,23 @@ export class AuthService {
     try {
       // 从数据库读取 admin 用户的 jwt_secret
       // Read jwt_secret from admin user in database
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      if (adminUser && adminUser.jwt_secret) {
-        this.jwtSecret = adminUser.jwt_secret;
+      const systemUser = UserRepository.getSystemUser();
+      if (systemUser && systemUser.jwt_secret) {
+        this.jwtSecret = systemUser.jwt_secret;
         return this.jwtSecret;
       }
 
       // 生成新的 secret 并保存到 admin 用户
       // Generate new secret and save to admin user
-      if (adminUser) {
+      if (systemUser) {
         const newSecret = this.generateSecretKey();
-        UserRepository.updateJwtSecret(adminUser.id, newSecret);
+        UserRepository.updateJwtSecret(systemUser.id, newSecret);
         this.jwtSecret = newSecret;
         return this.jwtSecret;
       }
 
       // Fallback: 如果 admin 用户不存在(不应该发生)
-      console.warn('[AuthService] Admin user not found, using temporary secret');
+      console.warn('[AuthService] System WebUI user not found, using temporary secret');
       this.jwtSecret = this.generateSecretKey();
       return this.jwtSecret;
     } catch (error) {
@@ -195,14 +195,14 @@ export class AuthService {
    */
   public static invalidateAllTokens(): void {
     try {
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      if (!adminUser) {
-        console.warn('[AuthService] Admin user not found, cannot invalidate tokens');
+      const systemUser = UserRepository.getSystemUser();
+      if (!systemUser) {
+        console.warn('[AuthService] System WebUI user not found, cannot invalidate tokens');
         return;
       }
 
       const newSecret = this.generateSecretKey();
-      UserRepository.updateJwtSecret(adminUser.id, newSecret);
+      UserRepository.updateJwtSecret(systemUser.id, newSecret);
       this.jwtSecret = newSecret;
     } catch (error) {
       console.error('Failed to invalidate tokens:', error);

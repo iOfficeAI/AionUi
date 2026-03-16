@@ -119,14 +119,6 @@ const useAcpMessage = (conversation_id: string) => {
         return;
       }
 
-      // Cancel pending finish timeout if new message arrives
-      // 如果新消息到达，取消待处理的 finish timeout
-      const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-      if (pendingTimeout && message.type !== 'finish') {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-      }
-
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
@@ -146,16 +138,13 @@ const useAcpMessage = (conversation_id: string) => {
           break;
         case 'finish':
           {
-            // Use delayed reset to detect true end of task
-            // 使用延迟重置来检测任务的真正结束
-            const timeoutId = setTimeout(() => {
-              setRunning(false);
-              runningRef.current = false;
-              setAiProcessing(false);
-              aiProcessingRef.current = false;
-              setThought({ subject: '', description: '' });
-            }, 1000);
-            (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setRunning(false);
+            runningRef.current = false;
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             // Log request completion
             if (requestTraceRef.current) {
@@ -165,7 +154,7 @@ const useAcpMessage = (conversation_id: string) => {
             }
           }
           break;
-        case 'content':
+        case 'content': {
           // Mark that current turn has content output
           hasContentInTurnRef.current = true;
           // Auto-recover running state if content arrives after finish
@@ -177,6 +166,7 @@ const useAcpMessage = (conversation_id: string) => {
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
           break;
+        }
         case 'agent_status': {
           // Auto-recover running state if agent_status arrives after finish
           if (!runningRef.current) {
@@ -275,13 +265,6 @@ const useAcpMessage = (conversation_id: string) => {
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    // Clear pending finish timeout when conversation changes
-    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-    }
-
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
     setTokenUsage(null);
@@ -319,13 +302,6 @@ const useAcpMessage = (conversation_id: string) => {
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
-    // Clear pending finish timeout
-    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-    }
-
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);

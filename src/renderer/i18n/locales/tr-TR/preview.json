@@ -55,6 +55,7 @@
   "pathLabel": "Yol",
   "noTabs": "Açık sekme yok",
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
+  "largeTextTruncatedHint": "Büyük dosya önizleme modu: performans için yalnızca ilk {{count}} karakter gösteriliyor.",
   "errors": {
     "missingFilePath": "Dosya yolu eksik",
     "openWithoutPath": "Açılamadı: dosya yolu sağlanmadı",

@@ -8,7 +8,7 @@ import { ConfigStorage, type ICssTheme } from '@/common/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { resolveCssByActiveTheme } from '@/renderer/utils/themeCssSync';
+import { resolveCssByActiveTheme, setExtensionThemesCache } from '@/renderer/utils/themeCssSync';
 import { Button, Message, Modal } from '@arco-design/web-react';
 import { EditTwo, Plus, CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,7 +16,6 @@ import { useTranslation } from 'react-i18next';
 import CssThemeModal from './CssThemeModal';
 import { PRESET_THEMES, DEFAULT_THEME_ID } from './presets';
 import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils';
-import { setExtensionThemesCache } from '@/renderer/utils/themeCssSync';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 
 interface ThemePreviewPalette {

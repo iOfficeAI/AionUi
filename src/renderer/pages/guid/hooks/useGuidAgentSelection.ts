@@ -225,7 +225,12 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
     Promise.all([ConfigStorage.get('acp.customAgents'), ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])])
       .then(([agents, extAssistants]) => {
         if (!isActive) return;
-        const list = (agents || []).filter((agent: AcpBackendConfig) => availableCustomAgentIds.has(agent.id));
+        const list = (agents || []).filter((agent: AcpBackendConfig) => {
+          // Keep preset assistants visible on Guid homepage even when ACP detection
+          // has not produced custom IDs yet (startup race / transient detection failure).
+          if (agent.isPreset) return true;
+          return availableCustomAgentIds.has(agent.id);
+        });
 
         // Merge extension-contributed assistants (they are preset assistants that don't need
         // to be in availableCustomAgentIds because they use existing backends like gemini/claude)

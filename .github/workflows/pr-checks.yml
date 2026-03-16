@@ -271,7 +271,7 @@ jobs:
               ls out/*.dmg out/*.zip out/*latest*.yml >/dev/null
               ;;
             linux)
-              ls out/*.AppImage out/*.deb out/*latest*.yml >/dev/null
+              ls out/*.deb out/*latest*.yml >/dev/null
               ;;
           esac
 
@@ -352,10 +352,6 @@ jobs:
           echo "=========================================="
           echo "SMOKE INSTALL: linux"
           echo "=========================================="
-
-          APPIMAGE_FILE=$(ls out/*.AppImage | head -n 1)
-          chmod +x "$APPIMAGE_FILE"
-          "$APPIMAGE_FILE" --appimage-extract-and-run --version || true
 
           DEB_FILE=$(ls out/*.deb | head -n 1)
           PKG_NAME=$(dpkg-deb -f "$DEB_FILE" Package)

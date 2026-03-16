@@ -41,6 +41,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   webuiGetStatus: () => ipcRenderer.invoke('webui-direct-get-status'),
   // 修改密码不需要当前密码 / Change password without current password
   webuiChangePassword: (newPassword: string) => ipcRenderer.invoke('webui-direct-change-password', { newPassword }),
+  webuiChangeUsername: (newUsername: string) => ipcRenderer.invoke('webui-direct-change-username', { newUsername }),
   // 生��二维码 token / Generate QR token
   webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
 });
+
+// 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
+// Tray event listeners - convert IPC events to DOM events
+const trayEvents = ['tray:navigate-to-guid', 'tray:navigate-to-conversation', 'tray:open-about', 'tray:pause-all-tasks', 'tray:check-update'];
+
+for (const channel of trayEvents) {
+  ipcRenderer.on(channel, (_event, ...args) => {
+    window.dispatchEvent(new CustomEvent(channel, { detail: args[0] }));
+  });
+}

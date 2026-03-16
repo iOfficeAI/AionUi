@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './utils/configureConsoleLog';
 import './utils/configureChromium';
 import { app, BrowserWindow, Menu, nativeImage, net, powerMonitor, protocol, screen, Tray } from 'electron';
 import fixPath from 'fix-path';
@@ -14,17 +15,19 @@ import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from './extensions/assetProtocol';
 import { initializeProcess } from './process';
+import { setWebServerInstance } from './process/bridge/webuiBridge';
 import { ProcessConfig } from './process/initStorage';
-import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
+import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import { setMainWindow } from './process/bridge/notificationBridge';
+import i18n, { setInitialLanguage } from '@process/i18n';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
-import { startWebServer } from './webserver';
+import { startWebServer, startWebServerWithInstance } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
-import i18n from '@process/i18n';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -164,6 +167,10 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   }
 }
 
+// Log environment diagnostics once at startup (persisted via electron-log).
+// Helps debug PATH / cygpath issues on Windows (#1157).
+logEnvironmentDiagnostics();
+
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {
   app.quit();
@@ -226,6 +233,9 @@ const getSwitchValue = (flag: string): string | undefined => {
 const hasCommand = (cmd: string) => process.argv.includes(cmd);
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
+const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
+const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
+const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 
 type WebUIUserConfig = {
   port?: number | string;
@@ -293,6 +303,24 @@ const resolveRemoteAccess = (config: WebUIUserConfig): boolean => {
   return isRemoteMode || hostRequestsRemote || envRemote === true || configRemote;
 };
 
+const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
+  try {
+    const enabled = (await ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY)) === true;
+    if (!enabled) return;
+
+    const [allowRemotePref, portPref] = await Promise.all([ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY), ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY)]);
+    const allowRemote = allowRemotePref === true;
+    // 直接使用数字类型，提供默认值 / Use number type directly with default
+    const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : SERVER_CONFIG.DEFAULT_PORT;
+
+    const instance = await startWebServerWithInstance(preferredPort, allowRemote);
+    setWebServerInstance(instance);
+    console.log(`[WebUI] Auto-restored from desktop preferences (port=${preferredPort}, allowRemote=${allowRemote})`);
+  } catch (error) {
+    console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);
+  }
+};
+
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
@@ -324,11 +352,37 @@ const getTrayIcon = (): Electron.NativeImage => {
 
 /**
  * 构建托盘右键菜单 / Build tray context menu
+ * 改为异步函数以支持动态内容 / Changed to async function to support dynamic content
  */
-const buildTrayContextMenu = (): Electron.Menu => {
-  return Menu.buildFromTemplate([
+const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
+  // 获取最近对话列表 / Get recent conversations
+  const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
+    try {
+      const { getDatabase } = await import('./process/database');
+      const db = getDatabase();
+      const result = db.getUserConversations(undefined, 0, 5);
+      return (result.data || []).slice(0, 5).map((conv) => ({ id: conv.id, title: conv.name || i18n.t('common.tray.untitled') }));
+    } catch {
+      return [];
+    }
+  };
+
+  // 获取运行中的任务数量 / Get running tasks count
+  const getRunningTasksCount = (): number => {
+    try {
+      return WorkerManage.listTasks().length;
+    } catch {
+      return 0;
+    }
+  };
+
+  const recentConversations = await getRecentConversations();
+  const runningTasksCount = getRunningTasksCount();
+
+  // 构建菜单模板 / Build menu template
+  const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: i18n.t('tray.showWindow'),
+      label: i18n.t('common.tray.showWindow'),
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -338,13 +392,107 @@ const buildTrayContextMenu = (): Electron.Menu => {
     },
     { type: 'separator' },
     {
-      label: i18n.t('tray.quit'),
+      label: i18n.t('common.tray.newChat'),
       click: () => {
-        isQuitting = true;
-        app.quit();
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('tray:navigate-to-guid');
+        }
       },
     },
-  ]);
+  ];
+
+  // 添加最近对话列表 / Add recent conversations
+  if (recentConversations.length > 0) {
+    template.push({ type: 'separator' });
+    template.push({
+      label: i18n.t('common.tray.recentChats'),
+      enabled: false,
+    });
+    for (const conv of recentConversations) {
+      const displayTitle = conv.title.length > 20 ? conv.title.slice(0, 20) + '...' : conv.title;
+      template.push({
+        label: displayTitle,
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+            // Send navigation event to renderer / 发送导航事件到渲染器
+            mainWindow.webContents.send('tray:navigate-to-conversation', { conversationId: conv.id });
+          }
+        },
+      });
+    }
+  }
+
+  // 添加任务状态 / Add task status
+  template.push({ type: 'separator' });
+  template.push({
+    label: `${i18n.t('common.tray.runningTasks')}: ${runningTasksCount}`,
+    enabled: false,
+  });
+  template.push({
+    label: i18n.t('common.tray.pauseAll'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        // 发送暂停所有任务的事件 / Send event to pause all tasks
+        mainWindow.webContents.send('tray:pause-all-tasks');
+      }
+    },
+  });
+
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.closeToTray'),
+    type: 'checkbox',
+    checked: closeToTrayEnabled,
+    click: async (menuItem) => {
+      const newState = !closeToTrayEnabled;
+      void ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: newState });
+    },
+  });
+  template.push({
+    label: i18n.t('common.tray.checkUpdate'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('tray:check-update');
+      }
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.about'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('tray:open-about');
+      }
+    },
+  });
+  template.push({
+    label: i18n.t('common.tray.restart'),
+    click: () => {
+      isQuitting = true;
+      app.relaunch();
+      app.exit(0);
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.quit'),
+    click: () => {
+      isQuitting = true;
+      app.quit();
+    },
+  });
+
+  return Menu.buildFromTemplate(template);
 };
 
 /**
@@ -358,13 +506,22 @@ const createOrUpdateTray = (): void => {
     const icon = getTrayIcon();
     tray = new Tray(icon);
     tray.setToolTip('AionUi');
-    tray.setContextMenu(buildTrayContextMenu());
+    // 初始化菜单 / Initialize menu
+    void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
 
     // 双击托盘图标显示窗口（Windows/Linux）/ Double-click tray icon to show window (Windows/Linux)
     tray.on('double-click', () => {
       if (mainWindow) {
         mainWindow.show();
         mainWindow.focus();
+      }
+    });
+
+    // 每次右键托盘图标时重建菜单（显示最新数据）/ Rebuild menu on right-click to show latest data
+    tray.on('click', (event: any) => {
+      if (event.event?.button === 2) {
+        // Right-click detected, rebuild context menu
+        void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
       }
     });
   } catch (err) {
@@ -375,9 +532,10 @@ const createOrUpdateTray = (): void => {
 /**
  * 刷新托盘右键菜单文案（语言切换时调用）/ Refresh tray context menu labels (called on language change)
  */
-const refreshTrayMenu = (): void => {
+const refreshTrayMenu = async (): Promise<void> => {
   if (tray) {
-    tray.setContextMenu(buildTrayContextMenu());
+    const menu = await buildTrayContextMenu();
+    tray.setContextMenu(menu);
   }
 };
 
@@ -465,6 +623,10 @@ const createWindow = (): void => {
 
   initMainAdapterWithWindow(mainWindow);
   setupApplicationMenu();
+
+  // Set main window reference for notifications
+  // 设置主窗口引用供通知使用
+  setMainWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
@@ -687,6 +849,19 @@ const handleAppReady = async (): Promise<void> => {
 
     createWindow();
 
+    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
+    // Read language setting and initialize main process i18n, then refresh tray menu
+    try {
+      const savedLanguage = await ProcessConfig.get('language');
+      await setInitialLanguage(savedLanguage);
+      // 语言设置完成后，如果托盘已存在，刷新菜单 / After language is set, refresh tray menu if it exists
+      if (tray) {
+        await refreshTrayMenu();
+      }
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
+    }
+
     // 初始化关闭到托盘设置 / Initialize close-to-tray setting
     if (isE2ETestMode) {
       closeToTrayEnabled = false;
@@ -715,8 +890,15 @@ const handleAppReady = async (): Promise<void> => {
 
     // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
     onLanguageChanged(() => {
-      refreshTrayMenu();
+      void refreshTrayMenu();
     });
+
+    if (!isE2ETestMode) {
+      // 窗口创建后异步恢复 WebUI，不阻塞 UI / Restore WebUI async after window creation, non-blocking
+      restoreDesktopWebUIFromPreferences().catch((error) => {
+        console.error('[WebUI] Failed to auto-restore:', error);
+      });
+    }
 
     // Flush pending deep-link URL (received before window was ready)
     if (pendingDeepLinkUrl) {

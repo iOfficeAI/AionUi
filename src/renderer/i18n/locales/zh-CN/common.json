@@ -56,5 +56,14 @@
   "more": "更多",
   "refresh": "刷新",
   "tray.showWindow": "显示 AionUi",
-  "tray.quit": "退出"
+  "tray.newChat": "新建对话",
+  "tray.closeToTray": "关闭到托盘",
+  "tray.about": "关于 AionUi",
+  "tray.restart": "重启应用",
+  "tray.quit": "退出",
+  "tray.runningTasks": "运行中的任务",
+  "tray.pauseAll": "暂停所有任务",
+  "tray.checkUpdate": "检查更新",
+  "tray.recentChats": "最近对话",
+  "tray.untitled": "未命名"
 }
