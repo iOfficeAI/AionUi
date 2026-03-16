@@ -101,7 +101,10 @@ describe('ConversationTitleMinimap', () => {
       expect(screen.getByRole('textbox', { name: 'Search conversation' })).toHaveAttribute('readonly');
     });
 
-    expect(screen.getByRole('textbox', { name: 'Search conversation' })).toHaveAttribute('placeholder', 'Click here to search keywords');
+    expect(screen.getByRole('textbox', { name: 'Search conversation' })).toHaveAttribute(
+      'placeholder',
+      'Click here to search keywords'
+    );
   });
 
   it('keeps search mode open during IME composition blur', async () => {

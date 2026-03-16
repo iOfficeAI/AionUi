@@ -12,14 +12,20 @@ function iconParkPlugin() {
     transform(source: string, id: string) {
       if (!id.endsWith('.tsx') || id.includes('node_modules')) return null;
       if (!source.includes('@icon-park/react')) return null;
-      const transformedSource = source.replace(/import\s+\{\s+([a-zA-Z, ]*)\s+\}\s+from\s+['"]@icon-park\/react['"](;?)/g, function (str, match) {
-        if (!match) return str;
-        const components = match.split(',');
-        const importComponent = str.replace(match, components.map((key: string) => `${key} as _${key.trim()}`).join(', '));
-        const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
+      const transformedSource = source.replace(
+        /import\s+\{\s+([a-zA-Z, ]*)\s+\}\s+from\s+['"]@icon-park\/react['"](;?)/g,
+        function (str, match) {
+          if (!match) return str;
+          const components = match.split(',');
+          const importComponent = str.replace(
+            match,
+            components.map((key: string) => `${key} as _${key.trim()}`).join(', ')
+          );
+          const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
           ${components.map((key: string) => `const ${key.trim()} = IconParkHOC(_${key.trim()})`).join(';\n')}`;
-        return importComponent + ';' + hoc;
-      });
+          return importComponent + ';' + hoc;
+        }
+      );
       if (transformedSource !== source) return { code: transformedSource, map: null } as { code: string; map: null };
       return null;
     },
@@ -141,9 +147,29 @@ export default defineConfig(({ mode }) => {
               if (!id.includes('node_modules')) return undefined;
               if (id.includes('/react-dom/') || id.includes('/react/')) return 'vendor-react';
               if (id.includes('/@arco-design/')) return 'vendor-arco';
-              if (id.includes('/react-markdown/') || id.includes('/remark-') || id.includes('/rehype-') || id.includes('/unified/') || id.includes('/mdast-') || id.includes('/hast-') || id.includes('/micromark')) return 'vendor-markdown';
-              if (id.includes('/react-syntax-highlighter/') || id.includes('/refractor/') || id.includes('/highlight.js/')) return 'vendor-highlight';
-              if (id.includes('/monaco-editor/') || id.includes('/@monaco-editor/') || id.includes('/codemirror/') || id.includes('/@codemirror/')) return 'vendor-editor';
+              if (
+                id.includes('/react-markdown/') ||
+                id.includes('/remark-') ||
+                id.includes('/rehype-') ||
+                id.includes('/unified/') ||
+                id.includes('/mdast-') ||
+                id.includes('/hast-') ||
+                id.includes('/micromark')
+              )
+                return 'vendor-markdown';
+              if (
+                id.includes('/react-syntax-highlighter/') ||
+                id.includes('/refractor/') ||
+                id.includes('/highlight.js/')
+              )
+                return 'vendor-highlight';
+              if (
+                id.includes('/monaco-editor/') ||
+                id.includes('/@monaco-editor/') ||
+                id.includes('/codemirror/') ||
+                id.includes('/@codemirror/')
+              )
+                return 'vendor-editor';
               if (id.includes('/katex/')) return 'vendor-katex';
               if (id.includes('/@icon-park/')) return 'vendor-icons';
               if (id.includes('/diff2html/')) return 'vendor-diff';
@@ -158,7 +184,28 @@ export default defineConfig(({ mode }) => {
       },
       optimizeDeps: {
         exclude: ['electron'],
-        include: ['react', 'react-dom', 'react-router-dom', 'react-i18next', 'i18next', '@arco-design/web-react', '@icon-park/react', 'react-markdown', 'react-syntax-highlighter', 'react-virtuoso', 'classnames', 'swr', 'eventemitter3', 'katex', 'diff2html', 'remark-gfm', 'remark-math', 'remark-breaks', 'rehype-raw', 'rehype-katex'],
+        include: [
+          'react',
+          'react-dom',
+          'react-router-dom',
+          'react-i18next',
+          'i18next',
+          '@arco-design/web-react',
+          '@icon-park/react',
+          'react-markdown',
+          'react-syntax-highlighter',
+          'react-virtuoso',
+          'classnames',
+          'swr',
+          'eventemitter3',
+          'katex',
+          'diff2html',
+          'remark-gfm',
+          'remark-math',
+          'remark-breaks',
+          'rehype-raw',
+          'rehype-katex',
+        ],
       },
     },
   };

@@ -5,7 +5,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { AVAILABLE_AGENTS_SWR_KEY, filterAvailableAgentsForUi, splitConversationDropdownAgents } from '../../src/renderer/shared/agents/availableAgents';
+import {
+  AVAILABLE_AGENTS_SWR_KEY,
+  filterAvailableAgentsForUi,
+  splitConversationDropdownAgents,
+} from '../../src/renderer/shared/agents/availableAgents';
 import type { AvailableAgent } from '../../src/renderer/shared/agents/types';
 
 describe('availableAgents helpers', () => {
