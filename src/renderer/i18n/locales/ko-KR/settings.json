@@ -98,6 +98,7 @@
   "geminiBaseUrl": "Gemini API 기본 URL",
   "cacheDir": "캐시 디렉토리",
   "workDir": "작업 디렉토리",
+  "logDir": "로그 디렉토리",
   "dirNotConfigured": "아직 구성되지 않음",
   "cacheClean": "캐시 정리",
   "clean": "정리",
@@ -597,5 +598,6 @@
     "waitingConnection": "연결이 설정되고 있습니다. 잠시 기다려 주세요...",
     "agent": "에이전트",
     "agentDesc": "DingTalk 대화에 사용"
-  }
+  },
+  "extensionAssistantReadonly": "확장 어시스턴트는 읽기 전용입니다. 복제하여 편집할 수 있습니다."
 }

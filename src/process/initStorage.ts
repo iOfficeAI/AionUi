@@ -524,7 +524,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
-    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
+    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'star-office-helper' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -779,11 +779,15 @@ export const ProcessChatMessage = chatMessageFile;
 export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
+  // electron-log writes to the platform-standard logs directory
+  const logDir = path.join(app.getPath('logs'));
+
   return {
     cacheDir: cacheDir,
     // getDataPath() returns CLI-safe path (symlink on macOS) to avoid spaces
     // getDataPath() 返回 CLI 安全路径（macOS 上的符号链接）以避免空格问题
     workDir: dirConfig?.workDir || getDataPath(),
+    logDir,
     platform: process.platform as PlatformType,
     arch: process.arch as ArchitectureType,
   };

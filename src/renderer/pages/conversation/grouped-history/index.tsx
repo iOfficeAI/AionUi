@@ -8,18 +8,23 @@ import type { TChatConversation } from '@/common/storage';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Empty, Input, Modal } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
+import DragOverlayContent from './DragOverlayContent';
+import SortableConversationRow from './SortableConversationRow';
 import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
+import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
@@ -57,8 +62,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
     onBatchModeChange,
   });
 
-  const renderConversation = (conversation: TChatConversation) => {
-    const rowProps: ConversationRowProps = {
+  const { sensors, activeId, activeConversation, handleDragStart, handleDragEnd, handleDragCancel, isDragEnabled } = useDragAndDrop({
+    pinnedConversations,
+    batchMode,
+    collapsed,
+  });
+
+  const getConversationRowProps = useCallback(
+    (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
       collapsed,
       tooltipEnabled,
@@ -75,10 +86,17 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
       onExport: handleExportConversation,
       onTogglePin: handleTogglePin,
       getJobStatus,
-    };
+    }),
+    [collapsed, tooltipEnabled, batchMode, selectedConversationIds, id, dropdownVisibleId, toggleSelectedConversation, handleConversationClick, handleOpenMenu, handleMenuVisibleChange, handleEditStart, handleDeleteClick, handleExportConversation, handleTogglePin, getJobStatus]
+  );
 
+  const renderConversation = (conversation: TChatConversation) => {
+    const rowProps = getConversationRowProps(conversation);
     return <ConversationRow key={conversation.id} {...rowProps} />;
   };
+
+  // Collect all sortable IDs for the pinned section
+  const pinnedIds = useMemo(() => pinnedConversations.map((c) => c.id), [pinnedConversations]);
 
   if (timelineSections.length === 0 && pinnedConversations.length === 0) {
     return (
@@ -195,12 +213,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({ onSes
       )}
 
       <div className='size-full overflow-y-auto overflow-x-hidden'>
-        {pinnedConversations.length > 0 && (
-          <div className='mb-8px min-w-0'>
-            {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{t('conversation.history.pinnedSection')}</div>}
-            <div className='min-w-0'>{pinnedConversations.map((conversation) => renderConversation(conversation))}</div>
-          </div>
-        )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+          {pinnedConversations.length > 0 && (
+            <div className='mb-8px min-w-0'>
+              {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{t('conversation.history.pinnedSection')}</div>}
+              <SortableContext items={pinnedIds} strategy={verticalListSortingStrategy}>
+                <div className='min-w-0'>
+                  {pinnedConversations.map((conversation) => {
+                    const props = getConversationRowProps(conversation);
+                    return isDragEnabled ? <SortableConversationRow key={conversation.id} {...props} /> : <ConversationRow key={conversation.id} {...props} />;
+                  })}
+                </div>
+              </SortableContext>
+            </div>
+          )}
+
+          <DragOverlay dropAnimation={null}>{activeId && activeConversation ? <DragOverlayContent conversation={activeConversation} /> : null}</DragOverlay>
+        </DndContext>
 
         {timelineSections.map((section) => (
           <div key={section.timeline} className='mb-8px min-w-0'>

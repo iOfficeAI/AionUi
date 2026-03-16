@@ -92,7 +92,7 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
-  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
+  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; logDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
@@ -128,6 +128,10 @@ export const autoUpdate = {
   quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
   /** Auto-update status events */
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
+};
+
+export const starOffice = {
+  detectUrl: bridge.buildProvider<IBridgeResponse<{ url: string | null }>, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>('star-office.detect-url'),
 };
 
 export const dialog = {
@@ -383,6 +387,8 @@ export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
   changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
+  // Broadcast language change to all renderers (desktop + WebUI) for real-time sync
+  languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
 };
 
 // 任务管理接口 / Task management API
@@ -485,6 +491,8 @@ interface ISendMessageParams {
   conversation_id: string;
   files?: string[];
   loading_id?: string;
+  /** Skill names to inject into the message (used by agents with file-reading ability) */
+  injectSkills?: string[];
 }
 
 // Unified confirm message params for all agents (Gemini, ACP, Codex)

@@ -98,6 +98,7 @@
   "geminiBaseUrl": "Gemini API Base URL",
   "cacheDir": "緩存目錄",
   "workDir": "工作目錄",
+  "logDir": "日誌目錄",
   "dirNotConfigured": "尚未設定目錄",
   "cacheClean": "Cache Cleanup",
   "clean": "Clean",
@@ -597,5 +598,6 @@
     "waitingConnection": "連接正在建立，請稍候...",
     "agent": "對話Agent",
     "agentDesc": "用於與Channel進行對話"
-  }
+  },
+  "extensionAssistantReadonly": "擴展助手為唯讀，你可以複製它並編輯副本。"
 }

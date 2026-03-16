@@ -98,6 +98,7 @@
   "geminiBaseUrl": "Gemini API Base URL",
   "cacheDir": "缓存目录",
   "workDir": "工作目录",
+  "logDir": "日志目录",
   "dirNotConfigured": "尚未配置目录",
   "cacheClean": "缓存清理",
   "clean": "清理",
@@ -596,5 +597,6 @@
     "agent": "对话Agent",
     "agentDesc": "用于与Channel进行对话"
   },
-  "addAssistant": "添加助手"
+  "addAssistant": "添加助手",
+  "extensionAssistantReadonly": "扩展助手为只读，你可以复制它并编辑副本。"
 }

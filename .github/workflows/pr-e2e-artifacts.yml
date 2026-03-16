@@ -1,14 +1,11 @@
 name: '✓PR E2E Artifacts'
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main, dev]
   workflow_dispatch:
 
 
 concurrency:
-  group: pr-e2e-artifacts-${{ github.event.pull_request.number }}
+  group: pr-e2e-artifacts-${{ github.run_id }}
   cancel-in-progress: true
 
 permissions:

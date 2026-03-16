@@ -32,6 +32,7 @@ export interface AgentModeOption {
  * - Gemini: supports default/autoEdit/yolo (auto-approve at manager layer, not via ACP)
  * - Codex: supports suggest/autoEdit/fullAuto (maps to CLI's Suggest/Auto Edit/Full Auto via Shift+Tab)
  * - Goose: mode set at startup only, not during session
+ * - Cursor: agent/plan/ask modes via ACP session/set_mode (verified via `agent acp` session/new response)
  */
 export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   claude: [
@@ -64,6 +65,11 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'default', label: 'Plan' },
     { value: 'autoEdit', label: 'Auto Edit' },
     { value: 'yolo', label: 'Full Auto' },
+  ],
+  cursor: [
+    { value: 'agent', label: 'Agent', description: 'Full agent capabilities with tool access' },
+    { value: 'plan', label: 'Plan', description: 'Read-only mode for planning and designing before implementation' },
+    { value: 'ask', label: 'Ask', description: 'Q&A mode - no edits or command execution' },
   ],
 };
 
