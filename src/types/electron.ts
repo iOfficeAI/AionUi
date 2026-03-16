@@ -32,7 +32,7 @@ export interface WebUIChangePasswordResult {
 
 export interface WebUIChangeUsernameResult {
   success: boolean;
-  username?: string;
+  data?: { username: string };
   msg?: string;
 }
 

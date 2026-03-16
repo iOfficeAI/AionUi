@@ -104,7 +104,11 @@
       "selectFolderError": "Klasör seçilemedi",
       "success": "Çalışma alanı başarıyla taşındı",
       "error": "Çalışma alanı taşınamadı",
-      "migrating": "Taşınıyor..."
+      "migrating": "Taşınıyor...",
+      "cronMigrationTitle": "Zamanlanmış görevler bulundu",
+      "cronMigrationHint": "Mevcut konuşmada zamanlanmış görevler var. Bunları yeni çalışma alanına taşımak ister misiniz?",
+      "cronMigrationConfirm": "Taşı ve güncelle",
+      "cronMigrationSkip": "Taşıma (silinecek)"
     },
     "dragOverlayTitle": "İçe aktarmak için bırakın",
     "dragOverlayDesc": "Dosyaları veya klasörleri bu çalışma alanına kopyalamak için buraya sürükleyin.",

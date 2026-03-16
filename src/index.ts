@@ -369,7 +369,6 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   // 获取运行中的任务数量 / Get running tasks count
   const getRunningTasksCount = (): number => {
     try {
-      const WorkerManage = require('./process/WorkerManage').default;
       return WorkerManage.listTasks().length;
     } catch {
       return 0;
@@ -886,7 +885,7 @@ const handleAppReady = async (): Promise<void> => {
 
     // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
     onLanguageChanged(() => {
-      refreshTrayMenu();
+      void refreshTrayMenu();
     });
 
     if (!isE2ETestMode) {

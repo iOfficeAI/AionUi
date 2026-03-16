@@ -476,7 +476,7 @@ const WebuiModalContent: React.FC = () => {
       const values = await usernameForm.validate();
       setUsernameLoading(true);
 
-      let result: { success: boolean; msg?: string; username?: string; data?: { username: string } };
+      let result: { success: boolean; msg?: string; data?: { username: string } };
 
       if (window.electronAPI?.webuiChangeUsername) {
         result = await window.electronAPI.webuiChangeUsername(values.newUsername);
@@ -486,18 +486,18 @@ const WebuiModalContent: React.FC = () => {
         });
       }
 
-      const nextUsername = result.username || result.data?.username || values.newUsername.trim();
+      const nextUsername = result.data?.username ?? values.newUsername.trim();
       if (result.success) {
-        Message.success(t('settings.webui.usernameChanged', { defaultValue: 'Username updated' }));
+        Message.success(t('settings.webui.usernameChanged'));
         setSetUsernameModalVisible(false);
         usernameForm.resetFields();
         setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
       } else {
-        Message.error(result.msg || t('settings.webui.usernameChangeFailed', { defaultValue: 'Failed to update username' }));
+        Message.error(result.msg || t('settings.webui.usernameChangeFailed'));
       }
     } catch (error) {
       console.error('Set new username error:', error);
-      Message.error(t('settings.webui.usernameChangeFailed', { defaultValue: 'Failed to update username' }));
+      Message.error(t('settings.webui.usernameChangeFailed'));
     } finally {
       setUsernameLoading(false);
     }
@@ -704,7 +704,7 @@ const WebuiModalContent: React.FC = () => {
                   <Copy size={14} />
                 </Button>
               </Tooltip>
-              <Tooltip content={t('settings.webui.editUsernameTooltip', { defaultValue: 'Edit username' })}>
+              <Tooltip content={t('settings.webui.editUsernameTooltip')}>
                 <Button type='text' size='mini' className='rd-100px !px-6px inline-flex items-center !h-24px' onClick={handleResetUsername}>
                   <EditTwo size={14} />
                 </Button>
@@ -815,22 +815,13 @@ const WebuiModalContent: React.FC = () => {
         </div>
       )}
 
-      <AionModal
-        visible={setUsernameModalVisible}
-        onCancel={() => setSetUsernameModalVisible(false)}
-        onOk={handleSetNewUsername}
-        confirmLoading={usernameLoading}
-        title={t('settings.webui.setNewUsername', { defaultValue: 'Set New Username' })}
-        size='small'
-      >
+      <AionModal visible={setUsernameModalVisible} onCancel={() => setSetUsernameModalVisible(false)} onOk={handleSetNewUsername} confirmLoading={usernameLoading} title={t('settings.webui.setNewUsername')} size='small'>
         <Form form={usernameForm} layout='vertical' className='pt-16px'>
           <Form.Item
-            label={t('settings.webui.newUsername', { defaultValue: 'New Username' })}
+            label={t('settings.webui.newUsername')}
             field='newUsername'
             rules={[
-              { required: true, message: t('settings.webui.newUsernameRequired', { defaultValue: 'Please enter a username' }) },
-              { minLength: 3, message: t('settings.webui.usernameMinLength', { defaultValue: 'Username must be at least 3 characters' }) },
-              { maxLength: 32, message: t('settings.webui.usernameMaxLength', { defaultValue: 'Username must be 32 characters or less' }) },
+              { required: true, message: t('settings.webui.newUsernameRequired') },
               {
                 validator: (value, callback) => {
                   if (typeof value !== 'string') {
@@ -839,13 +830,23 @@ const WebuiModalContent: React.FC = () => {
                   }
 
                   const trimmed = value.trim();
+                  if (trimmed.length < 3) {
+                    callback(t('settings.webui.usernameMinLength'));
+                    return;
+                  }
+
+                  if (trimmed.length > 32) {
+                    callback(t('settings.webui.usernameMaxLength'));
+                    return;
+                  }
+
                   if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
-                    callback(t('settings.webui.usernameFormatError', { defaultValue: 'Use letters, numbers, hyphens, or underscores only' }));
+                    callback(t('settings.webui.usernameFormatError'));
                     return;
                   }
 
                   if (/^[_-]|[_-]$/.test(trimmed)) {
-                    callback(t('settings.webui.usernameEdgeError', { defaultValue: 'Username cannot start or end with a hyphen or underscore' }));
+                    callback(t('settings.webui.usernameEdgeError'));
                     return;
                   }
 
@@ -854,7 +855,7 @@ const WebuiModalContent: React.FC = () => {
               },
             ]}
           >
-            <Input placeholder={t('settings.webui.newUsernamePlaceholder', { defaultValue: 'Enter a new username' })} />
+            <Input placeholder={t('settings.webui.newUsernamePlaceholder')} />
           </Form.Item>
         </Form>
       </AionModal>
