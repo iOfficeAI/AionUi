@@ -13,6 +13,7 @@ vi.mock('electron', () => ({
   app: {
     getVersion: vi.fn(() => '1.0.0'),
     isPackaged: true,
+    exit: vi.fn(),
   },
 }));
 
@@ -135,7 +136,7 @@ describe('AutoUpdaterService', () => {
       expect(result.error).toBe('AutoUpdaterService not initialized');
     });
 
-    it('should check for updates successfully', async () => {
+    it('should check for updates successfully when update is available', async () => {
       autoUpdaterService.initialize(mockStatusBroadcast);
 
       const mockUpdateInfo = {
@@ -145,6 +146,7 @@ describe('AutoUpdaterService', () => {
       };
 
       vi.mocked(autoUpdater.checkForUpdates).mockResolvedValueOnce({
+        isUpdateAvailable: true,
         updateInfo: mockUpdateInfo,
       });
 
@@ -152,6 +154,20 @@ describe('AutoUpdaterService', () => {
 
       expect(result.success).toBe(true);
       expect(result.updateInfo).toEqual(mockUpdateInfo);
+    });
+
+    it('should return no updateInfo when isUpdateAvailable is false', async () => {
+      autoUpdaterService.initialize(mockStatusBroadcast);
+
+      vi.mocked(autoUpdater.checkForUpdates).mockResolvedValueOnce({
+        isUpdateAvailable: false,
+        updateInfo: { version: '1.0.0', releaseDate: '2025-01-01' },
+      });
+
+      const result = await autoUpdaterService.checkForUpdates();
+
+      expect(result.success).toBe(true);
+      expect(result.updateInfo).toBeUndefined();
     });
 
     it('should handle check for updates error', async () => {
@@ -219,10 +235,17 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('quitAndInstall', () => {
-    it('should call quitAndInstall on autoUpdater', () => {
-      autoUpdaterService.quitAndInstall();
+    it('should call quitAndInstall on autoUpdater and force exit after delay', async () => {
+      vi.useFakeTimers();
+      const { app } = vi.mocked(await import('electron'));
 
-      expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
+      autoUpdaterService.quitAndInstall();
+      expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(true, true);
+
+      // app.exit is called after a 1s delay
+      vi.advanceTimersByTime(1000);
+      expect(app.exit).toHaveBeenCalledWith(0);
+      vi.useRealTimers();
     });
   });
 
@@ -244,19 +267,18 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('setAllowPrerelease', () => {
-    it('should enable prerelease updates', () => {
+    it('should store prerelease preference without setting autoUpdater.allowPrerelease', () => {
       autoUpdaterService.setAllowPrerelease(true);
 
       expect(autoUpdaterService.allowPrerelease).toBe(true);
-      expect(autoUpdater.allowPrerelease).toBe(true);
-      expect(autoUpdater.allowDowngrade).toBe(true);
+      // autoUpdater.allowPrerelease must NOT be set — it conflicts with custom channel names
+      expect(autoUpdater.allowPrerelease).toBe(false);
     });
 
-    it('should disable prerelease updates', () => {
+    it('should disable prerelease preference', () => {
       autoUpdaterService.setAllowPrerelease(false);
 
       expect(autoUpdaterService.allowPrerelease).toBe(false);
-      expect(autoUpdater.allowPrerelease).toBe(false);
     });
   });
 
@@ -414,22 +436,22 @@ describe('AutoUpdaterService', () => {
       expect(getUpdateChannel()).toBe('latest-win-arm64');
     });
 
-    it('should return latest-mac-arm64 for macOS ARM64', () => {
+    it('should return latest-arm64 for macOS ARM64 (electron-updater appends -mac)', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin', writable: true });
       Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
-      expect(getUpdateChannel()).toBe('latest-mac-arm64');
+      expect(getUpdateChannel()).toBe('latest-arm64');
     });
 
-    it('should return latest-mac-x64 for macOS x64', () => {
+    it('should return undefined for macOS x64 (default latest-mac.yml)', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin', writable: true });
       Object.defineProperty(process, 'arch', { value: 'x64', writable: true });
-      expect(getUpdateChannel()).toBe('latest-mac-x64');
+      expect(getUpdateChannel()).toBeUndefined();
     });
 
-    it('should return latest-linux-arm64 for Linux ARM64', () => {
+    it('should return undefined for Linux ARM64 (electron-updater appends -linux-arm64)', () => {
       Object.defineProperty(process, 'platform', { value: 'linux', writable: true });
       Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
-      expect(getUpdateChannel()).toBe('latest-linux-arm64');
+      expect(getUpdateChannel()).toBeUndefined();
     });
 
     it('should return undefined for Windows x64 (default channel)', () => {

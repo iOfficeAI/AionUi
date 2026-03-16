@@ -39,7 +39,7 @@ interface AutoUpdateCheckParams {
 
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
-const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.AppImage', '.deb', '.rpm'];
+const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm'];
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>(['github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com', 'release-assets.githubusercontent.com']);
 const MAX_REDIRECTS = 8;
 
@@ -129,8 +129,7 @@ const scoreAsset = (asset: GitHubReleaseAsset, runtime?: RuntimePlatformInfo): n
     if (ext === '.dmg') score += 100;
     if (ext === '.zip') score += 70;
   } else {
-    if (ext === '.AppImage') score += 100;
-    if (ext === '.deb') score += 90;
+    if (ext === '.deb') score += 100;
     if (ext === '.rpm') score += 80;
     if (ext === '.zip') score += 40;
   }
@@ -503,12 +502,8 @@ export function initUpdateBridge(): void {
 
       const result = await autoUpdaterService.checkForUpdates();
       if (result.success && result.updateInfo) {
-        // Only report update when the remote version is actually newer than the current version.
-        // electron-updater's checkForUpdates() always returns updateInfo regardless of availability.
-        const currentVersion = app.getVersion();
-        if (!semver.gt(result.updateInfo.version, currentVersion)) {
-          return { success: true, data: {} };
-        }
+        // autoUpdaterService.checkForUpdates() only returns updateInfo when
+        // electron-updater confirms isUpdateAvailable, so we can trust it directly.
         return {
           success: true,
           data: {
