@@ -44,6 +44,12 @@
   "allScheduledTasks": "Tüm zamanlanmış görevler",
   "noTasks": "Zamanlanmış görev yok",
   "runNowSuccess": "Görev çalıştırma tetiklendi",
+  "notification": {
+    "taskComplete": "Görev Tamamlandı",
+    "scheduledTask": "Zamanlanmış Görev",
+    "scheduledTaskComplete": "{{title}} - Zamanlanmış görev tamamlandı",
+    "taskDone": "Görev tamamlandı"
+  },
   "error": {
     "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Önce silin veya mevcut görevleri görmek için [CRON_LIST] kullanın.",
     "missedJob": "⏰ \"{{name}}\" zamanlanmış görevi sistem uykusu sırasında çalışmadı.\nPlanlanan saat: {{time}}\nZamanlayıcı yeniden başlatıldı, bir sonraki planlanan saatte çalışacak.",

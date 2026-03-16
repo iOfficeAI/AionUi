@@ -62,9 +62,11 @@ const mockMessages = [
 ];
 
 const openSearchInput = async () => {
-  render(<ConversationTitleMinimap title='Topic Title' conversationId='conversation-1' />);
+  render(<ConversationTitleMinimap conversationId='conversation-1' />);
 
-  fireEvent.mouseEnter(screen.getByText('Topic Title'));
+  // Click the trigger (span[role=button]) to open the minimap panel
+  const trigger = screen.getByLabelText('Search conversation', { selector: 'span[role="button"]' });
+  fireEvent.click(trigger);
 
   fireEvent.focus(await screen.findByRole('textbox', { name: 'Search conversation' }));
 
