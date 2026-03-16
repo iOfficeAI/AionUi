@@ -52,12 +52,17 @@ export default defineConfig({
       include: [
         // Process / bridge
         'src/process/services/autoUpdaterService.ts',
+        'src/process/services/cron/CronService.ts',
+        'src/process/services/cron/CronStore.ts',
+        'src/process/bridge/cronBridge.ts',
+        'src/process/bridge/conversationBridge.ts',
         'src/process/bridge/updateBridge.ts',
         'src/process/bridge/applicationBridge.ts',
         'src/utils/configureChromium.ts',
         // ACP
         'src/agent/acp/AcpAdapter.ts',
         'src/agent/acp/AcpConnection.ts',
+        'src/agent/acp/acpConnectors.ts',
         'src/agent/acp/modelInfo.ts',
         // Common
         'src/common/chatLib.ts',

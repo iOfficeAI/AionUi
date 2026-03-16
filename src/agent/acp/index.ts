@@ -1362,7 +1362,7 @@ export class AcpAgent {
       await new Promise<void>((resolve, reject) => {
         loginProcess.on('close', (code) => {
           if (code === 0) {
-            console.log(`${backend} authentication refreshed`);
+            mainLog('[ACP]', `${backend} authentication refreshed`);
             resolve();
           } else {
             reject(new Error(`${backend} login failed with code ${code}`));

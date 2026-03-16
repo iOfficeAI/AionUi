@@ -98,6 +98,7 @@
   "geminiBaseUrl": "Gemini API Temel URL",
   "cacheDir": "Önbellek Dizini",
   "workDir": "Çalışma Dizini",
+  "logDir": "Günlük Dizini",
   "dirNotConfigured": "Henüz yapılandırılmadı",
   "cacheClean": "Önbellek Temizliği",
   "clean": "Temizle",

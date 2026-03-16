@@ -60,6 +60,12 @@ export interface IConfigStorageRefer {
   language: string;
   theme: string;
   colorScheme: string;
+  /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
+  'webui.desktop.enabled'?: boolean;
+  /** 桌面模式下是否允许远程访问 / Allow remote access in desktop mode */
+  'webui.desktop.allowRemote'?: boolean;
+  /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
+  'webui.desktop.port'?: number;
   customCss: string; // 自定义 CSS 样式
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID

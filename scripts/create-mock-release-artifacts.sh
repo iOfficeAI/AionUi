@@ -13,7 +13,6 @@ mkdir -p "$ARTIFACTS_DIR/linux-build"
 
 # Windows x64
 touch "$ARTIFACTS_DIR/windows-build-x64/AionUi-1.0.0-win-x64.exe"
-touch "$ARTIFACTS_DIR/windows-build-x64/AionUi-1.0.0-win-x64.exe.blockmap"
 cat > "$ARTIFACTS_DIR/windows-build-x64/latest.yml" <<'EOF'
 version: 1.0.0
 files:
@@ -28,7 +27,6 @@ echo "debug: win-x64" > "$ARTIFACTS_DIR/windows-build-x64/builder-debug.yml"
 
 # Windows arm64
 touch "$ARTIFACTS_DIR/windows-build-arm64/AionUi-1.0.0-win-arm64.exe"
-touch "$ARTIFACTS_DIR/windows-build-arm64/AionUi-1.0.0-win-arm64.exe.blockmap"
 cat > "$ARTIFACTS_DIR/windows-build-arm64/latest.yml" <<'EOF'
 version: 1.0.0
 files:
@@ -66,20 +64,18 @@ EOF
 echo "debug: mac-arm64" > "$ARTIFACTS_DIR/macos-build-arm64/builder-debug.yml"
 
 # Linux
-touch "$ARTIFACTS_DIR/linux-build/AionUi-1.0.0.AppImage"
-touch "$ARTIFACTS_DIR/linux-build/AionUi-1.0.0-arm64.AppImage"
 touch "$ARTIFACTS_DIR/linux-build/AionUi-1.0.0.deb"
 cat > "$ARTIFACTS_DIR/linux-build/latest-linux.yml" <<'EOF'
 version: 1.0.0
 files:
-  - url: AionUi-1.0.0.AppImage
+  - url: AionUi-1.0.0.deb
     sha512: fake-sha512-linux
     size: 300000
 EOF
 cat > "$ARTIFACTS_DIR/linux-build/latest-linux-arm64.yml" <<'EOF'
 version: 1.0.0
 files:
-  - url: AionUi-1.0.0-arm64.AppImage
+  - url: AionUi-1.0.0-arm64.deb
     sha512: fake-sha512-linux-arm64
     size: 300000
 EOF

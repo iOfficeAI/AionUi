@@ -12,6 +12,7 @@
 
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CursorLogo from '@/renderer/assets/logos/cursor.png';
 import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CoworkLogo from '@/renderer/assets/cowork.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -55,6 +56,7 @@ const AGENT_LOGO_MAP = {
   vibe: MistralLogo,
   nanobot: NanobotLogo,
   qoder: QoderLogo,
+  cursor: CursorLogo,
 } as const satisfies Record<string, string>;
 
 function isDarkTheme(): boolean {

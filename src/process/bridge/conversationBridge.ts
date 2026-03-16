@@ -145,7 +145,7 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.createWithConversation.provider(({ conversation, sourceConversationId }) => {
+  ipcBridge.conversation.createWithConversation.provider(async ({ conversation, sourceConversationId, migrateCron }) => {
     try {
       conversation.createTime = Date.now();
       conversation.modifyTime = Date.now();
@@ -185,6 +185,32 @@ export function initConversationBridge(): void {
 
             hasMore = messagesResult.hasMore;
             page++;
+          }
+
+          // Migrate or delete Cron jobs associated with source conversation
+          // 迁移或删除与源会话关联的定时任务
+          try {
+            const jobs = await cronService.listJobsByConversation(sourceConversationId);
+
+            if (migrateCron) {
+              for (const job of jobs) {
+                await cronService.updateJob(job.id, {
+                  metadata: {
+                    ...job.metadata,
+                    conversationId: conversation.id,
+                    conversationTitle: conversation.name,
+                  },
+                });
+              }
+              console.log(`[conversationBridge] Migrated ${jobs.length} cron jobs to new conversation ${conversation.id}`);
+            } else if (jobs.length > 0) {
+              for (const job of jobs) {
+                await cronService.removeJob(job.id);
+              }
+              console.log(`[conversationBridge] Removed ${jobs.length} cron jobs from source conversation ${sourceConversationId}`);
+            }
+          } catch (cronError) {
+            console.error('[conversationBridge] Failed to handle cron jobs during migration:', cronError);
           }
 
           // Verify integrity and remove source conversation / 校验完整性并移除源会话
@@ -236,7 +262,6 @@ export function initConversationBridge(): void {
         const jobs = await cronService.listJobsByConversation(id);
         for (const job of jobs) {
           await cronService.removeJob(job.id);
-          ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
         }
       } catch (cronError) {
         console.warn('[conversationBridge] Failed to cleanup cron jobs:', cronError);

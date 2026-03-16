@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Button, Form, Modal, Switch, Tooltip } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { FolderOpen, FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -143,7 +143,11 @@ const SystemModalContent: React.FC = () => {
   // 偏好设置项配置 / Preference items configuration
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
-    { key: 'closeToTray', label: t('settings.closeToTray'), component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} /> },
+    {
+      key: 'closeToTray',
+      label: t('settings.closeToTray'),
+      component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
+    },
   ];
 
   // 目录配置保存确认 / Directory configuration save confirmation
@@ -214,6 +218,27 @@ const SystemModalContent: React.FC = () => {
             <Form form={form} layout='vertical' className='space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
               <DirInputItem label={t('settings.workDir')} field='workDir' />
+              {/* Log directory (read-only, click to open in file manager) */}
+              <div className='!mt-32px'>
+                <Form.Item label={t('settings.logDir')}>
+                  <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] '>
+                    <Tooltip content={systemInfo?.logDir || ''} position='top'>
+                      <div className='flex-1 min-w-0 text-13px text-t-primary truncate'>{systemInfo?.logDir || ''}</div>
+                    </Tooltip>
+                    <Button
+                      type='text'
+                      style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
+                      icon={<FolderSearch theme='outline' size='18' fill={iconColors.primary} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (systemInfo?.logDir) {
+                          void ipcBridge.shell.openFile.invoke(systemInfo.logDir);
+                        }
+                      }}
+                    />
+                  </div>
+                </Form.Item>
+              </div>
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
             </Form>
           </div>
