@@ -218,7 +218,18 @@ const AddPlatformModal = ModalHOC<{
   return (
     <AionModal visible={modalProps.visible} onCancel={modalCtrl.close} header={{ title: t('settings.addModel'), showClose: true }} style={{ maxWidth: '92vw', borderRadius: 16 }} contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }} onOk={handleSubmit} confirmLoading={modalProps.confirmLoading} okText={t('common.confirm')} cancelText={t('common.cancel')}>
       {messageContext}
-      <div className='flex flex-col gap-16px py-20px'>
+      <div className='flex flex-col gap-12px pt-8px pb-20px'>
+        <div
+          className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
+          style={{
+            borderColor: 'rgba(var(--primary-6),0.32)',
+            backgroundColor: 'rgba(var(--primary-6),0.08)',
+            color: 'rgb(var(--primary-6))',
+          }}
+        >
+          {t('settings.customModelSupportNote')}
+        </div>
+
         <Form form={form} layout='vertical' className='space-y-0'>
           {/* 模型平台选择（第一层）/ Model Platform Selection (first level) */}
           <Form.Item initialValue='gemini' label={t('settings.modelPlatform')} field={'platform'} required rules={[{ required: true }]}>
