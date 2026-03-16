@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './utils/configureConsoleLog';
 import './utils/configureChromium';
 import { app, BrowserWindow, Menu, nativeImage, net, powerMonitor, protocol, screen, Tray } from 'electron';
 import fixPath from 'fix-path';
@@ -16,7 +17,7 @@ import { AION_ASSET_PROTOCOL } from './extensions/assetProtocol';
 import { initializeProcess } from './process';
 import { setWebServerInstance } from './process/bridge/webuiBridge';
 import { ProcessConfig } from './process/initStorage';
-import { loadShellEnvironmentAsync, mergePaths } from './process/utils/shellEnv';
+import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
@@ -164,6 +165,10 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
     }
   }
 }
+
+// Log environment diagnostics once at startup (persisted via electron-log).
+// Helps debug PATH / cygpath issues on Windows (#1157).
+logEnvironmentDiagnostics();
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {

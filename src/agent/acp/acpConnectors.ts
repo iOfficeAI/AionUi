@@ -272,9 +272,9 @@ async function prepareCodebuddy(): Promise<NpxPrepareResult> {
   try {
     await fs.access(mcpConfigPath);
     extraArgs.push('--mcp-config', mcpConfigPath);
-    console.error(`[ACP] Loading CodeBuddy MCP config from ${mcpConfigPath}`);
+    mainLog('[ACP]', `Loading CodeBuddy MCP config from ${mcpConfigPath}`);
   } catch {
-    console.error('[ACP] No CodeBuddy MCP config found, starting without MCP servers');
+    mainWarn('[ACP]', 'No CodeBuddy MCP config found, starting without MCP servers');
   }
 
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv), extraArgs };
