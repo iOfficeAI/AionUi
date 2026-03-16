@@ -566,7 +566,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ tit
           color: normalizedKeyword ? (filteredItems.length > 0 ? 'rgb(var(--primary-6))' : 'var(--color-danger)') : 'var(--color-text-2)',
         }}
       >
-        {normalizedKeyword ? `${filteredItems.length}/${items.length}` : `${items.length}条`}
+        {normalizedKeyword ? `${filteredItems.length}/${items.length}` : t('conversation.minimap.count', { count: items.length })}
       </span>
     );
 

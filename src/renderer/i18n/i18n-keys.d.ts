@@ -281,6 +281,7 @@ export type I18nKey =
   | 'conversation.history.today'
   | 'conversation.history.unpin'
   | 'conversation.history.yesterday'
+  | 'conversation.minimap.count'
   | 'conversation.minimap.empty'
   | 'conversation.minimap.noMatch'
   | 'conversation.minimap.searchAria'
