@@ -40,6 +40,7 @@ export type CreateCronJobParams = {
 class CronService {
   private timers: Map<string, Cron | NodeJS.Timeout> = new Map();
   private retryTimers: Map<string, NodeJS.Timeout> = new Map();
+  private retryCounts: Map<string, number> = new Map();
   private initialized = false;
   private powerSaveBlockerId: number | null = null;
 
@@ -53,6 +54,8 @@ class CronService {
     }
 
     try {
+      this.cleanupOrphanJobs();
+
       const jobs = cronStore.listEnabled();
 
       for (const job of jobs) {
@@ -64,6 +67,28 @@ class CronService {
     } catch (error) {
       console.error('[CronService] Initialization failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Remove cron jobs whose associated conversation no longer exists.
+   * Called once during init to clean up stale jobs left by abnormal deletion paths.
+   */
+  private cleanupOrphanJobs(): void {
+    try {
+      const db = getDatabase();
+      const allJobs = cronStore.listAll();
+      for (const job of allJobs) {
+        const result = db.getConversation(job.metadata.conversationId);
+        if (!result.success || !result.data) {
+          console.log(`[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`);
+          this.stopTimer(job.id);
+          cronStore.delete(job.id);
+          ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
+        }
+      }
+    } catch (error) {
+      console.warn('[CronService] Failed to cleanup orphan jobs:', error);
     }
   }
 
@@ -297,6 +322,9 @@ class CronService {
       clearTimeout(retryTimer);
       this.retryTimers.delete(jobId);
     }
+
+    // Clear retry count for this job
+    this.retryCounts.delete(jobId);
   }
 
   /**
@@ -309,16 +337,24 @@ class CronService {
     // Check if conversation is busy
     const isBusy = cronBusyGuard.isProcessing(conversationId);
     if (isBusy) {
-      job.state.retryCount++;
+      const currentRetry = (this.retryCounts.get(job.id) ?? 0) + 1;
+      this.retryCounts.set(job.id, currentRetry);
 
-      if (job.state.retryCount > (job.state.maxRetries || 3)) {
+      if (currentRetry > (job.state.maxRetries || 3)) {
         // Max retries exceeded, skip this run
-        job.state.lastStatus = 'skipped';
-        job.state.lastError = i18n.t('cron:error.conversationBusy', { count: job.state.maxRetries || 3 });
-        job.state.retryCount = 0; // Reset for next trigger
+        this.retryCounts.delete(job.id);
         this.updateNextRunTime(job);
-        cronStore.update(job.id, { state: job.state });
-        ipcBridge.cron.onJobUpdated.emit(job);
+        cronStore.update(job.id, {
+          state: {
+            ...job.state,
+            lastStatus: 'skipped',
+            lastError: i18n.t('cron:error.conversationBusy', { count: job.state.maxRetries || 3 }),
+          },
+        });
+        const skippedJob = cronStore.getById(job.id);
+        if (skippedJob) {
+          ipcBridge.cron.onJobUpdated.emit(skippedJob);
+        }
         return;
       }
 
@@ -331,9 +367,10 @@ class CronService {
       return;
     }
 
-    // Update state before execution
-    job.state.lastRunAtMs = Date.now();
-    job.state.runCount++;
+    const lastRunAtMs = Date.now();
+    const currentRunCount = (job.state.runCount ?? 0) + 1;
+    let lastStatus: CronJob['state']['lastStatus'];
+    let lastError: string | undefined;
 
     try {
       // Send message to conversation directly via WorkerManage (not IPC)
@@ -368,25 +405,25 @@ class CronService {
           });
         }
       } catch (err) {
-        job.state.lastStatus = 'error';
-        job.state.lastError = err instanceof Error ? err.message : i18n.t('cron:error.conversationNotFound');
+        lastStatus = 'error';
+        lastError = err instanceof Error ? err.message : i18n.t('cron:error.conversationNotFound');
         this.updateNextRunTime(job);
-        cronStore.update(job.id, { state: job.state });
-        const updatedJob = cronStore.getById(job.id);
-        if (updatedJob) {
-          ipcBridge.cron.onJobUpdated.emit(updatedJob);
+        cronStore.update(job.id, { state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError } });
+        const notFoundJob = cronStore.getById(job.id);
+        if (notFoundJob) {
+          ipcBridge.cron.onJobUpdated.emit(notFoundJob);
         }
         return;
       }
 
       if (!task) {
-        job.state.lastStatus = 'error';
-        job.state.lastError = i18n.t('cron:error.conversationNotFound');
+        lastStatus = 'error';
+        lastError = i18n.t('cron:error.conversationNotFound');
         this.updateNextRunTime(job);
-        cronStore.update(job.id, { state: job.state });
-        const updatedJob = cronStore.getById(job.id);
-        if (updatedJob) {
-          ipcBridge.cron.onJobUpdated.emit(updatedJob);
+        cronStore.update(job.id, { state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError } });
+        const notFoundJob = cronStore.getById(job.id);
+        if (notFoundJob) {
+          ipcBridge.cron.onJobUpdated.emit(notFoundJob);
         }
         return;
       }
@@ -414,29 +451,37 @@ class CronService {
       }
 
       // Success
-      job.state.lastStatus = 'ok';
-      job.state.lastError = undefined;
-      job.state.retryCount = 0;
+      this.retryCounts.delete(job.id);
+      lastStatus = 'ok';
+      lastError = undefined;
 
       // Update conversation modifyTime so it appears at the top of the list
       try {
         const db = getDatabase();
-        db.updateConversation(conversationId, {});
+        db.updateConversation(conversationId, { modifyTime: Date.now() });
       } catch (err) {
         console.warn('[CronService] Failed to update conversation modifyTime after execution:', err);
       }
     } catch (error) {
       // Error
-      job.state.lastStatus = 'error';
-      job.state.lastError = error instanceof Error ? error.message : String(error);
+      lastStatus = 'error';
+      lastError = error instanceof Error ? error.message : String(error);
       console.error(`[CronService] Job ${job.id} failed:`, error);
     }
 
     // Update next run time
     this.updateNextRunTime(job);
 
-    // Persist state and notify frontend
-    cronStore.update(job.id, { state: job.state });
+    // Persist state as new object and notify frontend
+    cronStore.update(job.id, {
+      state: {
+        ...job.state,
+        lastRunAtMs,
+        runCount: currentRunCount,
+        lastStatus,
+        lastError,
+      },
+    });
     const updatedJob = cronStore.getById(job.id);
     if (updatedJob) {
       ipcBridge.cron.onJobUpdated.emit(updatedJob);

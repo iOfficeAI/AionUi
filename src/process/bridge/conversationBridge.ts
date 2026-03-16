@@ -158,19 +158,6 @@ export function initConversationBridge(): void {
         console.error('[conversationBridge] Failed to create conversation in database:', result.error);
       }
 
-      // Fetch source conversation data / 获取源会话数据
-      let sourceConversation: TChatConversation | undefined;
-      if (sourceConversationId) {
-        const sourceResult = db.getConversation(sourceConversationId);
-        if (sourceResult.success && sourceResult.data) {
-          sourceConversation = sourceResult.data;
-        } else {
-          // Fallback to file storage
-          const history = await ProcessChat.get('chat.history');
-          sourceConversation = (history || []).find((item) => item.id === sourceConversationId);
-        }
-      }
-
       // Migrate messages if sourceConversationId is provided / 如果提供了源会话ID，则迁移消息
       if (sourceConversationId && result.success) {
         try {
@@ -203,18 +190,7 @@ export function initConversationBridge(): void {
           // Migrate or delete Cron jobs associated with source conversation
           // 迁移或删除与源会话关联的定时任务
           try {
-            let jobs = await cronService.listJobsByConversation(sourceConversationId);
-
-            // Fallback: If no jobs found by ID, try searching by title as a backup for orphaned jobs
-            // 兜底方案：如果按 ID 没找到任务，尝试按标题搜索，以处理 ID 不匹配的孤儿任务
-            if (jobs.length === 0 && sourceConversation?.name) {
-              const allJobs = await cronService.listJobs();
-              const orphanedJobs = allJobs.filter((j) => j.metadata.conversationId !== conversation.id && j.metadata.conversationTitle === sourceConversation.name);
-              if (orphanedJobs.length > 0) {
-                console.log(`[conversationBridge] Found ${orphanedJobs.length} orphaned jobs by title matching "${sourceConversation.name}"`);
-                jobs = orphanedJobs;
-              }
-            }
+            const jobs = await cronService.listJobsByConversation(sourceConversationId);
 
             if (migrateCron) {
               for (const job of jobs) {
@@ -225,16 +201,11 @@ export function initConversationBridge(): void {
                     conversationTitle: conversation.name,
                   },
                 });
-                const updatedJob = await cronService.getJob(job.id);
-                if (updatedJob) {
-                  ipcBridge.cron.onJobUpdated.emit(updatedJob);
-                }
               }
               console.log(`[conversationBridge] Migrated ${jobs.length} cron jobs to new conversation ${conversation.id}`);
             } else if (jobs.length > 0) {
               for (const job of jobs) {
                 await cronService.removeJob(job.id);
-                ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
               }
               console.log(`[conversationBridge] Removed ${jobs.length} cron jobs from source conversation ${sourceConversationId}`);
             }
@@ -291,7 +262,6 @@ export function initConversationBridge(): void {
         const jobs = await cronService.listJobsByConversation(id);
         for (const job of jobs) {
           await cronService.removeJob(job.id);
-          ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
         }
       } catch (cronError) {
         console.warn('[conversationBridge] Failed to cleanup cron jobs:', cronError);
