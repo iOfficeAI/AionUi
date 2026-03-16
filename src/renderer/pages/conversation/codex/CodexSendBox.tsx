@@ -25,7 +25,6 @@ import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -300,8 +299,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       createdAt: Date.now(),
     };
     addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
-    // 保存用户消息用于通知 / Save user message for notification
-    setPendingUserMessage(conversation_id, message);
     setAiProcessing(true);
     try {
       // 提取实际的文件路径发送给后端
@@ -375,8 +372,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
-        // 保存用户消息用于通知 / Save user message for notification
-        setPendingUserMessage(conversation_id, input);
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理

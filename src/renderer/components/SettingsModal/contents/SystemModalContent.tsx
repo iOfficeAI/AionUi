@@ -272,7 +272,7 @@ const SystemModalContent: React.FC = () => {
                 showExpandIcon={false}
                 header={
                   <div className='flex flex-1 items-center justify-between w-full'>
-                   <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
+                    <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
                     <Switch checked={notificationEnabled} onClick={(e) => e.stopPropagation()} onChange={handleNotificationEnabledChange} />
                   </div>
                 }

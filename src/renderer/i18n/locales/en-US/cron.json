@@ -40,8 +40,10 @@
   "drawer.save": "Save",
   "drawer.saveSuccess": "Saved successfully",
   "message.badge": "Scheduled",
-  "notification.taskComplete": "Task Complete",
-  "notification.scheduledTask": "Scheduled Task",
-  "notification.scheduledTaskComplete": "{{title}} - Scheduled task complete",
-  "notification.taskDone": "Task done"
+  "notification": {
+    "taskComplete": "Task Complete",
+    "scheduledTask": "Scheduled Task",
+    "scheduledTaskComplete": "{{title}} - Scheduled task complete",
+    "taskDone": "Task done"
+  }
 }

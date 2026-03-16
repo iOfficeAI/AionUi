@@ -29,7 +29,6 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 interface NanobotDraftData {
   _type: 'nanobot';
@@ -232,8 +231,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       content: { content: displayMessage },
       createdAt: Date.now(),
     };
-    // 保存用户消息用于通知 / Save user message for notification
-    setPendingUserMessage(conversation_id, message);
     // Reset AI reply for new turn
     // 重置 AI 回复用于新一轮
     addOrUpdateMessage(userMessage, true);
@@ -295,8 +292,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
-        // 保存用户消息用于通知 / Save user message for notification
-        setPendingUserMessage(conversation_id, input);
         // Reset AI reply for new turn
         // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);

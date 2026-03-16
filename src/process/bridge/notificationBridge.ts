@@ -5,11 +5,10 @@
  */
 
 /**
- * 系统通知桥接模块
- * System Notification Bridge Module
+ * System Notification Module
  *
- * 负责处理系统级通知的显示
- * Handles system-level notifications
+ * Provides showNotification() for direct use in main process,
+ * and registers an IPC provider so renderer can invoke it cross-process.
  */
 
 import { Notification, app } from 'electron';
@@ -24,7 +23,7 @@ let mainWindow: BrowserWindow | null = null;
 const activeNotifications = new Set<Notification>();
 
 /**
- * 获取应用图标路径 / Get app icon path for notifications
+ * Get app icon path for notifications
  */
 const getNotificationIcon = (): string | undefined => {
   try {
@@ -34,89 +33,89 @@ const getNotificationIcon = (): string | undefined => {
       return iconPath;
     }
   } catch {
-    // 忽略图标错误，通知仍会显示 / Ignore icon error, notification will still show
+    // Ignore icon error, notification will still show
   }
   return undefined;
 };
 
 /**
- * 设置主窗口引用（供 index.ts 调用）/ Set main window reference (called by index.ts)
+ * Set main window reference (called by index.ts)
  */
 export function setMainWindow(window: BrowserWindow | null): void {
   mainWindow = window;
 }
 
-export function initNotificationBridge(): void {
-  ipcBridge.notification.show.provider(async ({ title, body, conversationId }) => {
-    // 检查通知开关是否开启 / Check if notification is enabled
-    const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');
-    if (notificationEnabled === false) {
-      console.log('[Notification] Disabled by user setting');
-      return;
-    }
+/**
+ * Show a system notification.
+ * Can be called directly from main process or via IPC from renderer.
+ */
+export async function showNotification({ title, body, conversationId }: { title: string; body: string; conversationId?: string }): Promise<void> {
+  // Check if notification is enabled
+  const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');
+  if (notificationEnabled === false) {
+    return;
+  }
 
-    // 检查应用是否支持通知
-    if (!Notification.isSupported()) {
-      console.warn('[Notification] System notifications are not supported on this platform');
-      return;
-    }
+  if (!Notification.isSupported()) {
+    console.warn('[Notification] System notifications are not supported on this platform');
+    return;
+  }
 
-    // 检查主窗口是否可用
-    if (!mainWindow || mainWindow.isDestroyed()) {
-      console.warn('[Notification] Main window is not available, notification click will not work');
-    }
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    console.warn('[Notification] Main window is not available, notification click will not work');
+  }
 
-    // 获取应用图标路径 / Get app icon path
-    const iconPath = getNotificationIcon();
+  const iconPath = getNotificationIcon();
 
-    try {
-      // 创建并显示通知 / Create and show notification
-      const notification = new Notification({
-        title,
-        body,
-        icon: iconPath,
-        // macOS 特定选项 / macOS specific options
-        silent: false, // 播放声音 / Play sound
-      });
+  try {
+    const notification = new Notification({
+      title,
+      body,
+      icon: iconPath,
+      silent: false,
+    });
 
-      // Prevent GC from collecting the notification before macOS renders it
-      activeNotifications.add(notification);
-      const release = () => activeNotifications.delete(notification);
+    // Prevent GC from collecting the notification before macOS renders it
+    activeNotifications.add(notification);
+    const release = () => activeNotifications.delete(notification);
 
-      // 点击通知时聚焦到主窗口并发送导航事件 / Focus main window and send navigation event when notification is clicked
-      notification.on('click', () => {
-        release();
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-          }
-          mainWindow.focus();
-
-          // 发送点击事件到渲染层 / Send click event to renderer
-          if (conversationId) {
-            console.log('[Notification] Clicked, navigating to conversation:', conversationId);
-            ipcBridge.notification.clicked.emit({ conversationId });
-          }
-        } else {
-          console.warn('[Notification] Main window not available on click');
+    notification.on('click', () => {
+      release();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
         }
-      });
+        mainWindow.focus();
 
-      // 处理通知错误 / Handle notification errors
-      notification.on('failed', (error) => {
-        release();
-        console.error('[Notification] Failed to show:', error);
-      });
+        if (conversationId) {
+          console.log('[Notification] Clicked, navigating to conversation:', conversationId);
+          ipcBridge.notification.clicked.emit({ conversationId });
+        }
+      } else {
+        console.warn('[Notification] Main window not available on click');
+      }
+    });
 
-      notification.on('close', () => {
-        release();
-        console.log('[Notification] Closed');
-      });
+    notification.on('failed', (error) => {
+      release();
+      console.error('[Notification] Failed to show:', error);
+    });
 
-      notification.show();
-      console.log('[Notification] Showed successfully:', { title, body, conversationId });
-    } catch (error) {
-      console.error('[Notification] Error creating notification:', error);
-    }
+    notification.on('close', () => {
+      release();
+    });
+
+    notification.show();
+  } catch (error) {
+    console.error('[Notification] Error creating notification:', error);
+  }
+}
+
+/**
+ * Register IPC provider so renderer can trigger notifications cross-process.
+ */
+export function initNotificationBridge(): void {
+  ipcBridge.notification.show.provider(async (options) => {
+    await showNotification(options);
   });
 }

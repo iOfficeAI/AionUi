@@ -27,7 +27,6 @@ import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -424,8 +423,6 @@ const AcpSendBox: React.FC<{
         const msg_id = uuid();
 
         // Start AI processing loading state (user message will be added via backend response)
-        // 保存用户消息用于通知 / Save user message for notification
-        setPendingUserMessage(conversation_id, input);
         setAiProcessing(true);
 
         // Send the message
@@ -487,8 +484,6 @@ const AcpSendBox: React.FC<{
     clearFiles();
 
     // Start AI processing loading state
-    // 保存用户消息用于通知 / Save user message for notification
-    setPendingUserMessage(conversation_id, message);
     setAiProcessing(true);
 
     // Send message via ACP

@@ -30,7 +30,6 @@ import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
-import { setPendingUserMessage } from '@/renderer/hooks/notificationState';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -754,8 +753,6 @@ const GeminiSendBox: React.FC<{
     // 设置当前活跃的消息 ID，用于过滤掉旧请求的事件
     // Set current active message ID to filter out events from old requests
     setActiveMsgId(msg_id);
-    // 保存用户消息用于通知 / Save user message for notification
-    setPendingUserMessage(conversation_id, message);
     setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
 
     // 保存文件列表（清空前需要保存）/ Save file list before clearing

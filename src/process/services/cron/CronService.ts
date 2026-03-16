@@ -16,6 +16,9 @@ import { copyFilesToDirectory } from '../../utils';
 import { cronBusyGuard } from './CronBusyGuard';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import { cronStore, type CronJob, type CronSchedule } from './CronStore';
+import { ProcessConfig } from '@/process/initStorage';
+import i18n, { i18nReady } from '@process/i18n';
+import { showNotification } from '@process/bridge/notificationBridge';
 
 /**
  * Parameters for creating a new cron job
@@ -391,6 +394,11 @@ class CronService {
         triggeredAt: Date.now(),
       };
 
+      // Mark conversation as busy BEFORE registering the idle callback,
+      // so onceIdle registers a deferred callback instead of firing immediately.
+      cronBusyGuard.setProcessing(conversationId, true);
+      this.registerCompletionNotification(job);
+
       // Call sendMessage directly on the task
       // Different agents use different parameter names: Gemini uses 'input', ACP/Codex use 'content'
       if (task.type === 'codex' || task.type === 'acp') {
@@ -427,6 +435,35 @@ class CronService {
     if (updatedJob) {
       ipcBridge.cron.onJobUpdated.emit(updatedJob);
     }
+  }
+
+  /**
+   * Send notification when a cron job's task completes.
+   * Waits for the conversation to become idle, then sends a system notification.
+   */
+  /**
+   * Register a callback on cronBusyGuard to send notification when the agent finishes.
+   * Must be called BEFORE sendMessage to avoid race conditions.
+   */
+  private registerCompletionNotification(job: CronJob): void {
+    const { conversationId } = job.metadata;
+
+    cronBusyGuard.onceIdle(conversationId, async () => {
+      // Check if cron notification is enabled
+      const cronNotificationEnabled = await ProcessConfig.get('system.cronNotificationEnabled');
+      if (!cronNotificationEnabled) return;
+
+      await i18nReady;
+
+      const title = i18n.t('cron.notification.scheduledTaskComplete', {
+        title: job.metadata.conversationTitle || job.name,
+      });
+      const body = i18n.t('cron.notification.taskDone');
+
+      showNotification({ title, body, conversationId }).catch((err) => {
+        console.warn('[CronService] Failed to show notification:', err);
+      });
+    });
   }
 
   /**
