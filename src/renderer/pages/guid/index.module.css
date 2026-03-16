@@ -23,7 +23,7 @@
 .actionTools {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 1;
   min-width: 0;
 }
