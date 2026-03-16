@@ -248,7 +248,6 @@ jobs:
             release-assets/**/*.msi
             release-assets/**/*.dmg
             release-assets/**/*.deb
-            release-assets/**/*.AppImage
             release-assets/**/*.zip
             release-assets/**/*.yml
           generate_release_notes: true

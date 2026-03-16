@@ -135,7 +135,7 @@ describe('AutoUpdaterService', () => {
       expect(result.error).toBe('AutoUpdaterService not initialized');
     });
 
-    it('should check for updates successfully', async () => {
+    it('should check for updates successfully when update is available', async () => {
       autoUpdaterService.initialize(mockStatusBroadcast);
 
       const mockUpdateInfo = {
@@ -145,6 +145,7 @@ describe('AutoUpdaterService', () => {
       };
 
       vi.mocked(autoUpdater.checkForUpdates).mockResolvedValueOnce({
+        isUpdateAvailable: true,
         updateInfo: mockUpdateInfo,
       });
 
@@ -152,6 +153,20 @@ describe('AutoUpdaterService', () => {
 
       expect(result.success).toBe(true);
       expect(result.updateInfo).toEqual(mockUpdateInfo);
+    });
+
+    it('should return no updateInfo when isUpdateAvailable is false', async () => {
+      autoUpdaterService.initialize(mockStatusBroadcast);
+
+      vi.mocked(autoUpdater.checkForUpdates).mockResolvedValueOnce({
+        isUpdateAvailable: false,
+        updateInfo: { version: '1.0.0', releaseDate: '2025-01-01' },
+      });
+
+      const result = await autoUpdaterService.checkForUpdates();
+
+      expect(result.success).toBe(true);
+      expect(result.updateInfo).toBeUndefined();
     });
 
     it('should handle check for updates error', async () => {

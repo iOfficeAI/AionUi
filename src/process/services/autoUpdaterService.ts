@@ -258,6 +258,12 @@ class AutoUpdaterService extends EventEmitter {
       if (!result) {
         return { success: false, error: 'checkForUpdates returned null (not packaged or dev mode)' };
       }
+      // Only report updateInfo when electron-updater internally confirms the update is available.
+      // When isUpdateAvailable is false, updateInfoAndProvider is NOT set internally,
+      // so a subsequent downloadUpdate() call would fail with "Please check update first".
+      if (!result.isUpdateAvailable) {
+        return { success: true };
+      }
       return {
         success: true,
         updateInfo: result.updateInfo,
