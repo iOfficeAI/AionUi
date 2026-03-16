@@ -79,4 +79,5 @@ jobs:
       ref: ${{ inputs.branch }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
       append_commit_hash: true
+      upload_installers_only: true
     secrets: inherit
