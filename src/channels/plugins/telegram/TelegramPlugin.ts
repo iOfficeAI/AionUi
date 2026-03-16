@@ -10,7 +10,12 @@ import { Bot, GrammyError, HttpError } from 'grammy';
 import type { UserFromGetMe } from 'grammy/types';
 import type { BotInfo, IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
 import { BasePlugin } from '../BasePlugin';
-import { splitMessage, TELEGRAM_MESSAGE_LIMIT, toTelegramSendParams, toUnifiedIncomingMessage } from './TelegramAdapter';
+import {
+  splitMessage,
+  TELEGRAM_MESSAGE_LIMIT,
+  toTelegramSendParams,
+  toUnifiedIncomingMessage,
+} from './TelegramAdapter';
 import { extractAction, extractCategory } from './TelegramKeyboards';
 
 /**
@@ -152,7 +157,8 @@ export class TelegramPlugin extends BasePlugin {
     const { text, options } = toTelegramSendParams(message);
 
     // Truncate if too long (can't split when editing)
-    const truncatedText = text.length > TELEGRAM_MESSAGE_LIMIT ? text.slice(0, TELEGRAM_MESSAGE_LIMIT - 3) + '...' : text;
+    const truncatedText =
+      text.length > TELEGRAM_MESSAGE_LIMIT ? text.slice(0, TELEGRAM_MESSAGE_LIMIT - 3) + '...' : text;
 
     // Skip edit if text is empty or whitespace-only (Telegram API rejects it)
     if (!truncatedText.trim()) {
@@ -239,7 +245,9 @@ export class TelegramPlugin extends BasePlugin {
       unifiedMessage.content.type = 'command';
       unifiedMessage.content.text = '/start';
       // Don't await - process in background
-      void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling start command:`, error));
+      void this.messageHandler(unifiedMessage).catch((error) =>
+        console.error(`[TelegramPlugin] Error handling start command:`, error)
+      );
     }
   }
 
@@ -273,7 +281,9 @@ export class TelegramPlugin extends BasePlugin {
           console.error(`[TelegramPlugin] Message handler failed for: ${text?.slice(0, 20)}...`, error);
         });
       } else {
-        console.warn(`[TelegramPlugin] Cannot forward message: unifiedMessage=${!!unifiedMessage}, messageHandler=${!!this.messageHandler}`);
+        console.warn(
+          `[TelegramPlugin] Cannot forward message: unifiedMessage=${!!unifiedMessage}, messageHandler=${!!this.messageHandler}`
+        );
       }
     } catch (error) {
       // Catch errors to prevent them from stopping the bot
@@ -309,7 +319,9 @@ export class TelegramPlugin extends BasePlugin {
         name: buttonAction.action,
       };
       // Don't await - process in background
-      void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling button command:`, error));
+      void this.messageHandler(unifiedMessage).catch((error) =>
+        console.error(`[TelegramPlugin] Error handling button command:`, error)
+      );
       return true;
     }
 
@@ -330,7 +342,9 @@ export class TelegramPlugin extends BasePlugin {
     const unifiedMessage = toUnifiedIncomingMessage(ctx);
     if (unifiedMessage && this.messageHandler) {
       // Don't await - process in background
-      void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling media message:`, error));
+      void this.messageHandler(unifiedMessage).catch((error) =>
+        console.error(`[TelegramPlugin] Error handling media message:`, error)
+      );
     }
   }
 
@@ -429,7 +443,9 @@ export class TelegramPlugin extends BasePlugin {
       };
 
       // Don't await - process in background
-      void this.messageHandler(unifiedMessage).catch((error) => console.error(`[TelegramPlugin] Error handling callback query:`, error));
+      void this.messageHandler(unifiedMessage).catch((error) =>
+        console.error(`[TelegramPlugin] Error handling callback query:`, error)
+      );
     }
   }
 
@@ -591,7 +607,9 @@ export class TelegramPlugin extends BasePlugin {
       30000 // Max 30 seconds
     );
 
-    console.log(`[TelegramPlugin] Reconnecting in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    console.log(
+      `[TelegramPlugin] Reconnecting in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`
+    );
 
     await new Promise((resolve) => setTimeout(resolve, delay));
 

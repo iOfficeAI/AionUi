@@ -69,7 +69,10 @@ export class OpenClawAgent {
   private connection: OpenClawGatewayConnection | null = null;
   private adapter: AcpAdapter;
   private approvalStore = new AcpApprovalStore();
-  private pendingPermissions = new Map<string, { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }>();
+  private pendingPermissions = new Map<
+    string,
+    { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }
+  >();
   private statusMessageId: string | null = null;
   private disconnectTipMessageId: string | null = null;
   private pendingNavigationTools = new Set<string>();
@@ -380,7 +383,10 @@ export class OpenClawAgent {
 
         // Compute incremental delta from cumulative text
         let delta: string;
-        if (cumulative.length >= this.accumulatedAssistantText.length && cumulative.startsWith(this.accumulatedAssistantText)) {
+        if (
+          cumulative.length >= this.accumulatedAssistantText.length &&
+          cumulative.startsWith(this.accumulatedAssistantText)
+        ) {
           delta = cumulative.substring(this.accumulatedAssistantText.length);
           this.accumulatedAssistantText = cumulative;
         } else {
@@ -525,7 +531,9 @@ export class OpenClawAgent {
         if (toolData.phase === 'result') {
           status = toolData.isError ? 'failed' : 'completed';
         } else {
-          status = phaseToStatus[toolData.phase ?? ''] ?? ((toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending');
+          status =
+            phaseToStatus[toolData.phase ?? ''] ??
+            ((toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending');
         }
 
         // Map name → kind

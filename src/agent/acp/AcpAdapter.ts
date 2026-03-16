@@ -6,7 +6,15 @@
 
 import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/types/acpTypes';
+import type {
+  AcpBackend,
+  AcpSessionUpdate,
+  AgentMessageChunkUpdate,
+  AgentThoughtChunkUpdate,
+  PlanUpdate,
+  ToolCallUpdate,
+  ToolCallUpdateStatus,
+} from '@/types/acpTypes';
 
 /**
  * Adapter class to convert ACP messages to AionUI message format

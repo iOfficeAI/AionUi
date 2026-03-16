@@ -85,7 +85,9 @@ export function loadPersistedStates(): Map<string, ExtensionState & { installed?
  * Save extension states to disk.
  * Creates the target directory if it doesn't exist.
  */
-export function savePersistedStates(states: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>): void {
+export function savePersistedStates(
+  states: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>
+): void {
   const statesFile = resolveStatesFile();
   const statesDir = path.dirname(statesFile);
 
@@ -130,7 +132,11 @@ export function savePersistedStates(states: Map<string, ExtensionState & { insta
  * - Extension has never been seen before (first install)
  * - Extension version has changed (upgrade)
  */
-export function needsInstallHook(extensionName: string, currentVersion: string, persistedStates: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>): { isFirstInstall: boolean; isUpgrade: boolean } {
+export function needsInstallHook(
+  extensionName: string,
+  currentVersion: string,
+  persistedStates: Map<string, ExtensionState & { installed?: boolean; lastVersion?: string }>
+): { isFirstInstall: boolean; isUpgrade: boolean } {
   const persisted = persistedStates.get(extensionName);
 
   if (!persisted || !persisted.installed) {

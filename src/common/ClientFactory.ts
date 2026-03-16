@@ -60,7 +60,10 @@ export function normalizeNewApiBaseUrl(baseUrl: string, authType: AuthType): str
 }
 
 export class ClientFactory {
-  static async createRotatingClient(provider: TProviderWithModel, options: ClientOptions = {}): Promise<RotatingClient> {
+  static async createRotatingClient(
+    provider: TProviderWithModel,
+    options: ClientOptions = {}
+  ): Promise<RotatingClient> {
     const authType = getProviderAuthType(provider);
     const rotatingOptions = options.rotatingOptions || { maxRetries: 3, retryDelay: 1000 };
 

@@ -49,7 +49,9 @@ class AcpDetector {
         const id = typeof adapter.id === 'string' ? adapter.id : '';
         const name = typeof adapter.name === 'string' ? adapter.name : id;
         const defaultCliPath = typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined;
-        const acpArgs = Array.isArray(adapter.acpArgs) ? adapter.acpArgs.filter((v): v is string => typeof v === 'string') : undefined;
+        const acpArgs = Array.isArray(adapter.acpArgs)
+          ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
+          : undefined;
         const avatar = typeof adapter.avatar === 'string' ? adapter.avatar : undefined;
         const extensionName = typeof adapter._extensionName === 'string' ? adapter._extensionName : 'unknown-extension';
 
@@ -151,12 +153,15 @@ class AcpDetector {
         try {
           // PowerShell fallback for shim scripts like claude.ps1 (vfox)
           // PowerShell 回退，支持 claude.ps1 这类 shim（例如 vfox）
-          execSync(`powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`, {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-            env: enhancedEnv,
-          });
+          execSync(
+            `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`,
+            {
+              encoding: 'utf-8',
+              stdio: 'pipe',
+              timeout: 1000,
+              env: enhancedEnv,
+            }
+          );
           return true;
         } catch {
           return false;

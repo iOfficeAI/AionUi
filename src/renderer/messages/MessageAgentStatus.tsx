@@ -24,7 +24,10 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const { backend, status, agentName } = message.content;
 
   // Resolve display name: agentName (extension/custom) > ACP_BACKENDS_ALL name > capitalized backend
-  const displayName = agentName || ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend.charAt(0).toUpperCase() + backend.slice(1);
+  const displayName =
+    agentName ||
+    ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
+    backend.charAt(0).toUpperCase() + backend.slice(1);
 
   const getStatusBadge = () => {
     switch (status) {
@@ -52,7 +55,11 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
     <div
       className='agent-status-message flex items-center gap-3 p-3 rounded-lg border'
       style={{
-        backgroundColor: isError ? 'var(--color-danger-light-1)' : isSuccess ? 'var(--color-success-light-1)' : 'var(--color-primary-light-1)',
+        backgroundColor: isError
+          ? 'var(--color-danger-light-1)'
+          : isSuccess
+            ? 'var(--color-success-light-1)'
+            : 'var(--color-primary-light-1)',
         borderColor: isError ? 'rgb(var(--danger-3))' : isSuccess ? 'rgb(var(--success-3))' : 'rgb(var(--primary-3))',
         color: isError ? 'rgb(var(--danger-6))' : isSuccess ? 'rgb(var(--success-6))' : 'rgb(var(--primary-6))',
       }}

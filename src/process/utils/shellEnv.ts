@@ -97,7 +97,10 @@ function loadShellEnvironment(): Record<string, string> {
     }
   } catch (error) {
     // Silent fail - shell environment loading is best-effort
-    console.warn('[ShellEnv] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
+    console.warn(
+      '[ShellEnv] Failed to load shell environment:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   if (PERF_LOG) console.log(`[ShellEnv] connect: shell env loaded ${Date.now() - startTime}ms`);
@@ -167,7 +170,10 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
     if (PERF_LOG) console.log(`[ShellEnv] preload: shell env async loaded ${Date.now() - startTime}ms`);
   } catch (error) {
     cachedShellEnv = {};
-    console.warn('[ShellEnv] Failed to async load shell environment:', error instanceof Error ? error.message : String(error));
+    console.warn(
+      '[ShellEnv] Failed to async load shell environment:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   return cachedShellEnv;
@@ -514,6 +520,9 @@ export function logEnvironmentDiagnostics(): void {
  * - POSIX:   ~/.npm/_npx
  */
 export function getNpxCacheDir(): string {
-  const npmCacheBase = process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache') : path.join(os.homedir(), '.npm');
+  const npmCacheBase =
+    process.platform === 'win32'
+      ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache')
+      : path.join(os.homedir(), '.npm');
   return path.join(npmCacheBase, '_npx');
 }

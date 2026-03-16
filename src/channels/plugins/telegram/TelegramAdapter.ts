@@ -6,7 +6,12 @@
 
 import type { Context } from 'grammy';
 import type { Message, PhotoSize, User as TelegramUser } from 'grammy/types';
-import type { IUnifiedIncomingMessage, IUnifiedMessageContent, IUnifiedOutgoingMessage, IUnifiedUser } from '../../types';
+import type {
+  IUnifiedIncomingMessage,
+  IUnifiedMessageContent,
+  IUnifiedOutgoingMessage,
+  IUnifiedUser,
+} from '../../types';
 
 /**
  * TelegramAdapter - Converts between Telegram and Unified message formats
@@ -75,7 +80,10 @@ export function toUnifiedIncomingMessage(ctx: Context): IUnifiedIncomingMessage 
 export function toUnifiedUser(telegramUser: TelegramUser | undefined): IUnifiedUser | null {
   if (!telegramUser) return null;
 
-  const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || telegramUser.username || `User ${telegramUser.id}`;
+  const displayName =
+    [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') ||
+    telegramUser.username ||
+    `User ${telegramUser.id}`;
 
   return {
     id: telegramUser.id.toString(),

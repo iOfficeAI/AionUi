@@ -162,7 +162,10 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
     try {
       routeModule = nativeRequire(routeMatch.routeEntry);
     } catch (error) {
-      console.error(`[WebUI] Failed to load API route module: ${routeMatch.routeEntry} (${routeMatch.extensionName})`, error);
+      console.error(
+        `[WebUI] Failed to load API route module: ${routeMatch.routeEntry} (${routeMatch.extensionName})`,
+        error
+      );
       res.status(500).json({ message: 'Failed to load extension API route' });
       return;
     }
@@ -211,7 +214,9 @@ export function registerApiRoutes(app: Express): void {
     const normalizedPath = path.resolve(rawPath);
     const registry = ExtensionRegistry.getInstance();
     const allowedRoots = registry.getLoadedExtensions().map((ext) => path.resolve(ext.directory));
-    const isAllowed = allowedRoots.some((root) => normalizedPath === root || normalizedPath.startsWith(`${root}${path.sep}`));
+    const isAllowed = allowedRoots.some(
+      (root) => normalizedPath === root || normalizedPath.startsWith(`${root}${path.sep}`)
+    );
 
     if (!isAllowed) {
       return res.status(403).json({ message: 'Access denied: path is outside extension directories' });

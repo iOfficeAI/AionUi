@@ -4,7 +4,13 @@ import { initReactI18next } from 'react-i18next';
 import { ConfigStorage } from '@/common/storage';
 import { ipcBridge } from '@/common';
 import i18nConfig from '@/shared/i18n-config.json';
-import { DEFAULT_LANGUAGE, normalizeLanguageCode, mergeWithFallback, ensureAndSwitch, type LocaleData } from '@/common/i18n';
+import {
+  DEFAULT_LANGUAGE,
+  normalizeLanguageCode,
+  mergeWithFallback,
+  ensureAndSwitch,
+  type LocaleData,
+} from '@/common/i18n';
 
 // Static imports for all locales to ensure packaged app can always switch language.
 import enUS from './locales/en-US/index';

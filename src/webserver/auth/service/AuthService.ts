@@ -276,7 +276,11 @@ export class AuthService {
         userId: this.normalizeUserId(decoded.userId),
       };
     } catch (error) {
-      if (error instanceof jwt.TokenExpiredError || error instanceof jwt.JsonWebTokenError || error instanceof jwt.NotBeforeError) {
+      if (
+        error instanceof jwt.TokenExpiredError ||
+        error instanceof jwt.JsonWebTokenError ||
+        error instanceof jwt.NotBeforeError
+      ) {
         return null;
       }
       console.error('Token verification failed:', error);
@@ -354,7 +358,12 @@ export class AuthService {
 
     const ensureCategory = (chars: string) => chars[crypto.randomInt(0, chars.length)];
 
-    const passwordChars: string[] = [ensureCategory(lowercase), ensureCategory(uppercase), ensureCategory(digits), ensureCategory(special)];
+    const passwordChars: string[] = [
+      ensureCategory(lowercase),
+      ensureCategory(uppercase),
+      ensureCategory(digits),
+      ensureCategory(special),
+    ];
 
     const remainingLength = Math.max(passwordLength - passwordChars.length, 0);
     for (let i = 0; i < remainingLength; i++) {
@@ -474,7 +483,10 @@ export class AuthService {
     if (hashProvided) {
       result = await comparePasswordAsync(provided, expected);
     } else {
-      result = crypto.timingSafeEqual(Buffer.from(provided.padEnd(expected.length, '0')), Buffer.from(expected.padEnd(provided.length, '0')));
+      result = crypto.timingSafeEqual(
+        Buffer.from(provided.padEnd(expected.length, '0')),
+        Buffer.from(expected.padEnd(provided.length, '0'))
+      );
     }
 
     // Add minimum delay to prevent timing attacks

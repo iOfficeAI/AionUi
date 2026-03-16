@@ -48,7 +48,10 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
  * Deep-merge `target` into `fallback`, so that any key missing in `target`
  * falls back to the value in `fallback`.
  */
-export function mergeWithFallback(fallback: Record<string, unknown>, target: Record<string, unknown>): Record<string, unknown> {
+export function mergeWithFallback(
+  fallback: Record<string, unknown>,
+  target: Record<string, unknown>
+): Record<string, unknown> {
   const merged: Record<string, unknown> = { ...fallback };
 
   for (const [key, value] of Object.entries(target)) {
@@ -69,7 +72,15 @@ export type LocaleData = Record<string, Record<string, unknown>>;
  * Ensure a resource bundle is loaded, then switch i18next to the given language.
  * Deduplicates the "load-if-missing + changeLanguage" pattern.
  */
-export async function ensureAndSwitch(i18n: { hasResourceBundle: (lng: string, ns: string) => boolean; addResourceBundle: (...args: unknown[]) => void; changeLanguage: (lng: string) => Promise<unknown> }, lang: string, getTranslation: (locale: string) => Record<string, unknown> | Promise<Record<string, unknown>>): Promise<void> {
+export async function ensureAndSwitch(
+  i18n: {
+    hasResourceBundle: (lng: string, ns: string) => boolean;
+    addResourceBundle: (...args: unknown[]) => void;
+    changeLanguage: (lng: string) => Promise<unknown>;
+  },
+  lang: string,
+  getTranslation: (locale: string) => Record<string, unknown> | Promise<Record<string, unknown>>
+): Promise<void> {
   const normalizedLang = normalizeLanguageCode(lang);
   if (!i18n.hasResourceBundle(normalizedLang, 'translation')) {
     const translation = await getTranslation(normalizedLang);

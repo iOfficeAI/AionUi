@@ -74,7 +74,10 @@ export class WebuiService {
    * 统一的异步错误处理包装器
    * Unified async error handling wrapper
    */
-  static async handleAsync<T>(handler: () => Promise<{ success: boolean; data?: T; msg?: string }>, context = 'Operation'): Promise<{ success: boolean; data?: T; msg?: string }> {
+  static async handleAsync<T>(
+    handler: () => Promise<{ success: boolean; data?: T; msg?: string }>,
+    context = 'Operation'
+  ): Promise<{ success: boolean; data?: T; msg?: string }> {
     try {
       return await handler();
     } catch (error) {

@@ -118,7 +118,9 @@ export function readOpenClawConfig(): OpenClawConfig | null {
     } catch {
       // If standard parse fails, try removing comments (JSONC style)
       // Use a string-aware approach: skip // and /* */ only outside quoted strings
-      const cleanContent = content.replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) => (match.startsWith('"') ? match : match.startsWith('/*') ? '' : ''));
+      const cleanContent = content.replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) =>
+        match.startsWith('"') ? match : match.startsWith('/*') ? '' : ''
+      );
       return JSON.parse(cleanContent) as OpenClawConfig;
     }
   } catch (error) {

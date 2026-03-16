@@ -11,9 +11,23 @@ import { app } from 'electron';
 import { application } from '../common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
-import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
+import type {
+  IChatConversationRefer,
+  IConfigStorageRefer,
+  IEnvStorageRefer,
+  IMcpServer,
+  TChatConversation,
+  TProviderWithModel,
+} from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, ensureDirectory, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import {
+  copyDirectoryRecursively,
+  ensureDirectory,
+  getConfigPath,
+  getDataPath,
+  getTempPath,
+  verifyDirectoryFiles,
+} from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
 // Platform and architecture types (moved from deleted updateConfig)
@@ -258,7 +272,9 @@ const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cach
 const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
 
 // 创建带字段迁移的聊天历史代理
-const isGeminiConversation = (conversation: TChatConversation): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
+const isGeminiConversation = (
+  conversation: TChatConversation
+): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
   return conversation.type === 'gemini';
 };
 
@@ -287,7 +303,10 @@ const chatFile = {
 
     return data;
   },
-  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]): Promise<IChatConversationRefer[K]> {
+  async set<K extends keyof IChatConversationRefer>(
+    key: K,
+    value: IChatConversationRefer[K]
+  ): Promise<IChatConversationRefer[K]> {
     return await _chatFile.set(key, value);
   },
 };
@@ -317,7 +336,9 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
     },
     backup(conversation_id: string) {
       const storage = buildMessageListStorage(conversation_id, dir);
-      return storage.backup(path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt'));
+      return storage.backup(
+        path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
+      );
     },
   };
 };
@@ -372,7 +393,13 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         path.join(appPath, dirPath), // Fallback to asar path
       ];
     } else {
-      candidates = [path.join(appPath, dirPath), path.join(appPath, '..', dirPath), path.join(appPath, '..', '..', dirPath), path.join(appPath, '..', '..', '..', dirPath), path.join(process.cwd(), dirPath)];
+      candidates = [
+        path.join(appPath, dirPath),
+        path.join(appPath, '..', dirPath),
+        path.join(appPath, '..', '..', dirPath),
+        path.join(appPath, '..', '..', '..', dirPath),
+        path.join(process.cwd(), dirPath),
+      ];
     }
 
     for (const candidate of candidates) {
@@ -385,7 +412,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     return candidates[0];
   };
 
-  const presetsNeedDefaultRulesDir = ASSISTANT_PRESETS.some((preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0);
+  const presetsNeedDefaultRulesDir = ASSISTANT_PRESETS.some(
+    (preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0
+  );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
   const builtinSkillsDir = resolveBuiltinDir('skills');
   const userSkillsDir = getSkillsDir();
@@ -524,7 +553,13 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
-    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'star-office-helper' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
+    const enabledByDefault =
+      preset.id === 'cowork' ||
+      preset.id === 'openclaw-setup' ||
+      preset.id === 'star-office-helper' ||
+      preset.id === 'story-roleplay' ||
+      preset.id === 'moltbook' ||
+      preset.id === 'beautiful-mermaid';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -697,9 +732,18 @@ const initStorage = async () => {
         // 检查 promptsI18n 是否需要更新（如果不存在或已更改，或需要迁移）
         // Check if promptsI18n needs update (if missing, changed, or migration needed)
         const promptsI18nMissing = !existing.promptsI18n && builtin.promptsI18n;
-        const promptsI18nChanged = existing.promptsI18n && builtin.promptsI18n && JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
+        const promptsI18nChanged =
+          existing.promptsI18n &&
+          builtin.promptsI18n &&
+          JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
         const needsPromptsI18nUpdate = needsPromptsI18nMigration || promptsI18nMissing || promptsI18nChanged;
-        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || needsPromptsI18nUpdate;
+        const shouldUpdate =
+          existing.name !== builtin.name ||
+          existing.description !== builtin.description ||
+          existing.avatar !== builtin.avatar ||
+          existing.isPreset !== builtin.isPreset ||
+          existing.isBuiltin !== builtin.isBuiltin ||
+          needsPromptsI18nUpdate;
         // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
         const needsEnabledFix = existing.enabled === undefined || needsMigration;
@@ -713,12 +757,20 @@ const initStorage = async () => {
         // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设置 enabledSkills 时）
         // Add default enabled skills for builtin assistants with defaultEnabledSkills (only during migration and if user hasn't set enabledSkills)
         let resolvedEnabledSkills = existing.enabledSkills;
-        const needsSkillsMigration = needsBuiltinSkillsMigration && builtin.enabledSkills && (!existing.enabledSkills || existing.enabledSkills.length === 0);
+        const needsSkillsMigration =
+          needsBuiltinSkillsMigration &&
+          builtin.enabledSkills &&
+          (!existing.enabledSkills || existing.enabledSkills.length === 0);
         if (needsSkillsMigration) {
           resolvedEnabledSkills = builtin.enabledSkills;
         }
 
-        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) || needsPromptsI18nUpdate) {
+        if (
+          shouldUpdate ||
+          needsEnabledFix ||
+          (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) ||
+          needsPromptsI18nUpdate
+        ) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,

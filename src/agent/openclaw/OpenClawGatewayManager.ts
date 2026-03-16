@@ -80,7 +80,10 @@ export class OpenClawGatewayManager extends EventEmitter {
     return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]) };
   }
 
-  private isNodeVersionAtLeast(a: { major: number; minor: number; patch: number } | null, b: { major: number; minor: number; patch: number }): boolean {
+  private isNodeVersionAtLeast(
+    a: { major: number; minor: number; patch: number } | null,
+    b: { major: number; minor: number; patch: number }
+  ): boolean {
     if (!a) return false;
     if (a.major !== b.major) return a.major > b.major;
     if (a.minor !== b.minor) return a.minor > b.minor;
@@ -205,7 +208,14 @@ export class OpenClawGatewayManager extends EventEmitter {
         this.emit('stdout', output);
 
         // Look for gateway ready signals
-        if (!hasResolved && (output.includes('Gateway listening') || output.includes(`port ${this.port}`) || output.includes('WebSocket server started') || output.includes('gateway ready') || output.includes('listening on'))) {
+        if (
+          !hasResolved &&
+          (output.includes('Gateway listening') ||
+            output.includes(`port ${this.port}`) ||
+            output.includes('WebSocket server started') ||
+            output.includes('gateway ready') ||
+            output.includes('listening on'))
+        ) {
           hasResolved = true;
           console.log(`[OpenClawGatewayManager] Gateway ready on port ${this.port}`);
           this.emit('ready', this.port);
@@ -220,7 +230,14 @@ export class OpenClawGatewayManager extends EventEmitter {
         this.emit('stderr', output);
 
         // Some CLIs output ready message to stderr
-        if (!hasResolved && (output.includes('Gateway listening') || output.includes(`port ${this.port}`) || output.includes('WebSocket server started') || output.includes('gateway ready') || output.includes('listening on'))) {
+        if (
+          !hasResolved &&
+          (output.includes('Gateway listening') ||
+            output.includes(`port ${this.port}`) ||
+            output.includes('WebSocket server started') ||
+            output.includes('gateway ready') ||
+            output.includes('listening on'))
+        ) {
           hasResolved = true;
           console.log(`[OpenClawGatewayManager] Gateway ready on port ${this.port}`);
           this.emit('ready', this.port);

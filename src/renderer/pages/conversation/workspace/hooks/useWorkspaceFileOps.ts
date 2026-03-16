@@ -8,7 +8,10 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
-import { LARGE_TEXT_PREVIEW_MAX_LENGTH, LARGE_TEXT_PREVIEW_THRESHOLD } from '@/renderer/pages/conversation/preview/constants';
+import {
+  LARGE_TEXT_PREVIEW_MAX_LENGTH,
+  LARGE_TEXT_PREVIEW_THRESHOLD,
+} from '@/renderer/pages/conversation/preview/constants';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
@@ -50,7 +53,29 @@ interface UseWorkspaceFileOpsOptions {
  * File operations logic (open, delete, rename, preview, add to chat)
  */
 export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
-  const { workspace, eventPrefix, messageApi, t, setFiles, setSelected, setExpandedKeys, selectedKeysRef, selectedNodeRef, ensureNodeSelected, refreshWorkspace, renameModal, deleteModal, renameLoading, setRenameLoading, closeRenameModal, closeDeleteModal, closeContextMenu, setRenameModal, setDeleteModal, openPreview } = options;
+  const {
+    workspace,
+    eventPrefix,
+    messageApi,
+    t,
+    setFiles,
+    setSelected,
+    setExpandedKeys,
+    selectedKeysRef,
+    selectedNodeRef,
+    ensureNodeSelected,
+    refreshWorkspace,
+    renameModal,
+    deleteModal,
+    renameLoading,
+    setRenameLoading,
+    closeRenameModal,
+    closeDeleteModal,
+    closeContextMenu,
+    setRenameModal,
+    setDeleteModal,
+    openPreview,
+  } = options;
 
   /**
    * 打开文件或文件夹（使用系统默认程序）
@@ -125,7 +150,18 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       messageApi.error(t('conversation.workspace.contextMenu.deleteFailed'));
       setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
-  }, [deleteModal.target, closeDeleteModal, eventPrefix, messageApi, refreshWorkspace, t, setSelected, selectedKeysRef, selectedNodeRef, setDeleteModal]);
+  }, [
+    deleteModal.target,
+    closeDeleteModal,
+    eventPrefix,
+    messageApi,
+    refreshWorkspace,
+    t,
+    setSelected,
+    selectedKeysRef,
+    selectedNodeRef,
+    setDeleteModal,
+  ]);
 
   /**
    * 超时包装器
@@ -221,7 +257,21 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     } finally {
       setRenameLoading(false);
     }
-  }, [closeRenameModal, eventPrefix, messageApi, renameLoading, renameModal, t, waitWithTimeout, setFiles, setExpandedKeys, setSelected, selectedKeysRef, selectedNodeRef, setRenameLoading]);
+  }, [
+    closeRenameModal,
+    eventPrefix,
+    messageApi,
+    renameLoading,
+    renameModal,
+    t,
+    waitWithTimeout,
+    setFiles,
+    setExpandedKeys,
+    setSelected,
+    selectedKeysRef,
+    selectedNodeRef,
+    setRenameLoading,
+  ]);
 
   /**
    * 添加到聊天
@@ -284,7 +334,51 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
           contentType = 'html';
         } else if (imageExtensions.includes(ext)) {
           contentType = 'image';
-        } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'json', 'xml', 'yaml', 'yml', 'txt', 'log', 'sh', 'bash', 'zsh', 'fish', 'sql', 'rb', 'php', 'swift', 'kt', 'scala', 'r', 'lua', 'vim', 'toml', 'ini', 'cfg', 'conf', 'env', 'gitignore', 'dockerignore', 'editorconfig'].includes(ext)) {
+        } else if (
+          [
+            'js',
+            'ts',
+            'tsx',
+            'jsx',
+            'py',
+            'java',
+            'go',
+            'rs',
+            'c',
+            'cpp',
+            'h',
+            'hpp',
+            'css',
+            'scss',
+            'json',
+            'xml',
+            'yaml',
+            'yml',
+            'txt',
+            'log',
+            'sh',
+            'bash',
+            'zsh',
+            'fish',
+            'sql',
+            'rb',
+            'php',
+            'swift',
+            'kt',
+            'scala',
+            'r',
+            'lua',
+            'vim',
+            'toml',
+            'ini',
+            'cfg',
+            'conf',
+            'env',
+            'gitignore',
+            'dockerignore',
+            'editorconfig',
+          ].includes(ext)
+        ) {
           contentType = 'code';
         } else {
           // 未知扩展名也默认为 code 类型，尝试作为文本读取 / Unknown extensions also default to code type, try to read as text

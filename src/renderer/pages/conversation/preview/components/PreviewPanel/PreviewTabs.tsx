@@ -98,22 +98,41 @@ interface PreviewTabsProps {
  * 包含左右渐变指示器，提示用户可以滚动查看更多 Tab
  * Includes left/right gradient indicators to prompt users that more tabs can be scrolled
  */
-const PreviewTabs: React.FC<PreviewTabsProps> = ({ tabs, activeTabId, tabFadeState, tabsContainerRef, onSwitchTab, onCloseTab, onContextMenu, onClosePanel }) => {
+const PreviewTabs: React.FC<PreviewTabsProps> = ({
+  tabs,
+  activeTabId,
+  tabFadeState,
+  tabsContainerRef,
+  onSwitchTab,
+  onCloseTab,
+  onContextMenu,
+  onClosePanel,
+}) => {
   const { t } = useTranslation();
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
 
   return (
-    <div className='relative flex-shrink-0 bg-bg-2' style={{ minHeight: '36px', borderBottom: '1px solid var(--border-base)' }}>
+    <div
+      className='relative flex-shrink-0 bg-bg-2'
+      style={{ minHeight: '36px', borderBottom: '1px solid var(--border-base)' }}
+    >
       <div className='flex items-center h-36px w-full'>
         {/* Tabs 滚动区域 / Tabs scroll area */}
         <div ref={tabsContainerRef} className='flex items-center h-full flex-1 overflow-x-auto'>
           {tabs.length > 0 ? (
             tabs.map((tab) => (
-              <div key={tab.id} className={`flex items-center gap-6px px-10px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => onSwitchTab(tab.id)} onContextMenu={(e) => onContextMenu(e, tab.id)}>
+              <div
+                key={tab.id}
+                className={`flex items-center gap-6px px-10px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`}
+                onClick={() => onSwitchTab(tab.id)}
+                onContextMenu={(e) => onContextMenu(e, tab.id)}
+              >
                 <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
                   {tab.title}
                   {/* 未保存指示器 / Unsaved indicator */}
-                  {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title={t('preview.unsavedChangesTitle')} />}
+                  {tab.isDirty && (
+                    <span className='w-6px h-6px rd-full bg-primary' title={t('preview.unsavedChangesTitle')} />
+                  )}
                 </span>
                 <Close
                   theme='outline'
@@ -135,7 +154,11 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({ tabs, activeTabId, tabFadeSta
         {/* 收起面板按钮 / Collapse panel button */}
         {onClosePanel && (
           <div className='flex items-center h-full px-10px flex-shrink-0 rounded-tr-[16px]'>
-            <div className='flex items-center justify-center w-20px h-20px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={onClosePanel} title={t('preview.collapsePanel')}>
+            <div
+              className='flex items-center justify-center w-20px h-20px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
+              onClick={onClosePanel}
+              title={t('preview.collapsePanel')}
+            >
               <IconShrink style={{ fontSize: 14, color: iconColors.secondary }} />
             </div>
           </div>

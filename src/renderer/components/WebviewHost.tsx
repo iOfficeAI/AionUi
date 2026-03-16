@@ -39,7 +39,16 @@ const MAX_ZOOM_FACTOR = 1.5;
  * - Partition support for cache isolation
  * - Optional navigation bar (hidden by default for embedded use)
  */
-const WebviewHost: React.FC<WebviewHostProps> = ({ url, id: _id, showNavBar = false, partition, className, style, onDidFinishLoad, onDidFailLoad }) => {
+const WebviewHost: React.FC<WebviewHostProps> = ({
+  url,
+  id: _id,
+  showNavBar = false,
+  partition,
+  className,
+  style,
+  onDidFinishLoad,
+  onDidFailLoad,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
@@ -575,7 +584,11 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id: _id, showNavBar = fa
             <Right theme='outline' size={16} />
           </button>
           <button onClick={handleRefresh} className='toolbar-btn icon-btn' title='Refresh'>
-            {isLoading ? <Loading theme='outline' size={16} className='animate-spin' /> : <Refresh theme='outline' size={16} />}
+            {isLoading ? (
+              <Loading theme='outline' size={16} className='animate-spin' />
+            ) : (
+              <Refresh theme='outline' size={16} />
+            )}
           </button>
           {isStarOffice && (
             <div className='flex items-center gap-6px ml-2px'>
@@ -589,7 +602,15 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id: _id, showNavBar = fa
             </div>
           )}
           <form onSubmit={handleUrlSubmit} className='flex-1 ml-2px'>
-            <input type='text' value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} onKeyDown={handleUrlKeyDown} onFocus={(e) => e.target.select()} className='toolbar-input' placeholder='Enter URL...' />
+            <input
+              type='text'
+              value={inputUrl}
+              onChange={(e) => setInputUrl(e.target.value)}
+              onKeyDown={handleUrlKeyDown}
+              onFocus={(e) => e.target.select()}
+              className='toolbar-input'
+              placeholder='Enter URL...'
+            />
           </form>
         </div>
       )}
@@ -602,7 +623,12 @@ const WebviewHost: React.FC<WebviewHostProps> = ({ url, id: _id, showNavBar = fa
       )}
 
       {/* Webview content area */}
-      <div ref={contentRef} className='flex-1 overflow-hidden relative' style={{ minHeight: 0 }} onWheel={handleOuterWheelZoom}>
+      <div
+        ref={contentRef}
+        className='flex-1 overflow-hidden relative'
+        style={{ minHeight: 0 }}
+        onWheel={handleOuterWheelZoom}
+      >
         <webview
           ref={webviewRef as any}
           src={currentUrl}

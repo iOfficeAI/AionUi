@@ -7,7 +7,10 @@
 import type { PropsWithChildren } from 'react';
 import React from 'react';
 
-const HOC = <HOCProps extends {}>(HOCComponent: React.FC<PropsWithChildren<HOCProps>>, hocProps?: Partial<HOCProps>) => {
+const HOC = <HOCProps extends {}>(
+  HOCComponent: React.FC<PropsWithChildren<HOCProps>>,
+  hocProps?: Partial<HOCProps>
+) => {
   return <Props extends Record<string, any>>(Component: React.FC<Props>): React.FC<Props> => {
     return (props: Props) => (
       <HOCComponent {...props} {...(hocProps || ({} as any))}>
@@ -17,7 +20,10 @@ const HOC = <HOCProps extends {}>(HOCComponent: React.FC<PropsWithChildren<HOCPr
   };
 };
 
-const Create = <HOCProps extends {}>(HOCComponent: React.FC<HOCProps>, hocProps?: Partial<HOCProps>): React.FC<HOCProps> => {
+const Create = <HOCProps extends {}>(
+  HOCComponent: React.FC<HOCProps>,
+  hocProps?: Partial<HOCProps>
+): React.FC<HOCProps> => {
   return (props: HOCProps) => {
     return <HOCComponent {...(hocProps || {})} {...props} />;
   };

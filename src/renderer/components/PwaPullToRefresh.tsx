@@ -19,7 +19,10 @@ const PwaPullToRefresh: React.FC = () => {
   useEffect(() => {
     if (!isPwa) return;
 
-    const container = (document.querySelector('.layout-content') as HTMLElement) || (document.scrollingElement as HTMLElement) || document.documentElement;
+    const container =
+      (document.querySelector('.layout-content') as HTMLElement) ||
+      (document.scrollingElement as HTMLElement) ||
+      document.documentElement;
 
     let startY = 0;
     let deltaY = 0;
@@ -30,7 +33,8 @@ const PwaPullToRefresh: React.FC = () => {
       let node: HTMLElement | null = el instanceof HTMLElement ? el : null;
       while (node && node !== document.body) {
         const style = window.getComputedStyle(node);
-        const canScroll = (style.overflowY === 'auto' || style.overflowY === 'scroll') && node.scrollHeight > node.clientHeight;
+        const canScroll =
+          (style.overflowY === 'auto' || style.overflowY === 'scroll') && node.scrollHeight > node.clientHeight;
         if (canScroll) return node;
         node = node.parentElement;
       }
@@ -41,7 +45,12 @@ const PwaPullToRefresh: React.FC = () => {
       const root = (document.scrollingElement as HTMLElement) || document.documentElement;
       const layout = document.querySelector('.layout-content') as HTMLElement | null;
       const nearest = getNearestScrollable(startTarget);
-      const values: number[] = [typeof window.scrollY === 'number' ? window.scrollY : 0, root && typeof (root as any).scrollTop === 'number' ? (root as any).scrollTop : 0, layout && typeof (layout as any).scrollTop === 'number' ? (layout as any).scrollTop : 0, nearest && typeof (nearest as any).scrollTop === 'number' ? (nearest as any).scrollTop : 0];
+      const values: number[] = [
+        typeof window.scrollY === 'number' ? window.scrollY : 0,
+        root && typeof (root as any).scrollTop === 'number' ? (root as any).scrollTop : 0,
+        layout && typeof (layout as any).scrollTop === 'number' ? (layout as any).scrollTop : 0,
+        nearest && typeof (nearest as any).scrollTop === 'number' ? (nearest as any).scrollTop : 0,
+      ];
       const topMost = Math.max.apply(null, values);
       return topMost <= 0;
     };

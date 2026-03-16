@@ -27,5 +27,7 @@ export function dispatchWorkspaceStateEvent(collapsed: boolean) {
  */
 export function dispatchWorkspaceHasFilesEvent(hasFiles: boolean, conversationId?: string) {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent<WorkspaceHasFilesDetail>(WORKSPACE_HAS_FILES_EVENT, { detail: { hasFiles, conversationId } }));
+  window.dispatchEvent(
+    new CustomEvent<WorkspaceHasFilesDetail>(WORKSPACE_HAS_FILES_EVENT, { detail: { hasFiles, conversationId } })
+  );
 }

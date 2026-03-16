@@ -23,9 +23,24 @@ import PPTPreview from '../viewers/PPTViewer';
 import TextEditor from '../editors/TextEditor';
 import WordPreview from '../viewers/WordViewer';
 import URLViewer from '../viewers/URLViewer';
-import { PreviewTabs, PreviewToolbar, PreviewContextMenu, PreviewConfirmModals, PreviewHistoryDropdown, type ContextMenuState, type CloseTabConfirmState, type PreviewTab } from '.';
+import {
+  PreviewTabs,
+  PreviewToolbar,
+  PreviewContextMenu,
+  PreviewConfirmModals,
+  PreviewHistoryDropdown,
+  type ContextMenuState,
+  type CloseTabConfirmState,
+  type PreviewTab,
+} from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
-import { usePreviewHistory, usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
+import {
+  usePreviewHistory,
+  usePreviewKeyboardShortcuts,
+  useScrollSync,
+  useTabOverflow,
+  useThemeDetection,
+} from '../../hooks';
 import { useTranslation } from 'react-i18next';
 import './preview.css';
 
@@ -38,7 +53,18 @@ import './preview.css';
  */
 const PreviewPanel: React.FC = () => {
   const { t } = useTranslation();
-  const { isOpen, tabs, activeTabId, activeTab, closeTab, switchTab, closePreview, updateContent, saveContent, addDomSnippet } = usePreviewContext();
+  const {
+    isOpen,
+    tabs,
+    activeTabId,
+    activeTab,
+    closeTab,
+    switchTab,
+    closePreview,
+    updateContent,
+    saveContent,
+    addDomSnippet,
+  } = usePreviewContext();
   const layout = useLayoutContext();
 
   // 视图状态 / View states
@@ -69,7 +95,18 @@ const PreviewPanel: React.FC = () => {
   });
 
   // eslint-disable-next-line max-len
-  const { historyVersions, historyLoading, snapshotSaving, historyError, historyTarget, refreshHistory, handleSaveSnapshot, handleSnapshotSelect, messageApi, messageContextHolder } = usePreviewHistory({
+  const {
+    historyVersions,
+    historyLoading,
+    snapshotSaving,
+    historyError,
+    historyTarget,
+    refreshHistory,
+    handleSaveSnapshot,
+    handleSnapshotSelect,
+    messageApi,
+    messageContextHolder,
+  } = usePreviewHistory({
     activeTab,
     updateContent,
   });
@@ -361,7 +398,16 @@ const PreviewPanel: React.FC = () => {
   // 渲染历史下拉菜单 / Render history dropdown
   const renderHistoryDropdown = () => {
     // eslint-disable-next-line max-len
-    return <PreviewHistoryDropdown historyVersions={historyVersions} historyLoading={historyLoading} historyError={historyError} historyTarget={historyTarget} currentTheme={currentTheme} onSnapshotSelect={handleSnapshotSelect} />;
+    return (
+      <PreviewHistoryDropdown
+        historyVersions={historyVersions}
+        historyLoading={historyLoading}
+        historyError={historyError}
+        historyTarget={historyTarget}
+        currentTheme={currentTheme}
+        onSnapshotSelect={handleSnapshotSelect}
+      />
+    );
   };
 
   // 渲染预览内容 / Render preview content
@@ -388,7 +434,12 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <MarkdownEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} />
+                <MarkdownEditor
+                  value={content}
+                  onChange={updateContent}
+                  containerRef={editorContainerRef}
+                  onScroll={handleEditorScroll}
+                />
               </div>
               {/* 拖动分割线 / Drag handle */}
               {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
@@ -400,7 +451,13 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
               </div>
               <div className='flex flex-col flex-1 overflow-hidden'>
-                <MarkdownPreview content={content} hideToolbar containerRef={previewContainerRef} onScroll={handlePreviewScroll} filePath={metadata?.filePath} />
+                <MarkdownPreview
+                  content={content}
+                  hideToolbar
+                  containerRef={previewContainerRef}
+                  onScroll={handlePreviewScroll}
+                  filePath={metadata?.filePath}
+                />
               </div>
             </div>
           </div>
@@ -408,7 +465,16 @@ const PreviewPanel: React.FC = () => {
       }
 
       // 非分屏模式：单栏（原文或预览）/ Non-split mode: Single panel (source or preview)
-      return <MarkdownPreview content={content} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} onContentChange={updateContent} filePath={metadata?.filePath} />;
+      return (
+        <MarkdownPreview
+          content={content}
+          hideToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onContentChange={updateContent}
+          filePath={metadata?.filePath}
+        />
+      );
     }
 
     // HTML 模式 / HTML mode
@@ -419,7 +485,13 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} inspectMode={inspectMode} onElementSelected={handleElementSelected} />
+              <HTMLRenderer
+                content={content}
+                filePath={metadata?.filePath}
+                copySuccessMessage={t('preview.html.copySuccess')}
+                inspectMode={inspectMode}
+                onElementSelected={handleElementSelected}
+              />
             </div>
           );
         }
@@ -433,7 +505,13 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <HTMLEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} filePath={metadata?.filePath} />
+                <HTMLEditor
+                  value={content}
+                  onChange={updateContent}
+                  containerRef={editorContainerRef}
+                  onScroll={handleEditorScroll}
+                  filePath={metadata?.filePath}
+                />
               </div>
               {/* 拖动分割线 / Drag handle */}
               {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
@@ -447,7 +525,15 @@ const PreviewPanel: React.FC = () => {
               <div className='flex flex-col flex-1 overflow-hidden'>
                 {/* prettier-ignore */}
                 {/* eslint-disable-next-line max-len */}
-                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
+                <HTMLRenderer
+                  content={content}
+                  filePath={metadata?.filePath}
+                  containerRef={previewContainerRef}
+                  onScroll={handlePreviewScroll}
+                  inspectMode={inspectMode}
+                  copySuccessMessage={t('preview.html.copySuccess')}
+                  onElementSelected={handleElementSelected}
+                />
               </div>
             </div>
           </div>
@@ -465,7 +551,13 @@ const PreviewPanel: React.FC = () => {
         // 预览模式 / Preview mode
         return (
           <div className='flex-1 overflow-hidden'>
-            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
+            <HTMLRenderer
+              content={content}
+              filePath={metadata?.filePath}
+              inspectMode={inspectMode}
+              copySuccessMessage={t('preview.html.copySuccess')}
+              onElementSelected={handleElementSelected}
+            />
           </div>
         );
       }
@@ -473,7 +565,15 @@ const PreviewPanel: React.FC = () => {
 
     // 其他类型：全屏预览 / Other types: Full-screen preview
     if (contentType === 'diff') {
-      return <DiffPreview content={content} metadata={metadata} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} />;
+      return (
+        <DiffPreview
+          content={content}
+          metadata={metadata}
+          hideToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      );
     } else if (contentType === 'code') {
       // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
       if (isSplitScreenEnabled && isEditMode && isEditable) {
@@ -513,7 +613,15 @@ const PreviewPanel: React.FC = () => {
         );
       }
       // 否则显示代码预览 / Otherwise show code preview
-      return <CodePreview content={content} language={metadata?.language} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} />;
+      return (
+        <CodePreview
+          content={content}
+          language={metadata?.language}
+          hideToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      );
     } else if (contentType === 'pdf') {
       return <PDFPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'ppt') {
@@ -523,7 +631,13 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'excel') {
       return <ExcelPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'image') {
-      return <ImagePreview filePath={metadata?.filePath} content={content} fileName={metadata?.fileName || metadata?.title} />;
+      return (
+        <ImagePreview
+          filePath={metadata?.filePath}
+          content={content}
+          fileName={metadata?.fileName || metadata?.title}
+        />
+      );
     } else if (contentType === 'url') {
       // URL 预览模式 / URL preview mode
       return <URLViewer url={content} title={metadata?.title} />;
@@ -546,11 +660,28 @@ const PreviewPanel: React.FC = () => {
 
         {/* 确认对话框 / Confirmation modals */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewConfirmModals showExitConfirm={showExitConfirm} closeTabConfirm={closeTabConfirm} onConfirmExit={handleConfirmExit} onCancelExit={handleCancelExit} onSaveAndCloseTab={handleSaveAndCloseTab} onCloseWithoutSave={handleCloseWithoutSave} onCancelCloseTab={handleCancelCloseTab} />
+        <PreviewConfirmModals
+          showExitConfirm={showExitConfirm}
+          closeTabConfirm={closeTabConfirm}
+          onConfirmExit={handleConfirmExit}
+          onCancelExit={handleCancelExit}
+          onSaveAndCloseTab={handleSaveAndCloseTab}
+          onCloseWithoutSave={handleCloseWithoutSave}
+          onCancelCloseTab={handleCancelCloseTab}
+        />
 
         {/* Tab 栏 / Tab bar */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} onClosePanel={closePreview} />
+        <PreviewTabs
+          tabs={previewTabs}
+          activeTabId={activeTabId}
+          tabFadeState={tabFadeState}
+          tabsContainerRef={tabsContainerRef}
+          onSwitchTab={switchTab}
+          onCloseTab={handleCloseTab}
+          onContextMenu={handleTabContextMenu}
+          onClosePanel={closePreview}
+        />
 
         {/* 工具栏（URL 类型不显示工具栏，因为不需要下载/编辑等功能）/ Toolbar (hidden for URL type as it doesn't need download/edit features) */}
         {contentType !== 'url' && (
@@ -597,7 +728,16 @@ const PreviewPanel: React.FC = () => {
 
         {/* Tab 右键菜单 / Tab context menu */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewContextMenu contextMenu={contextMenu} tabs={previewTabs} currentTheme={currentTheme} onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })} onCloseLeft={handleCloseLeft} onCloseRight={handleCloseRight} onCloseOthers={handleCloseOthers} onCloseAll={handleCloseAll} />
+        <PreviewContextMenu
+          contextMenu={contextMenu}
+          tabs={previewTabs}
+          currentTheme={currentTheme}
+          onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })}
+          onCloseLeft={handleCloseLeft}
+          onCloseRight={handleCloseRight}
+          onCloseOthers={handleCloseOthers}
+          onCloseAll={handleCloseAll}
+        />
       </div>
     </PreviewToolbarExtrasProvider>
   );

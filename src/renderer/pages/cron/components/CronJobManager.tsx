@@ -46,7 +46,11 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
           </div>
         }
       >
-        <Button type='text' size='small' className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'>
+        <Button
+          type='text'
+          size='small'
+          className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
+        >
           <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
             <AlarmClock theme='outline' size={16} fill={iconColors.disabled} />
             <span className='ml-4px w-8px h-8px rounded-full bg-[#86909c]' />
@@ -83,14 +87,27 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
   return (
     <>
       <Tooltip content={tooltipContent}>
-        <Button type='text' size='small' className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0' onClick={() => setDrawerVisible(true)}>
+        <Button
+          type='text'
+          size='small'
+          className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
+          onClick={() => setDrawerVisible(true)}
+        >
           <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
             <AlarmClock theme='outline' size={16} fill={iconColors.primary} />
-            <span className={`ml-4px w-8px h-8px rounded-full ${hasError ? 'bg-[#f53f3f]' : isPaused ? 'bg-[#ff7d00]' : 'bg-[#00b42a]'}`} />
+            <span
+              className={`ml-4px w-8px h-8px rounded-full ${hasError ? 'bg-[#f53f3f]' : isPaused ? 'bg-[#ff7d00]' : 'bg-[#00b42a]'}`}
+            />
           </span>
         </Button>
       </Tooltip>
-      <CronJobDrawer visible={drawerVisible} job={job} onClose={() => setDrawerVisible(false)} onSave={handleSave} onDelete={handleDelete} />
+      <CronJobDrawer
+        visible={drawerVisible}
+        job={job}
+        onClose={() => setDrawerVisible(false)}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
     </>
   );
 };

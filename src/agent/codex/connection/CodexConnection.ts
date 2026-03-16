@@ -98,12 +98,25 @@ export class CodexConnection {
 
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
-  public onError: (error: { message: string; type?: 'network' | 'stream' | 'timeout' | 'process'; details?: unknown }) => void = () => {};
+  public onError: (error: {
+    message: string;
+    type?: 'network' | 'stream' | 'timeout' | 'process';
+    details?: unknown;
+  }) => void = () => {};
 
   // Permission request handling - similar to ACP's mechanism
   private isPaused = false;
-  private pausedRequests: Array<{ method: string; params: unknown; resolve: (v: unknown) => void; reject: (e: unknown) => void; timeout: NodeJS.Timeout }> = [];
-  private permissionResolvers = new Map<string, { resolve: (approved: boolean) => void; reject: (error: Error) => void }>();
+  private pausedRequests: Array<{
+    method: string;
+    params: unknown;
+    resolve: (v: unknown) => void;
+    reject: (e: unknown) => void;
+    timeout: NodeJS.Timeout;
+  }> = [];
+  private permissionResolvers = new Map<
+    string,
+    { resolve: (approved: boolean) => void; reject: (error: Error) => void }
+  >();
 
   // Network error handling
   private retryCount = 0;
@@ -157,7 +170,9 @@ export class CodexConnection {
     } catch (error) {
       // 如果版本命令执行失败，默认使用 mcp-server（新版本）
       // If version command fails, default to mcp-server (newer versions)
-      console.warn(`[Codex-Startup] Version detection failed for "${cliPath}": ${error instanceof Error ? error.message : String(error)}`);
+      console.warn(
+        `[Codex-Startup] Version detection failed for "${cliPath}": ${error instanceof Error ? error.message : String(error)}`
+      );
       return ['mcp-server'];
     }
   }
@@ -196,7 +211,9 @@ export class CodexConnection {
           return false;
         }
       });
-      console.log(`[Codex-Startup] CLI "${cliBasename}" on PATH: ${found ? `YES (${found})` : 'NO — not found on any PATH directory'}`);
+      console.log(
+        `[Codex-Startup] CLI "${cliBasename}" on PATH: ${found ? `YES (${found})` : 'NO — not found on any PATH directory'}`
+      );
     }
 
     const isWindows = process.platform === 'win32';
@@ -254,12 +271,18 @@ export class CodexConnection {
           const errorMsg = d.toString();
 
           if (errorMsg.includes('command not found') || errorMsg.includes('not recognized')) {
-            reject(new Error(`Codex CLI not found. Please ensure 'codex' is installed and in PATH. Error: ${errorMsg}`));
+            reject(
+              new Error(`Codex CLI not found. Please ensure 'codex' is installed and in PATH. Error: ${errorMsg}`)
+            );
           } else if (errorMsg.includes('permission denied')) {
             reject(new Error(`Permission denied when starting codex. Error: ${errorMsg}`));
           } else if (errorMsg.includes('authentication') || errorMsg.includes('login')) {
             reject(new Error(`Codex authentication required. Please run 'codex auth' first. Error: ${errorMsg}`));
-          } else if (errorMsg.includes('unknown flag') || errorMsg.includes('invalid option') || errorMsg.includes('unrecognized')) {
+          } else if (
+            errorMsg.includes('unknown flag') ||
+            errorMsg.includes('invalid option') ||
+            errorMsg.includes('unrecognized')
+          ) {
             reject(new Error(`Invalid Codex CLI arguments. Error: ${errorMsg}`));
           }
         });
@@ -451,14 +474,20 @@ export class CodexConnection {
       const env: CodexEventEnvelope = { method: msg.method, params: msg.params };
 
       // Handle all permission request events - pause and record mapping
-      if (env.method === 'codex/event' && typeof env.params === 'object' && env.params !== null && 'msg' in (env.params as CodexEventParams)) {
+      if (
+        env.method === 'codex/event' &&
+        typeof env.params === 'object' &&
+        env.params !== null &&
+        'msg' in (env.params as CodexEventParams)
+      ) {
         const msgType = (env.params as CodexEventParams).msg?.type;
         const _callId = (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
 
         if (msgType === 'apply_patch_approval_request' || msgType === 'exec_approval_request') {
           if ('id' in msg) {
             const reqId = msg.id as JsonRpcId;
-            const codexCallId = (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
+            const codexCallId =
+              (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
             if (codexCallId) {
               const callIdStr = String(codexCallId);
 
@@ -474,7 +503,8 @@ export class CodexConnection {
       // Handle elicitation requests - pause and record mapping from codex_call_id -> request id
       if (env.method === 'elicitation/create' && 'id' in msg) {
         const reqId = msg.id as JsonRpcId;
-        const codexCallId = (env.params as CodexEventParams)?.codex_call_id || (env.params as CodexEventParams)?.call_id;
+        const codexCallId =
+          (env.params as CodexEventParams)?.codex_call_id || (env.params as CodexEventParams)?.call_id;
         if (codexCallId) {
           const callIdStr = String(codexCallId);
 
@@ -583,7 +613,18 @@ export class CodexConnection {
 
   // Network error detection and handling methods
   private isNetworkRelatedError(errorMsg: string): boolean {
-    const networkErrorPatterns = ['unexpected status 403', 'Cloudflare', 'you have been blocked', 'chatgpt.com', 'network error', 'connection refused', 'timeout', 'ECONNREFUSED', 'ETIMEDOUT', 'DNS_PROBE_FINISHED_NXDOMAIN'];
+    const networkErrorPatterns = [
+      'unexpected status 403',
+      'Cloudflare',
+      'you have been blocked',
+      'chatgpt.com',
+      'network error',
+      'connection refused',
+      'timeout',
+      'ECONNREFUSED',
+      'ETIMEDOUT',
+      'DNS_PROBE_FINISHED_NXDOMAIN',
+    ];
 
     const lowerErrorMsg = errorMsg.toLowerCase();
 

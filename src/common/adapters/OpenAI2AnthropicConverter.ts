@@ -67,7 +67,11 @@ export type AnthropicMessageResponse = Anthropic.Message;
 /**
  * Converter for transforming OpenAI chat completion format to/from Anthropic format
  */
-export class OpenAI2AnthropicConverter implements ProtocolConverter<OpenAIChatCompletionParams, AnthropicMessageRequest, OpenAIChatCompletionResponse> {
+export class OpenAI2AnthropicConverter implements ProtocolConverter<
+  OpenAIChatCompletionParams,
+  AnthropicMessageRequest,
+  OpenAIChatCompletionResponse
+> {
   private readonly config: ConverterConfig;
 
   constructor(config: ConverterConfig = {}) {
@@ -178,7 +182,9 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<OpenAIChatCo
   /**
    * Extract text content from OpenAI message content
    */
-  private extractTextContent(content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>): string {
+  private extractTextContent(
+    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>
+  ): string {
     if (typeof content === 'string') {
       return content;
     }
@@ -192,7 +198,9 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<OpenAIChatCo
   /**
    * Convert OpenAI message content to Anthropic content format
    */
-  private convertMessageContent(content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>): Anthropic.ContentBlockParam[] | string {
+  private convertMessageContent(
+    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>
+  ): Anthropic.ContentBlockParam[] | string {
     if (typeof content === 'string') {
       return content;
     }
@@ -234,7 +242,9 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<OpenAIChatCo
       }
     }
 
-    return contentBlocks.length === 1 && contentBlocks[0].type === 'text' ? (contentBlocks[0] as Anthropic.TextBlockParam).text : contentBlocks;
+    return contentBlocks.length === 1 && contentBlocks[0].type === 'text'
+      ? (contentBlocks[0] as Anthropic.TextBlockParam).text
+      : contentBlocks;
   }
 
   /**
@@ -262,7 +272,8 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<OpenAIChatCo
           lastMsg.content = lastContent + '\n' + newContent;
         } else {
           // Convert to array and merge
-          const lastArray = typeof lastContent === 'string' ? [{ type: 'text' as const, text: lastContent }] : lastContent;
+          const lastArray =
+            typeof lastContent === 'string' ? [{ type: 'text' as const, text: lastContent }] : lastContent;
           const newArray = typeof newContent === 'string' ? [{ type: 'text' as const, text: newContent }] : newContent;
           lastMsg.content = [...lastArray, ...newArray];
         }

@@ -303,7 +303,9 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.upToDateTitle')}</div>
-            <div className='text-13px text-t-tertiary'>{t('update.currentVersion', { version: currentVersion || '-' })}</div>
+            <div className='text-13px text-t-tertiary'>
+              {t('update.currentVersion', { version: currentVersion || '-' })}
+            </div>
           </div>
         );
 
@@ -319,7 +321,10 @@ const UpdateModal: React.FC = () => {
                 <div>
                   <div className='text-15px font-600 text-t-primary'>{t('update.availableTitle')}</div>
                   <div className='text-12px text-t-tertiary mt-2px'>
-                    {currentVersion} → <span className='text-[rgb(var(--primary-6))] font-500'>{updateInfo?.version || autoUpdateInfo?.version}</span>
+                    {currentVersion} →{' '}
+                    <span className='text-[rgb(var(--primary-6))] font-500'>
+                      {updateInfo?.version || autoUpdateInfo?.version}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -340,7 +345,11 @@ const UpdateModal: React.FC = () => {
               </div>
             </div>
 
-            {!hasCompatibleManualAsset && !autoUpdateAvailable && <div className='mx-24px mt-12px px-12px py-10px text-12px rounded-8px bg-[rgb(var(--warning-6))]/10 text-[rgb(var(--warning-6))]'>{t('update.noCompatibleAssetManual')}</div>}
+            {!hasCompatibleManualAsset && !autoUpdateAvailable && (
+              <div className='mx-24px mt-12px px-12px py-10px text-12px rounded-8px bg-[rgb(var(--warning-6))]/10 text-[rgb(var(--warning-6))]'>
+                {t('update.noCompatibleAssetManual')}
+              </div>
+            )}
 
             {/* Release notes content */}
             <div className='flex-1 min-h-0 overflow-y-auto px-24px py-16px custom-scrollbar'>
@@ -364,7 +373,13 @@ const UpdateModal: React.FC = () => {
             </div>
             <div className='text-16px text-t-primary font-600 mb-20px'>{t('update.downloadingTitle')}</div>
             <div className='w-full max-w-320px'>
-              <Progress percent={progress.percent} status='normal' showText={false} strokeWidth={6} className='!mb-12px' />
+              <Progress
+                percent={progress.percent}
+                status='normal'
+                showText={false}
+                strokeWidth={6}
+                className='!mb-12px'
+              />
               <div className='flex justify-between text-12px text-t-tertiary'>
                 <span>
                   {formatSize(progress.transferred)} / {formatSize(progress.total)}
@@ -382,8 +397,16 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.readyToInstall')}</div>
-            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>{t('update.readyToInstallDesc')}</div>
-            <Button type='primary' size='small' onClick={quitAndInstall} icon={<Install size='14' />} className='!px-16px'>
+            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>
+              {t('update.readyToInstallDesc')}
+            </div>
+            <Button
+              type='primary'
+              size='small'
+              onClick={quitAndInstall}
+              icon={<Install size='14' />}
+              className='!px-16px'
+            >
               {t('update.installNow')}
             </Button>
           </div>
@@ -396,7 +419,9 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.downloadCompleteTitle')}</div>
-            <div className='text-12px text-t-tertiary mb-24px text-center max-w-360px break-all line-clamp-2'>{downloadPath}</div>
+            <div className='text-12px text-t-tertiary mb-24px text-center max-w-360px break-all line-clamp-2'>
+              {downloadPath}
+            </div>
             <div className='flex gap-12px'>
               <Button size='small' onClick={showInFolder} icon={<FolderOpen size='14' />} className='!px-16px'>
                 {t('update.showInFolder')}

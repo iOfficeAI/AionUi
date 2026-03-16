@@ -34,7 +34,18 @@ interface UseWorkspacePasteOptions {
  * Handle file paste and add logic
  */
 export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
-  const { workspace, messageApi, t, files, selected, selectedNodeRef, refreshWorkspace, pasteConfirm, setPasteConfirm, closePasteConfirm } = options;
+  const {
+    workspace,
+    messageApi,
+    t,
+    files,
+    selected,
+    selectedNodeRef,
+    refreshWorkspace,
+    pasteConfirm,
+    setPasteConfirm,
+    closePasteConfirm,
+  } = options;
 
   // 跟踪粘贴目标文件夹（用于视觉反馈）
   // Track paste target folder (for visual feedback)

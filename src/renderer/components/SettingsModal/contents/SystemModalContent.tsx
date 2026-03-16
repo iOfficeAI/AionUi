@@ -50,7 +50,9 @@ const DirInputItem: React.FC<{
         return (
           <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)]'>
             <Tooltip content={currentValue || t('settings.dirNotConfigured')} position='top'>
-              <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>{currentValue || t('settings.dirNotConfigured')}</div>
+              <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>
+                {currentValue || t('settings.dirNotConfigured')}
+              </div>
             </Tooltip>
             <Button
               type='text'
@@ -273,13 +275,21 @@ const SystemModalContent: React.FC = () => {
                 header={
                   <div className='flex flex-1 items-center justify-between w-full'>
                     <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
-                    <Switch checked={notificationEnabled} onClick={(e) => e.stopPropagation()} onChange={handleNotificationEnabledChange} />
+                    <Switch
+                      checked={notificationEnabled}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={handleNotificationEnabledChange}
+                    />
                   </div>
                 }
               >
                 <div className='pl-12px'>
                   <PreferenceRow label={t('settings.cronNotificationEnabled')}>
-                    <Switch checked={cronNotificationEnabled} disabled={!notificationEnabled} onChange={handleCronNotificationEnabledChange} />
+                    <Switch
+                      checked={cronNotificationEnabled}
+                      disabled={!notificationEnabled}
+                      onChange={handleCronNotificationEnabledChange}
+                    />
                   </PreferenceRow>
                 </div>
               </Collapse.Item>
@@ -308,7 +318,13 @@ const SystemModalContent: React.FC = () => {
                   </div>
                 </Form.Item>
               </div>
-              {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
+              {error && (
+                <Alert
+                  className='mt-16px'
+                  type='error'
+                  content={typeof error === 'string' ? error : JSON.stringify(error)}
+                />
+              )}
             </Form>
           </div>
         </div>

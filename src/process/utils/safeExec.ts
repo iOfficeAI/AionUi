@@ -78,7 +78,9 @@ export function safeExec(command: string, options: SafeExecOptions = {}): Promis
           if (!settled) {
             settled = true;
             killChild(child, isWindows);
-            reject(Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true }));
+            reject(
+              Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true })
+            );
           }
         }, options.timeout)
       : null;
@@ -139,7 +141,9 @@ export function safeExecFile(file: string, args: string[], options: SafeExecOpti
           if (!settled) {
             settled = true;
             killChild(child, isWindows);
-            reject(Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true }));
+            reject(
+              Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true })
+            );
           }
         }, options.timeout)
       : null;

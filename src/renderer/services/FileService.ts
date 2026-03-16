@@ -26,7 +26,34 @@ export const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.sv
 export const documentExts = ['.pdf', '.doc', '.docx', '.pptx', '.xlsx', '.odt', '.odp', '.ods'];
 
 /** 支持的文本文件扩展名 */
-export const textExts = ['.txt', '.md', '.json', '.xml', '.csv', '.log', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.scss', '.py', '.java', '.cpp', '.c', '.h', '.go', '.rs', '.yml', '.yaml', '.toml', '.ini', '.conf', '.config'];
+export const textExts = [
+  '.txt',
+  '.md',
+  '.json',
+  '.xml',
+  '.csv',
+  '.log',
+  '.js',
+  '.ts',
+  '.jsx',
+  '.tsx',
+  '.html',
+  '.css',
+  '.scss',
+  '.py',
+  '.java',
+  '.cpp',
+  '.c',
+  '.h',
+  '.go',
+  '.rs',
+  '.yml',
+  '.yaml',
+  '.toml',
+  '.ini',
+  '.conf',
+  '.config',
+];
 
 /** 所有支持的文件扩展名（预先设计，当前实际接受所有文件类型） */
 export const allSupportedExts = [...imageExts, ...documentExts, ...textExts];

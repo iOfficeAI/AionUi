@@ -37,15 +37,31 @@ function satisfiesVersion(version: string, range: string): boolean {
       if (parsedRange.minor === 0) {
         return parsedVersion.major === 0 && parsedVersion.minor === 0 && parsedVersion.patch === parsedRange.patch;
       }
-      return parsedVersion.major === 0 && parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch;
+      return (
+        parsedVersion.major === 0 &&
+        parsedVersion.minor === parsedRange.minor &&
+        parsedVersion.patch >= parsedRange.patch
+      );
     }
-    return parsedVersion.major === parsedRange.major && (parsedVersion.minor > parsedRange.minor || (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch));
+    return (
+      parsedVersion.major === parsedRange.major &&
+      (parsedVersion.minor > parsedRange.minor ||
+        (parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch))
+    );
   }
   if (range.startsWith('~')) {
-    return parsedVersion.major === parsedRange.major && parsedVersion.minor === parsedRange.minor && parsedVersion.patch >= parsedRange.patch;
+    return (
+      parsedVersion.major === parsedRange.major &&
+      parsedVersion.minor === parsedRange.minor &&
+      parsedVersion.patch >= parsedRange.patch
+    );
   }
 
-  return parsedVersion.major === parsedRange.major && parsedVersion.minor === parsedRange.minor && parsedVersion.patch === parsedRange.patch;
+  return (
+    parsedVersion.major === parsedRange.major &&
+    parsedVersion.minor === parsedRange.minor &&
+    parsedVersion.patch === parsedRange.patch
+  );
 }
 
 /**
@@ -64,7 +80,11 @@ function getAionUIVersion(): string {
   }
 
   // Fallback to nearest package.json candidates in dev/build contexts.
-  const candidates = [path.resolve(process.cwd(), 'package.json'), path.resolve(__dirname, '../../package.json'), path.resolve(__dirname, '../../../package.json')];
+  const candidates = [
+    path.resolve(process.cwd(), 'package.json'),
+    path.resolve(__dirname, '../../package.json'),
+    path.resolve(__dirname, '../../../package.json'),
+  ];
 
   for (const candidate of candidates) {
     try {
@@ -111,7 +131,9 @@ export function validateEngineCompatibility(extension: LoadedExtension): EngineV
   if (engine?.aionui) {
     if (!satisfiesVersion(AIONUI_VERSION, engine.aionui)) {
       result.valid = false;
-      result.issues.push(`Extension "${extension.manifest.name}" requires AionUI ${engine.aionui} but current version is ${AIONUI_VERSION}`);
+      result.issues.push(
+        `Extension "${extension.manifest.name}" requires AionUI ${engine.aionui} but current version is ${AIONUI_VERSION}`
+      );
     }
   }
 
@@ -119,7 +141,9 @@ export function validateEngineCompatibility(extension: LoadedExtension): EngineV
   if (apiVersion) {
     if (!satisfiesVersion(EXTENSION_API_VERSION, apiVersion)) {
       result.valid = false;
-      result.issues.push(`Extension "${extension.manifest.name}" requires extension API ${apiVersion} but current API is ${EXTENSION_API_VERSION}`);
+      result.issues.push(
+        `Extension "${extension.manifest.name}" requires extension API ${apiVersion} but current API is ${EXTENSION_API_VERSION}`
+      );
     }
   }
 

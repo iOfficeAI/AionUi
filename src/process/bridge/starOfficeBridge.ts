@@ -33,7 +33,9 @@ const toLocalPort = (rawUrl?: string): number | null => {
 const toLocalUrl = (port: number) => `http://127.0.0.1:${port}`;
 
 const buildCandidates = (preferredUrl?: string): string[] => {
-  const knownPorts = [toLocalPort(preferredUrl), 19000, 18791].filter((port): port is number => port != null).filter((port, index, arr) => arr.indexOf(port) === index);
+  const knownPorts = [toLocalPort(preferredUrl), 19000, 18791]
+    .filter((port): port is number => port != null)
+    .filter((port, index, arr) => arr.indexOf(port) === index);
 
   const rangedPorts: number[] = [];
   for (const basePort of knownPorts) {
@@ -48,7 +50,10 @@ const buildCandidates = (preferredUrl?: string): string[] => {
   return [...knownPorts, ...rangedPorts].filter((port, index, arr) => arr.indexOf(port) === index).map(toLocalUrl);
 };
 
-const fetchText = async (targetUrl: string, timeoutMs: number): Promise<{ ok: boolean; contentType: string; text: string }> => {
+const fetchText = async (
+  targetUrl: string,
+  timeoutMs: number
+): Promise<{ ok: boolean; contentType: string; text: string }> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -89,7 +94,11 @@ const checkHealth = async (baseUrl: string, timeoutMs = 1000): Promise<boolean> 
   const normalizedRoot = root.text.toLowerCase();
   if (normalizedRoot.includes('openclaw control')) return false;
 
-  return normalizedRoot.includes('star office') || normalizedRoot.includes('decorate room') || normalizedRoot.includes('asset sidebar');
+  return (
+    normalizedRoot.includes('star office') ||
+    normalizedRoot.includes('decorate room') ||
+    normalizedRoot.includes('asset sidebar')
+  );
 };
 
 const probeCandidates = async (candidates: string[], timeoutMs: number): Promise<string | null> => {

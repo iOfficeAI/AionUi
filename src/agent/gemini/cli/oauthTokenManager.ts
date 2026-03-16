@@ -74,7 +74,12 @@ export const DEFAULT_TOKEN_MANAGER_CONFIG: TokenManagerConfig = {
 };
 
 // Token Events / Token 事件
-export type TokenEvent = { type: 'token_expiring_soon'; expiryTime: number; remainingMs: number } | { type: 'token_refresh_started' } | { type: 'token_refresh_success'; newExpiryTime: number } | { type: 'token_refresh_failed'; error: string; retriesRemaining: number } | { type: 'token_expired' };
+export type TokenEvent =
+  | { type: 'token_expiring_soon'; expiryTime: number; remainingMs: number }
+  | { type: 'token_refresh_started' }
+  | { type: 'token_refresh_success'; newExpiryTime: number }
+  | { type: 'token_refresh_failed'; error: string; retriesRemaining: number }
+  | { type: 'token_expired' };
 
 /**
  * OAuth Token Manager
@@ -89,7 +94,11 @@ export class OAuthTokenManager {
   private refreshCallback?: () => Promise<boolean>;
   private authType: AuthType;
 
-  constructor(authType: AuthType, config: Partial<TokenManagerConfig> = {}, onTokenEvent?: (event: TokenEvent) => void) {
+  constructor(
+    authType: AuthType,
+    config: Partial<TokenManagerConfig> = {},
+    onTokenEvent?: (event: TokenEvent) => void
+  ) {
     this.authType = authType;
     this.config = { ...DEFAULT_TOKEN_MANAGER_CONFIG, ...config };
     this.onTokenEvent = onTokenEvent;
@@ -265,7 +274,12 @@ export class OAuthTokenManager {
 
     for (let attempt = 0; attempt < this.config.maxRefreshRetries; attempt++) {
       try {
-        const success = await Promise.race([this.refreshCallback!(), new Promise<boolean>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), this.config.refreshTimeoutMs))]);
+        const success = await Promise.race([
+          this.refreshCallback!(),
+          new Promise<boolean>((_, reject) =>
+            setTimeout(() => reject(new Error('Refresh timeout')), this.config.refreshTimeoutMs)
+          ),
+        ]);
 
         if (success) {
           this.tokenInfo.state = TokenState.VALID;

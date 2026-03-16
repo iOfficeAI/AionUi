@@ -21,7 +21,15 @@ export type PluginType = BuiltinPluginType | (string & {});
 /**
  * Plugin connection status
  */
-export type PluginStatus = 'created' | 'initializing' | 'ready' | 'starting' | 'running' | 'stopping' | 'stopped' | 'error';
+export type PluginStatus =
+  | 'created'
+  | 'initializing'
+  | 'ready'
+  | 'starting'
+  | 'running'
+  | 'stopping'
+  | 'stopped'
+  | 'error';
 
 /**
  * Plugin credentials (stored encrypted in database)
@@ -232,7 +240,16 @@ export interface IChannelPairingCodeRow {
 /**
  * Content types for unified messages
  */
-export type MessageContentType = 'text' | 'photo' | 'document' | 'voice' | 'audio' | 'video' | 'sticker' | 'action' | 'command';
+export type MessageContentType =
+  | 'text'
+  | 'photo'
+  | 'document'
+  | 'voice'
+  | 'audio'
+  | 'video'
+  | 'sticker'
+  | 'action'
+  | 'command';
 
 /**
  * Unified user information across platforms
@@ -538,7 +555,12 @@ export function resolveChannelConvType(backend: string): { convType: string; con
  * - chatIdPrefix is the first 8 characters of chatId
  * - empty segments are omitted
  */
-export function getChannelConversationName(platform: ChannelPlatform | PluginType, type?: string, backend?: string, chatId?: string): string {
+export function getChannelConversationName(
+  platform: ChannelPlatform | PluginType,
+  type?: string,
+  backend?: string,
+  chatId?: string
+): string {
   const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding' };
   const parts: string[] = [shortPlatform[platform] ?? platform];
   if (type) parts.push(type);

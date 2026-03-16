@@ -6,8 +6,23 @@
 
 import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
-import type { ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, Config, MessageBus } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, getResponseText, LlmRole } from '@office-ai/aioncli-core';
+import type {
+  ToolResult,
+  ToolInvocation,
+  ToolLocation,
+  ToolCallConfirmationDetails,
+  Config,
+  MessageBus,
+} from '@office-ai/aioncli-core';
+import {
+  BaseDeclarativeTool,
+  BaseToolInvocation,
+  Kind,
+  getErrorMessage,
+  ToolErrorType,
+  getResponseText,
+  LlmRole,
+} from '@office-ai/aioncli-core';
 
 interface GroundingChunkWeb {
   uri?: string;
@@ -44,7 +59,9 @@ export interface WebSearchToolParams {
  * Extends ToolResult to include sources for web search.
  */
 export interface WebSearchToolResult extends ToolResult {
-  sources?: GroundingMetadata extends { groundingChunks: GroundingChunkItem[] } ? GroundingMetadata['groundingChunks'] : GroundingChunkItem[];
+  sources?: GroundingMetadata extends { groundingChunks: GroundingChunkItem[] }
+    ? GroundingMetadata['groundingChunks']
+    : GroundingChunkItem[];
 }
 
 /**
@@ -85,7 +102,12 @@ export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebS
     return null;
   }
 
-  protected createInvocation(params: WebSearchToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
+  protected createInvocation(
+    params: WebSearchToolParams,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
+  ): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
     return new WebSearchInvocation(this.dedicatedConfig, params, messageBus, _toolName, _toolDisplayName);
   }
 }
@@ -130,7 +152,12 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
 
       // Use 'web-search' model config alias which has googleSearch enabled
       // See: aioncli-core/src/config/defaultModelConfigs.js
-      const response = await geminiClient.generateContent({ model: 'web-search' }, [{ role: 'user', parts: [{ text: this.params.query }] }], signal, LlmRole.UTILITY_TOOL);
+      const response = await geminiClient.generateContent(
+        { model: 'web-search' },
+        [{ role: 'user', parts: [{ text: this.params.query }] }],
+        signal,
+        LlmRole.UTILITY_TOOL
+      );
 
       const responseText = getResponseText(response) || '';
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;

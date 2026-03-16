@@ -4,7 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpPromptResponseUsage, AcpRequest, AcpResponse, AcpSessionConfigOption, AcpSessionModels, AcpSessionUpdate } from '@/types/acpTypes';
+import type {
+  AcpBackend,
+  AcpIncomingMessage,
+  AcpMessage,
+  AcpNotification,
+  AcpPermissionRequest,
+  AcpPromptResponseUsage,
+  AcpRequest,
+  AcpResponse,
+  AcpSessionConfigOption,
+  AcpSessionModels,
+  AcpSessionUpdate,
+} from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
@@ -15,7 +27,14 @@ import path from 'path';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
 import { mainLog } from '@process/utils/mainLogger';
 import { getNpxCacheDir, resolveNpxPath } from '@process/utils/shellEnv';
-import { ACP_PERF_LOG, connectClaude, connectCodebuddy, connectCodex, prepareCleanEnv, spawnGenericBackend } from './acpConnectors';
+import {
+  ACP_PERF_LOG,
+  connectClaude,
+  connectCodebuddy,
+  connectCodex,
+  prepareCleanEnv,
+  spawnGenericBackend,
+} from './acpConnectors';
 import type { SpawnResult } from './acpConnectors';
 import { killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
 
@@ -58,7 +77,8 @@ export class AcpConnection {
   }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onPromptUsage: (usage: AcpPromptResponseUsage) => void = () => {}; // Handler for PromptResponse.usage (per-turn token data)
-  public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
+  public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void =
+    () => {};
   // Disconnect callback - called when child process exits unexpectedly during runtime
   public onDisconnect: (error: { code: number | null; signal: NodeJS.Signals | null }) => void = () => {};
 
@@ -95,7 +115,13 @@ export class AcpConnection {
   }
 
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codebuddy' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  private async connectGenericBackend(
+    backend: Exclude<AcpBackend, 'claude' | 'codebuddy' | 'codex'>,
+    cliPath: string,
+    workingDir: string,
+    acpArgs?: string[],
+    customEnv?: Record<string, string>
+  ): Promise<void> {
     const result = await spawnGenericBackend(backend, cliPath, workingDir, acpArgs, customEnv);
     await this.spawnAndSetup(result, backend);
   }
@@ -103,7 +129,13 @@ export class AcpConnection {
   /** Npx-based backends that may need npm cache recovery on version mismatch */
   private static readonly NPX_BACKENDS: ReadonlySet<string> = new Set(['claude', 'codex', 'codebuddy']);
 
-  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  async connect(
+    backend: AcpBackend,
+    cliPath?: string,
+    workingDir: string = process.cwd(),
+    acpArgs?: string[],
+    customEnv?: Record<string, string>
+  ): Promise<void> {
     const connectStart = Date.now();
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: start backend=${backend}`);
 
@@ -129,7 +161,11 @@ export class AcpConnection {
           throw error; // Throw original error if cache clean fails
         }
         await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
-      } else if (AcpConnection.NPX_BACKENDS.has(backend) && errMsg.includes('_npx') && /ENOENT|ERR_MODULE_NOT_FOUND|Cannot find package/i.test(errMsg)) {
+      } else if (
+        AcpConnection.NPX_BACKENDS.has(backend) &&
+        errMsg.includes('_npx') &&
+        /ENOENT|ERR_MODULE_NOT_FOUND|Cannot find package/i.test(errMsg)
+      ) {
         // Corrupted npx cache: the _npx/<hash> directory exists but has missing
         // or incomplete files (e.g. package.json deleted, transitive deps like zod
         // not installed). Phase 1/2 retries don't help because npx reuses the
@@ -152,7 +188,13 @@ export class AcpConnection {
     if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
-  private async doConnect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  private async doConnect(
+    backend: AcpBackend,
+    cliPath?: string,
+    workingDir: string = process.cwd(),
+    acpArgs?: string[],
+    customEnv?: Record<string, string>
+  ): Promise<void> {
     if (this.child) {
       await this.disconnect();
     }
@@ -275,7 +317,8 @@ export class AcpConnection {
         // Include stderr in spawnError so callers can detect specific failures
         // (e.g., npm "notarget" for stale cache recovery).
         // Combine head + tail, deduplicating any overlap
-        const stderrCombined = stderrHead + (stderrTail && !stderrHead.endsWith(stderrTail) ? '\n…\n' + stderrTail : '');
+        const stderrCombined =
+          stderrHead + (stderrTail && !stderrHead.endsWith(stderrTail) ? '\n…\n' + stderrTail : '');
         let errMsg: string;
         if (stderrCombined) {
           errMsg = `${backend} ACP process exited during startup (code: ${code}):\n${stderrCombined}`;
@@ -283,7 +326,12 @@ export class AcpConnection {
           errMsg = `${backend} ACP process exited during startup (code: ${code}, signal: ${signal})`;
         }
         // Detect "command not found" patterns across platforms and provide a clear hint
-        if (code !== 0 && /not recognized|not found|No such file|command not found|ENOENT/i.test(stderrCombined + (spawnError?.message ?? ''))) {
+        if (
+          code !== 0 &&
+          /not recognized|not found|No such file|command not found|ENOENT/i.test(
+            stderrCombined + (spawnError?.message ?? '')
+          )
+        ) {
           const cliHint = this.backend ?? backend;
           errMsg = `'${cliHint}' CLI not found. Please install it or update the CLI path in Settings.\n${stderrCombined}`;
         }
@@ -328,7 +376,9 @@ export class AcpConnection {
             if (ACP_PERF_LOG) {
               const handleDuration = Date.now() - handleStart;
               if (handleDuration > 5) {
-                console.log(`[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`);
+                console.log(
+                  `[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`
+                );
               }
             }
           } catch (error) {
@@ -412,7 +462,10 @@ export class AcpConnection {
           const request = this.pendingRequests.get(id);
           if (request && !request.isPaused) {
             this.pendingRequests.delete(id);
-            const timeoutMsg = method === 'session/prompt' ? `LLM request timed out after ${timeoutDuration / 1000} seconds` : `Request ${method} timed out after ${timeoutDuration / 1000} seconds`;
+            const timeoutMsg =
+              method === 'session/prompt'
+                ? `LLM request timed out after ${timeoutDuration / 1000} seconds`
+                : `Request ${method} timed out after ${timeoutDuration / 1000} seconds`;
             reject(new Error(timeoutMsg));
           }
         }, timeoutDuration);
@@ -583,12 +636,18 @@ export class AcpConnection {
           // Track first chunk latency since prompt was sent
           if (!this.firstChunkReceived && this.lastPromptSentAt > 0) {
             this.firstChunkReceived = true;
-            if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`);
+            if (ACP_PERF_LOG)
+              console.log(
+                `[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`
+              );
           }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
           // Update cached configOptions when config_option_update arrives
-          if (message.params?.update && (message.params.update as Record<string, unknown>).sessionUpdate === 'config_option_update') {
+          if (
+            message.params?.update &&
+            (message.params.update as Record<string, unknown>).sessionUpdate === 'config_option_update'
+          ) {
             const updatePayload = message.params.update as { configOptions?: AcpSessionConfigOption[] };
             if (Array.isArray(updatePayload.configOptions)) {
               this.configOptions = updatePayload.configOptions;
@@ -705,7 +764,10 @@ export class AcpConnection {
    *                              When false (default), reuses the original session ID.
    *                              为 true 时创建新 session ID 但保留对话上下文；为 false（默认）时复用原 session ID。
    */
-  async newSession(cwd: string = process.cwd(), options?: { resumeSessionId?: string; forkSession?: boolean }): Promise<AcpResponse & { sessionId?: string }> {
+  async newSession(
+    cwd: string = process.cwd(),
+    options?: { resumeSessionId?: string; forkSession?: boolean }
+  ): Promise<AcpResponse & { sessionId?: string }> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
@@ -730,7 +792,9 @@ export class AcpConnection {
       // Claude/CodeBuddy ACP uses _meta for resume
       ...(meta && { _meta: meta }),
       // Generic resume parameters for other ACP backends
-      ...(this.backend !== 'claude' && this.backend !== 'codebuddy' && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
+      ...(this.backend !== 'claude' &&
+        this.backend !== 'codebuddy' &&
+        options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
@@ -793,7 +857,8 @@ export class AcpConnection {
       mainLog('[ACP codex]', 'session capabilities parsed', {
         rawCurrentModelId: this.models?.currentModelId || null,
         rawAvailableModelCount: this.models?.availableModels?.length || 0,
-        configOptionModelCount: modelOption && modelOption.type === 'select' && modelOption.options ? modelOption.options.length : 0,
+        configOptionModelCount:
+          modelOption && modelOption.type === 'select' && modelOption.options ? modelOption.options.length : 0,
         unified: summarizeAcpModelInfo(unifiedModelInfo),
       });
     }
@@ -876,7 +941,9 @@ export class AcpConnection {
     // The unstable_setSessionModel handler in claude-agent-acp will also send a
     // config_option_update notification, but we update eagerly for immediate reads.
     if (this.configOptions) {
-      this.configOptions = this.configOptions.map((opt) => (opt.category === 'model' ? { ...opt, currentValue: modelId, selectedValue: modelId } : opt));
+      this.configOptions = this.configOptions.map((opt) =>
+        opt.category === 'model' ? { ...opt, currentValue: modelId, selectedValue: modelId } : opt
+      );
     }
 
     return response;
@@ -901,7 +968,9 @@ export class AcpConnection {
       // Optimistically update the cached currentValue so getModelInfo() reflects
       // the switch immediately, even if the agent responds without configOptions.
       // A subsequent config_option_update notification will overwrite this if needed.
-      this.configOptions = this.configOptions.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt));
+      this.configOptions = this.configOptions.map((opt) =>
+        opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt
+      );
     }
 
     return response;

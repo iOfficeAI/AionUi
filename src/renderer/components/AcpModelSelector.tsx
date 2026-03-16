@@ -96,7 +96,9 @@ const AcpModelSelector: React.FC<{
           setModelInfo({
             ...cachedInfo,
             currentModelId: effectiveModelId,
-            currentModelLabel: (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) || effectiveModelId,
+            currentModelLabel:
+              (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) ||
+              effectiveModelId,
           });
         }
       } catch {
@@ -182,7 +184,8 @@ const AcpModelSelector: React.FC<{
     if (!modelInfo?.currentModelId || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
     const providerConfig = modelConfig.find((p) => p.platform?.includes(backend || ''));
     const healthStatus = providerConfig?.modelHealth?.[modelInfo.currentModelId]?.status || 'unknown';
-    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+    const healthColor =
+      healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
     return { status: healthStatus, color: healthColor };
   }, [modelInfo?.currentModelId, modelConfig, backend]);
 
@@ -190,7 +193,16 @@ const AcpModelSelector: React.FC<{
   if (!modelInfo) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+        <Button
+          className={classNames(
+            'sendbox-model-btn header-model-btn',
+            compact && '!max-w-[120px]',
+            isMobileCompact && '!max-w-[160px]'
+          )}
+          shape='round'
+          size='small'
+          style={{ cursor: 'default' }}
+        >
           <span className='flex items-center gap-6px min-w-0'>
             <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
           </span>
@@ -203,9 +215,20 @@ const AcpModelSelector: React.FC<{
   if (!modelInfo.canSwitch) {
     return (
       <Tooltip content={displayLabel} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+        <Button
+          className={classNames(
+            'sendbox-model-btn header-model-btn',
+            compact && '!max-w-[120px]',
+            isMobileCompact && '!max-w-[160px]'
+          )}
+          shape='round'
+          size='small'
+          style={{ cursor: 'default' }}
+        >
           <span className='flex items-center gap-6px min-w-0'>
-            {currentModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />}
+            {currentModelHealth.status !== 'unknown' && (
+              <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
+            )}
             <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
           </span>
         </Button>
@@ -223,10 +246,15 @@ const AcpModelSelector: React.FC<{
             // 获取模型健康状态
             const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
             const healthStatus = providerConfig?.modelHealth?.[model.id]?.status || 'unknown';
-            const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+            const healthColor =
+              healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
 
             return (
-              <Menu.Item key={model.id} className={model.id === modelInfo.currentModelId ? 'bg-2!' : ''} onClick={() => handleSelectModel(model.id)}>
+              <Menu.Item
+                key={model.id}
+                className={model.id === modelInfo.currentModelId ? 'bg-2!' : ''}
+                onClick={() => handleSelectModel(model.id)}
+              >
                 <div className='flex items-center gap-8px w-full'>
                   {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
                   <span>{model.label}</span>
@@ -237,9 +265,19 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small'>
+      <Button
+        className={classNames(
+          'sendbox-model-btn header-model-btn',
+          compact && '!max-w-[120px]',
+          isMobileCompact && '!max-w-[160px]'
+        )}
+        shape='round'
+        size='small'
+      >
         <span className='flex items-center gap-6px min-w-0'>
-          {currentModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />}
+          {currentModelHealth.status !== 'unknown' && (
+            <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
+          )}
           <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
         </span>
       </Button>

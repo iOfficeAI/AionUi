@@ -53,7 +53,12 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
   }
   // Development: try multiple paths
   const appPath = app.getAppPath();
-  const candidates = [path.join(appPath, resourceType), path.join(appPath, '..', resourceType), path.join(appPath, '..', '..', resourceType), path.join(appPath, '..', '..', '..', resourceType)];
+  const candidates = [
+    path.join(appPath, resourceType),
+    path.join(appPath, '..', resourceType),
+    path.join(appPath, '..', '..', resourceType),
+    path.join(appPath, '..', '..', '..', resourceType),
+  ];
   for (const candidate of candidates) {
     try {
       await fs.access(candidate);
@@ -111,7 +116,12 @@ async function readBuiltinResource(resourceType: ResourceType, fileName: string)
  * Read assistant resource file with locale fallback
  * 读取助手资源文件，支持语言回退
  */
-async function readAssistantResource(resourceType: ResourceType, assistantId: string, locale: string, fileNamePattern: (id: string, loc: string) => string): Promise<string> {
+async function readAssistantResource(
+  resourceType: ResourceType,
+  assistantId: string,
+  locale: string,
+  fileNamePattern: (id: string, loc: string) => string
+): Promise<string> {
   const assistantsDir = getAssistantsDir();
   const locales = [locale, 'en-US', 'zh-CN'].filter((l, i, arr) => arr.indexOf(l) === i);
 
@@ -145,7 +155,13 @@ async function readAssistantResource(resourceType: ResourceType, assistantId: st
  * Write assistant resource file to user directory
  * 写入助手资源文件到用户目录
  */
-async function writeAssistantResource(resourceType: ResourceType, assistantId: string, content: string, locale: string, fileNamePattern: (id: string, loc: string) => string): Promise<boolean> {
+async function writeAssistantResource(
+  resourceType: ResourceType,
+  assistantId: string,
+  content: string,
+  locale: string,
+  fileNamePattern: (id: string, loc: string) => string
+): Promise<boolean> {
   try {
     const assistantsDir = getAssistantsDir();
     await fs.mkdir(assistantsDir, { recursive: true });
@@ -218,7 +234,10 @@ export function initFsBridge(): void {
   });
 
   // 下载远程图片并限制协议/重定向次数 / Download remote resource with protocol & redirect guard
-  const downloadRemoteBuffer = (targetUrl: string, redirectCount = 0): Promise<{ buffer: Buffer; contentType?: string }> => {
+  const downloadRemoteBuffer = (
+    targetUrl: string,
+    redirectCount = 0
+  ): Promise<{ buffer: Buffer; contentType?: string }> => {
     const allowedProtocols = new Set(['http:', 'https:']);
     const parsedUrl = new URL(targetUrl);
     if (!allowedProtocols.has(parsedUrl.protocol)) {
@@ -227,7 +246,9 @@ export function initFsBridge(): void {
 
     // 仅允许白名单域名，避免随意访问 / Restrict to a whitelist of hosts for safety
     const allowedHosts = ['github.com', 'raw.githubusercontent.com', 'contrib.rocks', 'img.shields.io'];
-    const isAllowedHost = allowedHosts.some((host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`));
+    const isAllowedHost = allowedHosts.some(
+      (host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`)
+    );
     if (!isAllowedHost) {
       return Promise.reject(new Error('URL not allowed for remote fetch'));
     }
@@ -826,10 +847,15 @@ export function initFsBridge(): void {
       }
       const deduplicatedSkills = Array.from(skillMap.values());
 
-      console.log(`[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`);
+      console.log(
+        `[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`
+      );
       console.log(`  - Builtin skills (${builtinCount}): ${builtinSkillsDir}`);
       console.log(`  - User skills (${userCount}): ${userSkillsDir}`);
-      console.log(`  - Skills breakdown:`, deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', '));
+      console.log(
+        `  - Skills breakdown:`,
+        deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', ')
+      );
 
       return deduplicatedSkills;
     } catch (error) {

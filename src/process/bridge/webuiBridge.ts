@@ -89,7 +89,10 @@ function isLocalIP(ip: string): boolean {
  * @param qrToken - QR token string
  * @param clientIP - 客户端 IP 地址（用于本地网络限制）/ Client IP address (for local network restriction)
  */
-export async function verifyQRTokenDirect(qrToken: string, clientIP?: string): Promise<{ success: boolean; data?: { sessionToken: string; username: string }; msg?: string }> {
+export async function verifyQRTokenDirect(
+  qrToken: string,
+  clientIP?: string
+): Promise<{ success: boolean; data?: { sessionToken: string; username: string }; msg?: string }> {
   try {
     // 检查 token 是否存在 / Check if token exists
     const tokenData = qrTokenStore.get(qrToken);

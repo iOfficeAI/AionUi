@@ -53,7 +53,12 @@ export abstract class RotatingApiClient<T> {
   protected readonly options: Required<RotatingApiClientOptions>;
   protected readonly originalApiKeys: string;
 
-  constructor(apiKeys: string, authType: AuthType, createClientFn: (apiKey: string) => T, options: RotatingApiClientOptions = {}) {
+  constructor(
+    apiKeys: string,
+    authType: AuthType,
+    createClientFn: (apiKey: string) => T,
+    options: RotatingApiClientOptions = {}
+  ) {
     this.originalApiKeys = apiKeys;
     this.createClientFn = createClientFn;
     this.options = {

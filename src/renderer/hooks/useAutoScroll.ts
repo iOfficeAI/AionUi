@@ -32,7 +32,13 @@ interface UseAutoScrollOptions {
  * });
  * ```
  */
-export const useAutoScroll = ({ containerRef, content, enabled = true, threshold = 200, behavior = 'smooth' }: UseAutoScrollOptions) => {
+export const useAutoScroll = ({
+  containerRef,
+  content,
+  enabled = true,
+  threshold = 200,
+  behavior = 'smooth',
+}: UseAutoScrollOptions) => {
   useEffect(() => {
     if (!enabled) return;
 

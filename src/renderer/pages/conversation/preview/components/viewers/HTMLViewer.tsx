@@ -323,12 +323,19 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
         <div className='flex items-center justify-between h-40px px-12px bg-bg-2 border-b border-border-base flex-shrink-0'>
           <div className='flex items-center gap-8px'>
             {/* 编辑按钮 */}
-            <button onClick={handleToggleEdit} className={`px-12px py-4px rd-4px text-12px transition-colors ${editMode ? 'bg-primary text-white' : 'bg-bg-3 text-t-primary hover:bg-bg-4'}`}>
+            <button
+              onClick={handleToggleEdit}
+              className={`px-12px py-4px rd-4px text-12px transition-colors ${editMode ? 'bg-primary text-white' : 'bg-bg-3 text-t-primary hover:bg-bg-4'}`}
+            >
               {editMode ? `💾 ${t('common.save')}` : `✏️ ${t('common.edit')}`}
             </button>
 
             {/* 元素选择器按钮 */}
-            <button onClick={handleToggleInspector} className={`px-12px py-4px rd-4px text-12px transition-colors ${inspectorMode ? 'bg-primary text-white' : 'bg-bg-3 text-t-primary hover:bg-bg-4'}`} title={t('preview.html.inspectorTooltip')}>
+            <button
+              onClick={handleToggleInspector}
+              className={`px-12px py-4px rd-4px text-12px transition-colors ${inspectorMode ? 'bg-primary text-white' : 'bg-bg-3 text-t-primary hover:bg-bg-4'}`}
+              title={t('preview.html.inspectorTooltip')}
+            >
               🔍 {inspectorMode ? t('preview.html.inspecting') : t('preview.html.inspectorButton')}
             </button>
 
@@ -342,8 +349,20 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
 
           <div className='flex items-center gap-8px'>
             {/* 下载按钮 */}
-            <button onClick={handleDownload} className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' title={t('preview.html.downloadHtml')}>
-              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+            <button
+              onClick={handleDownload}
+              className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
+              title={t('preview.html.downloadHtml')}
+            >
+              <svg
+                width='14'
+                height='14'
+                viewBox='0 0 24 24'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2'
+                className='text-t-secondary'
+              >
                 <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
                 <polyline points='7 10 12 15 17 10' />
                 <line x1='12' y1='15' x2='12' y2='3' />
@@ -381,7 +400,12 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
 
         {/* 右侧：HTML 预览 */}
         <div className={`${editMode ? 'flex-1' : 'w-full'} overflow-auto bg-white`}>
-          <iframe ref={iframeRef} className='w-full h-full border-0' sandbox='allow-scripts allow-same-origin' title='HTML Preview' />
+          <iframe
+            ref={iframeRef}
+            className='w-full h-full border-0'
+            sandbox='allow-scripts allow-same-origin'
+            title='HTML Preview'
+          />
         </div>
       </div>
 
@@ -395,7 +419,10 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className='px-12px py-6px text-13px text-t-primary hover:bg-bg-2 cursor-pointer transition-colors' onClick={() => handleCopyHTML(contextMenu.element.html)}>
+          <div
+            className='px-12px py-6px text-13px text-t-primary hover:bg-bg-2 cursor-pointer transition-colors'
+            onClick={() => handleCopyHTML(contextMenu.element.html)}
+          >
             📋 {t('preview.html.copyElementHtml')}
           </div>
           <div

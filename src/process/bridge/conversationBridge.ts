@@ -44,7 +44,9 @@ export function initConversationBridge(): void {
       const diagnostics = task.getDiagnostics();
       const identityHash = await computeOpenClawIdentityHash(diagnostics.workspace || conversation.extra?.workspace);
       const conversationModel = (conversation as { model?: { useModel?: string } }).model;
-      const extra = conversation.extra as { cliPath?: string; gateway?: { cliPath?: string }; runtimeValidation?: unknown } | undefined;
+      const extra = conversation.extra as
+        | { cliPath?: string; gateway?: { cliPath?: string }; runtimeValidation?: unknown }
+        | undefined;
       const gatewayCliPath = extra?.gateway?.cliPath;
 
       return {
@@ -87,7 +89,11 @@ export function initConversationBridge(): void {
   // Manually reload conversation context (Gemini): inject recent history into memory
   ipcBridge.conversation.reloadContext.provider(async ({ conversation_id }) => {
     try {
-      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as
+        | GeminiAgentManager
+        | AcpAgentManager
+        | CodexAgentManager
+        | undefined;
       if (!task) return { success: false, msg: 'conversation not found' };
       if (task.type !== 'gemini') return { success: false, msg: 'only supported for gemini' };
 
@@ -145,105 +151,115 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.createWithConversation.provider(async ({ conversation, sourceConversationId, migrateCron }) => {
-    try {
-      conversation.createTime = Date.now();
-      conversation.modifyTime = Date.now();
-      WorkerManage.buildConversation(conversation);
+  ipcBridge.conversation.createWithConversation.provider(
+    async ({ conversation, sourceConversationId, migrateCron }) => {
+      try {
+        conversation.createTime = Date.now();
+        conversation.modifyTime = Date.now();
+        WorkerManage.buildConversation(conversation);
 
-      // Save to database only
-      const db = getDatabase();
-      const result = db.createConversation(conversation);
-      if (!result.success) {
-        console.error('[conversationBridge] Failed to create conversation in database:', result.error);
-      }
-
-      // Migrate messages if sourceConversationId is provided / 如果提供了源会话ID，则迁移消息
-      if (sourceConversationId && result.success) {
-        try {
-          // Fetch all messages from source conversation / 获取源会话的所有消息
-          // Using a large pageSize to get all messages, or loop if needed. / 使用较大的 pageSize 获取所有消息，必要时循环获取
-          // For now, 10000 should cover most cases. / 目前 10000 条应该能覆盖大多数情况
-          const pageSize = 10000;
-          let page = 0;
-          let hasMore = true;
-
-          while (hasMore) {
-            const messagesResult = db.getConversationMessages(sourceConversationId, page, pageSize);
-            const messages = messagesResult.data;
-
-            for (const msg of messages) {
-              // Create a copy of the message with new ID and new conversation ID / 创建消息副本，使用新 ID 和新会话 ID
-              const newMessage = {
-                ...msg,
-                id: uuid(), // Generate new ID / 生成新 ID
-                conversation_id: conversation.id,
-                createdAt: msg.createdAt || Date.now(),
-              };
-              db.insertMessage(newMessage);
-            }
-
-            hasMore = messagesResult.hasMore;
-            page++;
-          }
-
-          // Migrate or delete Cron jobs associated with source conversation
-          // 迁移或删除与源会话关联的定时任务
-          try {
-            const jobs = await cronService.listJobsByConversation(sourceConversationId);
-
-            if (migrateCron) {
-              for (const job of jobs) {
-                await cronService.updateJob(job.id, {
-                  metadata: {
-                    ...job.metadata,
-                    conversationId: conversation.id,
-                    conversationTitle: conversation.name,
-                  },
-                });
-              }
-              console.log(`[conversationBridge] Migrated ${jobs.length} cron jobs to new conversation ${conversation.id}`);
-            } else if (jobs.length > 0) {
-              for (const job of jobs) {
-                await cronService.removeJob(job.id);
-              }
-              console.log(`[conversationBridge] Removed ${jobs.length} cron jobs from source conversation ${sourceConversationId}`);
-            }
-          } catch (cronError) {
-            console.error('[conversationBridge] Failed to handle cron jobs during migration:', cronError);
-          }
-
-          // Verify integrity and remove source conversation / 校验完整性并移除源会话
-          const sourceMessages = db.getConversationMessages(sourceConversationId, 0, 1);
-          const newMessages = db.getConversationMessages(conversation.id, 0, 1);
-
-          if (sourceMessages.total === newMessages.total) {
-            // Verification passed, delete source conversation / 校验通过，删除源会话
-            // ON DELETE CASCADE will handle message deletion / 级联删除会自动处理消息删除
-            const deleteResult = db.deleteConversation(sourceConversationId);
-            if (deleteResult.success) {
-              console.log(`[conversationBridge] Successfully migrated and deleted source conversation ${sourceConversationId}`);
-            } else {
-              console.error(`[conversationBridge] Failed to delete source conversation ${sourceConversationId}: ${deleteResult.error}`);
-            }
-          } else {
-            console.error('[conversationBridge] Migration integrity check failed: Message counts do not match.', {
-              source: sourceMessages.total,
-              new: newMessages.total,
-            });
-            // Do not delete source if verification fails / 如果校验失败，不删除源会话
-          }
-        } catch (msgError) {
-          console.error('[conversationBridge] Failed to copy messages during migration:', msgError);
+        // Save to database only
+        const db = getDatabase();
+        const result = db.createConversation(conversation);
+        if (!result.success) {
+          console.error('[conversationBridge] Failed to create conversation in database:', result.error);
         }
-      }
 
-      return Promise.resolve(conversation);
-    } catch (error) {
-      console.error('[conversationBridge] Failed to create conversation with conversation:', error);
-      return Promise.resolve(conversation);
+        // Migrate messages if sourceConversationId is provided / 如果提供了源会话ID，则迁移消息
+        if (sourceConversationId && result.success) {
+          try {
+            // Fetch all messages from source conversation / 获取源会话的所有消息
+            // Using a large pageSize to get all messages, or loop if needed. / 使用较大的 pageSize 获取所有消息，必要时循环获取
+            // For now, 10000 should cover most cases. / 目前 10000 条应该能覆盖大多数情况
+            const pageSize = 10000;
+            let page = 0;
+            let hasMore = true;
+
+            while (hasMore) {
+              const messagesResult = db.getConversationMessages(sourceConversationId, page, pageSize);
+              const messages = messagesResult.data;
+
+              for (const msg of messages) {
+                // Create a copy of the message with new ID and new conversation ID / 创建消息副本，使用新 ID 和新会话 ID
+                const newMessage = {
+                  ...msg,
+                  id: uuid(), // Generate new ID / 生成新 ID
+                  conversation_id: conversation.id,
+                  createdAt: msg.createdAt || Date.now(),
+                };
+                db.insertMessage(newMessage);
+              }
+
+              hasMore = messagesResult.hasMore;
+              page++;
+            }
+
+            // Migrate or delete Cron jobs associated with source conversation
+            // 迁移或删除与源会话关联的定时任务
+            try {
+              const jobs = await cronService.listJobsByConversation(sourceConversationId);
+
+              if (migrateCron) {
+                for (const job of jobs) {
+                  await cronService.updateJob(job.id, {
+                    metadata: {
+                      ...job.metadata,
+                      conversationId: conversation.id,
+                      conversationTitle: conversation.name,
+                    },
+                  });
+                }
+                console.log(
+                  `[conversationBridge] Migrated ${jobs.length} cron jobs to new conversation ${conversation.id}`
+                );
+              } else if (jobs.length > 0) {
+                for (const job of jobs) {
+                  await cronService.removeJob(job.id);
+                }
+                console.log(
+                  `[conversationBridge] Removed ${jobs.length} cron jobs from source conversation ${sourceConversationId}`
+                );
+              }
+            } catch (cronError) {
+              console.error('[conversationBridge] Failed to handle cron jobs during migration:', cronError);
+            }
+
+            // Verify integrity and remove source conversation / 校验完整性并移除源会话
+            const sourceMessages = db.getConversationMessages(sourceConversationId, 0, 1);
+            const newMessages = db.getConversationMessages(conversation.id, 0, 1);
+
+            if (sourceMessages.total === newMessages.total) {
+              // Verification passed, delete source conversation / 校验通过，删除源会话
+              // ON DELETE CASCADE will handle message deletion / 级联删除会自动处理消息删除
+              const deleteResult = db.deleteConversation(sourceConversationId);
+              if (deleteResult.success) {
+                console.log(
+                  `[conversationBridge] Successfully migrated and deleted source conversation ${sourceConversationId}`
+                );
+              } else {
+                console.error(
+                  `[conversationBridge] Failed to delete source conversation ${sourceConversationId}: ${deleteResult.error}`
+                );
+              }
+            } else {
+              console.error('[conversationBridge] Migration integrity check failed: Message counts do not match.', {
+                source: sourceMessages.total,
+                new: newMessages.total,
+              });
+              // Do not delete source if verification fails / 如果校验失败，不删除源会话
+            }
+          } catch (msgError) {
+            console.error('[conversationBridge] Failed to copy messages during migration:', msgError);
+          }
+        }
+
+        return Promise.resolve(conversation);
+      } catch (error) {
+        console.error('[conversationBridge] Failed to create conversation with conversation:', error);
+        return Promise.resolve(conversation);
+      }
     }
-  });
+  );
 
   ipcBridge.conversation.remove.provider(async ({ id }) => {
     try {
@@ -299,45 +315,48 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.update.provider(async ({ id, updates, mergeExtra }: { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }) => {
-    try {
-      const db = getDatabase();
-      const existing = db.getConversation(id);
-      // Only gemini type has model, use 'in' check to safely access
-      const prevModel = existing.success && existing.data && 'model' in existing.data ? existing.data.model : undefined;
-      const nextModel = 'model' in updates ? updates.model : undefined;
-      const modelChanged = !!nextModel && JSON.stringify(prevModel) !== JSON.stringify(nextModel);
-      // model change detection for task rebuild
+  ipcBridge.conversation.update.provider(
+    async ({ id, updates, mergeExtra }: { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }) => {
+      try {
+        const db = getDatabase();
+        const existing = db.getConversation(id);
+        // Only gemini type has model, use 'in' check to safely access
+        const prevModel =
+          existing.success && existing.data && 'model' in existing.data ? existing.data.model : undefined;
+        const nextModel = 'model' in updates ? updates.model : undefined;
+        const modelChanged = !!nextModel && JSON.stringify(prevModel) !== JSON.stringify(nextModel);
+        // model change detection for task rebuild
 
-      // 如果 mergeExtra 为 true，合并 extra 字段而不是覆盖
-      let finalUpdates = updates;
-      if (mergeExtra && updates.extra && existing.success && existing.data) {
-        finalUpdates = {
-          ...updates,
-          extra: {
-            ...existing.data.extra,
-            ...updates.extra,
-          },
-        } as Partial<TChatConversation>;
-      }
-
-      const result = await Promise.resolve(db.updateConversation(id, finalUpdates));
-
-      // If model changed, kill running task to force rebuild with new model on next send
-      if (result.success && modelChanged) {
-        try {
-          WorkerManage.kill(id);
-        } catch (killErr) {
-          // ignore kill error, will lazily rebuild later
+        // 如果 mergeExtra 为 true，合并 extra 字段而不是覆盖
+        let finalUpdates = updates;
+        if (mergeExtra && updates.extra && existing.success && existing.data) {
+          finalUpdates = {
+            ...updates,
+            extra: {
+              ...existing.data.extra,
+              ...updates.extra,
+            },
+          } as Partial<TChatConversation>;
         }
-      }
 
-      return result.success;
-    } catch (error) {
-      console.error('[conversationBridge] Failed to update conversation:', error);
-      return false;
+        const result = await Promise.resolve(db.updateConversation(id, finalUpdates));
+
+        // If model changed, kill running task to force rebuild with new model on next send
+        if (result.success && modelChanged) {
+          try {
+            WorkerManage.kill(id);
+          } catch (killErr) {
+            // ignore kill error, will lazily rebuild later
+          }
+        }
+
+        return result.success;
+      } catch (error) {
+        console.error('[conversationBridge] Failed to update conversation:', error);
+        return false;
+      }
     }
-  });
+  );
 
   ipcBridge.conversation.reset.provider(({ id }) => {
     if (id) {
@@ -420,7 +439,13 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
-    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex' && task.type !== 'openclaw-gateway' && task.type !== 'nanobot') {
+    if (
+      task.type !== 'gemini' &&
+      task.type !== 'acp' &&
+      task.type !== 'codex' &&
+      task.type !== 'openclaw-gateway' &&
+      task.type !== 'nanobot'
+    ) {
       return { success: false, msg: 'not support' };
     }
     await task.stop();
@@ -457,9 +482,21 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
     console.log(`[conversationBridge] sendMessage called: conversation_id=${conversation_id}, msg_id=${other.msg_id}`);
 
-    let task: GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | NanoBotAgentManager | undefined;
+    let task:
+      | GeminiAgentManager
+      | AcpAgentManager
+      | CodexAgentManager
+      | OpenClawAgentManager
+      | NanoBotAgentManager
+      | undefined;
     try {
-      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | NanoBotAgentManager | undefined;
+      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as
+        | GeminiAgentManager
+        | AcpAgentManager
+        | CodexAgentManager
+        | OpenClawAgentManager
+        | NanoBotAgentManager
+        | undefined;
     } catch (err) {
       console.log(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
       return { success: false, msg: err instanceof Error ? err.message : 'conversation not found' };
@@ -481,10 +518,18 @@ export function initConversationBridge(): void {
         await (task as GeminiAgentManager).sendMessage({ ...other, files: workspaceFiles });
         return { success: true };
       } else if (task.type === 'acp') {
-        await (task as AcpAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        await (task as AcpAgentManager).sendMessage({
+          content: other.input,
+          files: workspaceFiles,
+          msg_id: other.msg_id,
+        });
         return { success: true };
       } else if (task.type === 'codex') {
-        await (task as CodexAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        await (task as CodexAgentManager).sendMessage({
+          content: other.input,
+          files: workspaceFiles,
+          msg_id: other.msg_id,
+        });
         return { success: true };
       } else if (task.type === 'openclaw-gateway') {
         // Inject full skill content when requested (e.g. star-office-helper install flow).
@@ -496,7 +541,10 @@ export function initConversationBridge(): void {
           // Provide absolute skills directory so agent can resolve relative script paths
           // e.g. "skills/star-office-helper/scripts/..." → "${skillsDir}/star-office-helper/scripts/..."
           const skillsDir = getSkillsDir();
-          agentContent = agentContent.replace('[User Request]', `[Skills Directory]\nSkills are installed at: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them as "${skillsDir}/{name}/scripts/...".\n\n[User Request]`);
+          agentContent = agentContent.replace(
+            '[User Request]',
+            `[Skills Directory]\nSkills are installed at: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them as "${skillsDir}/{name}/scripts/...".\n\n[User Request]`
+          );
         }
         // Save original user text to chat history (not the injected version),
         // then send the injected content to the agent only.
@@ -504,7 +552,11 @@ export function initConversationBridge(): void {
         await manager.sendMessage({ content: other.input, agentContent, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else if (task.type === 'nanobot') {
-        await (task as NanoBotAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        await (task as NanoBotAgentManager).sendMessage({
+          content: other.input,
+          files: workspaceFiles,
+          msg_id: other.msg_id,
+        });
         return { success: true };
       } else {
         return { success: false, msg: `Unsupported task type: ${task.type}` };

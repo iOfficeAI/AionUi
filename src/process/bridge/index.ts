@@ -78,7 +78,33 @@ export async function initializeAcpDetector(): Promise<void> {
 
 // 导出初始化函数供单独使用
 
-export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initBedrockBridge, initChannelBridge, initConversationBridge, initCronBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initExtensionsBridge, initFsBridge, initGeminiBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initNotificationBridge, initPreviewHistoryBridge, initShellBridge, initStarOfficeBridge, initSystemSettingsBridge, initTaskBridge, initUpdateBridge, initWebuiBridge, initWindowControlsBridge };
+export {
+  initAcpConversationBridge,
+  initApplicationBridge,
+  initAuthBridge,
+  initBedrockBridge,
+  initChannelBridge,
+  initConversationBridge,
+  initCronBridge,
+  initDatabaseBridge,
+  initDialogBridge,
+  initDocumentBridge,
+  initExtensionsBridge,
+  initFsBridge,
+  initGeminiBridge,
+  initGeminiConversationBridge,
+  initMcpBridge,
+  initModelBridge,
+  initNotificationBridge,
+  initPreviewHistoryBridge,
+  initShellBridge,
+  initStarOfficeBridge,
+  initSystemSettingsBridge,
+  initTaskBridge,
+  initUpdateBridge,
+  initWebuiBridge,
+  initWindowControlsBridge,
+};
 export { setMainWindow } from './notificationBridge';
 
 // 导出窗口控制相关工具函数

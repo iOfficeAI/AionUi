@@ -17,7 +17,9 @@ export const useMultiAgentDetection = () => {
         const response = await ipcBridge.acpConversation.getAvailableAgents.invoke();
         if (response && response.success && response.data) {
           // 检测是否有多个ACP智能体（不包括内置的Gemini）
-          const acpAgents = response.data.filter((agent: { backend: string; name: string; cliPath?: string }) => agent.backend !== 'gemini');
+          const acpAgents = response.data.filter(
+            (agent: { backend: string; name: string; cliPath?: string }) => agent.backend !== 'gemini'
+          );
           if (acpAgents.length > 1) {
             // message.success({
             //   content: (

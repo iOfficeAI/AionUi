@@ -70,7 +70,14 @@ export const useDirectorySelection = () => {
     };
   }, []);
 
-  const contextHolder = <DirectorySelectionModal visible={visible} isFileMode={requestData?.isFileMode} onConfirm={handleConfirm} onCancel={handleCancel} />;
+  const contextHolder = (
+    <DirectorySelectionModal
+      visible={visible}
+      isFileMode={requestData?.isFileMode}
+      onConfirm={handleConfirm}
+      onCancel={handleCancel}
+    />
+  );
 
   return { contextHolder };
 };

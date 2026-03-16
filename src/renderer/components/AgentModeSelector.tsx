@@ -54,7 +54,23 @@ export interface AgentModeSelectorProps {
  * 代理模式选择器 - 用于切换代理模式的下拉组件
  * 显示代理 logo 和名称，通过下拉菜单选择模式
  */
-const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentName, agentLogo, agentLogoIsEmoji, conversationId, compact, showLogoInCompact = false, compactLabelType = 'mode', initialMode, onModeSelect, compactLabelOverride, compactLeadingIcon, modeLabelFormatter, compactLabelPrefix, hideCompactLabelPrefixOnMobile = false }) => {
+const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
+  backend,
+  agentName,
+  agentLogo,
+  agentLogoIsEmoji,
+  conversationId,
+  compact,
+  showLogoInCompact = false,
+  compactLabelType = 'mode',
+  initialMode,
+  onModeSelect,
+  compactLabelOverride,
+  compactLeadingIcon,
+  modeLabelFormatter,
+  compactLabelPrefix,
+  hideCompactLabelPrefixOnMobile = false,
+}) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
@@ -66,7 +82,10 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   const [currentMode, setCurrentMode] = useState<string>(validInitialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const getDisplayModeLabel = useCallback((mode: AgentModeOption) => modeLabelFormatter?.(mode) ?? mode.label, [modeLabelFormatter]);
+  const getDisplayModeLabel = useCallback(
+    (mode: AgentModeOption) => modeLabelFormatter?.(mode) ?? mode.label,
+    [modeLabelFormatter]
+  );
 
   const canSwitchMode = supportsModeSwitch(backend) && (conversationId || onModeSelect);
   // Mobile conversation header agent pill is display-only by design.
@@ -156,7 +175,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
         if (agentLogoIsEmoji) {
           return <span className='text-14px leading-none'>{agentLogo}</span>;
         }
-        return <img src={agentLogo} alt={`${agentName || 'agent'} logo`} className='block w-16px h-16px object-contain' />;
+        return (
+          <img src={agentLogo} alt={`${agentName || 'agent'} logo`} className='block w-16px h-16px object-contain' />
+        );
       }
       const logo = getAgentLogo(backend);
       if (logo) {
@@ -165,7 +186,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
       return <Robot theme='outline' size={16} fill={iconColors.primary} />;
     })();
 
-    return <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none'>{logoContent}</span>;
+    return (
+      <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none'>{logoContent}</span>
+    );
   };
 
   // Get display label for current mode
@@ -193,8 +216,19 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   // Compact mode: render only mode label chip in sendbox area
   if (compact) {
     const legacyCompactBehavior = !showLogoInCompact && compactLabelType === 'mode';
-    const baseCompactLabel = compactLabelType === 'agent' ? agentName || backend || 'Agent' : canSwitchMode ? getCurrentModeLabel() : agentName || backend || 'Agent';
-    const compactLabel = compactLabelOverride || (compactLabelPrefix && compactLabelType !== 'agent' ? (hideCompactLabelPrefixOnMobile && isMobile ? baseCompactLabel : `${compactLabelPrefix} · ${baseCompactLabel}`) : baseCompactLabel);
+    const baseCompactLabel =
+      compactLabelType === 'agent'
+        ? agentName || backend || 'Agent'
+        : canSwitchMode
+          ? getCurrentModeLabel()
+          : agentName || backend || 'Agent';
+    const compactLabel =
+      compactLabelOverride ||
+      (compactLabelPrefix && compactLabelType !== 'agent'
+        ? hideCompactLabelPrefixOnMobile && isMobile
+          ? baseCompactLabel
+          : `${compactLabelPrefix} · ${baseCompactLabel}`
+        : baseCompactLabel);
     if (!canInteract && legacyCompactBehavior) {
       return null;
     }
@@ -225,7 +259,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
     }
 
     return (
-      <Dropdown trigger='click' popupVisible={dropdownVisible} onVisibleChange={(visible) => !isLoading && setDropdownVisible(visible)} droplist={dropdownMenu}>
+      <Dropdown
+        trigger='click'
+        popupVisible={dropdownVisible}
+        onVisibleChange={(visible) => !isLoading && setDropdownVisible(visible)}
+        droplist={dropdownMenu}
+      >
         {compactContent}
       </Dropdown>
     );
@@ -233,7 +272,10 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
 
   // Full mode: logo + name + optional mode label
   const content = (
-    <div className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${canSwitchMode ? 'cursor-pointer hover:bg-3' : ''}`} style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+    <div
+      className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${canSwitchMode ? 'cursor-pointer hover:bg-3' : ''}`}
+      style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}
+    >
       {renderLogo()}
       <span className='text-sm text-t-primary'>{agentName || backend}</span>
       {canSwitchMode && (
@@ -253,7 +295,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   // Render dropdown with mode selection menu
   return (
     <div className='ml-16px'>
-      <Dropdown trigger='click' popupVisible={dropdownVisible} onVisibleChange={(visible) => !isLoading && setDropdownVisible(visible)} droplist={dropdownMenu}>
+      <Dropdown
+        trigger='click'
+        popupVisible={dropdownVisible}
+        onVisibleChange={(visible) => !isLoading && setDropdownVisible(visible)}
+        droplist={dropdownMenu}
+      >
         {content}
       </Dropdown>
     </div>

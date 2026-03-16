@@ -22,14 +22,22 @@ const WebSearchDisplay: React.FC<{ content: WebSearchUpdate }> = ({ content }) =
       case 'web_search_begin':
         return t('tools.titles.web_search_started');
       case 'web_search_end':
-        return 'query' in data && data.query ? `${t('tools.titles.web_search')}: ${data.query}` : t('tools.titles.web_search_completed');
+        return 'query' in data && data.query
+          ? `${t('tools.titles.web_search')}: ${data.query}`
+          : t('tools.titles.web_search_completed');
       default:
         return t('tools.titles.web_search');
     }
   };
 
   return (
-    <BaseToolCallDisplay toolCallId={toolCallId} title={getDisplayTitle()} status={status} description={description} icon='🔍'>
+    <BaseToolCallDisplay
+      toolCallId={toolCallId}
+      title={getDisplayTitle()}
+      status={status}
+      description={description}
+      icon='🔍'
+    >
       {/* Display query if available 显示搜索查询 */}
       {subtype === 'web_search_end' && 'query' in data && data.query && (
         <div className='text-sm mb-2'>
