@@ -48,7 +48,7 @@
     "taskComplete": "Görev Tamamlandı",
     "scheduledTask": "Zamanlanmış Görev",
     "scheduledTaskComplete": "{{title}} - Zamanlanmış görev tamamlandı",
-    "taskDone": "Görev tamamlandı"
+    "taskDone": "Görev bitti"
   },
   "error": {
     "alreadyExists": "Bu oturumda zaten \"{{name}}\" (ID: {{id}}) adlı zamanlanmış bir görev var. Önce silin veya mevcut görevleri görmek için [CRON_LIST] kullanın.",
