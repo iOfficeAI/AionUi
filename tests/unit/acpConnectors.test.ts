@@ -117,7 +117,12 @@ describe('createGenericSpawnConfig - Windows path handling', () => {
     Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
   };
 
+  const setLinuxPlatform = () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+  };
+
   it('returns plain command on non-Windows', () => {
+    setLinuxPlatform();
     const config = createGenericSpawnConfig('goose', '/cwd', ['acp'], undefined, { PATH: '/usr/bin' });
 
     expect(config.command).toBe('goose');
