@@ -19,6 +19,10 @@ on:
         description: 'Append short commit hash to artifact names'
         type: boolean
         default: false
+      upload_installers_only:
+        description: 'Only upload primary installers (exe/msi/dmg/deb), skip zip/yml/blockmap'
+        type: boolean
+        default: false
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -527,6 +531,17 @@ jobs:
       # - 构建成功（所有平台）
       # - macOS: 公证超时但有产物（已在构建步骤中处理）
       # - Windows: 仅当 windows-build 步骤成功
+      - name: Clean up non-installer artifacts
+        if: >-
+          inputs.upload_installers_only && success() &&
+          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
+        shell: bash
+        run: |
+          echo "Removing non-installer files from out/ ..."
+          rm -f out/*.blockmap out/*.zip out/*.yml out/builder-debug.yml 2>/dev/null || true
+          echo "Remaining artifacts:"
+          ls -lh out/ || true
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
