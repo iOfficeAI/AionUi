@@ -24,7 +24,7 @@ export const shell = {
 //通用会话能力
 export const conversation = {
   create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话
-  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation; sourceConversationId?: string }>('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移）
+  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation; sourceConversationId?: string; migrateCron?: boolean }>('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移）
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
   getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>('get-associated-conversation'), // 获取关联对话
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
@@ -92,7 +92,7 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'), // 打开/关闭开发者工具，返回操作后的状态
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'), // 获取 DevTools 当前状态
-  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
+  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; logDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'), // 获取系统路径
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
@@ -391,6 +391,12 @@ export const systemSettings = {
   languageChanged: bridge.buildEmitter<{ language: string }>('system-settings:language-changed'),
 };
 
+// 任务管理接口 / Task management API
+export const task = {
+  stopAll: bridge.buildProvider<{ success: boolean; count: number }, void>('task.stop-all'),
+  getRunningCount: bridge.buildProvider<{ success: boolean; count: number }, void>('task.get-running-count'),
+};
+
 // WebUI 服务管理接口 / WebUI service management API
 export interface IWebUIStatus {
   running: boolean;
@@ -412,6 +418,7 @@ export const webui = {
   stop: bridge.buildProvider<IBridgeResponse, void>('webui.stop'),
   // 修改密码（不需要当前密码）/ Change password (no current password required)
   changePassword: bridge.buildProvider<IBridgeResponse, { newPassword: string }>('webui.change-password'),
+  changeUsername: bridge.buildProvider<IBridgeResponse<{ username: string }>, { newUsername: string }>('webui.change-username'),
   // 重置密码（生成新随机密码）/ Reset password (generate new random password)
   resetPassword: bridge.buildProvider<IBridgeResponse<{ newPassword: string }>, void>('webui.reset-password'),
   // 生成二维码登录 token / Generate QR login token

@@ -111,7 +111,11 @@
       "selectFolderError": "选择文件夹失败",
       "success": "工作空间迁移成功",
       "error": "工作空间迁移失败",
-      "migrating": "迁移中..."
+      "migrating": "迁移中...",
+      "cronMigrationTitle": "发现定时任务",
+      "cronMigrationHint": "当前对话包含定时任务，是否将其迁移到新工作空间？",
+      "cronMigrationConfirm": "迁移并更新",
+      "cronMigrationSkip": "不迁移 (将删除)"
     },
     "dragOverlayTitle": "拖拽导入",
     "dragOverlayDesc": "将文件或文件夹拖到此处，即可复制到当前工作空间。",

@@ -125,6 +125,23 @@ export class AionUIDatabase {
       )
       .run(username, passwordHash, now, now, this.defaultUserId);
   }
+
+  updateUserUsername(userId: string, username: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE users SET username = ?, updated_at = ? WHERE id = ?').run(username, now, userId);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
   /**
    * Close database connection
    */
