@@ -53,6 +53,7 @@ export type ConversationRowProps = {
   onDelete: (conversationId: string) => void;
   onExport: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
+  getJobStatus: (conversationId: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
 };
 
 export type WorkspaceGroupedHistoryProps = {
@@ -61,4 +62,15 @@ export type WorkspaceGroupedHistoryProps = {
   tooltipEnabled?: boolean;
   batchMode?: boolean;
   onBatchModeChange?: (value: boolean) => void;
+};
+
+export type DragItemType = 'conversation' | 'workspace';
+
+export type DragItem = {
+  type: DragItemType;
+  id: string;
+  conversation?: TChatConversation;
+  workspaceGroup?: WorkspaceGroup;
+  sourceSection: 'pinned' | string;
+  sourceWorkspace?: string;
 };

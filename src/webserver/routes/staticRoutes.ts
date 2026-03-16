@@ -122,10 +122,6 @@ function registerProductionStaticRoutes(expressApp: Express, staticRoot: string,
 
   expressApp.get('/', pageRateLimiter, serveApplication);
 
-  expressApp.get('/favicon.ico', (_req: Request, res: Response) => {
-    res.status(204).end();
-  });
-
   // SPA sub-routes (React Router)
   expressApp.get(/^\/(?!api|static|assets)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
 

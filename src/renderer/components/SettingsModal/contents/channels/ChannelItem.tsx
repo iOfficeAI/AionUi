@@ -18,11 +18,13 @@ interface ChannelItemProps {
 
 const ChannelItem: React.FC<ChannelItemProps> = ({ channel, isCollapsed, onToggleCollapse, onToggleEnabled }) => {
   return (
-    <Collapse activeKey={isCollapsed ? [] : ['1']} onChange={onToggleCollapse} className='[&_div.arco-collapse-item-header-title]:flex-1'>
-      <Collapse.Item header={<ChannelHeader channel={channel} onToggleEnabled={onToggleEnabled} />} name='1' className='[&_div.arco-collapse-item-content-box]:py-3'>
-        {channel.content}
-      </Collapse.Item>
-    </Collapse>
+    <div data-channel-id={channel.id} data-channel-status={channel.status} data-channel-extension={channel.isExtension ? 'true' : 'false'}>
+      <Collapse activeKey={isCollapsed ? [] : ['1']} onChange={onToggleCollapse} className='[&_div.arco-collapse-item-header-title]:flex-1'>
+        <Collapse.Item header={<ChannelHeader channel={channel} onToggleEnabled={onToggleEnabled} />} name='1' className='[&_div.arco-collapse-item-content-box]:py-3'>
+          {channel.content}
+        </Collapse.Item>
+      </Collapse>
+    </div>
   );
 };
 

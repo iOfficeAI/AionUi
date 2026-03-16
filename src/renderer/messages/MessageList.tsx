@@ -5,7 +5,9 @@
  */
 
 import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMessage } from '@/common/chatLib';
+import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { iconColors } from '@/renderer/theme/colors';
+import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
@@ -140,6 +142,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
 
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
+  const conversationContext = useConversationContextSafe();
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;
@@ -247,6 +250,39 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
     return () => window.clearTimeout(timer);
   }, [hideScrollButton, location.key, processedList, targetMessageId, virtuosoRef]);
+
+  useEffect(() => {
+    const handleMessageJump = (event: Event) => {
+      const detail = (event as CustomEvent<ChatMessageJumpDetail>).detail;
+      if (!detail || !detail.conversationId) return;
+      if (!conversationContext?.conversationId || detail.conversationId !== conversationContext.conversationId) return;
+
+      const targetIndex = processedList.findIndex((item) => {
+        if ((item as { type?: string }).type === 'file_summary' || (item as { type?: string }).type === 'tool_summary') {
+          return false;
+        }
+        const message = item as TMessage;
+        if (detail.messageId && message.id === detail.messageId) return true;
+        if (detail.msgId && message.msg_id === detail.msgId) return true;
+        return false;
+      });
+      if (targetIndex < 0) return;
+
+      hideScrollButton();
+      requestAnimationFrame(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: targetIndex,
+          align: detail.align || 'start',
+          behavior: detail.behavior || 'smooth',
+        });
+      });
+    };
+
+    window.addEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
+    return () => {
+      window.removeEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
+    };
+  }, [conversationContext?.conversationId, hideScrollButton, processedList, virtuosoRef]);
 
   // Click scroll button
   const handleScrollButtonClick = () => {

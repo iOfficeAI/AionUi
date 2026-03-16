@@ -25,7 +25,7 @@ import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
 import { Button, Message, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { Plus, Shield } from '@icon-park/react';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -854,7 +854,7 @@ const GeminiSendBox: React.FC<{
         tools={
           <div className='flex items-center gap-4px'>
             <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend='gemini' conversationId={conversation_id} compact />
+            <AgentModeSelector backend='gemini' conversationId={conversation_id} compact compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })} compactLabelPrefix={t('agentMode.permission')} hideCompactLabelPrefixOnMobile />
           </div>
         }
         sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}

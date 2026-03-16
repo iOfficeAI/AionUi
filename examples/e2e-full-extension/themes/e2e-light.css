@@ -1,0 +1,7 @@
+/* E2E Light Theme - for testing only */
+:root {
+  --e2e-bg: #f5f5f5;
+  --e2e-surface: #ffffff;
+  --e2e-primary: #3498db;
+  --e2e-text: #333;
+}

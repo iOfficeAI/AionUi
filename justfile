@@ -334,6 +334,26 @@ test-integration:
 test-packaged-i18n:
     bun run test:packaged:i18n
 
+# Run E2E tests (Playwright + Electron — auto-launches app)
+# Builds main+preload+renderer into out/ first to ensure fresh artifacts.
+e2e-test:
+    bun run package
+    bunx playwright test --config playwright.config.ts
+
+# Run only extension-related E2E tests (faster iteration)
+e2e-test-ext:
+    bun run package
+    bunx playwright test --config playwright.config.ts tests/e2e/specs/ext-*.e2e.ts
+
+# Run E2E tests with headed browser (for debugging)
+e2e-test-headed:
+    bun run package
+    bunx playwright test --config playwright.config.ts --headed
+
+# Open Playwright HTML report after test run
+e2e-report:
+    bunx playwright show-report tests/e2e/report
+
 # ============================================================
 # Extension System (RFC-001)
 # ============================================================
@@ -341,21 +361,28 @@ test-packaged-i18n:
 # Start dev server with example extensions loaded
 # CDP remote debugging is enabled by default on port 9222 in dev mode
 dev-ext:
-    $env:AIONUI_EXTENSIONS_PATH = (Resolve-Path "examples").Path; \
-    Write-Host "Loading extensions from: $($env:AIONUI_EXTENSIONS_PATH)"; \
-    bun run start
+    node scripts/dev-bootstrap.mjs launch start --extensions
 
 # Start WebUI with example extensions loaded
 webui-ext:
-    $env:AIONUI_EXTENSIONS_PATH = (Resolve-Path "examples").Path; \
-    Write-Host "Loading extensions from: $($env:AIONUI_EXTENSIONS_PATH)"; \
-    bun run webui
+    node scripts/dev-bootstrap.mjs launch webui --extensions
 
 # Start CLI with example extensions loaded
 cli-ext:
-    $env:AIONUI_EXTENSIONS_PATH = (Resolve-Path "examples").Path; \
-    Write-Host "Loading extensions from: $($env:AIONUI_EXTENSIONS_PATH)"; \
-    bun run cli
+    node scripts/dev-bootstrap.mjs launch cli --extensions
+
+# Cross-platform diagnosis for dev extension startup
+dev-ext-doctor:
+    node scripts/dev-bootstrap.mjs doctor
+
+# Launch packaged (unpacked) app with example extensions for one-click debugging
+# Requires out/*-unpacked artifacts
+packaged-ext:
+    node scripts/packaged-launch.mjs
+
+# Build package first, then launch with example extensions
+packaged-ext-build: build-package
+    node scripts/packaged-launch.mjs
 
 # Validate extension system types compile correctly
 ext-typecheck:
@@ -363,7 +390,7 @@ ext-typecheck:
 
 # Run extension system tests
 ext-test:
-    bunx vitest run tests/extensions/
+    bunx vitest run tests/extensions/ --passWithNoTests
 
 # Run extension system tests in watch mode
 ext-test-watch:

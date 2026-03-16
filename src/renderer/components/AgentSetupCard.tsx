@@ -15,6 +15,7 @@ import { Button, Message, Progress } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Loading, Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
+import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/useAgentReadinessCheck';
 
@@ -30,6 +31,7 @@ import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
 
 const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
   claude: ClaudeLogo,
@@ -90,14 +92,12 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         const isGemini = agent.backend === 'gemini';
         const isCodex = agent.backend === 'codex';
         const conversationType = isGemini ? 'gemini' : isCodex ? 'codex' : 'acp';
+        const defaultConversationName = t('conversation.welcome.newConversation');
 
         // Get current conversation's model info (if gemini type)
         const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
-
-        // Create new conversation with the selected agent
-        const newConversation = await ipcBridge.conversation.create.invoke({
+        const createParams: ICreateConversationParams = {
           type: conversationType,
-          name: conversation.name || 'New Conversation',
           model: currentModel || {
             id: 'default',
             name: 'Default',
@@ -123,7 +123,10 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                   presetAssistantId: conversation.extra?.presetAssistantId,
                 }),
           },
-        });
+        };
+
+        // Create new conversation with the selected agent
+        const newConversation = await ipcBridge.conversation.create.invoke(applyDefaultConversationName(createParams, defaultConversationName));
 
         if (!newConversation?.id) {
           Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));

@@ -125,7 +125,12 @@ jobs:
         run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
 
       - name: Install dependencies
-        run: bun install --no-frozen-lockfile
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: bun install --no-frozen-lockfile
 
       - name: Run postinstall
         run: bun run postinstall || true

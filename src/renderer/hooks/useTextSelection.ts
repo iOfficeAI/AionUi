@@ -21,7 +21,7 @@ export interface SelectionPosition {
  * @param containerRef - 容器引用 / Container reference
  * @returns 选中的文本、位置信息和清除函数 / Selected text, position info, and clear function
  */
-export const useTextSelection = (containerRef: React.RefObject<HTMLElement>) => {
+export const useTextSelection = (containerRef: React.RefObject<HTMLElement>, enabled = true) => {
   const [selectedText, setSelectedText] = useState('');
   const [selectionPosition, setSelectionPosition] = useState<SelectionPosition | null>(null);
 
@@ -81,6 +81,12 @@ export const useTextSelection = (containerRef: React.RefObject<HTMLElement>) => 
 
   // 监听选择变化事件 / Listen to selection change events
   useEffect(() => {
+    if (!enabled) {
+      setSelectedText('');
+      setSelectionPosition(null);
+      return;
+    }
+
     document.addEventListener('selectionchange', handleSelectionChange);
     document.addEventListener('mouseup', handleMouseUp);
 
@@ -88,7 +94,7 @@ export const useTextSelection = (containerRef: React.RefObject<HTMLElement>) => 
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [handleSelectionChange, handleMouseUp]);
+  }, [enabled, handleSelectionChange, handleMouseUp]);
 
   // 清除选择 / Clear selection
   const clearSelection = useCallback(() => {

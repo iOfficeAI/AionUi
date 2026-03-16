@@ -55,6 +55,7 @@
   "pathLabel": "路徑",
   "noTabs": "尚無標籤",
   "openInPanelTooltip": "在預覽面板中查看",
+  "largeTextTruncatedHint": "大型檔案預覽模式：為了保持流暢度，僅顯示前 {{count}} 個字元。",
   "errors": {
     "missingFilePath": "未提供檔案路徑",
     "openWithoutPath": "無法開啟：未提供檔案路徑",

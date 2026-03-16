@@ -178,6 +178,7 @@ interface PreviewToolbarProps {
 const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown, isHTML, isEditable, isEditMode, viewMode, isSplitScreenEnabled, fileName, showOpenInSystemButton, historyTarget, snapshotSaving, onViewModeChange, onSplitScreenToggle, onEditClick, onExitEdit, onSaveSnapshot, onRefreshHistory, renderHistoryDropdown, onOpenInSystem, onDownload, onClose, inspectMode, onInspectModeToggle, leftExtra, rightExtra }) => {
   const { t } = useTranslation();
   const isDiff = contentType === 'diff';
+  const preferActionButtonsInFront = Boolean(leftExtra);
 
   const toolbarBtn = 'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
   const toolbarBtnActive = '!text-white bg-brand hover:!text-white hover:bg-brand-hover';
@@ -266,6 +267,26 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown
             </div>
           )}
 
+          {preferActionButtonsInFront && showOpenInSystemButton && (
+            <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
+              <svg width={toolbarIconSize} height={toolbarIconSize} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+                <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
+                <polyline points='15 3 21 3 21 9' />
+                <line x1='10' y1='14' x2='21' y2='3' />
+              </svg>
+              <span>{t('preview.openInSystemApp')}</span>
+            </div>
+          )}
+          {preferActionButtonsInFront && (
+            <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
+              <svg width={toolbarIconSize} height={toolbarIconSize} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+                <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
+                <polyline points='7 10 12 15 17 10' />
+                <line x1='12' y1='15' x2='12' y2='3' />
+              </svg>
+              <span>{t('common.download')}</span>
+            </div>
+          )}
           {leftExtra}
         </div>
 
@@ -305,7 +326,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown
             </>
           )}
 
-          {showOpenInSystemButton && (
+          {!preferActionButtonsInFront && showOpenInSystemButton && (
             <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
               <svg width={toolbarIconSize} height={toolbarIconSize} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
                 <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
@@ -316,14 +337,16 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown
             </div>
           )}
 
-          <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
-            <svg width={toolbarIconSize} height={toolbarIconSize} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
-              <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
-              <polyline points='7 10 12 15 17 10' />
-              <line x1='12' y1='15' x2='12' y2='3' />
-            </svg>
-            <span>{t('common.download')}</span>
-          </div>
+          {!preferActionButtonsInFront && (
+            <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
+              <svg width={toolbarIconSize} height={toolbarIconSize} viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+                <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
+                <polyline points='7 10 12 15 17 10' />
+                <line x1='12' y1='15' x2='12' y2='3' />
+              </svg>
+              <span>{t('common.download')}</span>
+            </div>
+          )}
 
           {isHTML && onInspectModeToggle && (
             <div className={`${toolbarBtn} ${inspectMode ? toolbarBtnActive : ''}`} onClick={onInspectModeToggle} title={inspectMode ? t('preview.html.inspectElementDisable') : t('preview.html.inspectElementEnable')}>

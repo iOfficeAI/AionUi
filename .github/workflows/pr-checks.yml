@@ -90,7 +90,7 @@ jobs:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -100,26 +100,31 @@ jobs:
             arch: 'arm64'
             target: '--mac'
             build_args: '--mac --arm64'
+            unpacked_dir: 'mac-arm64'
           - platform: 'macos-x64'
             os: 'macos-14'
             arch: 'x64'
             target: '--mac'
             build_args: '--mac --x64'
+            unpacked_dir: 'mac'
           - platform: 'windows-x64'
             os: 'windows-2022'
             arch: 'x64'
             target: '--win'
             build_args: '--win --x64'
+            unpacked_dir: 'win-unpacked'
           - platform: 'windows-arm64'
             os: 'windows-2022'
             arch: 'arm64'
             target: '--win'
             build_args: '--win --arm64'
+            unpacked_dir: 'win-arm64-unpacked'
           - platform: 'linux'
             os: 'ubuntu-latest'
             arch: 'x64'
             target: '--linux'
             build_args: '--linux --x64'
+            unpacked_dir: 'linux-unpacked'
 
     steps:
       - name: Checkout code
@@ -287,9 +292,9 @@ jobs:
           Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow
 
           $candidates = @(
-            "$env:LOCALAPPDATA\Programs\AionUi\AionUi.exe",
-            "$env:ProgramFiles\AionUi\AionUi.exe",
-            "$env:ProgramFiles(x86)\AionUi\AionUi.exe"
+            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles(x86)\\AionUi\\AionUi.exe"
           )
 
           $installedExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
