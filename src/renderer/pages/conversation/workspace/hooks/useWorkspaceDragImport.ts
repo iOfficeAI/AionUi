@@ -40,7 +40,12 @@ const dedupeItems = (items: DroppedItem[]): DroppedItem[] => {
   return Array.from(map.values());
 };
 
-export function useWorkspaceDragImport({ onFilesDropped, messageApi, t, conversationId }: UseWorkspaceDragImportOptions) {
+export function useWorkspaceDragImport({
+  onFilesDropped,
+  messageApi,
+  t,
+  conversationId,
+}: UseWorkspaceDragImportOptions) {
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -172,7 +177,9 @@ export function useWorkspaceDragImport({ onFilesDropped, messageApi, t, conversa
           tempItems = await createTempItemsFromFiles(filesWithoutPath);
         } catch (error) {
           if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
-            messageApi.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB, defaultValue: 'File exceeds {{max}}MB limit' }));
+            messageApi.error(
+              t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB, defaultValue: 'File exceeds {{max}}MB limit' })
+            );
           } else {
             console.error('[WorkspaceDragImport] Failed to create temp files:', error);
           }

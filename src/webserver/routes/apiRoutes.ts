@@ -310,7 +310,8 @@ export function registerApiRoutes(app: Express): void {
             workspace = resolveUploadWorkspace(conversationId, requestedWorkspace);
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Invalid upload workspace';
-            const statusCode = message === 'Conversation workspace not found' || message === 'Missing conversation id' ? 400 : 403;
+            const statusCode =
+              message === 'Conversation workspace not found' || message === 'Missing conversation id' ? 400 : 403;
             res.status(statusCode).json({ success: false, msg: message });
             return;
           }

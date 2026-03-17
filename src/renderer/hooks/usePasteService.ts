@@ -32,7 +32,13 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste, conv
       }
 
       try {
-        const handled = await PasteService.handlePaste(event, supportedExts, onFilesAdded || (() => {}), onTextPaste, conversationId);
+        const handled = await PasteService.handlePaste(
+          event,
+          supportedExts,
+          onFilesAdded || (() => {}),
+          onTextPaste,
+          conversationId
+        );
         if (handled && (!files || files.length === 0)) {
           // 如果不是文件粘贴但被处理了（比如纯文本粘贴），也阻止默认行为
           event.preventDefault();

@@ -15,7 +15,12 @@ const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
  * Create a temporary file in a platform-aware way.
  * Electron desktop uses IPC, WebUI uses HTTP API.
  */
-async function createTempFile(fileName: string, data: Uint8Array, contentType: string, conversationId?: string): Promise<string | null> {
+async function createTempFile(
+  fileName: string,
+  data: Uint8Array,
+  contentType: string,
+  conversationId?: string
+): Promise<string | null> {
   if (data.byteLength > MAX_UPLOAD_SIZE_BYTES) {
     throw new Error('FILE_TOO_LARGE');
   }
@@ -217,7 +222,12 @@ class PasteServiceClass {
               const fileName = file.name;
 
               // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
-              const tempPath = await createTempFile(fileName, uint8Array, file.type || 'application/octet-stream', conversationId);
+              const tempPath = await createTempFile(
+                fileName,
+                uint8Array,
+                file.type || 'application/octet-stream',
+                conversationId
+              );
               if (tempPath) {
                 fileList.push({
                   name: fileName,

@@ -920,7 +920,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         />
 
         {/* Host File Selection Modal (for WebUI workspace + button) */}
-        <DirectorySelectionModal visible={showHostFileSelector} isFileMode onConfirm={handleHostFileSelected} onCancel={() => setShowHostFileSelector(false)} />
+        <DirectorySelectionModal
+          visible={showHostFileSelector}
+          isFileMode
+          onConfirm={handleHostFileSelected}
+          onCancel={() => setShowHostFileSelector(false)}
+        />
 
         {/* Search Input - 最上方 */}
         <div className='px-12px'>
@@ -989,7 +994,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               {!isElectronDesktop() && (
                 <Dropdown droplist={workspaceUploadMenu} trigger='click' position='bl'>
                   <span>
-                    <Plus className='workspace-toolbar-icon-btn lh-[1] flex cursor-pointer' theme='outline' size='16' fill={iconColors.secondary} />
+                    <Plus
+                      className='workspace-toolbar-icon-btn lh-[1] flex cursor-pointer'
+                      theme='outline'
+                      size='16'
+                      fill={iconColors.secondary}
+                    />
                   </span>
                 </Dropdown>
               )}
