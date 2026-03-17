@@ -102,6 +102,8 @@ extraResources:
     to: .
   - from: resources/app.png
     to: app.png
+  - from: resources/bundled-bun
+    to: bundled-bun
 
 win:
   target:
@@ -215,3 +217,4 @@ publish:
   repo: AionUi
   publishAutoUpdate: true
   releaseType: release
+
