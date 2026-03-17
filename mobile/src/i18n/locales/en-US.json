@@ -1,0 +1,80 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "ok": "OK",
+    "close": "Close",
+    "copy": "Copy",
+    "disconnect": "Disconnect"
+  },
+  "connect": {
+    "title": "Connect to AionUi",
+    "host": "Host",
+    "hostPlaceholder": "e.g. 192.168.1.100",
+    "port": "Port",
+    "portPlaceholder": "25808",
+    "token": "Token",
+    "tokenPlaceholder": "Paste JWT token from WebUI",
+    "tokenHint": "Get your token from AionUi desktop app → Settings → WebUI",
+    "connectButton": "Connect",
+    "connecting": "Connecting...",
+    "fillAllFields": "Please fill in all fields",
+    "connectionFailed": "Connection failed",
+    "invalidToken": "Invalid or expired token",
+    "disconnected": "Disconnected from server"
+  },
+  "tabs": {
+    "conversations": "Conversations",
+    "files": "Files",
+    "settings": "Settings"
+  },
+  "conversations": {
+    "title": "Conversations",
+    "empty": "No conversations yet",
+    "emptyHint": "Create a new conversation to get started",
+    "newConversation": "New Conversation",
+    "deleteConfirm": "Delete this conversation?",
+    "deleteMessage": "This action cannot be undone.",
+    "statusPending": "Pending",
+    "statusRunning": "Running",
+    "statusFinished": "Finished"
+  },
+  "chat": {
+    "inputPlaceholder": "Type a message...",
+    "send": "Send",
+    "stopGenerating": "Stop generating",
+    "thinking": "Thinking...",
+    "toolCall": "Tool Call",
+    "toolExecuting": "Executing",
+    "toolSuccess": "Success",
+    "toolError": "Error",
+    "approve": "Approve",
+    "deny": "Deny",
+    "permissionRequest": "Permission Request"
+  },
+  "files": {
+    "title": "Files",
+    "empty": "No files",
+    "parentDirectory": "Parent Directory",
+    "errorLoading": "Failed to load directory"
+  },
+  "settings": {
+    "title": "Settings",
+    "connection": "Connection",
+    "connectionStatus": "Connection Status",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "serverAddress": "Server Address",
+    "reconnect": "Reconnect",
+    "changeServer": "Change Server",
+    "about": "About",
+    "version": "Version",
+    "language": "Language"
+  }
+}

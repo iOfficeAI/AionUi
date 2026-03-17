@@ -1,0 +1,47 @@
+{
+  "name": "aionui-mobile",
+  "main": "expo-router/entry",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "expo lint",
+    "ts:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^7.4.0",
+    "@react-navigation/native": "^7.1.8",
+    "@shopify/flash-list": "2.0.2",
+    "axios": "^1.13.2",
+    "expo": "~55.0.4",
+    "expo-constants": "~55.0.7",
+    "expo-linking": "~55.0.7",
+    "expo-localization": "~55.0.8",
+    "expo-router": "~55.0.3",
+    "expo-secure-store": "~55.0.8",
+    "expo-splash-screen": "~55.0.10",
+    "expo-status-bar": "~55.0.4",
+    "expo-system-ui": "~55.0.9",
+    "i18next": "^25.8.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-i18next": "^16.5.4",
+    "react-native": "0.83.2",
+    "react-native-gesture-handler": "~2.30.0",
+    "react-native-markdown-display": "^7.0.2",
+    "react-native-reanimated": "4.2.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.23.0",
+    "react-native-svg": "15.15.3",
+    "react-native-web": "^0.21.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.10",
+    "typescript": "~5.9.2"
+  }
+}

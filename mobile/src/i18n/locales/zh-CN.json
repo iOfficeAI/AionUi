@@ -1,0 +1,80 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "confirm": "确认",
+    "retry": "重试",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "ok": "确定",
+    "close": "关闭",
+    "copy": "复制",
+    "disconnect": "断开连接"
+  },
+  "connect": {
+    "title": "连接到 AionUi",
+    "host": "主机地址",
+    "hostPlaceholder": "例如 192.168.1.100",
+    "port": "端口",
+    "portPlaceholder": "25808",
+    "token": "Token",
+    "tokenPlaceholder": "从 WebUI 粘贴 JWT Token",
+    "tokenHint": "从 AionUi 桌面端 → 设置 → WebUI 获取 Token",
+    "connectButton": "连接",
+    "connecting": "连接中...",
+    "fillAllFields": "请填写所有字段",
+    "connectionFailed": "连接失败",
+    "invalidToken": "Token 无效或已过期",
+    "disconnected": "已断开与服务器的连接"
+  },
+  "tabs": {
+    "conversations": "对话",
+    "files": "文件",
+    "settings": "设置"
+  },
+  "conversations": {
+    "title": "对话列表",
+    "empty": "暂无对话",
+    "emptyHint": "创建一个新对话开始使用",
+    "newConversation": "新建对话",
+    "deleteConfirm": "确定删除此对话？",
+    "deleteMessage": "此操作不可撤销。",
+    "statusPending": "等待中",
+    "statusRunning": "运行中",
+    "statusFinished": "已完成"
+  },
+  "chat": {
+    "inputPlaceholder": "输入消息...",
+    "send": "发送",
+    "stopGenerating": "停止生成",
+    "thinking": "思考中...",
+    "toolCall": "工具调用",
+    "toolExecuting": "执行中",
+    "toolSuccess": "成功",
+    "toolError": "错误",
+    "approve": "允许",
+    "deny": "拒绝",
+    "permissionRequest": "权限请求"
+  },
+  "files": {
+    "title": "文件",
+    "empty": "暂无文件",
+    "parentDirectory": "上级目录",
+    "errorLoading": "加载目录失败"
+  },
+  "settings": {
+    "title": "设置",
+    "connection": "连接",
+    "connectionStatus": "连接状态",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "serverAddress": "服务器地址",
+    "reconnect": "重新连接",
+    "changeServer": "更换服务器",
+    "about": "关于",
+    "version": "版本",
+    "language": "语言"
+  }
+}
