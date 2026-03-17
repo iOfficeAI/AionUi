@@ -68,6 +68,16 @@
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败"
   },
+  "historySearch": {
+    "tooltip": "检索会话",
+    "title": "检索会话内容",
+    "description": "输入关键词搜索历史消息，支持分页加载并跳转到对应消息。",
+    "placeholder": "搜索消息内容...",
+    "idle": "输入关键词检索历史消息",
+    "empty": "没有找到匹配的消息",
+    "loadingMore": "正在加载更多...",
+    "untitled": "未命名会话"
+  },
   "tabs": {
     "closeAll": "关闭全部",
     "closeLeft": "关闭左侧",
@@ -144,7 +154,10 @@
       "addToChat": "添加到聊天",
       "addedToChat": "已添加到聊天",
       "openFailed": "打开失败",
-      "revealFailed": "无法打开所在目录"
+      "revealFailed": "无法打开所在目录",
+      "download": "下载",
+      "downloadSuccess": "下载成功",
+      "downloadFailed": "下载失败"
     }
   },
   "minimap": {

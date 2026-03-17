@@ -85,7 +85,43 @@ jobs:
       - name: Run extension system tests
         run: bunx vitest run
 
-  # Job 3: Build test across all platforms (parallel with code-quality and unit-tests)
+  # Job 3: Coverage test (Linux only)
+  coverage-tests:
+    name: Coverage Test
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Run coverage tests
+        run: bun run test:coverage
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: error
+
+  # Job 4: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
@@ -212,7 +248,7 @@ jobs:
           just build-win-x64
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
+          NODE_OPTIONS: '--max-old-space-size=8192'
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
           WindowsTargetPlatformVersion: 10.0.19041.0
@@ -228,7 +264,7 @@ jobs:
           just build-win-arm64
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
+          NODE_OPTIONS: '--max-old-space-size=8192'
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
           WindowsTargetPlatformVersion: 10.0.19041.0
@@ -244,7 +280,7 @@ jobs:
           node scripts/build-with-builder.js auto ${{ matrix.build_args }}
           echo "✓Build test passed for ${{ matrix.platform }}"
         env:
-          NODE_OPTIONS: "--max-old-space-size=8192"
+          NODE_OPTIONS: '--max-old-space-size=8192'
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_runtime: electron
@@ -367,7 +403,7 @@ jobs:
 
           test -x "$INSTALLED_BIN"
 
-  # Job 4: Test release scripts (fast, no build required)
+  # Job 5: Test release scripts (fast, no build required)
   release-script-test:
     name: Release Script Test
     if: github.event.action != 'edited'
@@ -388,60 +424,3 @@ jobs:
       - name: Validate script output
         shell: bash
         run: bash scripts/verify-release-assets.sh release-assets
-
-  # Job 5: Trigger GPT AI review (only on first PR submission)
-  review:
-    name: AI Review
-    needs: [code-quality, unit-tests, build-test, release-script-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
-    uses: './.github/workflows/gpt-review.yml'
-    with:
-      pr_number: '${{ github.event.pull_request.number }}'
-    permissions:
-      contents: read
-      pull-requests: write
-    secrets: inherit
-
-  # Job 6: Check if PR author is an external contributor
-  check-external:
-    name: Check External
-    needs: [code-quality, unit-tests, build-test, release-script-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
-    runs-on: ubuntu-latest
-    outputs:
-      is_external: ${{ steps.check.outputs.is_external }}
-    steps:
-      - name: Check author permission level
-        id: check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const username = context.payload.pull_request.user.login;
-            try {
-              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                username,
-              });
-              const permission = data.permission;
-              const isExternal = permission !== 'admin' && permission !== 'maintain' && permission !== 'write';
-              core.info(`User ${username}: permission=${permission}, is external: ${isExternal}`);
-              core.setOutput('is_external', String(isExternal));
-            } catch (error) {
-              core.info(`User ${username}: permission check failed (${error.message}), treating as external`);
-              core.setOutput('is_external', 'true');
-            }
-
-  # Job 7: Trigger GPT PR assessment for external contributors
-  assessment:
-    name: PR Assessment
-    needs: [check-external]
-    if: needs.check-external.outputs.is_external == 'true'
-    uses: './.github/workflows/gpt-pr-assessment.yml'
-    with:
-      pr_number: '${{ github.event.pull_request.number }}'
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: read
-    secrets: inherit

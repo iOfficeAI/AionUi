@@ -262,3 +262,5 @@ export const useConversationTabs = () => {
   }
   return context;
 };
+
+export const useOptionalConversationTabs = () => useContext(ConversationTabsContext);

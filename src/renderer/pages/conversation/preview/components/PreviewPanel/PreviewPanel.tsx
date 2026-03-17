@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/download';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
@@ -300,79 +301,68 @@ const PreviewPanel: React.FC = () => {
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
     try {
-      let blob: Blob | null = null;
-      let ext = 'txt';
-      const nameExt = metadata?.fileName?.split('.').pop();
+      const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
 
-      // 图片文件：从 Base64 数据或文件路径读取 / Image files: read from Base64 data or file path
-      if (contentType === 'image') {
-        let dataUrl = content;
-        // 如果没有 Base64 数据，从文件路径读取 / If no Base64 data, read from file path
-        if (!dataUrl && metadata?.filePath) {
-          dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: metadata.filePath });
-        }
-
-        if (!dataUrl) {
-          messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
-          return;
-        }
-
-        // 将 Base64 数据转换为 Blob / Convert Base64 data to Blob
-        blob = await fetch(dataUrl).then((res) => res.blob());
-
-        // 优先使用文件名扩展名，其次使用 MIME 类型扩展名，最后默认为 png
-        // Prefer filename extension, then MIME type extension, finally default to png
-        const mimeExt = blob.type && blob.type.includes('/') ? blob.type.split('/').pop() : undefined;
-        ext = nameExt || mimeExt || 'png';
-      } else {
-        // 文本文件：创建文本 Blob / Text files: create text Blob
-        let mimeType = 'text/plain;charset=utf-8';
-        if (contentType === 'markdown') mimeType = 'text/markdown;charset=utf-8';
-        else if (contentType === 'html') mimeType = 'text/html;charset=utf-8';
-        blob = new Blob([content], { type: mimeType });
-
-        // 根据内容类型设置文件扩展名 / Set file extension based on content type
-        if (nameExt) ext = nameExt;
-        else if (contentType === 'markdown') ext = 'md';
-        else if (contentType === 'diff') ext = 'diff';
-        else if (contentType === 'code') {
-          // 代码文件：根据语言设置扩展名 / Code files: set extension based on language
-          const lang = metadata?.language;
-          if (lang === 'javascript' || lang === 'js') ext = 'js';
-          else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
-          else if (lang === 'python' || lang === 'py') ext = 'py';
-          else if (lang === 'java') ext = 'java';
-          else if (lang === 'cpp' || lang === 'c++') ext = 'cpp';
-          else if (lang === 'c') ext = 'c';
-          else if (lang === 'html') ext = 'html';
-          else if (lang === 'css') ext = 'css';
-          else if (lang === 'json') ext = 'json';
-        } else if (contentType === 'html') {
-          ext = 'html';
-        }
-      }
-
-      if (!blob) {
-        messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+      if (metadata?.filePath) {
+        // All files with a disk path (binary, image, zip, etc.) — unified path
+        await downloadFileFromPath(metadata.filePath, rawFileName);
         return;
       }
 
-      // 创建下载链接并触发下载 / Create download link and trigger download
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
-      if (metadata?.fileName && nameExt) {
-        link.download = rawFileName;
-      } else {
+      if (contentType === 'image') {
+        // Pure base64 image (no file path on disk)
+        if (!content) {
+          messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+          return;
+        }
+        const blob = await fetch(content).then((res) => res.blob());
+        const nameExt = metadata?.fileName?.split('.').pop();
+        const mimeExt = blob.type?.includes('/') ? blob.type.split('/').pop() : undefined;
+        const ext = nameExt || mimeExt || 'png';
         const normalizedExt = ext.toLowerCase();
         const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
-        link.download = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+        const fileName = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        return;
       }
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url); // 释放 URL 对象 / Release URL object
+
+      // Text / code content (no file path, no binary)
+      const nameExt = metadata?.fileName?.split('.').pop();
+      let mimeType = 'text/plain;charset=utf-8';
+      let ext = 'txt';
+      if (contentType === 'markdown') {
+        mimeType = 'text/markdown;charset=utf-8';
+        ext = 'md';
+      } else if (contentType === 'html') {
+        mimeType = 'text/html;charset=utf-8';
+        ext = 'html';
+      } else if (contentType === 'diff') {
+        ext = 'diff';
+      } else if (contentType === 'code') {
+        // Code files: set extension based on language
+        const lang = metadata?.language;
+        if (lang === 'javascript' || lang === 'js') ext = 'js';
+        else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
+        else if (lang === 'python' || lang === 'py') ext = 'py';
+        else if (lang === 'java') ext = 'java';
+        else if (lang === 'cpp' || lang === 'c++') ext = 'cpp';
+        else if (lang === 'c') ext = 'c';
+        else if (lang === 'html') ext = 'html';
+        else if (lang === 'css') ext = 'css';
+        else if (lang === 'json') ext = 'json';
+      }
+      if (nameExt) ext = nameExt;
+      const normalizedExt = ext.toLowerCase();
+      const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
+      const fileName = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+      downloadTextContent(content, fileName, mimeType);
     } catch (error) {
       console.error('[PreviewPanel] Failed to download file:', error);
       messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));

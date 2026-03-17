@@ -51,6 +51,10 @@ export default defineConfig({
       // 例如: 'src/process/services/newService.ts'
       include: [
         // Process / bridge
+        'src/process/tray.ts',
+        'src/process/deepLink.ts',
+        'src/process/mainWindowLifecycle.ts',
+        'src/process/webuiConfig.ts',
         'src/process/bridge/services/WebuiService.ts',
         'src/process/database/index.ts',
         'src/webserver/auth/service/AuthService.ts',
@@ -71,15 +75,19 @@ export default defineConfig({
         // Common
         'src/common/chatLib.ts',
         'src/common/update/models/VersionInfo.ts',
+        'src/common/appEnv.ts',
         // Renderer utils
         'src/renderer/messages/useAutoScroll.ts',
         'src/renderer/utils/emitter.ts',
+        'src/renderer/utils/base64.ts',
+        'src/renderer/utils/download.ts',
         // Extension system (only files with existing tests)
         'src/extensions/ExtensionLoader.ts',
         'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
         'src/extensions/resolvers/WebuiResolver.ts',
         // Renderer components
         'src/renderer/pages/conversation/components/ConversationTitleMinimap.tsx',
+        'src/renderer/pages/conversation/gemini/GeminiSendBox.tsx',
       ],
       thresholds: {
         statements: 30,

@@ -8,6 +8,7 @@ import {
   Earth,
   Gemini,
   Info,
+  Lightning,
   LinkCloud,
   Puzzle,
   Robot,
@@ -22,7 +23,17 @@ import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
-const BUILTIN_TAB_IDS = ['gemini', 'model', 'agent', 'tools', 'display', 'webui', 'system', 'about'] as const;
+const BUILTIN_TAB_IDS = [
+  'gemini',
+  'model',
+  'agent',
+  'skills-hub',
+  'tools',
+  'display',
+  'webui',
+  'system',
+  'about',
+] as const;
 
 type SiderItem = {
   id: string;
@@ -110,6 +121,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.assistants', { defaultValue: 'Assistants' }),
         icon: <Robot />,
         path: 'agent',
+      },
+      'skills-hub': {
+        id: 'skills-hub',
+        label: t('settings.skillsHub.title', { defaultValue: 'Skills Hub' }),
+        icon: <Lightning />,
+        path: 'skills-hub',
       },
       tools: { id: 'tools', label: t('settings.tools'), icon: <Toolkit />, path: 'tools' },
       display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
@@ -213,11 +230,17 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                 </div>
               ) : (
                 React.cloneElement(
-                  item.icon as React.ReactElement<{ theme?: string; size?: string | number; className?: string }>,
+                  item.icon as React.ReactElement<{
+                    theme?: string;
+                    size?: string | number;
+                    className?: string;
+                    strokeWidth?: number;
+                  }>,
                   {
                     theme: 'outline',
                     size: '20',
-                    className: 'mt-2px ml-2px mr-8px flex',
+                    strokeWidth: 3,
+                    className: 'mt-2px ml-2px mr-8px flex text-t-secondary',
                   }
                 )
               )}

@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.8.28",
+  "version": "1.8.29",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": "./out/main/index.js",
   "engines": {
@@ -10,8 +10,8 @@
   "scripts": {
     "start": "electron-vite dev",
     "cli": "electron-vite dev",
-    "webui": "bun run cli -- --webui",
-    "webui:remote": "bun run cli -- --webui --remote",
+    "webui": "rm -rf out/renderer && bun run cli -- --webui",
+    "webui:remote": "rm -rf out/renderer && bun run cli -- --webui --remote",
     "webui:prod": "cross-env NODE_ENV=production bun run cli -- --webui",
     "webui:prod:remote": "cross-env NODE_ENV=production bun run cli -- --webui --remote",
     "resetpass": "bun run cli -- --resetpass",

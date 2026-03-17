@@ -2,11 +2,11 @@ import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from './components/AppLoader';
 import { useAuth } from './context/AuthContext';
-
 const Conversation = React.lazy(() => import('./pages/conversation'));
 const Guid = React.lazy(() => import('./pages/guid'));
 const About = React.lazy(() => import('./pages/settings/About'));
 const AgentSettings = React.lazy(() => import('./pages/settings/AgentSettings'));
+const SkillsHubSettings = React.lazy(() => import('./pages/settings/SkillsHubSettings'));
 const DisplaySettings = React.lazy(() => import('./pages/settings/DisplaySettings'));
 const GeminiSettings = React.lazy(() => import('./pages/settings/GeminiSettings'));
 const ModeSettings = React.lazy(() => import('./pages/settings/ModeSettings'));
@@ -54,6 +54,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/gemini' element={withRouteFallback(GeminiSettings)} />
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
+          <Route path='/settings/skills-hub' element={withRouteFallback(SkillsHubSettings)} />
           <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />

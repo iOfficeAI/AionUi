@@ -49,6 +49,11 @@ export const MIME_TO_EXT_MAP: Record<string, string> = {
 /** 默认图片文件扩展名 */
 export const DEFAULT_IMAGE_EXTENSION = '.png';
 
+// ===== WebUI 相关常量 =====
+
+/** WebUI default port: 25808 for production, 25809 for development (environment isolation) */
+export const WEBUI_DEFAULT_PORT = process.env.NODE_ENV === 'production' ? 25808 : 25809;
+
 // ===== AI Provider 相关常量 =====
 
 // Stable ID for the Google Auth virtual provider.

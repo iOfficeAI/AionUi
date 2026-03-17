@@ -68,6 +68,16 @@
     "deleteSuccess": "削除しました",
     "deleteFailed": "削除に失敗しました"
   },
+  "historySearch": {
+    "tooltip": "メッセージを検索",
+    "title": "会話内容を検索",
+    "description": "キーワードで履歴メッセージを検索し、スクロールでさらに読み込み、クリックで該当メッセージにジャンプします。",
+    "placeholder": "メッセージ内容を検索...",
+    "idle": "キーワードを入力してメッセージを検索",
+    "empty": "一致するメッセージが見つかりません",
+    "loadingMore": "さらに読み込み中...",
+    "untitled": "無題の会話"
+  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "プリセットアシスタント"
@@ -144,7 +154,10 @@
       "addToChat": "チャットに追加",
       "addedToChat": "チャットに追加しました",
       "openFailed": "開けませんでした",
-      "revealFailed": "フォルダーを開けませんでした"
+      "revealFailed": "フォルダーを開けませんでした",
+      "download": "ダウンロード",
+      "downloadSuccess": "ダウンロードしました",
+      "downloadFailed": "ダウンロードに失敗しました"
     }
   },
   "minimap": {

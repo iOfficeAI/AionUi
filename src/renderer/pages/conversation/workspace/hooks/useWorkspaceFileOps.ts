@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { downloadFileFromPath } from '@/renderer/utils/download';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
@@ -435,6 +436,25 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     [closeContextMenu, ensureNodeSelected, setRenameModal]
   );
 
+  /**
+   * 下载文件到本地（直接从磁盘读取二进制，不经过预览）
+   * Download file to local system (read binary directly from disk, bypassing preview)
+   */
+  const handleDownloadFile = useCallback(
+    async (nodeData: IDirOrFile | null) => {
+      if (!nodeData || !nodeData.isFile || !nodeData.fullPath) return;
+      closeContextMenu();
+
+      try {
+        await downloadFileFromPath(nodeData.fullPath, nodeData.name);
+        messageApi.success(t('conversation.workspace.contextMenu.downloadSuccess'));
+      } catch (error) {
+        messageApi.error(t('conversation.workspace.contextMenu.downloadFailed'));
+      }
+    },
+    [closeContextMenu, messageApi, t]
+  );
+
   return {
     handleOpenNode,
     handleRevealNode,
@@ -444,5 +464,6 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     handleAddToChat,
     handlePreviewFile,
     openRenameModal,
+    handleDownloadFile,
   };
 }

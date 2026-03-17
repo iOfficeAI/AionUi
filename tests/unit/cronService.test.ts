@@ -10,6 +10,7 @@ vi.mock('electron', () => ({
     stop: vi.fn(),
   },
   app: {
+    setName: vi.fn(),
     getPath: vi.fn(() => '/test/path'),
   },
 }));

@@ -68,6 +68,16 @@
     "deleteSuccess": "Başarıyla silindi",
     "deleteFailed": "Silme başarısız oldu"
   },
+  "historySearch": {
+    "tooltip": "Mesajları ara",
+    "title": "Sohbet içeriğini ara",
+    "description": "Anahtar kelimeyle geçmiş mesajları arayın, kaydırarak daha fazla yükleyin ve eşleşen mesaja tıklayarak gidin.",
+    "placeholder": "Mesaj içeriğini ara...",
+    "idle": "Mesajları aramak için anahtar kelime girin",
+    "empty": "Eşleşen mesaj bulunamadı",
+    "loadingMore": "Daha fazla yükleniyor...",
+    "untitled": "Adsız sohbet"
+  },
   "tabs": {
     "closeAll": "Tümünü Kapat",
     "closeLeft": "Sol tarafı kapat",
@@ -137,7 +147,10 @@
       "addToChat": "Sohbete ekle",
       "addedToChat": "Sohbete eklendi",
       "openFailed": "Açılamadı",
-      "revealFailed": "İçeren klasör açılamadı"
+      "revealFailed": "İçeren klasör açılamadı",
+      "download": "İndir",
+      "downloadSuccess": "İndirme başarılı",
+      "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
     "collapse": "Çalışma Alanını Daralt"

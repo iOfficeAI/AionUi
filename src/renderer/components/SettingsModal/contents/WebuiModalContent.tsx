@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { WEBUI_DEFAULT_PORT } from '@/common/constants';
 import { shell, webui, type IWebUIStatus } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
 import AionModal from '@/renderer/components/base/AionModal';
@@ -75,7 +76,7 @@ const WebuiModalContent: React.FC = () => {
   const [status, setStatus] = useState<IWebUIStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
-  const [port] = useState(25808);
+  const port = WEBUI_DEFAULT_PORT;
   const [webuiEnabled, setWebuiEnabled] = useState(false);
   const [allowRemotePreference, setAllowRemotePreference] = useState(false);
   const [cachedIP, setCachedIP] = useState<string | null>(null);
@@ -141,9 +142,9 @@ const WebuiModalContent: React.FC = () => {
           (prev) =>
             prev || {
               running: false,
-              port: 25808,
+              port: WEBUI_DEFAULT_PORT,
               allowRemote: false,
-              localUrl: 'http://localhost:25808',
+              localUrl: `http://localhost:${WEBUI_DEFAULT_PORT}`,
               adminUsername: 'admin',
             }
         );
@@ -166,9 +167,9 @@ const WebuiModalContent: React.FC = () => {
         setStatus((prev) => ({
           ...(prev || { adminUsername: 'admin' }),
           running: true,
-          port: data.port ?? prev?.port ?? 25808,
+          port: data.port ?? prev?.port ?? WEBUI_DEFAULT_PORT,
           allowRemote: prev?.allowRemote ?? false,
-          localUrl: data.localUrl ?? `http://localhost:${data.port ?? 25808}`,
+          localUrl: data.localUrl ?? `http://localhost:${data.port ?? WEBUI_DEFAULT_PORT}`,
           networkUrl: data.networkUrl,
           lanIP: prev?.lanIP,
           initialPassword: prev?.initialPassword,

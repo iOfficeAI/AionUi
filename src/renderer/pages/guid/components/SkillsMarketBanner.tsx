@@ -21,10 +21,22 @@ const SkillsMarketBanner: React.FC = () => {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    void ConfigStorage.get('skillsMarket.enabled').then((val) => {
-      setEnabled(!!val);
+    const timeout = setTimeout(() => {
       setInitialized(true);
-    });
+    }, 2000);
+
+    void ConfigStorage.get('skillsMarket.enabled')
+      .then((val) => {
+        setEnabled(!!val);
+      })
+      .catch((error) => {
+        console.warn('Failed to read skills market setting, fallback to disabled:', error);
+        setEnabled(false);
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        setInitialized(true);
+      });
   }, []);
 
   const handleToggle = useCallback(
@@ -64,24 +76,20 @@ const SkillsMarketBanner: React.FC = () => {
   if (!initialized) return null;
 
   return (
-    <div className='absolute top-12px right-12px z-10'>
-      <div
-        className={`flex items-center gap-12px rd-10px bg-fill-0 border border-solid border-[var(--color-border-2)] px-16px py-10px transition-all duration-300 ${enabled ? 'max-w-500px' : 'max-w-280px'}`}
-      >
+    <div className='absolute right-12px z-10' style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}>
+      <div className='flex items-center border border-solid border-[var(--color-border-2)] bg-fill-0 transition-all duration-300 gap-12px rd-10px px-16px py-10px max-w-280px'>
         <div className='flex-1 min-w-0'>
           <div className='text-14px font-medium text-[var(--color-text-1)] whitespace-nowrap'>
             {t('conversation.welcome.skillsMarket')}
           </div>
-          {!enabled && (
-            <div className='text-12px text-[var(--color-text-3)] mt-2px leading-tight'>
-              {t('conversation.welcome.skillsMarketDesc')}{' '}
-              <span className='text-[rgb(var(--primary-6))] cursor-pointer hover:underline' onClick={handleOpenDetails}>
-                {t('conversation.welcome.skillsMarketDetails')}
-              </span>
-            </div>
-          )}
+          <div className='text-12px text-[var(--color-text-3)] mt-2px leading-tight'>
+            {t('conversation.welcome.skillsMarketDesc')}{' '}
+            <span className='text-[rgb(var(--primary-6))] cursor-pointer hover:underline' onClick={handleOpenDetails}>
+              {t('conversation.welcome.skillsMarketDetails')}
+            </span>
+          </div>
         </div>
-        <Switch size='small' checked={enabled} loading={loading} onChange={handleToggle} />
+        <Switch className='shrink-0' size='small' checked={enabled} loading={loading} onChange={handleToggle} />
       </div>
     </div>
   );
