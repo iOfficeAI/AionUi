@@ -247,6 +247,38 @@ export const fs = {
   detectCommonSkillPaths: bridge.buildProvider<IBridgeResponse<Array<{ name: string; path: string }>>, void>(
     'detect-common-skill-paths'
   ),
+  // 检测外部 skills 并统计数量（用于 Skills Hub）/ Detect external skills with counts (for Skills Hub)
+  detectAndCountExternalSkills: bridge.buildProvider<
+    IBridgeResponse<
+      Array<{
+        name: string;
+        path: string;
+        source: string;
+        skills: Array<{ name: string; description: string; path: string }>;
+      }>
+    >,
+    void
+  >('detect-and-count-external-skills'),
+  // 符号链接方式导入 skill / Import skill via symlink
+  importSkillWithSymlink: bridge.buildProvider<IBridgeResponse<{ skillName: string }>, { skillPath: string }>(
+    'import-skill-with-symlink'
+  ),
+  // 删除自定义 skill / Delete custom skill
+  deleteSkill: bridge.buildProvider<IBridgeResponse, { skillName: string }>('delete-skill'),
+  // 获取技能存储路径 / Get skill storage paths
+  getSkillPaths: bridge.buildProvider<{ userSkillsDir: string; builtinSkillsDir: string }, void>('get-skill-paths'),
+  // 将 skill 同步导出到外部目录 / Export skill to external directory via symlink
+  exportSkillWithSymlink: bridge.buildProvider<IBridgeResponse, { skillPath: string; targetDir: string }>(
+    'export-skill-with-symlink'
+  ),
+  // 自定义外部技能路径管理 / Custom external skill paths management
+  getCustomExternalPaths: bridge.buildProvider<Array<{ name: string; path: string }>, void>(
+    'get-custom-external-paths'
+  ),
+  addCustomExternalPath: bridge.buildProvider<IBridgeResponse, { name: string; path: string }>(
+    'add-custom-external-path'
+  ),
+  removeCustomExternalPath: bridge.buildProvider<IBridgeResponse, { path: string }>('remove-custom-external-path'),
   // Skills Market: inject/remove the aionui-skills builtin skill
   enableSkillsMarket: bridge.buildProvider<IBridgeResponse, void>('enable-skills-market'),
   disableSkillsMarket: bridge.buildProvider<IBridgeResponse, void>('disable-skills-market'),
