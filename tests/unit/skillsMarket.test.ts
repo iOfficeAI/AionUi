@@ -126,7 +126,7 @@ describe('Skills Market - Enable/Disable flow', () => {
 
 describe('Skills Market - AcpSkillManager integration', () => {
   // Mock Electron app and initStorage before importing AcpSkillManager
-  vi.mock('electron', () => ({ app: { getPath: () => '/tmp/aionui-test' } }));
+  vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
   vi.mock('../../src/process/initStorage', () => ({
     getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
     getBuiltinSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),

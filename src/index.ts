@@ -5,6 +5,7 @@
  */
 
 import './utils/configureConsoleLog';
+// configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
 import './utils/configureChromium';
 import { app, BrowserWindow, Menu, nativeImage, net, powerMonitor, protocol, screen, Tray } from 'electron';
 import fixPath from 'fix-path';

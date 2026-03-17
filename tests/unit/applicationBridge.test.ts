@@ -17,6 +17,7 @@ describe('applicationBridge CDP functionality', () => {
     vi.doMock('electron', () => ({
       app: {
         isPackaged: false,
+        setName: vi.fn(),
         getPath: vi.fn((name: string) => {
           if (name === 'userData') return '/mock/userData';
           return '/mock/path';
@@ -119,6 +120,7 @@ describe('CDP configuration functions', () => {
     vi.doMock('electron', () => ({
       app: {
         isPackaged: false,
+        setName: vi.fn(),
         getPath: vi.fn(() => '/mock/userData'),
         commandLine: { appendSwitch: vi.fn() },
       },
@@ -150,6 +152,7 @@ describe('CDP configuration functions', () => {
     vi.doMock('electron', () => ({
       app: {
         isPackaged: false,
+        setName: vi.fn(),
         getPath: vi.fn(() => '/mock/userData'),
         commandLine: { appendSwitch: vi.fn() },
       },
@@ -179,6 +182,7 @@ describe('CDP configuration functions', () => {
     vi.doMock('electron', () => ({
       app: {
         isPackaged: false,
+        setName: vi.fn(),
         getPath: vi.fn(() => '/mock/userData'),
         commandLine: { appendSwitch: vi.fn() },
       },
@@ -205,6 +209,7 @@ describe('CDP configuration functions', () => {
     vi.doMock('electron', () => ({
       app: {
         isPackaged: false,
+        setName: vi.fn(),
         getPath: vi.fn(() => '/mock/userData'),
         commandLine: { appendSwitch: vi.fn() },
       },
