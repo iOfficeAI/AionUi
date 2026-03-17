@@ -483,6 +483,9 @@ export class AcpAgent {
     // Clear session-scoped caches when session ends
     this.approvalStore.clear();
     this.permissionRequestMeta.clear();
+    // Clear the session ID so the next message creates a fresh session
+    // instead of resuming the old one (fixes stop+resend bug)
+    this.extra.acpSessionId = undefined;
     // Emit finish event to reset frontend UI state
     this.onStreamEvent({
       type: 'finish',
