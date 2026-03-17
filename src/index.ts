@@ -531,7 +531,7 @@ const handleAppReady = async (): Promise<void> => {
     if (cdpReady) {
       console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
       console.log(
-        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`
+        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@0.16.0 --browser-url=http://127.0.0.1:${cdpPort}`
       );
     } else {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
