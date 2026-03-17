@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { base64ToBlob, BINARY_MIME_MAP } from '@/renderer/utils/base64';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
@@ -331,26 +332,8 @@ const PreviewPanel: React.FC = () => {
         // to avoid CSP connect-src blocking fetch() of data: URLs.
         const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: metadata.filePath });
 
-        const MIME_MAP: Record<string, string> = {
-          xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          xls: 'application/vnd.ms-excel',
-          csv: 'text/csv',
-          ods: 'application/vnd.oasis.opendocument.spreadsheet',
-          pdf: 'application/pdf',
-          pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          ppt: 'application/vnd.ms-powerpoint',
-          odp: 'application/vnd.oasis.opendocument.presentation',
-          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          doc: 'application/msword',
-          odt: 'application/vnd.oasis.opendocument.text',
-        };
-        const mimeType = (nameExt && MIME_MAP[nameExt.toLowerCase()]) || 'application/octet-stream';
-
-        const base64 = dataUrl.split(',')[1];
-        const binaryStr = atob(base64);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-        blob = new Blob([bytes], { type: mimeType });
+        const mimeType = (nameExt && BINARY_MIME_MAP[nameExt.toLowerCase()]) || 'application/octet-stream';
+        blob = base64ToBlob(dataUrl, mimeType);
 
         if (nameExt) ext = nameExt;
       } else {
