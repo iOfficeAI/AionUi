@@ -230,11 +230,17 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                 </div>
               ) : (
                 React.cloneElement(
-                  item.icon as React.ReactElement<{ theme?: string; size?: string | number; className?: string }>,
+                  item.icon as React.ReactElement<{
+                    theme?: string;
+                    size?: string | number;
+                    className?: string;
+                    strokeWidth?: number;
+                  }>,
                   {
                     theme: 'outline',
                     size: '20',
-                    className: 'mt-2px ml-2px mr-8px flex',
+                    strokeWidth: 3,
+                    className: 'mt-2px ml-2px mr-8px flex text-t-secondary',
                   }
                 )
               )}

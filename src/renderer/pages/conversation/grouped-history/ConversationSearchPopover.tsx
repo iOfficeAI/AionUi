@@ -12,8 +12,8 @@ import { useOptionalConversationTabs } from '@/renderer/pages/conversation/conte
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/focus';
-import { Empty, Input, Spin, Typography } from '@arco-design/web-react';
-import { Close, MessageOne, Search } from '@icon-park/react';
+import { Empty, Spin, Typography } from '@arco-design/web-react';
+import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,8 @@ import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import './ConversationSearchPopover.css';
 
 const PAGE_SIZE = 20;
+const MAX_RECENT_SEARCHES = 8;
+const RECENT_SEARCH_STORAGE_KEY = 'conversation.historySearch.recentKeywords';
 const SNIPPET_MAX_LENGTH = 110;
 const SNIPPET_PREFIX_CONTEXT_LENGTH = 34;
 const SNIPPET_SUFFIX_CONTEXT_LENGTH = 58;
@@ -150,6 +152,30 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
+
+  const updateRecentKeywords = useCallback((nextKeywords: string[]) => {
+    setRecentKeywords(nextKeywords);
+    try {
+      localStorage.setItem(RECENT_SEARCH_STORAGE_KEY, JSON.stringify(nextKeywords));
+    } catch {
+      // Ignore storage write errors in private mode / restricted environments.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_SEARCH_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const sanitized = parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+        setRecentKeywords(sanitized.slice(0, MAX_RECENT_SEARCHES));
+      }
+    } catch {
+      // Ignore storage parse errors and fallback to empty history.
+    }
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -203,6 +229,18 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     void runSearch(0, false);
   }, [runSearch]);
 
+  useEffect(() => {
+    if (!debouncedKeyword) return;
+    const normalized = debouncedKeyword.trim();
+    if (!normalized) return;
+
+    const nextKeywords = [normalized, ...recentKeywords.filter((item) => item !== normalized)].slice(
+      0,
+      MAX_RECENT_SEARCHES
+    );
+    updateRecentKeywords(nextKeywords);
+  }, [debouncedKeyword, recentKeywords, updateRecentKeywords]);
+
   const handleLoadMore = useCallback(() => {
     if (!visible || !debouncedKeyword || loading || loadingMore || !hasMore) {
       return;
@@ -253,7 +291,27 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   const resultContent = useMemo(() => {
     if (!debouncedKeyword) {
-      return <div className='text-13px text-t-secondary py-12px'>{t('conversation.historySearch.idle')}</div>;
+      return (
+        <div className='conversation-search-modal__state'>
+          <div className='conversation-search-modal__state-content'>
+            <span className='text-13px'>{t('conversation.historySearch.idle')}</span>
+            {recentKeywords.length > 0 ? (
+              <div className='conversation-search-modal__recent-wrap'>
+                {recentKeywords.map((item) => (
+                  <button
+                    key={item}
+                    type='button'
+                    className='conversation-search-modal__recent-chip'
+                    onClick={() => setKeyword(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      );
     }
 
     if (loading && items.length === 0) {
@@ -265,7 +323,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     }
 
     if (items.length === 0) {
-      return <Empty className='py-12px' description={t('conversation.historySearch.empty')} />;
+      return (
+        <div className='conversation-search-modal__state'>
+          <Empty className='py-2px' description={t('conversation.historySearch.empty')} />
+        </div>
+      );
     }
 
     return (
@@ -320,7 +382,10 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         </div>
       </div>
     );
-  }, [debouncedKeyword, handleLoadMore, handleResultClick, items, loading, loadingMore, t]);
+  }, [debouncedKeyword, handleLoadMore, handleResultClick, items, loading, loadingMore, recentKeywords, t]);
+
+  const hasSearchResults = items.length > 0;
+  const useCompactHeight = !debouncedKeyword || (!loading && !hasSearchResults);
 
   return (
     <>
@@ -350,9 +415,9 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         showCustomClose={false}
         className='conversation-search-modal'
         maskStyle={{
-          background: 'transparent',
-          backdropFilter: 'none',
-          WebkitBackdropFilter: 'none',
+          background: 'var(--conversation-search-mask-bg)',
+          backdropFilter: 'blur(1px)',
+          WebkitBackdropFilter: 'blur(1px)',
         }}
         style={{
           width: 'min(700px, calc(100vw - 56px))',
@@ -365,10 +430,16 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           borderRadius: '24px',
           padding: '0',
           overflow: 'hidden',
-          height: 'min(70vh, 720px)',
+          height: useCompactHeight ? 'auto' : 'min(70vh, 720px)',
+          minHeight: useCompactHeight ? '300px' : undefined,
+          maxHeight: 'min(70vh, 720px)',
         }}
       >
-        <div className='conversation-search-modal__panel h-full min-h-0 flex flex-col'>
+        <div
+          className={classNames('conversation-search-modal__panel flex flex-col', {
+            'h-full min-h-0': !useCompactHeight,
+          })}
+        >
           <div className='conversation-search-modal__header'>
             <div className='conversation-search-modal__header-main'>
               <div className='conversation-search-modal__title'>{t('conversation.historySearch.title')}</div>
@@ -382,20 +453,31 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
               onClick={handleClose}
               aria-label='Close'
             >
-              <Close size={20} />
+              <Close size={16} />
             </button>
           </div>
 
           <div className='mb-14px conversation-search-modal__input-wrap'>
-            <Input
-              autoFocus={visible}
-              allowClear
-              size='large'
-              value={keyword}
-              placeholder={t('conversation.historySearch.placeholder')}
-              onChange={setKeyword}
-              prefix={<Search theme='outline' size='18' className='text-t-secondary' />}
-            />
+            <div className='conversation-search-modal__searchbar'>
+              <Search theme='outline' size='16' className='conversation-search-modal__search-icon' />
+              <input
+                autoFocus={visible}
+                value={keyword}
+                placeholder={t('conversation.historySearch.placeholder')}
+                onChange={(event) => setKeyword(event.target.value)}
+                className='conversation-search-modal__search-input'
+              />
+              {keyword ? (
+                <button
+                  type='button'
+                  className='conversation-search-modal__clear-btn'
+                  onClick={() => setKeyword('')}
+                  aria-label='Clear search'
+                >
+                  <CloseSmall theme='outline' size='14' />
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className='flex-1 min-h-0'>{resultContent}</div>
