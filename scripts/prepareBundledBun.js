@@ -3,6 +3,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const CACHE_META_FILE = 'runtime-meta.json';
+
 function ensureDirectory(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -18,8 +20,27 @@ function copyFileSafe(sourcePath, targetPath) {
   fs.copyFileSync(sourcePath, targetPath);
 }
 
+function readJsonSafe(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(filePath, payload) {
+  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2) + '\n', 'utf-8');
+}
+
 function getRequiredRuntimeFiles(platform) {
-  return platform === 'win32' ? ['bun.exe', 'bunx.exe'] : ['bun', 'bunx'];
+  return [platform === 'win32' ? 'bun.exe' : 'bun'];
+}
+
+function getRuntimeVersion() {
+  const configured = process.env.AIONUI_BUN_VERSION;
+  return configured && configured.trim() ? configured.trim() : 'latest';
 }
 
 function getCacheRootDir() {
@@ -39,11 +60,6 @@ function getCacheRootDir() {
 
   const xdgCacheHome = process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache');
   return path.join(xdgCacheHome, 'AionUi', 'bundled-bun');
-}
-
-function getRuntimeVersion() {
-  const configured = process.env.AIONUI_BUN_VERSION;
-  return configured && configured.trim() ? configured.trim() : 'latest';
 }
 
 function getPlatformAsset(platform, arch) {
@@ -83,7 +99,7 @@ function runCommand(command, args, options = {}) {
 }
 
 function downloadFile(url, outputPath) {
-  console.log(`🌐 Downloading bun runtime from ${url}`);
+  console.log(`Downloading bun runtime from ${url}`);
 
   if (process.platform === 'win32') {
     const psScript = [
@@ -142,9 +158,40 @@ function findRuntimeDirectory(rootDir, requiredFiles) {
   return null;
 }
 
-function isCachedRuntimeValid(cacheRuntimeDir, platform) {
+function ensureExecutableMode(filePath) {
+  if (process.platform === 'win32') return;
+  try {
+    fs.chmodSync(filePath, 0o755);
+  } catch {
+  }
+}
+
+function getCacheMetaPath(cacheRuntimeDir) {
+  return path.join(cacheRuntimeDir, CACHE_META_FILE);
+}
+
+function readCacheMeta(cacheRuntimeDir) {
+  return readJsonSafe(getCacheMetaPath(cacheRuntimeDir));
+}
+
+function writeCacheMeta(cacheRuntimeDir, meta) {
+  writeJson(getCacheMetaPath(cacheRuntimeDir), meta);
+}
+
+function isCachedRuntimeValid(cacheRuntimeDir, platform, arch, version) {
   const requiredFiles = getRequiredRuntimeFiles(platform);
-  return requiredFiles.every((fileName) => fs.existsSync(path.join(cacheRuntimeDir, fileName)));
+  const filesOk = requiredFiles.every((fileName) => fs.existsSync(path.join(cacheRuntimeDir, fileName)));
+  if (!filesOk) return false;
+
+  const meta = readCacheMeta(cacheRuntimeDir);
+  if (!meta) return false;
+
+  return (
+    meta.platform === platform &&
+    meta.arch === arch &&
+    meta.version === version &&
+    meta.sourceType === 'download'
+  );
 }
 
 function writeManifest(outputDir, manifest) {
@@ -159,15 +206,8 @@ function copyRuntimeFromDirectory(sourceDir, targetDir, platform) {
     const sourcePath = path.join(sourceDir, fileName);
     const targetPath = path.join(targetDir, fileName);
     copyFileSafe(sourcePath, targetPath);
+    ensureExecutableMode(targetPath);
     copied.push(fileName);
-  }
-
-  if (platform === 'win32') {
-    const bunxCmd = path.join(sourceDir, 'bunx.cmd');
-    if (fs.existsSync(bunxCmd)) {
-      copyFileSafe(bunxCmd, path.join(targetDir, 'bunx.cmd'));
-      copied.push('bunx.cmd');
-    }
   }
 
   return copied;
@@ -180,7 +220,7 @@ function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
   }
 
   const downloadUrl = getDownloadUrl(assetName, version);
-  const tempRoot = path.join(cacheRuntimeDir, '_tmp');
+  const tempRoot = path.join(os.tmpdir(), 'aionui-bundled-bun', version, `${platform}-${arch}`);
   const tempZipPath = path.join(tempRoot, assetName);
   const extractedDir = path.join(tempRoot, 'extracted');
 
@@ -200,15 +240,26 @@ function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
   ensureDirectory(cacheRuntimeDir);
   const copied = copyRuntimeFromDirectory(runtimeDir, cacheRuntimeDir, platform);
 
-  removeDirectorySafe(tempRoot);
-
-  return {
+  const cacheMeta = {
+    platform,
+    arch,
+    version,
     sourceType: 'download',
     source: {
       url: downloadUrl,
       asset: assetName,
     },
+    updatedAt: new Date().toISOString(),
+  };
+  writeCacheMeta(cacheRuntimeDir, cacheMeta);
+
+  removeDirectorySafe(tempRoot);
+
+  return {
+    sourceType: 'download',
+    source: cacheMeta.source,
     files: copied,
+    cacheMeta,
   };
 }
 
@@ -229,19 +280,23 @@ function prepareBundledBun() {
 
   try {
     let prepareResult = null;
+    let cacheMeta = null;
 
-    if (isCachedRuntimeValid(cacheRuntimeDir, platform)) {
+    if (isCachedRuntimeValid(cacheRuntimeDir, platform, arch, runtimeVersion)) {
+      cacheMeta = readCacheMeta(cacheRuntimeDir);
       prepareResult = {
         sourceType: 'cache',
         source: {
           dir: cacheRuntimeDir,
+          origin: cacheMeta?.source || {},
         },
         files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
       };
     } else {
       // Strict policy: packaging should only read from cache.
-      // If cache is missing, populate cache via network download first.
+      // If cache is missing/invalid, refresh cache via network download first.
       const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
+      cacheMeta = downloadResult.cacheMeta;
       prepareResult = {
         sourceType: downloadResult.sourceType,
         source: downloadResult.source,
@@ -256,6 +311,7 @@ function prepareBundledBun() {
       generatedAt: new Date().toISOString(),
       sourceType: prepareResult.sourceType,
       cacheDir: cacheRuntimeDir,
+      cacheMeta,
       source: prepareResult.source,
       files: prepareResult.files,
       skipped: false,
@@ -263,7 +319,7 @@ function prepareBundledBun() {
 
     writeManifest(targetDir, manifest);
     console.log(
-      `📦 Bundled bun runtime prepared: ${path.relative(projectRoot, targetDir)} (${prepareResult.files.join(', ')}) [source=${prepareResult.sourceType}]`
+      `Bundled bun runtime prepared: ${path.relative(projectRoot, targetDir)} (${prepareResult.files.join(', ')}) [source=${prepareResult.sourceType}]`
     );
 
     return { prepared: true, dir: targetDir, files: prepareResult.files, sourceType: prepareResult.sourceType };
@@ -282,7 +338,7 @@ function prepareBundledBun() {
     };
 
     writeManifest(targetDir, manifest);
-    console.warn(`⚠️  Failed to prepare bundled bun runtime: ${manifest.reason}`);
+    console.warn(`Failed to prepare bundled bun runtime: ${manifest.reason}`);
     return { prepared: false, reason: 'error' };
   }
 }

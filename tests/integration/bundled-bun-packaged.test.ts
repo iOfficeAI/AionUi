@@ -58,7 +58,15 @@ type BundledBunManifest = {
   generatedAt: string;
   sourceType: 'cache' | 'download' | 'none';
   cacheDir: string;
-  source: Record<string, string>;
+  cacheMeta?: {
+    platform: string;
+    arch: string;
+    version: string;
+    sourceType: 'download';
+    source: Record<string, string>;
+    updatedAt: string;
+  };
+  source: Record<string, unknown>;
   files: string[];
   skipped?: boolean;
   reason?: string;
@@ -93,7 +101,16 @@ describe('Packaged bundled bun resources integrity', () => {
       expect(manifest.skipped).not.toBe(true);
       expect(['cache', 'download']).toContain(manifest.sourceType);
 
-      const requiredFiles = manifest.platform === 'win32' ? ['bun.exe', 'bunx.exe'] : ['bun', 'bunx'];
+      if (manifest.sourceType === 'cache') {
+        // Backward compatible: old packaged manifests may miss cacheMeta.
+        if (manifest.cacheMeta) {
+          expect(manifest.cacheMeta.sourceType).toBe('download');
+        } else {
+          expect((manifest.source as { dir?: string }).dir).toBeTruthy();
+        }
+      }
+
+      const requiredFiles = manifest.platform === 'win32' ? ['bun.exe'] : ['bun'];
       for (const requiredFile of requiredFiles) {
         expect(manifest.files).toContain(requiredFile);
       }

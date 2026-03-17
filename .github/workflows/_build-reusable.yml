@@ -485,11 +485,13 @@ jobs:
 
 
 
-      - name: Verify packaged i18n assets
+      
+
+      - name: Verify packaged bundled bun assets
         if: >-
           !startsWith(matrix.platform, 'windows') ||
           steps.windows-build.outputs.result == 'success'
-        run: bun run test:packaged:i18n
+        run: bun run test:packaged:bun
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
@@ -595,3 +597,5 @@ jobs:
           echo "| Platforms | $PLATFORMS |" >> $GITHUB_STEP_SUMMARY
           echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+
+
