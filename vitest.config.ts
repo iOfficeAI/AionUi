@@ -53,6 +53,7 @@ export default defineConfig({
         // Process / bridge
         'src/process/tray.ts',
         'src/process/deepLink.ts',
+        'src/process/mainWindowLifecycle.ts',
         'src/process/webuiConfig.ts',
         'src/process/bridge/services/WebuiService.ts',
         'src/process/database/index.ts',

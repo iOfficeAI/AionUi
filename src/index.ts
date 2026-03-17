@@ -19,22 +19,19 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
-import { setApplicationMainWindow } from './process/bridge/applicationBridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
-import { setMainWindow } from './process/bridge/notificationBridge';
 import { setInitialLanguage } from '@process/i18n';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
+import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/deepLink';
 import {
-  clearPendingDeepLinkUrl,
-  getPendingDeepLinkUrl,
-  handleDeepLinkUrl,
-  PROTOCOL_SCHEME,
-  setDeepLinkMainWindow,
-} from './process/deepLink';
+  bindMainWindowReferences,
+  showAndFocusMainWindow,
+  showOrCreateMainWindow,
+} from './process/mainWindowLifecycle';
 import {
   loadUserWebUIConfig,
   resolveRemoteAccess,
@@ -49,7 +46,6 @@ import {
   refreshTrayMenu,
   setCloseToTrayEnabled,
   setIsQuitting,
-  setTrayMainWindow,
 } from './process/tray';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
@@ -78,25 +74,14 @@ if (!gotTheLock) {
       return;
     }
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-      return;
-    }
-
-    const existingWindow = BrowserWindow.getAllWindows().find((win) => !win.isDestroyed());
-    if (existingWindow) {
-      mainWindow = existingWindow;
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-      return;
-    }
-
     if (app.isReady()) {
-      console.log('[AionUi] second-instance received with no active window, recreating main window');
-      createWindow();
+      showOrCreateMainWindow({
+        mainWindow,
+        createWindow: () => {
+          console.log('[AionUi] second-instance received with no active main window, recreating main window');
+          createWindow();
+        },
+      });
     }
   });
 }
@@ -274,14 +259,9 @@ const createWindow = (): void => {
   setTimeout(showWindow, 5000);
 
   initMainAdapterWithWindow(mainWindow);
-  setTrayMainWindow(mainWindow);
-  setDeepLinkMainWindow(mainWindow);
-  setApplicationMainWindow(mainWindow);
+  bindMainWindowReferences(mainWindow);
   setupApplicationMenu();
 
-  // Set main window reference for notifications
-  // 设置主窗口引用供通知使用
-  setMainWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
@@ -585,12 +565,11 @@ if (process.defaultApp) {
 app.on('open-url', (event, url) => {
   event.preventDefault();
   handleDeepLinkUrl(url);
-  // Focus existing window so user sees the result
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
+  if (isWebUIMode || isResetPasswordMode || !app.isReady()) {
+    return;
   }
+  // Focus existing window so user sees the result
+  showOrCreateMainWindow({ mainWindow, createWindow });
 });
 
 // Ensure we don't miss the ready event when running in CLI/WebUI mode
@@ -622,12 +601,11 @@ app.on('activate', () => {
   if (!isWebUIMode && app.isReady()) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
-      mainWindow.show();
-      mainWindow.focus();
+      showAndFocusMainWindow(mainWindow);
       if (process.platform === 'darwin' && app.dock) {
         void app.dock.show();
       }
-    } else if (BrowserWindow.getAllWindows().length === 0) {
+    } else {
       createWindow();
     }
   }
