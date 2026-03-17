@@ -12,6 +12,7 @@ import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
 import JSZip from 'jszip';
+import sharp from 'sharp';
 import { ipcBridge } from '../../common';
 import { getSystemDir, getAssistantsDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
@@ -199,6 +200,82 @@ async function deleteAssistantResource(resourceType: ResourceType, filePattern: 
 // File name patterns for rules and skills
 const ruleFilePattern = (id: string, loc: string) => `${id}.${loc}.md`;
 const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
+
+// Image resizing constants to prevent context window overflow
+// Images larger than these thresholds will be resized
+const MAX_IMAGE_WIDTH = 1920;
+const MAX_IMAGE_HEIGHT = 1080;
+const MAX_IMAGE_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const IMAGE_QUALITY = 80;
+
+/**
+ * Check if a file is an image based on extension
+ */
+function isImageFile(filePath: string): boolean {
+  const ext = path.extname(filePath).toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext);
+}
+
+/**
+ * Resize image to prevent context window overflow
+ * Returns the resized buffer or original buffer if resizing fails/not needed
+ */
+async function resizeImageIfNeeded(buffer: Buffer, filePath: string): Promise<Buffer> {
+  // Skip if not an image
+  if (!isImageFile(filePath)) {
+    return buffer;
+  }
+
+  // Skip if buffer is small enough
+  if (buffer.length <= MAX_IMAGE_FILE_SIZE) {
+    return buffer;
+  }
+
+  try {
+    console.log(`[fsBridge] Resizing image ${path.basename(filePath)} (${Math.round(buffer.length / 1024)}KB)`);
+
+    const image = sharp(buffer);
+    const metadata = await image.metadata();
+
+    // Determine if resizing is needed
+    const needsResize =
+      (metadata.width && metadata.width > MAX_IMAGE_WIDTH) ||
+      (metadata.height && metadata.height > MAX_IMAGE_HEIGHT);
+
+    if (!needsResize && buffer.length <= MAX_IMAGE_FILE_SIZE) {
+      return buffer;
+    }
+
+    // Resize with maintained aspect ratio
+    let resizedBuffer = await image
+      .resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({ quality: IMAGE_QUALITY, progressive: true })
+      .toBuffer();
+
+    // If still too large, reduce quality further
+    if (resizedBuffer.length > MAX_IMAGE_FILE_SIZE) {
+      resizedBuffer = await sharp(buffer)
+        .resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 60, progressive: true })
+        .toBuffer();
+    }
+
+    console.log(
+      `[fsBridge] Image resized: ${Math.round(buffer.length / 1024)}KB -> ${Math.round(resizedBuffer.length / 1024)}KB`
+    );
+    return resizedBuffer;
+  } catch (error) {
+    console.error('[fsBridge] Failed to resize image:', error);
+    // Return original buffer on error
+    return buffer;
+  }
+}
 
 export function initFsBridge(): void {
   const canceledZipRequests = new Set<string>();
@@ -432,6 +509,9 @@ export function initFsBridge(): void {
       } else {
         bufferData = data;
       }
+
+      // Resize image if needed to prevent context window overflow
+      bufferData = await resizeImageIfNeeded(bufferData, filePath);
 
       await fs.writeFile(filePath, bufferData);
       return true;
