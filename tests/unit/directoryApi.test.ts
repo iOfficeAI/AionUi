@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { isPathAllowed } from '../../src/webserver/directoryApi';
 
 // Mock fs and os modules
 vi.mock('fs');
@@ -88,91 +89,74 @@ describe('directoryApi - Windows drive detection (#1082)', () => {
 });
 
 describe('directoryApi - macOS and Linux root directory access', () => {
-  it('should include / in allowed directories on macOS', () => {
-    const originalPlatform = process.platform;
+  const originalPlatform = process.platform;
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    vi.resetModules();
+  });
+
+  it('should include / in DEFAULT_ALLOWED_DIRECTORIES on macOS', async () => {
+    vi.resetModules();
     Object.defineProperty(process, 'platform', { value: 'darwin' });
+    vi.doMock('os', () => {
+      const mock = { homedir: vi.fn(() => '/Users/test') };
+      return { default: mock, ...mock };
+    });
+    vi.doMock('fs', () => {
+      const mock = {
+        existsSync: vi.fn(() => false),
+        statSync: vi.fn(() => ({ isDirectory: () => false })),
+        realpathSync: vi.fn((p: unknown) => String(p)),
+        readdirSync: vi.fn(() => []),
+        accessSync: vi.fn(),
+        constants: { R_OK: 4 },
+      };
+      return { default: mock, ...mock };
+    });
 
-    vi.mocked(fs.existsSync).mockReturnValue(false);
-    vi.mocked(fs.realpathSync).mockImplementation((p) => String(p));
-    vi.mocked(os.homedir).mockReturnValue('/Users/test');
-
-    const baseDirs = [process.cwd(), os.homedir()];
-    if (process.platform === 'darwin') {
-      baseDirs.push('/');
-    }
-
-    expect(baseDirs).toContain('/');
-
-    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    const { DEFAULT_ALLOWED_DIRECTORIES } = await import('../../src/webserver/directoryApi');
+    expect(DEFAULT_ALLOWED_DIRECTORIES).toContain('/');
   });
 
-  it('should include / in allowed directories on Linux (WSL)', () => {
-    const originalPlatform = process.platform;
+  it('should include / in DEFAULT_ALLOWED_DIRECTORIES on Linux', async () => {
+    vi.resetModules();
     Object.defineProperty(process, 'platform', { value: 'linux' });
+    vi.doMock('os', () => {
+      const mock = { homedir: vi.fn(() => '/home/test') };
+      return { default: mock, ...mock };
+    });
+    vi.doMock('fs', () => {
+      const mock = {
+        existsSync: vi.fn(() => false),
+        statSync: vi.fn(() => ({ isDirectory: () => false })),
+        realpathSync: vi.fn((p: unknown) => String(p)),
+        readdirSync: vi.fn(() => []),
+        accessSync: vi.fn(),
+        constants: { R_OK: 4 },
+      };
+      return { default: mock, ...mock };
+    });
 
-    vi.mocked(os.homedir).mockReturnValue('/home/test');
-
-    const baseDirs = [process.cwd(), os.homedir()];
-    if (process.platform === 'linux') {
-      baseDirs.push('/');
-    }
-
-    expect(baseDirs).toContain('/');
-
-    Object.defineProperty(process, 'platform', { value: originalPlatform });
-  });
-
-  it('should include / in allowed directories on non-WSL Linux', () => {
-    const originalPlatform = process.platform;
-    Object.defineProperty(process, 'platform', { value: 'linux' });
-
-    vi.mocked(fs.existsSync).mockReturnValue(false);
-    vi.mocked(os.homedir).mockReturnValue('/home/test');
-
-    const baseDirs = [process.cwd(), os.homedir()];
-    if (process.platform === 'linux') {
-      baseDirs.push('/');
-    }
-
-    expect(baseDirs).toContain('/');
-
-    Object.defineProperty(process, 'platform', { value: originalPlatform });
+    const { DEFAULT_ALLOWED_DIRECTORIES } = await import('../../src/webserver/directoryApi');
+    expect(DEFAULT_ALLOWED_DIRECTORIES).toContain('/');
   });
 
   it('should allow /Applications path when / is in allowed directories', () => {
-    // Simulate isPathAllowed with / as a base path
-    function isPathAllowed(targetPath: string, allowedBasePaths: string[]): boolean {
-      const resolved = path.resolve(targetPath);
-      return allowedBasePaths.some((basePath) => {
-        const relative = path.relative(basePath, resolved);
-        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-      });
-    }
-
-    const allowedPaths = ['/Users/test', '/'];
-    expect(isPathAllowed('/Applications', allowedPaths)).toBe(true);
-    expect(isPathAllowed('/System', allowedPaths)).toBe(true);
-    expect(isPathAllowed('/Users/test/Documents', allowedPaths)).toBe(true);
+    expect(isPathAllowed('/Applications', ['/Users/test', '/'])).toBe(true);
+    expect(isPathAllowed('/System', ['/Users/test', '/'])).toBe(true);
+    expect(isPathAllowed('/Users/test/Documents', ['/Users/test', '/'])).toBe(true);
   });
 
   it('should allow / itself when / is in allowed directories', () => {
-    function isPathAllowed(targetPath: string, allowedBasePaths: string[]): boolean {
-      const resolved = path.resolve(targetPath);
-      return allowedBasePaths.some((basePath) => {
-        const relative = path.relative(basePath, resolved);
-        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-      });
-    }
-
-    const allowedPaths = ['/'];
-    expect(isPathAllowed('/', allowedPaths)).toBe(true);
+    expect(isPathAllowed('/', ['/'])).toBe(true);
   });
 });
 
 describe('directoryApi - symlink handling in directory listing', () => {
   it('should skip symlinks that resolve outside the allowed directory', () => {
-    // Simulate validatePath throwing when symlink resolves outside safeDir
-    function validatePath(targetPath: string, allowedDirs: string[]): string {
+    // Simulate the production validatePath behavior: throws when symlink resolves outside safeDir
+    function mockValidatePath(targetPath: string, allowedDirs: string[]): string {
       const resolved = fs.realpathSync(targetPath) as string;
       const isAllowed = allowedDirs.some((base) => {
         const rel = path.relative(base, resolved);
@@ -203,7 +187,7 @@ describe('directoryApi - symlink handling in directory listing', () => {
     const items = names
       .map((name) => {
         try {
-          const itemPath = validatePath(path.join(safeDir, name), [safeDir]);
+          const itemPath = mockValidatePath(path.join(safeDir, name), [safeDir]);
           const itemStats = fs.statSync(itemPath);
           return { name, path: itemPath, isDirectory: itemStats.isDirectory() };
         } catch {
@@ -218,7 +202,7 @@ describe('directoryApi - symlink handling in directory listing', () => {
   });
 
   it('should include normal directories and skip symlinks that throw', () => {
-    function validatePath(targetPath: string, allowedDirs: string[]): string {
+    function mockValidatePath(targetPath: string, allowedDirs: string[]): string {
       const resolved = fs.realpathSync(targetPath) as string;
       const isAllowed = allowedDirs.some((base) => {
         const rel = path.relative(base, resolved);
@@ -249,7 +233,7 @@ describe('directoryApi - symlink handling in directory listing', () => {
     const items = names
       .map((name) => {
         try {
-          const itemPath = validatePath(path.join(safeDir, name), [safeDir]);
+          const itemPath = mockValidatePath(path.join(safeDir, name), [safeDir]);
           const itemStats = fs.statSync(itemPath);
           return { name, path: itemPath, isDirectory: itemStats.isDirectory() };
         } catch {
@@ -260,6 +244,20 @@ describe('directoryApi - symlink handling in directory listing', () => {
 
     expect(items).toHaveLength(2);
     expect(items.map((i) => i?.name)).toEqual(['App1.app', 'App2.app']);
+  });
+
+  it('isPathAllowed returns false for a symlink that resolves outside the allowed directory', () => {
+    // Verify the real isPathAllowed: when fs.realpathSync resolves a symlink to '/',
+    // it is NOT inside /Applications, so isPathAllowed returns false — this is why
+    // the production directory listing skips such symlinks.
+    vi.mocked(fs.realpathSync).mockImplementation((p) => {
+      const pStr = String(p);
+      if (pStr === '/Applications/symlinkToRoot') return '/';
+      return pStr;
+    });
+
+    expect(isPathAllowed('/Applications/symlinkToRoot', ['/Applications'])).toBe(false);
+    expect(isPathAllowed('/Applications/normalDir', ['/Applications'])).toBe(true);
   });
 });
 
