@@ -1,7 +1,7 @@
 .conversation-search-modal {
   --conversation-search-panel-bg: rgba(255, 255, 255, 0.34);
   --conversation-search-panel-inner-bg: rgba(255, 255, 255, 0.16);
-  --conversation-search-panel-border: rgba(229, 230, 235, 0.50);
+  --conversation-search-panel-border: rgba(229, 230, 235, 0.5);
   --conversation-search-panel-shadow: 0 24px 56px rgba(29, 33, 41, 0.12);
   --conversation-search-surface-bg: rgba(247, 248, 250, 0.28);
   --conversation-search-divider: rgba(229, 230, 235, 0.72);
@@ -13,7 +13,7 @@ body[arco-theme='dark'] .conversation-search-modal {
   --conversation-search-panel-bg: rgba(26, 26, 26, 0.54);
   --conversation-search-panel-inner-bg: rgba(16, 16, 16, 0.28);
   --conversation-search-panel-border: rgba(64, 64, 64, 0.54);
-  --conversation-search-panel-shadow: 0 24px 64px rgba(0, 0, 0, 0.30);
+  --conversation-search-panel-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
   --conversation-search-surface-bg: rgba(38, 38, 38, 0.38);
   --conversation-search-divider: rgba(64, 64, 64, 0.72);
   --conversation-search-hover-bg: rgba(255, 255, 255, 0.04);
@@ -107,7 +107,9 @@ body[arco-theme='dark'] .conversation-search-modal {
   background: transparent;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.16s ease, color 0.16s ease;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
 }
 
 .conversation-search-modal__close-btn:hover {
