@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, FlatList, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../../src/components/ui/ThemedText';
 import { api } from '../../src/services/api';
@@ -19,6 +20,7 @@ type DirEntry = {
 export default function FilesScreen() {
   const { t } = useTranslation();
   const { connectionState } = useConnection();
+  const router = useRouter();
   const tint = useThemeColor({}, 'tint');
   const border = useThemeColor({}, 'border');
   const [entries, setEntries] = useState<DirEntry[]>([]);
@@ -60,8 +62,12 @@ export default function FilesScreen() {
   const handlePress = (entry: DirEntry) => {
     if (entry.isDirectory) {
       loadDirectory(entry.path);
+    } else {
+      router.push({
+        pathname: '/file-preview',
+        params: { path: entry.path, name: entry.name, size: String(entry.size ?? 0) },
+      });
     }
-    // TODO: File preview
   };
 
   const goUp = () => {
@@ -86,10 +92,10 @@ export default function FilesScreen() {
           {item.name}
         </ThemedText>
         {!item.isDirectory && item.size !== undefined && (
-          <ThemedText type="caption">{formatSize(item.size)}</ThemedText>
+          <ThemedText type='caption'>{formatSize(item.size)}</ThemedText>
         )}
       </View>
-      {item.isDirectory && <Ionicons name="chevron-forward" size={18} color={iconColor} />}
+      {item.isDirectory && <Ionicons name='chevron-forward' size={18} color={iconColor} />}
     </TouchableOpacity>
   );
 
@@ -97,23 +103,19 @@ export default function FilesScreen() {
     <View style={styles.container}>
       {canGoUp && parentPath && (
         <TouchableOpacity style={[styles.parentRow, { borderBottomColor: border }]} onPress={goUp}>
-          <Ionicons name="arrow-up" size={18} color={tint} />
-          <ThemedText style={[styles.parentText, { color: tint }]}>
-            {t('files.parentDirectory')}
-          </ThemedText>
+          <Ionicons name='arrow-up' size={18} color={tint} />
+          <ThemedText style={[styles.parentText, { color: tint }]}>{t('files.parentDirectory')}</ThemedText>
         </TouchableOpacity>
       )}
       <FlatList
         data={entries}
         renderItem={renderItem}
         keyExtractor={(item) => item.path}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={() => loadDirectory(currentPath)} />
-        }
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => loadDirectory(currentPath)} />}
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.empty}>
-              <ThemedText type="caption">{t('files.empty')}</ThemedText>
+              <ThemedText type='caption'>{t('files.empty')}</ThemedText>
             </View>
           ) : null
         }

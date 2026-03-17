@@ -20,16 +20,25 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       {!isConfigured || connectionState === 'auth_failed' ? (
-        <Stack.Screen name="connect" />
+        <Stack.Screen name='connect' />
       ) : (
         <>
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name='(tabs)' />
           <Stack.Screen
-            name="conversation/[id]"
+            name='conversation/[id]'
             options={{
               headerShown: true,
               headerTitle: '',
               headerBackTitle: 'Back',
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name='file-preview'
+            options={{
+              headerShown: true,
+              headerTitle: '',
+              headerBackTitle: '',
               animation: 'slide_from_right',
             }}
           />
@@ -49,7 +58,7 @@ export default function RootLayout() {
           <ConversationProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
               <RootNavigator />
-              <StatusBar style="auto" />
+              <StatusBar style='auto' />
             </ThemeProvider>
           </ConversationProvider>
         </WebSocketProvider>

@@ -64,6 +64,13 @@
     "parentDirectory": "Parent Directory",
     "errorLoading": "Failed to load directory"
   },
+  "filePreview": {
+    "loading": "Loading file...",
+    "errorLoading": "Failed to load file",
+    "fileTooLarge": "File is too large to preview (>1 MB)",
+    "unsupportedType": "Preview not available for this file type",
+    "retry": "Retry"
+  },
   "settings": {
     "title": "Settings",
     "connection": "Connection",

@@ -64,6 +64,13 @@
     "parentDirectory": "上级目录",
     "errorLoading": "加载目录失败"
   },
+  "filePreview": {
+    "loading": "加载文件中...",
+    "errorLoading": "加载文件失败",
+    "fileTooLarge": "文件过大，无法预览（>1 MB）",
+    "unsupportedType": "暂不支持预览此文件类型",
+    "retry": "重试"
+  },
   "settings": {
     "title": "设置",
     "connection": "连接",
