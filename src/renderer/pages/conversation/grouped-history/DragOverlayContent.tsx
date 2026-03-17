@@ -31,7 +31,11 @@ const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation })
         transform: 'scale(1.02)',
       }}
     >
-      {logo ? <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-20px h-20px rounded-50% flex-shrink-0' /> : <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />}
+      {logo ? (
+        <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-20px h-20px rounded-50% flex-shrink-0' />
+      ) : (
+        <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
+      )}
       <div className='text-14px lh-24px text-t-primary truncate flex-1'>{conversation.name}</div>
     </div>
   );

@@ -147,26 +147,62 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
   return (
     <div className='absolute inset-0 pointer-events-none'>
       <div className='absolute inset-0' style={{ background: palette.appBg }} />
-      <div className='absolute left-8px right-8px top-8px bottom-8px rounded-8px overflow-hidden border border-solid' style={{ borderColor: palette.border, background: palette.mainBg }}>
-        <div className='h-14px border-b border-solid flex items-center px-6px gap-4px' style={{ borderColor: palette.border, background: palette.headerBg }}>
+      <div
+        className='absolute left-8px right-8px top-8px bottom-8px rounded-8px overflow-hidden border border-solid'
+        style={{ borderColor: palette.border, background: palette.mainBg }}
+      >
+        <div
+          className='h-14px border-b border-solid flex items-center px-6px gap-4px'
+          style={{ borderColor: palette.border, background: palette.headerBg }}
+        >
           <span className='block w-5px h-5px rounded-full' style={{ background: palette.accent, opacity: 0.9 }}></span>
-          <span className='block w-18px h-4px rounded-full' style={{ background: palette.border, opacity: 0.45 }}></span>
-          <span className='block w-12px h-4px rounded-full ml-auto' style={{ background: palette.border, opacity: 0.45 }}></span>
+          <span
+            className='block w-18px h-4px rounded-full'
+            style={{ background: palette.border, opacity: 0.45 }}
+          ></span>
+          <span
+            className='block w-12px h-4px rounded-full ml-auto'
+            style={{ background: palette.border, opacity: 0.45 }}
+          ></span>
         </div>
         <div style={{ height: 'calc(100% - 14px)', display: 'flex' }}>
-          <div className='border-r border-solid px-3px py-3px flex flex-col gap-3px' style={{ width: '23%', borderColor: palette.border, background: palette.sideBg }}>
+          <div
+            className='border-r border-solid px-3px py-3px flex flex-col gap-3px'
+            style={{ width: '23%', borderColor: palette.border, background: palette.sideBg }}
+          >
             <span className='block h-3px rounded-full' style={{ background: palette.textMuted, opacity: 0.4 }}></span>
-            <span className='block h-3px rounded-full w-4/5' style={{ background: palette.textMuted, opacity: 0.33 }}></span>
-            <span className='block h-3px rounded-full w-3/5' style={{ background: palette.textMuted, opacity: 0.28 }}></span>
+            <span
+              className='block h-3px rounded-full w-4/5'
+              style={{ background: palette.textMuted, opacity: 0.33 }}
+            ></span>
+            <span
+              className='block h-3px rounded-full w-3/5'
+              style={{ background: palette.textMuted, opacity: 0.28 }}
+            ></span>
           </div>
-          <div className='border-r border-solid px-4px py-4px flex flex-col gap-4px' style={{ width: '54%', borderColor: palette.border, background: palette.mainBg }}>
-            <span className='block h-6px rounded-[6px] w-4/5' style={{ background: palette.aiBubble, opacity: 0.9 }}></span>
-            <span className='block h-6px rounded-[6px] w-3/5 self-end' style={{ background: palette.userBubble, opacity: 0.95 }}></span>
-            <span className='block h-6px rounded-[6px] w-2/3' style={{ background: palette.aiBubble, opacity: 0.82 }}></span>
+          <div
+            className='border-r border-solid px-4px py-4px flex flex-col gap-4px'
+            style={{ width: '54%', borderColor: palette.border, background: palette.mainBg }}
+          >
+            <span
+              className='block h-6px rounded-[6px] w-4/5'
+              style={{ background: palette.aiBubble, opacity: 0.9 }}
+            ></span>
+            <span
+              className='block h-6px rounded-[6px] w-3/5 self-end'
+              style={{ background: palette.userBubble, opacity: 0.95 }}
+            ></span>
+            <span
+              className='block h-6px rounded-[6px] w-2/3'
+              style={{ background: palette.aiBubble, opacity: 0.82 }}
+            ></span>
           </div>
           <div className='px-3px py-3px flex flex-col gap-3px' style={{ width: '23%', background: palette.sideBg }}>
             <span className='block h-3px rounded-full' style={{ background: palette.textMuted, opacity: 0.36 }}></span>
-            <span className='block h-3px rounded-full w-5/6' style={{ background: palette.textMuted, opacity: 0.3 }}></span>
+            <span
+              className='block h-3px rounded-full w-5/6'
+              style={{ background: palette.textMuted, opacity: 0.3 }}
+            ></span>
           </div>
         </div>
       </div>
@@ -384,7 +420,9 @@ const CssThemeSettings: React.FC = () => {
 
         if (editingTheme && !editingTheme.isPreset) {
           // 更新现有用户主题 / Update existing user theme
-          updatedThemes = themes.map((t) => (t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updatedAt: now } : t));
+          updatedThemes = themes.map((t) =>
+            t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updatedAt: now } : t
+          );
         } else {
           // 添加新主题（包括从预设主题编辑创建副本）/ Add new theme (including copy from preset)
           const newTheme: ICssTheme = {
@@ -453,7 +491,13 @@ const CssThemeSettings: React.FC = () => {
       {/* 标题栏 / Header */}
       <div className='flex items-start md:items-center justify-between gap-8px flex-wrap'>
         <span className='text-14px text-t-secondary leading-22px'>{t('settings.cssTheme.selectOrCustomize')}</span>
-        <Button type='outline' size='small' className='rd-18px h-34px px-14px !m-0' icon={<Plus theme='outline' size='14' />} onClick={handleAddTheme}>
+        <Button
+          type='outline'
+          size='small'
+          className='rd-18px h-34px px-14px !m-0'
+          icon={<Plus theme='outline' size='14' />}
+          onClick={handleAddTheme}
+        >
           {t('settings.cssTheme.addManually')}
         </Button>
       </div>
@@ -466,7 +510,9 @@ const CssThemeSettings: React.FC = () => {
         }}
       >
         {themes.map((theme) => {
-          const previewPalette = themePreviewPalettes.get(theme.id) || fallbackThemePreviewPaletteByMode[currentTheme === 'dark' ? 'dark' : 'light'];
+          const previewPalette =
+            themePreviewPalettes.get(theme.id) ||
+            fallbackThemePreviewPaletteByMode[currentTheme === 'dark' ? 'dark' : 'light'];
           const cardStyle = theme.cover
             ? {
                 backgroundImage: `url(${theme.cover})`,
@@ -477,7 +523,14 @@ const CssThemeSettings: React.FC = () => {
               }
             : { backgroundColor: previewPalette.appBg };
           return (
-            <div key={theme.id} className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-full ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`} style={cardStyle} onClick={() => handleSelectTheme(theme)} onMouseEnter={() => setHoveredThemeId(theme.id)} onMouseLeave={() => setHoveredThemeId(null)}>
+            <div
+              key={theme.id}
+              className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 h-112px w-full ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`}
+              style={cardStyle}
+              onClick={() => handleSelectTheme(theme)}
+              onMouseEnter={() => setHoveredThemeId(theme.id)}
+              onMouseLeave={() => setHoveredThemeId(null)}
+            >
               {!theme.cover && <ThemeLayoutPreview palette={previewPalette} />}
 
               {/* 底部渐变遮罩与名称、编辑按钮 / Bottom gradient overlay with name and edit button */}
@@ -485,7 +538,10 @@ const CssThemeSettings: React.FC = () => {
                 <span className='text-13px text-white truncate flex-1'>{theme.name}</span>
                 {/* 编辑按钮 / Edit button */}
                 {hoveredThemeId === theme.id && (
-                  <div className='p-4px rounded-6px bg-white/20 cursor-pointer hover:bg-white/40 transition-colors ml-8px' onClick={(e) => handleEditTheme(theme, e)}>
+                  <div
+                    className='p-4px rounded-6px bg-white/20 cursor-pointer hover:bg-white/40 transition-colors ml-8px'
+                    onClick={(e) => handleEditTheme(theme, e)}
+                  >
                     <EditTwo theme='outline' size='16' fill='#fff' />
                   </div>
                 )}

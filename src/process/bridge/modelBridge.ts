@@ -6,7 +6,19 @@
 
 import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
-import { type ProtocolDetectionRequest, type ProtocolDetectionResponse, type ProtocolType, type MultiKeyTestResult, parseApiKeys, maskApiKey, normalizeBaseUrl, removeApiPathSuffix, guessProtocolFromUrl, guessProtocolFromKey, getProtocolDisplayName } from '@/common/utils/protocolDetector';
+import {
+  type ProtocolDetectionRequest,
+  type ProtocolDetectionResponse,
+  type ProtocolType,
+  type MultiKeyTestResult,
+  parseApiKeys,
+  maskApiKey,
+  normalizeBaseUrl,
+  removeApiPathSuffix,
+  guessProtocolFromUrl,
+  guessProtocolFromKey,
+  getProtocolDisplayName,
+} from '@/common/utils/protocolDetector';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
@@ -62,7 +74,17 @@ function getBedrockModelDisplayName(modelId: string): string {
 }
 
 export function initModelBridge(): void {
-  ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform, bedrockConfig }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string | { id: string; name: string }>; fix_base_url?: string } }> {
+  ipcBridge.mode.fetchModelList.provider(async function fetchModelList({
+    base_url,
+    api_key,
+    try_fix,
+    platform,
+    bedrockConfig,
+  }): Promise<{
+    success: boolean;
+    msg?: string;
+    data?: { mode: Array<string | { id: string; name: string }>; fix_base_url?: string };
+  }> {
     // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
     // If multiple keys (comma or newline separated), use only the first one
     let actualApiKey = api_key;
@@ -97,7 +119,16 @@ export function initModelBridge(): void {
     // DashScope Coding Plan does not provide /v1/models endpoint (returns 404)
     // Validate API key via /chat/completions probe, then return hardcoded list
     if (base_url && isDashScopeCodingAPI(base_url)) {
-      const codingPlanModels = ['qwen3-coder-plus', 'qwen3-coder-next', 'qwen3.5-plus', 'qwen3-max-2026-01-23', 'glm-4.7', 'glm-5', 'MiniMax-M2.5', 'kimi-k2.5'];
+      const codingPlanModels = [
+        'qwen3-coder-plus',
+        'qwen3-coder-next',
+        'qwen3.5-plus',
+        'qwen3-max-2026-01-23',
+        'glm-4.7',
+        'glm-5',
+        'MiniMax-M2.5',
+        'kimi-k2.5',
+      ];
 
       // Validate the API key by probing the chat/completions endpoint
       if (actualApiKey) {
@@ -106,7 +137,11 @@ export function initModelBridge(): void {
           const probeResponse = await fetch(probeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${actualApiKey}` },
-            body: JSON.stringify({ model: codingPlanModels[0], messages: [{ role: 'user', content: 'hi' }], max_tokens: 1 }),
+            body: JSON.stringify({
+              model: codingPlanModels[0],
+              messages: [{ role: 'user', content: 'hi' }],
+              max_tokens: 1,
+            }),
           });
           if (probeResponse.status === 401) {
             const errorData = await probeResponse.json().catch(() => ({}));
@@ -152,7 +187,12 @@ export function initModelBridge(): void {
         // Fall back to default model list on API failure
         const errorMessage = e instanceof Error ? e.message : String(e);
         console.warn('Failed to fetch Anthropic models via API, falling back to default list:', errorMessage);
-        const defaultAnthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-7-sonnet-20250219', 'claude-3-haiku-20240307'];
+        const defaultAnthropicModels = [
+          'claude-sonnet-4-20250514',
+          'claude-opus-4-20250514',
+          'claude-3-7-sonnet-20250219',
+          'claude-3-haiku-20240307',
+        ];
         return { success: true, data: { mode: defaultAnthropicModels } };
       }
     }
@@ -223,7 +263,9 @@ export function initModelBridge(): void {
 
           // Filter inference profiles that contain Claude models
           const inferenceProfiles = response.inferenceProfileSummaries || [];
-          const claudeProfiles = inferenceProfiles.filter((profile) => profile.inferenceProfileId?.includes('anthropic.claude'));
+          const claudeProfiles = inferenceProfiles.filter((profile) =>
+            profile.inferenceProfileId?.includes('anthropic.claude')
+          );
 
           if (claudeProfiles.length === 0) {
             return {
@@ -340,8 +382,16 @@ export function initModelBridge(): void {
       // If it's a clear API key issue, return error directly without trying to fix URL
       // 注意：403 可能是 URL 错误（如缺少 /v1）也可能是权限问题，需要根据错误消息判断
       // Note: 403 could be URL error (missing /v1) or permission issue, need to check error message
-      const isAuthError = e.status === 401 || e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('Invalid API key');
-      const isPermissionError = e.message?.includes('已被禁用') || e.message?.includes('disabled') || e.message?.includes('quota') || e.message?.includes('rate limit');
+      const isAuthError =
+        e.status === 401 ||
+        e.message?.includes('401') ||
+        e.message?.includes('Unauthorized') ||
+        e.message?.includes('Invalid API key');
+      const isPermissionError =
+        e.message?.includes('已被禁用') ||
+        e.message?.includes('disabled') ||
+        e.message?.includes('quota') ||
+        e.message?.includes('rate limit');
       if (isAuthError || isPermissionError) {
         return errRes;
       }
@@ -501,8 +551,16 @@ export function initModelBridge(): void {
   });
 
   // 协议检测接口实现 / Protocol detection implementation
-  ipcBridge.mode.detectProtocol.provider(async function detectProtocol(request: ProtocolDetectionRequest): Promise<{ success: boolean; msg?: string; data?: ProtocolDetectionResponse }> {
-    const { baseUrl: rawBaseUrl, apiKey: apiKeyString, timeout = 10000, testAllKeys = false, preferredProtocol } = request;
+  ipcBridge.mode.detectProtocol.provider(async function detectProtocol(
+    request: ProtocolDetectionRequest
+  ): Promise<{ success: boolean; msg?: string; data?: ProtocolDetectionResponse }> {
+    const {
+      baseUrl: rawBaseUrl,
+      apiKey: apiKeyString,
+      timeout = 10000,
+      testAllKeys = false,
+      preferredProtocol,
+    } = request;
 
     const baseUrl = normalizeBaseUrl(rawBaseUrl);
     const baseUrlCandidates = buildBaseUrlCandidates(baseUrl);
@@ -701,7 +759,11 @@ async function testProtocol(
  * 测试 Gemini 协议
  * Test Gemini protocol
  */
-async function testGeminiProtocol(baseUrl: string, apiKey: string, signal: AbortSignal): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
+async function testGeminiProtocol(
+  baseUrl: string,
+  apiKey: string,
+  signal: AbortSignal
+): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
   // Gemini API Key 格式: AIza...
   // 尝试多个可能的端点
   const endpoints = [
@@ -756,7 +818,11 @@ async function testGeminiProtocol(baseUrl: string, apiKey: string, signal: Abort
  * 测试 OpenAI 协议
  * Test OpenAI protocol
  */
-async function testOpenAIProtocol(baseUrl: string, apiKey: string, signal: AbortSignal): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
+async function testOpenAIProtocol(
+  baseUrl: string,
+  apiKey: string,
+  signal: AbortSignal
+): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
   // 尝试多个可能的端点
   const endpoints = [
     { url: `${baseUrl}/models`, path: '' },
@@ -833,10 +899,18 @@ async function testOpenAIProtocol(baseUrl: string, apiKey: string, signal: Abort
       const data = await response.json().catch((): null => null);
       if (data?.error && typeof data.error === 'object' && 'message' in data.error) {
         // OpenAI-style error response confirms the protocol
-        return { success: true, confidence: 75, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
+        return {
+          success: true,
+          confidence: 75,
+          fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined,
+        };
       }
       if (data?.choices && Array.isArray(data.choices)) {
-        return { success: true, confidence: 85, fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined };
+        return {
+          success: true,
+          confidence: 85,
+          fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined,
+        };
       }
     } catch {
       // Continue
@@ -879,7 +953,11 @@ function isAnthropicResponse(data: unknown): boolean {
  * 测试 Anthropic 协议
  * Test Anthropic protocol
  */
-async function testAnthropicProtocol(baseUrl: string, apiKey: string, signal: AbortSignal): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
+async function testAnthropicProtocol(
+  baseUrl: string,
+  apiKey: string,
+  signal: AbortSignal
+): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
   // Anthropic 没有 models 端点，需要用 messages 端点测试
   // 发送一个最小请求来验证认证
   const endpoints = [
@@ -915,7 +993,12 @@ async function testAnthropicProtocol(baseUrl: string, apiKey: string, signal: Ab
 
       // 200 表示成功
       if (response.ok && isAnthropicResponse(responseData)) {
-        const models = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022'];
+        const models = [
+          'claude-3-opus-20240229',
+          'claude-3-sonnet-20240229',
+          'claude-3-haiku-20240307',
+          'claude-3-5-sonnet-20241022',
+        ];
         return {
           success: true,
           confidence: 95,
@@ -930,7 +1013,12 @@ async function testAnthropicProtocol(baseUrl: string, apiKey: string, signal: Ab
           return { success: false, confidence: 70, error: 'Invalid API key for Anthropic protocol' };
         }
         // 400 参数错误但认证成功（Anthropic 格式验证通过）
-        const models = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022'];
+        const models = [
+          'claude-3-opus-20240229',
+          'claude-3-sonnet-20240229',
+          'claude-3-haiku-20240307',
+          'claude-3-5-sonnet-20241022',
+        ];
         return {
           success: true,
           confidence: 90,
@@ -1019,7 +1107,12 @@ function isMiniMaxAPI(baseUrl: string): boolean {
     const hostname = url.hostname.toLowerCase();
     // 精确匹配 minimaxi.com、minimax.io 或其子域名
     // Exact match minimaxi.com, minimax.io or their subdomains
-    return hostname === 'minimaxi.com' || hostname.endsWith('.minimaxi.com') || hostname === 'minimax.io' || hostname.endsWith('.minimax.io');
+    return (
+      hostname === 'minimaxi.com' ||
+      hostname.endsWith('.minimaxi.com') ||
+      hostname === 'minimax.io' ||
+      hostname.endsWith('.minimax.io')
+    );
   } catch {
     return false;
   }
@@ -1068,7 +1161,12 @@ function isPackyAPI(baseUrl: string): boolean {
  * 返回 i18n key 和参数，前端负责翻译
  * Return i18n key and params, frontend handles translation
  */
-function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl: string, error?: string): ProtocolDetectionResponse['suggestion'] {
+function generateSuggestion(
+  protocol: ProtocolType,
+  _confidence: number,
+  baseUrl: string,
+  error?: string
+): ProtocolDetectionResponse['suggestion'] {
   if (protocol === 'unknown') {
     if (error?.includes('timeout') || error?.includes('Timeout')) {
       return {
@@ -1102,7 +1200,8 @@ function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl
       // Detected OpenAI format (with /v1), suggest Claude format (without /v1) is also available
       return {
         type: 'none',
-        message: 'PackyAPI: Detected OpenAI format. For Claude format, use URL without /v1 and select Anthropic platform',
+        message:
+          'PackyAPI: Detected OpenAI format. For Claude format, use URL without /v1 and select Anthropic platform',
         i18nKey: 'settings.packyapiOpenAIDetected',
       };
     }
@@ -1111,7 +1210,8 @@ function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl
       // Detected Anthropic format (without /v1), suggest OpenAI format (with /v1) is also available
       return {
         type: 'none',
-        message: 'PackyAPI: Detected Claude format. For OpenAI format, add /v1 to URL and select OpenAI/Custom platform',
+        message:
+          'PackyAPI: Detected Claude format. For OpenAI format, add /v1 to URL and select OpenAI/Custom platform',
         i18nKey: 'settings.packyapiAnthropicDetected',
       };
     }

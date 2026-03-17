@@ -41,12 +41,18 @@ export interface LifecycleContext {
  * Scripts run in the main process (same as Channel Plugins).
  * Returns true if the hook ran successfully, false if it failed or doesn't exist.
  */
-async function runLifecycleHook(extension: LoadedExtension, hookName: keyof LifecycleHooks, scriptRelativePath: string): Promise<boolean> {
+async function runLifecycleHook(
+  extension: LoadedExtension,
+  hookName: keyof LifecycleHooks,
+  scriptRelativePath: string
+): Promise<boolean> {
   const scriptPath = path.resolve(extension.directory, scriptRelativePath);
 
   // Security: ensure script is within extension directory
   if (!isPathWithinDirectory(scriptPath, extension.directory)) {
-    console.warn(`[Extension Lifecycle] Path traversal detected in ${hookName} hook for "${extension.manifest.name}": ${scriptRelativePath}`);
+    console.warn(
+      `[Extension Lifecycle] Path traversal detected in ${hookName} hook for "${extension.manifest.name}": ${scriptRelativePath}`
+    );
     return false;
   }
 
@@ -76,7 +82,9 @@ async function runLifecycleHook(extension: LoadedExtension, hookName: keyof Life
       console.log(`[Extension Lifecycle] ${hookName} completed for "${extension.manifest.name}"`);
       return true;
     } else {
-      console.warn(`[Extension Lifecycle] Hook script for "${extension.manifest.name}" does not export a callable function`);
+      console.warn(
+        `[Extension Lifecycle] Hook script for "${extension.manifest.name}" does not export a callable function`
+      );
       return false;
     }
   } catch (error) {

@@ -57,7 +57,13 @@ const ToolGroupMapper = (m: IMessageToolGroup): ToolItem[] => {
       key: callId,
       name,
       desc,
-      status: (status === 'Success' ? 'success' : status === 'Error' ? 'error' : status === 'Canceled' ? 'default' : 'processing') as BadgeProps['status'],
+      status: (status === 'Success'
+        ? 'success'
+        : status === 'Error'
+          ? 'error'
+          : status === 'Canceled'
+            ? 'default'
+            : 'processing') as BadgeProps['status'],
       input,
       output,
     };
@@ -88,7 +94,12 @@ const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
     key: update.toolCallId,
     name: (update.rawInput?.description as string) || update.title,
     desc: (update.rawInput?.command as string) || update.kind,
-    status: update.status === 'completed' ? 'success' : update.status === 'failed' ? 'error' : ('default' as BadgeProps['status']),
+    status:
+      update.status === 'completed'
+        ? 'success'
+        : update.status === 'failed'
+          ? 'error'
+          : ('default' as BadgeProps['status']),
     input,
     output,
   };
@@ -102,11 +113,21 @@ const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
     <div className='flex flex-col'>
       <div className='flex flex-row color-#86909C gap-12px items-center'>
         <Badge status={item.status} className={item.status === 'processing' ? 'badge-breathing' : ''}></Badge>
-        <span className={'flex-1 min-w-0' + (expanded ? ' break-all' : ' truncate') + (hasDetail ? ' cursor-pointer hover:color-#4E5969' : '')} onClick={hasDetail ? () => setExpanded(!expanded) : undefined}>
+        <span
+          className={
+            'flex-1 min-w-0' +
+            (expanded ? ' break-all' : ' truncate') +
+            (hasDetail ? ' cursor-pointer hover:color-#4E5969' : '')
+          }
+          onClick={hasDetail ? () => setExpanded(!expanded) : undefined}
+        >
           {`${item.name}(${item.desc})`}
         </span>
         {hasDetail && (
-          <span className='flex-shrink-0 cursor-pointer hover:color-#4E5969 transition-colors' onClick={() => setExpanded(!expanded)}>
+          <span
+            className='flex-shrink-0 cursor-pointer hover:color-#4E5969 transition-colors'
+            onClick={() => setExpanded(!expanded)}
+          >
             {expanded ? <IconDown style={{ fontSize: 12 }} /> : <IconRight style={{ fontSize: 12 }} />}
           </span>
         )}
@@ -131,10 +152,17 @@ const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
   );
 };
 
-const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IMessageAcpToolCall> }> = ({ messages }) => {
+const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IMessageAcpToolCall> }> = ({
+  messages,
+}) => {
   const [showMore, setShowMore] = useState(() => {
     if (!messages.length) return false;
-    return messages.some((m) => (m.type === 'tool_group' && m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) || (m.type === 'acp_tool_call' && m.content.update.status !== 'completed'));
+    return messages.some(
+      (m) =>
+        (m.type === 'tool_group' &&
+          m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) ||
+        (m.type === 'acp_tool_call' && m.content.update.status !== 'completed')
+    );
   });
   const tools = useMemo(() => {
     return messages

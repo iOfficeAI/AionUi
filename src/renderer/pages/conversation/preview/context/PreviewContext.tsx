@@ -99,7 +99,12 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
     .filter((tab): tab is PreviewTab => {
       if (!tab || typeof tab !== 'object') return false;
       const candidate = tab as Partial<PreviewTab>;
-      return typeof candidate.id === 'string' && typeof candidate.title === 'string' && typeof candidate.content === 'string' && typeof candidate.contentType === 'string';
+      return (
+        typeof candidate.id === 'string' &&
+        typeof candidate.title === 'string' &&
+        typeof candidate.content === 'string' &&
+        typeof candidate.contentType === 'string'
+      );
     })
     .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.contentType))
     .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
@@ -554,7 +559,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
   useEffect(() => {
-    const handlePreviewOpen = (data: { content: string; contentType: PreviewContentType; metadata?: PreviewMetadata }) => {
+    const handlePreviewOpen = (data: {
+      content: string;
+      contentType: PreviewContentType;
+      metadata?: PreviewMetadata;
+    }) => {
       if (data && data.content) {
         openPreview(data.content, data.contentType, data.metadata);
       }
@@ -573,8 +582,46 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [openPreview]);
 
   const previewContextValue = useMemo(() => {
-    return { isOpen, tabs, activeTabId, activeTab, openPreview, closePreview, closeTab, switchTab: setActiveTabId, updateContent, saveContent, findPreviewTab, closePreviewByIdentity, addToSendBox, setSendBoxHandler, domSnippets, addDomSnippet, removeDomSnippet, clearDomSnippets };
-  }, [isOpen, tabs, activeTabId, activeTab, openPreview, closePreview, closeTab, setActiveTabId, updateContent, saveContent, findPreviewTab, closePreviewByIdentity, addToSendBox, setSendBoxHandler, domSnippets, addDomSnippet, removeDomSnippet, clearDomSnippets]);
+    return {
+      isOpen,
+      tabs,
+      activeTabId,
+      activeTab,
+      openPreview,
+      closePreview,
+      closeTab,
+      switchTab: setActiveTabId,
+      updateContent,
+      saveContent,
+      findPreviewTab,
+      closePreviewByIdentity,
+      addToSendBox,
+      setSendBoxHandler,
+      domSnippets,
+      addDomSnippet,
+      removeDomSnippet,
+      clearDomSnippets,
+    };
+  }, [
+    isOpen,
+    tabs,
+    activeTabId,
+    activeTab,
+    openPreview,
+    closePreview,
+    closeTab,
+    setActiveTabId,
+    updateContent,
+    saveContent,
+    findPreviewTab,
+    closePreviewByIdentity,
+    addToSendBox,
+    setSendBoxHandler,
+    domSnippets,
+    addDomSnippet,
+    removeDomSnippet,
+    clearDomSnippets,
+  ]);
 
   return <PreviewContext.Provider value={previewContextValue}>{children}</PreviewContext.Provider>;
 };

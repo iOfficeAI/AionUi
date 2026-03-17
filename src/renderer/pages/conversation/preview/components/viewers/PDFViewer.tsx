@@ -156,7 +156,13 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
       {/* PDF 内容区域 / PDF content area */}
       <div className='flex-1 overflow-hidden bg-bg-1'>
         {/* key 确保文件路径改变时 webview 重新挂载 / key ensures webview remounts when file path changes */}
-        <webview key={pdfSrc} ref={webviewRef} src={pdfSrc} className='w-full h-full' style={{ display: 'inline-flex' }} />
+        <webview
+          key={pdfSrc}
+          ref={webviewRef}
+          src={pdfSrc}
+          className='w-full h-full'
+          style={{ display: 'inline-flex' }}
+        />
       </div>
     </div>
   );

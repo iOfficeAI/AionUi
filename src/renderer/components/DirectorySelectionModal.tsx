@@ -29,7 +29,12 @@ interface DirectorySelectionModalProps {
   onCancel: () => void;
 }
 
-const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visible, isFileMode = false, onConfirm, onCancel }) => {
+const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
+  visible,
+  isFileMode = false,
+  onConfirm,
+  onCancel,
+}) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [directoryData, setDirectoryData] = useState<DirectoryData>({ items: [], canGoUp: false });
@@ -43,10 +48,13 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       setError(null);
       try {
         const showFiles = isFileMode ? 'true' : 'false';
-        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`, {
-          method: 'GET',
-          credentials: 'include',
-        });
+        const response = await fetch(
+          `/api/directory/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+          }
+        );
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
           setError(errorData.error || `HTTP ${response.status}`);
@@ -124,8 +132,13 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       maskStyle={{ zIndex: 2990 }}
       footer={
         <div className='w-full flex justify-between items-center'>
-          <div className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-[70vw]' title={selectedPath || currentPath}>
-            {selectedPath || currentPath || (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
+          <div
+            className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-[70vw]'
+            title={selectedPath || currentPath}
+          >
+            {selectedPath ||
+              currentPath ||
+              (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
           </div>
           <div className='flex gap-10px'>
             <Button onClick={onCancel}>{t('common.cancel')}</Button>
@@ -140,7 +153,10 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
         <div className='w-full border border-b-base rd-4px overflow-hidden' style={{ height: 'min(400px, 60vh)' }}>
           <div className='h-full overflow-y-auto'>
             {directoryData.canGoUp && (
-              <div className='flex items-center p-10px border-b border-b-light cursor-pointer hover:bg-hover transition' onClick={handleGoUp}>
+              <div
+                className='flex items-center p-10px border-b border-b-light cursor-pointer hover:bg-hover transition'
+                onClick={handleGoUp}
+              >
                 <IconUp className='mr-10px text-t-secondary' />
                 <span>..</span>
               </div>
@@ -154,9 +170,19 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
               </div>
             )}
             {directoryData.items.map((item, index) => (
-              <div key={index} className='flex items-center justify-between p-10px border-b border-b-light cursor-pointer hover:bg-hover transition' style={selectedPath === item.path ? { background: 'var(--brand-light)' } : {}} onClick={() => handleItemClick(item)} onDoubleClick={() => handleItemDoubleClick(item)}>
+              <div
+                key={index}
+                className='flex items-center justify-between p-10px border-b border-b-light cursor-pointer hover:bg-hover transition'
+                style={selectedPath === item.path ? { background: 'var(--brand-light)' } : {}}
+                onClick={() => handleItemClick(item)}
+                onDoubleClick={() => handleItemDoubleClick(item)}
+              >
                 <div className='flex items-center flex-1 min-w-0'>
-                  {item.isDirectory ? <IconFolder className='mr-10px text-warning shrink-0' /> : <IconFile className='mr-10px text-primary shrink-0' />}
+                  {item.isDirectory ? (
+                    <IconFolder className='mr-10px text-warning shrink-0' />
+                  ) : (
+                    <IconFile className='mr-10px text-primary shrink-0' />
+                  )}
                   <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{item.name}</span>
                 </div>
                 {canSelect(item) && (

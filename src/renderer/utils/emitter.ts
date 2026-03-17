@@ -35,7 +35,9 @@ interface EventTypes {
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversationId
   // 预览面板事件 / Preview panel events
-  'preview.open': [{ content: string; contentType: PreviewContentType; metadata?: { title?: string; fileName?: string } }];
+  'preview.open': [
+    { content: string; contentType: PreviewContentType; metadata?: { title?: string; fileName?: string } },
+  ];
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [string]; // prompt text to fill
   'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
@@ -44,14 +46,21 @@ interface EventTypes {
 
 export const emitter = new EventEmitter<EventTypes>();
 
-export const addEventListener = <T extends EventEmitter.EventNames<EventTypes>>(event: T, fn: EventEmitter.EventListener<EventTypes, T>) => {
+export const addEventListener = <T extends EventEmitter.EventNames<EventTypes>>(
+  event: T,
+  fn: EventEmitter.EventListener<EventTypes, T>
+) => {
   emitter.on(event, fn);
   return () => {
     emitter.off(event, fn);
   };
 };
 
-export const useAddEventListener = <T extends EventEmitter.EventNames<EventTypes>>(event: T, fn: EventEmitter.EventListener<EventTypes, T>, deps?: DependencyList) => {
+export const useAddEventListener = <T extends EventEmitter.EventNames<EventTypes>>(
+  event: T,
+  fn: EventEmitter.EventListener<EventTypes, T>,
+  deps?: DependencyList
+) => {
   useEffect(() => {
     return addEventListener(event, fn);
   }, deps || []);

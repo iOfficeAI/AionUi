@@ -203,7 +203,10 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
               ...prev,
               isChecking: false, // Stop checking indicator
               bestAgent: firstAvailableAgent,
-              availableAgents: [...results, ...agentsToCheck.slice(completed + 1).map((a) => ({ ...a, checking: false }))],
+              availableAgents: [
+                ...results,
+                ...agentsToCheck.slice(completed + 1).map((a) => ({ ...a, checking: false })),
+              ],
             }));
 
             // Trigger callback immediately

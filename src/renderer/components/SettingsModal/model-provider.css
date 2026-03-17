@@ -1,0 +1,26 @@
+/* Model settings provider action buttons (+ / - / edit)
+ * Normal state merges with row background, hover/focus shows a block.
+ */
+.model-provider-action-btn.arco-btn {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+/* Light mode: hover feedback should be visible */
+[data-theme='light'] .model-provider-action-btn.arco-btn:hover,
+[data-theme='light'] .model-provider-action-btn.arco-btn:focus-visible,
+[data-theme='light'] .model-provider-action-btn.arco-btn:active {
+  background-color: var(--fill-0) !important;
+  border-color: var(--color-border-2) !important;
+}
+
+/* Dark mode: keep normal merged with row; highlight only on interaction */
+[data-theme='dark'] .model-provider-action-btn.arco-btn:hover,
+[data-theme='dark'] .model-provider-action-btn.arco-btn:focus-visible,
+[data-theme='dark'] .model-provider-action-btn.arco-btn:active {
+  background-color: var(--color-bg-1) !important;
+}

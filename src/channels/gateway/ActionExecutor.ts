@@ -19,7 +19,12 @@ import type { PluginMessageHandler } from '../plugins/BasePlugin';
 import { getChannelConversationName, resolveChannelConvType } from '../types';
 import { createMainMenuCard, createErrorRecoveryCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
 import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
-import { createMainMenuCard as createDingTalkMainMenuCard, createErrorRecoveryCard as createDingTalkErrorRecoveryCard, createResponseActionsCard as createDingTalkResponseActionsCard, createToolConfirmationCard as createDingTalkToolConfirmationCard } from '../plugins/dingtalk/DingTalkCards';
+import {
+  createMainMenuCard as createDingTalkMainMenuCard,
+  createErrorRecoveryCard as createDingTalkErrorRecoveryCard,
+  createResponseActionsCard as createDingTalkResponseActionsCard,
+  createToolConfirmationCard as createDingTalkToolConfirmationCard,
+} from '../plugins/dingtalk/DingTalkCards';
 import { convertHtmlToDingTalkMarkdown } from '../plugins/dingtalk/DingTalkAdapter';
 import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
@@ -56,12 +61,23 @@ function getResponseActionsMarkup(platform: PluginType, text?: string) {
 /**
  * Get tool confirmation markup based on platform
  */
-function getToolConfirmationMarkup(platform: PluginType, callId: string, options: Array<{ label: string; value: string }>, title?: string, description?: string) {
+function getToolConfirmationMarkup(
+  platform: PluginType,
+  callId: string,
+  options: Array<{ label: string; value: string }>,
+  title?: string,
+  description?: string
+) {
   if (platform === 'lark') {
     return createToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
   }
   if (platform === 'dingtalk') {
-    return createDingTalkToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
+    return createDingTalkToolConfirmationCard(
+      callId,
+      title || 'Confirmation',
+      description || 'Please confirm',
+      options
+    );
   }
   return createToolConfirmationKeyboard(callId, options);
 }
@@ -152,7 +168,11 @@ function getConfirmationPrompt(details: { type: string; title?: string; [key: st
  * 将 TMessage 转换为 IUnifiedOutgoingMessage
  * Convert TMessage to IUnifiedOutgoingMessage for platform
  */
-function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isComplete = false): IUnifiedOutgoingMessage {
+function convertTMessageToOutgoing(
+  message: TMessage,
+  platform: PluginType,
+  isComplete = false
+): IUnifiedOutgoingMessage {
   switch (message.type) {
     case 'text': {
       // 根据平台格式化文本
@@ -181,7 +201,16 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
       // 显示工具调用状态
       // Show tool call status
       const toolLines = message.content.map((tool) => {
-        const statusIcon = tool.status === 'Success' ? '✅' : tool.status === 'Error' ? '❌' : tool.status === 'Executing' ? '⏳' : tool.status === 'Confirming' ? '❓' : '📋';
+        const statusIcon =
+          tool.status === 'Success'
+            ? '✅'
+            : tool.status === 'Error'
+              ? '❌'
+              : tool.status === 'Executing'
+                ? '⏳'
+                : tool.status === 'Confirming'
+                  ? '❓'
+                  : '📋';
         const desc = formatTextForPlatform(tool.description || tool.name || '', platform);
         return `${statusIcon} ${desc}`;
       });
@@ -199,7 +228,13 @@ function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isCo
           type: 'text',
           text: confirmText,
           parseMode: 'HTML',
-          replyMarkup: getToolConfirmationMarkup(platform, confirmingTool.callId, options, 'Tool Confirmation', confirmText),
+          replyMarkup: getToolConfirmationMarkup(
+            platform,
+            confirmingTool.callId,
+            options,
+            'Tool Confirmation',
+            confirmText
+          ),
         };
       }
 
@@ -349,13 +384,25 @@ export class ActionExecutor {
         // Read selected agent for this platform (defaults to Gemini)
         let savedAgent: unknown = undefined;
         try {
-          savedAgent = await (platform === 'lark' ? ProcessConfig.get('assistant.lark.agent') : platform === 'dingtalk' ? ProcessConfig.get('assistant.dingtalk.agent') : ProcessConfig.get('assistant.telegram.agent'));
+          savedAgent = await (platform === 'lark'
+            ? ProcessConfig.get('assistant.lark.agent')
+            : platform === 'dingtalk'
+              ? ProcessConfig.get('assistant.dingtalk.agent')
+              : ProcessConfig.get('assistant.telegram.agent'));
         } catch {
           // ignore
         }
-        const backend = (savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string' ? (savedAgent as any).backend : 'gemini') as string;
-        const customAgentId = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).customAgentId as string | undefined) : undefined;
-        const agentName = savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
+        const backend = (
+          savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
+            ? (savedAgent as any).backend
+            : 'gemini'
+        ) as string;
+        const customAgentId =
+          savedAgent && typeof savedAgent === 'object'
+            ? ((savedAgent as any).customAgentId as string | undefined)
+            : undefined;
+        const agentName =
+          savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
 
         // Always resolve a provider model (required by ICreateConversationParams typing; ignored by ACP/Codex)
         const model = await getChannelDefaultModel(platform);
@@ -411,7 +458,13 @@ export class ActionExecutor {
 
         if (result.success && result.conversation) {
           const { convType: agentType } = resolveChannelConvType(backend);
-          session = this.sessionManager.createSessionWithConversation(channelUser, result.conversation.id, agentType as ChannelAgentType, undefined, chatId);
+          session = this.sessionManager.createSessionWithConversation(
+            channelUser,
+            result.conversation.id,
+            agentType as ChannelAgentType,
+            undefined,
+            chatId
+          );
         } else {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
@@ -458,7 +511,11 @@ export class ActionExecutor {
   /**
    * Execute a registered action
    */
-  private async executeAction(context: IActionContext, actionName: string, params?: Record<string, string>): Promise<void> {
+  private async executeAction(
+    context: IActionContext,
+    actionName: string,
+    params?: Record<string, string>
+  ): Promise<void> {
     const action = this.actionRegistry.get(actionName);
 
     if (!action) {
@@ -542,91 +599,96 @@ export class ActionExecutor {
 
       // 发送消息
       // Send message
-      await messageService.sendMessage(sessionId, conversationId, text, async (message: TMessage, isInsert: boolean) => {
-        const now = Date.now();
+      await messageService.sendMessage(
+        sessionId,
+        conversationId,
+        text,
+        async (message: TMessage, isInsert: boolean) => {
+          const now = Date.now();
 
-        // 转换消息格式（根据平台）
-        // Convert message format (based on platform)
-        const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
+          // 转换消息格式（根据平台）
+          // Convert message format (based on platform)
+          const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
 
-        // Strip replyMarkup during streaming to prevent premature card finalization.
-        // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
-        // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
-        // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
-        const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
+          // Strip replyMarkup during streaming to prevent premature card finalization.
+          // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
+          // but DingTalk interprets replyMarkup as "stream complete" and finishes the AI Card.
+          // Channel conversations use yoloMode (auto-approve), so confirmation buttons are unnecessary.
+          const streamOutgoing: IUnifiedOutgoingMessage = { ...outgoingMessage, replyMarkup: undefined };
 
-        // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
-        // Save last message content (without replyMarkup, final message adds it separately)
-        lastMessageContent = streamOutgoing;
+          // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
+          // Save last message content (without replyMarkup, final message adds it separately)
+          lastMessageContent = streamOutgoing;
 
-        // IMPORTANT: Always treat first streaming message as update to thinking message
-        // This prevents async race condition where first insert's sendMessage takes time
-        // while subsequent messages arrive and get processed as updates
-        // 重要：始终将第一个流式消息视为更新thinking消息
-        // 这可以防止异步竞态条件：第一个insert的sendMessage耗时时，后续消息已到达并被当作update处理
-        if (isInsert && sentMessageIds.length === 1) {
-          // First streaming message: update thinking message instead of inserting
-          // 第一个流式消息：更新thinking消息而不是插入新消息
-          pendingMessage = streamOutgoing;
+          // IMPORTANT: Always treat first streaming message as update to thinking message
+          // This prevents async race condition where first insert's sendMessage takes time
+          // while subsequent messages arrive and get processed as updates
+          // 重要：始终将第一个流式消息视为更新thinking消息
+          // 这可以防止异步竞态条件：第一个insert的sendMessage耗时时，后续消息已到达并被当作update处理
+          if (isInsert && sentMessageIds.length === 1) {
+            // First streaming message: update thinking message instead of inserting
+            // 第一个流式消息：更新thinking消息而不是插入新消息
+            pendingMessage = streamOutgoing;
 
-          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-              pendingUpdateTimer = null;
-            }
-            await doEditMessage(streamOutgoing);
-          } else {
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-            }
-            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
-            pendingUpdateTimer = setTimeout(() => {
-              if (pendingMessage) {
-                void doEditMessage(pendingMessage);
-                pendingMessage = null;
+            if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
+                pendingUpdateTimer = null;
               }
-              pendingUpdateTimer = null;
-            }, delay);
-          }
-        } else if (isInsert) {
-          // 新消息：发送新消息
-          // New message: send new message
-          try {
-            const newMsgId = await context.sendMessage(streamOutgoing);
-            sentMessageIds.push(newMsgId);
-          } catch {
-            // Ignore send errors
-          }
-        } else {
-          // 更新消息：使用定时器节流，确保最后一条消息能被发送
-          // Update message: throttle with timer to ensure last message is sent
-          pendingMessage = streamOutgoing;
-
-          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
-            // 距离上次发送超过节流时间，立即发送
-            // Enough time has passed since last send, send immediately
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-              pendingUpdateTimer = null;
-            }
-            await doEditMessage(streamOutgoing);
-          } else {
-            // 在节流时间内，设置定时器延迟发送
-            // Within throttle window, set timer to send later
-            if (pendingUpdateTimer) {
-              clearTimeout(pendingUpdateTimer);
-            }
-            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
-            pendingUpdateTimer = setTimeout(() => {
-              if (pendingMessage) {
-                void doEditMessage(pendingMessage);
-                pendingMessage = null;
+              await doEditMessage(streamOutgoing);
+            } else {
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
               }
-              pendingUpdateTimer = null;
-            }, delay);
+              const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+              pendingUpdateTimer = setTimeout(() => {
+                if (pendingMessage) {
+                  void doEditMessage(pendingMessage);
+                  pendingMessage = null;
+                }
+                pendingUpdateTimer = null;
+              }, delay);
+            }
+          } else if (isInsert) {
+            // 新消息：发送新消息
+            // New message: send new message
+            try {
+              const newMsgId = await context.sendMessage(streamOutgoing);
+              sentMessageIds.push(newMsgId);
+            } catch {
+              // Ignore send errors
+            }
+          } else {
+            // 更新消息：使用定时器节流，确保最后一条消息能被发送
+            // Update message: throttle with timer to ensure last message is sent
+            pendingMessage = streamOutgoing;
+
+            if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+              // 距离上次发送超过节流时间，立即发送
+              // Enough time has passed since last send, send immediately
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
+                pendingUpdateTimer = null;
+              }
+              await doEditMessage(streamOutgoing);
+            } else {
+              // 在节流时间内，设置定时器延迟发送
+              // Within throttle window, set timer to send later
+              if (pendingUpdateTimer) {
+                clearTimeout(pendingUpdateTimer);
+              }
+              const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+              pendingUpdateTimer = setTimeout(() => {
+                if (pendingMessage) {
+                  void doEditMessage(pendingMessage);
+                  pendingMessage = null;
+                }
+                pendingUpdateTimer = null;
+              }, delay);
+            }
           }
         }
-      });
+      );
 
       // 清除待处理的定时器，确保最后一条消息被处理
       // Clear pending timer and ensure last message is processed
@@ -652,7 +714,9 @@ export class ActionExecutor {
         // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
         // Use actual content of last message, add action buttons (based on platform)
         const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, lastMessageContent?.text);
-        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, replyMarkup: responseMarkup } : { type: 'text', text: '✅ Done', parseMode: 'HTML', replyMarkup: responseMarkup };
+        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent
+          ? { ...lastMessageContent, replyMarkup: responseMarkup }
+          : { type: 'text', text: '✅ Done', parseMode: 'HTML', replyMarkup: responseMarkup };
         await context.editMessage(lastMsgId, finalMessage);
       } catch {
         // 忽略最终编辑错误

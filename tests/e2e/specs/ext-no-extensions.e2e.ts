@@ -71,7 +71,27 @@ test.describe.serial('Extension: Empty Directory / No Extensions', () => {
   });
 
   test('loads with zero extension contributions', async () => {
-    const [loadedExtensions, acpAdapters, mcpServers, assistants, agents, skills, themes, settingsTabs, webuiContributions] = await Promise.all([invokeBridge(page, 'extensions.get-loaded-extensions'), invokeBridge(page, 'extensions.get-acp-adapters'), invokeBridge(page, 'extensions.get-mcp-servers'), invokeBridge(page, 'extensions.get-assistants'), invokeBridge(page, 'extensions.get-agents'), invokeBridge(page, 'extensions.get-skills'), invokeBridge(page, 'extensions.get-themes'), invokeBridge(page, 'extensions.get-settings-tabs'), invokeBridge(page, 'extensions.get-webui-contributions')]);
+    const [
+      loadedExtensions,
+      acpAdapters,
+      mcpServers,
+      assistants,
+      agents,
+      skills,
+      themes,
+      settingsTabs,
+      webuiContributions,
+    ] = await Promise.all([
+      invokeBridge(page, 'extensions.get-loaded-extensions'),
+      invokeBridge(page, 'extensions.get-acp-adapters'),
+      invokeBridge(page, 'extensions.get-mcp-servers'),
+      invokeBridge(page, 'extensions.get-assistants'),
+      invokeBridge(page, 'extensions.get-agents'),
+      invokeBridge(page, 'extensions.get-skills'),
+      invokeBridge(page, 'extensions.get-themes'),
+      invokeBridge(page, 'extensions.get-settings-tabs'),
+      invokeBridge(page, 'extensions.get-webui-contributions'),
+    ]);
 
     expect(loadedExtensions).toEqual([]);
     expect(acpAdapters).toEqual([]);

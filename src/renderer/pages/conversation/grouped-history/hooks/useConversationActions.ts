@@ -26,7 +26,15 @@ type UseConversationActionsParams = {
   markAsRead: (conversationId: string) => void;
 };
 
-export const useConversationActions = ({ batchMode, onSessionClick, onBatchModeChange, selectedConversationIds, setSelectedConversationIds, toggleSelectedConversation, markAsRead }: UseConversationActionsParams) => {
+export const useConversationActions = ({
+  batchMode,
+  onSessionClick,
+  onBatchModeChange,
+  selectedConversationIds,
+  setSelectedConversationIds,
+  toggleSelectedConversation,
+  markAsRead,
+}: UseConversationActionsParams) => {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [renameModalName, setRenameModalName] = useState<string>('');
   const [renameModalId, setRenameModalId] = useState<string | null>(null);

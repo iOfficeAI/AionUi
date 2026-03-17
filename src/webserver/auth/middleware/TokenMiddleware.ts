@@ -195,7 +195,9 @@ export const TokenMiddleware = {
   },
 
   /** 返回认证中间件（默认为 JSON 响应）/ Return auth middleware (JSON response by default) */
-  validateToken(options?: { responseType?: 'json' | 'html' }): (req: Request, res: Response, next: NextFunction) => void {
+  validateToken(options?: {
+    responseType?: 'json' | 'html';
+  }): (req: Request, res: Response, next: NextFunction) => void {
     return createAuthMiddleware(options?.responseType ?? 'json');
   },
 

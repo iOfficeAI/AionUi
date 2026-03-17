@@ -106,19 +106,38 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
       );
     }
 
-    return <img src={assistantInfo.logo} alt={assistantInfo.name} title={assistantInfo.name} className='w-18px h-18px rounded-50% flex-shrink-0' />;
+    return (
+      <img
+        src={assistantInfo.logo}
+        alt={assistantInfo.name}
+        title={assistantInfo.name}
+        className='w-18px h-18px rounded-50% flex-shrink-0'
+      />
+    );
   }
 
   const backendKey = getBackendKeyFromConversation(conversation);
   const logo = getAgentLogo(backendKey);
   if (logo) {
-    return <img src={logo} alt={`${backendKey || 'agent'} logo`} title={backendKey || 'agent'} className='w-18px h-18px rounded-50% flex-shrink-0' />;
+    return (
+      <img
+        src={logo}
+        alt={`${backendKey || 'agent'} logo`}
+        title={backendKey || 'agent'}
+        className='w-18px h-18px rounded-50% flex-shrink-0'
+      />
+    );
   }
 
   return <MessageOne theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;
 };
 
-const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({ onSessionClick, onConversationSelect, disabled = false, buttonClassName }) => {
+const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
+  onSessionClick,
+  onConversationSelect,
+  disabled = false,
+  buttonClassName,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const conversationTabs = useOptionalConversationTabs();
@@ -266,7 +285,10 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({ o
               <button
                 key={`${item.messageId}-${item.messageCreatedAt}`}
                 type='button'
-                className={classNames('conversation-search-modal__result w-full text-left cursor-pointer transition-all duration-150', 'focus:outline-none')}
+                className={classNames(
+                  'conversation-search-modal__result w-full text-left cursor-pointer transition-all duration-150',
+                  'focus:outline-none'
+                )}
                 onClick={() => {
                   void handleResultClick(item);
                 }}
@@ -275,12 +297,16 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({ o
                   <div className='min-w-0 flex-1'>
                     <div className='conversation-search-modal__result-title-row'>
                       <ConversationAgentMark conversation={item.conversation} />
-                      <div className='conversation-search-modal__result-title text-15px font-600 text-t-primary truncate'>{item.conversation.name || t('conversation.historySearch.untitled')}</div>
+                      <div className='conversation-search-modal__result-title text-15px font-600 text-t-primary truncate'>
+                        {item.conversation.name || t('conversation.historySearch.untitled')}
+                      </div>
                     </div>
                   </div>
                   <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.messageCreatedAt)}</span>
                 </div>
-                <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>{renderHighlightedText(snippet, debouncedKeyword)}</div>
+                <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>
+                  {renderHighlightedText(snippet, debouncedKeyword)}
+                </div>
               </button>
             );
           })}
@@ -346,15 +372,30 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({ o
           <div className='conversation-search-modal__header'>
             <div className='conversation-search-modal__header-main'>
               <div className='conversation-search-modal__title'>{t('conversation.historySearch.title')}</div>
-              <Typography.Paragraph className='conversation-search-modal__description !mb-0 text-13px text-t-secondary'>{t('conversation.historySearch.description')}</Typography.Paragraph>
+              <Typography.Paragraph className='conversation-search-modal__description !mb-0 text-13px text-t-secondary'>
+                {t('conversation.historySearch.description')}
+              </Typography.Paragraph>
             </div>
-            <button type='button' className='conversation-search-modal__close-btn' onClick={handleClose} aria-label='Close'>
+            <button
+              type='button'
+              className='conversation-search-modal__close-btn'
+              onClick={handleClose}
+              aria-label='Close'
+            >
               <Close size={20} />
             </button>
           </div>
 
           <div className='mb-14px conversation-search-modal__input-wrap'>
-            <Input autoFocus={visible} allowClear size='large' value={keyword} placeholder={t('conversation.historySearch.placeholder')} onChange={setKeyword} prefix={<Search theme='outline' size='18' className='text-t-secondary' />} />
+            <Input
+              autoFocus={visible}
+              allowClear
+              size='large'
+              value={keyword}
+              placeholder={t('conversation.historySearch.placeholder')}
+              onChange={setKeyword}
+              prefix={<Search theme='outline' size='18' className='text-t-secondary' />}
+            />
           </div>
 
           <div className='flex-1 min-h-0'>{resultContent}</div>

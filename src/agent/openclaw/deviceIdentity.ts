@@ -45,7 +45,10 @@ function base64UrlEncode(buf: Buffer): string {
 function derivePublicKeyRaw(publicKeyPem: string): Buffer {
   const key = crypto.createPublicKey(publicKeyPem);
   const spki = key.export({ type: 'spki', format: 'der' }) as Buffer;
-  if (spki.length === ED25519_SPKI_PREFIX.length + 32 && spki.subarray(0, ED25519_SPKI_PREFIX.length).equals(ED25519_SPKI_PREFIX)) {
+  if (
+    spki.length === ED25519_SPKI_PREFIX.length + 32 &&
+    spki.subarray(0, ED25519_SPKI_PREFIX.length).equals(ED25519_SPKI_PREFIX)
+  ) {
     return spki.subarray(ED25519_SPKI_PREFIX.length);
   }
   return spki;
@@ -77,7 +80,12 @@ export function loadOrCreateDeviceIdentity(filePath: string = DEFAULT_FILE): Dev
     if (fs.existsSync(filePath)) {
       const raw = fs.readFileSync(filePath, 'utf8');
       const parsed = JSON.parse(raw) as StoredIdentity;
-      if (parsed?.version === 1 && typeof parsed.deviceId === 'string' && typeof parsed.publicKeyPem === 'string' && typeof parsed.privateKeyPem === 'string') {
+      if (
+        parsed?.version === 1 &&
+        typeof parsed.deviceId === 'string' &&
+        typeof parsed.publicKeyPem === 'string' &&
+        typeof parsed.privateKeyPem === 'string'
+      ) {
         // Verify deviceId matches public key fingerprint
         const derivedId = fingerprintPublicKey(parsed.publicKeyPem);
         if (derivedId && derivedId !== parsed.deviceId) {
@@ -163,7 +171,16 @@ export function buildDeviceAuthPayload(params: DeviceAuthPayloadParams): string 
   const version = params.version ?? (params.nonce ? 'v2' : 'v1');
   const scopes = params.scopes.join(',');
   const token = params.token ?? '';
-  const base = [version, params.deviceId, params.clientId, params.clientMode, params.role, scopes, String(params.signedAtMs), token];
+  const base = [
+    version,
+    params.deviceId,
+    params.clientId,
+    params.clientMode,
+    params.role,
+    scopes,
+    String(params.signedAtMs),
+    token,
+  ];
   if (version === 'v2') {
     base.push(params.nonce ?? '');
   }

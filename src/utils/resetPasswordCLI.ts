@@ -85,7 +85,9 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     db = new BetterSqlite3(dbPath);
 
     // Check if users table exists
-    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get() as { name: string } | undefined;
+    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get() as
+      | { name: string }
+      | undefined;
 
     if (!tableExists) {
       log.error('Database is not initialized yet');
@@ -99,7 +101,9 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     }
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as { id: string; username: string; password_hash: string; jwt_secret: string | null } | undefined;
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
+      | { id: string; username: string; password_hash: string; jwt_secret: string | null }
+      | undefined;
 
     if (!user) {
       log.error(`User '${username}' not found in database`);

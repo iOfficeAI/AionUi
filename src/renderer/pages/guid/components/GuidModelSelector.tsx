@@ -31,7 +31,16 @@ type GuidModelSelectorProps = {
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
-const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, modelList, currentModel, setCurrentModel, geminiModeLookup, currentAcpCachedModelInfo, selectedAcpModel, setSelectedAcpModel }) => {
+const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
+  isGeminiMode,
+  modelList,
+  currentModel,
+  setCurrentModel,
+  geminiModeLookup,
+  currentAcpCachedModelInfo,
+  selectedAcpModel,
+  setSelectedAcpModel,
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const defaultModelLabel = t('common.defaultModel');
@@ -63,8 +72,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
   }, [currentModel?.useModel, defaultModelLabel, geminiSelectedLabel]);
 
   const acpSelectedLabel = React.useMemo(() => {
-    return currentAcpCachedModelInfo?.availableModels?.find((m) => m.id === selectedAcpModel)?.label || currentAcpCachedModelInfo?.currentModelLabel || currentAcpCachedModelInfo?.currentModelId || '';
-  }, [currentAcpCachedModelInfo?.availableModels, currentAcpCachedModelInfo?.currentModelId, currentAcpCachedModelInfo?.currentModelLabel, selectedAcpModel]);
+    return (
+      currentAcpCachedModelInfo?.availableModels?.find((m) => m.id === selectedAcpModel)?.label ||
+      currentAcpCachedModelInfo?.currentModelLabel ||
+      currentAcpCachedModelInfo?.currentModelId ||
+      ''
+    );
+  }, [
+    currentAcpCachedModelInfo?.availableModels,
+    currentAcpCachedModelInfo?.currentModelId,
+    currentAcpCachedModelInfo?.currentModelLabel,
+    selectedAcpModel,
+  ]);
 
   const acpButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
@@ -83,10 +102,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
           <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
             {!enabledModelList || enabledModelList.length === 0
               ? [
-                  <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
+                  <Menu.Item
+                    key='no-models'
+                    className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center'
+                    disabled
+                  >
                     {t('settings.noAvailableModels')}
                   </Menu.Item>,
-                  <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
+                  <Menu.Item
+                    key='add-model'
+                    className='text-12px text-t-secondary'
+                    onClick={() => navigate('/settings/model')}
+                  >
                     <Plus theme='outline' size='12' />
                     {t('settings.addModel')}
                   </Menu.Item>,
@@ -104,7 +131,12 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                           // 获取模型健康状态
                           const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
                           const healthStatus = matchedProvider?.modelHealth?.[modelName]?.status || 'unknown';
-                          const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+                          const healthColor =
+                            healthStatus === 'healthy'
+                              ? 'bg-green-500'
+                              : healthStatus === 'unhealthy'
+                                ? 'bg-red-500'
+                                : 'bg-gray-400';
 
                           // Manual mode: show submenu with specific models
                           if (option?.subModels && option.subModels.length > 0) {
@@ -113,7 +145,9 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                                 key={provider.id + modelName}
                                 title={
                                   <div className='flex items-center gap-8px w-full'>
-                                    {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
+                                    {healthStatus !== 'unknown' && (
+                                      <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                                    )}
                                     <span>{option.label}</span>
                                   </div>
                                 }
@@ -121,7 +155,11 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                                 {option.subModels.map((subModel: { label: string; value: string }) => (
                                   <Menu.Item
                                     key={provider.id + subModel.value}
-                                    className={currentModel?.id + currentModel?.useModel === provider.id + subModel.value ? '!bg-2' : ''}
+                                    className={
+                                      currentModel?.id + currentModel?.useModel === provider.id + subModel.value
+                                        ? '!bg-2'
+                                        : ''
+                                    }
                                     onClick={() => {
                                       setCurrentModel({ ...provider, useModel: subModel.value }).catch((error) => {
                                         console.error('Failed to set current model:', error);
@@ -139,7 +177,9 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                           return (
                             <Menu.Item
                               key={provider.id + modelName}
-                              className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                              className={
+                                currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''
+                              }
                               onClick={() => {
                                 setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
                                   console.error('Failed to set current model:', error);
@@ -150,7 +190,9 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                                 if (!option) {
                                   return (
                                     <div className='flex items-center gap-8px w-full'>
-                                      {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
+                                      {healthStatus !== 'unknown' && (
+                                        <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                                      )}
                                       <span>{modelName}</span>
                                     </div>
                                   );
@@ -162,12 +204,16 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                                     content={
                                       <div className='max-w-240px space-y-6px'>
                                         <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
-                                        {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                        {option.modelHint && (
+                                          <div className='text-11px text-t-tertiary'>{option.modelHint}</div>
+                                        )}
                                       </div>
                                     }
                                   >
                                     <div className='flex items-center gap-8px w-full'>
-                                      {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
+                                      {healthStatus !== 'unknown' && (
+                                        <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                                      )}
                                       <span>{option.label}</span>
                                     </div>
                                   </Tooltip>
@@ -179,7 +225,11 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                       </Menu.ItemGroup>
                     );
                   }),
-                  <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
+                  <Menu.Item
+                    key='add-model'
+                    className='text-12px text-t-secondary'
+                    onClick={() => navigate('/settings/model')}
+                  >
                     <Plus theme='outline' size='12' />
                     {t('settings.addModel')}
                   </Menu.Item>,
@@ -210,12 +260,23 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
                 const backend = currentAcpCachedModelInfo.source;
                 const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
                 const healthStatus = providerConfig?.modelHealth?.[model.id]?.status || 'unknown';
-                const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+                const healthColor =
+                  healthStatus === 'healthy'
+                    ? 'bg-green-500'
+                    : healthStatus === 'unhealthy'
+                      ? 'bg-red-500'
+                      : 'bg-gray-400';
 
                 return (
-                  <Menu.Item key={model.id} className={model.id === selectedAcpModel ? '!bg-2' : ''} onClick={() => setSelectedAcpModel(model.id)}>
+                  <Menu.Item
+                    key={model.id}
+                    className={model.id === selectedAcpModel ? '!bg-2' : ''}
+                    onClick={() => setSelectedAcpModel(model.id)}
+                  >
                     <div className='flex items-center gap-8px w-full'>
-                      {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
+                      {healthStatus !== 'unknown' && (
+                        <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                      )}
                       <span>{model.label}</span>
                     </div>
                   </Menu.Item>
@@ -236,7 +297,12 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({ isGeminiMode, mod
 
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>
+        <Button
+          className={'sendbox-model-btn guid-config-btn'}
+          shape='round'
+          size='small'
+          style={{ cursor: 'default' }}
+        >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{acpButtonLabel}</span>

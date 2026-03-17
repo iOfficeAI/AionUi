@@ -5,7 +5,20 @@
  */
 
 import type { TelemetryTarget, GeminiCLIExtension, FallbackIntent, SkillDefinition } from '@office-ai/aioncli-core';
-import { ApprovalMode, Config, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, getCurrentGeminiMdFilename, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename, SimpleExtensionLoader, PREVIEW_GEMINI_MODEL_AUTO, loadSkillsFromDir } from '@office-ai/aioncli-core';
+import {
+  ApprovalMode,
+  Config,
+  DEFAULT_GEMINI_EMBEDDING_MODEL,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_MEMORY_FILE_FILTERING_OPTIONS,
+  FileDiscoveryService,
+  getCurrentGeminiMdFilename,
+  loadServerHierarchicalMemory,
+  setGeminiMdFilename as setServerGeminiMdFilename,
+  SimpleExtensionLoader,
+  PREVIEW_GEMINI_MODEL_AUTO,
+  loadSkillsFromDir,
+} from '@office-ai/aioncli-core';
 import process from 'node:process';
 import path from 'node:path';
 import type { Settings } from './settings';
@@ -67,7 +80,19 @@ export interface LoadCliConfigOptions {
   enabledSkills?: string[];
 }
 
-export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers, skillsDir, enabledSkills }: LoadCliConfigOptions): Promise<Config> {
+export async function loadCliConfig({
+  workspace,
+  settings,
+  extensions,
+  sessionId,
+  proxy,
+  model,
+  conversationToolConfig,
+  yoloMode,
+  mcpServers,
+  skillsDir,
+  enabledSkills,
+}: LoadCliConfigOptions): Promise<Config> {
   const argv: Partial<CliArgs> = {
     yolo: yoloMode,
   };
@@ -80,7 +105,8 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   // Config 内部会调用 resolveModel(model, getGemini31LaunchedSync()) 解析为 gemini-3.1-pro-preview
   const resolvedModel = model === 'auto' ? PREVIEW_GEMINI_MODEL_AUTO : model;
 
-  const debugMode = argv.debug || [process.env.DEBUG, process.env.DEBUG_MODE].some((v) => v === 'true' || v === '1') || false;
+  const debugMode =
+    argv.debug || [process.env.DEBUG, process.env.DEBUG_MODE].some((v) => v === 'true' || v === '1') || false;
   const memoryImportFormat = settings.memoryImportFormat || 'tree';
   const ideMode = settings.ideMode ?? false;
 
@@ -110,7 +136,9 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
       const enabledSet = new Set(enabledSkills);
       const originalCount = allSkills.length;
       builtinSkills = allSkills.filter((skill) => enabledSet.has(skill.name));
-      console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
+      console.log(
+        `[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`
+      );
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
     }
@@ -162,7 +190,17 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   // Directly use aioncli-core's loadServerHierarchicalMemory with ExtensionLoader
   const extensionLoader = new SimpleExtensionLoader(allExtensions);
   const folderTrust = true; // 默认信任工作区 / Default to trusting the workspace
-  const { memoryContent, fileCount } = await loadServerHierarchicalMemory(workspace, [], debugMode, fileService, extensionLoader, folderTrust, memoryImportFormat, fileFiltering, settings.memoryDiscoveryMaxDirs);
+  const { memoryContent, fileCount } = await loadServerHierarchicalMemory(
+    workspace,
+    [],
+    debugMode,
+    fileService,
+    extensionLoader,
+    folderTrust,
+    memoryImportFormat,
+    fileFiltering,
+    settings.memoryDiscoveryMaxDirs
+  );
 
   let mcpServersConfig = mergeMcpServers(settings, activeExtensions, mcpServers);
 
@@ -176,14 +214,18 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     if (settings.allowMCPServers) {
       const allowedNames = new Set(settings.allowMCPServers.filter(Boolean));
       if (allowedNames.size > 0) {
-        mcpServersConfig = Object.fromEntries(Object.entries(mcpServersConfig).filter(([key]) => allowedNames.has(key)));
+        mcpServersConfig = Object.fromEntries(
+          Object.entries(mcpServersConfig).filter(([key]) => allowedNames.has(key))
+        );
       }
     }
 
     if (settings.excludeMCPServers) {
       const excludedNames = new Set(settings.excludeMCPServers.filter(Boolean));
       if (excludedNames.size > 0) {
-        mcpServersConfig = Object.fromEntries(Object.entries(mcpServersConfig).filter(([key]) => !excludedNames.has(key)));
+        mcpServersConfig = Object.fromEntries(
+          Object.entries(mcpServersConfig).filter(([key]) => !excludedNames.has(key))
+        );
       }
     }
   }
@@ -245,7 +287,8 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     telemetry: {
       enabled: argv.telemetry ?? settings.telemetry?.enabled,
       target: (argv.telemetryTarget ?? settings.telemetry?.target) as TelemetryTarget,
-      otlpEndpoint: argv.telemetryOtlpEndpoint ?? process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? settings.telemetry?.otlpEndpoint,
+      otlpEndpoint:
+        argv.telemetryOtlpEndpoint ?? process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? settings.telemetry?.otlpEndpoint,
       logPrompts: argv.telemetryLogPrompts ?? settings.telemetry?.logPrompts,
       outfile: argv.telemetryOutfile ?? settings.telemetry?.outfile,
     },
@@ -296,7 +339,11 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   // IMPORTANT: returning 'retry_once' causes aioncli-core to reset retry count and continue
   // 对于 RATE_LIMIT 错误，如果没有其他 API key 可用，应该返回 null 让内置重试机制处理
   // For RATE_LIMIT errors, if no other API keys available, return null to let built-in retry handle it
-  const fallbackModelHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<FallbackIntent | null> => {
+  const fallbackModelHandler = async (
+    _currentModel: string,
+    _fallbackModel: string,
+    _error?: unknown
+  ): Promise<FallbackIntent | null> => {
     try {
       const agent = getCurrentGeminiAgent();
       const apiKeyManager = agent?.getApiKeyManager();

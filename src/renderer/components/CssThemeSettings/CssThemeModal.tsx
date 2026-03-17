@@ -111,14 +111,24 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
   const isEditing = !!theme;
 
   return (
-    <AionModal visible={visible} header={isEditing ? t('settings.cssTheme.editTheme') : t('settings.cssTheme.addToPreset')} onCancel={onClose} footer={null} style={{ width: 600 }} unmountOnExit>
+    <AionModal
+      visible={visible}
+      header={isEditing ? t('settings.cssTheme.editTheme') : t('settings.cssTheme.addToPreset')}
+      onCancel={onClose}
+      footer={null}
+      style={{ width: 600 }}
+      unmountOnExit
+    >
       <div className='space-y-20px'>
         {/* 封面和名称行 / Cover and name row */}
         <div className='flex gap-16px p-16px bg-[var(--fill-1)] rounded-12px'>
           {/* 封面上传 / Cover upload */}
           <div className='flex-shrink-0'>
             <div className='text-13px text-t-secondary mb-8px'>{t('settings.cssTheme.previewCover')}</div>
-            <div className='w-120px h-80px rounded-8px border border-dashed border-border-2 flex flex-col items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors overflow-hidden bg-[var(--fill-0)]' onClick={handleCoverUpload}>
+            <div
+              className='w-120px h-80px rounded-8px border border-dashed border-border-2 flex flex-col items-center justify-center cursor-pointer hover:border-[var(--color-primary)] transition-colors overflow-hidden bg-[var(--fill-0)]'
+              onClick={handleCoverUpload}
+            >
               {cover ? (
                 <img src={cover} alt='cover' className='w-full h-full object-cover' />
               ) : (
@@ -136,14 +146,29 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
               <span className='text-[var(--color-danger)]'>*</span>
               {t('settings.cssTheme.name')}
             </div>
-            <Input value={name} onChange={setName} placeholder={t('settings.cssTheme.namePlaceholder')} className='!bg-[var(--fill-0)]' />
+            <Input
+              value={name}
+              onChange={setName}
+              placeholder={t('settings.cssTheme.namePlaceholder')}
+              className='!bg-[var(--fill-0)]'
+            />
           </div>
         </div>
 
         {/* CSS 代码编辑器 / CSS code editor */}
         <div>
           <div className='text-13px text-t-secondary mb-8px'>{t('settings.cssTheme.cssCode')}</div>
-          <CodeMirror value={css} theme={colorTheme} extensions={[cssLang()]} onChange={setCss} placeholder={`/* ${t('settings.customCssDesc') || '在这里输入自定义 CSS 样式'} */`} basicSetup={CODE_MIRROR_BASIC_SETUP} style={{ ...CODE_MIRROR_STYLE, minHeight: '200px' }} className='[&_.cm-editor]:rounded-[6px]' height='200px' />
+          <CodeMirror
+            value={css}
+            theme={colorTheme}
+            extensions={[cssLang()]}
+            onChange={setCss}
+            placeholder={`/* ${t('settings.customCssDesc') || '在这里输入自定义 CSS 样式'} */`}
+            basicSetup={CODE_MIRROR_BASIC_SETUP}
+            style={{ ...CODE_MIRROR_STYLE, minHeight: '200px' }}
+            className='[&_.cm-editor]:rounded-[6px]'
+            height='200px'
+          />
         </div>
 
         {/* 底部操作按钮 / Footer action buttons */}

@@ -14,8 +14,24 @@ import CollapsibleContent from '../components/CollapsibleContent';
 
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,
-  warning: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.warn} />,
-  error: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.error} />,
+  warning: (
+    <Attention
+      theme='filled'
+      size='16'
+      strokeLinejoin='bevel'
+      className='m-t-2px'
+      fill={theme.Color.FunctionalColor.warn}
+    />
+  ),
+  error: (
+    <Attention
+      theme='filled'
+      size='16'
+      strokeLinejoin='bevel'
+      className='m-t-2px'
+      fill={theme.Color.FunctionalColor.error}
+    />
+  ),
 };
 
 const useFormatContent = (content: string) => {

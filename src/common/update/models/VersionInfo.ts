@@ -59,7 +59,12 @@ export class VersionInfo {
   }
 
   equals(other: VersionInfo): boolean {
-    return this.current === other.current && this.latest === other.latest && this.minimumRequired === other.minimumRequired && this.releaseNotes === other.releaseNotes;
+    return (
+      this.current === other.current &&
+      this.latest === other.latest &&
+      this.minimumRequired === other.minimumRequired &&
+      this.releaseNotes === other.releaseNotes
+    );
   }
 
   get isUpdateAvailable(): boolean {

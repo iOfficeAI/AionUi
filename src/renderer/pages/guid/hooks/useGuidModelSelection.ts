@@ -99,9 +99,11 @@ export const useGuidModelSelection = (): GuidModelSelectionResult => {
 
   const setCurrentModel = useCallback(async (modelInfo: TProviderWithModel) => {
     selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
-    await ConfigStorage.set('gemini.defaultModel', { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
-      console.error('Failed to save default model:', error);
-    });
+    await ConfigStorage.set('gemini.defaultModel', { id: modelInfo.id, useModel: modelInfo.useModel }).catch(
+      (error) => {
+        console.error('Failed to save default model:', error);
+      }
+    );
     _setCurrentModel(modelInfo);
   }, []);
 

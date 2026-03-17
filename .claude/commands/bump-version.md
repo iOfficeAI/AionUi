@@ -53,24 +53,7 @@ Use the Edit tool to replace the `version` field in `package.json`:
 - old: `"version": "{current}"`
 - new: `"version": "{target}"`
 
-### Step 6 — Run bun install
-
-```bash
-bun install
-```
-
-This verifies dependency consistency. `bun.lock` should NOT change when only `version` is bumped.
-
-### Step 7 — Verify bun.lock is unchanged
-
-```bash
-git diff bun.lock
-```
-
-- **No diff** → Proceed silently (normal case).
-- **Has diff** → Ask the user: "bun.lock changed unexpectedly after version bump. Continue?" Wait for confirmation before proceeding.
-
-### Step 8 — Run Quality Checks
+### Step 6 — Run Quality Checks
 
 ```bash
 bun run lint
@@ -81,7 +64,7 @@ bunx tsc --noEmit
 - **tsc fails** → Stop: "TypeScript errors found. Please fix them before bumping the version."
 - **Both pass** → Proceed silently.
 
-### Step 9 — Run Tests
+### Step 7 — Run Tests
 
 ```bash
 bunx vitest run
@@ -90,26 +73,26 @@ bunx vitest run
 - **Fails** → Stop: "Tests failed. Please fix failing tests before bumping the version."
 - **Passes** → Proceed silently.
 
-### Step 10 — Create Branch
+### Step 8 — Create Branch
 
 ```bash
 git checkout -b chore/bump-version-{target}
 ```
 
-### Step 11 — Commit
+### Step 9 — Commit
 
 ```bash
 git add package.json
 git commit -m "chore: bump version to {target}"
 ```
 
-### Step 12 — Push
+### Step 10 — Push
 
 ```bash
 git push -u origin chore/bump-version-{target}
 ```
 
-### Step 13 — Create PR
+### Step 11 — Create PR
 
 ```bash
 gh pr create --base main --title "chore: bump version to {target}" --body "Bump version to {target}"
@@ -117,26 +100,26 @@ gh pr create --base main --title "chore: bump version to {target}" --body "Bump 
 
 Display the PR URL to the user when done.
 
-### Step 14 — Wait for PR to be Merged
+### Step 12 — Wait for PR to be Merged
 
 Display: "PR created: {URL}. Please notify a team member to merge it, then continue with the following steps."
 
 Pause here and wait for the user to confirm the PR has been merged before proceeding.
 
-### Step 15 — Switch Back to main and Pull Latest
+### Step 13 — Switch Back to main and Pull Latest
 
 ```bash
 git checkout main
 git pull --rebase origin main
 ```
 
-### Step 16 — Delete Local Branch
+### Step 14 — Delete Local Branch
 
 ```bash
 git branch -d chore/bump-version-{target}
 ```
 
-### Step 17 — Delete Remote Branch (if not auto-deleted by GitHub)
+### Step 15 — Delete Remote Branch (if not auto-deleted by GitHub)
 
 Check whether the remote branch still exists:
 
@@ -150,7 +133,7 @@ git ls-remote --heads origin chore/bump-version-{target}
   ```
 - **No output** (already deleted) → skip, nothing to do.
 
-### Step 18 — Create and Push Tag
+### Step 16 — Create and Push Tag
 
 ```bash
 git tag v{target}

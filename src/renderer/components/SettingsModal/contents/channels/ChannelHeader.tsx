@@ -48,7 +48,15 @@ const ChannelHeader: React.FC<ChannelHeaderProps> = ({ channel, onToggleEnabled 
         )}
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
-        <Switch data-channel-switch-for={channel.id} data-channel-switch-disabled={isDisabled ? 'true' : 'false'} aria-disabled={isDisabled ? 'true' : undefined} checked={channel.enabled} onChange={onToggleEnabled} size='small' disabled={isDisabled} />
+        <Switch
+          data-channel-switch-for={channel.id}
+          data-channel-switch-disabled={isDisabled ? 'true' : 'false'}
+          aria-disabled={isDisabled ? 'true' : undefined}
+          checked={channel.enabled}
+          onChange={onToggleEnabled}
+          size='small'
+          disabled={isDisabled}
+        />
       </div>
     </div>
   );

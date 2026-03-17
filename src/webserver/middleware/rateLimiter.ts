@@ -72,7 +72,14 @@ class RateLimitStore {
  * 创建速率限制中间件
  */
 export function createRateLimiter(config: RateLimitConfig): RateLimitMiddleware {
-  const { windowMs, max, message = 'Too many requests, please try again later', keyGenerator = (req: Request) => req.ip || req.socket.remoteAddress || 'unknown', skipSuccessfulRequests = false, skip = () => false } = config;
+  const {
+    windowMs,
+    max,
+    message = 'Too many requests, please try again later',
+    keyGenerator = (req: Request) => req.ip || req.socket.remoteAddress || 'unknown',
+    skipSuccessfulRequests = false,
+    skip = () => false,
+  } = config;
 
   const store = new RateLimitStore();
 

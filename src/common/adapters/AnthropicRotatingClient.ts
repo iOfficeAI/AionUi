@@ -8,7 +8,11 @@ import Anthropic, { type ClientOptions as AnthropicClientOptions_ } from '@anthr
 import { AuthType } from '@office-ai/aioncli-core';
 import type { RotatingApiClientOptions } from '../RotatingApiClient';
 import { RotatingApiClient } from '../RotatingApiClient';
-import { OpenAI2AnthropicConverter, type OpenAIChatCompletionParams, type OpenAIChatCompletionResponse } from './OpenAI2AnthropicConverter';
+import {
+  OpenAI2AnthropicConverter,
+  type OpenAIChatCompletionParams,
+  type OpenAIChatCompletionResponse,
+} from './OpenAI2AnthropicConverter';
 
 export interface AnthropicClientConfig {
   model?: string;
@@ -58,7 +62,10 @@ export class AnthropicRotatingClient extends RotatingApiClient<Anthropic> {
   /**
    * OpenAI-compatible createChatCompletion method for unified interface
    */
-  async createChatCompletion(params: OpenAIChatCompletionParams, options?: { signal?: AbortSignal; timeout?: number }): Promise<OpenAIChatCompletionResponse> {
+  async createChatCompletion(
+    params: OpenAIChatCompletionParams,
+    options?: { signal?: AbortSignal; timeout?: number }
+  ): Promise<OpenAIChatCompletionResponse> {
     // Handle request cancellation
     if (options?.signal?.aborted) {
       throw new Error('Request was aborted');

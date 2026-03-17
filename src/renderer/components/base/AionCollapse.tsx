@@ -66,7 +66,11 @@ const normalizeKeys = (keys?: string | string[]): string[] => {
 /**
  * 默认展开/收起图标 / Default expand/collapse icon
  */
-const DefaultIcon: React.FC<{ active: boolean }> = ({ active }) => <span className={classNames('text-xs text-t-secondary transition-transform duration-200', active && 'rotate-180')}>▼</span>;
+const DefaultIcon: React.FC<{ active: boolean }> = ({ active }) => (
+  <span className={classNames('text-xs text-t-secondary transition-transform duration-200', active && 'rotate-180')}>
+    ▼
+  </span>
+);
 
 /**
  * 折叠面板子项组件（仅用于类型检查和结构化）
@@ -108,7 +112,17 @@ AionCollapseItem.displayName = 'AionCollapseItem';
  * </AionCollapse>
  * ```
  */
-const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCollapseItem } = ({ children, className, defaultActiveKey, activeKey, onChange, accordion, expandIcon, expandIconPosition = 'left', bordered = true }) => {
+const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCollapseItem } = ({
+  children,
+  className,
+  defaultActiveKey,
+  activeKey,
+  onChange,
+  accordion,
+  expandIcon,
+  expandIconPosition = 'left',
+  bordered = true,
+}) => {
   // 判断是否为受控模式 / Determine if in controlled mode
   const isControlled = activeKey !== undefined;
   const [internalKeys, setInternalKeys] = useState<string[]>(normalizeKeys(defaultActiveKey));
@@ -151,16 +165,38 @@ const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCo
   return (
     <div className={classNames('rounded-16px  flex flex-col gap-12px bg-2 py-18px px-[12px] md:px-[32px]', className)}>
       {items.map((child) => {
-        const { name, header, disabled, className: itemClassName, headerClassName, contentClassName, contentStyle } = child.props;
+        const {
+          name,
+          header,
+          disabled,
+          className: itemClassName,
+          headerClassName,
+          contentClassName,
+          contentStyle,
+        } = child.props;
         const isActive = currentKeys.includes(name);
         const iconNode = expandIcon ? expandIcon(isActive) : <DefaultIcon active={isActive} />;
         const itemBorderClass = bordered ? 'border border-solid border-[color:var(--color-border-2)]' : '';
         const contentDividerClass = bordered ? 'border-t border-[color:var(--color-border-2)]' : '';
 
         return (
-          <div key={name} className={classNames('overflow-hidden rounded-12px', itemBorderClass, itemClassName, disabled && 'opacity-50')}>
+          <div
+            key={name}
+            className={classNames(
+              'overflow-hidden rounded-12px',
+              itemBorderClass,
+              itemClassName,
+              disabled && 'opacity-50'
+            )}
+          >
             {/* 面板标题 / Panel header */}
-            <div onClick={() => handleToggle(name, disabled)} className={classNames('flex items-center gap-3 text-left transition-colors py-5px cursor-pointer', headerClassName)}>
+            <div
+              onClick={() => handleToggle(name, disabled)}
+              className={classNames(
+                'flex items-center gap-3 text-left transition-colors py-5px cursor-pointer',
+                headerClassName
+              )}
+            >
               {expandIconPosition === 'left' && <span className='flex items-center'>{iconNode}</span>}
               <div className='flex-1 text-t-primary text-14px leading-22px'>{header}</div>
               {expandIconPosition === 'right' && <span className='flex items-center'>{iconNode}</span>}
@@ -168,7 +204,14 @@ const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCo
             {/* 面板内容（使用 grid 实现平滑动画）/ Panel content (using grid for smooth animation) */}
             <div className='transition-all duration-300 ease-in-out'>
               {isActive && (
-                <div className={classNames('grid overflow-hidden', mounted && 'transition-all duration-300 ease-in-out', contentClassName)} style={{ gridTemplateRows: '1fr', ...contentStyle }}>
+                <div
+                  className={classNames(
+                    'grid overflow-hidden',
+                    mounted && 'transition-all duration-300 ease-in-out',
+                    contentClassName
+                  )}
+                  style={{ gridTemplateRows: '1fr', ...contentStyle }}
+                >
                   <div className={classNames('overflow-hidden', contentDividerClass)}>{child.props.children}</div>
                 </div>
               )}

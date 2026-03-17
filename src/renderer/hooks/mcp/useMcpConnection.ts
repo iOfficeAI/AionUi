@@ -36,7 +36,11 @@ export const useMcpConnection = (
       // 更新服务器状态 - 使用统一的保存函数，避免竞态条件
       const updateServerStatus = async (status: IMcpServer['status'], additionalData?: Partial<IMcpServer>) => {
         try {
-          await saveMcpServers((prevServers) => prevServers.map((s) => (s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s)));
+          await saveMcpServers((prevServers) =>
+            prevServers.map((s) =>
+              s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s
+            )
+          );
         } catch (error) {
           console.error('Failed to update server status:', error);
         }

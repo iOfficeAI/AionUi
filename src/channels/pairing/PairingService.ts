@@ -39,13 +39,19 @@ export class PairingService {
   /**
    * Generate a new pairing code for a user
    */
-  async generatePairingCode(platformUserId: string, platformType: PluginType, displayName?: string): Promise<{ code: string; expiresAt: number }> {
+  async generatePairingCode(
+    platformUserId: string,
+    platformType: PluginType,
+    displayName?: string
+  ): Promise<{ code: string; expiresAt: number }> {
     const db = getDatabase();
 
     // Check for existing pending request
     const existingResult = db.getPendingPairingRequests();
     if (existingResult.success && existingResult.data) {
-      const existing = existingResult.data.find((r) => r.platformUserId === platformUserId && r.platformType === platformType && r.status === 'pending');
+      const existing = existingResult.data.find(
+        (r) => r.platformUserId === platformUserId && r.platformType === platformType && r.status === 'pending'
+      );
 
       // Return existing code if not expired
       if (existing && existing.expiresAt > Date.now()) {
@@ -86,14 +92,22 @@ export class PairingService {
   /**
    * Refresh pairing code for a user (generate new one)
    */
-  async refreshPairingCode(platformUserId: string, platformType: PluginType, displayName?: string): Promise<{ code: string; expiresAt: number }> {
+  async refreshPairingCode(
+    platformUserId: string,
+    platformType: PluginType,
+    displayName?: string
+  ): Promise<{ code: string; expiresAt: number }> {
     const db = getDatabase();
 
     // Expire any existing pending codes
     const existingResult = db.getPendingPairingRequests();
     if (existingResult.success && existingResult.data) {
       for (const request of existingResult.data) {
-        if (request.platformUserId === platformUserId && request.platformType === platformType && request.status === 'pending') {
+        if (
+          request.platformUserId === platformUserId &&
+          request.platformType === platformType &&
+          request.status === 'pending'
+        ) {
           db.updatePairingRequestStatus(request.code, 'expired');
         }
       }
@@ -132,7 +146,15 @@ export class PairingService {
       return null;
     }
 
-    return result.data.find((r) => r.platformUserId === platformUserId && r.platformType === platformType && r.status === 'pending' && r.expiresAt > Date.now()) ?? null;
+    return (
+      result.data.find(
+        (r) =>
+          r.platformUserId === platformUserId &&
+          r.platformType === platformType &&
+          r.status === 'pending' &&
+          r.expiresAt > Date.now()
+      ) ?? null
+    );
   }
 
   /**

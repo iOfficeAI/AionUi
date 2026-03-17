@@ -78,8 +78,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
   // Agent selection (used for Lark conversations)
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean }>>([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>({ backend: 'gemini' });
+  const [availableAgents, setAvailableAgents] = useState<
+    Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean }>
+  >([]);
+  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>(
+    { backend: 'gemini' }
+  );
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -123,10 +127,21 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   useEffect(() => {
     const loadAgentsAndSelection = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.lark.agent')]);
+        const [agentsResp, saved] = await Promise.all([
+          acpConversation.getAvailableAgents.invoke(),
+          ConfigStorage.get('assistant.lark.agent'),
+        ]);
 
         if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data.filter((a) => !a.isPreset).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset, isExtension: a.isExtension }));
+          const list = agentsResp.data
+            .filter((a) => !a.isPreset)
+            .map((a) => ({
+              backend: a.backend,
+              name: a.name,
+              customAgentId: a.customAgentId,
+              isPreset: a.isPreset,
+              isExtension: a.isExtension,
+            }));
           setAvailableAgents(list);
         }
 
@@ -150,7 +165,9 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.lark.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'lark', agent }).catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
+      await channel.syncChannelSettings
+        .invoke({ platform: 'lark', agent })
+        .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[LarkConfig] Failed to save agent:', error);
@@ -326,7 +343,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   const hasExistingUsers = authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini';
-  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> =
+    availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -439,17 +457,36 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       </PreferenceRow>
 
       {/* Optional fields toggle */}
-      <div className='flex items-center gap-4px text-12px text-t-tertiary cursor-pointer select-none' onClick={() => setShowOptional((prev) => !prev)}>
-        <Down theme='outline' size={12} style={{ transform: showOptional ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-        <span>{showOptional ? t('settings.lark.hideOptionalFields', 'Hide optional settings') : t('settings.lark.showOptionalFields', 'Show optional settings')}</span>
+      <div
+        className='flex items-center gap-4px text-12px text-t-tertiary cursor-pointer select-none'
+        onClick={() => setShowOptional((prev) => !prev)}
+      >
+        <Down
+          theme='outline'
+          size={12}
+          style={{ transform: showOptional ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+        />
+        <span>
+          {showOptional
+            ? t('settings.lark.hideOptionalFields', 'Hide optional settings')
+            : t('settings.lark.showOptionalFields', 'Show optional settings')}
+        </span>
       </div>
 
       {showOptional && (
         <>
           {/* Encrypt Key (Optional) */}
-          <PreferenceRow label={t('settings.lark.encryptKey', 'Encrypt Key')} description={t('settings.lark.encryptKeyDesc', 'Optional: For event encryption (from Event Subscription settings)')}>
+          <PreferenceRow
+            label={t('settings.lark.encryptKey', 'Encrypt Key')}
+            description={t(
+              'settings.lark.encryptKeyDesc',
+              'Optional: For event encryption (from Event Subscription settings)'
+            )}
+          >
             {hasExistingUsers ? (
-              <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+              <Tooltip
+                content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}
+              >
                 <span>
                   <Input.Password
                     value={encryptKey}
@@ -480,9 +517,17 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           </PreferenceRow>
 
           {/* Verification Token (Optional) */}
-          <PreferenceRow label={t('settings.lark.verificationToken', 'Verification Token')} description={t('settings.lark.verificationTokenDesc', 'Optional: For event verification (from Event Subscription settings)')}>
+          <PreferenceRow
+            label={t('settings.lark.verificationToken', 'Verification Token')}
+            description={t(
+              'settings.lark.verificationTokenDesc',
+              'Optional: For event verification (from Event Subscription settings)'
+            )}
+          >
             {hasExistingUsers ? (
-              <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+              <Tooltip
+                content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}
+              >
                 <span>
                   <Input.Password
                     value={verificationToken}
@@ -519,9 +564,16 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         <div className='flex justify-end'>
           {pluginStatus?.hasToken && !appId.trim() && !appSecret.trim() ? (
             // Credentials already saved but not entered in UI - show info message
-            <span className='text-12px text-t-tertiary mr-12px self-center'>{t('settings.lark.credentialsSaved', 'Credentials already configured. Enter new values to update.')}</span>
+            <span className='text-12px text-t-tertiary mr-12px self-center'>
+              {t('settings.lark.credentialsSaved', 'Credentials already configured. Enter new values to update.')}
+            </span>
           ) : null}
-          <Button type='primary' loading={testLoading} onClick={handleTestConnection} disabled={pluginStatus?.hasToken && !appId.trim() && !appSecret.trim()}>
+          <Button
+            type='primary'
+            loading={testLoading}
+            onClick={handleTestConnection}
+            disabled={pluginStatus?.hasToken && !appId.trim() && !appSecret.trim()}
+          >
             {t('settings.lark.testAndConnect', 'Test & Connect')}
           </Button>
         </div>
@@ -529,19 +581,30 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
       {/* Agent Selection */}
       <div className='flex flex-col gap-8px'>
-        <PreferenceRow label={t('settings.lark.agent', 'Agent')} description={t('settings.lark.agentDesc', 'Used for Lark conversations')}>
+        <PreferenceRow
+          label={t('settings.lark.agent', 'Agent')}
+          description={t('settings.lark.agentDesc', 'Used for Lark conversations')}
+        >
           <Dropdown
             trigger='click'
             position='br'
             droplist={
-              <Menu selectedKeys={[selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend]}>
+              <Menu
+                selectedKeys={[
+                  selectedAgent.customAgentId
+                    ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                    : selectedAgent.backend,
+                ]}
+              >
                 {agentOptions.map((a) => {
                   const key = a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
-                        const currentKey = selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend;
+                        const currentKey = selectedAgent.customAgentId
+                          ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                          : selectedAgent.backend;
                         if (key === currentKey) {
                           return;
                         }
@@ -558,7 +621,17 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
             }
           >
             <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-              <span className='truncate'>{selectedAgent.name || availableAgents.find((a) => (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) === (selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend))?.name || selectedAgent.backend}</span>
+              <span className='truncate'>
+                {selectedAgent.name ||
+                  availableAgents.find(
+                    (a) =>
+                      (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) ===
+                      (selectedAgent.customAgentId
+                        ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                        : selectedAgent.backend)
+                  )?.name ||
+                  selectedAgent.backend}
+              </span>
               <Down theme='outline' size={14} />
             </Button>
           </Dropdown>
@@ -566,15 +639,40 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       </div>
 
       {/* Default Model Selection */}
-      <PreferenceRow label={t('settings.assistant.defaultModel', '对话模型')} description={t('settings.lark.defaultModelDesc', '用于Agent对话时调用')}>
-        <GeminiModelSelector selection={isGeminiAgent ? modelSelection : undefined} disabled={!isGeminiAgent} label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined} variant='settings' />
+      <PreferenceRow
+        label={t('settings.assistant.defaultModel', '对话模型')}
+        description={t('settings.lark.defaultModelDesc', '用于Agent对话时调用')}
+      >
+        <GeminiModelSelector
+          selection={isGeminiAgent ? modelSelection : undefined}
+          disabled={!isGeminiAgent}
+          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined}
+          variant='settings'
+        />
       </PreferenceRow>
 
       {/* Connection Status - show when bot is enabled */}
       {pluginStatus?.enabled && authorizedUsers.length === 0 && (
-        <div className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
-          <SectionHeader title={t('settings.lark.connectionStatus', 'Connection Status')} action={<span className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}>{pluginStatus?.connected ? t('settings.lark.statusConnected', 'Connected') : pluginStatus?.error ? t('settings.lark.statusError', 'Error') : t('settings.lark.statusConnecting', 'Connecting...')}</span>} />
-          {pluginStatus?.error && <div className='text-14px text-red-600 dark:text-red-400 mb-12px'>{pluginStatus.error}</div>}
+        <div
+          className={`rd-12px p-16px border ${pluginStatus?.connected ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : pluginStatus?.error ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}
+        >
+          <SectionHeader
+            title={t('settings.lark.connectionStatus', 'Connection Status')}
+            action={
+              <span
+                className={`text-12px px-8px py-2px rd-4px ${pluginStatus?.connected ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : pluginStatus?.error ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}`}
+              >
+                {pluginStatus?.connected
+                  ? t('settings.lark.statusConnected', 'Connected')
+                  : pluginStatus?.error
+                    ? t('settings.lark.statusError', 'Error')
+                    : t('settings.lark.statusConnecting', 'Connecting...')}
+              </span>
+            }
+          />
+          {pluginStatus?.error && (
+            <div className='text-14px text-red-600 dark:text-red-400 mb-12px'>{pluginStatus.error}</div>
+          )}
           {pluginStatus?.connected && (
             <div className='text-14px text-t-secondary space-y-8px'>
               <p className='m-0 font-500'>{t('settings.assistant.nextSteps', 'Next Steps')}:</p>
@@ -585,14 +683,23 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                 <strong>2.</strong> {t('settings.lark.step2', 'Send any message to initiate pairing')}
               </p>
               <p className='m-0'>
-                <strong>3.</strong> {t('settings.lark.step3', 'A pairing request will appear below. Click "Approve" to authorize the user.')}
+                <strong>3.</strong>{' '}
+                {t(
+                  'settings.lark.step3',
+                  'A pairing request will appear below. Click "Approve" to authorize the user.'
+                )}
               </p>
               <p className='m-0'>
-                <strong>4.</strong> {t('settings.lark.step4', 'Once approved, you can start chatting with the AI assistant through Lark!')}
+                <strong>4.</strong>{' '}
+                {t('settings.lark.step4', 'Once approved, you can start chatting with the AI assistant through Lark!')}
               </p>
             </div>
           )}
-          {!pluginStatus?.connected && !pluginStatus?.error && <div className='text-14px text-t-secondary'>{t('settings.lark.waitingConnection', 'WebSocket connection is being established. Please wait...')}</div>}
+          {!pluginStatus?.connected && !pluginStatus?.error && (
+            <div className='text-14px text-t-secondary'>
+              {t('settings.lark.waitingConnection', 'WebSocket connection is being established. Please wait...')}
+            </div>
+          )}
         </div>
       )}
 
@@ -602,7 +709,13 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
-              <Button size='mini' type='text' icon={<Refresh size={14} />} loading={pairingLoading} onClick={loadPendingPairings}>
+              <Button
+                size='mini'
+                type='text'
+                icon={<Refresh size={14} />}
+                loading={pairingLoading}
+                onClick={loadPendingPairings}
+              >
                 {t('conversation.workspace.refresh', 'Refresh')}
               </Button>
             }
@@ -622,22 +735,37 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                     <div className='flex items-center gap-8px'>
                       <span className='text-14px font-500 text-t-primary'>{pairing.displayName || 'Unknown User'}</span>
                       <Tooltip content={t('settings.assistant.copyCode', 'Copy pairing code')}>
-                        <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => copyToClipboard(pairing.code)}>
+                        <button
+                          className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                          onClick={() => copyToClipboard(pairing.code)}
+                        >
                           <Copy size={14} />
                         </button>
                       </Tooltip>
                     </div>
                     <div className='text-12px text-t-tertiary mt-4px'>
-                      {t('settings.assistant.pairingCode', 'Code')}: <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
+                      {t('settings.assistant.pairingCode', 'Code')}:{' '}
+                      <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
                       <span className='mx-8px'>|</span>
                       {t('settings.assistant.expiresIn', 'Expires in')}: {getRemainingTime(pairing.expiresAt)}
                     </div>
                   </div>
                   <div className='flex items-center gap-8px'>
-                    <Button type='primary' size='small' icon={<CheckOne size={14} />} onClick={() => handleApprovePairing(pairing.code)}>
+                    <Button
+                      type='primary'
+                      size='small'
+                      icon={<CheckOne size={14} />}
+                      onClick={() => handleApprovePairing(pairing.code)}
+                    >
                       {t('settings.assistant.approve', 'Approve')}
                     </Button>
-                    <Button type='secondary' size='small' status='danger' icon={<CloseOne size={14} />} onClick={() => handleRejectPairing(pairing.code)}>
+                    <Button
+                      type='secondary'
+                      size='small'
+                      status='danger'
+                      icon={<CloseOne size={14} />}
+                      onClick={() => handleRejectPairing(pairing.code)}
+                    >
                       {t('settings.assistant.reject', 'Reject')}
                     </Button>
                   </div>
@@ -654,7 +782,13 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={
-              <Button size='mini' type='text' icon={<Refresh size={14} />} loading={usersLoading} onClick={loadAuthorizedUsers}>
+              <Button
+                size='mini'
+                type='text'
+                icon={<Refresh size={14} />}
+                loading={usersLoading}
+                onClick={loadAuthorizedUsers}
+              >
                 {t('common.refresh', 'Refresh')}
               </Button>
             }
@@ -679,7 +813,13 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                     </div>
                   </div>
                   <Tooltip content={t('settings.assistant.revokeAccess', 'Revoke access')}>
-                    <Button type='text' status='danger' size='small' icon={<Delete size={16} />} onClick={() => handleRevokeUser(user.id)} />
+                    <Button
+                      type='text'
+                      status='danger'
+                      size='small'
+                      icon={<Delete size={16} />}
+                      onClick={() => handleRevokeUser(user.id)}
+                    />
                   </Tooltip>
                 </div>
               ))}

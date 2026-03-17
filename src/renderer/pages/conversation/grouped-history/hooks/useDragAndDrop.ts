@@ -13,7 +13,13 @@ import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useRef, useState } from 'react';
 
-import { assignInitialSortOrders, computeSortOrder, getConversationSortOrder, needsReindex, reindexSortOrders } from '../utils/sortOrderHelpers';
+import {
+  assignInitialSortOrders,
+  computeSortOrder,
+  getConversationSortOrder,
+  needsReindex,
+  reindexSortOrders,
+} from '../utils/sortOrderHelpers';
 
 type UseDragAndDropParams = {
   pinnedConversations: TChatConversation[];

@@ -22,7 +22,10 @@ interface CronJobActionsResult {
 /**
  * Creates common cron job action handlers
  */
-function useCronJobActions(onJobUpdated?: (jobId: string, job: ICronJob) => void, onJobDeleted?: (jobId: string) => void): CronJobActionsResult {
+function useCronJobActions(
+  onJobUpdated?: (jobId: string, job: ICronJob) => void,
+  onJobDeleted?: (jobId: string) => void
+): CronJobActionsResult {
   const pauseJob = useCallback(
     async (jobId: string) => {
       const updated = await ipcBridge.cron.updateJob.invoke({ jobId, updates: { enabled: false } });
@@ -453,7 +456,17 @@ export function useCronJobsMap() {
       hasUnread,
       refetch: fetchAllJobs,
     }),
-    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, setActiveConversation, hasUnread, fetchAllJobs]
+    [
+      jobsMap,
+      loading,
+      hasJobsForConversation,
+      getJobsForConversation,
+      getJobStatus,
+      markAsRead,
+      setActiveConversation,
+      hasUnread,
+      fetchAllJobs,
+    ]
   );
 }
 

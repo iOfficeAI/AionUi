@@ -10,6 +10,7 @@ import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/u
 import type { WorkspaceStateDetail } from '@renderer/utils/workspaceEvents';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
+import './titlebar.css';
 
 interface TitlebarProps {
   workspaceAvailable: boolean;
@@ -17,7 +18,10 @@ interface TitlebarProps {
 
 const AionLogoMark: React.FC = () => (
   <svg className='app-titlebar__brand-logo' viewBox='0 0 80 80' fill='none' aria-hidden='true' focusable='false'>
-    <path d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20' fill='currentColor'></path>
+    <path
+      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
+      fill='currentColor'
+    ></path>
     <circle cx='40' cy='46' r='3' fill='currentColor'></circle>
     <path d='M18 50 Q40 70 62 50' stroke='currentColor' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
   </svg>
@@ -61,7 +65,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   // WebUI 和 macOS 桌面都需要在标题栏放工作区开关
   const showWorkspaceButton = workspaceAvailable && (!isDesktopRuntime || isMacRuntime);
 
-  const workspaceTooltip = workspaceCollapsed ? t('common.expandMore', { defaultValue: 'Expand workspace' }) : t('common.collapse', { defaultValue: 'Collapse workspace' });
+  const workspaceTooltip = workspaceCollapsed
+    ? t('common.expandMore', { defaultValue: 'Expand workspace' })
+    : t('common.collapse', { defaultValue: 'Collapse workspace' });
   const newConversationTooltip = t('conversation.workspace.createNewConversation');
   const backToChatTooltip = t('common.back', { defaultValue: 'Back to Chat' });
   const isSettingsRoute = location.pathname.startsWith('/settings');
@@ -70,7 +76,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const showSiderToggle = Boolean(layout?.setSiderCollapsed) && !(layout?.isMobile && isSettingsRoute);
   const showBackToChatButton = Boolean(layout?.isMobile && isSettingsRoute);
   const showNewConversationButton = Boolean(layout?.isMobile && workspaceAvailable);
-  const siderTooltip = layout?.siderCollapsed ? t('common.expandMore', { defaultValue: 'Expand sidebar' }) : t('common.collapse', { defaultValue: 'Collapse sidebar' });
+  const siderTooltip = layout?.siderCollapsed
+    ? t('common.expandMore', { defaultValue: 'Expand sidebar' })
+    : t('common.collapse', { defaultValue: 'Collapse sidebar' });
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;
@@ -204,17 +212,35 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     >
       <div ref={menuRef} className='app-titlebar__menu' style={menuStyle}>
         {showBackToChatButton && (
-          <button type='button' className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')} onClick={handleBackToChat} aria-label={backToChatTooltip}>
+          <button
+            type='button'
+            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+            onClick={handleBackToChat}
+            aria-label={backToChatTooltip}
+          >
             <ArrowCircleLeft theme='outline' size={iconSize} fill='currentColor' />
           </button>
         )}
         {showSiderToggle && (
-          <button type='button' className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')} onClick={handleSiderToggle} aria-label={siderTooltip}>
-            {layout?.siderCollapsed ? <MenuUnfold theme='outline' size={iconSize} fill='currentColor' /> : <MenuFold theme='outline' size={iconSize} fill='currentColor' />}
+          <button
+            type='button'
+            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+            onClick={handleSiderToggle}
+            aria-label={siderTooltip}
+          >
+            {layout?.siderCollapsed ? (
+              <MenuUnfold theme='outline' size={iconSize} fill='currentColor' />
+            ) : (
+              <MenuFold theme='outline' size={iconSize} fill='currentColor' />
+            )}
           </button>
         )}
       </div>
-      <div className='app-titlebar__brand' aria-label={layout?.isMobile ? mobileCenterTitle : appTitle} title={layout?.isMobile ? mobileCenterTitle : appTitle}>
+      <div
+        className='app-titlebar__brand'
+        aria-label={layout?.isMobile ? mobileCenterTitle : appTitle}
+        title={layout?.isMobile ? mobileCenterTitle : appTitle}
+      >
         {layout?.isMobile ? (
           <span className='app-titlebar__brand-mobile'>
             <AionLogoMark />
@@ -226,13 +252,27 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {showNewConversationButton && (
-          <button type='button' className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')} onClick={handleCreateConversation} aria-label={newConversationTooltip}>
+          <button
+            type='button'
+            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+            onClick={handleCreateConversation}
+            aria-label={newConversationTooltip}
+          >
             <Plus theme='outline' size={iconSize} fill='currentColor' />
           </button>
         )}
         {showWorkspaceButton && (
-          <button type='button' className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')} onClick={handleWorkspaceToggle} aria-label={workspaceTooltip}>
-            {workspaceCollapsed ? <ExpandRight theme='outline' size={iconSize} fill='currentColor' /> : <ExpandLeft theme='outline' size={iconSize} fill='currentColor' />}
+          <button
+            type='button'
+            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
+            onClick={handleWorkspaceToggle}
+            aria-label={workspaceTooltip}
+          >
+            {workspaceCollapsed ? (
+              <ExpandRight theme='outline' size={iconSize} fill='currentColor' />
+            ) : (
+              <ExpandLeft theme='outline' size={iconSize} fill='currentColor' />
+            )}
           </button>
         )}
         {showWindowControls && <WindowControls />}

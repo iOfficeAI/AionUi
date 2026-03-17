@@ -9,7 +9,9 @@ test.describe('Extension: Complete Capabilities', () => {
     expect(extensionNames).toEqual(expect.arrayContaining(['e2e-full-extension', 'hello-world', 'ext-feishu']));
 
     const acpAdapterIds = snapshot.acpAdapters.map((item) => item.id);
-    expect(acpAdapterIds).toEqual(expect.arrayContaining(['e2e-cli-agent', 'e2e-http-agent', 'hello-stdio-agent', 'hello-http-agent']));
+    expect(acpAdapterIds).toEqual(
+      expect.arrayContaining(['e2e-cli-agent', 'e2e-http-agent', 'hello-stdio-agent', 'hello-http-agent'])
+    );
 
     const assistantIds = snapshot.assistants.map((item) => item.id);
     expect(assistantIds).toEqual(expect.arrayContaining(['ext-e2e-test-assistant', 'ext-hello-assistant']));
@@ -24,12 +26,25 @@ test.describe('Extension: Complete Capabilities', () => {
     expect(skillNames).toEqual(expect.arrayContaining(['e2e-test-skill', 'hello-quick-summary']));
 
     const themeIds = snapshot.themes.map((item) => item.id);
-    expect(themeIds).toEqual(expect.arrayContaining(['ext-e2e-full-extension-e2e-dark-theme', 'ext-hello-world-ocean-breeze']));
+    expect(themeIds).toEqual(
+      expect.arrayContaining(['ext-e2e-full-extension-e2e-dark-theme', 'ext-hello-world-ocean-breeze'])
+    );
 
     const settingsTabIds = snapshot.settingsTabs.map((item) => item.id);
-    expect(settingsTabIds).toEqual(expect.arrayContaining(['ext-e2e-full-extension-e2e-settings', 'ext-e2e-full-extension-e2e-before-about', 'ext-hello-world-hello-settings']));
+    expect(settingsTabIds).toEqual(
+      expect.arrayContaining([
+        'ext-e2e-full-extension-e2e-settings',
+        'ext-e2e-full-extension-e2e-before-about',
+        'ext-hello-world-hello-settings',
+      ])
+    );
 
-    const allEntryUrlsValid = snapshot.settingsTabs.every((item) => item.entryUrl.startsWith('aion-asset://') || item.entryUrl.startsWith('http://') || item.entryUrl.startsWith('https://'));
+    const allEntryUrlsValid = snapshot.settingsTabs.every(
+      (item) =>
+        item.entryUrl.startsWith('aion-asset://') ||
+        item.entryUrl.startsWith('http://') ||
+        item.entryUrl.startsWith('https://')
+    );
     expect(allEntryUrlsValid).toBeTruthy();
 
     const feishuWebui = snapshot.webuiContributions.find((item) => item.extensionName === 'ext-feishu');
@@ -41,7 +56,11 @@ test.describe('Extension: Complete Capabilities', () => {
   });
 
   test('all known extension settings tabs can be opened and rendered', async ({ page }) => {
-    const tabIds = ['ext-e2e-full-extension-e2e-settings', 'ext-e2e-full-extension-e2e-before-about', 'ext-hello-world-hello-settings'];
+    const tabIds = [
+      'ext-e2e-full-extension-e2e-settings',
+      'ext-e2e-full-extension-e2e-before-about',
+      'ext-hello-world-hello-settings',
+    ];
 
     for (const tabId of tabIds) {
       await goToExtensionSettings(page, tabId);

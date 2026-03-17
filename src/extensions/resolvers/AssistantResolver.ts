@@ -21,7 +21,10 @@ export async function resolveAssistants(extensions: LoadedExtension[]): Promise<
         const config = await convertAssistant(assistant, ext);
         assistants.push(config);
       } catch (error) {
-        console.warn(`[Extensions] Failed to resolve assistant "${assistant.id}" from ${ext.manifest.name}:`, error instanceof Error ? error.message : error);
+        console.warn(
+          `[Extensions] Failed to resolve assistant "${assistant.id}" from ${ext.manifest.name}:`,
+          error instanceof Error ? error.message : error
+        );
       }
     }
   }
@@ -42,14 +45,21 @@ export async function resolveAgents(extensions: LoadedExtension[]): Promise<Reco
         const config = await convertAssistant(agent, ext, 'agent');
         agents.push(config);
       } catch (error) {
-        console.warn(`[Extensions] Failed to resolve agent "${agent.id}" from ${ext.manifest.name}:`, error instanceof Error ? error.message : error);
+        console.warn(
+          `[Extensions] Failed to resolve agent "${agent.id}" from ${ext.manifest.name}:`,
+          error instanceof Error ? error.message : error
+        );
       }
     }
   }
   return agents;
 }
 
-async function convertAssistant(assistant: ExtAssistant, ext: LoadedExtension, kind: 'assistant' | 'agent' = 'assistant'): Promise<Record<string, unknown>> {
+async function convertAssistant(
+  assistant: ExtAssistant,
+  ext: LoadedExtension,
+  kind: 'assistant' | 'agent' = 'assistant'
+): Promise<Record<string, unknown>> {
   const context = await readContextFile(assistant.contextFile, ext.directory);
 
   return {
@@ -84,7 +94,10 @@ async function readContextFile(relativePath: string, extensionDir: string): Prom
   try {
     return await fs.readFile(absolutePath, 'utf-8');
   } catch (error) {
-    console.warn(`[Extensions] Failed to read context file ${absolutePath}:`, error instanceof Error ? error.message : error);
+    console.warn(
+      `[Extensions] Failed to read context file ${absolutePath}:`,
+      error instanceof Error ? error.message : error
+    );
     return null;
   }
 }

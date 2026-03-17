@@ -17,6 +17,7 @@
     "unknown": "알 수 없는 상태"
   },
   "config": {
-    "reasoning_effort": "추론 깊이"
+    "reasoning_effort": "추론 깊이",
+    "default": "기본값"
   }
 }

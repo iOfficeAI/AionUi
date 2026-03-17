@@ -16,7 +16,10 @@ import { useEffect, useCallback, useRef } from 'react';
  * @param containerRef - 容器引用 / Container ref
  * @param onTargetScroll - 目标滚动百分比回调 / Target scroll percentage callback
  */
-export const useScrollSyncTarget = (containerRef: React.RefObject<HTMLElement> | undefined, onTargetScroll: (targetPercent: number) => void): void => {
+export const useScrollSyncTarget = (
+  containerRef: React.RefObject<HTMLElement> | undefined,
+  onTargetScroll: (targetPercent: number) => void
+): void => {
   useEffect(() => {
     const container = containerRef?.current;
     if (!container) return;
@@ -48,7 +51,10 @@ export const useScrollSyncTarget = (containerRef: React.RefObject<HTMLElement> |
  * @param onScroll - 滚动回调 / Scroll callback
  * @returns setScrollPercent - 设置滚动百分比的函数 / Function to set scroll percentage
  */
-export const useCodeMirrorScroll = (wrapperRef: React.RefObject<HTMLDivElement>, onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void): { setScrollPercent: (percent: number) => void } => {
+export const useCodeMirrorScroll = (
+  wrapperRef: React.RefObject<HTMLDivElement>,
+  onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void
+): { setScrollPercent: (percent: number) => void } => {
   // 监听 CodeMirror 内部滚动容器的滚动事件
   // Listen to CodeMirror's internal scroller scroll events
   useEffect(() => {
@@ -114,7 +120,10 @@ export const useCodeMirrorScroll = (wrapperRef: React.RefObject<HTMLDivElement>,
  * @param containerRef - 容器引用 / Container ref
  * @param onScroll - 滚动回调 / Scroll callback
  */
-export const useContainerScroll = (containerRef: React.RefObject<HTMLElement>, onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void): void => {
+export const useContainerScroll = (
+  containerRef: React.RefObject<HTMLElement>,
+  onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void
+): void => {
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !onScroll) return;

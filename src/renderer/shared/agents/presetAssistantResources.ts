@@ -44,7 +44,10 @@ const defaultDeps: PresetAssistantResourceDeps = {
   },
 };
 
-export async function loadPresetAssistantResources(options: LoadPresetAssistantResourcesOptions, deps: PresetAssistantResourceDeps = defaultDeps): Promise<PresetAssistantResources> {
+export async function loadPresetAssistantResources(
+  options: LoadPresetAssistantResourcesOptions,
+  deps: PresetAssistantResourceDeps = defaultDeps
+): Promise<PresetAssistantResources> {
   const { customAgentId, localeKey, fallbackRules } = options;
 
   if (!customAgentId) {
