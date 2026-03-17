@@ -33,6 +33,11 @@ vi.mock('../../src/common', () => ({
     database: {
       getUserConversations: { invoke: (...args: unknown[]) => mockInvoke(...args) },
     },
+    conversation: {
+      listChanged: { on: vi.fn() },
+      responseStream: { on: vi.fn() },
+      turnCompleted: { on: vi.fn() },
+    },
   },
 }));
 

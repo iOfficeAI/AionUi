@@ -11,7 +11,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo'
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/siderTooltip';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { Checkbox, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, EditOne, Export, MessageOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
@@ -22,7 +22,17 @@ import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import { isConversationPinned } from './utils/groupingHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
-  const { conversation, collapsed, tooltipEnabled, batchMode, checked, selected, menuVisible } = props;
+  const {
+    conversation,
+    isGenerating,
+    hasCompletionUnread,
+    collapsed,
+    tooltipEnabled,
+    batchMode,
+    checked,
+    selected,
+    menuVisible,
+  } = props;
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const {
@@ -77,6 +87,22 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onConversationClick(conversation);
   };
 
+  const renderStatusIndicator = () => {
+    if (batchMode) {
+      return null;
+    }
+
+    return (
+      <span className='mr-8px h-20px w-12px flex items-center justify-center flex-shrink-0'>
+        {isGenerating ? (
+          <Spin size={12} />
+        ) : hasCompletionUnread ? (
+          <span className='h-10px w-10px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)]' />
+        ) : null}
+      </span>
+    );
+  };
+
   return (
     <Tooltip
       key={conversation.id}
@@ -107,8 +133,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             <Checkbox checked={checked} />
           </span>
         )}
+        {renderStatusIndicator()}
         {renderLeadingIcon()}
-        <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>
+        <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px pr-18px'>
           <Tooltip
             content={conversation.name}
             disabled={!inlineNameTooltipEnabled}
@@ -124,7 +151,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                 selected && !batchMode ? 'text-1 font-medium' : 'text-2'
               )}
             >
-              {conversation.name}
+              <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
             </div>
           </Tooltip>
         </FlexFullContainer>

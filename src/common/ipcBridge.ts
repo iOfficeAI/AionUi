@@ -52,6 +52,8 @@ export const conversation = {
   >('conversation.get-slash-commands'),
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
   responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
+  turnCompleted: bridge.buildEmitter<IConversationTurnCompletedEvent>('conversation.turn.completed'),
+  listChanged: bridge.buildEmitter<IConversationListChangedEvent>('conversation.list-changed'),
   getWorkspace: bridge.buildProvider<
     IDirOrFile[],
     { conversation_id: string; workspace: string; path: string; search?: string }
@@ -779,6 +781,46 @@ export interface IResponseMessage {
   conversation_id: string;
 }
 
+export interface IConversationTurnCompletedEvent {
+  sessionId: string;
+  status: 'pending' | 'running' | 'finished';
+  state:
+    | 'ai_generating'
+    | 'ai_waiting_input'
+    | 'ai_waiting_confirmation'
+    | 'initializing'
+    | 'stopped'
+    | 'error'
+    | 'unknown';
+  detail: string;
+  canSendMessage: boolean;
+  runtime: {
+    hasTask: boolean;
+    taskStatus?: 'pending' | 'running' | 'finished';
+    isProcessing: boolean;
+    pendingConfirmations: number;
+    dbStatus?: 'pending' | 'running' | 'finished';
+  };
+  workspace: string;
+  model: {
+    platform: string;
+    name: string;
+    useModel: string;
+  };
+  lastMessage: {
+    id?: string;
+    type?: string;
+    content: unknown;
+    status?: string | null;
+    createdAt: number;
+  };
+}
+
+export interface IConversationListChangedEvent {
+  conversationId: string;
+  action: 'created' | 'updated' | 'deleted';
+  source?: string;
+}
 interface IBridgeResponse<D = {}> {
   success: boolean;
   data?: D;
