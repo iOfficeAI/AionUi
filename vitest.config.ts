@@ -83,6 +83,7 @@ export default defineConfig({
         'src/extensions/resolvers/WebuiResolver.ts',
         // Renderer components
         'src/renderer/pages/conversation/components/ConversationTitleMinimap.tsx',
+        'src/renderer/pages/conversation/gemini/GeminiSendBox.tsx',
       ],
       thresholds: {
         statements: 30,
