@@ -393,6 +393,68 @@ describe('getEnhancedEnv Windows extra paths (cross-platform mock)', () => {
   });
 });
 
+describe('resolveNpxPath', () => {
+  const originalPlatform = process.platform;
+
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('uses shell execution when probing npx.cmd on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi
+      .fn()
+      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
+      .mockReturnValueOnce('10.9.0\n');
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxPath } = await import('@process/utils/shellEnv');
+    const result = resolveNpxPath({ PATH: '/tooling' });
+    const npxCandidate = path.join('/tooling', 'npx.cmd');
+
+    expect(result).toBe(npxCandidate);
+    expect(execFileSync).toHaveBeenNthCalledWith(
+      2,
+      npxCandidate,
+      ['--version'],
+      expect.objectContaining({
+        env: { PATH: '/tooling' },
+        shell: true,
+        windowsHide: true,
+      })
+    );
+  });
+
+  it('falls back to PATH lookup when npx probing fails on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi
+      .fn()
+      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
+      .mockImplementationOnce(() => {
+        throw new Error('spawnSync /tooling/npx.cmd EINVAL');
+      });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxPath } = await import('@process/utils/shellEnv');
+
+    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('npx.cmd');
+  });
+});
+
 // -------------------------------------------------------------------
 // 5. Regression test: the fix that was applied to ForkTask.ts
 //    Documents the expected behavior: getEnhancedEnv must be called

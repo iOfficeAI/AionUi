@@ -256,6 +256,12 @@ async function prepareCodex(): Promise<NpxPrepareResult> {
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
 
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
+  const codexExecOptions = {
+    env: cleanEnv,
+    timeout: 5000,
+    windowsHide: true,
+    ...(process.platform === 'win32' ? { shell: true } : {}),
+  };
   const diagnostics: {
     bridgeVersion: string;
     bridgePackage: string;
@@ -275,22 +281,14 @@ async function prepareCodex(): Promise<NpxPrepareResult> {
   };
 
   try {
-    const { stdout } = await execFile(codexCommand, ['--version'], {
-      env: cleanEnv,
-      timeout: 5000,
-      windowsHide: true,
-    });
+    const { stdout } = await execFile(codexCommand, ['--version'], codexExecOptions);
     diagnostics.codexCliVersion = stdout.trim() || diagnostics.codexCliVersion;
   } catch (error) {
     mainWarn('[ACP codex]', 'Failed to read codex CLI version', error);
   }
 
   try {
-    const { stdout } = await execFile(codexCommand, ['login', 'status'], {
-      env: cleanEnv,
-      timeout: 5000,
-      windowsHide: true,
-    });
+    const { stdout } = await execFile(codexCommand, ['login', 'status'], codexExecOptions);
     diagnostics.loginStatus = stdout.trim() || diagnostics.loginStatus;
     diagnostics.hasChatGptSession = /chatgpt/i.test(diagnostics.loginStatus);
   } catch (error) {
