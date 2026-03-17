@@ -1,12 +1,23 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColor } from '../../src/hooks/useThemeColor';
+import { useConnection } from '../../src/context/ConnectionContext';
 
 export default function TabLayout() {
   const { t } = useTranslation();
   const tint = useThemeColor({}, 'tint');
   const tabIconDefault = useThemeColor({}, 'tabIconDefault');
+  const { isConfigured } = useConnection();
+  const router = useRouter();
+
+  // Redirect to index (which handles routing to connect) when disconnected
+  useEffect(() => {
+    if (!isConfigured) {
+      router.replace('/');
+    }
+  }, [isConfigured, router]);
 
   return (
     <Tabs
@@ -17,31 +28,25 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="conversations"
+        name='conversations'
         options={{
           title: t('tabs.conversations'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name='chatbubbles-outline' size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="files"
+        name='files'
         options={{
           title: t('tabs.files'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="folder-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name='folder-outline' size={size} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name='settings'
         options={{
           title: t('tabs.settings'),
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name='settings-outline' size={size} color={color} />,
         }}
       />
     </Tabs>

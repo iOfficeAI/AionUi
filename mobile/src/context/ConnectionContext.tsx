@@ -17,6 +17,7 @@ type ConnectionContextType = {
   connect: (host: string, port: string, token: string) => Promise<void>;
   disconnect: () => void;
   isConfigured: boolean;
+  isRestoring: boolean;
 };
 
 const ConnectionContext = createContext<ConnectionContextType>({
@@ -25,11 +26,13 @@ const ConnectionContext = createContext<ConnectionContextType>({
   connect: async () => {},
   disconnect: () => {},
   isConfigured: false,
+  isRestoring: true,
 });
 
 export function ConnectionProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<ConnectionConfig | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+  const [isRestoring, setIsRestoring] = useState(true);
 
   // Listen to WS state changes
   useEffect(() => {
@@ -51,6 +54,8 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
         }
       } catch {
         // No saved config or invalid
+      } finally {
+        setIsRestoring(false);
       }
     })();
   }, []);
@@ -83,6 +88,7 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
         connect,
         disconnect,
         isConfigured: config !== null,
+        isRestoring,
       }}
     >
       {children}
