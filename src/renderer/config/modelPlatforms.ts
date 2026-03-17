@@ -36,6 +36,7 @@ import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
 import MiniMaxLogo from '@/renderer/assets/logos/minimax.png';
 import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
 import PPIOLogo from '@/renderer/assets/logos/ppio.svg';
+import NovitaLogo from '@/renderer/assets/logos/novita.svg';
 
 /**
  * 平台类型
@@ -194,6 +195,13 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', baseUrl: 'https://api.lingyiwanwu.com/v1' },
   { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', baseUrl: 'https://api.poe.com/v1' },
   { name: 'PPIO', value: 'PPIO', logo: PPIOLogo, platform: 'custom', baseUrl: 'https://api.ppinfra.com/v3/openai' },
+  {
+    name: 'Novita',
+    value: 'Novita',
+    logo: NovitaLogo,
+    platform: 'custom',
+    baseUrl: 'https://api.novita.ai/openai/v1',
+  },
   {
     name: 'ModelScope',
     value: 'ModelScope',
