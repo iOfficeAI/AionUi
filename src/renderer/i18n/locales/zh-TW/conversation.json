@@ -65,6 +65,16 @@
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗"
   },
+  "historySearch": {
+    "tooltip": "搜尋訊息",
+    "title": "搜尋對話內容",
+    "description": "透過關鍵字搜尋歷史訊息，滾動載入更多，點擊跳轉到匹配的訊息。",
+    "placeholder": "搜尋訊息內容...",
+    "idle": "輸入關鍵字搜尋訊息",
+    "empty": "沒有找到匹配的訊息",
+    "loadingMore": "載入更多...",
+    "untitled": "未命名對話"
+  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "預設助手"
