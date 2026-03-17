@@ -224,9 +224,9 @@ const createWindow = (): void => {
     // Custom titlebar configuration / 自定义标题栏配置
     ...(process.platform === 'darwin'
       ? {
-        titleBarStyle: 'hidden',
-        trafficLightPosition: { x: 10, y: 10 },
-      }
+          titleBarStyle: 'hidden',
+          trafficLightPosition: { x: 10, y: 10 },
+        }
       : { frame: false }),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -531,7 +531,7 @@ const handleAppReady = async (): Promise<void> => {
     if (cdpReady) {
       console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
       console.log(
-        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`,
+        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`
       );
     } else {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
