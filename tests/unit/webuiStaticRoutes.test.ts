@@ -39,6 +39,7 @@ describe('registerStaticRoutes', () => {
 
     vi.doMock('electron', () => ({
       app: {
+        setName: vi.fn(),
         getAppPath: () => packagedRoot,
       },
     }));

@@ -64,6 +64,7 @@ async function loadConfigureChromium(options: SetupOptions = {}) {
   vi.doMock('electron', () => ({
     app: {
       isPackaged: options.isPackaged ?? false,
+      setName: vi.fn(),
       getPath: vi.fn((name: string) => (name === 'userData' ? userDataDir : sandbox)),
       commandLine: {
         appendSwitch,
