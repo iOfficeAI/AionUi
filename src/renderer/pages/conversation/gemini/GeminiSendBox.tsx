@@ -390,6 +390,8 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    // Clear active message ID to prevent filtering events from new messages after stop
+    activeMsgIdRef.current = null;
   }, []);
 
   return {
