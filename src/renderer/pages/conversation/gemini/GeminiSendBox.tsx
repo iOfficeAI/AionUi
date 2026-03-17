@@ -38,7 +38,7 @@ const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   uploadFile: [],
 });
 
-const useGeminiMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
+export const useGeminiMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
   const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
@@ -384,6 +384,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
 
   const resetState = useCallback(() => {
     setWaitingResponse(false);
+    waitingResponseRef.current = false;
     setStreamRunning(false);
     streamRunningRef.current = false;
     setHasActiveTools(false);
