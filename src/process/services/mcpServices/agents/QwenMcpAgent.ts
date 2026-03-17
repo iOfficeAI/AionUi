@@ -14,7 +14,9 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec } from '@process/utils/safeExec';
 
 /** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
-const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
+const getExecEnv = () => ({
+  env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv,
+});
 
 /**
  * Qwen Code MCP代理实现
@@ -171,7 +173,11 @@ export class QwenMcpAgent extends AbstractMcpAgent {
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Qwen Code:`, error);
             }
-          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+          } else if (
+            server.transport.type === 'sse' ||
+            server.transport.type === 'http' ||
+            server.transport.type === 'streamable_http'
+          ) {
             // 处理 SSE/HTTP/Streamable HTTP 传输类型
             // Qwen CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
             const transportFlag = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;

@@ -86,7 +86,10 @@ export function getConversationTypeForPreset(presetAgentType: string): ICreateCo
  * The backend will automatically fill in derived fields (gateway.cliPath, runtimeValidation, etc.).
  * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
  */
-export async function buildCliAgentParams(agent: AvailableAgent, workspace: string): Promise<ICreateConversationParams> {
+export async function buildCliAgentParams(
+  agent: AvailableAgent,
+  workspace: string
+): Promise<ICreateConversationParams> {
   const { backend, name: agentName, cliPath } = agent;
 
   const type = getConversationTypeForBackend(backend);
@@ -126,7 +129,11 @@ export async function buildCliAgentParams(agent: AvailableAgent, workspace: stri
  * Uses resolveLocaleKey() to convert i18n.language to standard locale format (BUG-2 fix).
  * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
  */
-export async function buildPresetAssistantParams(agent: AvailableAgent, workspace: string, language: string): Promise<ICreateConversationParams> {
+export async function buildPresetAssistantParams(
+  agent: AvailableAgent,
+  workspace: string,
+  language: string
+): Promise<ICreateConversationParams> {
   const { customAgentId, presetAgentType = 'gemini' } = agent;
 
   // [BUG-2] Map raw i18n.language to standard locale key

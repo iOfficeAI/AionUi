@@ -82,7 +82,9 @@ const AcpConfigSelector: React.FC<{
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {
       // Optimistically update UI
-      setConfigOptions((prev) => prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt)));
+      setConfigOptions((prev) =>
+        prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt))
+      );
 
       // Send to ACP backend
       ipcBridge.acpConversation.setConfigOption
@@ -113,7 +115,14 @@ const AcpConfigSelector: React.FC<{
 
   // Filter: only show select-type options with multiple choices,
   // exclude mode/model (handled by AgentModeSelector / AcpModelSelector)
-  const selectOptions = configOptions.filter((opt) => opt.type === 'select' && opt.options && opt.options.length > 1 && opt.category !== 'mode' && opt.category !== 'model');
+  const selectOptions = configOptions.filter(
+    (opt) =>
+      opt.type === 'select' &&
+      opt.options &&
+      opt.options.length > 1 &&
+      opt.category !== 'mode' &&
+      opt.category !== 'model'
+  );
 
   // Don't render if no options available
   if (selectOptions.length === 0) return null;
@@ -122,7 +131,10 @@ const AcpConfigSelector: React.FC<{
     <>
       {selectOptions.map((option) => {
         const currentValue = option.currentValue || option.selectedValue;
-        const currentLabel = option.options?.find((o) => o.value === currentValue)?.name || currentValue || t('acp.config.default', { defaultValue: 'Default' });
+        const currentLabel =
+          option.options?.find((o) => o.value === currentValue)?.name ||
+          currentValue ||
+          t('acp.config.default', { defaultValue: 'Default' });
 
         return (
           <Dropdown
@@ -132,10 +144,16 @@ const AcpConfigSelector: React.FC<{
               <Menu>
                 <Menu.ItemGroup title={t(`acp.config.${option.id}`, { defaultValue: option.name || 'Options' })}>
                   {option.options?.map((choice) => (
-                    <Menu.Item key={choice.value} className={choice.value === currentValue ? 'bg-2!' : ''} onClick={() => handleSelectOption(option.id, choice.value)}>
+                    <Menu.Item
+                      key={choice.value}
+                      className={choice.value === currentValue ? 'bg-2!' : ''}
+                      onClick={() => handleSelectOption(option.id, choice.value)}
+                    >
                       <div className='flex items-center gap-8px'>
                         {choice.value === currentValue && <span className='text-primary'>✓</span>}
-                        <span className={choice.value !== currentValue ? 'ml-16px' : ''}>{choice.name || choice.value}</span>
+                        <span className={choice.value !== currentValue ? 'ml-16px' : ''}>
+                          {choice.name || choice.value}
+                        </span>
                       </div>
                     </Menu.Item>
                   ))}

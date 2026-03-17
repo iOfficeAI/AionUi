@@ -158,7 +158,11 @@ export class CodexEventHandler {
   /**
    * Unified permission request handler to prevent duplicates
    */
-  private handleUnifiedPermissionRequest(msg: Extract<CodexEventMsg, { type: 'exec_approval_request' }> | Extract<CodexEventMsg, { type: 'apply_patch_approval_request' }>) {
+  private handleUnifiedPermissionRequest(
+    msg:
+      | Extract<CodexEventMsg, { type: 'exec_approval_request' }>
+      | Extract<CodexEventMsg, { type: 'apply_patch_approval_request' }>
+  ) {
     // Extract call_id - both types have this field
     const callId = msg.call_id || uuid();
     const unifiedRequestId = `permission_${callId}`;
@@ -209,10 +213,14 @@ export class CodexEventHandler {
       return;
     }
 
-    console.log(`[CodexEventHandler] exec needs confirmation: ${unifiedRequestId}, command=${Array.isArray(command) ? command.join(' ') : command}`);
+    console.log(
+      `[CodexEventHandler] exec needs confirmation: ${unifiedRequestId}, command=${Array.isArray(command) ? command.join(' ') : command}`
+    );
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
-    const description = msg.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(msg.command) ? msg.command.join(' ') : msg.command}`;
+    const description =
+      msg.reason ||
+      `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(msg.command) ? msg.command.join(' ') : msg.command}`;
 
     // 通过 addConfirmation 统一管理确认项
     this.messageEmitter.addConfirmation({
@@ -270,14 +278,18 @@ export class CodexEventHandler {
 
     // Check ApprovalStore for cached rejection first
     if (files.length > 0 && this.messageEmitter.checkPatchRejection?.(files)) {
-      console.log(`[CodexEventHandler] patch auto-rejected by ApprovalStore: ${unifiedRequestId}, files=${files.join(', ')}`);
+      console.log(
+        `[CodexEventHandler] patch auto-rejected by ApprovalStore: ${unifiedRequestId}, files=${files.join(', ')}`
+      );
       this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
       return;
     }
 
     // Check ApprovalStore for cached approval
     if (files.length > 0 && this.messageEmitter.checkPatchApproval?.(files)) {
-      console.log(`[CodexEventHandler] patch auto-approved by ApprovalStore: ${unifiedRequestId}, files=${files.join(', ')}`);
+      console.log(
+        `[CodexEventHandler] patch auto-approved by ApprovalStore: ${unifiedRequestId}, files=${files.join(', ')}`
+      );
       this.messageEmitter.autoConfirm?.(unifiedRequestId, 'allow_always');
       return;
     }

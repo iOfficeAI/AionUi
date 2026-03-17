@@ -75,7 +75,11 @@ function isWindowsStylePath(value: string): boolean {
 }
 
 function shouldUseWin32PathOps(targetPath: string, basePaths: string[]): boolean {
-  return process.platform === 'win32' || isWindowsStylePath(targetPath) || basePaths.some((basePath) => isWindowsStylePath(basePath));
+  return (
+    process.platform === 'win32' ||
+    isWindowsStylePath(targetPath) ||
+    basePaths.some((basePath) => isWindowsStylePath(basePath))
+  );
 }
 
 function resolveForComparison(inputPath: string, useWin32PathOps: boolean): string {
@@ -382,7 +386,9 @@ router.post('/validate', fileOperationLimiter, (req, res) => {
   } catch (error) {
     console.error('Path validation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to validate path';
-    res.status(error instanceof Error && error.message.includes('access denied') ? 403 : 500).json({ error: errorMessage });
+    res
+      .status(error instanceof Error && error.message.includes('access denied') ? 403 : 500)
+      .json({ error: errorMessage });
   }
 });
 

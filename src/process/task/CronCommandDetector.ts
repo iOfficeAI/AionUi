@@ -7,7 +7,10 @@
 /**
  * Cron command types detected from agent message content
  */
-export type CronCommand = { kind: 'create'; name: string; schedule: string; scheduleDescription: string; message: string } | { kind: 'list' } | { kind: 'delete'; jobId: string };
+export type CronCommand =
+  | { kind: 'create'; name: string; schedule: string; scheduleDescription: string; message: string }
+  | { kind: 'list' }
+  | { kind: 'delete'; jobId: string };
 
 /**
  * Remove markdown code blocks from content to avoid detecting commands in examples
@@ -97,7 +100,9 @@ export function detectCronCommands(content: string): CronCommand[] {
  * schedule_description: Every Monday at 9:00 AM (optional, will auto-generate if missing)
  * message: Message content (can be multi-line until next field or end)
  */
-function parseCronCreateBody(body: string): { name: string; schedule: string; scheduleDescription: string; message: string } | null {
+function parseCronCreateBody(
+  body: string
+): { name: string; schedule: string; scheduleDescription: string; message: string } | null {
   if (!body) {
     return null;
   }

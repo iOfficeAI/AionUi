@@ -7,9 +7,23 @@
 import type { IActionContext, IActionResult, IRegisteredAction, ActionHandler } from './types';
 import { PlatformActionNames, createSuccessResponse, createErrorResponse } from './types';
 import { getPairingService } from '../pairing/PairingService';
-import { createPairingCodeKeyboard, createPairingStatusKeyboard, createMainMenuKeyboard } from '../plugins/telegram/TelegramKeyboards';
-import { createPairingCard, createPairingStatusCard, createMainMenuCard, createPairingHelpCard } from '../plugins/lark/LarkCards';
-import { createMainMenuCard as createDingTalkMainMenuCard, createPairingCard as createDingTalkPairingCard, createPairingStatusCard as createDingTalkPairingStatusCard, createPairingHelpCard as createDingTalkPairingHelpCard } from '../plugins/dingtalk/DingTalkCards';
+import {
+  createPairingCodeKeyboard,
+  createPairingStatusKeyboard,
+  createMainMenuKeyboard,
+} from '../plugins/telegram/TelegramKeyboards';
+import {
+  createPairingCard,
+  createPairingStatusCard,
+  createMainMenuCard,
+  createPairingHelpCard,
+} from '../plugins/lark/LarkCards';
+import {
+  createMainMenuCard as createDingTalkMainMenuCard,
+  createPairingCard as createDingTalkPairingCard,
+  createPairingStatusCard as createDingTalkPairingStatusCard,
+  createPairingHelpCard as createDingTalkPairingHelpCard,
+} from '../plugins/dingtalk/DingTalkCards';
 
 /**
  * PlatformActions - Handlers for platform-specific actions
@@ -84,7 +98,13 @@ export const handlePairingShow: ActionHandler = async (context) => {
   if (pairingService.isUserAuthorized(context.userId, platform)) {
     return createSuccessResponse({
       type: 'text',
-      text: ['✅ <b>Authorized</b>', '', 'Your account is already paired and ready to use.', '', 'Send a message to start chatting, or use the buttons below.'].join('\n'),
+      text: [
+        '✅ <b>Authorized</b>',
+        '',
+        'Your account is already paired and ready to use.',
+        '',
+        'Send a message to start chatting, or use the buttons below.',
+      ].join('\n'),
       parseMode: 'HTML',
       replyMarkup: getMainMenuMarkup(platform),
     });
@@ -98,7 +118,20 @@ export const handlePairingShow: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['🔗 <b>Device Pairing</b>', '', 'Please approve this pairing request in the AionUi app:', '', `<code>${code}</code>`, '', `⏱ Valid for: ${expiresInMinutes} minutes`, '', '<b>Steps:</b>', '1. Open AionUi app', '2. Go to WebUI → Channels', '3. Click "Approve" in pending pairing requests'].join('\n'),
+      text: [
+        '🔗 <b>Device Pairing</b>',
+        '',
+        'Please approve this pairing request in the AionUi app:',
+        '',
+        `<code>${code}</code>`,
+        '',
+        `⏱ Valid for: ${expiresInMinutes} minutes`,
+        '',
+        '<b>Steps:</b>',
+        '1. Open AionUi app',
+        '2. Go to WebUI → Channels',
+        '3. Click "Approve" in pending pairing requests',
+      ].join('\n'),
       parseMode: 'HTML',
       replyMarkup: getPairingCodeMarkup(platform, code),
     });
@@ -132,7 +165,15 @@ export const handlePairingRefresh: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['🔄 <b>New Pairing Code</b>', '', `<code>${code}</code>`, '', `⏱ Valid for: ${expiresInMinutes} minutes`, '', 'Please approve this pairing request in AionUi settings.'].join('\n'),
+      text: [
+        '🔄 <b>New Pairing Code</b>',
+        '',
+        `<code>${code}</code>`,
+        '',
+        `⏱ Valid for: ${expiresInMinutes} minutes`,
+        '',
+        'Please approve this pairing request in AionUi settings.',
+      ].join('\n'),
       parseMode: 'HTML',
       replyMarkup: getPairingCodeMarkup(platform, code),
     });
@@ -152,7 +193,13 @@ export const handlePairingCheck: ActionHandler = async (context) => {
   if (pairingService.isUserAuthorized(context.userId, platform)) {
     return createSuccessResponse({
       type: 'text',
-      text: ['✅ <b>Pairing Successful!</b>', '', 'Your account is now paired and ready to use.', '', 'Send a message to chat with the AI assistant.'].join('\n'),
+      text: [
+        '✅ <b>Pairing Successful!</b>',
+        '',
+        'Your account is now paired and ready to use.',
+        '',
+        'Send a message to chat with the AI assistant.',
+      ].join('\n'),
       parseMode: 'HTML',
       replyMarkup: getMainMenuMarkup(platform),
     });
@@ -166,7 +213,14 @@ export const handlePairingCheck: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['⏳ <b>Waiting for Approval</b>', '', `Pairing code: <code>${pendingRequest.code}</code>`, `Time remaining: ${expiresInMinutes} minutes`, '', 'Please approve the pairing request in AionUi settings.'].join('\n'),
+      text: [
+        '⏳ <b>Waiting for Approval</b>',
+        '',
+        `Pairing code: <code>${pendingRequest.code}</code>`,
+        `Time remaining: ${expiresInMinutes} minutes`,
+        '',
+        'Please approve the pairing request in AionUi settings.',
+      ].join('\n'),
       parseMode: 'HTML',
       replyMarkup: getPairingStatusMarkup(platform, pendingRequest.code),
     });
@@ -185,7 +239,24 @@ export const handlePairingHelp: ActionHandler = async (context) => {
 
   return createSuccessResponse({
     type: 'text',
-    text: ['❓ <b>Pairing Help</b>', '', '<b>What is pairing?</b>', `Pairing links your ${platformName} account with the local AionUi application.`, 'You need to pair before using the AI assistant.', '', '<b>Pairing steps:</b>', '1. Get pairing code (send any message)', '2. Open AionUi app', '3. Go to WebUI → Channels', '4. Click "Approve" in pending requests', '', '<b>FAQ:</b>', '• Pairing code valid for 10 minutes, refresh if expired', '• AionUi app must be running', '• Ensure network connection is stable'].join('\n'),
+    text: [
+      '❓ <b>Pairing Help</b>',
+      '',
+      '<b>What is pairing?</b>',
+      `Pairing links your ${platformName} account with the local AionUi application.`,
+      'You need to pair before using the AI assistant.',
+      '',
+      '<b>Pairing steps:</b>',
+      '1. Get pairing code (send any message)',
+      '2. Open AionUi app',
+      '3. Go to WebUI → Channels',
+      '4. Click "Approve" in pending requests',
+      '',
+      '<b>FAQ:</b>',
+      '• Pairing code valid for 10 minutes, refresh if expired',
+      '• AionUi app must be running',
+      '• Ensure network connection is stable',
+    ].join('\n'),
     parseMode: 'HTML',
     replyMarkup: getPairingHelpMarkup(platform),
   });

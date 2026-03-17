@@ -7,7 +7,15 @@
 // Import values (enums) and types separately
 import { CodexAgentEventType } from '../types/eventTypes';
 import { ToolCategory, OutputFormat, RendererType } from '../types/toolTypes';
-import type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer } from '../types';
+import type {
+  EventDataMap,
+  McpInvocation,
+  McpToolInfo,
+  ToolAvailability,
+  ToolCapabilities,
+  ToolDefinition,
+  ToolRenderer,
+} from '../types';
 
 /** Translation function type, injected by the consumer (e.g. renderer) to avoid coupling common layer to renderer i18n */
 export type TranslateFn = (key: string, params?: Record<string, string>) => string;
@@ -15,7 +23,15 @@ export type TranslateFn = (key: string, params?: Record<string, string>) => stri
 // Re-export enums (values) - these can be re-exported
 export { ToolCategory, OutputFormat, RendererType };
 // Re-export types for backward compatibility
-export type { EventDataMap, McpInvocation, McpToolInfo, ToolAvailability, ToolCapabilities, ToolDefinition, ToolRenderer };
+export type {
+  EventDataMap,
+  McpInvocation,
+  McpToolInfo,
+  ToolAvailability,
+  ToolCapabilities,
+  ToolDefinition,
+  ToolRenderer,
+};
 
 /**
  * 工具注册表 - 负责管理所有工具的注册、发现和解析
@@ -249,7 +265,10 @@ export class ToolRegistry {
   /**
    * 根据事件类型和数据解析对应的工具
    */
-  resolveToolForEvent(eventType: CodexAgentEventType, eventData?: EventDataMap[keyof EventDataMap]): ToolDefinition | null {
+  resolveToolForEvent(
+    eventType: CodexAgentEventType,
+    eventData?: EventDataMap[keyof EventDataMap]
+  ): ToolDefinition | null {
     // 1. 特殊处理MCP工具调用
     if (eventType === CodexAgentEventType.MCP_TOOL_CALL_BEGIN || eventType === CodexAgentEventType.MCP_TOOL_CALL_END) {
       const mcpData = eventData as EventDataMap[CodexAgentEventType.MCP_TOOL_CALL_BEGIN];

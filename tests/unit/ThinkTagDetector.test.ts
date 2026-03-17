@@ -242,7 +242,11 @@ The solution involves implementing the following steps:
       // Chunk 1: "I need to analyze..." (no tags, passed through)
       // Chunk 2: "Let me think...\n" (no tags, passed through)
       // Chunk 3: "</think>\n\nHere's my answer" (orphaned </think> preserved)
-      const accumulated = "I need to analyze the user's request.\n" + 'Let me think about this carefully.\n' + "</think>\n\nHere's my answer:\n" + 'The solution is X.';
+      const accumulated =
+        "I need to analyze the user's request.\n" +
+        'Let me think about this carefully.\n' +
+        "</think>\n\nHere's my answer:\n" +
+        'The solution is X.';
 
       const result = stripThinkTags(accumulated);
       expect(result).not.toContain('I need to analyze');
@@ -256,7 +260,8 @@ The solution involves implementing the following steps:
       // When text messages get concatenated across tool calls, there may be
       // actual response content between two </think> tags that must be preserved.
       // Strategy: strip content before FIRST </think>, then remove remaining </think> tags only.
-      const input = 'thinking about approach\n</think>\nresponse part 1\nthinking about step 2\n</think>\nresponse part 2';
+      const input =
+        'thinking about approach\n</think>\nresponse part 1\nthinking about step 2\n</think>\nresponse part 2';
 
       const result = stripThinkTags(input);
       expect(result).not.toContain('</think>');
@@ -287,7 +292,8 @@ The solution involves implementing the following steps:
 
     it('should preserve markdown code blocks between orphaned </think> tags', () => {
       // Real-world scenario: AI thinking + response with code + more thinking
-      const input = 'Investigating...\n</think>\n\n基本用法\n```tsx\nimport { Collapse }\n```\n\nmore thinking\n</think>\n\n更多用法';
+      const input =
+        'Investigating...\n</think>\n\n基本用法\n```tsx\nimport { Collapse }\n```\n\nmore thinking\n</think>\n\n更多用法';
 
       const result = stripThinkTags(input);
       expect(result).not.toContain('</think>');

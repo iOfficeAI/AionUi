@@ -92,7 +92,14 @@ function CodeBlock(props: any) {
   }, []);
 
   return useMemo(() => {
-    const { children, className, node: _node, hiddenCodeCopyButton: _hiddenCodeCopyButton, codeStyle: _codeStyle, ...rest } = props;
+    const {
+      children,
+      className,
+      node: _node,
+      hiddenCodeCopyButton: _hiddenCodeCopyButton,
+      codeStyle: _codeStyle,
+      ...rest
+    } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
@@ -185,7 +192,23 @@ function CodeBlock(props: any) {
                 }}
               />
               {/* 折叠/展开按钮 / Fold/unfold button */}
-              {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
+              {logicRender(
+                !fold,
+                <Up
+                  theme='outline'
+                  size='20'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => setFlow(true)}
+                />,
+                <Down
+                  theme='outline'
+                  size='20'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => setFlow(false)}
+                />
+              )}
             </div>
           </div>
           {logicRender(
@@ -200,7 +223,10 @@ function CodeBlock(props: any) {
                 lineProps={
                   isDiff
                     ? (lineNumber: number) => ({
-                        style: { display: 'block', ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark') },
+                        style: {
+                          display: 'block',
+                          ...getDiffLineStyle(diffLines[lineNumber - 1] || '', currentTheme === 'dark'),
+                        },
                       })
                     : undefined
                 }
@@ -235,7 +261,14 @@ function CodeBlock(props: any) {
                   borderTop: '1px solid var(--bg-3)',
                 }}
               >
-                <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} title={t('common.collapse', '收起')} />
+                <Up
+                  theme='outline'
+                  size='20'
+                  style={{ cursor: 'pointer' }}
+                  fill='var(--text-secondary)'
+                  onClick={() => setFlow(true)}
+                  title={t('common.collapse', '收起')}
+                />
               </div>
             </>
           )}
@@ -315,6 +348,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
   img {
     max-width: 100%;
+    height: auto;
   }
    /* 给整个表格添加边框 */
   table {
@@ -382,7 +416,9 @@ const getKatexStyleSheet = (): CSSStyleSheet | null => {
 
   try {
     // Find the KaTeX stylesheet in the document
-    const katexSheet = [...document.styleSheets].find((sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex);
+    const katexSheet = [...document.styleSheets].find(
+      (sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex
+    );
 
     if (katexSheet) {
       const cssRules = [...katexSheet.cssRules].map((rule) => rule.cssText).join('\n');
@@ -540,7 +576,14 @@ interface MarkdownViewProps {
   allowHtml?: boolean;
 }
 
-const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeStyle, className, onRef, allowHtml, children: childrenProp }) => {
+const MarkdownView: React.FC<MarkdownViewProps> = ({
+  hiddenCodeCopyButton,
+  codeStyle,
+  className,
+  onRef,
+  allowHtml,
+  children: childrenProp,
+}) => {
   const { t } = useTranslation();
 
   const normalizedChildren = useMemo(() => {

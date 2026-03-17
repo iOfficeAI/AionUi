@@ -10,7 +10,13 @@
  */
 
 export { AionUIDatabase, getDatabase, closeDatabase } from './index';
-export { runMigrations, rollbackMigrations, getMigrationHistory, isMigrationApplied, type IMigration } from './migrations';
+export {
+  runMigrations,
+  rollbackMigrations,
+  getMigrationHistory,
+  isMigrationApplied,
+  type IMigration,
+} from './migrations';
 
 export type {
   // Database-specific types

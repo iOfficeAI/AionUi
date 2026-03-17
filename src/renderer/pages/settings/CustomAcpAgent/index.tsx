@@ -174,7 +174,9 @@ const CustomAcpAgent: React.FC<CustomAcpAgentProps> = ({ message }) => {
       >
         <div className='py-2'>
           {customAgents.length === 0 ? (
-            <div className='text-center py-4 text-t-secondary'>{t('settings.noCustomAgentConfigured') || 'No custom agents configured'}</div>
+            <div className='text-center py-4 text-t-secondary'>
+              {t('settings.noCustomAgentConfigured') || 'No custom agents configured'}
+            </div>
           ) : (
             <div className='space-y-2'>
               {customAgents.map((agent) => (
@@ -182,8 +184,19 @@ const CustomAcpAgent: React.FC<CustomAcpAgentProps> = ({ message }) => {
                   <div className='flex items-center justify-between mb-2'>
                     <div className='font-medium'>{agent.name || 'Custom Agent'}</div>
                     <div className='flex gap-2'>
-                      <Button type='text' size='small' icon={<EditTwo size={'14'} />} onClick={() => handleEdit(agent)} />
-                      <Button type='text' size='small' status='danger' icon={<Delete size={'14'} />} onClick={() => handleConfirmDelete(agent)} />
+                      <Button
+                        type='text'
+                        size='small'
+                        icon={<EditTwo size={'14'} />}
+                        onClick={() => handleEdit(agent)}
+                      />
+                      <Button
+                        type='text'
+                        size='small'
+                        status='danger'
+                        icon={<Delete size={'14'} />}
+                        onClick={() => handleConfirmDelete(agent)}
+                      />
                     </div>
                   </div>
                   <div className='text-sm text-t-secondary'>
@@ -192,7 +205,8 @@ const CustomAcpAgent: React.FC<CustomAcpAgentProps> = ({ message }) => {
                     </div>
                     {agent.env && Object.keys(agent.env).length > 0 && (
                       <div>
-                        <span className='font-medium'>{t('settings.env') || 'Env'}:</span> {Object.keys(agent.env).length} variable(s)
+                        <span className='font-medium'>{t('settings.env') || 'Env'}:</span>{' '}
+                        {Object.keys(agent.env).length} variable(s)
                       </div>
                     )}
                     {!agent.enabled && <div className='text-warning'>{t('settings.agentDisabled') || 'Disabled'}</div>}
@@ -204,9 +218,22 @@ const CustomAcpAgent: React.FC<CustomAcpAgentProps> = ({ message }) => {
         </div>
       </Collapse.Item>
 
-      <CustomAcpAgentModal visible={showModal} agent={editingAgent} onCancel={() => setShowModal(false)} onSubmit={handleSaveAgent} />
+      <CustomAcpAgentModal
+        visible={showModal}
+        agent={editingAgent}
+        onCancel={() => setShowModal(false)}
+        onSubmit={handleSaveAgent}
+      />
 
-      <Modal title={t('settings.deleteCustomAgent') || 'Delete Custom Agent'} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteAgent} okButtonProps={{ status: 'danger' }} okText={t('common.confirm') || 'Confirm'} cancelText={t('common.cancel') || 'Cancel'}>
+      <Modal
+        title={t('settings.deleteCustomAgent') || 'Delete Custom Agent'}
+        visible={deleteConfirmVisible}
+        onCancel={() => setDeleteConfirmVisible(false)}
+        onOk={handleDeleteAgent}
+        okButtonProps={{ status: 'danger' }}
+        okText={t('common.confirm') || 'Confirm'}
+        cancelText={t('common.cancel') || 'Cancel'}
+      >
         <p>
           {t('settings.deleteCustomAgentConfirm') || 'Are you sure you want to delete this custom agent?'}
           {agentToDelete && <strong className='block mt-2'>{agentToDelete.name}</strong>}

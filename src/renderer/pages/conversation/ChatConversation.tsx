@@ -33,7 +33,9 @@ import StarOfficeMonitorCard from './openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
-  const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
+  const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
+    ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id })
+  );
   const navigate = useNavigate();
   const list = useMemo(() => {
     if (!data?.length) return [];
@@ -61,7 +63,19 @@ const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conver
       }
       trigger={['click']}
     >
-      <Button size='mini' icon={<History theme='filled' size='14' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />}></Button>
+      <Button
+        size='mini'
+        icon={
+          <History
+            theme='filled'
+            size='14'
+            fill={iconColors.primary}
+            strokeWidth={2}
+            strokeLinejoin='miter'
+            strokeLinecap='square'
+          />
+        }
+      ></Button>
     </Dropdown>
   );
 };
@@ -88,7 +102,10 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                 createTime: Date.now(),
                 modifyTime: Date.now(),
                 // Clear ACP session fields to prevent new conversation from inheriting old session context
-                extra: source.type === 'acp' ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined } : source.extra,
+                extra:
+                  source.type === 'acp'
+                    ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined }
+                    : source.extra,
               } as TChatConversation,
             })
             .then(() => {
@@ -110,7 +127,10 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
 // Narrow to Gemini conversations so model field is always available
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 
-const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({ conversation, sliderTitle }) => {
+const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({
+  conversation,
+  sliderTitle,
+}) => {
   // Save model selection to conversation via IPC
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -144,7 +164,11 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
 
   return (
     <ChatLayout {...chatLayoutProps} conversationId={conversation.id}>
-      <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} modelSelection={modelSelection} />
+      <GeminiChat
+        conversation_id={conversation.id}
+        workspace={conversation.extra.workspace}
+        modelSelection={modelSelection}
+      />
     </ChatLayout>
   );
 };
@@ -162,13 +186,40 @@ const ChatConversation: React.FC<{
     if (!conversation || isGeminiConversation) return null;
     switch (conversation.type) {
       case 'acp':
-        return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'} sessionMode={conversation.extra?.sessionMode} agentName={(conversation.extra as { agentName?: string })?.agentName}></AcpChat>;
+        return (
+          <AcpChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            backend={conversation.extra?.backend || 'claude'}
+            sessionMode={conversation.extra?.sessionMode}
+            agentName={(conversation.extra as { agentName?: string })?.agentName}
+          ></AcpChat>
+        );
       case 'codex': // Legacy: new Codex conversations use ACP protocol. Kept for existing sessions.
-        return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
+        return (
+          <CodexChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+          />
+        );
       case 'openclaw-gateway':
-        return <OpenClawChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
+        return (
+          <OpenClawChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+          />
+        );
       case 'nanobot':
-        return <NanobotChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
+        return (
+          <NanobotChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+          />
+        );
       default:
         return null;
     }
@@ -176,7 +227,9 @@ const ChatConversation: React.FC<{
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
-  const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(isGeminiConversation ? undefined : conversation);
+  const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(
+    isGeminiConversation ? undefined : conversation
+  );
 
   const sliderTitle = useMemo(() => {
     return (
@@ -193,7 +246,13 @@ const ChatConversation: React.FC<{
     if (!conversation || isGeminiConversation) return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; currentModelId?: string };
-      return <AcpModelSelector conversationId={conversation.id} backend={extra.backend} initialModelId={extra.currentModelId} />;
+      return (
+        <AcpModelSelector
+          conversationId={conversation.id}
+          backend={extra.backend}
+          initialModelId={extra.currentModelId}
+        />
+      );
     }
     if (conversation.type === 'codex') {
       return <AcpModelSelector conversationId={conversation.id} />;
@@ -218,7 +277,16 @@ const ChatConversation: React.FC<{
     : isLoadingPreset
       ? {} // Still loading custom agents — avoid showing backend logo prematurely
       : {
-          backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : conversation?.type === 'nanobot' ? 'nanobot' : undefined,
+          backend:
+            conversation?.type === 'acp'
+              ? conversation?.extra?.backend
+              : conversation?.type === 'codex'
+                ? 'codex'
+                : conversation?.type === 'openclaw-gateway'
+                  ? 'openclaw-gateway'
+                  : conversation?.type === 'nanobot'
+                    ? 'nanobot'
+                    : undefined,
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
@@ -243,7 +311,16 @@ const ChatConversation: React.FC<{
   );
 
   return (
-    <ChatLayout title={conversation?.name} {...chatLayoutProps} headerLeft={modelSelector} headerExtra={headerExtraNode} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} conversationId={conversation?.id}>
+    <ChatLayout
+      title={conversation?.name}
+      {...chatLayoutProps}
+      headerLeft={modelSelector}
+      headerExtra={headerExtraNode}
+      siderTitle={sliderTitle}
+      sider={<ChatSider conversation={conversation} />}
+      workspaceEnabled={workspaceEnabled}
+      conversationId={conversation?.id}
+    >
       {conversationNode}
     </ChatLayout>
   );

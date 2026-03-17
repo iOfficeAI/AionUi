@@ -92,7 +92,9 @@ export const handleToolConfirm: ActionHandler = async (context, params) => {
   const conversationId = context.conversationId;
 
   if (!callId || !value || !conversationId) {
-    console.error(`[ChatActions] Missing params - callId: ${callId}, value: ${value}, conversationId: ${conversationId}`);
+    console.error(
+      `[ChatActions] Missing params - callId: ${callId}, value: ${value}, conversationId: ${conversationId}`
+    );
     return createErrorResponse('Missing confirmation parameters');
   }
 

@@ -5,7 +5,18 @@
  */
 
 import type { CodexPermissionRequest } from '@/common/codex/types';
-import type { ExecCommandBeginData, ExecCommandEndData, ExecCommandOutputDeltaData, McpToolCallBeginData, McpToolCallEndData, PatchApplyBeginData, PatchApplyEndData, TurnDiffData, WebSearchBeginData, WebSearchEndData } from '@/common/codex/types/eventData';
+import type {
+  ExecCommandBeginData,
+  ExecCommandEndData,
+  ExecCommandOutputDeltaData,
+  McpToolCallBeginData,
+  McpToolCallEndData,
+  PatchApplyBeginData,
+  PatchApplyEndData,
+  TurnDiffData,
+  WebSearchBeginData,
+  WebSearchEndData,
+} from '@/common/codex/types/eventData';
 import type { AcpBackend, AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
@@ -54,7 +65,18 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call' | 'plan' | 'available_commands';
+type TMessageType =
+  | 'text'
+  | 'tips'
+  | 'tool_call'
+  | 'tool_group'
+  | 'agent_status'
+  | 'acp_permission'
+  | 'acp_tool_call'
+  | 'codex_permission'
+  | 'codex_tool_call'
+  | 'plan'
+  | 'available_commands';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -285,7 +307,18 @@ export type IMessageAvailableCommands = IMessage<
 >;
 
 // eslint-disable-next-line max-len
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall | IMessagePlan | IMessageAvailableCommands;
+export type TMessage =
+  | IMessageText
+  | IMessageTips
+  | IMessageToolCall
+  | IMessageToolGroup
+  | IMessageAgentStatus
+  | IMessageAcpPermission
+  | IMessageAcpToolCall
+  | IMessageCodexPermission
+  | IMessageCodexToolCall
+  | IMessagePlan
+  | IMessageAvailableCommands;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -334,7 +367,12 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
-        content: isRichData ? { content: (data as { content: string; cronMeta?: CronMessageMeta }).content, cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta } : { content: data as string },
+        content: isRichData
+          ? {
+              content: (data as { content: string; cronMeta?: CronMessageMeta }).content,
+              cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta,
+            }
+          : { content: data as string },
       };
     }
     case 'tool_call': {
@@ -429,7 +467,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
       break;
     default: {
-      throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
+      throw new Error(
+        `Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`
+      );
     }
   }
 };
@@ -437,7 +477,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
 /**
  * @description 将消息合并到消息列表中
  * */
-export const composeMessage = (message: TMessage | undefined, list: TMessage[] | undefined, messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}): TMessage[] => {
+export const composeMessage = (
+  message: TMessage | undefined,
+  list: TMessage[] | undefined,
+  messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}
+): TMessage[] => {
   if (!message) return list || [];
   if (!list?.length) {
     messageHandler('insert', message);
@@ -577,7 +621,14 @@ export const handleImageGenerationWithWorkspace = (message: TMessage, workspace:
       ...message.content,
       content: message.content.content.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, imagePath) => {
         // 如果是绝对路径、http链接或data URL，保持不变
-        if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('/') || imagePath.startsWith('file:') || imagePath.startsWith('\\') || /^[A-Za-z]:/.test(imagePath)) {
+        if (
+          imagePath.startsWith('http') ||
+          imagePath.startsWith('data:') ||
+          imagePath.startsWith('/') ||
+          imagePath.startsWith('file:') ||
+          imagePath.startsWith('\\') ||
+          /^[A-Za-z]:/.test(imagePath)
+        ) {
           return match;
         }
         // 如果是相对路径，与workspace拼接

@@ -2,5 +2,24 @@
   "referenceLanguage": "en-US",
   "fallbackLanguage": "en-US",
   "supportedLanguages": ["zh-CN", "en-US", "ja-JP", "zh-TW", "ko-KR", "tr-TR"],
-  "modules": ["common", "agentMode", "update", "login", "fileSelection", "preview", "conversation", "settings", "messages", "mcp", "acp", "codex", "tools", "gemini", "cron", "starOffice", "guid", "agent"]
+  "modules": [
+    "common",
+    "agentMode",
+    "update",
+    "login",
+    "fileSelection",
+    "preview",
+    "conversation",
+    "settings",
+    "messages",
+    "mcp",
+    "acp",
+    "codex",
+    "tools",
+    "gemini",
+    "cron",
+    "starOffice",
+    "guid",
+    "agent"
+  ]
 }

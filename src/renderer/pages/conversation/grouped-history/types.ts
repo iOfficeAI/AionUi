@@ -35,7 +35,10 @@ export type ExportZipFile = {
   sourcePath?: string;
 };
 
-export type ExportTask = { mode: 'single'; conversation: TChatConversation } | { mode: 'batch'; conversationIds: string[] } | null;
+export type ExportTask =
+  | { mode: 'single'; conversation: TChatConversation }
+  | { mode: 'batch'; conversationIds: string[] }
+  | null;
 
 export type ConversationRowProps = {
   conversation: TChatConversation;

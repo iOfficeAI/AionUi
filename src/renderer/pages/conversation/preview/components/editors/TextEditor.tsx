@@ -71,7 +71,16 @@ const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = fal
 
   return (
     <div ref={containerRef} className='h-full w-full overflow-auto text-left'>
-      <CodeMirror value={value} height='100%' theme={theme === 'dark' ? 'dark' : 'light'} extensions={[EditorView.lineWrapping]} onChange={handleChange} readOnly={readOnly} basicSetup={basicSetupConfig} style={editorStyle} />
+      <CodeMirror
+        value={value}
+        height='100%'
+        theme={theme === 'dark' ? 'dark' : 'light'}
+        extensions={[EditorView.lineWrapping]}
+        onChange={handleChange}
+        readOnly={readOnly}
+        basicSetup={basicSetupConfig}
+        style={editorStyle}
+      />
     </div>
   );
 };

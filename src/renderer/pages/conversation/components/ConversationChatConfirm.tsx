@@ -7,7 +7,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
 
-const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: string }>> = ({ conversation_id, children }) => {
+const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: string }>> = ({
+  conversation_id,
+  children,
+}) => {
   const [confirmations, setConfirmations] = useState<IConfirmation<any>[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { t } = useTranslation();
@@ -36,7 +39,9 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
 
         if (isApproved) {
           // Find the "proceed_always" or "proceed_once" option to use for auto-confirm
-          const allowOption = confirmation.options.find((opt) => opt.value === 'proceed_always' || opt.value === 'proceed_once');
+          const allowOption = confirmation.options.find(
+            (opt) => opt.value === 'proceed_always' || opt.value === 'proceed_once'
+          );
           if (allowOption) {
             void ipcBridge.conversation.confirmation.confirm.invoke({
               conversation_id,
@@ -197,7 +202,9 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
           }}
         >
           {/* 错误标题 / Error title */}
-          <div className='color-[rgba(217,45,32,1)] text-14px font-medium mb-8px'>{t('conversation.chat.confirmationLoadError', 'Failed to load confirmation dialog')}</div>
+          <div className='color-[rgba(217,45,32,1)] text-14px font-medium mb-8px'>
+            {t('conversation.chat.confirmationLoadError', 'Failed to load confirmation dialog')}
+          </div>
           {/* 错误详情 / Error details */}
           <div className='text-12px color-[rgba(134,144,156,1)] mb-12px'>{loadError}</div>
           {/* 手动重试按钮 / Manual retry button */}
@@ -248,19 +255,35 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
             {confirmation.options.map((option, index) => {
               const label = $t(option.label, option.params);
               // Determine shortcut hint for this option
-              const shortcut = index === 0 ? 'Enter' : option.value === 'cancel' ? 'Esc' : option.value === 'proceed_always' ? 'A' : option.value === 'proceed_once' ? 'Y' : String(index + 1);
+              const shortcut =
+                index === 0
+                  ? 'Enter'
+                  : option.value === 'cancel'
+                    ? 'Esc'
+                    : option.value === 'proceed_always'
+                      ? 'A'
+                      : option.value === 'proceed_once'
+                        ? 'Y'
+                        : String(index + 1);
               return (
                 <div
                   onClick={() => {
                     // Note: "always allow" is stored by backend when proceed_always is confirmed
                     // 注意：后端会在确认 proceed_always 时自动存储权限
                     setConfirmations((prev) => prev.filter((p) => p.id !== confirmation.id));
-                    void ipcBridge.conversation.confirmation.confirm.invoke({ conversation_id, callId: confirmation.callId, msg_id: confirmation.id, data: option.value });
+                    void ipcBridge.conversation.confirmation.confirm.invoke({
+                      conversation_id,
+                      callId: confirmation.callId,
+                      msg_id: confirmation.id,
+                      data: option.value,
+                    });
                   }}
                   key={label + option.value + index}
                   className='b-1px b-solid h-30px lh-30px b-[rgba(229,230,235,1)] rd-8px px-12px hover:bg-[rgba(229,231,240,1)] cursor-pointer mt-10px flex items-center gap-8px'
                 >
-                  <span className='inline-flex items-center justify-center px-4px h-18px rd-4px bg-[rgba(229,230,235,0.6)] text-11px text-[rgba(134,144,156,1)] font-mono shrink-0'>{shortcut}</span>
+                  <span className='inline-flex items-center justify-center px-4px h-18px rd-4px bg-[rgba(229,230,235,0.6)] text-11px text-[rgba(134,144,156,1)] font-mono shrink-0'>
+                    {shortcut}
+                  </span>
                   {label}
                 </div>
               );

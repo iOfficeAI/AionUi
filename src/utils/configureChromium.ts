@@ -140,7 +140,9 @@ function findAvailablePort(preferredPort: number): number {
     return preferredPort;
   }
 
-  console.log(`[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
+  console.log(
+    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
+  );
 
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
     if (!usedPorts.has(p)) {
@@ -149,7 +151,9 @@ function findAvailablePort(preferredPort: number): number {
     }
   }
 
-  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`);
+  console.warn(
+    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`
+  );
   return preferredPort;
 }
 

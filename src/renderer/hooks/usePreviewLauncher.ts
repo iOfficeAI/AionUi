@@ -9,12 +9,18 @@ import { joinPath } from '@/common/chatLib';
 import type { PreviewContentType } from '@/common/types/preview';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { LARGE_TEXT_PREVIEW_MAX_LENGTH, LARGE_TEXT_PREVIEW_THRESHOLD } from '@/renderer/pages/conversation/preview/constants';
+import {
+  LARGE_TEXT_PREVIEW_MAX_LENGTH,
+  LARGE_TEXT_PREVIEW_THRESHOLD,
+} from '@/renderer/pages/conversation/preview/constants';
 import { useCallback, useState } from 'react';
 
 const LARGE_TEXT_PREVIEW_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html', 'diff']);
 
-const normalizeLargeTextPreview = (content: string, contentType: PreviewContentType): { content: string; truncated: boolean } => {
+const normalizeLargeTextPreview = (
+  content: string,
+  contentType: PreviewContentType
+): { content: string; truncated: boolean } => {
   if (!LARGE_TEXT_PREVIEW_TYPES.has(contentType) || content.length <= LARGE_TEXT_PREVIEW_THRESHOLD) {
     return { content, truncated: false };
   }
@@ -70,7 +76,17 @@ export const usePreviewLauncher = () => {
    * 启动预览面板 / Launch preview panel
    */
   const launchPreview = useCallback(
-    async ({ relativePath, originalPath, fileName, title, language, contentType, editable, fallbackContent, diffContent }: PreviewLaunchOptions) => {
+    async ({
+      relativePath,
+      originalPath,
+      fileName,
+      title,
+      language,
+      contentType,
+      editable,
+      fallbackContent,
+      diffContent,
+    }: PreviewLaunchOptions) => {
       setLoading(true);
 
       // 路径解析 / Path resolution
@@ -79,7 +95,8 @@ export const usePreviewLauncher = () => {
       const resolvedPath = absolutePath || originalPath || relativePath || undefined;
 
       // 文件名和标题计算 / Compute file name and title
-      const computedFileName = fileName || (relativePath ? relativePath.split(/[\\/]/).pop() || relativePath : undefined);
+      const computedFileName =
+        fileName || (relativePath ? relativePath.split(/[\\/]/).pop() || relativePath : undefined);
       const previewTitle = title || computedFileName || relativePath || contentType.toUpperCase();
 
       // 预览元数据 / Preview metadata
@@ -129,7 +146,10 @@ export const usePreviewLauncher = () => {
             }
 
             // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
-            const content = await Promise.race([ipcBridge.fs.readFile.invoke({ path: pathToRead! }), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000))]);
+            const content = await Promise.race([
+              ipcBridge.fs.readFile.invoke({ path: pathToRead! }),
+              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000)),
+            ]);
             const normalizedContent = normalizeLargeTextPreview(content, contentType);
             openPreview(normalizedContent.content, contentType, {
               ...metadata,

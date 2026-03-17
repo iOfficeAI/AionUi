@@ -20,7 +20,7 @@ rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # ---------------------------------------------------------------------------
-# 1) Copy all distributables and blockmaps (unique file names)
+# 1) Copy all distributables (unique file names)
 # ---------------------------------------------------------------------------
 echo "==> Copying distributables from $ARTIFACTS_DIR ..."
 mapfile -t DISTRIBUTABLES < <(find "$ARTIFACTS_DIR" -type f \( \
@@ -28,9 +28,7 @@ mapfile -t DISTRIBUTABLES < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "*.msi" -o \
   -name "*.dmg" -o \
   -name "*.deb" -o \
-  -name "*.AppImage" -o \
-  -name "*.zip" -o \
-  -name "*.blockmap" \
+  -name "*.zip" \
 \) | sort)
 
 DUPLICATE_BASENAMES=$(for file in "${DISTRIBUTABLES[@]}"; do basename "$file"; done | sort | uniq -d || true)
@@ -56,12 +54,6 @@ MAC_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-arm64/*" -
 LINUX_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build/*" -name "latest-linux.yml" | sort | head -n 1 || true)
 LINUX_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build/*" -name "latest-linux-arm64.yml" | sort | head -n 1 || true)
 
-WIN_X64_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-x64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
-WIN_ARM64_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-arm64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
-MAC_X64_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-x64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
-MAC_ARM64_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-arm64/*" -name "builder-debug.yml" | sort | head -n 1 || true)
-LINUX_DEBUG=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build/*" -name "builder-debug.yml" | sort | head -n 1 || true)
-
 # ---------------------------------------------------------------------------
 # 3) Publish deterministic canonical metadata for electron-updater
 #    (avoid nondeterministic overwrite when multiple jobs produce same names)
@@ -74,29 +66,15 @@ echo "==> Writing canonical updater metadata ..."
 [ -n "$LINUX_ARM64_LATEST" ] && cp -f "$LINUX_ARM64_LATEST" "$OUTPUT_DIR/latest-linux-arm64.yml"
 
 # ---------------------------------------------------------------------------
-# 4) Architecture-scoped metadata for diagnostics / manual tooling
+# 4) Architecture-specific metadata required by electron-updater
 # ---------------------------------------------------------------------------
-echo "==> Writing architecture-scoped metadata ..."
+echo "==> Writing architecture-specific updater metadata ..."
 
-[ -n "$WIN_X64_LATEST" ]    && cp -f "$WIN_X64_LATEST"    "$OUTPUT_DIR/latest-win-x64.yml"
 [ -n "$WIN_ARM64_LATEST" ]  && cp -f "$WIN_ARM64_LATEST"  "$OUTPUT_DIR/latest-win-arm64.yml"
-[ -n "$MAC_X64_LATEST" ]    && cp -f "$MAC_X64_LATEST"    "$OUTPUT_DIR/latest-mac-x64.yml"
-[ -n "$MAC_ARM64_LATEST" ]  && cp -f "$MAC_ARM64_LATEST"  "$OUTPUT_DIR/latest-mac-arm64.yml"
 
-[ -n "$WIN_X64_DEBUG" ]     && cp -f "$WIN_X64_DEBUG"     "$OUTPUT_DIR/builder-debug-win-x64.yml"
-[ -n "$WIN_ARM64_DEBUG" ]   && cp -f "$WIN_ARM64_DEBUG"   "$OUTPUT_DIR/builder-debug-win-arm64.yml"
-[ -n "$MAC_X64_DEBUG" ]     && cp -f "$MAC_X64_DEBUG"     "$OUTPUT_DIR/builder-debug-mac-x64.yml"
-[ -n "$MAC_ARM64_DEBUG" ]   && cp -f "$MAC_ARM64_DEBUG"   "$OUTPUT_DIR/builder-debug-mac-arm64.yml"
-[ -n "$LINUX_DEBUG" ]       && cp -f "$LINUX_DEBUG"       "$OUTPUT_DIR/builder-debug-linux.yml"
-
-# Keep builder-debug.yml canonical and deterministic as well
-if [ -n "$WIN_X64_DEBUG" ]; then
-  cp -f "$WIN_X64_DEBUG" "$OUTPUT_DIR/builder-debug.yml"
-elif [ -n "$MAC_X64_DEBUG" ]; then
-  cp -f "$MAC_X64_DEBUG" "$OUTPUT_DIR/builder-debug.yml"
-elif [ -n "$LINUX_DEBUG" ]; then
-  cp -f "$LINUX_DEBUG" "$OUTPUT_DIR/builder-debug.yml"
-fi
+# electron-updater on macOS constructs the yml filename as "${channel}-mac.yml".
+# For arm64, channel is "latest-arm64", so it looks for "latest-arm64-mac.yml".
+[ -n "$MAC_ARM64_LATEST" ]  && cp -f "$MAC_ARM64_LATEST"  "$OUTPUT_DIR/latest-arm64-mac.yml"
 
 # ---------------------------------------------------------------------------
 # 5) Hard validation for required updater metadata

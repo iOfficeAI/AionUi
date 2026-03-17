@@ -15,16 +15,28 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
 import McpServerItem from '@/renderer/pages/settings/McpManagement/McpServerItem';
-import { useMcpServers, useMcpAgentStatus, useMcpOperations, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
+import {
+  useMcpServers,
+  useMcpAgentStatus,
+  useMcpOperations,
+  useMcpConnection,
+  useMcpModal,
+  useMcpServerCRUD,
+  useMcpOAuth,
+} from '@/renderer/hooks/mcp';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
-const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode?: boolean }> = ({ message, isPageMode }) => {
+const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode?: boolean }> = ({
+  message,
+  isPageMode,
+}) => {
   const { t } = useTranslation();
   const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
-  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } = useMcpAgentStatus();
+  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } =
+    useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
   const { oauthStatus, loggingIn, checkOAuthStatus, login } = useMcpOAuth();
 
@@ -35,9 +47,40 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode
     [checkOAuthStatus]
   );
 
-  const { testingServers, handleTestMcpConnection } = useMcpConnection(mcpServers, saveMcpServers, message, handleAuthRequired);
-  const { showMcpModal, editingMcpServer, deleteConfirmVisible, serverToDelete, mcpCollapseKey, showAddMcpModal, showEditMcpModal, hideMcpModal, showDeleteConfirm, hideDeleteConfirm, toggleServerCollapse } = useMcpModal();
-  const { handleAddMcpServer, handleBatchImportMcpServers, handleEditMcpServer, handleDeleteMcpServer, handleToggleMcpServer } = useMcpServerCRUD(mcpServers, saveMcpServers, syncMcpToAgents, removeMcpFromAgents, checkSingleServerInstallStatus, setAgentInstallStatus, message);
+  const { testingServers, handleTestMcpConnection } = useMcpConnection(
+    mcpServers,
+    saveMcpServers,
+    message,
+    handleAuthRequired
+  );
+  const {
+    showMcpModal,
+    editingMcpServer,
+    deleteConfirmVisible,
+    serverToDelete,
+    mcpCollapseKey,
+    showAddMcpModal,
+    showEditMcpModal,
+    hideMcpModal,
+    showDeleteConfirm,
+    hideDeleteConfirm,
+    toggleServerCollapse,
+  } = useMcpModal();
+  const {
+    handleAddMcpServer,
+    handleBatchImportMcpServers,
+    handleEditMcpServer,
+    handleDeleteMcpServer,
+    handleToggleMcpServer,
+  } = useMcpServerCRUD(
+    mcpServers,
+    saveMcpServers,
+    syncMcpToAgents,
+    removeMcpFromAgents,
+    checkSingleServerInstallStatus,
+    setAgentInstallStatus,
+    message
+  );
 
   const handleOAuthLogin = useCallback(
     async (server: IMcpServer) => {
@@ -70,7 +113,10 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode
   );
 
   const wrappedHandleEditMcpServer = useCallback(
-    async (editingMcpServer: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => {
+    async (
+      editingMcpServer: IMcpServer | undefined,
+      serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>
+    ) => {
       const updatedServer = await handleEditMcpServer(editingMcpServer, serverData);
       if (updatedServer) {
         void handleTestMcpConnection(updatedServer);
@@ -196,24 +242,76 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode
 
       <div className='flex-1 min-h-0'>
         {mcpServers.length === 0 && extensionMcpServers.length === 0 ? (
-          <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>{t('settings.mcpNoServersFound')}</div>
+          <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>
+            {t('settings.mcpNoServersFound')}
+          </div>
         ) : (
-          <AionScrollArea className={classNames('max-h-360px', isPageMode && 'max-h-none')} disableOverflow={isPageMode}>
+          <AionScrollArea
+            className={classNames('max-h-360px', isPageMode && 'max-h-none')}
+            disableOverflow={isPageMode}
+          >
             <div className='space-y-12px'>
               {mcpServers.map((server) => (
-                <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />
+                <McpServerItem
+                  key={server.id}
+                  server={server}
+                  isCollapsed={mcpCollapseKey[server.id] || false}
+                  agentInstallStatus={agentInstallStatus}
+                  isServerLoading={isServerLoading}
+                  isTestingConnection={testingServers[server.id] || false}
+                  oauthStatus={oauthStatus[server.id]}
+                  isLoggingIn={loggingIn[server.id]}
+                  onToggleCollapse={() => toggleServerCollapse(server.id)}
+                  onTestConnection={handleTestMcpConnection}
+                  onEditServer={showEditMcpModal}
+                  onDeleteServer={showDeleteConfirm}
+                  onToggleServer={handleToggleMcpServer}
+                  onOAuthLogin={handleOAuthLogin}
+                />
               ))}
               {extensionMcpServers.map((server) => (
-                <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={() => {}} onDeleteServer={() => {}} onToggleServer={() => Promise.resolve()} isReadOnly />
+                <McpServerItem
+                  key={server.id}
+                  server={server}
+                  isCollapsed={mcpCollapseKey[server.id] || false}
+                  agentInstallStatus={agentInstallStatus}
+                  isServerLoading={isServerLoading}
+                  isTestingConnection={false}
+                  onToggleCollapse={() => toggleServerCollapse(server.id)}
+                  onTestConnection={handleTestMcpConnection}
+                  onEditServer={() => {}}
+                  onDeleteServer={() => {}}
+                  onToggleServer={() => Promise.resolve()}
+                  isReadOnly
+                />
               ))}
             </div>
           </AionScrollArea>
         )}
       </div>
 
-      <AddMcpServerModal visible={showMcpModal} server={editingMcpServer} onCancel={hideMcpModal} onSubmit={editingMcpServer ? (serverData) => wrappedHandleEditMcpServer(editingMcpServer, serverData) : wrappedHandleAddMcpServer} onBatchImport={wrappedHandleBatchImportMcpServers} importMode={importMode} />
+      <AddMcpServerModal
+        visible={showMcpModal}
+        server={editingMcpServer}
+        onCancel={hideMcpModal}
+        onSubmit={
+          editingMcpServer
+            ? (serverData) => wrappedHandleEditMcpServer(editingMcpServer, serverData)
+            : wrappedHandleAddMcpServer
+        }
+        onBatchImport={wrappedHandleBatchImportMcpServers}
+        importMode={importMode}
+      />
 
-      <Modal title={t('settings.mcpDeleteServer')} visible={deleteConfirmVisible} onCancel={hideDeleteConfirm} onOk={handleConfirmDelete} okButtonProps={{ status: 'danger' }} okText={t('common.confirm')} cancelText={t('common.cancel')}>
+      <Modal
+        title={t('settings.mcpDeleteServer')}
+        visible={deleteConfirmVisible}
+        onCancel={hideDeleteConfirm}
+        onOk={handleConfirmDelete}
+        okButtonProps={{ status: 'danger' }}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+      >
         <p>{t('settings.mcpDeleteConfirm')}</p>
       </Modal>
     </div>
@@ -223,7 +321,9 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance; isPageMode
 const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
-  const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
+  const [imageGenerationModel, setImageGenerationModel] = useState<
+    IConfigStorageRefer['tools.imageGenerationModel'] | undefined
+  >();
   const { modelListWithImage: data } = useConfigModelListWithImage();
 
   const imageGenerationModelList = useMemo(() => {
@@ -307,7 +407,10 @@ const ToolsModalContent: React.FC = () => {
           {/* MCP 工具配置 */}
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px flex flex-col min-h-0 border border-border-2'>
             <div className='flex-1 min-h-0'>
-              <AionScrollArea className={classNames('h-full', isPageMode && 'overflow-visible')} disableOverflow={isPageMode}>
+              <AionScrollArea
+                className={classNames('h-full', isPageMode && 'overflow-visible')}
+                disableOverflow={isPageMode}
+              >
                 <ModalMcpManagementSection message={mcpMessage} isPageMode={isPageMode} />
               </AionScrollArea>
             </div>
@@ -316,7 +419,11 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <div className='flex items-center justify-between mb-16px'>
               <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
-              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} />
+              <Switch
+                disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel}
+                checked={imageGenerationModel?.switch}
+                onChange={(checked) => handleImageGenerationModelChange({ switch: checked })}
+              />
             </div>
 
             <Divider className='mt-0px mb-20px' />
@@ -325,7 +432,11 @@ const ToolsModalContent: React.FC = () => {
               <Form.Item label={t('settings.imageGenerationModel')}>
                 {imageGenerationModelList.length > 0 ? (
                   <AionSelect
-                    value={imageGenerationModel?.id && imageGenerationModel?.useModel ? `${imageGenerationModel.id}|${imageGenerationModel.useModel}` : undefined}
+                    value={
+                      imageGenerationModel?.id && imageGenerationModel?.useModel
+                        ? `${imageGenerationModel.id}|${imageGenerationModel.useModel}`
+                        : undefined
+                    }
                     onChange={(value) => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
@@ -351,13 +462,25 @@ const ToolsModalContent: React.FC = () => {
                       content={
                         <div>
                           {t('settings.needHelpTooltip')}
-                          <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px' onClick={(e) => e.stopPropagation()}>
+                          <a
+                            href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {t('settings.configGuide')}
                           </a>
                         </div>
                       }
                     >
-                      <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer' onClick={(e) => e.stopPropagation()}>
+                      <a
+                        href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Help theme='outline' size='14' />
                       </a>
                     </Tooltip>

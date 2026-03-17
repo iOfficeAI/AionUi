@@ -22,7 +22,13 @@ export { default as AionSteps } from './AionSteps';
 // ==================== 类型导出 / Type Exports ====================
 
 // AionModal 类型 / AionModal types
-export type { ModalSize, ModalHeaderConfig, ModalFooterConfig, ModalContentStyleConfig, AionModalProps } from './AionModal';
+export type {
+  ModalSize,
+  ModalHeaderConfig,
+  ModalFooterConfig,
+  ModalContentStyleConfig,
+  AionModalProps,
+} from './AionModal';
 export { MODAL_SIZES } from './AionModal';
 
 // AionCollapse 类型 / AionCollapse types

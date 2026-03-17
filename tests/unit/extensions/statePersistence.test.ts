@@ -28,7 +28,10 @@ describe('extensions/statePersistence', () => {
     process.env.AIONUI_EXTENSION_STATES_FILE = statesFile;
 
     const disabledAt = new Date('2026-03-08T00:00:00.000Z');
-    const states = new Map<string, { enabled: boolean; disabledAt?: Date; disabledReason?: string; installed?: boolean; lastVersion?: string }>([
+    const states = new Map<
+      string,
+      { enabled: boolean; disabledAt?: Date; disabledReason?: string; installed?: boolean; lastVersion?: string }
+    >([
       [
         'ext-feishu',
         {

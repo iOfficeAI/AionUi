@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAction, IUnifiedIncomingMessage, IUnifiedMessageContent, IUnifiedOutgoingMessage, IUnifiedUser } from '../../types';
+import type {
+  IMessageAction,
+  IUnifiedIncomingMessage,
+  IUnifiedMessageContent,
+  IUnifiedOutgoingMessage,
+  IUnifiedUser,
+} from '../../types';
 
 /**
  * DingTalkAdapter - Converts between DingTalk and Unified message formats
@@ -124,7 +130,10 @@ export function parseChatId(chatId: string): { type: 'user' | 'group'; id: strin
 /**
  * Convert DingTalk Stream callback data to unified incoming message
  */
-export function toUnifiedIncomingMessage(data: DingTalkStreamMessage, actionInfo?: IMessageAction): IUnifiedIncomingMessage | null {
+export function toUnifiedIncomingMessage(
+  data: DingTalkStreamMessage,
+  actionInfo?: IMessageAction
+): IUnifiedIncomingMessage | null {
   // Handle card action
   if (actionInfo) {
     const userId = data.senderStaffId || '';
@@ -198,7 +207,9 @@ function extractMessageContent(data: DingTalkStreamMessage): IUnifiedMessageCont
     }
 
     case 'richText': {
-      const textParts = (data.richText?.richTextList || []).filter((item) => item.type === 'text').map((item) => item.text || '');
+      const textParts = (data.richText?.richTextList || [])
+        .filter((item) => item.type === 'text')
+        .map((item) => item.text || '');
       let text = textParts.join('');
       if (data.conversationType === '2') {
         text = text.replace(/@\S+\s*/g, '').trim();

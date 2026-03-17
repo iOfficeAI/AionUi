@@ -14,10 +14,12 @@ import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
-import React, { createContext, useEffect, useMemo } from 'react';
+import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '../utils/common';
+import './messages.css';
 import HOC from '../utils/HOC';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
@@ -36,26 +38,68 @@ type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 type IMessageVO =
   | TMessage
-  | { type: 'file_summary'; id: string; diffs: FileChangeInfo[] }
+  | { type: 'file_summary'; id: string; diffs: FileChangeInfo[]; sourceMessageIds: string[] }
   | {
       type: 'tool_summary';
       id: string;
       messages: Array<IMessageToolGroup | IMessageAcpToolCall>;
+      sourceMessageIds: string[];
     };
+
+type ConversationLocationState = {
+  targetMessageId?: string;
+  fromConversationSearch?: boolean;
+};
+
+const getProcessedItemSourceMessageIds = (item: IMessageVO): string[] => {
+  if ('type' in item && item.type === 'tool_summary') {
+    return item.sourceMessageIds;
+  }
+  if ('type' in item && item.type === 'file_summary') {
+    return item.sourceMessageIds;
+  }
+  return 'id' in item ? [item.id] : [];
+};
+
+const matchesTargetMessage = (item: IMessageVO, targetMessageId?: string): boolean => {
+  if (!targetMessageId) {
+    return false;
+  }
+  return getProcessedItemSourceMessageIds(item).includes(targetMessageId);
+};
+
+const getProcessedItemAnchorId = (item: IMessageVO): string => {
+  const sourceIds = getProcessedItemSourceMessageIds(item);
+  return sourceIds[0] || ('id' in item ? item.id : uuid());
+};
+
+const highlightStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-aou-1)',
+  boxShadow: '0 0 0 1px var(--color-aou-6-brand) inset',
+  borderRadius: '12px',
+};
+
+const getUnhandledMessageType = (_message: never): string => 'unknown';
 
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage }> = React.memo(
+const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = React.memo(
   HOC((props) => {
-    const { message } = props as { message: TMessage };
+    const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
     return (
       <div
-        className={classNames('min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
-          'justify-center': message.position === 'center',
-          'justify-end': message.position === 'right',
-          'justify-start': message.position === 'left',
-        })}
+        id={`message-${message.id}`}
+        className={classNames(
+          'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
+          message.type,
+          {
+            'justify-center': message.position === 'center',
+            'justify-end': message.position === 'right',
+            'justify-start': message.position === 'left',
+          }
+        )}
+        style={highlighted ? highlightStyle : undefined}
       >
         {props.children}
       </div>
@@ -87,36 +131,64 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
       case 'available_commands':
         return null;
       default:
-        return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
+        return <div>{t('messages.unknownMessageType', { type: getUnhandledMessageType(message) })}</div>;
     }
   }),
-  (prev, next) => prev.message.id === next.message.id && prev.message.content === next.message.content && prev.message.position === next.message.position && prev.message.type === next.message.type
+  (prev, next) =>
+    prev.message.id === next.message.id &&
+    prev.message.content === next.message.content &&
+    prev.message.position === next.message.position &&
+    prev.message.type === next.message.type &&
+    prev.highlighted === next.highlighted
 );
 
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
   const conversationContext = useConversationContextSafe();
   const { t } = useTranslation();
+  const location = useLocation();
+  const locationState = (location.state || {}) as ConversationLocationState;
+  const targetMessageId = locationState.targetMessageId;
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
+  const handledTargetKeyRef = useRef<string>('');
 
   // Pre-process message list to group Codex turn_diff messages
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
+    let diffsSourceMessageIds: string[] = [];
     let toolList: Array<IMessageToolGroup | IMessageAcpToolCall> = [];
+    let toolSourceMessageIds: string[] = [];
 
-    const pushFileDffChanges = (changes: FileChangeInfo) => {
+    const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string) => {
       if (!diffsChanges.length) {
-        result.push({ type: 'file_summary', id: `summary-${uuid()}`, diffs: diffsChanges });
+        diffsSourceMessageIds = [];
+        result.push({
+          type: 'file_summary',
+          id: `summary-${sourceMessageId}`,
+          diffs: diffsChanges,
+          sourceMessageIds: diffsSourceMessageIds,
+        });
       }
       diffsChanges.push(changes);
+      diffsSourceMessageIds.push(sourceMessageId);
       toolList = [];
+      toolSourceMessageIds = [];
     };
     const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall) => {
       if (!toolList.length) {
-        result.push({ type: 'tool_summary', id: ``, messages: toolList });
+        toolSourceMessageIds = [];
+        result.push({
+          type: 'tool_summary',
+          id: `tool-summary-${message.id}`,
+          messages: toolList,
+          sourceMessageIds: toolSourceMessageIds,
+        });
       }
       toolList.push(message);
+      toolSourceMessageIds.push(message.id);
       diffsChanges = [];
+      diffsSourceMessageIds = [];
     };
 
     for (let i = 0, len = list.length; i < len; i++) {
@@ -124,14 +196,22 @@ const MessageList: React.FC<{ className?: string }> = () => {
       // Skip available_commands messages
       if (message.type === 'available_commands') continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff));
+        pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
         continue;
       }
       if (message.type === 'tool_group') {
         if (message.content.length === 1) {
-          const writeFileResults = message.content.filter((item) => item.name === 'WriteFile' && item.resultDisplay && typeof item.resultDisplay === 'object' && 'fileDiff' in item.resultDisplay).map((item) => item.resultDisplay as WriteFileResult);
+          const writeFileResults = message.content
+            .filter(
+              (item) =>
+                item.name === 'WriteFile' &&
+                item.resultDisplay &&
+                typeof item.resultDisplay === 'object' &&
+                'fileDiff' in item.resultDisplay
+            )
+            .map((item) => item.resultDisplay as WriteFileResult);
           if (writeFileResults.length && writeFileResults[0].fileDiff) {
-            pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName));
+            pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName), message.id);
             continue;
           }
         }
@@ -143,17 +223,61 @@ const MessageList: React.FC<{ className?: string }> = () => {
         continue;
       }
       toolList = [];
+      toolSourceMessageIds = [];
       diffsChanges = [];
+      diffsSourceMessageIds = [];
       result.push(message);
     }
     return result;
   }, [list]);
 
   // Use auto-scroll hook
-  const { virtuosoRef, handleScroll, handleAtBottomStateChange, handleFollowOutput, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
+  const {
+    virtuosoRef,
+    handleScroll,
+    handleAtBottomStateChange,
+    handleFollowOutput,
+    showScrollButton,
+    scrollToBottom,
+    hideScrollButton,
+  } = useAutoScroll({
     messages: list,
     itemCount: processedList.length,
   });
+
+  useEffect(() => {
+    if (!targetMessageId || processedList.length === 0 || !virtuosoRef.current) {
+      return;
+    }
+
+    const targetKey = `${location.key}:${targetMessageId}`;
+    if (handledTargetKeyRef.current === targetKey) {
+      return;
+    }
+
+    const targetIndex = processedList.findIndex((item) => matchesTargetMessage(item, targetMessageId));
+    if (targetIndex === -1) {
+      return;
+    }
+
+    handledTargetKeyRef.current = targetKey;
+    setHighlightedMessageId(targetMessageId);
+    hideScrollButton();
+
+    requestAnimationFrame(() => {
+      virtuosoRef.current?.scrollToIndex({
+        index: targetIndex,
+        behavior: 'smooth',
+        align: 'center',
+      });
+    });
+
+    const timer = window.setTimeout(() => {
+      setHighlightedMessageId((current) => (current === targetMessageId ? undefined : current));
+    }, 2400);
+
+    return () => window.clearTimeout(timer);
+  }, [hideScrollButton, location.key, processedList, targetMessageId, virtuosoRef]);
 
   useEffect(() => {
     const handleMessageJump = (event: Event) => {
@@ -162,7 +286,10 @@ const MessageList: React.FC<{ className?: string }> = () => {
       if (!conversationContext?.conversationId || detail.conversationId !== conversationContext.conversationId) return;
 
       const targetIndex = processedList.findIndex((item) => {
-        if ((item as { type?: string }).type === 'file_summary' || (item as { type?: string }).type === 'tool_summary') {
+        if (
+          (item as { type?: string }).type === 'file_summary' ||
+          (item as { type?: string }).type === 'tool_summary'
+        ) {
           return false;
         }
         const message = item as TMessage;
@@ -195,15 +322,21 @@ const MessageList: React.FC<{ className?: string }> = () => {
   };
 
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
+    const highlighted = matchesTargetMessage(item, highlightedMessageId);
     if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
-        <div key={item.id} className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}>
+        <div
+          key={item.id}
+          id={`message-${getProcessedItemAnchorId(item)}`}
+          className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}
+          style={highlighted ? highlightStyle : undefined}
+        >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
           {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
         </div>
       );
     }
-    return <MessageItem message={item as TMessage} key={(item as TMessage).id}></MessageItem>;
+    return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
   };
 
   return (
@@ -236,7 +369,12 @@ const MessageList: React.FC<{ className?: string }> = () => {
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
           {/* Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
-            <div className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
+            <div
+              className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3'
+              onClick={handleScrollButtonClick}
+              title={t('messages.scrollToBottom')}
+              style={{ lineHeight: 0 }}
+            >
               <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />
             </div>
           </div>

@@ -42,7 +42,9 @@ const useAcpMessage = (conversation_id: string) => {
     description: '',
     subject: '',
   });
-  const [acpStatus, setAcpStatus] = useState<'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null>(null);
+  const [acpStatus, setAcpStatus] = useState<
+    'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null
+  >(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [contextLimit, setContextLimit] = useState<number>(0);
@@ -119,14 +121,6 @@ const useAcpMessage = (conversation_id: string) => {
         return;
       }
 
-      // Cancel pending finish timeout if new message arrives
-      // 如果新消息到达，取消待处理的 finish timeout
-      const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-      if (pendingTimeout && message.type !== 'finish') {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-      }
-
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
@@ -146,26 +140,27 @@ const useAcpMessage = (conversation_id: string) => {
           break;
         case 'finish':
           {
-            // Use delayed reset to detect true end of task
-            // 使用延迟重置来检测任务的真正结束
-            const timeoutId = setTimeout(() => {
-              setRunning(false);
-              runningRef.current = false;
-              setAiProcessing(false);
-              aiProcessingRef.current = false;
-              setThought({ subject: '', description: '' });
-            }, 1000);
-            (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = timeoutId;
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setRunning(false);
+            runningRef.current = false;
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
-              console.log(`%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
+              console.log(
+                `%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                'color: #52c41a; font-weight: bold',
+                'color: inherit'
+              );
               requestTraceRef.current = null;
             }
           }
           break;
-        case 'content':
+        case 'content': {
           // Mark that current turn has content output
           hasContentInTurnRef.current = true;
           // Auto-recover running state if content arrives after finish
@@ -177,6 +172,7 @@ const useAcpMessage = (conversation_id: string) => {
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
           break;
+        }
         case 'agent_status': {
           // Auto-recover running state if agent_status arrives after finish
           if (!runningRef.current) {
@@ -239,7 +235,12 @@ const useAcpMessage = (conversation_id: string) => {
               modelId: String(trace.modelId || 'unknown'),
               sessionMode: trace.sessionMode as string | undefined,
             };
-            console.log(`%c[RequestTrace]%c ➡️ START | ${trace.backend} → ${trace.modelId} | ${new Date().toISOString()}`, 'color: #1890ff; font-weight: bold', 'color: inherit', trace);
+            console.log(
+              `%c[RequestTrace]%c ➡️ START | ${trace.backend} → ${trace.modelId} | ${new Date().toISOString()}`,
+              'color: #1890ff; font-weight: bold',
+              'color: inherit',
+              trace
+            );
           }
           break;
         case 'error':
@@ -252,7 +253,12 @@ const useAcpMessage = (conversation_id: string) => {
           // Log request error
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
-            console.log(`%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', message.data);
+            console.log(
+              `%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+              'color: #ff4d4f; font-weight: bold',
+              'color: inherit',
+              message.data
+            );
             requestTraceRef.current = null;
           }
           break;
@@ -275,13 +281,6 @@ const useAcpMessage = (conversation_id: string) => {
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    // Clear pending finish timeout when conversation changes
-    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-    }
-
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
     setTokenUsage(null);
@@ -319,13 +318,6 @@ const useAcpMessage = (conversation_id: string) => {
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
-    // Clear pending finish timeout
-    const pendingTimeout = (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout;
-    if (pendingTimeout) {
-      clearTimeout(pendingTimeout);
-      (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
-    }
-
     setRunning(false);
     runningRef.current = false;
     setAiProcessing(false);
@@ -334,7 +326,17 @@ const useAcpMessage = (conversation_id: string) => {
     hasContentInTurnRef.current = false;
   }, []);
 
-  return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit };
+  return {
+    thought,
+    setThought,
+    running,
+    acpStatus,
+    aiProcessing,
+    setAiProcessing,
+    resetState,
+    tokenUsage,
+    contextLimit,
+  };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -378,7 +380,8 @@ const AcpSendBox: React.FC<{
   sessionMode?: string;
   agentName?: string;
 }> = ({ conversation_id, backend, sessionMode, agentName }) => {
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState, tokenUsage, contextLimit } =
+    useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
@@ -523,7 +526,8 @@ const AcpSendBox: React.FC<{
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       // Check if it's an ACP authentication error
-      const isAuthError = errorMsg.includes('[ACP-AUTH-') || errorMsg.includes('authentication failed') || errorMsg.includes('认证失败');
+      const isAuthError =
+        errorMsg.includes('[ACP-AUTH-') || errorMsg.includes('authentication failed') || errorMsg.includes('认证失败');
 
       if (isAuthError) {
         // Create error message in conversation instead of alert
@@ -595,7 +599,10 @@ const AcpSendBox: React.FC<{
         onChange={setContent}
         loading={running || aiProcessing}
         disabled={false}
-        placeholder={t('acp.sendbox.placeholder', { backend: agentName || backend, defaultValue: `Send message to {{backend}}...` })}
+        placeholder={t('acp.sendbox.placeholder', {
+          backend: agentName || backend,
+          defaultValue: `Send message to {{backend}}...`,
+        })}
         onStop={handleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
@@ -604,8 +611,22 @@ const AcpSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend={backend} conversationId={conversation_id} compact initialMode={sessionMode} compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })} compactLabelPrefix={t('agentMode.permission')} hideCompactLabelPrefixOnMobile />
+            <Button
+              type='secondary'
+              shape='circle'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              onClick={openFileSelector}
+            />
+            <AgentModeSelector
+              backend={backend}
+              conversationId={conversation_id}
+              compact
+              initialMode={sessionMode}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+            />
             <AcpConfigSelector conversationId={conversation_id} backend={backend} />
           </div>
         }
@@ -615,7 +636,11 @@ const AcpSendBox: React.FC<{
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
                 ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -626,7 +651,9 @@ const AcpSendBox: React.FC<{
                         key={path}
                         path={path}
                         onRemove={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
                           emitter.emit('acp.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}
@@ -667,7 +694,15 @@ const AcpSendBox: React.FC<{
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        sendButtonPrefix={tokenUsage ? <ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={contextLimit > 0 ? contextLimit : undefined} size={24} /> : undefined}
+        sendButtonPrefix={
+          tokenUsage ? (
+            <ContextUsageIndicator
+              tokenUsage={tokenUsage}
+              contextLimit={contextLimit > 0 ? contextLimit : undefined}
+              size={24}
+            />
+          ) : undefined
+        }
       ></SendBox>
     </div>
   );

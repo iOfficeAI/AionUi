@@ -56,25 +56,16 @@ assert_metadata_points_to_existing_file "latest-mac.yml" "(mac-x64|darwin-x64|x6
 assert_metadata_points_to_existing_file "latest-linux.yml" "(linux|AppImage|deb)"
 assert_metadata_points_to_existing_file "latest-linux-arm64.yml" "(arm64|aarch64)"
 
-for f in latest-win-x64.yml latest-win-arm64.yml latest-mac-x64.yml latest-mac-arm64.yml; do
+for f in latest-win-arm64.yml latest-arm64-mac.yml; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
-    echo "FAIL: missing arch-scoped metadata: $f"
+    echo "FAIL: missing arch-specific updater metadata: $f"
     ERRORS=$((ERRORS + 1))
   else
     echo "PASS: $f exists"
   fi
 done
 
-for f in builder-debug-win-x64.yml builder-debug-win-arm64.yml builder-debug-mac-x64.yml builder-debug-mac-arm64.yml builder-debug-linux.yml builder-debug.yml; do
-  if [ ! -f "$OUTPUT_DIR/$f" ]; then
-    echo "FAIL: missing debug metadata: $f"
-    ERRORS=$((ERRORS + 1))
-  else
-    echo "PASS: $f exists"
-  fi
-done
-
-for f in AionUi-1.0.0-win-x64.exe AionUi-1.0.0-win-arm64.exe AionUi-1.0.0-mac-x64.dmg AionUi-1.0.0-mac-arm64.dmg AionUi-1.0.0.AppImage AionUi-1.0.0-arm64.AppImage AionUi-1.0.0.deb; do
+for f in AionUi-1.0.0-win-x64.exe AionUi-1.0.0-win-arm64.exe AionUi-1.0.0-mac-x64.dmg AionUi-1.0.0-mac-arm64.dmg AionUi-1.0.0.deb AionUi-1.0.0-arm64.deb; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing distributable: $f"
     ERRORS=$((ERRORS + 1))

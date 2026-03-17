@@ -145,7 +145,15 @@ function parseAllAtCommands(query: string): AtCommandPart[] {
  * @returns An object indicating whether the main hook should proceed with an
  *          LLM call and the processed query parts (including file content).
  */
-export async function handleAtCommand({ query, config, addItem, onDebugMessage, messageId: userMessageTimestamp, signal, lazyFileLoading = false }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
+export async function handleAtCommand({
+  query,
+  config,
+  addItem,
+  onDebugMessage,
+  messageId: userMessageTimestamp,
+  signal,
+  lazyFileLoading = false,
+}: HandleAtCommandParams): Promise<HandleAtCommandResult> {
   const commandParts = parseAllAtCommands(query);
   const atPathCommandParts = commandParts.filter((part) => part.type === 'atPath');
 
@@ -228,7 +236,8 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
     if (gitIgnored || geminiIgnored) {
       const reason = gitIgnored && geminiIgnored ? 'both' : gitIgnored ? 'git' : 'gemini';
       ignoredByReason[reason].push(pathName);
-      const reasonText = reason === 'both' ? 'ignored by both git and gemini' : reason === 'git' ? 'git-ignored' : 'gemini-ignored';
+      const reasonText =
+        reason === 'both' ? 'ignored by both git and gemini' : reason === 'git' ? 'git-ignored' : 'gemini-ignored';
       onDebugMessage(`Path ${pathName} is ${reasonText} and will be skipped.`);
       continue;
     }
@@ -258,18 +267,29 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
                 },
                 signal
               );
-              if (globResult.llmContent && typeof globResult.llmContent === 'string' && !globResult.llmContent.startsWith('No files found') && !globResult.llmContent.startsWith('Error:')) {
+              if (
+                globResult.llmContent &&
+                typeof globResult.llmContent === 'string' &&
+                !globResult.llmContent.startsWith('No files found') &&
+                !globResult.llmContent.startsWith('Error:')
+              ) {
                 const lines = globResult.llmContent.split('\n');
                 if (lines.length > 1 && lines[1]) {
                   const firstMatchAbsolute = lines[1].trim();
                   currentPathSpec = path.relative(dir, firstMatchAbsolute);
-                  onDebugMessage(`Glob search for ${pathName} found ${firstMatchAbsolute}, using relative path: ${currentPathSpec}`);
+                  onDebugMessage(
+                    `Glob search for ${pathName} found ${firstMatchAbsolute}, using relative path: ${currentPathSpec}`
+                  );
                   resolvedSuccessfully = true;
                 } else {
-                  onDebugMessage(`Glob search for '**/*${pathName}*' did not return a usable path. Path ${pathName} will be skipped.`);
+                  onDebugMessage(
+                    `Glob search for '**/*${pathName}*' did not return a usable path. Path ${pathName} will be skipped.`
+                  );
                 }
               } else {
-                onDebugMessage(`Glob search for '**/*${pathName}*' found no files or an error. Path ${pathName} will be skipped.`);
+                onDebugMessage(
+                  `Glob search for '**/*${pathName}*' found no files or an error. Path ${pathName} will be skipped.`
+                );
               }
             } catch (globError) {
               console.error(`Error during glob search for ${pathName}: ${getErrorMessage(globError)}`);
@@ -405,7 +425,9 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
             text: `\nContent from @${pathSpec}${truncated ? ' (truncated)' : ''}:\n`,
           });
           processedQueryParts.push({ text: fileContent });
-          onDebugMessage(`Successfully read file: ${pathSpec}${truncated ? ' (content truncated to prevent token overflow)' : ''}`);
+          onDebugMessage(
+            `Successfully read file: ${pathSpec}${truncated ? ' (content truncated to prevent token overflow)' : ''}`
+          );
         } catch (readError) {
           onDebugMessage(`Failed to read file ${pathSpec}: ${getErrorMessage(readError)}`);
           // Continue with other files even if one fails

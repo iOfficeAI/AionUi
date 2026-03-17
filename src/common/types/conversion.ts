@@ -69,4 +69,7 @@ export interface DocumentConversionRequest {
 }
 
 // 根据目标格式返回不同的数据类型 / Result payload differs per target format
-export type DocumentConversionResponse = { to: 'markdown'; result: ConversionResult<string> } | { to: 'excel-json'; result: ConversionResult<ExcelWorkbookData> } | { to: 'ppt-json'; result: ConversionResult<PPTJsonData> };
+export type DocumentConversionResponse =
+  | { to: 'markdown'; result: ConversionResult<string> }
+  | { to: 'excel-json'; result: ConversionResult<ExcelWorkbookData> }
+  | { to: 'ppt-json'; result: ConversionResult<PPTJsonData> };

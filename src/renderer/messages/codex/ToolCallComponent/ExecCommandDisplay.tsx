@@ -10,7 +10,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import BaseToolCallDisplay from './BaseToolCallDisplay';
 
-type ExecCommandUpdate = Extract<CodexToolCallUpdate, { subtype: 'exec_command_begin' | 'exec_command_output_delta' | 'exec_command_end' }>;
+type ExecCommandUpdate = Extract<
+  CodexToolCallUpdate,
+  { subtype: 'exec_command_begin' | 'exec_command_output_delta' | 'exec_command_end' }
+>;
 
 const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content }) => {
   const { toolCallId, title, status, description, content: contentArray, subtype, data } = content;
@@ -46,7 +49,8 @@ const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content 
     if (subtype === 'exec_command_end' && 'duration' in data && data.duration) {
       // Calculate total duration: secs + nanos/1,000,000,000
       const totalSeconds = data.duration.secs + (data.duration.nanos || 0) / 1_000_000_000;
-      const formattedDuration = totalSeconds < 1 ? `${Math.round(totalSeconds * 1000)}ms` : `${totalSeconds.toFixed(2)}s`;
+      const formattedDuration =
+        totalSeconds < 1 ? `${Math.round(totalSeconds * 1000)}ms` : `${totalSeconds.toFixed(2)}s`;
 
       tags.push(
         <Tag key='duration' color='blue'>
@@ -58,22 +62,33 @@ const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content 
   };
 
   return (
-    <BaseToolCallDisplay toolCallId={toolCallId} title={getDisplayTitle()} status={status} description={description} icon='🔧' additionalTags={getAdditionalTags()}>
+    <BaseToolCallDisplay
+      toolCallId={toolCallId}
+      title={getDisplayTitle()}
+      status={status}
+      description={description}
+      icon='🔧'
+      additionalTags={getAdditionalTags()}
+    >
       {/* Display command if available 显示命令 */}
-      {subtype === 'exec_command_begin' && 'command' in data && data.command && Array.isArray(data.command) && data.command.length > 0 && (
-        <div className='text-sm mb-2'>
-          <div className='text-xs text-t-secondary mb-1'>{t('tools.labels.command')}</div>
-          <div className='bg-2 p-2 rounded font-mono text-xs overflow-x-auto border border-b-base'>
-            <span className='text-t-secondary'>$ </span>
-            <span className='text-success'>{data.command.join(' ')}</span>
-            {'cwd' in data && data.cwd && (
-              <div className='text-t-secondary text-xs mt-1'>
-                {t('tools.labels.working_directory')}: {data.cwd}
-              </div>
-            )}
+      {subtype === 'exec_command_begin' &&
+        'command' in data &&
+        data.command &&
+        Array.isArray(data.command) &&
+        data.command.length > 0 && (
+          <div className='text-sm mb-2'>
+            <div className='text-xs text-t-secondary mb-1'>{t('tools.labels.command')}</div>
+            <div className='bg-2 p-2 rounded font-mono text-xs overflow-x-auto border border-b-base'>
+              <span className='text-t-secondary'>$ </span>
+              <span className='text-success'>{data.command.join(' ')}</span>
+              {'cwd' in data && data.cwd && (
+                <div className='text-t-secondary text-xs mt-1'>
+                  {t('tools.labels.working_directory')}: {data.cwd}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Display output content 显示输出内容 */}
       {contentArray && contentArray.length > 0 && (

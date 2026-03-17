@@ -43,5 +43,19 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "모든 예약 작업",
   "noTasks": "예약 작업 없음",
-  "runNowSuccess": "작업 실행이 트리거되었습니다"
+  "runNowSuccess": "작업 실행이 트리거되었습니다",
+  "notification": {
+    "taskComplete": "작업 완료",
+    "scheduledTask": "예약 작업",
+    "scheduledTaskComplete": "{{title}} - 예약 작업 완료",
+    "taskDone": "작업 완료"
+  },
+  "error": {
+    "alreadyExists": "이 세션에는 이미 \"{{name}}\" (ID: {{id}}) 예약 작업이 있습니다. 먼저 삭제하거나 [CRON_LIST]를 사용하여 기존 작업을 확인하세요.",
+    "missedJob": "⏰ 예약 작업 \"{{name}}\"이 시스템 절전 중에 실행되지 않았습니다.\n예정 시간: {{time}}\n타이머가 재시작되어 다음 예정 시간에 실행됩니다.",
+    "jobNotFound": "스크립트를 찾을 수 없음: {{id}}",
+    "conversationNotFound": "대화를 찾을 수 없음",
+    "scheduledTimePassed": "예약 시간이 지났습니다",
+    "conversationBusy": "대화가 사용 중이며 {{count}}번 시도 후 건너뜁니다"
+  }
 }

@@ -42,7 +42,11 @@ export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [colorScheme, setColorScheme] = useColorScheme();
   const [fontScale, setFontScale] = useFontScale();
 
-  return <ThemeContext.Provider value={{ theme, setTheme, colorScheme, setColorScheme, fontScale, setFontScale }}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme, colorScheme, setColorScheme, fontScale, setFontScale }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 };
 
 /**

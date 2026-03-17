@@ -41,7 +41,14 @@ type UseGuidMentionOptions = {
 /**
  * Hook that manages the @ mention system for agent selection.
  */
-export const useGuidMention = ({ availableAgents, customAgentAvatarMap, selectedAgentKey, setSelectedAgentKey, setInput, selectedAgentInfo }: UseGuidMentionOptions): GuidMentionResult => {
+export const useGuidMention = ({
+  availableAgents,
+  customAgentAvatarMap,
+  selectedAgentKey,
+  setSelectedAgentKey,
+  setInput,
+  selectedAgentInfo,
+}: UseGuidMentionOptions): GuidMentionResult => {
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionSelectorVisible, setMentionSelectorVisible] = useState(false);
@@ -55,7 +62,8 @@ export const useGuidMention = ({ availableAgents, customAgentAvatarMap, selected
     return agents.map((agent) => {
       const key = agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
       const label = agent.name || agent.backend;
-      const avatarValue = agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
+      const avatarValue =
+        agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
       const avatar = avatarValue ? avatarValue.trim() : undefined;
       const tokens = new Set<string>();
       const normalizedLabel = label.toLowerCase();
@@ -67,7 +75,8 @@ export const useGuidMention = ({ availableAgents, customAgentAvatarMap, selected
         tokens.add(agent.customAgentId.toLowerCase());
       }
       const mappedAvatarImage = avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined;
-      const avatarImage = mappedAvatarImage || (avatar && /^(https?:|file:|data:|aion-asset:|\/)/.test(avatar) ? avatar : undefined);
+      const avatarImage =
+        mappedAvatarImage || (avatar && /^(https?:|file:|data:|aion-asset:|\/)/.test(avatar) ? avatar : undefined);
       return {
         key,
         label,
@@ -109,7 +118,8 @@ export const useGuidMention = ({ availableAgents, customAgentAvatarMap, selected
 
   const selectedAgentLabel = selectedAgentInfo?.name || selectedAgentKey;
   const mentionMenuActiveOption = filteredMentionOptions[mentionActiveIndex] || filteredMentionOptions[0];
-  const mentionMenuSelectedKey = mentionOpen || mentionSelectorOpen ? mentionMenuActiveOption?.key || selectedAgentKey : selectedAgentKey;
+  const mentionMenuSelectedKey =
+    mentionOpen || mentionSelectorOpen ? mentionMenuActiveOption?.key || selectedAgentKey : selectedAgentKey;
 
   // Reset active index on open/query change
   useEffect(() => {

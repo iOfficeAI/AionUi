@@ -16,7 +16,10 @@
     "none": "None",
     "quickActionsTitle": "What can AionUi do?",
     "quickActionFeedback": "Got feedback or suggestions?",
-    "quickActionStar": "Like us? Give us a star!"
+    "quickActionStar": "Like us? Give us a star!",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
+    "skillsMarketDetails": "View More >>"
   },
   "history": {
     "today": "Today",
@@ -65,6 +68,16 @@
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Delete failed"
   },
+  "historySearch": {
+    "tooltip": "Search messages",
+    "title": "Search conversation content",
+    "description": "Search historical messages by keyword, load more on scroll, and jump to the matched message.",
+    "placeholder": "Search message content...",
+    "idle": "Enter keywords to search messages",
+    "empty": "No matching messages found",
+    "loadingMore": "Loading more...",
+    "untitled": "Untitled conversation"
+  },
   "tabs": {
     "closeAll": "Close All",
     "closeLeft": "Close to the Left",
@@ -111,7 +124,11 @@
       "selectFolderError": "Failed to select folder",
       "success": "Workspace migrated successfully",
       "error": "Failed to migrate workspace",
-      "migrating": "Migrating..."
+      "migrating": "Migrating...",
+      "cronMigrationTitle": "Scheduled Tasks Found",
+      "cronMigrationHint": "This conversation has scheduled tasks. Do you want to migrate them to the new workspace?",
+      "cronMigrationConfirm": "Migrate Tasks",
+      "cronMigrationSkip": "Do Not Migrate (Will be deleted)"
     },
     "dragOverlayTitle": "Drop to import",
     "dragOverlayDesc": "Drag files or folders here to copy them into this workspace.",
@@ -139,6 +156,13 @@
       "openFailed": "Failed to open",
       "revealFailed": "Failed to open containing folder"
     }
+  },
+  "minimap": {
+    "searchAria": "Search conversation",
+    "searchHint": "Click here to search keywords",
+    "empty": "No Q&A turns yet",
+    "noMatch": "No matching content found",
+    "count": "{{count}} turns"
   },
   "chat": {
     "noModelSelected": "No model selected for current session, cannot send message",

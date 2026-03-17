@@ -65,7 +65,9 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
         try {
           const external = new URL(tab.entryPoint);
           if (external.protocol !== 'http:' && external.protocol !== 'https:') {
-            console.warn(`[Extensions] Unsupported settings tab external protocol: ${tab.entryPoint} (extension: ${extName})`);
+            console.warn(
+              `[Extensions] Unsupported settings tab external protocol: ${tab.entryPoint} (extension: ${extName})`
+            );
             continue;
           }
           entryUrl = external.toString();
@@ -81,7 +83,9 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
             console.warn(`[Extensions] Settings tab path traversal attempt: ${tab.entryPoint} in ${extName}`);
             continue;
           }
-          console.warn(`[Extensions] Settings tab entryPoint not found (dist/source): ${tab.entryPoint} (extension: ${extName})`);
+          console.warn(
+            `[Extensions] Settings tab entryPoint not found (dist/source): ${tab.entryPoint} (extension: ${extName})`
+          );
           continue;
         }
         if (!isPathWithinDirectory(absEntry, extDir)) {
@@ -130,7 +134,9 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
  * @param extTabs      Resolved extension tabs (already sorted by order)
  * @returns Merged sequence of { type, id, extTab? } in display order
  */
-export type MergedTab = { type: 'builtin'; id: string } | { type: 'extension'; id: string; extTab: ResolvedSettingsTab };
+export type MergedTab =
+  | { type: 'builtin'; id: string }
+  | { type: 'extension'; id: string; extTab: ResolvedSettingsTab };
 
 export function mergeSettingsTabs(builtinIds: readonly string[], extTabs: ResolvedSettingsTab[]): MergedTab[] {
   // Build initial sequence from built-in IDs

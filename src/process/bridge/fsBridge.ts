@@ -53,7 +53,12 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
   }
   // Development: try multiple paths
   const appPath = app.getAppPath();
-  const candidates = [path.join(appPath, resourceType), path.join(appPath, '..', resourceType), path.join(appPath, '..', '..', resourceType), path.join(appPath, '..', '..', '..', resourceType)];
+  const candidates = [
+    path.join(appPath, resourceType),
+    path.join(appPath, '..', resourceType),
+    path.join(appPath, '..', '..', resourceType),
+    path.join(appPath, '..', '..', '..', resourceType),
+  ];
   for (const candidate of candidates) {
     try {
       await fs.access(candidate);
@@ -111,7 +116,12 @@ async function readBuiltinResource(resourceType: ResourceType, fileName: string)
  * Read assistant resource file with locale fallback
  * 读取助手资源文件，支持语言回退
  */
-async function readAssistantResource(resourceType: ResourceType, assistantId: string, locale: string, fileNamePattern: (id: string, loc: string) => string): Promise<string> {
+async function readAssistantResource(
+  resourceType: ResourceType,
+  assistantId: string,
+  locale: string,
+  fileNamePattern: (id: string, loc: string) => string
+): Promise<string> {
   const assistantsDir = getAssistantsDir();
   const locales = [locale, 'en-US', 'zh-CN'].filter((l, i, arr) => arr.indexOf(l) === i);
 
@@ -145,7 +155,13 @@ async function readAssistantResource(resourceType: ResourceType, assistantId: st
  * Write assistant resource file to user directory
  * 写入助手资源文件到用户目录
  */
-async function writeAssistantResource(resourceType: ResourceType, assistantId: string, content: string, locale: string, fileNamePattern: (id: string, loc: string) => string): Promise<boolean> {
+async function writeAssistantResource(
+  resourceType: ResourceType,
+  assistantId: string,
+  content: string,
+  locale: string,
+  fileNamePattern: (id: string, loc: string) => string
+): Promise<boolean> {
   try {
     const assistantsDir = getAssistantsDir();
     await fs.mkdir(assistantsDir, { recursive: true });
@@ -218,7 +234,10 @@ export function initFsBridge(): void {
   });
 
   // 下载远程图片并限制协议/重定向次数 / Download remote resource with protocol & redirect guard
-  const downloadRemoteBuffer = (targetUrl: string, redirectCount = 0): Promise<{ buffer: Buffer; contentType?: string }> => {
+  const downloadRemoteBuffer = (
+    targetUrl: string,
+    redirectCount = 0
+  ): Promise<{ buffer: Buffer; contentType?: string }> => {
     const allowedProtocols = new Set(['http:', 'https:']);
     const parsedUrl = new URL(targetUrl);
     if (!allowedProtocols.has(parsedUrl.protocol)) {
@@ -227,7 +246,9 @@ export function initFsBridge(): void {
 
     // 仅允许白名单域名，避免随意访问 / Restrict to a whitelist of hosts for safety
     const allowedHosts = ['github.com', 'raw.githubusercontent.com', 'contrib.rocks', 'img.shields.io'];
-    const isAllowedHost = allowedHosts.some((host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`));
+    const isAllowedHost = allowedHosts.some(
+      (host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`)
+    );
     if (!isAllowedHost) {
       return Promise.reject(new Error('URL not allowed for remote fetch'));
     }
@@ -826,10 +847,15 @@ export function initFsBridge(): void {
       }
       const deduplicatedSkills = Array.from(skillMap.values());
 
-      console.log(`[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`);
+      console.log(
+        `[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`
+      );
       console.log(`  - Builtin skills (${builtinCount}): ${builtinSkillsDir}`);
       console.log(`  - User skills (${userCount}): ${userSkillsDir}`);
-      console.log(`  - Skills breakdown:`, deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', '));
+      console.log(
+        `  - Skills breakdown:`,
+        deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', ')
+      );
 
       return deduplicatedSkills;
     } catch (error) {
@@ -1119,7 +1145,10 @@ export function initFsBridge(): void {
       await saveCustomExternalPaths(filtered);
       return { success: true, msg: 'Custom path removed' };
     } catch (error) {
-      return { success: false, msg: `Failed to remove path: ${error instanceof Error ? error.message : String(error)}` };
+      return {
+        success: false,
+        msg: `Failed to remove path: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
 
@@ -1137,9 +1166,17 @@ export function initFsBridge(): void {
 
       // Load custom paths and merge
       const customPaths = await loadCustomExternalPaths();
-      const candidates = [...builtinCandidates, ...customPaths.map((cp) => ({ name: cp.name, path: cp.path, source: `custom-${cp.path}` }))];
+      const candidates = [
+        ...builtinCandidates,
+        ...customPaths.map((cp) => ({ name: cp.name, path: cp.path, source: `custom-${cp.path}` })),
+      ];
 
-      const results: Array<{ name: string; path: string; source: string; skills: Array<{ name: string; description: string; path: string }> }> = [];
+      const results: Array<{
+        name: string;
+        path: string;
+        source: string;
+        skills: Array<{ name: string; description: string; path: string }>;
+      }> = [];
 
       for (const candidate of candidates) {
         try {
@@ -1253,7 +1290,10 @@ export function initFsBridge(): void {
       return { success: true, data: { skillName }, msg: `Skill "${skillName}" imported successfully` };
     } catch (error) {
       console.error('[fsBridge] Failed to import skill with symlink:', error);
-      return { success: false, msg: `Failed to import skill: ${error instanceof Error ? error.message : String(error)}` };
+      return {
+        success: false,
+        msg: `Failed to import skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
 
@@ -1286,9 +1326,13 @@ export function initFsBridge(): void {
       return { success: true, msg: `Skill "${skillName}" deleted` };
     } catch (error) {
       console.error('[fsBridge] Failed to delete skill:', error);
-      return { success: false, msg: `Failed to delete skill: ${error instanceof Error ? error.message : String(error)}` };
+      return {
+        success: false,
+        msg: `Failed to delete skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
+
   // 获取技能存储路径 / Get skill storage paths
   ipcBridge.fs.getSkillPaths.provider(async () => {
     return {
@@ -1321,7 +1365,76 @@ export function initFsBridge(): void {
       return { success: true, msg: `Successfully exported to ${targetPath}` };
     } catch (error) {
       console.error('[fsBridge] Failed to export skill with symlink:', error);
-      return { success: false, msg: `Failed to export skill: ${error instanceof Error ? error.message : String(error)}` };
+      return {
+        success: false,
+        msg: `Failed to export skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
+
+  // Skills Market: inject the aionui-skills builtin skill
+  ipcBridge.fs.enableSkillsMarket.provider(async () => {
+    try {
+      const { getBuiltinSkillsDir } = await import('../initStorage');
+      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      await fs.mkdir(skillDir, { recursive: true });
+
+      // Copy the bundled SKILL.md (concise entry-point version)
+      // The full 600+ line API doc is fetched by agents at runtime via curl
+      const content = await readBundledSkillsMarketMd();
+      await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8');
+
+      // Reset AcpSkillManager singleton so it re-discovers builtin skills
+      const { AcpSkillManager } = await import('../task/AcpSkillManager');
+      AcpSkillManager.resetInstance();
+
+      return { success: true, msg: 'Skills Market skill enabled' };
+    } catch (error) {
+      console.error('[fsBridge] Failed to enable Skills Market:', error);
+      return {
+        success: false,
+        msg: `Failed to enable Skills Market: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+
+  // Skills Market: remove the aionui-skills builtin skill
+  ipcBridge.fs.disableSkillsMarket.provider(async () => {
+    try {
+      const { getBuiltinSkillsDir } = await import('../initStorage');
+      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      await fs.rm(skillDir, { recursive: true, force: true });
+
+      // Reset AcpSkillManager singleton so it re-discovers builtin skills
+      const { AcpSkillManager } = await import('../task/AcpSkillManager');
+      AcpSkillManager.resetInstance();
+
+      return { success: true, msg: 'Skills Market skill disabled' };
+    } catch (error) {
+      console.error('[fsBridge] Failed to disable Skills Market:', error);
+      return {
+        success: false,
+        msg: `Failed to disable Skills Market: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+}
+
+/**
+ * Read the bundled SKILL.md for aionui-skills from app resources.
+ *
+ * This is a concise entry-point version (~30 lines) that tells agents
+ * to fetch the full API documentation via curl at runtime.
+ * The full 600+ line SKILL.md should NOT be injected via [LOAD_SKILL]
+ * as it would overwhelm the conversation context.
+ */
+async function readBundledSkillsMarketMd(): Promise<string> {
+  try {
+    const bundledDir = await findBuiltinResourceDir('skills');
+    const fallbackPath = path.join(bundledDir, '_builtin', 'aionui-skills', 'SKILL.md');
+    return await fs.readFile(fallbackPath, 'utf-8');
+  } catch (error) {
+    console.warn('[fsBridge] Failed to read bundled aionui-skills SKILL.md:', error);
+    return `---\nname: aionui-skills\ndescription: "Access the AionUI Skills registry — discover and download AI agent skills."\n---\n\n# AionUI Skills Registry\n\nFetch full instructions:\n\n\`\`\`bash\nmkdir -p ~/.config/aionui-skills\ncurl -s https://skills.aionui.com/SKILL.md > ~/.config/aionui-skills/SKILL.md\n\`\`\`\n\nThen read and follow the instructions in that file.\n`;
+  }
 }

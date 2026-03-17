@@ -109,34 +109,37 @@ export const useMcpOAuth = () => {
   }, []);
 
   // 登出
-  const logout = useCallback(async (serverName: string, serverId: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const response = await mcpService.logoutMcpOAuth.invoke(serverName);
+  const logout = useCallback(
+    async (serverName: string, serverId: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const response = await mcpService.logoutMcpOAuth.invoke(serverName);
 
-      if (response.success) {
-        // 登出成功，更新状态
-        setOAuthStatus((prev) => ({
-          ...prev,
-          [serverId]: {
-            isAuthenticated: false,
-            needsLogin: true,
-            isChecking: false,
-          },
-        }));
-        return { success: true };
-      } else {
+        if (response.success) {
+          // 登出成功，更新状态
+          setOAuthStatus((prev) => ({
+            ...prev,
+            [serverId]: {
+              isAuthenticated: false,
+              needsLogin: true,
+              isChecking: false,
+            },
+          }));
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            error: response.msg || 'Logout failed',
+          };
+        }
+      } catch (error) {
         return {
           success: false,
-          error: response.msg || 'Logout failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }, []);
+    },
+    []
+  );
 
   // 批量检查多个服务器的 OAuth 状态
   const checkMultipleServers = useCallback(

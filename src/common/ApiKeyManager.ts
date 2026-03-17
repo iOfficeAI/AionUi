@@ -82,7 +82,9 @@ export class ApiKeyManager {
       const previousIndex = this.currentIndex;
       this.currentIndex = availableIndex;
       this.updateEnvironment();
-      console.log(`[MultiKey] Rotated ${this.authType}: #${previousIndex + 1} → #${this.currentIndex + 1}/${this.keys.length}`);
+      console.log(
+        `[MultiKey] Rotated ${this.authType}: #${previousIndex + 1} → #${this.currentIndex + 1}/${this.keys.length}`
+      );
       return true;
     }
 
@@ -98,7 +100,9 @@ export class ApiKeyManager {
     this.blacklistedUntil.set(this.currentIndex, recoveryTime);
 
     const recoveryDate = new Date(recoveryTime);
-    console.log(`[MultiKey] Blacklisted ${this.authType} key #${this.currentIndex + 1} until ${recoveryDate.toLocaleTimeString()}`);
+    console.log(
+      `[MultiKey] Blacklisted ${this.authType} key #${this.currentIndex + 1} until ${recoveryDate.toLocaleTimeString()}`
+    );
   }
 
   /**

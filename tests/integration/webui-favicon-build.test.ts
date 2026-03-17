@@ -118,7 +118,10 @@ function extractFaviconHref(indexHtmlPath: string): string {
 
 describe('Built WebUI favicon integrity', () => {
   const rendererIndexPath = path.resolve(__dirname, '../../out/renderer/index.html');
-  const faviconSourceFiles = [path.resolve(__dirname, '../../src/renderer/index.html'), path.resolve(__dirname, '../../resources/icon.png')];
+  const faviconSourceFiles = [
+    path.resolve(__dirname, '../../src/renderer/index.html'),
+    path.resolve(__dirname, '../../resources/icon.png'),
+  ];
   const envAsar = process.env.APP_ASAR_PATH;
   const resolvedEnvAsar = envAsar ? path.resolve(envAsar) : null;
 

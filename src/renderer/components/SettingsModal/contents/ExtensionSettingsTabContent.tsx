@@ -26,7 +26,11 @@ interface ExtensionSettingsTabContentProps {
  * - External URLs (https://) → WebviewHost with link interception, navigation, partition cache.
  * - Local URLs (aion-asset://) → sandboxed iframe with postMessage bridge.
  */
-const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = ({ entryUrl, tabId, extensionName }) => {
+const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = ({
+  entryUrl,
+  tabId,
+  extensionName,
+}) => {
   const { i18n } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +112,13 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
   return (
     <div className='relative w-full h-full min-h-200px'>
       {isExternalTab ? (
-        <WebviewHost key={tabId} url={resolvedEntryUrl} id={tabId} partition={`persist:ext-settings-${tabId}`} style={{ minHeight: '200px' }} />
+        <WebviewHost
+          key={tabId}
+          url={resolvedEntryUrl}
+          id={tabId}
+          partition={`persist:ext-settings-${tabId}`}
+          style={{ minHeight: '200px' }}
+        />
       ) : (
         <>
           {loading && (

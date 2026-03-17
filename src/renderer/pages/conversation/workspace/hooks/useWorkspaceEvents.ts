@@ -36,7 +36,22 @@ interface UseWorkspaceEventsOptions {
  * Manage all event listeners
  */
 export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
-  const { conversation_id, eventPrefix, refreshWorkspace, clearSelection, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, closeContextMenu, setContextMenu, closeRenameModal, closeDeleteModal } = options;
+  const {
+    conversation_id,
+    eventPrefix,
+    refreshWorkspace,
+    clearSelection,
+    setFiles,
+    setSelected,
+    setExpandedKeys,
+    setTreeKey,
+    selectedNodeRef,
+    selectedKeysRef,
+    closeContextMenu,
+    setContextMenu,
+    closeRenameModal,
+    closeDeleteModal,
+  } = options;
 
   /**
    * 监听对话切换事件 - 重置所有状态
@@ -54,7 +69,20 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
     closeDeleteModal();
     refreshWorkspace();
     emitter.emit(`${eventPrefix}.selected.file`, []);
-  }, [conversation_id, eventPrefix, refreshWorkspace, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, setContextMenu, closeRenameModal, closeDeleteModal]);
+  }, [
+    conversation_id,
+    eventPrefix,
+    refreshWorkspace,
+    setFiles,
+    setSelected,
+    setExpandedKeys,
+    setTreeKey,
+    selectedNodeRef,
+    selectedKeysRef,
+    setContextMenu,
+    closeRenameModal,
+    closeDeleteModal,
+  ]);
 
   /**
    * 监听 Agent 响应流 - 自动刷新工作空间

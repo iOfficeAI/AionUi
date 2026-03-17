@@ -16,7 +16,10 @@
     "none": "None",
     "quickActionsTitle": "AionUi で何ができる？",
     "quickActionFeedback": "フィードバックや提案は？",
-    "quickActionStar": "気に入った？スターをください！"
+    "quickActionStar": "気に入った？スターをください！",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "コミュニティ Skills をオンデマンドで検索・有効化。一度設定すれば、すべてのAgentで利用可能。",
+    "skillsMarketDetails": "詳細 >>"
   },
   "history": {
     "today": "今日",
@@ -65,6 +68,16 @@
     "deleteSuccess": "削除しました",
     "deleteFailed": "削除に失敗しました"
   },
+  "historySearch": {
+    "tooltip": "メッセージを検索",
+    "title": "会話内容を検索",
+    "description": "キーワードで履歴メッセージを検索し、スクロールでさらに読み込み、クリックで該当メッセージにジャンプします。",
+    "placeholder": "メッセージ内容を検索...",
+    "idle": "キーワードを入力してメッセージを検索",
+    "empty": "一致するメッセージが見つかりません",
+    "loadingMore": "さらに読み込み中...",
+    "untitled": "無題の会話"
+  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "プリセットアシスタント"
@@ -111,7 +124,11 @@
       "selectFolderError": "フォルダーの選択に失敗しました",
       "success": "ワークスペースの移行が成功しました",
       "error": "ワークスペースの移行に失敗しました",
-      "migrating": "移行中..."
+      "migrating": "移行中...",
+      "cronMigrationTitle": "スケジュールタスクが見つかりました",
+      "cronMigrationHint": "現在の会話にはスケジュールタスクが含まれています。新しいワークスペースに移行しますか？",
+      "cronMigrationConfirm": "移行して更新",
+      "cronMigrationSkip": "移行しない（削除されます）"
     },
     "dragOverlayTitle": "ドラッグして取り込み",
     "dragOverlayDesc": "ここにファイルやフォルダーをドロップすると、このワークスペースにコピーされます。",
@@ -139,6 +156,13 @@
       "openFailed": "開けませんでした",
       "revealFailed": "フォルダーを開けませんでした"
     }
+  },
+  "minimap": {
+    "searchAria": "会話を検索",
+    "searchHint": "ここをクリックしてキーワードを検索",
+    "empty": "まだQ&Aがありません",
+    "noMatch": "一致する内容が見つかりません",
+    "count": "{{count}} 件"
   },
   "chat": {
     "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",

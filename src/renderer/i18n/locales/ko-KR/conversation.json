@@ -16,7 +16,10 @@
     "none": "없음",
     "quickActionsTitle": "AionUi로 무엇을 할 수 있나요?",
     "quickActionFeedback": "피드백이나 제안이 있으신가요?",
-    "quickActionStar": "마음에 드시나요? 별을 주세요!"
+    "quickActionStar": "마음에 드시나요? 별을 주세요!",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "커뮤니티 Skills를 필요에 따라 검색하고 활성화. 한 번 설정하면 모든 Agent에서 사용 가능.",
+    "skillsMarketDetails": "자세히 >>"
   },
   "history": {
     "today": "오늘",
@@ -65,6 +68,16 @@
     "deleteSuccess": "삭제되었습니다",
     "deleteFailed": "삭제에 실패했습니다"
   },
+  "historySearch": {
+    "tooltip": "메시지 검색",
+    "title": "대화 내용 검색",
+    "description": "키워드로 기록 메시지를 검색하고, 스크롤하여 더 불러오고, 클릭하여 해당 메시지로 이동합니다.",
+    "placeholder": "메시지 내용 검색...",
+    "idle": "키워드를 입력하여 메시지를 검색하세요",
+    "empty": "일치하는 메시지를 찾을 수 없습니다",
+    "loadingMore": "더 불러오는 중...",
+    "untitled": "제목 없는 대화"
+  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "프리셋 어시스턴트"
@@ -111,7 +124,11 @@
       "selectFolderError": "폴더 선택 실패",
       "success": "워크스페이스 마이그레이션 성공",
       "error": "워크스페이스 마이그레이션 실패",
-      "migrating": "마이그레이션 중..."
+      "migrating": "마이그레이션 중...",
+      "cronMigrationTitle": "예약 작업 발견",
+      "cronMigrationHint": "현재 대화에 예약 작업이 포함되어 있습니다. 새 워크스페이스로 이동하시겠습니까?",
+      "cronMigrationConfirm": "이동 및 업데이트",
+      "cronMigrationSkip": "이동 안 함 (삭제됨)"
     },
     "dragOverlayTitle": "놓아서 가져오기",
     "dragOverlayDesc": "파일이나 폴더를 여기로 드래그하여 이 워크스페이스로 복사하세요.",
@@ -139,6 +156,13 @@
       "openFailed": "열기 실패",
       "revealFailed": "포함 폴더 열기 실패"
     }
+  },
+  "minimap": {
+    "searchAria": "대화 검색",
+    "searchHint": "여기를 클릭해 키워드를 검색하세요",
+    "empty": "아직 문답 내용이 없습니다",
+    "noMatch": "일치하는 내용이 없습니다",
+    "count": "{{count}} 건"
   },
   "chat": {
     "noModelSelected": "현재 세션에 선택된 모델이 없어 메시지를 보낼 수 없습니다",

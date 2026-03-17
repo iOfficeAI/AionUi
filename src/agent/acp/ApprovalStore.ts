@@ -114,7 +114,11 @@ export class AcpApprovalStore {
 /**
  * Create an AcpApprovalKey from permission request data
  */
-export function createAcpApprovalKey(toolCall: { kind?: string; title?: string; rawInput?: Record<string, unknown> }): AcpApprovalKey {
+export function createAcpApprovalKey(toolCall: {
+  kind?: string;
+  title?: string;
+  rawInput?: Record<string, unknown>;
+}): AcpApprovalKey {
   return {
     kind: toolCall.kind || 'unknown',
     title: toolCall.title || '',

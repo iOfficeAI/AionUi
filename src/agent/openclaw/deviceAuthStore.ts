@@ -110,7 +110,12 @@ export function loadDeviceAuthToken(params: { deviceId: string; role: string }):
 /**
  * Store device auth token for a specific device and role
  */
-export function storeDeviceAuthToken(params: { deviceId: string; role: string; token: string; scopes?: string[] }): DeviceAuthEntry {
+export function storeDeviceAuthToken(params: {
+  deviceId: string;
+  role: string;
+  token: string;
+  scopes?: string[];
+}): DeviceAuthEntry {
   const filePath = resolveDeviceAuthPath();
   const existing = readStore(filePath);
   const role = normalizeRole(params.role);

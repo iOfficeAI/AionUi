@@ -119,7 +119,9 @@ let _onChannelsTab = false;
  * Uses a session-level flag to skip re-navigation when already on the tab.
  */
 export async function goToChannelsTab(page: Page): Promise<void> {
-  const channelItem = page.locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`).first();
+  const channelItem = page
+    .locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`)
+    .first();
 
   // Quick check: if we're already on the channels tab, verify a channel item is still visible
   if (_onChannelsTab && isAlreadyAt(page, ROUTES.settings.webui)) {
@@ -130,7 +132,9 @@ export async function goToChannelsTab(page: Page): Promise<void> {
   await goToSettings(page, 'webui');
 
   // Ensure route transition is actually complete before locating inner tabs
-  await page.waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 }).catch(() => undefined);
+  await page
+    .waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 })
+    .catch(() => undefined);
 
   const stableTab = page.locator(webuiTabByKey('channels')).first();
   const fallbackTab = page

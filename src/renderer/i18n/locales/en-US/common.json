@@ -56,5 +56,14 @@
   "more": "More",
   "refresh": "Refresh",
   "tray.showWindow": "Show AionUi",
-  "tray.quit": "Quit"
+  "tray.newChat": "New Chat",
+  "tray.closeToTray": "Close to Tray",
+  "tray.about": "About AionUi",
+  "tray.restart": "Restart App",
+  "tray.quit": "Quit",
+  "tray.runningTasks": "Running Tasks",
+  "tray.pauseAll": "Pause All Tasks",
+  "tray.checkUpdate": "Check Update",
+  "tray.recentChats": "Recent Chats",
+  "tray.untitled": "Untitled"
 }

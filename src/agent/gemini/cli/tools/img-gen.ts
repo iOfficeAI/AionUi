@@ -6,7 +6,15 @@
 
 import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
-import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay, MessageBus } from '@office-ai/aioncli-core';
+import type {
+  Config,
+  ToolResult,
+  ToolInvocation,
+  ToolLocation,
+  ToolCallConfirmationDetails,
+  ToolResultDisplay,
+  MessageBus,
+} from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import { jsonrepair } from 'jsonrepair';
@@ -106,7 +114,12 @@ function getFileExtensionFromDataUrl(dataUrl: string): string {
   return DEFAULT_IMAGE_EXTENSION;
 }
 
-async function saveGeneratedImage(base64Data: string, config: Config, messageId?: string, conversationId?: string): Promise<string> {
+async function saveGeneratedImage(
+  base64Data: string,
+  config: Config,
+  messageId?: string,
+  conversationId?: string
+): Promise<string> {
   const workspaceDir = config.getWorkingDir();
   const timestamp = Date.now();
   const fileExtension = getFileExtensionFromDataUrl(base64Data);
@@ -176,11 +189,13 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
         properties: {
           prompt: {
             type: Type.STRING,
-            description: 'The text prompt in English that must clearly specify the operation type: "Generate image: [English description]" for creating new images, "Analyze image: [what to analyze in English]" for image recognition/analysis, or "Edit image: [modifications in English]" for image editing. Always start with the operation type and use English for the entire prompt.',
+            description:
+              'The text prompt in English that must clearly specify the operation type: "Generate image: [English description]" for creating new images, "Analyze image: [what to analyze in English]" for image recognition/analysis, or "Edit image: [modifications in English]" for image editing. Always start with the operation type and use English for the entire prompt.',
           },
           image_uris: {
             type: Type.ARRAY,
-            description: 'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. When user uses @filename.ext format, always pass the filename (without @) to this array. For single image, use array format: ["test.jpg"]. Local files must actually exist on disk.',
+            description:
+              'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. When user uses @filename.ext format, always pass the filename (without @) to this array. For single image, use array format: ["test.jpg"]. Local files must actually exist on disk.',
             items: {
               type: Type.STRING,
             },
@@ -252,8 +267,21 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
     return null;
   }
 
-  protected createInvocation(params: ImageGenerationToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<ImageGenerationToolParams, ToolResult> {
-    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy, messageBus, _toolName, _toolDisplayName);
+  protected createInvocation(
+    params: ImageGenerationToolParams,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
+  ): ToolInvocation<ImageGenerationToolParams, ToolResult> {
+    return new ImageGenerationInvocation(
+      this.config,
+      this.imageGenerationModel,
+      params,
+      this.proxy,
+      messageBus,
+      _toolName,
+      _toolDisplayName
+    );
   }
 }
 
@@ -299,7 +327,8 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
   }
 
   getDescription(): string {
-    const displayPrompt = this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
+    const displayPrompt =
+      this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
     const imageUris = this.getImageUris();
 
     if (imageUris.length > 0) {
@@ -379,7 +408,10 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         }
 
         // Otherwise provide detailed search paths
-        throw new Error(`Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\n` + 'Please ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)');
+        throw new Error(
+          `Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\n` +
+            'Please ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)'
+        );
       }
     }
   }
@@ -545,7 +577,9 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
       if (!images || images.length === 0) {
         // No images generated - warn user with clear feedback
         // 未生成图像 - 向用户提供清晰的反馈
-        console.warn(`[ImageGen] No images returned from model ${this.currentModel}. Response: ${responseText.substring(0, 200)}`);
+        console.warn(
+          `[ImageGen] No images returned from model ${this.currentModel}. Response: ${responseText.substring(0, 200)}`
+        );
         const warningMessage = `⚠️ Image generation did not produce any images.\n\nModel response: ${responseText}\n\n💡 Tip: Make sure your image generation model supports this type of request. Current model: ${this.currentModel}`;
         return {
           llmContent: warningMessage,

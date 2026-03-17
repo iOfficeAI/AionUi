@@ -12,15 +12,17 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDeepLink } from './hooks/useDeepLink';
+import { useNotificationClick } from './hooks/useNotificationClick';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
 import { cleanupSiderTooltips } from './utils/siderTooltip';
 import { isElectronDesktop } from './utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from './utils/themeCssSync';
+import './layout.css';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -80,13 +82,17 @@ const Layout: React.FC<{
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [viewportWidth, setViewportWidth] = useState<number>(() => (typeof window === 'undefined' ? 390 : window.innerWidth));
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window === 'undefined' ? 390 : window.innerWidth
+  );
   const [customCss, setCustomCss] = useState<string>('');
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
+  useNotificationClick();
+  const navigate = useNavigate();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
@@ -95,7 +101,11 @@ const Layout: React.FC<{
 
   const loadAndHealCustomCss = useCallback(async () => {
     try {
-      const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([ConfigStorage.get('customCss'), ConfigStorage.get('css.activeThemeId'), ConfigStorage.get('css.themes')]);
+      const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([
+        ConfigStorage.get('customCss'),
+        ConfigStorage.get('css.activeThemeId'),
+        ConfigStorage.get('css.themes'),
+      ]);
 
       const decision = computeCssSyncDecision({
         savedCss: savedCssRaw || '',
@@ -117,7 +127,10 @@ const Layout: React.FC<{
         const defaultCss = resolveCssByActiveTheme('default-theme', (savedThemes || []) as ICssTheme[]);
         effectiveCss = defaultCss;
         // Persist the fallback so Layout doesn't keep retrying
-        await Promise.all([ConfigStorage.set('css.activeThemeId', 'default-theme'), ConfigStorage.set('customCss', effectiveCss)]).catch((error) => {
+        await Promise.all([
+          ConfigStorage.set('css.activeThemeId', 'default-theme'),
+          ConfigStorage.set('customCss', effectiveCss),
+        ]).catch((error) => {
           console.warn('Failed to persist theme fallback:', error);
         });
       } else if (decision.shouldHealStorage) {
@@ -197,7 +210,9 @@ const Layout: React.FC<{
     ensureStyleAtEnd();
 
     const observer = new MutationObserver((mutations) => {
-      const hasNewStyle = mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) => node.nodeName === 'STYLE' || node.nodeName === 'LINK'));
+      const hasNewStyle = mutations.some((mutation) =>
+        Array.from(mutation.addedNodes).some((node) => node.nodeName === 'STYLE' || node.nodeName === 'LINK')
+      );
 
       if (hasNewStyle) {
         const element = document.getElementById(styleId);
@@ -260,7 +275,69 @@ const Layout: React.FC<{
     return () => unsubscribe();
   }, []);
 
-  const siderWidth = isMobile ? Math.max(MOBILE_SIDER_MIN_WIDTH, Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))) : DEFAULT_SIDER_WIDTH;
+  // Handle tray events from main process / 处理来自主进程的托盘事件
+  useEffect(() => {
+    if (!isElectronDesktop()) return;
+
+    // Navigate to guid page when requested from tray / 托盘请求导航到 guid 页面
+    const handleNavigateToGuid = () => {
+      void navigate('/guid');
+    };
+
+    // Navigate to conversation when requested from tray / 托盘请求导航到对话页面
+    const handleNavigateToConversation = (event: CustomEvent<{ conversationId: string }>) => {
+      void navigate(`/conversation/${event.detail.conversationId}`);
+    };
+
+    // Open about dialog when requested from tray / 托盘请求打开关于对话框
+    const handleOpenAbout = () => {
+      // Navigate to settings/about page / 导航到设置/关于页面
+      void navigate('/settings/about');
+    };
+
+    // Handle pause all tasks request from tray / 托盘请求暂停所有任务
+    const handlePauseAllTasks = async () => {
+      const { ipcBridge } = await import('@/common');
+      const result = await ipcBridge.task.stopAll.invoke();
+      if (result?.success) {
+        // Navigate to settings page to show task status
+        void navigate('/settings/system');
+      }
+    };
+
+    // Handle check update request from tray / 托盘请求检查更新
+    // 1. Navigate to about page / 导航到关于页面
+    // 2. Trigger update modal check / 触发更新模态框检查
+    const handleCheckUpdate = () => {
+      void navigate('/settings/about');
+      // Trigger update modal after a short delay to ensure page is loaded
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
+      }, 100);
+    };
+
+    // Listen for tray events / 监听托盘事件
+    window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
+    window.addEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
+    window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
+    window.addEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
+    window.addEventListener('tray:check-update', handleCheckUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
+      window.removeEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
+      window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
+      window.removeEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
+      window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
+    };
+  }, [navigate]);
+
+  const siderWidth = isMobile
+    ? Math.max(
+        MOBILE_SIDER_MIN_WIDTH,
+        Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
+      )
+    : DEFAULT_SIDER_WIDTH;
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
@@ -269,7 +346,9 @@ const Layout: React.FC<{
       <div className='app-shell flex flex-col size-full min-h-0'>
         <Titlebar workspaceAvailable={workspaceAvailable} />
         {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
-        {isMobile && !collapsed && <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />}
+        {isMobile && !collapsed && (
+          <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
+        )}
 
         <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
           <ArcoLayout.Sider
@@ -293,9 +372,13 @@ const Layout: React.FC<{
             }
           >
             <ArcoLayout.Header
-              className={classNames('flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header', isMobile && 'layout-sider-header--mobile', {
-                'cursor-pointer group ': collapsed,
-              })}
+              className={classNames(
+                'flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header',
+                isMobile && 'layout-sider-header--mobile',
+                {
+                  'cursor-pointer group ': collapsed,
+                }
+              )}
             >
               <div
                 className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
@@ -310,20 +393,42 @@ const Layout: React.FC<{
                   viewBox='0 0 80 80'
                   fill='none'
                 >
-                  <path key='logo-path-1' d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20' fill='white'></path>
+                  <path
+                    key='logo-path-1'
+                    d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
+                    fill='white'
+                  ></path>
                   <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                  <path key='logo-path-2' d='M18 50 Q40 70 62 50' stroke='white' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
+                  <path
+                    key='logo-path-2'
+                    d='M18 50 Q40 70 62 50'
+                    stroke='white'
+                    strokeWidth='3.5'
+                    fill='none'
+                    strokeLinecap='round'
+                  ></path>
                 </svg>
               </div>
               <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>AionUi</div>
               {isMobile && !collapsed && (
-                <button type='button' className='app-titlebar__button' onClick={() => setCollapsed(true)} aria-label='Collapse sidebar'>
-                  {collapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
+                <button
+                  type='button'
+                  className='app-titlebar__button'
+                  onClick={() => setCollapsed(true)}
+                  aria-label='Collapse sidebar'
+                >
+                  {collapsed ? (
+                    <MenuUnfold theme='outline' size='18' fill='currentColor' />
+                  ) : (
+                    <MenuFold theme='outline' size='18' fill='currentColor' />
+                  )}
                 </button>
               )}
               {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
-            <ArcoLayout.Content className={classNames('p-8px layout-sider-content', !isMobile && 'h-[calc(100%-72px-16px)]')}>
+            <ArcoLayout.Content
+              className={classNames('p-8px layout-sider-content', !isMobile && 'h-[calc(100%-72px-16px)]')}
+            >
               {React.isValidElement(sider)
                 ? React.cloneElement(sider, {
                     onSessionClick: () => {

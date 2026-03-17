@@ -51,7 +51,10 @@ function isValidPluginClass(PluginClass: unknown): boolean {
   return REQUIRED_METHODS.every((method) => typeof (proto as Record<string, unknown>)[method] === 'function');
 }
 
-function createDuckTypedWrapper(pluginType: string, PluginClass: new (config?: unknown) => LegacyExternalPlugin): typeof BasePlugin {
+function createDuckTypedWrapper(
+  pluginType: string,
+  PluginClass: new (config?: unknown) => LegacyExternalPlugin
+): typeof BasePlugin {
   return class ExtensionDuckTypedWrapper extends BasePlugin {
     readonly type = pluginType as any;
 
@@ -91,7 +94,11 @@ function createDuckTypedWrapper(pluginType: string, PluginClass: new (config?: u
       return typeof result === 'string' ? result : `${pluginType}-msg-${Date.now()}`;
     }
 
-    async editMessage(chatId: string, messageId: string, message: import('@/channels/types').IUnifiedOutgoingMessage): Promise<void> {
+    async editMessage(
+      chatId: string,
+      messageId: string,
+      message: import('@/channels/types').IUnifiedOutgoingMessage
+    ): Promise<void> {
       if (!this.impl) throw new Error('Extension plugin is not initialized');
       if (typeof this.impl.editMessage === 'function') {
         await this.impl.editMessage(chatId, messageId, message);
@@ -124,10 +131,14 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
           continue;
         }
         if (!fs.existsSync(fallbackPath)) {
-          console.warn(`[Extension] Channel plugin entry not found (dist/source): ${plugin.entryPoint} (${ext.manifest.name})`);
+          console.warn(
+            `[Extension] Channel plugin entry not found (dist/source): ${plugin.entryPoint} (${ext.manifest.name})`
+          );
           continue;
         }
-        console.warn(`[Extension] Channel plugin runtime entry resolver failed unexpectedly: ${plugin.entryPoint} (${ext.manifest.name})`);
+        console.warn(
+          `[Extension] Channel plugin runtime entry resolver failed unexpectedly: ${plugin.entryPoint} (${ext.manifest.name})`
+        );
         continue;
       }
       if (result.has(plugin.type)) {
@@ -135,7 +146,11 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
         continue;
       }
 
-      logSecurity(`Loading channel plugin "${plugin.type}" from: ${entryPath}\n` + `  ⚠️  This code will run with FULL process privileges.\n` + `  ⚠️  Only load extensions from trusted sources.`);
+      logSecurity(
+        `Loading channel plugin "${plugin.type}" from: ${entryPath}\n` +
+          `  ⚠️  This code will run with FULL process privileges.\n` +
+          `  ⚠️  Only load extensions from trusted sources.`
+      );
 
       try {
         // eslint-disable-next-line no-eval
@@ -162,12 +177,17 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
         const isDuckValid = !isInternal && isValidPluginClass(PluginClass);
 
         if (!isInternal && !isDuckValid) {
-          console.warn(`[Extension] Channel plugin "${plugin.type}": exported class must extend BasePlugin ` + `or implement the required methods (${REQUIRED_METHODS.join(', ')})`);
+          console.warn(
+            `[Extension] Channel plugin "${plugin.type}": exported class must extend BasePlugin ` +
+              `or implement the required methods (${REQUIRED_METHODS.join(', ')})`
+          );
 
           continue;
         }
 
-        const constructor = isInternal ? (PluginClass as typeof BasePlugin) : createDuckTypedWrapper(plugin.type, PluginClass as new (config?: unknown) => LegacyExternalPlugin);
+        const constructor = isInternal
+          ? (PluginClass as typeof BasePlugin)
+          : createDuckTypedWrapper(plugin.type, PluginClass as new (config?: unknown) => LegacyExternalPlugin);
 
         // Resolve icon path to absolute URL (aion-asset://) for frontend
         let iconUrl = plugin.icon;
@@ -183,7 +203,10 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
             icon: iconUrl,
           },
         });
-        console.log(`[Extension] Loaded channel plugin: ${plugin.type} from ${ext.manifest.name}` + (isDuckValid ? ' [duck-typed-wrapped]' : ''));
+        console.log(
+          `[Extension] Loaded channel plugin: ${plugin.type} from ${ext.manifest.name}` +
+            (isDuckValid ? ' [duck-typed-wrapped]' : '')
+        );
         logSecurity(`Channel plugin "${plugin.type}" loaded successfully`);
       } catch (error) {
         console.error(`[Extension] Failed to load channel plugin "${plugin.type}":`, error);

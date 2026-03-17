@@ -57,7 +57,14 @@ export function extractContentFromDiff(diffContent: string): string {
 
   for (const line of lines) {
     // 跳过 diff 元数据行 / Skip diff metadata lines
-    if (line.startsWith('Index:') || line.match(/^={3,}/) || line.startsWith('diff --git') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
+    if (
+      line.startsWith('Index:') ||
+      line.match(/^={3,}/) ||
+      line.startsWith('diff --git') ||
+      line.startsWith('---') ||
+      line.startsWith('+++') ||
+      line.startsWith('@@')
+    ) {
       inDiffBlock = true;
       continue;
     }
@@ -135,7 +142,14 @@ export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo =
 
   for (const line of lines) {
     // Skip diff header lines
-    if (line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@') || line.startsWith('\\')) {
+    if (
+      line.startsWith('diff --git') ||
+      line.startsWith('index ') ||
+      line.startsWith('---') ||
+      line.startsWith('+++') ||
+      line.startsWith('@@') ||
+      line.startsWith('\\')
+    ) {
       continue;
     }
 
