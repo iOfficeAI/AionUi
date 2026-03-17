@@ -57,12 +57,14 @@ Use the Edit tool to replace the `version` field in `package.json`:
 
 ```bash
 bun run lint
+bun run format
 bunx tsc --noEmit
 ```
 
 - **lint fails** → Stop: "Lint errors found. Please fix them before bumping the version."
+- **format** → Auto-fixes formatting issues silently.
 - **tsc fails** → Stop: "TypeScript errors found. Please fix them before bumping the version."
-- **Both pass** → Proceed silently.
+- **All pass** → Proceed silently.
 
 ### Step 7 — Run Tests
 
@@ -82,7 +84,7 @@ git checkout -b chore/bump-version-{target}
 ### Step 9 — Commit
 
 ```bash
-git add package.json
+git add -A
 git commit -m "chore: bump version to {target}"
 ```
 
