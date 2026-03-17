@@ -483,6 +483,10 @@ export const database = {
     import('@/common/storage').TChatConversation[],
     { page?: number; pageSize?: number }
   >('database.get-user-conversations'),
+  searchConversationMessages: bridge.buildProvider<
+    import('./types/database').IMessageSearchResponse,
+    { keyword: string; page?: number; pageSize?: number }
+  >('database.search-conversation-messages'),
 };
 
 export const previewHistory = {

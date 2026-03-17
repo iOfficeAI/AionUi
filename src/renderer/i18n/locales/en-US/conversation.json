@@ -68,6 +68,16 @@
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Delete failed"
   },
+  "historySearch": {
+    "tooltip": "Search messages",
+    "title": "Search conversation content",
+    "description": "Search historical messages by keyword, load more on scroll, and jump to the matched message.",
+    "placeholder": "Search message content...",
+    "idle": "Enter keywords to search messages",
+    "empty": "No matching messages found",
+    "loadingMore": "Loading more...",
+    "untitled": "Untitled conversation"
+  },
   "tabs": {
     "closeAll": "Close All",
     "closeLeft": "Close to the Left",

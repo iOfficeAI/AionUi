@@ -185,5 +185,5 @@ $null
 # vx tool manager (local development only, not used in CI)
 vx.lock
 vx.toml
-.taichuy/
+.taichuy/*
 .worktrees/
