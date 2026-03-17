@@ -324,6 +324,35 @@ const PreviewPanel: React.FC = () => {
         // Prefer filename extension, then MIME type extension, finally default to png
         const mimeExt = blob.type && blob.type.includes('/') ? blob.type.split('/').pop() : undefined;
         ext = nameExt || mimeExt || 'png';
+      } else if (['excel', 'pdf', 'ppt', 'word'].includes(contentType) && metadata?.filePath) {
+        // 二进制文件（Excel/PDF/PPT/Word）：通过 getImageBase64 以 base64 读取文件内容，
+        // 然后在内存中用 atob 解码，避免 fetch data: URL 被 CSP 的 connect-src 策略阻断。
+        // Binary files: read via getImageBase64 as base64, decode in-memory with atob
+        // to avoid CSP connect-src blocking fetch() of data: URLs.
+        const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: metadata.filePath });
+
+        const MIME_MAP: Record<string, string> = {
+          xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          xls: 'application/vnd.ms-excel',
+          csv: 'text/csv',
+          ods: 'application/vnd.oasis.opendocument.spreadsheet',
+          pdf: 'application/pdf',
+          pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          ppt: 'application/vnd.ms-powerpoint',
+          odp: 'application/vnd.oasis.opendocument.presentation',
+          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          doc: 'application/msword',
+          odt: 'application/vnd.oasis.opendocument.text',
+        };
+        const mimeType = (nameExt && MIME_MAP[nameExt.toLowerCase()]) || 'application/octet-stream';
+
+        const base64 = dataUrl.split(',')[1];
+        const binaryStr = atob(base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        blob = new Blob([bytes], { type: mimeType });
+
+        if (nameExt) ext = nameExt;
       } else {
         // 文本文件：创建文本 Blob / Text files: create text Blob
         let mimeType = 'text/plain;charset=utf-8';

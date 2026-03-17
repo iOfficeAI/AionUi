@@ -154,7 +154,10 @@
       "addToChat": "Add to chat",
       "addedToChat": "Added to chat",
       "openFailed": "Failed to open",
-      "revealFailed": "Failed to open containing folder"
+      "revealFailed": "Failed to open containing folder",
+      "download": "Download",
+      "downloadSuccess": "Download successful",
+      "downloadFailed": "Download failed"
     }
   },
   "minimap": {

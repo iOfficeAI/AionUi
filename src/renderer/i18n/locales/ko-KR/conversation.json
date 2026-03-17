@@ -154,7 +154,10 @@
       "addToChat": "채팅에 추가",
       "addedToChat": "채팅에 추가됨",
       "openFailed": "열기 실패",
-      "revealFailed": "포함 폴더 열기 실패"
+      "revealFailed": "포함 폴더 열기 실패",
+      "download": "다운로드",
+      "downloadSuccess": "다운로드 완료",
+      "downloadFailed": "다운로드 실패"
     }
   },
   "minimap": {

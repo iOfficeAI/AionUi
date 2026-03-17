@@ -1035,6 +1035,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       {t('conversation.workspace.contextMenu.preview')}
                     </button>
                   )}
+                  {isContextMenuNodeFile && (
+                    <button
+                      type='button'
+                      className={menuButtonBase}
+                      onClick={() => {
+                        void fileOpsHook.handleDownloadFile(contextMenuNode);
+                      }}
+                    >
+                      {t('conversation.workspace.contextMenu.download')}
+                    </button>
+                  )}
                   <div className='h-1px bg-3 my-2px'></div>
                   <button
                     type='button'
