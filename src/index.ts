@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// MUST be first: set app name before any module accesses userData path (e.g., configureChromium)
-// 必须在最前：在任何模块访问 userData 路径之前设置 app 名称
 import { app, BrowserWindow, nativeImage, powerMonitor, screen } from 'electron';
-
+// configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
 import './utils/configureChromium';
-
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';

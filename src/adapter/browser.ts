@@ -5,6 +5,7 @@
  */
 
 import { bridge, logger } from '@office-ai/platform';
+import { WEBUI_DEFAULT_PORT } from '@/common/constants';
 import type { ElectronBridgeAPI } from '@/types/electron';
 
 interface CustomWindow extends Window {
@@ -41,7 +42,7 @@ if (win.electronAPI) {
   // Web 环境 - 使用 WebSocket 通信，并在登录后自动补上已获取 Cookie 的连接
   // Web runtime bridge: ensure the socket reconnects after login so session cookie can be sent
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const defaultHost = `${window.location.hostname}:25808`;
+  const defaultHost = `${window.location.hostname}:${WEBUI_DEFAULT_PORT}`;
   const socketUrl = `${protocol}//${window.location.host || defaultHost}`;
 
   type QueuedMessage = { name: string; data: unknown };

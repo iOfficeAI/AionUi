@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { WEBUI_DEFAULT_PORT } from '@/common/constants';
+
 // CSRF token cookie/header identifiers (shared by server & WebUI)
 // CSRF Token 的 Cookie / Header 名称（服务端与 WebUI 共享）
 export const CSRF_COOKIE_NAME = 'aionui-csrf-token';
@@ -81,7 +83,7 @@ export const SERVER_CONFIG = {
   // 远程模式监听地址（Remote mode listen host）
   REMOTE_HOST: '0.0.0.0' as const,
   // 默认端口（Default port: 25808 for prod, 25809 for dev）
-  DEFAULT_PORT: process.env.NODE_ENV === 'production' ? 25808 : 25809,
+  DEFAULT_PORT: WEBUI_DEFAULT_PORT,
   // 请求体大小限制（Request body size limit）
   BODY_LIMIT: '10mb' as const,
 
@@ -91,7 +93,7 @@ export const SERVER_CONFIG = {
    */
   _currentConfig: {
     host: '127.0.0.1' as string,
-    port: 25808 as number,
+    port: WEBUI_DEFAULT_PORT as number,
     allowRemote: false as boolean,
   },
 
