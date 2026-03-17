@@ -216,18 +216,26 @@ describe('tray module', () => {
   });
 
   describe('context menu content', () => {
+    const setupWithOverrides = (overrides: () => void) => {
+      vi.resetModules();
+      vi.clearAllMocks();
+      mockModules();
+      overrides();
+    };
+
     it('should include recent conversations when available', async () => {
-      vi.doUnmock('@/process/database');
-      vi.doMock('@/process/database', () => ({
-        getDatabase: vi.fn(() => ({
-          getUserConversations: vi.fn(() => ({
-            data: [
-              { id: '1', name: 'Test Chat' },
-              { id: '2', name: 'Another Chat' },
-            ],
+      setupWithOverrides(() => {
+        vi.doMock('@/process/database', () => ({
+          getDatabase: vi.fn(() => ({
+            getUserConversations: vi.fn(() => ({
+              data: [
+                { id: '1', name: 'Test Chat' },
+                { id: '2', name: 'Another Chat' },
+              ],
+            })),
           })),
-        })),
-      }));
+        }));
+      });
       const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
@@ -241,14 +249,15 @@ describe('tray module', () => {
     });
 
     it('should truncate long conversation titles to 20 chars', async () => {
-      vi.doUnmock('@/process/database');
-      vi.doMock('@/process/database', () => ({
-        getDatabase: vi.fn(() => ({
-          getUserConversations: vi.fn(() => ({
-            data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
+      setupWithOverrides(() => {
+        vi.doMock('@/process/database', () => ({
+          getDatabase: vi.fn(() => ({
+            getUserConversations: vi.fn(() => ({
+              data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
+            })),
           })),
-        })),
-      }));
+        }));
+      });
       const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
@@ -263,10 +272,11 @@ describe('tray module', () => {
     });
 
     it('should show running tasks count', async () => {
-      vi.doUnmock('@/process/WorkerManage');
-      vi.doMock('@/process/WorkerManage', () => ({
-        default: { listTasks: vi.fn(() => [{ id: '1' }, { id: '2' }, { id: '3' }]) },
-      }));
+      setupWithOverrides(() => {
+        vi.doMock('@/process/WorkerManage', () => ({
+          default: { listTasks: vi.fn(() => [{ id: '1' }, { id: '2' }, { id: '3' }]) },
+        }));
+      });
       const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
@@ -280,12 +290,13 @@ describe('tray module', () => {
     });
 
     it('should gracefully handle database errors for recent conversations', async () => {
-      vi.doUnmock('@/process/database');
-      vi.doMock('@/process/database', () => ({
-        getDatabase: vi.fn(() => {
-          throw new Error('DB unavailable');
-        }),
-      }));
+      setupWithOverrides(() => {
+        vi.doMock('@/process/database', () => ({
+          getDatabase: vi.fn(() => {
+            throw new Error('DB unavailable');
+          }),
+        }));
+      });
       const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
