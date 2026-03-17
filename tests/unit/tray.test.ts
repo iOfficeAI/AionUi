@@ -220,103 +220,85 @@ describe('tray module', () => {
   });
 
   describe('context menu content', () => {
-    const setupWithOverrides = () => {
+    const setupWithOverrides = (overrides: () => void) => {
       vi.resetModules();
       vi.clearAllMocks();
       mockModules();
+      overrides();
     };
 
-    const waitForMenuTemplate = async (
-      previousCalls: number,
-      predicate: (template: any[]) => boolean
-    ): Promise<any[]> => {
-      for (let i = 0; i < 30; i += 1) {
-        const newCalls = mockBuildFromTemplate.mock.calls.slice(previousCalls);
-        for (const call of newCalls) {
-          const template = call[0] as any[];
-          if (predicate(template)) {
-            return template;
-          }
-        }
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      throw new Error('Expected menu template was not built in time');
+    const getTemplateFromRefresh = async () => {
+      const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
+      createOrUpdateTray();
+      const previousCalls = mockBuildFromTemplate.mock.calls.length;
+      await refreshTrayMenu();
+      expect(mockBuildFromTemplate.mock.calls.length).toBeGreaterThan(previousCalls);
+      return mockBuildFromTemplate.mock.calls[previousCalls][0] as any[];
     };
 
     it('should include recent conversations when available', async () => {
-      setupWithOverrides();
-      mockGetUserConversations.mockReturnValue({
-        data: [
-          { id: '1', name: 'Test Chat' },
-          { id: '2', name: 'Another Chat' },
-        ],
+      setupWithOverrides(() => {
+        vi.doMock('@process/database', () => ({
+          getDatabase: vi.fn(() => ({
+            getUserConversations: vi.fn(() => ({
+              data: [
+                { id: '1', name: 'Test Chat' },
+                { id: '2', name: 'Another Chat' },
+              ],
+            })),
+          })),
+        }));
       });
 
-      const { createOrUpdateTray } = await import('@/process/tray');
-      const previousCalls = mockBuildFromTemplate.mock.calls.length;
-      createOrUpdateTray();
-
-      const templateArg = await waitForMenuTemplate(previousCalls, (template) => {
-        const labels = template.map((item: any) => item.label).filter(Boolean);
-        return labels.includes('Test Chat') && labels.includes('Another Chat');
-      });
+      const templateArg = await getTemplateFromRefresh();
       const labels = templateArg.map((item: any) => item.label).filter(Boolean);
       expect(labels).toContain('Test Chat');
       expect(labels).toContain('Another Chat');
     });
 
     it('should truncate long conversation titles to 20 chars', async () => {
-      setupWithOverrides();
-      mockGetUserConversations.mockReturnValue({
-        data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
+      setupWithOverrides(() => {
+        vi.doMock('@process/database', () => ({
+          getDatabase: vi.fn(() => ({
+            getUserConversations: vi.fn(() => ({
+              data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
+            })),
+          })),
+        }));
       });
-
-      const { createOrUpdateTray } = await import('@/process/tray');
-      const previousCalls = mockBuildFromTemplate.mock.calls.length;
-      createOrUpdateTray();
 
       const expectedTitle = 'A very long conversation title that exceeds twenty characters'.slice(0, 20) + '...';
-      const templateArg = await waitForMenuTemplate(previousCalls, (template) => {
-        const labels = template.map((item: any) => item.label).filter(Boolean);
-        return labels.includes(expectedTitle);
-      });
+      const templateArg = await getTemplateFromRefresh();
       const labels = templateArg.map((item: any) => item.label).filter(Boolean);
       expect(labels).toContain(expectedTitle);
     });
 
     it('should show running tasks count', async () => {
-      setupWithOverrides();
-      mockListTasks.mockReturnValue([{ id: '1' }, { id: '2' }, { id: '3' }]);
+      setupWithOverrides(() => {
+        vi.doMock('@process/WorkerManage', () => ({
+          default: { listTasks: vi.fn(() => [{ id: '1' }, { id: '2' }, { id: '3' }]) },
+        }));
+      });
 
-      const { createOrUpdateTray } = await import('@/process/tray');
-      const previousCalls = mockBuildFromTemplate.mock.calls.length;
-      createOrUpdateTray();
-
-      const templateArg = await waitForMenuTemplate(previousCalls, (template) =>
-        template.some((item: any) => item.label?.includes('3'))
-      );
+      const templateArg = await getTemplateFromRefresh();
       const taskItem = templateArg.find((item: any) => item.label?.includes('3'));
       expect(taskItem).toBeDefined();
       expect(taskItem.enabled).toBe(false);
     });
 
     it('should gracefully handle database errors for recent conversations', async () => {
-      setupWithOverrides();
-      mockGetDatabase.mockImplementation(() => {
-        throw new Error('DB unavailable');
+      setupWithOverrides(() => {
+        vi.doMock('@process/database', () => ({
+          getDatabase: vi.fn(() => {
+            throw new Error('DB unavailable');
+          }),
+        }));
       });
 
-      const { createOrUpdateTray } = await import('@/process/tray');
-      const previousCalls = mockBuildFromTemplate.mock.calls.length;
-      createOrUpdateTray();
+      await getTemplateFromRefresh();
 
       // Should still build menu without crashing
-      await expect(waitForMenuTemplate(previousCalls, () => true)).resolves.toBeDefined();
-
-      // Restore default for any subsequent tests
-      mockGetDatabase.mockImplementation(() => ({
-        getUserConversations: mockGetUserConversations,
-      }));
+      expect(mockBuildFromTemplate).toHaveBeenCalled();
     });
   });
 });
