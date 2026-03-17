@@ -56,7 +56,7 @@ type BundledBunManifest = {
   arch: string;
   version: string;
   generatedAt: string;
-  sourceType: 'cache' | 'system' | 'download' | 'none';
+  sourceType: 'cache' | 'download' | 'none';
   cacheDir: string;
   source: Record<string, string>;
   files: string[];
@@ -91,7 +91,7 @@ describe('Packaged bundled bun resources integrity', () => {
       expect(manifest.cacheDir).toBeTruthy();
       expect(Array.isArray(manifest.files)).toBe(true);
       expect(manifest.skipped).not.toBe(true);
-      expect(['cache', 'system', 'download']).toContain(manifest.sourceType);
+      expect(['cache', 'download']).toContain(manifest.sourceType);
 
       const requiredFiles = manifest.platform === 'win32' ? ['bun.exe', 'bunx.exe'] : ['bun', 'bunx'];
       for (const requiredFile of requiredFiles) {
