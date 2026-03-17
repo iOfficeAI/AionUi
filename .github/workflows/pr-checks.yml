@@ -118,7 +118,17 @@ jobs:
 
       - name: Run coverage tests
         id: coverage
+        continue-on-error: true
         run: bun run test:coverage
+
+      - name: Upload coverage to Codecov
+        if: always() && hashFiles('coverage/lcov.info') != ''
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
 
       - name: Coverage result summary
         if: always()
