@@ -59,25 +59,29 @@ export function initApplicationBridge(): void {
 
   ipcBridge.application.openDevTools.provider(() => {
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-      const wasOpen = mainWindowRef.webContents.isDevToolsOpened();
+      const win = mainWindowRef;
+      const wasOpen = win.webContents.isDevToolsOpened();
 
       if (wasOpen) {
-        mainWindowRef.webContents.closeDevTools();
+        win.webContents.closeDevTools();
         return Promise.resolve(false);
       } else {
         return new Promise((resolve) => {
           const onOpened = () => {
-            mainWindowRef!.webContents.off('devtools-opened', onOpened);
+            win.webContents.off('devtools-opened', onOpened);
             resolve(true);
           };
 
-          mainWindowRef!.webContents.once('devtools-opened', onOpened);
-          mainWindowRef!.webContents.openDevTools();
+          win.webContents.once('devtools-opened', onOpened);
+          win.webContents.openDevTools();
 
           setTimeout(() => {
-            mainWindowRef!.webContents.off('devtools-opened', onOpened);
-            const isNowOpen = mainWindowRef!.webContents.isDevToolsOpened();
-            resolve(isNowOpen);
+            win.webContents.off('devtools-opened', onOpened);
+            if (win.isDestroyed()) {
+              resolve(false);
+              return;
+            }
+            resolve(win.webContents.isDevToolsOpened());
           }, 500);
         });
       }

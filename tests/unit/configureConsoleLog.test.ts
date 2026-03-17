@@ -22,11 +22,14 @@ describe('configureConsoleLog', () => {
     },
   };
 
-  const originalConsoleLog = console.log;
-  const originalConsoleWarn = console.warn;
-  const originalConsoleError = console.error;
+  // Save all console methods that Object.assign(console, log.functions) may overwrite
+  const savedConsole: Record<string, unknown> = {};
 
   beforeEach(() => {
+    // Capture every key that the mock will overwrite
+    for (const key of Object.keys(mockLog.functions)) {
+      savedConsole[key] = (console as any)[key];
+    }
     vi.resetModules();
     vi.doMock('electron-log/main', () => ({ default: mockLog }));
     // Reset mock state
@@ -39,10 +42,10 @@ describe('configureConsoleLog', () => {
 
   afterEach(() => {
     vi.doUnmock('electron-log/main');
-    // Restore original console functions
-    console.log = originalConsoleLog;
-    console.warn = originalConsoleWarn;
-    console.error = originalConsoleError;
+    // Restore all overridden console methods
+    for (const [key, fn] of Object.entries(savedConsole)) {
+      (console as any)[key] = fn;
+    }
   });
 
   it('sets daily log file name in YYYY-MM-DD.log format', async () => {
