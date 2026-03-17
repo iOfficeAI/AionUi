@@ -209,7 +209,9 @@ describe('SkillsHubSettings Component', () => {
 
   it('should call delete endpoint when deleting custom skill', async () => {
     // Modify mock to only return the custom skill
-    mockListAvailableSkills.mockResolvedValue([{ name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true }]);
+    mockListAvailableSkills.mockResolvedValue([
+      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true },
+    ]);
 
     const { Modal } = await import('@arco-design/web-react');
 

@@ -157,7 +157,9 @@ describe('fsBridge skills functionality', () => {
           provider: vi.fn((fn) => {
             handlers[channel] = fn;
           }),
-          invoke: vi.fn((payload) => (handlers[channel] ? handlers[channel](payload) : Promise.reject(`No handler for ${channel}`))),
+          invoke: vi.fn((payload) =>
+            handlers[channel] ? handlers[channel](payload) : Promise.reject(`No handler for ${channel}`)
+          ),
           emit: vi.fn(),
         };
       };
@@ -228,12 +230,22 @@ describe('fsBridge skills functionality', () => {
           .join('')
       ] ||
       (ipcMod.ipcBridge.fs as any)[channel] ||
-      (Object.values(ipcMod.ipcBridge.fs).find((v: any) => v.provider?.mock?.calls?.length && v.provider.mock.calls[0][0]) as any)?.invoke; // Fallback
+      (
+        Object.values(ipcMod.ipcBridge.fs).find(
+          (v: any) => v.provider?.mock?.calls?.length && v.provider.mock.calls[0][0]
+        ) as any
+      )?.invoke; // Fallback
 
     // Because my mock logic intercepts the provider call, I can extract it directly from the mock calls
     for (const key of Object.keys(ipcMod.ipcBridge.fs)) {
       const item = (ipcMod.ipcBridge.fs as any)[key];
-      if (item && item.provider && item.provider.mock && item.provider.mock.calls && item.provider.mock.calls.length > 0) {
+      if (
+        item &&
+        item.provider &&
+        item.provider.mock &&
+        item.provider.mock.calls &&
+        item.provider.mock.calls.length > 0
+      ) {
         // We map the mock command to its actual registration name
         // if this command matches our requested test, extract its provider function
         if (key === channel) {
@@ -256,15 +268,24 @@ describe('fsBridge skills functionality', () => {
 
       mockFsStore[builtinBase] = { isDirectory: true };
       mockFsStore[path.join(builtinBase, 'test-skill-1')] = { isDirectory: true };
-      mockFsStore[path.join(builtinBase, 'test-skill-1', 'SKILL.md')] = { content: yamlFrontmatterBuiltin, isDirectory: false };
+      mockFsStore[path.join(builtinBase, 'test-skill-1', 'SKILL.md')] = {
+        content: yamlFrontmatterBuiltin,
+        isDirectory: false,
+      };
       mockFsStore[path.join(builtinBase, '_builtin')] = { isDirectory: true }; // Should be skipped
 
       mockFsStore[userBase] = { isDirectory: true };
       mockFsStore[path.join(userBase, 'custom-skill')] = { isDirectory: true };
-      mockFsStore[path.join(userBase, 'custom-skill', 'SKILL.md')] = { content: yamlFrontmatterCustom, isDirectory: false };
+      mockFsStore[path.join(userBase, 'custom-skill', 'SKILL.md')] = {
+        content: yamlFrontmatterCustom,
+        isDirectory: false,
+      };
       // Duplicate skill name, should be deduped keeping builtin
       mockFsStore[path.join(userBase, 'duplicate-skill')] = { isDirectory: true };
-      mockFsStore[path.join(userBase, 'duplicate-skill', 'SKILL.md')] = { content: yamlFrontmatterDuplicate, isDirectory: false };
+      mockFsStore[path.join(userBase, 'duplicate-skill', 'SKILL.md')] = {
+        content: yamlFrontmatterDuplicate,
+        isDirectory: false,
+      };
 
       const handler = await getProvider('listAvailableSkills');
       const result = await handler();
@@ -307,12 +328,18 @@ describe('fsBridge skills functionality', () => {
       mockFsStore[path.join(geminiPath, 'pack-skill')] = { isDirectory: true };
       mockFsStore[path.join(geminiPath, 'pack-skill', 'skills')] = { isDirectory: true };
       mockFsStore[path.join(geminiPath, 'pack-skill', 'skills', 'nested-skill')] = { isDirectory: true };
-      mockFsStore[path.join(geminiPath, 'pack-skill', 'skills', 'nested-skill', 'SKILL.md')] = { content: yamlNested1, isDirectory: false };
+      mockFsStore[path.join(geminiPath, 'pack-skill', 'skills', 'nested-skill', 'SKILL.md')] = {
+        content: yamlNested1,
+        isDirectory: false,
+      };
 
       // Setup custom path skill
       mockFsStore[customSrcPath] = { isDirectory: true };
       mockFsStore[path.join(customSrcPath, 'custom-ext-skill')] = { isDirectory: true };
-      mockFsStore[path.join(customSrcPath, 'custom-ext-skill', 'SKILL.md')] = { content: yamlCustom, isDirectory: false };
+      mockFsStore[path.join(customSrcPath, 'custom-ext-skill', 'SKILL.md')] = {
+        content: yamlCustom,
+        isDirectory: false,
+      };
 
       const handler = await getProvider('detectAndCountExternalSkills');
       const result = await handler();
@@ -374,7 +401,10 @@ describe('fsBridge skills functionality', () => {
       const targetBase = path.resolve('/mock/userData/config/skills');
 
       mockFsStore[srcPath] = { isDirectory: true };
-      mockFsStore[path.join(srcPath, 'SKILL.md')] = { content: '---\nname: ValidSymlinkSkill\n---\nData', isDirectory: false };
+      mockFsStore[path.join(srcPath, 'SKILL.md')] = {
+        content: '---\nname: ValidSymlinkSkill\n---\nData',
+        isDirectory: false,
+      };
       mockFsStore[path.join(srcPath, 'extra.txt')] = { content: 'hello', isDirectory: false };
 
       mockFsStore[badPath] = { isDirectory: true };
@@ -475,7 +505,10 @@ describe('fsBridge skills functionality', () => {
       // Scenario 1: Subdir
       mockFsStore[scanDir] = { isDirectory: true };
       mockFsStore[path.join(scanDir, 'sub-skill')] = { isDirectory: true };
-      mockFsStore[path.join(scanDir, 'sub-skill', 'SKILL.md')] = { content: '---\nname: SubSkill\ndescription: sub\n---', isDirectory: false };
+      mockFsStore[path.join(scanDir, 'sub-skill', 'SKILL.md')] = {
+        content: '---\nname: SubSkill\ndescription: sub\n---',
+        isDirectory: false,
+      };
 
       // Let's add another dir without skill.md
       mockFsStore[path.join(scanDir, 'empty-dir')] = { isDirectory: true };
