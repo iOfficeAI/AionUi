@@ -35,7 +35,7 @@ export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = [
   'qwen',
 ] as const;
 
-export const CODEX_ACP_BRIDGE_VERSION = '0.10.0';
+export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
 export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
