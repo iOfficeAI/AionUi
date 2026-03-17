@@ -86,6 +86,14 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+    // Check if agent has been explicitly stopped - reject new messages
+    if (this.stopped) {
+      return {
+        success: false,
+        msg: 'Agent has been stopped. Please start a new conversation to continue.',
+      };
+    }
+
     cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.bootstrap;

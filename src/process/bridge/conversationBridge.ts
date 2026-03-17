@@ -449,6 +449,9 @@ export function initConversationBridge(): void {
       return { success: false, msg: 'not support' };
     }
     await task.stop();
+    // Remove the task from WorkerManage to prevent it from being reused
+    // and potentially auto-reconnecting
+    WorkerManage.kill(conversation_id);
     return { success: true };
   });
 

@@ -28,6 +28,13 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
    */
   protected yoloMode: boolean = false;
 
+  /**
+   * Whether this agent has been explicitly stopped by the user.
+   * When true, auto-reconnect should be disabled to prevent the agent
+   * from automatically reconnecting after a stop command.
+   */
+  protected stopped: boolean = false;
+
   constructor(type: AgentType, data: Data) {
     super(path.resolve(__dirname, type + '.js'), {
       type: type,
@@ -98,7 +105,20 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
   }
 
   stop() {
-    return this.postMessagePromise('stop.stream', {});
+    // Set stopped flag to prevent auto-reconnect after user-initiated stop
+    this.stopped = true;
+    // Send stop message to worker and then kill the worker process
+    const stopPromise = this.postMessagePromise('stop.stream', {});
+    // Kill the worker process after stop completes (or times out)
+    stopPromise
+      .catch(() => {
+        // Ignore errors, we still want to kill the worker
+      })
+      .finally(() => {
+        // Kill the forked worker process to ensure the CLI is fully terminated
+        this.kill();
+      });
+    return stopPromise;
   }
 
   sendMessage(data: any) {

@@ -544,6 +544,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     msg?: string;
     message?: string;
   }> {
+    // Check if agent has been explicitly stopped - reject new messages
+    if (this.stopped) {
+      return {
+        success: false,
+        msg: 'Agent has been stopped. Please start a new conversation to continue.',
+      };
+    }
+
     const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);

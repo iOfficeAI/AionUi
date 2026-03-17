@@ -232,6 +232,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }) {
+    // Check if agent has been explicitly stopped - reject new messages
+    if (this.stopped) {
+      return {
+        success: false,
+        msg: 'Agent has been stopped. Please start a new conversation to continue.',
+      };
+    }
+
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';

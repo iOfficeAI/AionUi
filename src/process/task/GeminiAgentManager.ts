@@ -320,6 +320,14 @@ export class GeminiAgentManager extends BaseAgentManager<
   }
 
   async sendMessage(data: { input: string; msg_id: string; files?: string[]; cronMeta?: CronMessageMeta }) {
+    // Check if agent has been explicitly stopped - reject new messages
+    if (this.stopped) {
+      return {
+        success: false,
+        msg: 'Agent has been stopped. Please start a new conversation to continue.',
+      };
+    }
+
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
