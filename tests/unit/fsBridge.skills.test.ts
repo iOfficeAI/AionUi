@@ -202,6 +202,8 @@ describe('fsBridge skills functionality', () => {
             getCustomExternalPaths: createCommandMock('get-custom-external-paths'),
             addCustomExternalPath: createCommandMock('add-custom-external-path'),
             removeCustomExternalPath: createCommandMock('remove-custom-external-path'),
+            enableSkillsMarket: createCommandMock('enable-skills-market'),
+            disableSkillsMarket: createCommandMock('disable-skills-market'),
           },
           fileStream: {
             contentUpdate: { emit: vi.fn() },
