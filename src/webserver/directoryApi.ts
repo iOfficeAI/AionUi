@@ -70,17 +70,18 @@ function shouldUseWin32PathOps(targetPath: string, basePaths: string[]): boolean
 
 function resolveForComparison(inputPath: string, useWin32PathOps: boolean): string {
   const pathApi = useWin32PathOps ? path.win32 : path;
-  const resolvedPath = pathApi.resolve(inputPath);
 
-  if (useWin32PathOps) {
-    return resolvedPath.toLowerCase();
-  }
-
+  // Resolve symlinks on the raw input path first, so Windows paths are also
+  // checked for out-of-bounds symlink targets before win32 path normalisation.
+  let realInput = inputPath;
   try {
-    return fs.realpathSync(resolvedPath);
+    realInput = fs.realpathSync(inputPath);
   } catch {
-    return resolvedPath;
+    // Path may not exist on disk; fall back to the original input.
   }
+
+  const resolvedPath = pathApi.resolve(realInput);
+  return useWin32PathOps ? resolvedPath.toLowerCase() : resolvedPath;
 }
 
 function isSubPath(targetPath: string, basePath: string, useWin32PathOps: boolean): boolean {

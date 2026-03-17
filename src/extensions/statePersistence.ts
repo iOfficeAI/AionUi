@@ -9,9 +9,9 @@ import * as path from 'path';
 import * as os from 'os';
 import type { ExtensionState } from './types';
 import { extensionEventBus, ExtensionSystemEvents } from './ExtensionEventBus';
+import { getEnvAwareName } from '@/common/appEnv';
 
 const EXTENSION_STATES_FILE_ENV = 'AIONUI_EXTENSION_STATES_FILE';
-const DEFAULT_STATES_DIR = '.aionui';
 const DEFAULT_STATES_FILE = 'extension-states.json';
 
 function resolveStatesFile(): string {
@@ -19,12 +19,12 @@ function resolveStatesFile(): string {
   if (override) {
     return path.resolve(override);
   }
-  return path.join(os.homedir(), DEFAULT_STATES_DIR, DEFAULT_STATES_FILE);
+  return path.join(os.homedir(), getEnvAwareName('.aionui'), DEFAULT_STATES_FILE);
 }
 
 /**
  * Persisted state format on disk.
- * Stored at ~/.aionui/extension-states.json by default.
+ * Stored at ~/.aionui/extension-states.json (release) or ~/.aionui-dev/extension-states.json (dev) by default.
  * Can be overridden via AIONUI_EXTENSION_STATES_FILE.
  */
 interface PersistedStates {

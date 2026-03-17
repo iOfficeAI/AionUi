@@ -6,6 +6,7 @@
 
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
+import { getEnvAwareName } from '@/common/appEnv';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
@@ -72,23 +73,27 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
 };
 
 /**
- * Get data path, using CLI-safe symlink (~/.aionui) on macOS.
- * 获取数据目录路径，macOS 上使用 ~/.aionui 符号链接。
+ * Get data path, using CLI-safe symlink on macOS.
+ * Release builds use ~/.aionui; dev builds use ~/.aionui-dev.
+ * 获取数据目录路径，macOS 上使用符号链接。
+ * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
  */
 export const getDataPath = (): string => {
   const rootPath = app.getPath('userData');
   const dataPath = path.join(rootPath, 'aionui');
-  return ensureCliSafeSymlink(dataPath, '.aionui');
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
 
 /**
- * Get config path, using CLI-safe symlink (~/.aionui-config) on macOS.
- * 获取配置目录路径，macOS 上使用 ~/.aionui-config 符号链接。
+ * Get config path, using CLI-safe symlink on macOS.
+ * Release builds use ~/.aionui-config; dev builds use ~/.aionui-config-dev.
+ * 获取配置目录路径，macOS 上使用符号链接。
+ * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
  */
 export const getConfigPath = (): string => {
   const rootPath = app.getPath('userData');
   const configPath = path.join(rootPath, 'config');
-  return ensureCliSafeSymlink(configPath, '.aionui-config');
+  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };
 
 export const generateHashWithFullName = (fullName: string): string => {
