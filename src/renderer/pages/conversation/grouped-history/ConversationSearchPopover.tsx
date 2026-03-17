@@ -16,6 +16,7 @@ import { Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getBackendKeyFromConversation } from './utils/exportHelpers';
@@ -154,15 +155,6 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
 
-  const updateRecentKeywords = useCallback((nextKeywords: string[]) => {
-    setRecentKeywords(nextKeywords);
-    try {
-      localStorage.setItem(RECENT_SEARCH_STORAGE_KEY, JSON.stringify(nextKeywords));
-    } catch {
-      // Ignore storage write errors in private mode / restricted environments.
-    }
-  }, []);
-
   useEffect(() => {
     try {
       const raw = localStorage.getItem(RECENT_SEARCH_STORAGE_KEY);
@@ -234,12 +226,34 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     const normalized = debouncedKeyword.trim();
     if (!normalized) return;
 
-    const nextKeywords = [normalized, ...recentKeywords.filter((item) => item !== normalized)].slice(
-      0,
-      MAX_RECENT_SEARCHES
-    );
-    updateRecentKeywords(nextKeywords);
-  }, [debouncedKeyword, recentKeywords, updateRecentKeywords]);
+    setRecentKeywords((prev) => {
+      const nextKeywords = [normalized, ...prev.filter((item) => item !== normalized)].slice(0, MAX_RECENT_SEARCHES);
+      const unchanged =
+        nextKeywords.length === prev.length && nextKeywords.every((item, index) => item === prev[index]);
+      if (unchanged) {
+        return prev;
+      }
+
+      try {
+        localStorage.setItem(RECENT_SEARCH_STORAGE_KEY, JSON.stringify(nextKeywords));
+      } catch {
+        // Ignore storage write errors in private mode / restricted environments.
+      }
+
+      return nextKeywords;
+    });
+  }, [debouncedKeyword]);
+
+  const resetSearchState = useCallback(() => {
+    setVisible(false);
+    setKeyword('');
+    setDebouncedKeyword('');
+    setItems([]);
+    setPage(0);
+    setHasMore(false);
+    setLoading(false);
+    setLoadingMore(false);
+  }, []);
 
   const handleLoadMore = useCallback(() => {
     if (!visible || !debouncedKeyword || loading || loadingMore || !hasMore) {
@@ -253,6 +267,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     async (item: IMessageSearchItem) => {
       blockMobileInputFocus();
       blurActiveElement();
+
+      flushSync(() => {
+        resetSearchState();
+      });
+
       onConversationSelect?.();
 
       const customWorkspace = item.conversation.extra?.customWorkspace;
@@ -273,21 +292,40 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         }
       }
 
-      setVisible(false);
-      await navigate(`/conversation/${item.conversation.id}`, {
-        state: {
-          targetMessageId: item.messageId,
-          fromConversationSearch: true,
-        },
-      });
+      await Promise.resolve(
+        navigate(`/conversation/${item.conversation.id}`, {
+          state: {
+            targetMessageId: item.messageId,
+            fromConversationSearch: true,
+          },
+        })
+      );
       onSessionClick?.();
     },
-    [conversationTabs, markAsRead, navigate, onConversationSelect, onSessionClick]
+    [conversationTabs, markAsRead, navigate, onConversationSelect, onSessionClick, resetSearchState]
   );
 
   const handleClose = useCallback(() => {
-    setVisible(false);
+    resetSearchState();
+  }, [resetSearchState]);
+
+  const handleClearKeyword = useCallback(() => {
+    setKeyword('');
+    setDebouncedKeyword('');
+    setItems([]);
+    setPage(0);
+    setHasMore(false);
+    setLoading(false);
+    setLoadingMore(false);
   }, []);
+
+  const handleOpen = useCallback(() => {
+    if (!disabled) {
+      setVisible(true);
+    }
+  }, [disabled]);
+
+  const triggerAriaLabel = t('conversation.historySearch.tooltip');
 
   const resultContent = useMemo(() => {
     if (!debouncedKeyword) {
@@ -389,9 +427,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
   return (
     <>
-      <div
+      <button
+        type='button'
+        aria-label={triggerAriaLabel}
         className={classNames(
-          'h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent',
+          'h-40px w-40px p-0 bg-transparent rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent',
           {
             'hover:bg-fill-2 hover:border-[color:var(--color-border-2)]': !disabled,
             'opacity-50 cursor-not-allowed': disabled,
@@ -399,20 +439,18 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           },
           buttonClassName
         )}
-        onClick={() => {
-          if (!disabled) {
-            setVisible(true);
-          }
-        }}
+        onClick={handleOpen}
+        disabled={disabled}
       >
         <Search theme='outline' size='20' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
-      </div>
+      </button>
 
       <AionModal
         visible={visible}
         onCancel={handleClose}
         footer={null}
         showCustomClose={false}
+        unmountOnExit
         className='conversation-search-modal'
         maskStyle={{
           background: 'var(--conversation-search-mask-bg)',
@@ -471,7 +509,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                 <button
                   type='button'
                   className='conversation-search-modal__clear-btn'
-                  onClick={() => setKeyword('')}
+                  onClick={handleClearKeyword}
                   aria-label='Clear search'
                 >
                   <CloseSmall theme='outline' size='14' />
