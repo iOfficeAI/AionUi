@@ -226,11 +226,14 @@ describe('tray module', () => {
       mockModules();
     };
 
-    const waitForLatestMenuTemplate = async (): Promise<any[]> => {
+    const waitForNextMenuTemplate = async (previousCalls: number): Promise<any[]> => {
       for (let i = 0; i < 20; i += 1) {
-        const templateCall = mockBuildFromTemplate.mock.calls.at(-1);
-        if (templateCall) {
-          return templateCall[0] as any[];
+        const calls = mockBuildFromTemplate.mock.calls;
+        if (calls.length > previousCalls) {
+          const templateCall = calls.at(-1);
+          if (templateCall) {
+            return templateCall[0] as any[];
+          }
         }
         await new Promise((r) => setTimeout(r, 50));
       }
@@ -247,9 +250,10 @@ describe('tray module', () => {
       });
 
       const { createOrUpdateTray } = await import('@/process/tray');
+      const previousCalls = mockBuildFromTemplate.mock.calls.length;
       createOrUpdateTray();
 
-      const templateArg = await waitForLatestMenuTemplate();
+      const templateArg = await waitForNextMenuTemplate(previousCalls);
       const labels = templateArg.map((item: any) => item.label).filter(Boolean);
       expect(labels).toContain('Test Chat');
       expect(labels).toContain('Another Chat');
@@ -262,9 +266,10 @@ describe('tray module', () => {
       });
 
       const { createOrUpdateTray } = await import('@/process/tray');
+      const previousCalls = mockBuildFromTemplate.mock.calls.length;
       createOrUpdateTray();
 
-      const templateArg = await waitForLatestMenuTemplate();
+      const templateArg = await waitForNextMenuTemplate(previousCalls);
       const labels = templateArg.map((item: any) => item.label).filter(Boolean);
       const expectedTitle = 'A very long conversation title that exceeds twenty characters'.slice(0, 20) + '...';
       expect(labels).toContain(expectedTitle);
@@ -275,9 +280,10 @@ describe('tray module', () => {
       mockListTasks.mockReturnValue([{ id: '1' }, { id: '2' }, { id: '3' }]);
 
       const { createOrUpdateTray } = await import('@/process/tray');
+      const previousCalls = mockBuildFromTemplate.mock.calls.length;
       createOrUpdateTray();
 
-      const templateArg = await waitForLatestMenuTemplate();
+      const templateArg = await waitForNextMenuTemplate(previousCalls);
       const taskItem = templateArg.find((item: any) => item.label?.includes('3'));
       expect(taskItem).toBeDefined();
       expect(taskItem.enabled).toBe(false);
@@ -293,7 +299,8 @@ describe('tray module', () => {
       createOrUpdateTray();
 
       // Should still build menu without crashing
-      await expect(waitForLatestMenuTemplate()).resolves.toBeDefined();
+      const previousCalls = mockBuildFromTemplate.mock.calls.length;
+      await expect(waitForNextMenuTemplate(previousCalls)).resolves.toBeDefined();
 
       // Restore default for any subsequent tests
       mockGetDatabase.mockImplementation(() => ({
