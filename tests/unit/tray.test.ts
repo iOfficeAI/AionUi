@@ -15,6 +15,7 @@ const mockTrayInstance = {
 };
 
 const mockMenuInstance = { items: [] };
+const mockBuildFromTemplate = vi.fn(() => mockMenuInstance);
 
 const mockNativeImage = {
   resize: vi.fn().mockReturnThis(),
@@ -38,7 +39,7 @@ const mockModules = () => {
     },
     Tray: MockTray,
     Menu: {
-      buildFromTemplate: vi.fn(() => mockMenuInstance),
+      buildFromTemplate: mockBuildFromTemplate,
     },
     nativeImage: {
       createFromPath: vi.fn(() => mockNativeImage),
@@ -236,13 +237,12 @@ describe('tray module', () => {
           })),
         }));
       });
-      const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
       createOrUpdateTray();
       await new Promise((r) => setTimeout(r, 50));
 
-      const templateArg = (Menu.buildFromTemplate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const templateArg = mockBuildFromTemplate.mock.calls[0][0];
       const labels = templateArg.map((item: any) => item.label).filter(Boolean);
       expect(labels).toContain('Test Chat');
       expect(labels).toContain('Another Chat');
@@ -258,13 +258,12 @@ describe('tray module', () => {
           })),
         }));
       });
-      const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
       createOrUpdateTray();
       await new Promise((r) => setTimeout(r, 50));
 
-      const templateArg = (Menu.buildFromTemplate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const templateArg = mockBuildFromTemplate.mock.calls[0][0];
       const convItem = templateArg.find((item: any) => item.label && item.label.endsWith('...') && item.click);
       expect(convItem).toBeDefined();
       // 20 chars + '...'
@@ -277,13 +276,12 @@ describe('tray module', () => {
           default: { listTasks: vi.fn(() => [{ id: '1' }, { id: '2' }, { id: '3' }]) },
         }));
       });
-      const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
       createOrUpdateTray();
       await new Promise((r) => setTimeout(r, 50));
 
-      const templateArg = (Menu.buildFromTemplate as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      const templateArg = mockBuildFromTemplate.mock.calls[0][0];
       const taskItem = templateArg.find((item: any) => item.label?.includes('3'));
       expect(taskItem).toBeDefined();
       expect(taskItem.enabled).toBe(false);
@@ -297,14 +295,13 @@ describe('tray module', () => {
           }),
         }));
       });
-      const { Menu } = await import('electron');
       const { createOrUpdateTray } = await import('@/process/tray');
 
       createOrUpdateTray();
       await new Promise((r) => setTimeout(r, 50));
 
       // Should still build menu without crashing
-      expect(Menu.buildFromTemplate).toHaveBeenCalled();
+      expect(mockBuildFromTemplate).toHaveBeenCalled();
     });
   });
 });
