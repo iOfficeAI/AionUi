@@ -48,7 +48,8 @@
     "debug:custom-agent": "bunx tsx scripts/debug-custom-agent.ts",
     "test:e2e": "playwright test --config playwright.config.ts",
     "prepare": "husky",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts"
   },
   "keywords": [],
   "author": {

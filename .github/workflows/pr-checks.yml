@@ -288,8 +288,10 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           CI: true
 
-      - name: Verify packaged i18n assets
-        run: bun run test:packaged:i18n
+      
+
+      - name: Verify packaged bundled bun assets
+        run: bun run test:packaged:bun
 
       - name: Verify build artifacts exist
         shell: bash
@@ -424,3 +426,5 @@ jobs:
       - name: Validate script output
         shell: bash
         run: bash scripts/verify-release-assets.sh release-assets
+
+
