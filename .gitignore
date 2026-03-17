@@ -187,4 +187,6 @@ vx.lock
 vx.toml
 .taichuy/
 kylindoc/
+.workspace/
+lint-results.txt
 .worktrees/
