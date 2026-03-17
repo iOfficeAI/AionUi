@@ -50,7 +50,8 @@ export default defineConfig({
       // 新增功能时，将对应的源文件路径添加到此数组
       // 例如: 'src/process/services/newService.ts'
       include: [
-        // Process / bridge
+        // Build scripts
+        'scripts/prepareBundledBun.js',
         'src/process/tray.ts',
         'src/process/deepLink.ts',
         'src/process/mainWindowLifecycle.ts',

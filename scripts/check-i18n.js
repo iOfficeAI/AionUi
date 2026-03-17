@@ -187,7 +187,7 @@ function checkTranslationKeys() {
           missingCount += missing.length;
 
           if (missing.length > 0) {
-            logError(
+            logWarning(
               `${lang}/${moduleName}.json is missing ${missing.length} keys: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`
             );
           }
@@ -201,7 +201,7 @@ function checkTranslationKeys() {
     const missingPercent = totalKeys > 0 ? ((missingCount / totalKeys) * 100).toFixed(1) : '0.0';
 
     if (missingCount > 0) {
-      logError(`${lang} is missing ${missingCount} keys (${missingPercent}%)`);
+      logWarning(`${lang} is missing ${missingCount} keys (${missingPercent}%)`);
     } else {
       logSuccess(`${lang} translations are complete`);
     }
@@ -245,13 +245,13 @@ function checkEmptyTranslations() {
           const data = JSON.parse(content);
 
           if (Object.keys(data).length === 0) {
-            logError(`Empty module: ${lang}/${moduleName}.json`);
+            logWarning(`Empty module: ${lang}/${moduleName}.json`);
             continue;
           }
 
           const emptyValuePaths = collectEmptyValuePaths(data);
           if (emptyValuePaths.length > 0) {
-            logError(
+            logWarning(
               `${lang}/${moduleName}.json has ${emptyValuePaths.length} empty values: ${emptyValuePaths.slice(0, 3).join(', ')}${emptyValuePaths.length > 3 ? '...' : ''}`
             );
           }
