@@ -14,7 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     userInterfaceStyle: 'automatic',
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.aionui.mobile',
+      bundleIdentifier: 'ai.resopod.aionui',
       buildNumber: String(VERSION.buildNumber),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -24,7 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       adaptiveIcon: {
         backgroundColor: '#1a1a2e',
       },
-      package: 'com.aionui.mobile',
+      package: 'ai.resopod.aionui',
       versionCode: VERSION.buildNumber,
     },
     web: {
