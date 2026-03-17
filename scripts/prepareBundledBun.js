@@ -3,26 +3,6 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-function resolveCommand(commandName) {
-  const resolver = process.platform === 'win32' ? 'where' : 'which';
-  try {
-    const output = execFileSync(resolver, [commandName], {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-      timeout: 5000,
-    });
-
-    const first = output
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find(Boolean);
-
-    return first && fs.existsSync(first) ? first : null;
-  } catch {
-    return null;
-  }
-}
-
 function ensureDirectory(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -193,47 +173,6 @@ function copyRuntimeFromDirectory(sourceDir, targetDir, platform) {
   return copied;
 }
 
-function copyFromSystemTools(cacheRuntimeDir, platform) {
-  const bunName = platform === 'win32' ? 'bun.exe' : 'bun';
-  const bunxName = platform === 'win32' ? 'bunx.exe' : 'bunx';
-  const bunPath = resolveCommand(bunName);
-  const bunxPath = resolveCommand(bunxName);
-
-  if (!bunPath || !bunxPath) {
-    return null;
-  }
-
-  removeDirectorySafe(cacheRuntimeDir);
-  ensureDirectory(cacheRuntimeDir);
-
-  const copied = [];
-  copyFileSafe(bunPath, path.join(cacheRuntimeDir, path.basename(bunPath)));
-  copied.push(path.basename(bunPath));
-
-  const bunxTarget = path.join(cacheRuntimeDir, path.basename(bunxPath));
-  if (!fs.existsSync(bunxTarget)) {
-    copyFileSafe(bunxPath, bunxTarget);
-    copied.push(path.basename(bunxPath));
-  }
-
-  if (platform === 'win32') {
-    const bunxCmdPath = path.join(path.dirname(bunxPath), 'bunx.cmd');
-    if (fs.existsSync(bunxCmdPath)) {
-      copyFileSafe(bunxCmdPath, path.join(cacheRuntimeDir, 'bunx.cmd'));
-      copied.push('bunx.cmd');
-    }
-  }
-
-  return {
-    sourceType: 'system',
-    source: {
-      bun: bunPath,
-      bunx: bunxPath,
-    },
-    files: copied,
-  };
-}
-
 function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
   const assetName = getPlatformAsset(platform, arch);
   if (!assetName) {
@@ -300,13 +239,14 @@ function prepareBundledBun() {
         files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
       };
     } else {
-      prepareResult = copyFromSystemTools(cacheRuntimeDir, platform);
-      if (!prepareResult) {
-        prepareResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
-      }
-
-      // Always copy from cache into packaging resources for deterministic output.
-      prepareResult.files = copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform);
+      // Strict policy: packaging should only read from cache.
+      // If cache is missing, populate cache via network download first.
+      const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
+      prepareResult = {
+        sourceType: downloadResult.sourceType,
+        source: downloadResult.source,
+        files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+      };
     }
 
     const manifest = {
