@@ -36,3 +36,7 @@ log.transports.file.maxSize = 10 * 1024 * 1024;
 // Patch global console so every console.log/warn/error from any module
 // goes through electron-log (and thus to the file transport).
 log.initialize();
+
+// log.initialize() only patches the renderer via preload.
+// Explicitly redirect main-process console to electron-log.
+Object.assign(console, log.functions);
