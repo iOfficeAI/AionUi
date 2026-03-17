@@ -38,12 +38,28 @@ interface AionScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   disableOverflow?: boolean;
 }
 
-const AionScrollArea: React.FC<AionScrollAreaProps> = ({ children, className, direction = 'y', disableOverflow = false, ...rest }) => {
+const AionScrollArea: React.FC<AionScrollAreaProps> = ({
+  children,
+  className,
+  direction = 'y',
+  disableOverflow = false,
+  ...rest
+}) => {
   // 根据方向设置 overflow 类名 / Set overflow class based on direction
-  const overflowClass = disableOverflow ? '' : direction === 'both' ? 'overflow-auto' : direction === 'x' ? 'overflow-x-auto overflow-y-hidden' : 'overflow-y-auto overflow-x-hidden';
+  const overflowClass = disableOverflow
+    ? ''
+    : direction === 'both'
+      ? 'overflow-auto'
+      : direction === 'x'
+        ? 'overflow-x-auto overflow-y-hidden'
+        : 'overflow-y-auto overflow-x-hidden';
 
   return (
-    <div data-scroll-area='' className={classNames(overflowClass, disableOverflow && 'overflow-visible', className)} {...rest}>
+    <div
+      data-scroll-area=''
+      className={classNames(overflowClass, disableOverflow && 'overflow-visible', className)}
+      {...rest}
+    >
       {children}
     </div>
   );

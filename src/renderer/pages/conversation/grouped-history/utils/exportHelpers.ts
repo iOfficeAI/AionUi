@@ -36,7 +36,11 @@ export const buildTopicFolderName = (conversation: TChatConversation): string =>
   return `${safeName}__${conversation.id}`;
 };
 
-export const appendWorkspaceFilesToZip = (files: ExportZipFile[], root: IDirOrFile | undefined, prefix: string): void => {
+export const appendWorkspaceFilesToZip = (
+  files: ExportZipFile[],
+  root: IDirOrFile | undefined,
+  prefix: string
+): void => {
   if (!root?.children || root.children.length === 0) {
     return;
   }

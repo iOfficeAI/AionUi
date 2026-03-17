@@ -15,8 +15,23 @@ import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
 import { normalizeNewApiBaseUrl } from '@/common/ClientFactory';
-import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
-import { AuthType, clearOauthClientCache, CoreToolScheduler, FileDiscoveryService, refreshServerHierarchicalMemory, sessionId } from '@office-ai/aioncli-core';
+import type {
+  CompletedToolCall,
+  Config,
+  GeminiClient,
+  ServerGeminiStreamEvent,
+  ToolCall,
+  ToolCallRequestInfo,
+  Turn,
+} from '@office-ai/aioncli-core';
+import {
+  AuthType,
+  clearOauthClientCache,
+  CoreToolScheduler,
+  FileDiscoveryService,
+  refreshServerHierarchicalMemory,
+  sessionId,
+} from '@office-ai/aioncli-core';
 import fs from 'fs';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
@@ -28,7 +43,13 @@ import { loadSettings } from './cli/settings';
 import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
-import { compactToolResponsesInHistory, getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
+import {
+  compactToolResponsesInHistory,
+  getPromptCount,
+  handleCompletedTools,
+  processGeminiStreamEvents,
+  startNewPrompt,
+} from './utils';
 import path from 'path';
 import os from 'os';
 
@@ -189,7 +210,8 @@ export class GeminiAgent {
     // 对 new-api 网关进行 URL 规范化（不同协议需要不同的 URL 格式）
     // Normalize URL for new-api gateway (different protocols need different URL formats)
     const isNewApi = isNewApiPlatform(this.model.platform);
-    const getBaseUrl = () => (isNewApi ? normalizeNewApiBaseUrl(this.model.baseUrl, this.authType) : this.model.baseUrl);
+    const getBaseUrl = () =>
+      isNewApi ? normalizeNewApiBaseUrl(this.model.baseUrl, this.authType) : this.model.baseUrl;
 
     if (this.authType === AuthType.USE_GEMINI) {
       fallbackValue('GEMINI_API_KEY', getCurrentApiKey());
@@ -261,7 +283,11 @@ export class GeminiAgent {
     }
 
     // Only initialize for supported auth types
-    if (this.authType === AuthType.USE_OPENAI || this.authType === AuthType.USE_GEMINI || this.authType === AuthType.USE_ANTHROPIC) {
+    if (
+      this.authType === AuthType.USE_OPENAI ||
+      this.authType === AuthType.USE_GEMINI ||
+      this.authType === AuthType.USE_ANTHROPIC
+    ) {
       this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
     }
   }
@@ -281,14 +307,23 @@ export class GeminiAgent {
   private enrichErrorMessage(errorMessage: string): string {
     const reportMatch = errorMessage.match(/Full report available at:\s*(.+?\.json)/i);
     const lowerMessage = errorMessage.toLowerCase();
-    if (lowerMessage.includes('model_capacity_exhausted') || lowerMessage.includes('no capacity available') || lowerMessage.includes('resource_exhausted') || lowerMessage.includes('ratelimitexceeded')) {
+    if (
+      lowerMessage.includes('model_capacity_exhausted') ||
+      lowerMessage.includes('no capacity available') ||
+      lowerMessage.includes('resource_exhausted') ||
+      lowerMessage.includes('ratelimitexceeded')
+    ) {
       return `${errorMessage}\nQuota exhausted on this model.`;
     }
     if (!reportMatch?.[1]) return errorMessage;
     try {
       const reportContent = fs.readFileSync(reportMatch[1], 'utf-8');
       const reportLower = reportContent.toLowerCase();
-      if (reportLower.includes('quota') || reportLower.includes('resource_exhausted') || reportLower.includes('exhausted')) {
+      if (
+        reportLower.includes('quota') ||
+        reportLower.includes('resource_exhausted') ||
+        reportLower.includes('exhausted')
+      ) {
         return `${errorMessage}\nQuota exhausted on this model.`;
       }
     } catch {
@@ -350,8 +385,12 @@ export class GeminiAgent {
         // Throw auth error to let UI layer handle auto-switching
         // 错误信息包含 "authentication" 关键字以触发 GeminiSendBox 的 API 错误检测和自动切换
         // Error message contains "authentication" keyword to trigger GeminiSendBox API error detection and auto-switch
-        console.error('[GeminiAgent] Google OAuth credentials not found. User needs to authenticate via Gemini CLI first.');
-        throw new Error('Google OAuth authentication not configured. Please run "gemini" CLI to authenticate first, or switch to an API key-based agent.');
+        console.error(
+          '[GeminiAgent] Google OAuth credentials not found. User needs to authenticate via Gemini CLI first.'
+        );
+        throw new Error(
+          'Google OAuth authentication not configured. Please run "gemini" CLI to authenticate first, or switch to an API key-based agent.'
+        );
       }
       // 凭证存在时才清除缓存并刷新
       // Only clear cache and refresh when credentials exist
@@ -365,7 +404,9 @@ export class GeminiAgent {
     // 对于 USE_OPENAI, USE_GEMINI, USE_ANTHROPIC 等，会创建相应的 Generator 但不会触发 OAuth
     // For USE_OPENAI, USE_GEMINI, USE_ANTHROPIC, etc., corresponding Generator is created without OAuth
     await this.config.refreshAuth(this.authType);
-    console.log(`[GeminiAgent] After refreshAuth — config.getModel(): "${this.config.getModel()}", authType used: ${this.authType}`);
+    console.log(
+      `[GeminiAgent] After refreshAuth — config.getModel(): "${this.config.getModel()}", authType used: ${this.authType}`
+    );
 
     this.geminiClient = this.config.getGeminiClient();
 
@@ -416,7 +457,9 @@ export class GeminiAgent {
 
                 if (isTerminalState) {
                   const completedOrCancelledCall = tc;
-                  return completedOrCancelledCall.response?.responseParts !== undefined && !tc.request.isClientInitiated;
+                  return (
+                    completedOrCancelledCall.response?.responseParts !== undefined && !tc.request.isClientInitiated
+                  );
                 }
                 return false;
               });
@@ -479,7 +522,13 @@ export class GeminiAgent {
    * @param abortController - 中止控制器 / Abort controller
    * @param retryCount - 当前重试次数 / Current retry count
    */
-  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController, query?: unknown, retryCount: number = 0): Promise<void> {
+  private handleMessage(
+    stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>,
+    msg_id: string,
+    abortController: AbortController,
+    query?: unknown,
+    retryCount: number = 0
+  ): Promise<void> {
     const MAX_INVALID_STREAM_RETRIES = 2; // 最多重试 2 次 / Max 2 retries
     const RETRY_DELAY_MS = 1000; // 重试延迟 1 秒 / 1 second retry delay
 
@@ -523,8 +572,15 @@ export class GeminiAgent {
         if (data.type === ('invalid_stream' as string)) {
           invalidStreamDetected = true;
           const eventData = data.data as { message: string; retryable: boolean };
-          if (eventData.retryable && retryCount < MAX_INVALID_STREAM_RETRIES && query && !abortController.signal.aborted) {
-            console.warn(`[GeminiAgent] Invalid stream detected, will retry (attempt ${retryCount + 1}/${MAX_INVALID_STREAM_RETRIES})`);
+          if (
+            eventData.retryable &&
+            retryCount < MAX_INVALID_STREAM_RETRIES &&
+            query &&
+            !abortController.signal.aborted
+          ) {
+            console.warn(
+              `[GeminiAgent] Invalid stream detected, will retry (attempt ${retryCount + 1}/${MAX_INVALID_STREAM_RETRIES})`
+            );
             // 向用户显示重试提示
             // Show retry hint to user
             this.onStreamEvent({
@@ -546,7 +602,12 @@ export class GeminiAgent {
       .then(async () => {
         // 如果检测到 invalid_stream 且可以重试，执行重试
         // If invalid_stream detected and can retry, perform retry
-        if (invalidStreamDetected && retryCount < MAX_INVALID_STREAM_RETRIES && query && !abortController.signal.aborted) {
+        if (
+          invalidStreamDetected &&
+          retryCount < MAX_INVALID_STREAM_RETRIES &&
+          query &&
+          !abortController.signal.aborted
+        ) {
           console.log(`[GeminiAgent] Retrying after invalid stream (attempt ${retryCount + 1})`);
 
           // 延迟后重试

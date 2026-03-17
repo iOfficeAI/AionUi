@@ -60,6 +60,12 @@ export interface IConfigStorageRefer {
   language: string;
   theme: string;
   colorScheme: string;
+  /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
+  'webui.desktop.enabled'?: boolean;
+  /** 桌面模式下是否允许远程访问 / Allow remote access in desktop mode */
+  'webui.desktop.allowRemote'?: boolean;
+  /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
+  'webui.desktop.port'?: number;
   customCss: string; // 自定义 CSS 样式
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
@@ -80,6 +86,12 @@ export interface IConfigStorageRefer {
   'migration.builtinDefaultSkillsAdded_v2'?: boolean;
   // 迁移标记：为所有内置助手添加 promptsI18n / Migration flag: add promptsI18n for all builtin assistants
   'migration.promptsI18nAdded'?: boolean;
+  // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
+  'system.closeToTray'?: boolean;
+  // 任务完成时显示系统通知 / Show system notification when task completes
+  'system.notificationEnabled'?: boolean;
+  // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes
+  'system.cronNotificationEnabled'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -113,6 +125,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Skills Market: whether the aionui-skills builtin skill is enabled
+  'skillsMarket.enabled'?: boolean;
 }
 
 export interface IEnvStorageRefer {
@@ -126,7 +140,7 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk';
+export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | (string & {});
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -198,6 +212,10 @@ export type TChatConversation =
           acpSessionId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
+          /** Last context usage from usage_update */
+          lastTokenUsage?: TokenUsageData;
+          /** Context window capacity from usage_update */
+          lastContextLimit?: number;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
           sessionMode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
@@ -413,7 +431,11 @@ export interface IMcpServerTransportStreamableHTTP {
   headers?: Record<string, string>;
 }
 
-export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP | IMcpServerTransportStreamableHTTP;
+export type IMcpServerTransport =
+  | IMcpServerTransportStdio
+  | IMcpServerTransportSSE
+  | IMcpServerTransportHTTP
+  | IMcpServerTransportStreamableHTTP;
 
 export interface IMcpServer {
   id: string;

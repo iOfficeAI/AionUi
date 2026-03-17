@@ -72,4 +72,6 @@ export interface BaseCodexPermissionRequest {
 }
 
 // Union type for different permission request subtypes
-export type CodexPermissionRequest = (BaseCodexPermissionRequest & { subtype: 'exec_approval_request'; data: ExecApprovalRequestData }) | (BaseCodexPermissionRequest & { subtype: 'apply_patch_approval_request'; data: ApplyPatchApprovalRequestData });
+export type CodexPermissionRequest =
+  | (BaseCodexPermissionRequest & { subtype: 'exec_approval_request'; data: ExecApprovalRequestData })
+  | (BaseCodexPermissionRequest & { subtype: 'apply_patch_approval_request'; data: ApplyPatchApprovalRequestData });

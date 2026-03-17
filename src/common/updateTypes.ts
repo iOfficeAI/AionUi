@@ -60,7 +60,14 @@ export interface UpdateDownloadProgressEvent {
 }
 
 // Auto-updater status types (electron-updater)
-export type AutoUpdateStatusType = 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
+export type AutoUpdateStatusType =
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloading'
+  | 'downloaded'
+  | 'error'
+  | 'cancelled';
 
 export interface AutoUpdateProgress {
   bytesPerSecond: number;

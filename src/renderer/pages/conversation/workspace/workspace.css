@@ -1,0 +1,85 @@
+/* Workspace component styles */
+
+.workspace-header__toggle {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.workspace-header__toggle:hover {
+  background-color: var(--bg-hover);
+}
+
+.workspace-header__toggle:active {
+  background-color: var(--bg-active);
+}
+
+.workspace-toggle-floating {
+  background-color: var(--bg-2);
+  border: 1px solid var(--bg-3);
+}
+
+/* Mobile: workspace panel adaptation */
+@media (max-width: 767px) {
+  .chat-workspace .workspace-toolbar-search {
+    padding-bottom: 10px !important;
+  }
+
+  .chat-workspace .workspace-search-input .arco-input-inner-wrapper,
+  .chat-workspace .workspace-search-input .arco-input {
+    min-height: 40px;
+    font-size: 15px !important;
+    line-height: 22px !important;
+  }
+
+  .chat-workspace .workspace-toolbar-row {
+    min-height: 40px;
+    align-items: center;
+  }
+
+  .chat-workspace .workspace-title-label {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .chat-workspace .workspace-toolbar-actions {
+    gap: 10px !important;
+  }
+
+  .chat-workspace .workspace-toolbar-icon-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chat-workspace .workspace-tree .arco-tree-node-title {
+    font-size: 15px !important;
+    line-height: 24px !important;
+  }
+
+  .chat-workspace .workspace-tree .arco-tree-node-title-wrapper {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+  }
+
+  .chat-workspace .workspace-node-more-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 10px !important;
+  }
+
+  .chat-workspace .workspace-tree .arco-tree-node {
+    margin-bottom: 2px;
+  }
+}

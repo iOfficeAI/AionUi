@@ -15,6 +15,28 @@ description: 'OpenClaw usage expert: Helps you install, deploy, configure, and u
 - **官方文档**：访问 [docs.openclaw.ai](https://docs.openclaw.ai) 获取最新的官方文档
 - **本技能的作用**：提供基础知识和常见操作指南，但遇到新功能或变更时，应查阅最新资料
 
+## 🔍 首先：环境诊断（每次响应前必做）
+
+**在回答任何 OpenClaw 问题之前，先执行环境诊断，确认工具可以被找到：**
+
+```bash
+# 1. 检查 AionUi 工作进程中实际可用的 PATH
+node -e "console.log('PATH entries:', process.env.PATH.split(require('path').delimiter).length); console.log('First 3:', process.env.PATH.split(require('path').delimiter).slice(0,3))"
+
+# 2. 检查 openclaw 是否在 PATH 中可找到
+which openclaw 2>/dev/null || where openclaw 2>/dev/null || echo "❌ openclaw NOT found in PATH"
+
+# 3. 如果找不到，检查 npm 全局包安装位置
+npm root -g && npm bin -g
+```
+
+**诊断结果解读：**
+- ✅ `openclaw` 找到了 → 环境正常，继续正常操作
+- ❌ `openclaw NOT found in PATH` → 环境问题，按以下步骤排查：
+  1. 先确认 `openclaw` 已安装：`npm list -g openclaw`
+  2. 若已安装但找不到，说明 PATH 不包含 npm 全局 bin 目录，这通常是 AionUi 启动方式（非终端）导致的
+  3. 临时解决：在命令中使用绝对路径，例如 `$(npm bin -g)/openclaw doctor`
+
 ## 快速判断用户状态
 
 根据用户的问题，判断当前状态：

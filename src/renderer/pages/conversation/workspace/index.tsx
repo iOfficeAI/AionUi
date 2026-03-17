@@ -14,13 +14,18 @@ import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { isTemporaryWorkspace as checkIsTemporaryWorkspace, getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace';
+import {
+  getLastDirectoryName,
+  isTemporaryWorkspace as checkIsTemporaryWorkspace,
+  getWorkspaceDisplayName as getDisplayName,
+} from '@/renderer/utils/workspace';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Down, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
+import { Down, FileText, FolderOpen, Refresh, Search, AlarmClock } from '@icon-park/react';
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useCronJobs } from '@/renderer/pages/cron/hooks/useCronJobs';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
 import { uuid } from '@/common/utils';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
@@ -28,6 +33,7 @@ import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
+import './workspace.css';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
 import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';
@@ -38,8 +44,16 @@ const ChangeWorkspaceIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({ classNam
     <svg className={className} viewBox='0 0 24 24' role='img' aria-hidden='true' focusable='false' {...rest}>
       <rect width='24' height='24' rx='2' fill='var(--workspace-btn-bg, var(--color-bg-1))' />
       <g clipPath={`url(#${clipPathId})`}>
-        <path fillRule='evenodd' clipRule='evenodd' d='M10.8215 8.66602L9.15482 6.99935H5.33333V16.9993H18.6667V8.66602H10.8215ZM4.5 6.99935C4.5 6.53912 4.8731 6.16602 5.33333 6.16602H9.15482C9.37583 6.16602 9.5878 6.25382 9.74407 6.41009L11.1667 7.83268H18.6667C19.1269 7.83268 19.5 8.20578 19.5 8.66602V16.9993C19.5 17.4596 19.1269 17.8327 18.6667 17.8327H5.33333C4.8731 17.8327 4.5 17.4596 4.5 16.9993V6.99935Z' fill='var(--color-text-3, var(--text-secondary))' />
-        <path d='M13.0775 12.4158L12.1221 11.4603L12.7113 10.8711L14.6726 12.8324L12.7113 14.7937L12.1221 14.2044L13.0774 13.2491H9.5V12.4158H13.0775Z' fill='var(--color-text-3, var(--text-secondary))' />
+        <path
+          fillRule='evenodd'
+          clipRule='evenodd'
+          d='M10.8215 8.66602L9.15482 6.99935H5.33333V16.9993H18.6667V8.66602H10.8215ZM4.5 6.99935C4.5 6.53912 4.8731 6.16602 5.33333 6.16602H9.15482C9.37583 6.16602 9.5878 6.25382 9.74407 6.41009L11.1667 7.83268H18.6667C19.1269 7.83268 19.5 8.20578 19.5 8.66602V16.9993C19.5 17.4596 19.1269 17.8327 18.6667 17.8327H5.33333C4.8731 17.8327 4.5 17.4596 4.5 16.9993V6.99935Z'
+          fill='var(--color-text-3, var(--text-secondary))'
+        />
+        <path
+          d='M13.0775 12.4158L12.1221 11.4603L12.7113 10.8711L14.6726 12.8324L12.7113 14.7937L12.1221 14.2044L13.0774 13.2491H9.5V12.4158H13.0775Z'
+          fill='var(--color-text-3, var(--text-secondary))'
+        />
       </g>
       <defs>
         <clipPath id={clipPathId}>
@@ -50,7 +64,12 @@ const ChangeWorkspaceIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({ classNam
   );
 };
 
-const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
+const ChatWorkspace: React.FC<WorkspaceProps> = ({
+  conversation_id,
+  workspace,
+  eventPrefix = 'gemini',
+  messageApi: externalMessageApi,
+}) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -72,6 +91,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [showDirectorySelector, setShowDirectorySelector] = useState(false);
   const [selectedTargetPath, setSelectedTargetPath] = useState('');
   const [migrationLoading, setMigrationLoading] = useState(false);
+  const [showCronMigrationPrompt, setShowCronMigrationPrompt] = useState(false);
+
+  // Cron jobs hook
+  const { jobs, loading: cronLoading } = useCronJobs(conversation_id);
 
   // Workspace tree collapse state - 全局统一的折叠状态
   // 切换会话时保持折叠状态不变，只更新工作目录内容
@@ -202,7 +225,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   // 当只有一个根目录且有子文件时，隐藏根目录直接展示子文件，因为 Toolbar 已经作为一级目录
   // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
-  const treeData = treeHook.files.length === 1 && (treeHook.files[0]?.children?.length ?? 0) > 0 ? (treeHook.files[0]?.children ?? []) : treeHook.files;
+  const treeData =
+    treeHook.files.length === 1 && (treeHook.files[0]?.children?.length ?? 0) > 0
+      ? (treeHook.files[0]?.children ?? [])
+      : treeHook.files;
 
   // Check if this is a temporary workspace (check both path and root folder name)
   const isTemporaryWorkspace = checkIsTemporaryWorkspace(workspace) || checkIsTemporaryWorkspace(rootName);
@@ -219,6 +245,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const handleOpenMigrationModal = useCallback(() => {
     setShowMigrationModal(true);
   }, []);
+
+  const handleOpenWorkspaceRoot = useCallback(async () => {
+    try {
+      await ipcBridge.shell.showItemInFolder.invoke(workspace);
+    } catch (error) {
+      messageApi.error(t('conversation.workspace.contextMenu.revealFailed'));
+    }
+  }, [messageApi, t, workspace]);
 
   // Handle directory selection from DirectorySelectionModal (webui)
   const handleSelectDirectoryFromModal = useCallback((paths: string[] | undefined) => {
@@ -247,6 +281,97 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     }
   }, [messageApi, t]);
 
+  const executeMigration = useCallback(
+    async (migrateCron: boolean) => {
+      const targetWorkspace = selectedTargetPath.trim();
+      setMigrationLoading(true);
+
+      try {
+        // Get current conversation data
+        const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
+        const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
+
+        if (!currentConversation) {
+          throw new Error('Current conversation not found');
+        }
+
+        // Get all files from the workspace
+        const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
+          conversation_id,
+          workspace,
+          path: workspace,
+        });
+
+        // Recursively collect all file paths
+        const collectFilePaths = (items: IDirOrFile[]): string[] => {
+          const paths: string[] = [];
+          for (const item of items) {
+            if (item.isFile && item.fullPath) {
+              paths.push(item.fullPath);
+            }
+            if (item.children && item.children.length > 0) {
+              paths.push(...collectFilePaths(item.children));
+            }
+          }
+          return paths;
+        };
+
+        const filePaths = collectFilePaths(workspaceFiles);
+
+        // Copy all files to the target workspace / 复制所有文件到目标工作区
+        if (filePaths.length > 0) {
+          const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
+            filePaths,
+            workspace: targetWorkspace,
+            sourceRoot: workspace,
+          });
+          if (!copyResult?.success) {
+            throw new Error(copyResult?.msg || 'Failed to copy workspace files');
+          }
+        }
+
+        // Create new conversation with the new workspace / 使用新工作区创建会话
+        const newId = uuid();
+        const newConversation = {
+          ...currentConversation,
+          id: newId,
+          name: currentConversation.name,
+          createTime: Date.now(),
+          modifyTime: Date.now(),
+        };
+
+        // Update the workspace in extra field / 更新 extra 中的 workspace 信息
+        newConversation.extra = {
+          ...(currentConversation.extra ?? {}),
+          workspace: targetWorkspace,
+          customWorkspace: true,
+        };
+
+        await ipcBridge.conversation.createWithConversation.invoke({
+          conversation: newConversation,
+          sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
+          migrateCron,
+        });
+
+        // Close modal and reset state / 关闭弹窗并重置状态
+        setShowMigrationModal(false);
+        setShowCronMigrationPrompt(false);
+        setSelectedTargetPath('');
+        setMigrationLoading(false);
+
+        // Navigate to new conversation / 跳转到新的会话
+        void navigate(`/conversation/${newId}`);
+        emitter.emit('chat.history.refresh');
+        messageApi.success(t('conversation.workspace.migration.success'));
+      } catch (error) {
+        console.error('Failed to migrate workspace:', error);
+        messageApi.error(t('conversation.workspace.migration.error'));
+        setMigrationLoading(false);
+      }
+    },
+    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate]
+  );
+
   const handleMigrationConfirm = useCallback(async () => {
     if (!isTemporaryWorkspace) {
       messageApi.error(t('conversation.workspace.migration.error'));
@@ -264,93 +389,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       return;
     }
 
-    setMigrationLoading(true);
-
-    try {
-      // Get current conversation data
-      const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
-      const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
-
-      if (!currentConversation) {
-        throw new Error('Current conversation not found');
-      }
-
-      // Get all files from the workspace
-      const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
-        conversation_id,
-        workspace,
-        path: workspace,
-      });
-
-      // Recursively collect all file paths
-      const collectFilePaths = (items: IDirOrFile[]): string[] => {
-        const paths: string[] = [];
-        for (const item of items) {
-          if (item.isFile && item.fullPath) {
-            paths.push(item.fullPath);
-          }
-          if (item.children && item.children.length > 0) {
-            paths.push(...collectFilePaths(item.children));
-          }
-        }
-        return paths;
-      };
-
-      const filePaths = collectFilePaths(workspaceFiles);
-
-      // Copy all files to the target workspace / 复制所有文件到目标工作区
-      if (filePaths.length > 0) {
-        const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
-          filePaths,
-          workspace: targetWorkspace,
-          sourceRoot: workspace,
-        });
-        if (!copyResult?.success) {
-          throw new Error(copyResult?.msg || 'Failed to copy workspace files');
-        }
-      }
-
-      // Create new conversation with the new workspace / 使用新工作区创建会话
-      const newId = uuid();
-      const newConversation = {
-        ...currentConversation,
-        id: newId,
-        name: currentConversation.name,
-        createTime: Date.now(),
-        modifyTime: Date.now(),
-      };
-
-      // Update the workspace in extra field / 更新 extra 中的 workspace 信息
-      newConversation.extra = {
-        ...(currentConversation.extra ?? {}),
-        workspace: targetWorkspace,
-        customWorkspace: true,
-      };
-
-      await ipcBridge.conversation.createWithConversation.invoke({
-        conversation: newConversation,
-        sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
-      });
-
-      // Close modal and reset state / 关闭弹窗并重置状态
-      setShowMigrationModal(false);
-      setSelectedTargetPath('');
-      setMigrationLoading(false);
-
-      // Navigate to new conversation / 跳转到新的会话
-      void navigate(`/conversation/${newId}`);
-      emitter.emit('chat.history.refresh');
-      messageApi.success(t('conversation.workspace.migration.success'));
-    } catch (error) {
-      console.error('Failed to migrate workspace:', error);
-      messageApi.error(t('conversation.workspace.migration.error'));
-      setMigrationLoading(false);
+    // Check if jobs are still loading
+    if (cronLoading) {
+      console.log('[Workspace] Waiting for cron jobs to load before migration...');
+      messageApi.info(t('common.loading'));
+      return;
     }
-  }, [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate]);
+
+    console.log('[Workspace] handleMigrationConfirm triggered. Current jobs count:', jobs.length);
+
+    // Check for cron jobs before migrating
+    if (jobs.length > 0) {
+      setShowCronMigrationPrompt(true);
+      return;
+    }
+
+    await executeMigration(false);
+  }, [jobs, cronLoading, isTemporaryWorkspace, selectedTargetPath, workspace, t, messageApi, executeMigration]);
 
   const handleCloseMigrationModal = useCallback(() => {
     if (!migrationLoading) {
       setShowMigrationModal(false);
+      setShowCronMigrationPrompt(false);
       setSelectedTargetPath('');
     }
   }, [migrationLoading]);
@@ -368,7 +428,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   const contextMenuNode = modalsHook.contextMenu.node;
   const isContextMenuNodeFile = !!contextMenuNode?.isFile;
-  const isContextMenuNodeRoot = !!contextMenuNode && (!contextMenuNode.relativePath || contextMenuNode.relativePath === '');
+  const isContextMenuNodeRoot =
+    !!contextMenuNode && (!contextMenuNode.relativePath || contextMenuNode.relativePath === '');
 
   // Check if file supports preview
   const isPreviewSupported = (() => {
@@ -434,7 +495,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     return supportedExts.includes(ext);
   })();
 
-  const menuButtonBase = 'w-full flex items-center gap-8px px-14px py-6px text-13px text-left text-t-primary rounded-md transition-colors duration-150 hover:bg-2 border-none bg-transparent appearance-none focus:outline-none focus-visible:outline-none';
+  const menuButtonBase =
+    'w-full flex items-center gap-8px px-14px py-6px text-13px text-left text-t-primary rounded-md transition-colors duration-150 hover:bg-2 border-none bg-transparent appearance-none focus:outline-none focus-visible:outline-none';
   const menuButtonDisabled = 'opacity-40 cursor-not-allowed hover:bg-transparent';
 
   const openNodeContextMenu = useCallback(
@@ -451,7 +513,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   );
 
   // Get target folder path for paste confirm modal
-  const targetFolderPathForModal = getTargetFolderPath(treeHook.selectedNodeRef.current, treeHook.selected, treeHook.files, workspace);
+  const targetFolderPathForModal = getTargetFolderPath(
+    treeHook.selectedNodeRef.current,
+    treeHook.selected,
+    treeHook.files,
+    workspace
+  );
 
   return (
     <>
@@ -517,13 +584,20 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           <div className='px-24px py-20px'>
             {/* Title area */}
             <div className='flex items-center gap-12px mb-20px'>
-              <div className='flex items-center justify-center w-48px h-48px rounded-full' style={{ backgroundColor: 'rgb(var(--primary-1))' }}>
+              <div
+                className='flex items-center justify-center w-48px h-48px rounded-full'
+                style={{ backgroundColor: 'rgb(var(--primary-1))' }}
+              >
                 <FileText theme='outline' size='24' fill='rgb(var(--primary-6))' />
               </div>
               <div>
                 <div className='text-16px font-semibold mb-4px'>{t('conversation.workspace.pasteConfirm_title')}</div>
                 <div className='text-13px' style={{ color: 'var(--color-text-3)' }}>
-                  {modalsHook.pasteConfirm.filesToPaste.length > 1 ? t('conversation.workspace.pasteConfirm_multipleFiles', { count: modalsHook.pasteConfirm.filesToPaste.length }) : t('conversation.workspace.pasteConfirm_title')}
+                  {modalsHook.pasteConfirm.filesToPaste.length > 1
+                    ? t('conversation.workspace.pasteConfirm_multipleFiles', {
+                        count: modalsHook.pasteConfirm.filesToPaste.length,
+                      })
+                    : t('conversation.workspace.pasteConfirm_title')}
                 </div>
               </div>
             </div>
@@ -556,7 +630,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
             {/* Checkbox area */}
             <div className='mb-20px'>
-              <Checkbox checked={modalsHook.pasteConfirm.doNotAsk} onChange={(v) => modalsHook.setPasteConfirm((prev) => ({ ...prev, doNotAsk: v }))}>
+              <Checkbox
+                checked={modalsHook.pasteConfirm.doNotAsk}
+                onChange={(v) => modalsHook.setPasteConfirm((prev) => ({ ...prev, doNotAsk: v }))}
+              >
                 <span className='text-13px' style={{ color: 'var(--color-text-2)' }}>
                   {t('conversation.workspace.pasteConfirm_noAsk')}
                 </span>
@@ -608,22 +685,59 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         </Modal>
 
         {/* Rename Modal */}
-        <Modal visible={modalsHook.renameModal.visible} title={t('conversation.workspace.contextMenu.renameTitle')} onCancel={modalsHook.closeRenameModal} onOk={fileOpsHook.handleRenameConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={modalsHook.renameLoading} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
-          <Input autoFocus value={modalsHook.renameModal.value} onChange={(value) => modalsHook.setRenameModal((prev) => ({ ...prev, value }))} onPressEnter={fileOpsHook.handleRenameConfirm} placeholder={t('conversation.workspace.contextMenu.renamePlaceholder')} />
+        <Modal
+          visible={modalsHook.renameModal.visible}
+          title={t('conversation.workspace.contextMenu.renameTitle')}
+          onCancel={modalsHook.closeRenameModal}
+          onOk={fileOpsHook.handleRenameConfirm}
+          okText={t('common.confirm')}
+          cancelText={t('common.cancel')}
+          confirmLoading={modalsHook.renameLoading}
+          style={{ borderRadius: '12px' }}
+          alignCenter
+          getPopupContainer={() => document.body}
+        >
+          <Input
+            autoFocus
+            value={modalsHook.renameModal.value}
+            onChange={(value) => modalsHook.setRenameModal((prev) => ({ ...prev, value }))}
+            onPressEnter={fileOpsHook.handleRenameConfirm}
+            placeholder={t('conversation.workspace.contextMenu.renamePlaceholder')}
+          />
         </Modal>
 
         {/* Delete Modal */}
-        <Modal visible={modalsHook.deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={modalsHook.closeDeleteModal} onOk={fileOpsHook.handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={modalsHook.deleteModal.loading} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
+        <Modal
+          visible={modalsHook.deleteModal.visible}
+          title={t('conversation.workspace.contextMenu.deleteTitle')}
+          onCancel={modalsHook.closeDeleteModal}
+          onOk={fileOpsHook.handleDeleteConfirm}
+          okText={t('common.confirm')}
+          cancelText={t('common.cancel')}
+          confirmLoading={modalsHook.deleteModal.loading}
+          style={{ borderRadius: '12px' }}
+          alignCenter
+          getPopupContainer={() => document.body}
+        >
           <div className='text-14px text-t-secondary'>{t('conversation.workspace.contextMenu.deleteConfirm')}</div>
         </Modal>
 
         {/* Workspace Migration Modal */}
-        <Modal visible={showMigrationModal} title={t('conversation.workspace.migration.title')} onCancel={handleCloseMigrationModal} footer={null} style={{ borderRadius: '12px' }} className='workspace-migration-modal' alignCenter getPopupContainer={() => document.body}>
+        <Modal
+          visible={showMigrationModal}
+          title={t('conversation.workspace.migration.title')}
+          onCancel={handleCloseMigrationModal}
+          footer={null}
+          style={{ borderRadius: '12px' }}
+          className='workspace-migration-modal'
+          alignCenter
+          getPopupContainer={() => document.body}
+        >
           <div className='py-8px'>
             {/* Current workspace info */}
             <div className='text-14px mb-16px' style={{ color: 'var(--color-text-3)' }}>
               {t('conversation.workspace.migration.currentWorkspaceLabel')}
-              <span className='font-mono'>/{workspace.split('/').pop()}</span>
+              <span className='font-mono'>/{getLastDirectoryName(workspace)}</span>
             </div>
 
             {/* Target folder selection card */}
@@ -639,7 +753,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 }}
                 onClick={handleSelectFolder}
               >
-                <span className='text-14px' style={{ color: selectedTargetPath ? 'var(--color-text-1)' : 'var(--color-text-3)' }}>
+                <span
+                  className='text-14px'
+                  style={{ color: selectedTargetPath ? 'var(--color-text-1)' : 'var(--color-text-3)' }}
+                >
                   {selectedTargetPath || t('conversation.workspace.migration.selectFolder')}
                 </span>
                 <FolderOpen theme='outline' size='18' fill='var(--color-text-3)' />
@@ -699,8 +816,74 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           </div>
         </Modal>
 
+        {/* Cron Migration Modal */}
+        <Modal
+          visible={showCronMigrationPrompt}
+          title={t('conversation.workspace.migration.cronMigrationTitle')}
+          onCancel={handleCloseMigrationModal}
+          footer={null}
+          style={{ borderRadius: '12px' }}
+          className='cron-migration-modal'
+          alignCenter
+          getPopupContainer={() => document.body}
+        >
+          <div className='py-8px'>
+            <div
+              className='flex items-center gap-12px p-16px rounded-12px mb-16px'
+              style={{ backgroundColor: 'var(--color-fill-1)' }}
+            >
+              <div
+                className='w-40px h-40px rounded-full flex items-center justify-center'
+                style={{ backgroundColor: 'rgba(var(--primary-6), 0.1)' }}
+              >
+                <AlarmClock theme='outline' size='22' fill='rgb(var(--primary-6))' />
+              </div>
+              <div className='flex-1'>
+                <div className='text-15px font-medium mb-4px'>
+                  {t('conversation.workspace.migration.cronMigrationTitle')}
+                </div>
+                <div className='text-13px text-t-secondary'>
+                  {t('conversation.workspace.migration.cronMigrationHint')}
+                </div>
+              </div>
+            </div>
+
+            <div className='flex gap-12px justify-end'>
+              <button
+                className='px-20px py-8px rounded-20px text-14px font-medium transition-all'
+                style={{
+                  border: '1px solid var(--color-border-2)',
+                  backgroundColor: 'var(--color-fill-2)',
+                  color: 'var(--color-text-1)',
+                }}
+                onClick={() => executeMigration(false)}
+                disabled={migrationLoading}
+              >
+                {t('conversation.workspace.migration.cronMigrationSkip')}
+              </button>
+              <button
+                className='px-20px py-8px rounded-20px text-14px font-medium transition-all'
+                style={{
+                  border: 'none',
+                  backgroundColor: 'var(--color-text-1)',
+                  color: 'var(--color-bg-1)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => executeMigration(true)}
+                disabled={migrationLoading}
+              >
+                {t('conversation.workspace.migration.cronMigrationConfirm')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
         {/* Directory Selection Modal (for WebUI only) */}
-        <DirectorySelectionModal visible={showDirectorySelector} onConfirm={handleSelectDirectoryFromModal} onCancel={() => setShowDirectorySelector(false)} />
+        <DirectorySelectionModal
+          visible={showDirectorySelector}
+          onConfirm={handleSelectDirectoryFromModal}
+          onCancel={() => setShowDirectorySelector(false)}
+        />
 
         {/* Search Input - 最上方 */}
         <div className='px-12px'>
@@ -729,21 +912,66 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
           {/* Directory name with collapse and action icons */}
           <div className='workspace-toolbar-row flex items-center justify-between gap-8px'>
-            <div className='flex items-center gap-8px cursor-pointer flex-1 min-w-0' onClick={() => setIsWorkspaceCollapsed(!isWorkspaceCollapsed)}>
-              <Down size={16} fill={iconColors.primary} className={`line-height-0 transition-transform duration-200 flex-shrink-0 ${isWorkspaceCollapsed ? '-rotate-90' : 'rotate-0'}`} />
-              <span className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap'>{workspaceDisplayName}</span>
+            <div
+              className='flex items-center gap-8px cursor-pointer flex-1 min-w-0'
+              onClick={() => setIsWorkspaceCollapsed(!isWorkspaceCollapsed)}
+            >
+              <Down
+                size={16}
+                fill={iconColors.primary}
+                className={`line-height-0 transition-transform duration-200 flex-shrink-0 ${isWorkspaceCollapsed ? '-rotate-90' : 'rotate-0'}`}
+              />
+              {isTemporaryWorkspace ? (
+                <Tooltip content={t('conversation.workspace.contextMenu.openLocation')}>
+                  <span
+                    role='button'
+                    tabIndex={0}
+                    className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap transition-colors hover:text-[rgb(var(--primary-6))] hover:underline underline-offset-3'
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleOpenWorkspaceRoot();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        void handleOpenWorkspaceRoot();
+                      }
+                    }}
+                  >
+                    {workspaceDisplayName}
+                  </span>
+                </Tooltip>
+              ) : (
+                <span className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap'>
+                  {workspaceDisplayName}
+                </span>
+              )}
             </div>
             <div className='workspace-toolbar-actions flex items-center gap-8px flex-shrink-0'>
               {isTemporaryWorkspace && (
                 <Tooltip content={t('conversation.workspace.changeWorkspace')}>
                   <span>
-                    <ChangeWorkspaceIcon className='workspace-toolbar-icon-btn line-height-0 cursor-pointer w-24px h-24px flex-shrink-0' onClick={handleOpenMigrationModal} />
+                    <ChangeWorkspaceIcon
+                      className='workspace-toolbar-icon-btn line-height-0 cursor-pointer w-24px h-24px flex-shrink-0'
+                      onClick={handleOpenMigrationModal}
+                    />
                   </span>
                 </Tooltip>
               )}
               <Tooltip content={t('conversation.workspace.refresh')}>
                 <span>
-                  <Refresh className={treeHook.loading ? 'workspace-toolbar-icon-btn loading lh-[1] flex cursor-pointer' : 'workspace-toolbar-icon-btn flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => treeHook.refreshWorkspace()} />
+                  <Refresh
+                    className={
+                      treeHook.loading
+                        ? 'workspace-toolbar-icon-btn loading lh-[1] flex cursor-pointer'
+                        : 'workspace-toolbar-icon-btn flex cursor-pointer'
+                    }
+                    theme='outline'
+                    size='16'
+                    fill={iconColors.secondary}
+                    onClick={() => treeHook.refreshWorkspace()}
+                  />
                 </span>
               </Tooltip>
             </div>
@@ -807,6 +1035,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                       {t('conversation.workspace.contextMenu.preview')}
                     </button>
                   )}
+                  {isContextMenuNodeFile && (
+                    <button
+                      type='button'
+                      className={menuButtonBase}
+                      onClick={() => {
+                        void fileOpsHook.handleDownloadFile(contextMenuNode);
+                      }}
+                    >
+                      {t('conversation.workspace.contextMenu.download')}
+                    </button>
+                  )}
                   <div className='h-1px bg-3 my-2px'></div>
                   <button
                     type='button'
@@ -838,8 +1077,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 <Empty
                   description={
                     <div>
-                      <span className='text-t-secondary font-bold text-14px'>{searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}</span>
-                      <div className='text-t-secondary'>{searchText ? '' : t('conversation.workspace.emptyDescription')}</div>
+                      <span className='text-t-secondary font-bold text-14px'>
+                        {searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}
+                      </span>
+                      <div className='text-t-secondary'>
+                        {searchText ? '' : t('conversation.workspace.emptyDescription')}
+                      </div>
                     </div>
                   }
                 />
@@ -882,13 +1125,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     >
                       <span className='flex items-center gap-4px min-w-0'>
                         <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
-                        {isPasteTarget && <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>PASTE</span>}
+                        {isPasteTarget && (
+                          <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
+                            PASTE
+                          </span>
+                        )}
                       </span>
                       {isMobile && (
                         <button
                           type='button'
                           className='workspace-header__toggle workspace-node-more-btn h-28px w-28px rd-8px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
-                          aria-label={t('common.more', { defaultValue: 'More' })}
+                          aria-label={t('common.more')}
                           onMouseDown={(event) => {
                             event.stopPropagation();
                           }}
@@ -897,14 +1144,23 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                             const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
                             const menuWidth = 220;
                             const menuHeight = 220;
-                            const maxX = typeof window !== 'undefined' ? Math.max(8, window.innerWidth - menuWidth - 8) : rect.left;
-                            const maxY = typeof window !== 'undefined' ? Math.max(8, window.innerHeight - menuHeight - 8) : rect.bottom;
+                            const maxX =
+                              typeof window !== 'undefined'
+                                ? Math.max(8, window.innerWidth - menuWidth - 8)
+                                : rect.left;
+                            const maxY =
+                              typeof window !== 'undefined'
+                                ? Math.max(8, window.innerHeight - menuHeight - 8)
+                                : rect.bottom;
                             const menuX = Math.min(Math.max(8, rect.left - menuWidth + rect.width), maxX);
                             const menuY = Math.min(Math.max(8, rect.bottom + 4), maxY);
                             openNodeContextMenu(nodeData, menuX, menuY);
                           }}
                         >
-                          <div className='flex flex-col gap-2px items-center justify-center' style={{ width: '12px', height: '12px' }}>
+                          <div
+                            className='flex flex-col gap-2px items-center justify-center'
+                            style={{ width: '12px', height: '12px' }}
+                          >
                             <div className='w-2px h-2px rounded-full bg-current'></div>
                             <div className='w-2px h-2px rounded-full bg-current'></div>
                             <div className='w-2px h-2px rounded-full bg-current'></div>
@@ -975,10 +1231,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 }}
                 loadMore={(treeNode) => {
                   const path = treeNode.props.dataRef.fullPath;
-                  return ipcBridge.conversation.getWorkspace.invoke({ conversation_id, workspace, path }).then((res) => {
-                    treeNode.props.dataRef.children = res[0].children;
-                    treeHook.setFiles([...treeHook.files]);
-                  });
+                  return ipcBridge.conversation.getWorkspace
+                    .invoke({ conversation_id, workspace, path })
+                    .then((res) => {
+                      treeNode.props.dataRef.children = res[0].children;
+                      treeHook.setFiles([...treeHook.files]);
+                    });
                 }}
               ></Tree>
             )}

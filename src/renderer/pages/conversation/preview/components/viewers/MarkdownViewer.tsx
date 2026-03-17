@@ -120,7 +120,11 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
 
       const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
       const cleanedSrc = src.replace(/\\/g, '/');
-      const absolutePath = isAbsoluteLocalPath(cleanedSrc) ? cleanedSrc : normalizedBase ? joinPath(normalizedBase, cleanedSrc) : cleanedSrc;
+      const absolutePath = isAbsoluteLocalPath(cleanedSrc)
+        ? cleanedSrc
+        : normalizedBase
+          ? joinPath(normalizedBase, cleanedSrc)
+          : cleanedSrc;
 
       if (!absolutePath) {
         setResolvedSrc(src);
@@ -152,7 +156,16 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
     return alt ? <span>{alt}</span> : null;
   }
 
-  return <img src={resolvedSrc} alt={alt} referrerPolicy='no-referrer' crossOrigin='anonymous' style={{ maxWidth: '100%', width: 'auto', height: 'auto', display: 'block', objectFit: 'contain' }} {...props} />;
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      referrerPolicy='no-referrer'
+      crossOrigin='anonymous'
+      style={{ maxWidth: '100%', width: 'auto', height: 'auto', display: 'block', objectFit: 'contain' }}
+      {...props}
+    />
+  );
 };
 
 const encodeHtmlAttribute = (value: string) => value.replace(/&(?!#?[a-z0-9]+;)/gi, '&amp;');
@@ -179,7 +192,17 @@ const rewriteExternalMediaUrls = (markdown: string): string => {
 // 该函数参数较多，保持单行可以让 Prettier 控制格式，同时使用 eslint-disable 规避长度限制
 // This line has many props; keep it single-line for Prettier and silence max-len warning explicitly
 // eslint-disable-next-line max-len
-const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange, onContentChange, containerRef: externalContainerRef, onScroll: externalOnScroll, filePath }) => {
+const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
+  content,
+  onClose,
+  hideToolbar = false,
+  viewMode: externalViewMode,
+  onViewModeChange,
+  onContentChange,
+  containerRef: externalContainerRef,
+  onScroll: externalOnScroll,
+  filePath,
+}) => {
   const { t } = useTranslation();
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
@@ -278,7 +301,11 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
 
       const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
       const cleanedSrc = rawAttr.replace(/\\/g, '/');
-      const absolutePath = isAbsoluteLocalPath(cleanedSrc) ? cleanedSrc : normalizedBase ? joinPath(normalizedBase, cleanedSrc) : undefined;
+      const absolutePath = isAbsoluteLocalPath(cleanedSrc)
+        ? cleanedSrc
+        : normalizedBase
+          ? joinPath(normalizedBase, cleanedSrc)
+          : undefined;
       if (!absolutePath) {
         seen.add(img);
         return;
@@ -349,8 +376,20 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
             {/* 右侧按钮组：下载 + 关闭 / Right button group: Download + Close */}
             <div className='flex items-center gap-8px flex-shrink-0'>
               {/* 下载按钮 / Download button */}
-              <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadMarkdown')}>
-                <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+              <div
+                className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors'
+                onClick={handleDownload}
+                title={t('preview.downloadMarkdown')}
+              >
+                <svg
+                  width='14'
+                  height='14'
+                  viewBox='0 0 24 24'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='2'
+                  className='text-t-secondary'
+                >
                   <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
                   <polyline points='7 10 12 15 17 10' />
                   <line x1='12' y1='15' x2='12' y2='3' />
@@ -363,13 +402,26 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-32px text-t-primary'}`} style={{ minWidth: 0 }}>
+      <div
+        ref={containerRef}
+        className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-32px text-t-primary'}`}
+        style={{ minWidth: 0 }}
+      >
         {viewMode === 'source' ? (
           // 原文模式：使用编辑器 / Source mode: Use editor
           <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />
         ) : (
           // 预览模式：渲染 Markdown / Preview mode: Render Markdown
-          <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+          <div
+            style={{
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
+            }}
+          >
             <Streamdown
               // 核心功能：解析不完整的 Markdown，优化流式渲染体验 / Core feature: parse incomplete Markdown for optimal streaming
               parseIncompleteMarkdown={true}
@@ -452,7 +504,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
       </div>
 
       {/* 文本选择浮动工具栏 / Text selection floating toolbar */}
-      {selectedText && <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />}
+      {selectedText && (
+        <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />
+      )}
     </div>
   );
 };

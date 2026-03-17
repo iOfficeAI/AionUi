@@ -31,14 +31,19 @@ const PatchDisplay: React.FC<{ content: PatchUpdate }> = ({ content }) => {
 
   const getAdditionalTags = () => {
     if (subtype === 'patch_apply_begin' && 'auto_approved' in data && data.auto_approved !== undefined) {
-      return <Tag color={data.auto_approved ? 'green' : 'orange'}>{data.auto_approved ? t('tools.labels.auto_approved') : t('tools.labels.manual_approval')}</Tag>;
+      return (
+        <Tag color={data.auto_approved ? 'green' : 'orange'}>
+          {data.auto_approved ? t('tools.labels.auto_approved') : t('tools.labels.manual_approval')}
+        </Tag>
+      );
     }
     return null;
   };
 
   const getChangeSummary = () => {
     // Only show changes for patch_apply_begin
-    if (subtype !== 'patch_apply_begin' || !('changes' in data) || !data.changes || typeof data.changes !== 'object') return null;
+    if (subtype !== 'patch_apply_begin' || !('changes' in data) || !data.changes || typeof data.changes !== 'object')
+      return null;
 
     const entries = Object.entries(data.changes);
     if (entries.length === 0) return null;
@@ -59,7 +64,14 @@ const PatchDisplay: React.FC<{ content: PatchUpdate }> = ({ content }) => {
   const changeSummary = getChangeSummary();
 
   return (
-    <BaseToolCallDisplay toolCallId={toolCallId} title={getDisplayTitle()} status={status} description={description} icon='📝' additionalTags={getAdditionalTags()}>
+    <BaseToolCallDisplay
+      toolCallId={toolCallId}
+      title={getDisplayTitle()}
+      status={status}
+      description={description}
+      icon='📝'
+      additionalTags={getAdditionalTags()}
+    >
       {/* Display file changes if available */}
       {changeSummary && changeSummary.length > 0 && (
         <div className='text-sm mb-2'>

@@ -21,7 +21,14 @@ const LocalImageView: React.FC<{
 
   const absolutePath = useMemo(() => {
     if (!root) return src;
-    if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('/') || src.startsWith('file:') || src.startsWith('\\') || /^[A-Za-z]:/.test(src)) {
+    if (
+      src.startsWith('http') ||
+      src.startsWith('data:') ||
+      src.startsWith('/') ||
+      src.startsWith('file:') ||
+      src.startsWith('\\') ||
+      /^[A-Za-z]:/.test(src)
+    ) {
       return src;
     }
     return joinPath(root, src);
@@ -46,7 +53,14 @@ const LocalImageView: React.FC<{
   if (loading)
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <LoadingTwo className='loading' style={{ display: 'flex' }} theme='outline' size='14' fill={iconColors.primary} strokeWidth={2} />
+        <LoadingTwo
+          className='loading'
+          style={{ display: 'flex' }}
+          theme='outline'
+          size='14'
+          fill={iconColors.primary}
+          strokeWidth={2}
+        />
         <span>{alt}</span>
       </span>
     );

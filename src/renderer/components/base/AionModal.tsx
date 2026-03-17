@@ -97,7 +97,8 @@ export interface AionModalProps extends Omit<ModalProps, 'title' | 'footer'> {
 
 const HEADER_BASE_CLASS = 'flex items-center justify-between pb-20px';
 const TITLE_BASE_CLASS = 'text-18px font-500 text-t-primary m-0';
-const CLOSE_BUTTON_CLASS = 'w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 hover:bg-2 focus:outline-none';
+const CLOSE_BUTTON_CLASS =
+  'w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 hover:bg-2 focus:outline-none';
 const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
 
 /**
@@ -291,7 +292,13 @@ const AionModal: React.FC<AionModalProps> = ({
             <Button onClick={onCancel} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
               {cancelLabel}
             </Button>
-            <Button type='primary' onClick={props.onOk} loading={props.confirmLoading} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
+            <Button
+              type='primary'
+              onClick={props.onOk}
+              loading={props.confirmLoading}
+              className='px-20px min-w-80px'
+              style={{ borderRadius: 8 }}
+            >
               {okLabel}
             </Button>
           </div>
@@ -363,7 +370,16 @@ const AionModal: React.FC<AionModalProps> = ({
   };
 
   return (
-    <Modal {...props} title={null} closable={false} footer={null} onCancel={onCancel} className={`aionui-modal ${className}`} style={finalStyle} getPopupContainer={() => document.body}>
+    <Modal
+      {...props}
+      title={null}
+      closable={false}
+      footer={null}
+      onCancel={onCancel}
+      className={`aionui-modal ${className}`}
+      style={finalStyle}
+      getPopupContainer={() => document.body}
+    >
       <div className='aionui-modal-wrapper' style={{ borderRadius: borderRadiusVal }}>
         {renderHeader()}
         <div className='aionui-modal-body-content' style={bodyInlineStyle}>

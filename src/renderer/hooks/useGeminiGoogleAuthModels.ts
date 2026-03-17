@@ -44,8 +44,14 @@ export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
   // 生成与终端 CLI 一致的模型列表 / Generate model list matching terminal CLI
   const descriptions = useMemo(
     () => ({
-      autoGemini3: t('gemini.mode.autoGemini3Desc', 'Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash'),
-      autoGemini25: t('gemini.mode.autoGemini25Desc', 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash'),
+      autoGemini3: t(
+        'gemini.mode.autoGemini3Desc',
+        'Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash'
+      ),
+      autoGemini25: t(
+        'gemini.mode.autoGemini25Desc',
+        'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash'
+      ),
       manual: t('gemini.mode.manualDesc', 'Manually select a model'),
     }),
     [t]

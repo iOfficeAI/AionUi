@@ -13,7 +13,11 @@ interface InitialMessageData {
   files?: string[];
 }
 
-export const useInitialMessage = (conversationId: string, acpStatus: string | null, onSend: (msg_id: string, input: string, files: string[]) => Promise<boolean>) => {
+export const useInitialMessage = (
+  conversationId: string,
+  acpStatus: string | null,
+  onSend: (msg_id: string, input: string, files: string[]) => Promise<boolean>
+) => {
   const [state, setState] = useState<InitialMessageState>('idle');
   const [error, setError] = useState<string | null>(null);
   const processedRef = useRef(false);

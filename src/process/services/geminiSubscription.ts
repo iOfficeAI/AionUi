@@ -5,7 +5,8 @@
  */
 
 import type { UserTierId } from '@office-ai/aioncli-core';
-import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
+import { getOauthInfoWithCache, Storage } from '@office-ai/aioncli-core';
+import * as fs from 'node:fs';
 
 export interface GeminiSubscriptionStatus {
   isSubscriber: boolean;
@@ -31,6 +32,16 @@ const pendingRequests = new Map<string, Promise<GeminiSubscriptionStatus>>();
 // 如果需要完整的订阅状态检查，用户需要先通过设置页面登录。
 async function fetchSubscriptionStatus(proxy?: string): Promise<GeminiSubscriptionStatus> {
   try {
+    const credsPath = Storage.getOAuthCredsPath();
+    if (!fs.existsSync(credsPath)) {
+      return {
+        isSubscriber: false,
+        tier: 'unknown',
+        lastChecked: Date.now(),
+        message: 'OAuth credentials file not found',
+      };
+    }
+
     // 只使用缓存的凭证检查，不触发登录流程
     // Only use cached credentials, do not trigger login flow
     const oauthInfo = await getOauthInfoWithCache(proxy);

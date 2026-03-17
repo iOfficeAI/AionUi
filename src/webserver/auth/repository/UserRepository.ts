@@ -11,7 +11,10 @@ import type { IUser, IQueryResult } from '@process/database/types';
  * 认证用户类型，仅包含必要的认证字段
  * Authentication user type containing only essential auth fields
  */
-export type AuthUser = Pick<IUser, 'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'>;
+export type AuthUser = Pick<
+  IUser,
+  'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'
+>;
 
 /**
  * 解包数据库查询结果，失败时抛出异常
@@ -163,6 +166,14 @@ export const UserRepository = {
     const result = db.updateUserPassword(userId, passwordHash);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update user password');
+    }
+  },
+
+  updateUsername(userId: string, username: string): void {
+    const db = getDatabase();
+    const result = db.updateUserUsername(userId, username);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update username');
     }
   },
 

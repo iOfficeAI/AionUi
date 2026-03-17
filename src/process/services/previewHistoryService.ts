@@ -37,7 +37,15 @@ class PreviewHistoryService {
 
   // 根据目标生成稳定的标识和摘要，作为索引/存储路径 / Build stable identity & digest for indexing
   private buildIdentity(target: PreviewHistoryTarget): { identity: string; digest: string } {
-    const keyParts = [target.filePath ? `path:${target.filePath}` : '', target.workspace ? `workspace:${target.workspace}` : '', target.fileName ? `file:${target.fileName}` : '', target.title ? `title:${target.title}` : '', target.language ? `lang:${target.language}` : '', target.conversationId ? `conversation:${target.conversationId}` : '', `type:${target.contentType}`].filter(Boolean);
+    const keyParts = [
+      target.filePath ? `path:${target.filePath}` : '',
+      target.workspace ? `workspace:${target.workspace}` : '',
+      target.fileName ? `file:${target.fileName}` : '',
+      target.title ? `title:${target.title}` : '',
+      target.language ? `lang:${target.language}` : '',
+      target.conversationId ? `conversation:${target.conversationId}` : '',
+      `type:${target.contentType}`,
+    ].filter(Boolean);
 
     const identity = keyParts.join('|') || `anonymous|${target.contentType}`;
     const digest = crypto.createHash('sha1').update(identity).digest('hex');
@@ -45,7 +53,11 @@ class PreviewHistoryService {
   }
 
   // 读取目标索引文件，若不存在则返回默认结构 / Read snapshot index or fallback to empty structure
-  private async readIndex(targetDir: string, identity: string, target: PreviewHistoryTarget): Promise<PreviewHistoryIndex> {
+  private async readIndex(
+    targetDir: string,
+    identity: string,
+    target: PreviewHistoryTarget
+  ): Promise<PreviewHistoryIndex> {
     await this.ensureDir(targetDir);
     const indexPath = path.join(targetDir, INDEX_FILE_NAME);
 
@@ -77,7 +89,13 @@ class PreviewHistoryService {
   }
 
   // 组装快照元数据，记录储存路径 / Build snapshot metadata with storage path info
-  private createSnapshotInfo(params: { snapshotId: string; content: string; createdAt: number; target: PreviewHistoryTarget; relativePath: string }): StoredSnapshot {
+  private createSnapshotInfo(params: {
+    snapshotId: string;
+    content: string;
+    createdAt: number;
+    target: PreviewHistoryTarget;
+    relativePath: string;
+  }): StoredSnapshot {
     const { snapshotId, content, createdAt, target, relativePath } = params;
     return {
       id: snapshotId,
@@ -144,7 +162,10 @@ class PreviewHistoryService {
   }
 
   // 获取指定快照的原始内容 / Retrieve raw content for a snapshot
-  public async getContent(target: PreviewHistoryTarget, snapshotId: string): Promise<{ snapshot: PreviewSnapshotInfo; content: string } | null> {
+  public async getContent(
+    target: PreviewHistoryTarget,
+    snapshotId: string
+  ): Promise<{ snapshot: PreviewSnapshotInfo; content: string } | null> {
     const { identity, digest } = this.buildIdentity(target);
     const targetDir = path.join(this.getBaseDir(), digest);
     const index = await this.readIndex(targetDir, identity, target);

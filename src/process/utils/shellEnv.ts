@@ -14,7 +14,7 @@
  */
 
 import { execFile, execFileSync } from 'child_process';
-import { accessSync, readdirSync } from 'fs';
+import { accessSync, existsSync, readdirSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
@@ -97,7 +97,10 @@ function loadShellEnvironment(): Record<string, string> {
     }
   } catch (error) {
     // Silent fail - shell environment loading is best-effort
-    console.warn('[ShellEnv] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
+    console.warn(
+      '[ShellEnv] Failed to load shell environment:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   if (PERF_LOG) console.log(`[ShellEnv] connect: shell env loaded ${Date.now() - startTime}ms`);
@@ -167,7 +170,10 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
     if (PERF_LOG) console.log(`[ShellEnv] preload: shell env async loaded ${Date.now() - startTime}ms`);
   } catch (error) {
     cachedShellEnv = {};
-    console.warn('[ShellEnv] Failed to async load shell environment:', error instanceof Error ? error.message : String(error));
+    console.warn(
+      '[ShellEnv] Failed to async load shell environment:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   return cachedShellEnv;
@@ -206,19 +212,87 @@ export function mergePaths(path1?: string, path2?: string): string {
 }
 
 /**
+ * Scan well-known Windows tool installation directories and return any that exist
+ * but are not already in the current PATH.
+ *
+ * On Windows, apps launched via shortcuts or the Start menu may miss user-local
+ * tool paths (e.g. npm global packages, nvm-windows, Scoop, Volta) that are
+ * added to PATH only when a shell session starts.
+ *
+ * 扫描 Windows 常见工具安装目录，返回当前 PATH 中缺少的路径。
+ */
+function getWindowsExtraToolPaths(): string[] {
+  if (process.platform !== 'win32') return [];
+
+  const homeDir = os.homedir();
+  const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+  const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local');
+  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+  const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+  const currentPath = process.env.PATH || '';
+
+  const candidates = [
+    // npm global packages (most common - installed with Node.js)
+    path.join(appData, 'npm'),
+    // Node.js official installer
+    path.join(programFiles, 'nodejs'),
+    // nvm-windows: %APPDATA%\nvm (the active version symlink lives here)
+    process.env.NVM_HOME || path.join(appData, 'nvm'),
+    // nvm-windows symlink directory (where the active node version is linked)
+    process.env.NVM_SYMLINK || path.join(programFiles, 'nodejs'),
+    // fnm-windows: FNM_MULTISHELL_PATH is set per-shell session
+    ...(process.env.FNM_MULTISHELL_PATH ? [process.env.FNM_MULTISHELL_PATH] : []),
+    path.join(localAppData, 'fnm_multishells'),
+    // Volta: cross-platform Node version manager
+    path.join(homeDir, '.volta', 'bin'),
+    // Scoop: Windows package manager
+    process.env.SCOOP ? path.join(process.env.SCOOP, 'shims') : path.join(homeDir, 'scoop', 'shims'),
+    // pnpm global store shims
+    path.join(localAppData, 'pnpm'),
+    // Chocolatey
+    path.join(process.env.ChocolateyInstall || 'C:\\ProgramData\\chocolatey', 'bin'),
+    // Git for Windows — provides cygpath, git, and POSIX utilities.
+    // Claude Code's agent-sdk calls `cygpath` internally on Windows; if this
+    // directory is missing from PATH the SDK fails with "cygpath: not found".
+    path.join(programFiles, 'Git', 'cmd'),
+    path.join(programFiles, 'Git', 'bin'),
+    path.join(programFiles, 'Git', 'usr', 'bin'),
+    path.join(programFilesX86, 'Git', 'cmd'),
+    path.join(programFilesX86, 'Git', 'bin'),
+    path.join(programFilesX86, 'Git', 'usr', 'bin'),
+    // Cygwin — alternative source for cygpath
+    'C:\\cygwin64\\bin',
+    'C:\\cygwin\\bin',
+  ];
+
+  return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
+}
+
+/**
  * Get enhanced environment variables by merging shell env with process.env.
  * For PATH, we merge both sources to ensure CLI tools are found regardless of
  * how the app was started (terminal vs Finder/launchd).
  *
+ * On Windows, also appends well-known tool paths (npm globals, nvm, volta, scoop)
+ * that may not be present when Electron starts from a shortcut.
+ *
  * 获取增强的环境变量，合并 shell 环境变量和 process.env。
  * 对于 PATH，合并两个来源以确保无论应用如何启动都能找到 CLI 工具。
+ * 在 Windows 上，还会追加常见工具路径（npm 全局包、nvm、volta、scoop 等）。
  */
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
 
   // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
   // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
-  const mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
+  let mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
+
+  // On Windows, also append any discovered tool paths not already in PATH
+  // 在 Windows 上，追加未在 PATH 中的常见工具路径
+  const winExtraPaths = getWindowsExtraToolPaths();
+  if (winExtraPaths.length > 0) {
+    mergedPath = mergePaths(mergedPath, winExtraPaths.join(';'));
+  }
 
   return {
     ...process.env,
@@ -407,4 +481,48 @@ export function loadFullShellEnvironment(): Record<string, string> {
     console.warn('[ShellEnv] Failed to load full shell env:', error instanceof Error ? error.message : String(error));
   }
   return cachedFullShellEnv;
+}
+
+/**
+ * Log a one-time environment diagnostics snapshot.
+ * Called once at app startup; output goes to electron-log file via console,
+ * so users can share the log file for debugging (#1157).
+ */
+export function logEnvironmentDiagnostics(): void {
+  const isWindows = process.platform === 'win32';
+  const tag = '[ShellEnv-Diag]';
+
+  console.log(`${tag} platform=${process.platform}, arch=${process.arch}, node=${process.version}`);
+  console.log(`${tag} process.env.PATH (first 300): ${(process.env.PATH || '(empty)').substring(0, 300)}`);
+
+  if (!isWindows) return;
+
+  // Windows-specific diagnostics for cygpath / Git / tool discovery
+  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+  const gitUsrBin = path.join(programFiles, 'Git', 'usr', 'bin');
+  const cygpathPath = path.join(gitUsrBin, 'cygpath.exe');
+
+  console.log(`${tag} APPDATA=${process.env.APPDATA || '(unset)'}`);
+  console.log(`${tag} LOCALAPPDATA=${process.env.LOCALAPPDATA || '(unset)'}`);
+  console.log(`${tag} ProgramFiles=${programFiles}`);
+  console.log(`${tag} Git usr/bin dir: ${existsSync(gitUsrBin) ? 'EXISTS' : 'MISSING'} (${gitUsrBin})`);
+  console.log(`${tag} cygpath.exe: ${existsSync(cygpathPath) ? 'EXISTS' : 'MISSING'} (${cygpathPath})`);
+
+  // Report which extra paths will be appended
+  const enhanced = getEnhancedEnv();
+  console.log(`${tag} Enhanced PATH (first 500): ${enhanced.PATH.substring(0, 500)}`);
+}
+
+/**
+ * Return the platform-specific path to the npm _npx cache directory.
+ *
+ * - Windows: %LOCALAPPDATA%\npm-cache\_npx
+ * - POSIX:   ~/.npm/_npx
+ */
+export function getNpxCacheDir(): string {
+  const npmCacheBase =
+    process.platform === 'win32'
+      ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache')
+      : path.join(os.homedir(), '.npm');
+  return path.join(npmCacheBase, '_npx');
 }

@@ -29,7 +29,19 @@ export interface AionSelectProps extends NativeSelectProps {
  * 注意：主题相关样式（背景色、边框色）在 arco-override.css 的 .aion-select 类中定义
  * Note: Theme-related styles (background, border colors) are defined in .aion-select class in arco-override.css
  */
-const BASE_CLASS = classNames('aion-select', '[&_.arco-select-view]:rounded-[4px]', '[&_.arco-select-view]:border', '[&_.arco-select-view]:border-solid', '[&_.arco-select-view]:border-border-2', '[&_.arco-select-view]:shadow-none', '[&_.arco-select-view]:transition-colors', '[&_.arco-select-view:hover]:border-[var(--color-primary)]', '[&_.arco-select-view:focus-within]:border-[var(--color-primary)]', '[&_.arco-select-view-disabled]:bg-[var(--color-bg-2)]', '[&_.arco-select-view-disabled]:opacity-80');
+const BASE_CLASS = classNames(
+  'aion-select',
+  '[&_.arco-select-view]:rounded-[4px]',
+  '[&_.arco-select-view]:border',
+  '[&_.arco-select-view]:border-solid',
+  '[&_.arco-select-view]:border-border-2',
+  '[&_.arco-select-view]:shadow-none',
+  '[&_.arco-select-view]:transition-colors',
+  '[&_.arco-select-view:hover]:border-[var(--color-primary)]',
+  '[&_.arco-select-view:focus-within]:border-[var(--color-primary)]',
+  '[&_.arco-select-view-disabled]:bg-[var(--color-bg-2)]',
+  '[&_.arco-select-view-disabled]:opacity-80'
+);
 
 /**
  * 默认的弹出层容器获取函数
@@ -98,10 +110,20 @@ type AionSelectComponent = React.ForwardRefExoticComponent<AionSelectProps & Rea
   OptGroup: typeof Select.OptGroup;
 };
 
-const InternalSelect = React.forwardRef<SelectHandle, AionSelectProps>(({ className, getPopupContainer, size = 'middle', ...rest }, ref) => {
-  const normalizedSize = mapSizeToNative(size);
-  return <Select ref={ref} size={normalizedSize} className={classNames(BASE_CLASS, className)} getPopupContainer={getPopupContainer || defaultGetPopupContainer} {...rest} />;
-});
+const InternalSelect = React.forwardRef<SelectHandle, AionSelectProps>(
+  ({ className, getPopupContainer, size = 'middle', ...rest }, ref) => {
+    const normalizedSize = mapSizeToNative(size);
+    return (
+      <Select
+        ref={ref}
+        size={normalizedSize}
+        className={classNames(BASE_CLASS, className)}
+        getPopupContainer={getPopupContainer || defaultGetPopupContainer}
+        {...rest}
+      />
+    );
+  }
+);
 
 const AionSelect = InternalSelect as AionSelectComponent;
 

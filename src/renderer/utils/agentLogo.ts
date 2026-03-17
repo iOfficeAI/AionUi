@@ -12,6 +12,7 @@
 
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CursorLogo from '@/renderer/assets/logos/cursor.png';
 import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import DroidLogo from '@/renderer/assets/logos/droid.svg';
@@ -23,7 +24,8 @@ import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import MistralLogo from '@/renderer/assets/logos/mistral.svg';
 import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
+import OpenCodeLogoDark from '@/renderer/assets/logos/opencode-dark.svg';
+import OpenCodeLogoLight from '@/renderer/assets/logos/opencode-light.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 
@@ -45,14 +47,26 @@ const AGENT_LOGO_MAP = {
   goose: GooseLogo,
   auggie: AuggieLogo,
   kimi: KimiLogo,
-  opencode: OpenCodeLogo,
+  opencode: OpenCodeLogoLight,
   copilot: GitHubLogo,
   openclaw: OpenClawLogo,
   'openclaw-gateway': OpenClawLogo,
   vibe: MistralLogo,
   nanobot: NanobotLogo,
   qoder: QoderLogo,
+  cursor: CursorLogo,
 } as const satisfies Record<string, string>;
+
+function isDarkTheme(): boolean {
+  if (typeof document === 'undefined') return false;
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'dark') return true;
+  if (theme === 'light') return false;
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  return false;
+}
 
 /**
  * 根据 agent 名称获取对应的 logo
@@ -64,6 +78,9 @@ const AGENT_LOGO_MAP = {
 export function getAgentLogo(agent: string | undefined | null): string | null {
   if (!agent) return null;
   const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_MAP;
+  if (key === 'opencode') {
+    return isDarkTheme() ? OpenCodeLogoDark : OpenCodeLogoLight;
+  }
   return AGENT_LOGO_MAP[key] || null;
 }
 

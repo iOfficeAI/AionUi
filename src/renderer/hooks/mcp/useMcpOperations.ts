@@ -35,23 +35,36 @@ interface McpOperationResponse {
  * MCP操作管理Hook
  * 处理MCP服务器与agents之间的同步和移除操作
  */
-export const useMcpOperations = (mcpServers: IMcpServer[], message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]) => {
+export const useMcpOperations = (
+  mcpServers: IMcpServer[],
+  message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]
+) => {
   const { t } = useTranslation();
 
   // 处理MCP配置同步到agents的结果
   const handleMcpOperationResult = useCallback(
-    async (response: McpOperationResponse, operation: 'sync' | 'remove', successMessage?: string, skipRecheck = false) => {
+    async (
+      response: McpOperationResponse,
+      operation: 'sync' | 'remove',
+      successMessage?: string,
+      skipRecheck = false
+    ) => {
       if (response.success && response.data) {
         const { results } = response.data;
         const failedAgents = results.filter((r: McpOperationResult) => !r.success);
 
         // 立即显示操作开始的消息，然后触发状态更新
         if (failedAgents.length > 0) {
-          const failedNames = failedAgents.map((r: McpOperationResult) => `${r.agent}: ${truncateErrorMessage(r.error || '')}`).join(', ');
+          const failedNames = failedAgents
+            .map((r: McpOperationResult) => `${r.agent}: ${truncateErrorMessage(r.error || '')}`)
+            .join(', ');
           const truncatedErrors = truncateErrorMessage(failedNames, 200);
           const partialFailedKey = operation === 'sync' ? 'mcpSyncPartialFailed' : 'mcpRemovePartialFailed';
           await globalMessageQueue.add(() => {
-            message.warning({ content: t(`settings.${partialFailedKey}`, { errors: truncatedErrors }), duration: 6000 });
+            message.warning({
+              content: t(`settings.${partialFailedKey}`, { errors: truncatedErrors }),
+              duration: 6000,
+            });
           });
         } else {
           if (successMessage) {
@@ -91,7 +104,9 @@ export const useMcpOperations = (mcpServers: IMcpServer[], message: ReturnType<t
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
       if (agentsResponse.success && agentsResponse.data) {
         // Filter agents by transport type support if transport type is known
-        const compatibleCount = transportType ? agentsResponse.data.filter((a) => a.supportedTransports?.includes(transportType)).length : agentsResponse.data.length;
+        const compatibleCount = transportType
+          ? agentsResponse.data.filter((a) => a.supportedTransports?.includes(transportType)).length
+          : agentsResponse.data.length;
 
         // 显示开始移除的消息（通过队列）
         await globalMessageQueue.add(() => {
@@ -114,7 +129,9 @@ export const useMcpOperations = (mcpServers: IMcpServer[], message: ReturnType<t
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
       if (agentsResponse.success && agentsResponse.data) {
         // Filter agents by transport type support to show accurate count
-        const compatibleCount = agentsResponse.data.filter((a) => a.supportedTransports?.includes(server.transport.type)).length;
+        const compatibleCount = agentsResponse.data.filter((a) =>
+          a.supportedTransports?.includes(server.transport.type)
+        ).length;
 
         // 显示开始同步的消息（通过队列）
         await globalMessageQueue.add(() => {

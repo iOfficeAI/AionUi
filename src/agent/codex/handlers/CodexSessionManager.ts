@@ -8,7 +8,14 @@ import { uuid } from '@/common/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { randomBytes } from 'crypto';
 
-export type CodexSessionStatus = 'initializing' | 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected';
+export type CodexSessionStatus =
+  | 'initializing'
+  | 'connecting'
+  | 'connected'
+  | 'authenticated'
+  | 'session_active'
+  | 'error'
+  | 'disconnected';
 
 export interface CodexSessionConfig {
   conversation_id: string;

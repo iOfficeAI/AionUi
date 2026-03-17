@@ -101,15 +101,25 @@ const ComponentsShowcase: React.FC = () => {
       <section className='space-y-4'>
         <h2 className='text-xl font-semibold'>Steps - 步骤条</h2>
         <StepsWrapper current={currentStep} size='small'>
-          <StepsWrapper.Step title='步骤一' icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
-          <StepsWrapper.Step title='步骤二' icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+          <StepsWrapper.Step
+            title='步骤一'
+            icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined}
+          />
+          <StepsWrapper.Step
+            title='步骤二'
+            icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined}
+          />
           <StepsWrapper.Step title='步骤三' />
         </StepsWrapper>
         <div className='flex gap-2 mt-4'>
           <Button onClick={() => setCurrentStep(Math.max(1, currentStep - 1))} disabled={currentStep === 1}>
             上一步
           </Button>
-          <Button onClick={() => setCurrentStep(Math.min(3, currentStep + 1))} disabled={currentStep === 3} type='primary'>
+          <Button
+            onClick={() => setCurrentStep(Math.min(3, currentStep + 1))}
+            disabled={currentStep === 3}
+            type='primary'
+          >
             下一步
           </Button>
         </div>

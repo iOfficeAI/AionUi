@@ -1,0 +1,10 @@
+{
+  "coder": {
+    "name": "Hello Coder",
+    "description": "A coding agent that helps with code generation and review"
+  },
+  "researcher": {
+    "name": "Hello Researcher",
+    "description": "A research agent for analysis and summarization"
+  }
+}

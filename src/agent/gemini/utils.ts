@@ -5,7 +5,13 @@
  */
 
 import { DEFAULT_IMAGE_EXTENSION, MIME_TO_EXT_MAP } from '@/common/constants';
-import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import type {
+  CompletedToolCall,
+  Config,
+  GeminiClient,
+  ServerGeminiStreamEvent,
+  ToolCallRequestInfo,
+} from '@office-ai/aioncli-core';
 import { GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - executeToolCall is not re-exported from main entry but exists in subpath
@@ -13,7 +19,13 @@ import { executeToolCall } from '@office-ai/aioncli-core/dist/src/core/nonIntera
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAndFormatApiError } from './cli/errorParsing';
-import { DEFAULT_STREAM_RESILIENCE_CONFIG, globalToolCallGuard, StreamMonitor, type StreamConnectionEvent, type StreamResilienceConfig } from './cli/streamResilience';
+import {
+  DEFAULT_STREAM_RESILIENCE_CONFIG,
+  globalToolCallGuard,
+  StreamMonitor,
+  type StreamConnectionEvent,
+  type StreamResilienceConfig,
+} from './cli/streamResilience';
 
 enum StreamProcessingStatus {
   Completed,
@@ -67,7 +79,12 @@ async function saveInlineImage(mimeType: string, base64Data: string, workingDir:
  * @param onStreamEvent - 事件回调
  * @param monitorOptions - 流监控选项（可选）
  */
-export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGeminiStreamEvent>, config: Config, onStreamEvent: (event: { type: ServerGeminiStreamEvent['type']; data: unknown }) => void, monitorOptions?: StreamMonitorOptions): Promise<StreamProcessingStatus> => {
+export const processGeminiStreamEvents = async (
+  stream: AsyncIterable<ServerGeminiStreamEvent>,
+  config: Config,
+  onStreamEvent: (event: { type: ServerGeminiStreamEvent['type']; data: unknown }) => void,
+  monitorOptions?: StreamMonitorOptions
+): Promise<StreamProcessingStatus> => {
   // 创建流监控器
   const monitorConfig = { ...DEFAULT_STREAM_RESILIENCE_CONFIG, ...monitorOptions?.config };
   const monitor = new StreamMonitor(monitorConfig, (event) => {
@@ -184,7 +201,8 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           {
             // Safely extract error value - event.value may be string, object with .error, or undefined
             const errorEvent = event as unknown as { value?: { error?: unknown } | unknown };
-            const errorValue = (errorEvent.value as { error?: unknown })?.error ?? errorEvent.value ?? 'Unknown error occurred';
+            const errorValue =
+              (errorEvent.value as { error?: unknown })?.error ?? errorEvent.value ?? 'Unknown error occurred';
             onStreamEvent({
               type: event.type,
               data: parseAndFormatApiError(errorValue, config.getContentGeneratorConfig().authType),
@@ -279,7 +297,13 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
     monitor.markFailed(errorMessage);
 
     // 检查是否是连接相关错误
-    if (errorMessage.includes('fetch failed') || errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('ECONNRESET') || errorMessage.includes('socket hang up')) {
+    if (
+      errorMessage.includes('fetch failed') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('ECONNRESET') ||
+      errorMessage.includes('socket hang up')
+    ) {
       console.error('[StreamMonitor] Connection error detected:', errorMessage);
       return StreamProcessingStatus.ConnectionLost;
     }
@@ -334,7 +358,10 @@ const normalizeToolParams = (toolName: string, args: Record<string, unknown>): R
 
     // 新版 core 要求 list_directory 必填 dir_path，这里缺省时默认当前目录
     // aioncli-core now requires dir_path; default to workspace root when missing
-    if (toolName === 'list_directory' && (typeof normalized.dir_path !== 'string' || normalized.dir_path.length === 0)) {
+    if (
+      toolName === 'list_directory' &&
+      (typeof normalized.dir_path !== 'string' || normalized.dir_path.length === 0)
+    ) {
       normalized.dir_path = '.';
     }
   }
@@ -342,7 +369,14 @@ const normalizeToolParams = (toolName: string, args: Record<string, unknown>): R
   return normalized;
 };
 
-export const processGeminiFunctionCalls = async (config: Config, functionCalls: ToolCallRequestInfo[], onProgress: (event: { type: 'tool_call_request' | 'tool_call_response' | 'tool_call_error' | 'tool_call_finish'; data: unknown }) => Promise<void>) => {
+export const processGeminiFunctionCalls = async (
+  config: Config,
+  functionCalls: ToolCallRequestInfo[],
+  onProgress: (event: {
+    type: 'tool_call_request' | 'tool_call_response' | 'tool_call_error' | 'tool_call_finish';
+    data: unknown;
+  }) => Promise<void>
+) => {
   const toolResponseParts = [];
 
   for (const fc of functionCalls) {
@@ -381,7 +415,9 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
     });
 
     if (toolResponse.response?.responseParts) {
-      const parts = Array.isArray(toolResponse.response.responseParts) ? toolResponse.response.responseParts : [toolResponse.response.responseParts];
+      const parts = Array.isArray(toolResponse.response.responseParts)
+        ? toolResponse.response.responseParts
+        : [toolResponse.response.responseParts];
       for (const part of parts) {
         if (typeof part === 'string') {
           toolResponseParts.push({ text: part });
@@ -406,7 +442,11 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
  * 2. 受保护的工具调用不会被误判为 cancelled
  * 3. 工具完成后自动移除保护
  */
-export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedToolCall[], geminiClient: GeminiClient | null, performMemoryRefresh: () => void) => {
+export const handleCompletedTools = (
+  completedToolCallsFromScheduler: CompletedToolCall[],
+  geminiClient: GeminiClient | null,
+  performMemoryRefresh: () => void
+) => {
   const completedAndReadyToSubmitTools = completedToolCallsFromScheduler.filter((tc) => {
     const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
     if (isTerminalState) {
@@ -551,7 +591,9 @@ export function compactToolResponsesInHistory(geminiClient: GeminiClient): void 
 
         // Case 2: response.output is a very long string
         if ('output' in resp && typeof resp.output === 'string' && resp.output.length > COMPACT_TEXT_THRESHOLD) {
-          resp.output = resp.output.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${resp.output.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`;
+          resp.output =
+            resp.output.slice(0, COMPACT_TEXT_KEEP) +
+            `\n\n... [${resp.output.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`;
           modified = true;
           continue;
         }
@@ -560,7 +602,9 @@ export function compactToolResponsesInHistory(geminiClient: GeminiClient): void 
       // Case 3: response is a raw string (some tool results)
       if (typeof resp === 'string' && resp.length > COMPACT_TEXT_THRESHOLD) {
         fnResp.response = {
-          output: resp.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${resp.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`,
+          output:
+            resp.slice(0, COMPACT_TEXT_KEEP) +
+            `\n\n... [${resp.length - COMPACT_TEXT_KEEP} characters truncated from history. Use read_file tool to re-read if needed.]`,
         };
         modified = true;
         continue;
@@ -583,13 +627,17 @@ export function compactToolResponsesInHistory(geminiClient: GeminiClient): void 
               }
               // Nested long string
               if (typeof item === 'string' && item.length > COMPACT_TEXT_THRESHOLD) {
-                value[j] = item.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${item.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
+                value[j] =
+                  item.slice(0, COMPACT_TEXT_KEEP) +
+                  `\n\n... [${item.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
                 modified = true;
               }
             }
             // Also check if the array-valued field itself is a large string
           } else if (typeof value === 'string' && value.length > COMPACT_TEXT_THRESHOLD) {
-            (resp as Record<string, unknown>)[key] = value.slice(0, COMPACT_TEXT_KEEP) + `\n\n... [${value.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
+            (resp as Record<string, unknown>)[key] =
+              value.slice(0, COMPACT_TEXT_KEEP) +
+              `\n\n... [${value.length - COMPACT_TEXT_KEEP} characters truncated from history.]`;
             modified = true;
           }
         }

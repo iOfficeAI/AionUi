@@ -90,7 +90,7 @@ jobs:
     name: Build Test (${{ matrix.platform }})
     if: github.event.action != 'edited'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -100,26 +100,31 @@ jobs:
             arch: 'arm64'
             target: '--mac'
             build_args: '--mac --arm64'
+            unpacked_dir: 'mac-arm64'
           - platform: 'macos-x64'
             os: 'macos-14'
             arch: 'x64'
             target: '--mac'
             build_args: '--mac --x64'
+            unpacked_dir: 'mac'
           - platform: 'windows-x64'
             os: 'windows-2022'
             arch: 'x64'
             target: '--win'
             build_args: '--win --x64'
+            unpacked_dir: 'win-unpacked'
           - platform: 'windows-arm64'
             os: 'windows-2022'
             arch: 'arm64'
             target: '--win'
             build_args: '--win --arm64'
+            unpacked_dir: 'win-arm64-unpacked'
           - platform: 'linux'
             os: 'ubuntu-latest'
             arch: 'x64'
             target: '--linux'
             build_args: '--linux --x64'
+            unpacked_dir: 'linux-unpacked'
 
     steps:
       - name: Checkout code
@@ -163,14 +168,24 @@ jobs:
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
 
-      # Cache electron-builder binaries (winCodeSign, nsis, etc.) to avoid repeated downloads
-      - name: Cache electron-builder binaries
+      # Restore Electron/Electron-Builder caches before install-app-deps
+      - name: Cache Electron artifacts
+        id: electron-cache
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.cache/electron-builder
-          key: electron-builder-binaries-${{ matrix.platform }}-${{ hashFiles('package.json') }}
+          path: |
+            ${{ runner.temp }}/.cache/electron
+            ${{ runner.temp }}/.cache/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron-builder\Cache
+          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
-            electron-builder-binaries-${{ matrix.platform }}-
+            electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-cache-${{ matrix.platform }}-
+
+      - name: Cache status
+        run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
 
       - name: Rebuild native modules for Electron (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
@@ -178,6 +193,8 @@ jobs:
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Setup MSBuild (Windows only)
         if: startsWith(matrix.platform, 'windows')
@@ -235,11 +252,148 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           CI: true
 
-  # Job 4: Trigger GPT AI review (only on first PR submission)
+      - name: Verify packaged i18n assets
+        run: bun run test:packaged:i18n
+
+      - name: Verify build artifacts exist
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "VERIFY ARTIFACTS: ${{ matrix.platform }}"
+          echo "=========================================="
+          ls -lah out || true
+
+          case "${{ matrix.platform }}" in
+            windows-*)
+              ls out/*.exe out/*latest*.yml >/dev/null
+              ;;
+            macos-*)
+              ls out/*.dmg out/*.zip out/*latest*.yml >/dev/null
+              ;;
+            linux)
+              ls out/*.deb out/*latest*.yml >/dev/null
+              ;;
+          esac
+
+      - name: Silent install smoke test (Windows x64)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: |
+          Write-Host "=========================================="
+          Write-Host "SMOKE INSTALL: windows-x64"
+          Write-Host "=========================================="
+
+          $installer = Get-ChildItem -Path out -Filter "AionUi-*-win-*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows installer found in out/"
+          }
+
+          Write-Host "Using installer: $($installer.FullName)"
+          Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -NoNewWindow
+
+          $candidates = @(
+            "$env:LOCALAPPDATA\\Programs\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles\\AionUi\\AionUi.exe",
+            "$env:ProgramFiles(x86)\\AionUi\\AionUi.exe"
+          )
+
+          $installedExe = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $installedExe) {
+            throw "Silent install finished but app executable not found in expected locations"
+          }
+
+          Write-Host "Installed executable: $installedExe"
+
+      - name: Skip executable smoke for Windows arm64 cross build
+        if: matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          Write-Host "Skipping runtime install smoke for windows-arm64: runner is windows-x64, cannot reliably execute arm64 installer."
+          Get-ChildItem -Path out -Filter "AionUi-*-win-*.exe" | Format-Table Name, Length
+
+      - name: Install smoke test (macOS arm64)
+        if: matrix.platform == 'macos-arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=========================================="
+          echo "SMOKE INSTALL: macos-arm64"
+          echo "=========================================="
+
+          DMG_FILE=$(ls out/*.dmg | head -n 1)
+          MOUNT_POINT="/tmp/aionui-smoke-mount"
+          APP_DIR="/tmp/aionui-smoke-app"
+
+          rm -rf "$MOUNT_POINT" "$APP_DIR"
+          mkdir -p "$MOUNT_POINT" "$APP_DIR"
+
+          hdiutil attach "$DMG_FILE" -nobrowse -mountpoint "$MOUNT_POINT"
+          cp -R "$MOUNT_POINT"/*.app "$APP_DIR"/
+          hdiutil detach "$MOUNT_POINT"
+
+          APP_PATH=$(ls -d "$APP_DIR"/*.app | head -n 1)
+          APP_BIN="$APP_PATH/Contents/MacOS/AionUi"
+
+          test -x "$APP_BIN"
+          "$APP_BIN" --version || true
+
+      - name: Skip executable smoke for macOS x64 cross build
+        if: matrix.platform == 'macos-x64'
+        shell: bash
+        run: |
+          echo "Skipping runtime launch smoke for macos-x64 cross build on arm64 runner."
+          ls -lah out/*.dmg out/*.zip
+
+      - name: Install smoke test (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=========================================="
+          echo "SMOKE INSTALL: linux"
+          echo "=========================================="
+
+          DEB_FILE=$(ls out/*.deb | head -n 1)
+          PKG_NAME=$(dpkg-deb -f "$DEB_FILE" Package)
+          sudo dpkg -i "$DEB_FILE" || sudo apt-get install -f -y
+
+          INSTALLED_BIN=$(dpkg -L "$PKG_NAME" | grep -Ei '/(bin|opt)/.*(aionui)$' | head -n 1 || true)
+          if [ -z "$INSTALLED_BIN" ]; then
+            echo "Package files:"
+            dpkg -L "$PKG_NAME" | head -n 50
+            echo "No installed executable path matched expected pattern"
+            exit 1
+          fi
+
+          test -x "$INSTALLED_BIN"
+
+  # Job 4: Test release scripts (fast, no build required)
+  release-script-test:
+    name: Release Script Test
+    if: github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Create mock build artifacts
+        shell: bash
+        run: bash scripts/create-mock-release-artifacts.sh build-artifacts
+
+      - name: Run prepare-release-assets script
+        shell: bash
+        run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
+
+      - name: Validate script output
+        shell: bash
+        run: bash scripts/verify-release-assets.sh release-assets
+
+  # Job 5: Trigger GPT AI review (only on first PR submission)
   review:
     name: AI Review
-    needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
+    needs: [code-quality, unit-tests, build-test, release-script-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     uses: './.github/workflows/gpt-review.yml'
     with:
       pr_number: '${{ github.event.pull_request.number }}'
@@ -248,11 +402,11 @@ jobs:
       pull-requests: write
     secrets: inherit
 
-  # Job 5: Check if PR author is an external contributor
+  # Job 6: Check if PR author is an external contributor
   check-external:
     name: Check External
-    needs: [code-quality, unit-tests, build-test]
-    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success'
+    needs: [code-quality, unit-tests, build-test, release-script-test]
+    if: github.event.action == 'opened' && needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.build-test.result == 'success' && needs.release-script-test.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       is_external: ${{ steps.check.outputs.is_external }}
@@ -278,7 +432,7 @@ jobs:
               core.setOutput('is_external', 'true');
             }
 
-  # Job 6: Trigger GPT PR assessment for external contributors
+  # Job 7: Trigger GPT PR assessment for external contributors
   assessment:
     name: PR Assessment
     needs: [check-external]

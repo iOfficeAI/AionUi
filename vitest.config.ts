@@ -49,7 +49,40 @@ export default defineConfig({
       // 手动指定需要覆盖的源文件，确保只检测新增/修改的逻辑
       // 新增功能时，将对应的源文件路径添加到此数组
       // 例如: 'src/process/services/newService.ts'
-      include: ['src/process/services/autoUpdaterService.ts', 'src/process/bridge/updateBridge.ts', 'src/utils/configureChromium.ts', 'src/process/bridge/applicationBridge.ts'],
+      include: [
+        // Process / bridge
+        'src/process/bridge/services/WebuiService.ts',
+        'src/process/database/index.ts',
+        'src/webserver/auth/service/AuthService.ts',
+        'src/webserver/auth/repository/UserRepository.ts',
+        'src/process/services/autoUpdaterService.ts',
+        'src/process/services/cron/CronService.ts',
+        'src/process/services/cron/CronStore.ts',
+        'src/process/bridge/cronBridge.ts',
+        'src/process/bridge/conversationBridge.ts',
+        'src/process/bridge/updateBridge.ts',
+        'src/process/bridge/applicationBridge.ts',
+        'src/utils/configureChromium.ts',
+        // ACP
+        'src/agent/acp/AcpAdapter.ts',
+        'src/agent/acp/AcpConnection.ts',
+        'src/agent/acp/acpConnectors.ts',
+        'src/agent/acp/modelInfo.ts',
+        // Common
+        'src/common/chatLib.ts',
+        'src/common/update/models/VersionInfo.ts',
+        // Renderer utils
+        'src/renderer/messages/useAutoScroll.ts',
+        'src/renderer/utils/emitter.ts',
+        'src/renderer/utils/base64.ts',
+        'src/renderer/utils/download.ts',
+        // Extension system (only files with existing tests)
+        'src/extensions/ExtensionLoader.ts',
+        'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
+        'src/extensions/resolvers/WebuiResolver.ts',
+        // Renderer components
+        'src/renderer/pages/conversation/components/ConversationTitleMinimap.tsx',
+      ],
       thresholds: {
         statements: 30,
         branches: 10,

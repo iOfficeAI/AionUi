@@ -5,8 +5,24 @@
  */
 
 import { Type } from '@google/genai';
-import type { GeminiClient, Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, MessageBus } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, DEFAULT_GEMINI_FLASH_MODEL, LlmRole } from '@office-ai/aioncli-core';
+import type {
+  GeminiClient,
+  Config,
+  ToolResult,
+  ToolInvocation,
+  ToolLocation,
+  ToolCallConfirmationDetails,
+  MessageBus,
+} from '@office-ai/aioncli-core';
+import {
+  BaseDeclarativeTool,
+  BaseToolInvocation,
+  Kind,
+  getErrorMessage,
+  ToolErrorType,
+  DEFAULT_GEMINI_FLASH_MODEL,
+  LlmRole,
+} from '@office-ai/aioncli-core';
 import { getResponseText } from './utils';
 import { convert } from 'html-to-text';
 
@@ -92,7 +108,12 @@ export class WebFetchTool extends BaseDeclarativeTool<WebFetchToolParams, ToolRe
     return null;
   }
 
-  protected createInvocation(params: WebFetchToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<WebFetchToolParams, ToolResult> {
+  protected createInvocation(
+    params: WebFetchToolParams,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
+  ): ToolInvocation<WebFetchToolParams, ToolResult> {
     return new WebFetchInvocation(this.geminiClient, params, messageBus, _toolName, _toolDisplayName);
   }
 }
@@ -109,7 +130,8 @@ class WebFetchInvocation extends BaseToolInvocation<WebFetchToolParams, ToolResu
   }
 
   getDescription(): string {
-    const displayPrompt = this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
+    const displayPrompt =
+      this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
     return `Fetching content from ${this.params.url} and processing with prompt: "${displayPrompt}"`;
   }
 
@@ -128,7 +150,10 @@ class WebFetchInvocation extends BaseToolInvocation<WebFetchToolParams, ToolResu
     // Convert GitHub blob URL to raw URL - using secure URL parsing
     try {
       const parsedUrl = new URL(url);
-      if ((parsedUrl.hostname === 'github.com' || parsedUrl.hostname === 'www.github.com') && parsedUrl.pathname.includes('/blob/')) {
+      if (
+        (parsedUrl.hostname === 'github.com' || parsedUrl.hostname === 'www.github.com') &&
+        parsedUrl.pathname.includes('/blob/')
+      ) {
         url = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
       }
     } catch (e) {
@@ -158,7 +183,12 @@ I have fetched the content from ${this.params.url}. Please use the following con
 ${textContent}
 ---`;
 
-      const result = await this.geminiClient.generateContent({ model: DEFAULT_GEMINI_FLASH_MODEL }, [{ role: 'user', parts: [{ text: processPrompt }] }], signal, LlmRole.UTILITY_TOOL);
+      const result = await this.geminiClient.generateContent(
+        { model: DEFAULT_GEMINI_FLASH_MODEL },
+        [{ role: 'user', parts: [{ text: processPrompt }] }],
+        signal,
+        LlmRole.UTILITY_TOOL
+      );
       const resultText = getResponseText(result) || '';
       return {
         llmContent: resultText,

@@ -11,6 +11,7 @@ import type { IProvider } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -54,6 +55,9 @@ const AcpModelSelector: React.FC<{
         if (cancelled) return;
         if (result.success && result.data?.modelInfo) {
           const info = result.data.modelInfo;
+          if (backend === 'codex') {
+            console.log('[AcpModelSelector][codex] Initial model info:', info);
+          }
           // When agent is not fully initialized, getModelInfo returns
           // canSwitch=false with empty availableModels. Prefer cached data
           // in that case to keep the dropdown functional.
@@ -85,11 +89,16 @@ const AcpModelSelector: React.FC<{
         if (isCancelled) return;
         const cachedInfo = cached?.[backendKey];
         if (cachedInfo?.availableModels?.length > 0) {
+          if (backendKey === 'codex') {
+            console.log('[AcpModelSelector][codex] Loaded cached model info:', cachedInfo);
+          }
           const effectiveModelId = initialModelId || cachedInfo.currentModelId || null;
           setModelInfo({
             ...cachedInfo,
             currentModelId: effectiveModelId,
-            currentModelLabel: (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) || effectiveModelId,
+            currentModelLabel:
+              (effectiveModelId && cachedInfo.availableModels.find((m) => m.id === effectiveModelId)?.label) ||
+              effectiveModelId,
           });
         }
       } catch {
@@ -104,6 +113,9 @@ const AcpModelSelector: React.FC<{
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
+        if (backend === 'codex') {
+          console.log('[AcpModelSelector][codex] Stream model info:', incoming);
+        }
         // Preserve pre-selected model from Guid page until user manually switches.
         // The agent emits its default model during start (before re-apply), which
         // would otherwise overwrite the user's Guid page selection.
@@ -153,7 +165,14 @@ const AcpModelSelector: React.FC<{
     [conversationId]
   );
 
-  const displayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || t('conversation.welcome.useCliModel');
+  const defaultModelLabel = t('common.defaultModel');
+  const rawDisplayLabel = modelInfo?.currentModelLabel || modelInfo?.currentModelId || '';
+  const displayLabel = getModelDisplayLabel({
+    selectedValue: modelInfo?.currentModelId,
+    selectedLabel: rawDisplayLabel,
+    defaultModelLabel,
+    fallbackLabel: t('conversation.welcome.useCliModel'),
+  });
   const compact = isPreviewOpen || layout?.isMobile;
   const isMobileCompact = Boolean(layout?.isMobile);
 
@@ -165,7 +184,8 @@ const AcpModelSelector: React.FC<{
     if (!modelInfo?.currentModelId || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
     const providerConfig = modelConfig.find((p) => p.platform?.includes(backend || ''));
     const healthStatus = providerConfig?.modelHealth?.[modelInfo.currentModelId]?.status || 'unknown';
-    const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+    const healthColor =
+      healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
     return { status: healthStatus, color: healthColor };
   }, [modelInfo?.currentModelId, modelConfig, backend]);
 
@@ -173,7 +193,16 @@ const AcpModelSelector: React.FC<{
   if (!modelInfo) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+        <Button
+          className={classNames(
+            'sendbox-model-btn header-model-btn',
+            compact && '!max-w-[120px]',
+            isMobileCompact && '!max-w-[160px]'
+          )}
+          shape='round'
+          size='small'
+          style={{ cursor: 'default' }}
+        >
           <span className='flex items-center gap-6px min-w-0'>
             <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
           </span>
@@ -186,9 +215,20 @@ const AcpModelSelector: React.FC<{
   if (!modelInfo.canSwitch) {
     return (
       <Tooltip content={displayLabel} position='top'>
-        <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small' style={{ cursor: 'default' }}>
+        <Button
+          className={classNames(
+            'sendbox-model-btn header-model-btn',
+            compact && '!max-w-[120px]',
+            isMobileCompact && '!max-w-[160px]'
+          )}
+          shape='round'
+          size='small'
+          style={{ cursor: 'default' }}
+        >
           <span className='flex items-center gap-6px min-w-0'>
-            {currentModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />}
+            {currentModelHealth.status !== 'unknown' && (
+              <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
+            )}
             <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
           </span>
         </Button>
@@ -206,10 +246,15 @@ const AcpModelSelector: React.FC<{
             // 获取模型健康状态
             const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
             const healthStatus = providerConfig?.modelHealth?.[model.id]?.status || 'unknown';
-            const healthColor = healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
+            const healthColor =
+              healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
 
             return (
-              <Menu.Item key={model.id} className={model.id === modelInfo.currentModelId ? 'bg-2!' : ''} onClick={() => handleSelectModel(model.id)}>
+              <Menu.Item
+                key={model.id}
+                className={model.id === modelInfo.currentModelId ? 'bg-2!' : ''}
+                onClick={() => handleSelectModel(model.id)}
+              >
                 <div className='flex items-center gap-8px w-full'>
                   {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
                   <span>{model.label}</span>
@@ -220,9 +265,19 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button className={classNames('sendbox-model-btn header-model-btn', compact && '!max-w-[120px]', isMobileCompact && '!max-w-[160px]')} shape='round' size='small'>
+      <Button
+        className={classNames(
+          'sendbox-model-btn header-model-btn',
+          compact && '!max-w-[120px]',
+          isMobileCompact && '!max-w-[160px]'
+        )}
+        shape='round'
+        size='small'
+      >
         <span className='flex items-center gap-6px min-w-0'>
-          {currentModelHealth.status !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />}
+          {currentModelHealth.status !== 'unknown' && (
+            <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
+          )}
           <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
         </span>
       </Button>

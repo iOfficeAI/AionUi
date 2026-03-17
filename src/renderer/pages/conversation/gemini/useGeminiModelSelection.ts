@@ -19,7 +19,10 @@ export interface UseGeminiModelSelectionOptions {
 }
 
 // Centralize model selection logic for reuse across header, send box, and channel settings
-export const useGeminiModelSelection = ({ initialModel, onSelectModel }: UseGeminiModelSelectionOptions): GeminiModelSelection => {
+export const useGeminiModelSelection = ({
+  initialModel,
+  onSelectModel,
+}: UseGeminiModelSelectionOptions): GeminiModelSelection => {
   const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
 
   useEffect(() => {

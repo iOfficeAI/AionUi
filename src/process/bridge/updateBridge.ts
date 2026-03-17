@@ -5,7 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult, UpdateReleaseInfo, GitHubReleaseAsset } from '@/common/updateTypes';
+import type {
+  UpdateCheckResult,
+  UpdateDownloadProgressEvent,
+  UpdateDownloadRequest,
+  UpdateDownloadResult,
+  UpdateReleaseInfo,
+  GitHubReleaseAsset,
+} from '@/common/updateTypes';
 import { uuid } from '@/common/utils';
 import { app } from 'electron';
 import * as fs from 'fs';
@@ -39,8 +46,13 @@ interface AutoUpdateCheckParams {
 
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
-const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.AppImage', '.deb', '.rpm'];
-const ALLOWED_DOWNLOAD_HOSTS = new Set<string>(['github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com', 'release-assets.githubusercontent.com']);
+const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm'];
+const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
+  'github.com',
+  'objects.githubusercontent.com',
+  'github-releases.githubusercontent.com',
+  'release-assets.githubusercontent.com',
+]);
 const MAX_REDIRECTS = 8;
 
 const isAllowedAssetName = (name: string) => {
@@ -63,22 +75,59 @@ const mapAsset = (asset: GitHubReleaseApiAsset): GitHubReleaseAsset => ({
   contentType: asset.content_type,
 });
 
-const getPlatformHints = () => {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  const archHints = arch === 'arm64' ? ['arm64', 'aarch64'] : ['x64', 'x86_64', 'amd64'];
-
-  // electron-builder artifact names often include one of these
-  const platformHints = platform === 'win32' ? ['win', 'win32', 'windows'] : platform === 'darwin' ? ['mac', 'darwin', 'osx'] : ['linux'];
-
-  return { platform, arch, archHints, platformHints };
+type RuntimePlatformInfo = {
+  platform: NodeJS.Platform;
+  arch: string;
 };
 
-const scoreAsset = (asset: GitHubReleaseAsset): number => {
-  const { platform, archHints, platformHints } = getPlatformHints();
+type CanonicalArch = 'x64' | 'arm64' | 'ia32';
+
+const normalizeArch = (arch: string): CanonicalArch => {
+  if (arch === 'arm64') return 'arm64';
+  if (arch === 'ia32' || arch === 'x32') return 'ia32';
+  return 'x64';
+};
+
+const detectAssetArchs = (nameLower: string): Set<CanonicalArch> => {
+  const detected = new Set<CanonicalArch>();
+
+  if (/\b(arm64|aarch64)\b/.test(nameLower)) detected.add('arm64');
+  if (/\b(x64|x86_64|amd64)\b/.test(nameLower)) detected.add('x64');
+
+  const hasX86Token = /\bx86\b/.test(nameLower) && !/\bx86[_-]?64\b/.test(nameLower);
+  if (/\b(ia32|x32|32bit)\b/.test(nameLower) || hasX86Token) detected.add('ia32');
+
+  return detected;
+};
+
+const getPlatformHints = (runtime: RuntimePlatformInfo = { platform: process.platform, arch: process.arch }) => {
+  const platform = runtime.platform;
+  const arch = runtime.arch;
+  const normalizedArch = normalizeArch(arch);
+
+  const archHints =
+    normalizedArch === 'arm64'
+      ? ['arm64', 'aarch64']
+      : normalizedArch === 'ia32'
+        ? ['ia32', 'x86', 'x32', '32bit']
+        : ['x64', 'x86_64', 'amd64'];
+
+  // electron-builder artifact names often include one of these
+  const platformHints =
+    platform === 'win32' ? ['win', 'win32', 'windows'] : platform === 'darwin' ? ['mac', 'darwin', 'osx'] : ['linux'];
+
+  return { platform, arch, normalizedArch, archHints, platformHints };
+};
+
+const scoreAsset = (asset: GitHubReleaseAsset, runtime?: RuntimePlatformInfo): number => {
+  const { platform, normalizedArch, archHints, platformHints } = getPlatformHints(runtime);
   const nameLower = asset.name.toLowerCase();
   const ext = path.extname(asset.name);
+
+  const detectedArchs = detectAssetArchs(nameLower);
+  if (detectedArchs.size > 0 && !detectedArchs.has(normalizedArch)) {
+    return -1;
+  }
 
   let score = 0;
 
@@ -87,6 +136,7 @@ const scoreAsset = (asset: GitHubReleaseAsset): number => {
 
   // Arch match
   if (archHints.some((hint) => nameLower.includes(hint))) score += 10;
+  if (detectedArchs.has(normalizedArch)) score += 15;
 
   // Prefer installer formats per platform
   if (platform === 'win32') {
@@ -97,8 +147,7 @@ const scoreAsset = (asset: GitHubReleaseAsset): number => {
     if (ext === '.dmg') score += 100;
     if (ext === '.zip') score += 70;
   } else {
-    if (ext === '.AppImage') score += 100;
-    if (ext === '.deb') score += 90;
+    if (ext === '.deb') score += 100;
     if (ext === '.rpm') score += 80;
     if (ext === '.zip') score += 40;
   }
@@ -106,10 +155,18 @@ const scoreAsset = (asset: GitHubReleaseAsset): number => {
   return score;
 };
 
-const pickRecommendedAsset = (assets: GitHubReleaseAsset[]): GitHubReleaseAsset | undefined => {
+export const pickRecommendedAsset = (
+  assets: GitHubReleaseAsset[],
+  runtime?: RuntimePlatformInfo
+): GitHubReleaseAsset | undefined => {
   if (!assets.length) return undefined;
-  const scored = [...assets].sort((a, b) => scoreAsset(b) - scoreAsset(a));
-  return scored[0];
+
+  const scored = assets
+    .map((asset) => ({ asset, score: scoreAsset(asset, runtime) }))
+    .filter((item) => item.score >= 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.asset;
 };
 
 const resolveRepo = (requestRepo?: string): string => {
@@ -252,7 +309,12 @@ const emitProgress = (evt: UpdateDownloadProgressEvent) => {
   ipcBridge.update.downloadProgress.emit(evt);
 };
 
-const startDownloadInBackground = async (downloadId: string, url: string, filePath: string, abortController: AbortController) => {
+const startDownloadInBackground = async (
+  downloadId: string,
+  url: string,
+  filePath: string,
+  abortController: AbortController
+) => {
   let receivedBytes = 0;
   let totalBytes: number | undefined;
 
@@ -369,125 +431,138 @@ const startDownloadInBackground = async (downloadId: string, url: string, filePa
  * This is a pure emitter: it does not bind to any specific window.
  * The ipcBridge channel broadcasts to all renderer listeners, so no window guard is needed here.
  */
-export function createAutoUpdateStatusBroadcast(): (status: import('../services/autoUpdaterService').AutoUpdateStatus) => void {
+export function createAutoUpdateStatusBroadcast(): (
+  status: import('../services/autoUpdaterService').AutoUpdateStatus
+) => void {
   return (status) => {
     ipcBridge.autoUpdate.status.emit(status);
   };
 }
 
 export function initUpdateBridge(): void {
-  ipcBridge.update.check.provider(async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
-    try {
-      const repo = resolveRepo(params?.repo);
-      const includePrerelease = Boolean(params?.includePrerelease);
-      const currentVersion = app.getVersion();
-
-      // EN: Versioning note
-      // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs release `tag_name`.
-      // If you want dev/prerelease updates to work reliably, CI must inject a prerelease semver into
-      // `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`) so semver ordering holds.
-      // We intentionally avoid heuristics based on tag strings when the app version is a stable semver.
-      //
-      // 中文：版本号说明
-      // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 Release 的 `tag_name`。
-      // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
-      // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
-      // 这里刻意不对“当前是稳定版版本号但用户勾选了 prerelease”做字符串猜测。
-
-      const releases = await fetchGitHubReleases(repo);
-      const candidates = releases
-        .filter((r) => r && !r.draft)
-        .filter((r) => (includePrerelease ? true : !r.prerelease))
-        .map(mapRelease)
-        .filter((r): r is UpdateReleaseInfo => Boolean(r));
-
-      const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
-      if (!currentSemver) {
-        return { success: true, data: { currentVersion, updateAvailable: false } };
-      }
-
-      const latest = candidates.filter((r) => semver.valid(r.version)).sort((a, b) => semver.rcompare(a.version, b.version))[0];
-
-      if (!latest) {
-        return { success: true, data: { currentVersion, updateAvailable: false } };
-      }
-
-      const updateAvailable = semver.gt(latest.version, currentSemver);
-      return {
-        success: true,
-        data: {
-          currentVersion,
-          updateAvailable,
-          latest,
-        },
-      };
-    } catch (err: unknown) {
-      return { success: false, msg: err instanceof Error ? err.message : String(err) };
-    }
-  });
-
-  ipcBridge.update.download.provider((params: UpdateDownloadRequest): Promise<{ success: boolean; data?: UpdateDownloadResult; msg?: string }> => {
-    try {
-      if (!params?.url) {
-        return Promise.resolve({ success: false, msg: 'missing url' });
-      }
-
-      // Defense-in-depth: do not allow arbitrary downloads from renderer.
-      // EN: We only allow GitHub release hosts (and follow redirects manually with per-hop allowlist checks).
-      // 中文：仅允许 GitHub 相关下载域名，并手动处理重定向（每一跳都校验白名单）。
-      assertAllowedUrl(params.url);
-
-      const downloadId = uuid();
-      const abortController = new AbortController();
-
-      const downloadsDir = app.getPath('downloads');
-      const urlObj = new URL(params.url);
-      const urlName = path.basename(urlObj.pathname);
-      const baseName = sanitizeFileName(params.fileName || urlName);
-
-      const targetPath = ensureUniquePath(path.join(downloadsDir, baseName));
-      downloads.set(downloadId, { abortController, filePath: targetPath });
-
-      // Start background download, but return immediately so the UI stays responsive.
-      void startDownloadInBackground(downloadId, params.url, targetPath, abortController);
-
-      return Promise.resolve({ success: true, data: { downloadId, filePath: targetPath } });
-    } catch (err: unknown) {
-      return Promise.resolve({ success: false, msg: err instanceof Error ? err.message : String(err) });
-    }
-  });
-
-  // Auto-updater IPC handlers (electron-updater)
-  ipcBridge.autoUpdate.check.provider(async (params: AutoUpdateCheckParams): Promise<{ success: boolean; data?: { updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } }; msg?: string }> => {
-    try {
-      // Set prerelease preference before checking
-      const includePrerelease = Boolean(params?.includePrerelease);
-      autoUpdaterService.setAllowPrerelease(includePrerelease);
-
-      const result = await autoUpdaterService.checkForUpdates();
-      if (result.success && result.updateInfo) {
-        // Only report update when the remote version is actually newer than the current version.
-        // electron-updater's checkForUpdates() always returns updateInfo regardless of availability.
+  ipcBridge.update.check.provider(
+    async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
+      try {
+        const repo = resolveRepo(params?.repo);
+        const includePrerelease = Boolean(params?.includePrerelease);
         const currentVersion = app.getVersion();
-        if (!semver.gt(result.updateInfo.version, currentVersion)) {
-          return { success: true, data: {} };
+
+        // EN: Versioning note
+        // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs release `tag_name`.
+        // If you want dev/prerelease updates to work reliably, CI must inject a prerelease semver into
+        // `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`) so semver ordering holds.
+        // We intentionally avoid heuristics based on tag strings when the app version is a stable semver.
+        //
+        // 中文：版本号说明
+        // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 Release 的 `tag_name`。
+        // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
+        // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
+        // 这里刻意不对“当前是稳定版版本号但用户勾选了 prerelease”做字符串猜测。
+
+        const releases = await fetchGitHubReleases(repo);
+        const candidates = releases
+          .filter((r) => r && !r.draft)
+          .filter((r) => (includePrerelease ? true : !r.prerelease))
+          .map(mapRelease)
+          .filter((r): r is UpdateReleaseInfo => Boolean(r));
+
+        const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
+        if (!currentSemver) {
+          return { success: true, data: { currentVersion, updateAvailable: false } };
         }
+
+        const latest = candidates
+          .filter((r) => semver.valid(r.version))
+          .sort((a, b) => semver.rcompare(a.version, b.version))[0];
+
+        if (!latest) {
+          return { success: true, data: { currentVersion, updateAvailable: false } };
+        }
+
+        const updateAvailable = semver.gt(latest.version, currentSemver);
         return {
           success: true,
           data: {
-            updateInfo: {
-              version: result.updateInfo.version,
-              releaseDate: result.updateInfo.releaseDate,
-              releaseNotes: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : undefined,
-            },
+            currentVersion,
+            updateAvailable,
+            latest,
           },
         };
+      } catch (err: unknown) {
+        return { success: false, msg: err instanceof Error ? err.message : String(err) };
       }
-      return { success: result.success, msg: result.error };
-    } catch (err: unknown) {
-      return { success: false, msg: err instanceof Error ? err.message : String(err) };
     }
-  });
+  );
+
+  ipcBridge.update.download.provider(
+    (params: UpdateDownloadRequest): Promise<{ success: boolean; data?: UpdateDownloadResult; msg?: string }> => {
+      try {
+        if (!params?.url) {
+          return Promise.resolve({ success: false, msg: 'missing url' });
+        }
+
+        // Defense-in-depth: do not allow arbitrary downloads from renderer.
+        // EN: We only allow GitHub release hosts (and follow redirects manually with per-hop allowlist checks).
+        // 中文：仅允许 GitHub 相关下载域名，并手动处理重定向（每一跳都校验白名单）。
+        assertAllowedUrl(params.url);
+
+        const downloadId = uuid();
+        const abortController = new AbortController();
+
+        const downloadsDir = app.getPath('downloads');
+        const urlObj = new URL(params.url);
+        const urlName = path.basename(urlObj.pathname);
+        const baseName = sanitizeFileName(params.fileName || urlName);
+
+        const targetPath = ensureUniquePath(path.join(downloadsDir, baseName));
+        downloads.set(downloadId, { abortController, filePath: targetPath });
+
+        // Start background download, but return immediately so the UI stays responsive.
+        void startDownloadInBackground(downloadId, params.url, targetPath, abortController);
+
+        return Promise.resolve({ success: true, data: { downloadId, filePath: targetPath } });
+      } catch (err: unknown) {
+        return Promise.resolve({ success: false, msg: err instanceof Error ? err.message : String(err) });
+      }
+    }
+  );
+
+  // Auto-updater IPC handlers (electron-updater)
+  ipcBridge.autoUpdate.check.provider(
+    async (
+      params: AutoUpdateCheckParams
+    ): Promise<{
+      success: boolean;
+      data?: { updateInfo?: { version: string; releaseDate?: string; releaseNotes?: string } };
+      msg?: string;
+    }> => {
+      try {
+        // Set prerelease preference before checking
+        const includePrerelease = Boolean(params?.includePrerelease);
+        autoUpdaterService.setAllowPrerelease(includePrerelease);
+
+        const result = await autoUpdaterService.checkForUpdates();
+        if (result.success && result.updateInfo) {
+          // autoUpdaterService.checkForUpdates() only returns updateInfo when
+          // electron-updater confirms isUpdateAvailable, so we can trust it directly.
+          return {
+            success: true,
+            data: {
+              updateInfo: {
+                version: result.updateInfo.version,
+                releaseDate: result.updateInfo.releaseDate,
+                releaseNotes:
+                  typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : undefined,
+              },
+            },
+          };
+        }
+        return { success: result.success, msg: result.error };
+      } catch (err: unknown) {
+        return { success: false, msg: err instanceof Error ? err.message : String(err) };
+      }
+    }
+  );
 
   ipcBridge.autoUpdate.download.provider(async (): Promise<{ success: boolean; msg?: string }> => {
     try {

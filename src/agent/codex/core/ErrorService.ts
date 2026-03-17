@@ -49,7 +49,10 @@ export class CodexErrorService {
 }
 
 // Utility functions for creating specific error types
-export function fromNetworkError(originalError: string | Error, options: { source?: string; retryCount?: number } = {}): CodexError {
+export function fromNetworkError(
+  originalError: string | Error,
+  options: { source?: string; retryCount?: number } = {}
+): CodexError {
   const errorMsg = typeof originalError === 'string' ? originalError : originalError.message;
   const lowerMsg = errorMsg.toLowerCase();
 

@@ -1,0 +1,9 @@
+{
+  "displayName": "Star Office Eklentisi",
+  "description": "Tüm ajanların aktivitelerini görselleştiren Star Office tarzı sekme.",
+  "settingsTabs": {
+    "star-office": { "name": "Star Office" },
+    "aionui-home": { "name": "AionUI Ana Sayfa" },
+    "aionui-issues": { "name": "AionUI Sorunlar" }
+  }
+}

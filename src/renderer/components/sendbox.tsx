@@ -5,7 +5,8 @@
  */
 
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
-import { getScrollTopForActiveItem, useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
+import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/SlashCommandMenu';
+import { useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/focus';
@@ -20,6 +21,7 @@ import { useLatestRef } from '../hooks/useLatestRef';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
+import './sendbox.css';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -44,7 +46,25 @@ const SendBox: React.FC<{
   sendButtonPrefix?: React.ReactNode;
   slashCommands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix, slashCommands = [], onSlashBuiltinCommand }) => {
+}> = ({
+  onSend,
+  onStop,
+  prefix,
+  className,
+  loading,
+  tools,
+  disabled,
+  placeholder,
+  value: input = '',
+  onChange: setInput = constVoid,
+  onFilesAdded,
+  supportedExts = allSupportedExts,
+  defaultMultiLine = false,
+  lockMultiLine = false,
+  sendButtonPrefix,
+  slashCommands = [],
+  onSlashBuiltinCommand,
+}) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
@@ -54,8 +74,6 @@ const SendBox: React.FC<{
   const isInputActive = isInputFocused;
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
-  const slashDropdownRef = useRef<HTMLDivElement>(null);
-  const slashItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const mobileUserFocusIntentUntilRef = useRef(0);
@@ -189,7 +207,7 @@ const SendBox: React.FC<{
     return [
       {
         name: 'open',
-        description: t('messages.slash.openFile', { defaultValue: 'Open file picker' }),
+        description: t('conversation.workspace.addFile', { defaultValue: 'Add File' }),
         kind: 'builtin',
         source: 'builtin',
       },
@@ -221,25 +239,16 @@ const SendBox: React.FC<{
     },
   });
 
-  useEffect(() => {
-    if (!slashController.isOpen) {
-      return;
-    }
-    const container = slashDropdownRef.current;
-    const activeItem = slashItemRefs.current[slashController.activeIndex];
-    if (!container || !activeItem) {
-      return;
-    }
-    const nextScrollTop = getScrollTopForActiveItem({
-      containerScrollTop: container.scrollTop,
-      containerHeight: container.clientHeight,
-      itemOffsetTop: activeItem.offsetTop,
-      itemOffsetHeight: activeItem.offsetHeight,
-    });
-    if (nextScrollTop !== container.scrollTop) {
-      container.scrollTop = nextScrollTop;
-    }
-  }, [slashController.activeIndex, slashController.isOpen, slashController.filteredCommands.length]);
+  const slashMenuItems = useMemo<SlashCommandMenuItem[]>(
+    () =>
+      slashController.filteredCommands.map((command) => ({
+        key: command.name,
+        label: `/${command.name}`,
+        description: command.description,
+        badge: command.hint,
+      })),
+    [slashController.filteredCommands]
+  );
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
@@ -303,7 +312,9 @@ const SendBox: React.FC<{
     // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
     let finalMessage = input;
     if (domSnippets.length > 0) {
-      const snippetsHtml = domSnippets.map((s) => `\n\n---\nDOM Snippet (${s.tag}):\n\`\`\`html\n${s.html}\n\`\`\``).join('');
+      const snippetsHtml = domSnippets
+        .map((s) => `\n\n---\nDOM Snippet (${s.tag}):\n\`\`\`html\n${s.html}\n\`\`\``)
+        .join('');
       finalMessage = input + snippetsHtml;
     }
 
@@ -372,28 +383,22 @@ const SendBox: React.FC<{
         {...dragHandlers}
       >
         {slashController.isOpen && (
-          <div ref={slashDropdownRef} className='absolute left-0 right-0 bottom-[calc(100%+8px)] z-50 max-h-220px overflow-auto rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] shadow-lg p-6px flex flex-col gap-4px'>
-            {slashController.filteredCommands.map((command, index) => (
-              <button
-                key={command.name}
-                type='button'
-                ref={(el) => {
-                  slashItemRefs.current[index] = el;
-                }}
-                className={`w-full text-left px-10px py-8px rounded-8px transition-all border border-solid ${slashController.activeIndex === index ? 'bg-fill-2 b-color-border-3 shadow-sm' : 'b-transparent hover:bg-fill-1 hover:b-color-border-2'}`}
-                onMouseEnter={() => slashController.setActiveIndex(index)}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  slashController.onSelectByIndex(index);
-                }}
-              >
-                <div className='flex items-center justify-between gap-8px'>
-                  <div className='text-13px text-t-primary font-600'>/{command.name}</div>
-                  {command.hint && <div className='text-11px text-t-tertiary'>{command.hint}</div>}
-                </div>
-                <div className='text-12px text-t-secondary mt-2px'>{command.description}</div>
-              </button>
-            ))}
+          <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
+            <SlashCommandMenu
+              title={t('messages.slash.title', { defaultValue: 'Commands' })}
+              hint={t('messages.slash.hint', { defaultValue: 'Type / to open command menu' })}
+              items={slashMenuItems}
+              activeIndex={slashController.activeIndex}
+              loading={false}
+              onHoverItem={slashController.setActiveIndex}
+              onSelectItem={(item) => {
+                const targetIndex = slashController.filteredCommands.findIndex((command) => command.name === item.key);
+                if (targetIndex >= 0) {
+                  slashController.onSelectByIndex(targetIndex);
+                }
+              }}
+              emptyText={t('messages.slash.empty', { defaultValue: 'No commands found' })}
+            />
           </div>
         )}
         <div style={{ width: '100%' }}>
@@ -403,15 +408,27 @@ const SendBox: React.FC<{
           {domSnippets.length > 0 && (
             <div className='flex flex-wrap gap-6px mb-8px'>
               {domSnippets.map((snippet) => (
-                <Tag key={snippet.id} closable closeIcon={<CloseSmall theme='outline' size='12' />} onClose={() => removeDomSnippet(snippet.id)} className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'>
+                <Tag
+                  key={snippet.id}
+                  closable
+                  closeIcon={<CloseSmall theme='outline' size='12' />}
+                  onClose={() => removeDomSnippet(snippet.id)}
+                  className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'
+                >
                   {snippet.tag}
                 </Tag>
               ))}
             </div>
           )}
         </div>
-        <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
-          {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
+        <div
+          className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
+        >
+          {isSingleLine && (
+            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>
+              {tools}
+            </div>
+          )}
           <Input.TextArea
             autoFocus={!isMobile}
             disabled={disabled}
@@ -450,16 +467,36 @@ const SendBox: React.FC<{
           {isSingleLine && (
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
+              {isLoading || loading ? (
+                <Button
+                  shape='circle'
+                  type='secondary'
+                  className='bg-animate'
+                  icon={<div className='mx-auto size-12px bg-6'></div>}
+                  onClick={stopHandler}
+                ></Button>
+              ) : (
+                sendButton
+              )}
             </div>
           )}
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <div className='sendbox-tools'>{tools}</div>
+            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
-              {isLoading || loading ? <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button> : sendButton}
+              {isLoading || loading ? (
+                <Button
+                  shape='circle'
+                  type='secondary'
+                  className='bg-animate'
+                  icon={<div className='mx-auto size-12px bg-6'></div>}
+                  onClick={stopHandler}
+                ></Button>
+              ) : (
+                sendButton
+              )}
             </div>
           </div>
         )}

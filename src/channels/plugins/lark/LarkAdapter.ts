@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAction, IUnifiedIncomingMessage, IUnifiedMessageContent, IUnifiedOutgoingMessage, IUnifiedUser } from '../../types';
+import type {
+  IMessageAction,
+  IUnifiedIncomingMessage,
+  IUnifiedMessageContent,
+  IUnifiedOutgoingMessage,
+  IUnifiedUser,
+} from '../../types';
 
 /**
  * LarkAdapter - Converts between Lark and Unified message formats
@@ -73,7 +79,10 @@ interface LarkCardActionEvent {
 /**
  * Convert Lark event to unified incoming message
  */
-export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActionEvent, actionInfo?: IMessageAction): IUnifiedIncomingMessage | null {
+export function toUnifiedIncomingMessage(
+  event: LarkMessageEvent | LarkCardActionEvent,
+  actionInfo?: IMessageAction
+): IUnifiedIncomingMessage | null {
   // Handle card action
   if (actionInfo && 'operator' in (event.event || {})) {
     const cardEvent = event as LarkCardActionEvent;

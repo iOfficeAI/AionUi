@@ -23,31 +23,65 @@
 .actionTools {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 1;
   min-width: 0;
+}
+
+.actionEntry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-right: 0;
+}
+
+.actionConfigGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.actionConfigGroupWithDivider > :first-child {
+  position: relative;
+}
+
+.actionConfigGroupWithDivider > :first-child::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  width: 1px;
+  height: 18px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-4) 55%, transparent);
 }
 
 /* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
 .actionTools :global(.sendbox-model-btn) {
   background-color: transparent !important;
-  border: 1px solid var(--border-base) !important;
+  border: none !important;
+  box-shadow: none !important;
   color: var(--color-text-2) !important;
+  padding-inline: 10px !important;
+  min-height: 28px !important;
 }
 
 .actionTools :global(.sendbox-model-btn:hover) {
-  background-color: var(--color-fill-2) !important;
-  border-color: var(--color-border-2) !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   color: var(--color-text-1) !important;
 }
 
-/* 暗色模式：边框用稍亮色，否则与背景融在一起看不见 */
-[data-theme='dark'] .actionTools :global(.sendbox-model-btn) {
-  border-color: var(--bg-4) !important;
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
+  gap: 0 !important;
 }
 
-[data-theme='dark'] .actionTools :global(.sendbox-model-btn:hover) {
-  border-color: var(--bg-5) !important;
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
+  gap: 6px !important;
 }
 
 .actionSubmit {
@@ -102,8 +136,8 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 100%);
-    padding: 0 16px;
+    width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 100%);
+    padding: 0 12px;
     padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
     box-sizing: border-box;
   }
@@ -119,13 +153,47 @@
 
   .actionTools {
     gap: 8px;
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .actionTools::-webkit-scrollbar {
+    display: none;
+  }
+
+  .actionTools > * {
+    flex: 0 0 auto;
+  }
+
+  .actionEntry {
+    margin-right: 0;
+  }
+
+  .actionConfigGroup {
+    gap: 12px;
+  }
+
+  .actionConfigGroupWithDivider > :first-child::after {
+    right: -6px;
+    height: 16px;
   }
 
   .actionSubmit {
     flex-shrink: 0;
     margin-left: 8px;
+  }
+}
+
+/* 小屏手机再收窄一点安全边距，提升可操作面积 */
+@media (max-width: 420px) {
+  .guidLayout {
+    width: clamp(var(--app-min-width, 360px), calc(100% - 20px), 100%);
+    padding: 0 10px;
   }
 }
 
@@ -243,9 +311,13 @@
 
   .actionTools {
     gap: 6px;
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
 }
 
@@ -256,9 +328,13 @@
   }
 
   .actionTools {
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
 
   .actionSubmit {

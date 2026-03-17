@@ -10,7 +10,7 @@ import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileSer
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { Plus, Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 interface CodexDraftData {
@@ -185,6 +186,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
       // All messages from Backend are already persisted via emitAndPersistMessage
       // Frontend only needs to update UI
+
       switch (message.type) {
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
@@ -196,6 +198,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           // Only reset when current turn has content output
           // Tool-only turns (no content) should not reset aiProcessing
           if (hasContentInTurnRef.current) {
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
             setRunning(false);
             setAiProcessing(false);
             setThought({ subject: '', description: '' });
@@ -281,7 +285,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setUploadFile([]);
 
     // 不再自动添加 @ 前缀，避免消息显示换行和歧义
-    const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+    const filePaths = [
+      ...currentUploadFile,
+      ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+    ];
     const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
 
     // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
@@ -371,7 +378,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理
-        await ipcBridge.codexConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
+        await ipcBridge.codexConversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          msg_id,
+          conversation_id,
+          files,
+          loading_id,
+        });
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
 
@@ -435,8 +448,22 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend='codex' conversationId={conversation_id} compact />
+            <Button
+              type='secondary'
+              shape='circle'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              onClick={openFileSelector}
+            />
+            <AgentModeSelector
+              backend='codex'
+              conversationId={conversation_id}
+              compact
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+            />
+            <AcpConfigSelector conversationId={conversation_id} backend='codex' />
           </div>
         }
         prefix={
@@ -445,7 +472,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
                 ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -456,7 +487,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                         key={path}
                         path={path}
                         onRemove={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
                           emitter.emit('codex.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}

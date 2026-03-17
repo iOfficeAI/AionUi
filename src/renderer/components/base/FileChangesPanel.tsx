@@ -49,7 +49,14 @@ export interface FileChangesPanelProps {
  * 用于显示会话中生成/修改的文件列表，支持展开收起
  * Used to display generated/modified files in conversation, supports expand/collapse
  */
-const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defaultExpanded = true, onFileClick, onDiffClick, className }) => {
+const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
+  title,
+  files,
+  defaultExpanded = true,
+  onFileClick,
+  onDiffClick,
+  className,
+}) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -58,9 +65,18 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
   }
 
   return (
-    <div className={classNames('w-full box-border rounded-8px overflow-hidden border border-solid border-[var(--aou-2)]', className)} style={{ width: '100%' }}>
+    <div
+      className={classNames(
+        'w-full box-border rounded-8px overflow-hidden border border-solid border-[var(--aou-2)]',
+        className
+      )}
+      style={{ width: '100%' }}
+    >
       {/* 标题栏 / Header */}
-      <div className='flex items-center justify-between px-16px py-12px cursor-pointer select-none' onClick={() => setExpanded(!expanded)}>
+      <div
+        className='flex items-center justify-between px-16px py-12px cursor-pointer select-none'
+        onClick={() => setExpanded(!expanded)}
+      >
         <div className='flex items-center gap-8px'>
           {/* 绿色圆点 / Green dot */}
           <span className='w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: diffColors.addition }}></span>
@@ -68,14 +84,24 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
           <span className='text-14px text-t-primary font-medium'>{title}</span>
         </div>
         {/* 展开/收起箭头 / Expand/collapse arrow */}
-        <Down theme='outline' size='16' fill={iconColors.secondary} className={classNames('transition-transform duration-200', expanded && 'rotate-180')} />
+        <Down
+          theme='outline'
+          size='16'
+          fill={iconColors.secondary}
+          className={classNames('transition-transform duration-200', expanded && 'rotate-180')}
+        />
       </div>
 
       {/* 文件列表 / File list */}
       {expanded && (
         <div className='w-full bg-2'>
           {files.map((file, index) => (
-            <div key={`${file.fullPath}-${index}`} className={classNames('group flex items-center justify-between px-16px py-12px hover:bg-3 transition-colors')}>
+            <div
+              key={`${file.fullPath}-${index}`}
+              className={classNames(
+                'group flex items-center justify-between px-16px py-12px hover:bg-3 transition-colors'
+              )}
+            >
               {/* 文件名 / File name */}
               <div className='flex items-center min-w-0'>
                 <span className='text-14px text-t-primary truncate'>{file.fileName}</span>
@@ -85,7 +111,10 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
                 {/* 变更统计 - 点击打开 diff 对比 / Change stats - click to open diff view */}
                 {(file.insertions > 0 || file.deletions > 0) && (
                   <span
-                    className={classNames('flex items-center gap-4px rd-4px px-4px py-2px', onDiffClick && 'cursor-pointer hover:bg-4 transition-colors')}
+                    className={classNames(
+                      'flex items-center gap-4px rd-4px px-4px py-2px',
+                      onDiffClick && 'cursor-pointer hover:bg-4 transition-colors'
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDiffClick?.(file);

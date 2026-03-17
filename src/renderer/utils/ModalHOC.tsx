@@ -38,7 +38,13 @@ const ModalHOC = <Props extends Record<string, any> = {}>(
         ...modalProps,
       };
     }, [defaultModalProps, modalProps]);
-    return <ModalBodyComponent {...(props as unknown as Props)} modalCtrl={modalCtrl} modalProps={mergeModalProps}></ModalBodyComponent>;
+    return (
+      <ModalBodyComponent
+        {...(props as unknown as Props)}
+        modalCtrl={modalCtrl}
+        modalProps={mergeModalProps}
+      ></ModalBodyComponent>
+    );
   };
 
   const useModal = (props: Props): TUseModalReturn<Props> => {
@@ -65,7 +71,10 @@ const ModalHOC = <Props extends Record<string, any> = {}>(
       };
     }, []);
 
-    return [ctrl, <ModalComponent {...props} {...modalProps} modalProps={{ visible }} modalCtrl={modalCtrl}></ModalComponent>];
+    return [
+      ctrl,
+      <ModalComponent {...props} {...modalProps} modalProps={{ visible }} modalCtrl={modalCtrl}></ModalComponent>,
+    ];
   };
   ModalComponent.useModal = useModal;
   return ModalComponent;

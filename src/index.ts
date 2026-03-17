@@ -4,21 +4,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app, BrowserWindow, nativeImage, powerMonitor, screen } from 'electron';
+import './utils/configureConsoleLog';
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
 import './utils/configureChromium';
+import { app, BrowserWindow, Menu, nativeImage, net, powerMonitor, protocol, screen, Tray } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
+import { AION_ASSET_PROTOCOL } from './extensions/assetProtocol';
 import { initializeProcess } from './process';
-import { loadShellEnvironmentAsync } from './process/utils/shellEnv';
+import { setWebServerInstance } from './process/bridge/webuiBridge';
+import { ProcessConfig } from './process/initStorage';
+import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector } from './process/bridge';
 import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
+import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import { setMainWindow } from './process/bridge/notificationBridge';
+import i18n, { setInitialLanguage } from '@process/i18n';
 import WorkerManage from './process/WorkerManage';
 import { setupApplicationMenu } from './utils/appMenu';
-import { startWebServer } from './webserver';
+import { startWebServer, startWebServerWithInstance } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
@@ -94,21 +102,45 @@ const handleDeepLinkUrl = (url: string) => {
 // Acquire lock early so the second instance quits before doing unnecessary work.
 // When a second instance starts (e.g. from protocol URL), it sends its data
 // to the first instance via second-instance event, then quits.
+const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+const gotTheLock = isE2ETestMode ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
 if (!gotTheLock) {
+  console.warn('[AionUi] Another instance is already running; current process will exit.');
   app.quit();
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
-    const deepLinkUrl = (additionalData as { deepLinkUrl?: string })?.deepLinkUrl || argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+    const deepLinkUrl =
+      (additionalData as { deepLinkUrl?: string })?.deepLinkUrl ||
+      argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
     if (deepLinkUrl) {
       handleDeepLinkUrl(deepLinkUrl);
     }
-    // Focus existing window
-    if (mainWindow) {
+    // Focus existing window or recreate one if needed.
+    if (isWebUIMode || isResetPasswordMode) {
+      return;
+    }
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
       mainWindow.focus();
+      return;
+    }
+
+    const existingWindow = BrowserWindow.getAllWindows().find((win) => !win.isDestroyed());
+    if (existingWindow) {
+      mainWindow = existingWindow;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      return;
+    }
+
+    if (app.isReady()) {
+      console.log('[AionUi] second-instance received with no active window, recreating main window');
+      createWindow();
     }
   });
 }
@@ -138,10 +170,30 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   }
 }
 
+// Log environment diagnostics once at startup (persisted via electron-log).
+// Helps debug PATH / cygpath issues on Windows (#1157).
+logEnvironmentDiagnostics();
+
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {
   app.quit();
 }
+
+// ============ Custom Asset Protocol ============
+// Register aion-asset:// as a privileged scheme BEFORE app.whenReady().
+// This protocol serves local extension assets (icons, covers) bypassing
+// the browser security policy that blocks file:// URLs from http://localhost.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: AION_ASSET_PROTOCOL,
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
 
 // 主进程全局错误处理器
 // Global error handlers for main process
@@ -184,6 +236,9 @@ const getSwitchValue = (flag: string): string | undefined => {
 const hasCommand = (cmd: string) => process.argv.includes(cmd);
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
+const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
+const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
+const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 
 type WebUIUserConfig = {
   port?: number | string;
@@ -225,7 +280,10 @@ const resolveWebUIPort = (config: WebUIUserConfig): number => {
   const cliPort = parsePortValue(getSwitchValue('port') ?? getSwitchValue('webui-port'), 'CLI (--port)');
   if (cliPort) return cliPort;
 
-  const envPort = parsePortValue(process.env.AIONUI_PORT ?? process.env.PORT, 'environment variable (AIONUI_PORT/PORT)');
+  const envPort = parsePortValue(
+    process.env.AIONUI_PORT ?? process.env.PORT,
+    'environment variable (AIONUI_PORT/PORT)'
+  );
   if (envPort) return envPort;
 
   const configPort = parsePortValue(config.port, 'webui.config.json');
@@ -251,16 +309,259 @@ const resolveRemoteAccess = (config: WebUIUserConfig): boolean => {
   return isRemoteMode || hostRequestsRemote || envRemote === true || configRemote;
 };
 
+const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
+  try {
+    const enabled = (await ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY)) === true;
+    if (!enabled) return;
+
+    const [allowRemotePref, portPref] = await Promise.all([
+      ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY),
+      ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY),
+    ]);
+    const allowRemote = allowRemotePref === true;
+    // 直接使用数字类型，提供默认值 / Use number type directly with default
+    const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : SERVER_CONFIG.DEFAULT_PORT;
+
+    const instance = await startWebServerWithInstance(preferredPort, allowRemote);
+    setWebServerInstance(instance);
+    console.log(`[WebUI] Auto-restored from desktop preferences (port=${preferredPort}, allowRemote=${allowRemote})`);
+  } catch (error) {
+    console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);
+  }
+};
+
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
+const isVersionMode = hasCommand('--version') || hasCommand('-v');
 
 // Flag to distinguish intentional quit from unexpected exit in WebUI mode
 let isExplicitQuit = false;
 
 let mainWindow: BrowserWindow;
+let tray: Tray | null = null;
+let isQuitting = false;
+let closeToTrayEnabled = false;
+
+/**
+ * 获取托盘图标 / Get tray icon
+ * macOS 使用 Template 图标以适配深色/浅色菜单栏
+ * macOS uses Template image to adapt to dark/light menu bar
+ */
+const getTrayIcon = (): Electron.NativeImage => {
+  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
+  if (process.platform === 'darwin') {
+    // macOS: 使用 16x16 的彩色应用图标 / Use 16x16 colored app icon
+    return icon.resize({ width: 16, height: 16 });
+  }
+  // Windows/Linux: 使用 32x32 PNG 图标确保清晰可见 / Use 32x32 PNG icon for clear visibility
+  return icon.resize({ width: 32, height: 32 });
+};
+
+/**
+ * 构建托盘右键菜单 / Build tray context menu
+ * 改为异步函数以支持动态内容 / Changed to async function to support dynamic content
+ */
+const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
+  // 获取最近对话列表 / Get recent conversations
+  const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
+    try {
+      const { getDatabase } = await import('./process/database');
+      const db = getDatabase();
+      const result = db.getUserConversations(undefined, 0, 5);
+      return (result.data || [])
+        .slice(0, 5)
+        .map((conv) => ({ id: conv.id, title: conv.name || i18n.t('common.tray.untitled') }));
+    } catch {
+      return [];
+    }
+  };
+
+  // 获取运行中的任务数量 / Get running tasks count
+  const getRunningTasksCount = (): number => {
+    try {
+      return WorkerManage.listTasks().length;
+    } catch {
+      return 0;
+    }
+  };
+
+  const recentConversations = await getRecentConversations();
+  const runningTasksCount = getRunningTasksCount();
+
+  // 构建菜单模板 / Build menu template
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: i18n.t('common.tray.showWindow'),
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: i18n.t('common.tray.newChat'),
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('tray:navigate-to-guid');
+        }
+      },
+    },
+  ];
+
+  // 添加最近对话列表 / Add recent conversations
+  if (recentConversations.length > 0) {
+    template.push({ type: 'separator' });
+    template.push({
+      label: i18n.t('common.tray.recentChats'),
+      enabled: false,
+    });
+    for (const conv of recentConversations) {
+      const displayTitle = conv.title.length > 20 ? conv.title.slice(0, 20) + '...' : conv.title;
+      template.push({
+        label: displayTitle,
+        click: () => {
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+            // Send navigation event to renderer / 发送导航事件到渲染器
+            mainWindow.webContents.send('tray:navigate-to-conversation', { conversationId: conv.id });
+          }
+        },
+      });
+    }
+  }
+
+  // 添加任务状态 / Add task status
+  template.push({ type: 'separator' });
+  template.push({
+    label: `${i18n.t('common.tray.runningTasks')}: ${runningTasksCount}`,
+    enabled: false,
+  });
+  template.push({
+    label: i18n.t('common.tray.pauseAll'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        // 发送暂停所有任务的事件 / Send event to pause all tasks
+        mainWindow.webContents.send('tray:pause-all-tasks');
+      }
+    },
+  });
+
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.closeToTray'),
+    type: 'checkbox',
+    checked: closeToTrayEnabled,
+    click: async (menuItem) => {
+      const newState = !closeToTrayEnabled;
+      void ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: newState });
+    },
+  });
+  template.push({
+    label: i18n.t('common.tray.checkUpdate'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('tray:check-update');
+      }
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.about'),
+    click: () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('tray:open-about');
+      }
+    },
+  });
+  template.push({
+    label: i18n.t('common.tray.restart'),
+    click: () => {
+      isQuitting = true;
+      app.relaunch();
+      app.exit(0);
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.quit'),
+    click: () => {
+      isQuitting = true;
+      app.quit();
+    },
+  });
+
+  return Menu.buildFromTemplate(template);
+};
+
+/**
+ * 创建系统托盘 / Create system tray
+ */
+const createOrUpdateTray = (): void => {
+  if (tray) {
+    return;
+  }
+  try {
+    const icon = getTrayIcon();
+    tray = new Tray(icon);
+    tray.setToolTip('AionUi');
+    // 初始化菜单 / Initialize menu
+    void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+
+    // 双击托盘图标显示窗口（Windows/Linux）/ Double-click tray icon to show window (Windows/Linux)
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    // 每次右键托盘图标时重建菜单（显示最新数据）/ Rebuild menu on right-click to show latest data
+    tray.on('click', (event: any) => {
+      if (event.event?.button === 2) {
+        // Right-click detected, rebuild context menu
+        void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+      }
+    });
+  } catch (err) {
+    console.error('[Tray] Failed to create tray:', err);
+  }
+};
+
+/**
+ * 刷新托盘右键菜单文案（语言切换时调用）/ Refresh tray context menu labels (called on language change)
+ */
+const refreshTrayMenu = async (): Promise<void> => {
+  if (tray) {
+    const menu = await buildTrayContextMenu();
+    tray.setContextMenu(menu);
+  }
+};
+
+/**
+ * 销毁系统托盘 / Destroy system tray
+ */
+const destroyTray = (): void => {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+};
 
 const createWindow = (): void => {
+  console.log('[AionUi] Creating main window...');
   // Get primary display size
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
@@ -307,58 +608,103 @@ const createWindow = (): void => {
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
+  console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
 
-  // Show window after page and CSS are fully loaded to prevent FOUC
+  // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
+  // Use 'ready-to-show' which fires when renderer has painted first frame,
+  // combined with 'did-finish-load' as belt-and-suspenders approach.
   const showWindow = () => {
     if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      console.log('[AionUi] Showing main window');
       mainWindow.show();
+      mainWindow.focus();
     }
   };
-  mainWindow.webContents.once('did-finish-load', () => {
-    setTimeout(showWindow, 200);
+  mainWindow.once('ready-to-show', () => {
+    console.log('[AionUi] Window ready-to-show');
+    showWindow();
   });
-  // Fallback: show window after 3s even if did-finish-load doesn't fire
-  setTimeout(showWindow, 3000);
+  // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
+  mainWindow.webContents.once('did-finish-load', () => {
+    console.log('[AionUi] Renderer did-finish-load');
+    showWindow();
+  });
+  // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
+  setTimeout(showWindow, 5000);
 
   initMainAdapterWithWindow(mainWindow);
   setupApplicationMenu();
+
+  // Set main window reference for notifications
+  // 设置主窗口引用供通知使用
+  setMainWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 
-  // Initialize auto-updater service
-  // 初始化自动更新服务
-  Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
-    .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
-      // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
-      const statusBroadcast = createAutoUpdateStatusBroadcast();
-      autoUpdaterService.initialize(statusBroadcast);
-      // Check for updates after 3 seconds delay
-      // 3秒后检查更新
-      setTimeout(() => {
-        void autoUpdaterService.checkForUpdatesAndNotify();
-      }, 3000);
-    })
-    .catch((error) => {
-      console.error('[App] Failed to initialize autoUpdaterService:', error);
-    });
+  // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
+  // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
+  const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
+  const disableAutoUpdater =
+    process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
+  if (!disableAutoUpdater) {
+    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
+      .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
+        // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
+        const statusBroadcast = createAutoUpdateStatusBroadcast();
+        autoUpdaterService.initialize(statusBroadcast);
+        // Check for updates after 3 seconds delay
+        // 3秒后检查更新
+        setTimeout(() => {
+          void autoUpdaterService.checkForUpdatesAndNotify();
+        }, 3000);
+      })
+      .catch((error) => {
+        console.error('[App] Failed to initialize autoUpdaterService:', error);
+      });
+  } else {
+    console.log('[AionUi] Auto-updater disabled via env/CI guard');
+  }
 
-  // and load the index.html of the app.
-  // electron-vite: In development, use ELECTRON_RENDERER_URL for HMR
-  // In production, load the built HTML file
-  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']).catch((_error) => {
-      // Error loading main window URL
+  // Load the renderer: dev server URL in development, built HTML file in production
+  const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
+  const fallbackFile = path.join(__dirname, '../renderer/index.html');
+
+  if (!app.isPackaged && rendererUrl) {
+    console.log(`[AionUi] Loading renderer URL: ${rendererUrl}`);
+    mainWindow.loadURL(rendererUrl).catch((error) => {
+      console.error('[AionUi] loadURL failed, falling back to file:', error.message || error);
+      mainWindow.loadFile(fallbackFile).catch((e2) => {
+        console.error('[AionUi] loadFile fallback also failed:', e2.message || e2);
+      });
     });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html')).catch((_error) => {
-      // Error loading main window file
+    console.log(`[AionUi] Loading renderer file: ${fallbackFile}`);
+    mainWindow.loadFile(fallbackFile).catch((error) => {
+      console.error('[AionUi] loadFile failed:', error.message || error);
     });
   }
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    console.error('[AionUi] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
+  });
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[AionUi] render-process-gone:', details);
+  });
+
+  mainWindow.webContents.on('unresponsive', () => {
+    console.warn('[AionUi] Renderer became unresponsive');
+  });
+
+  mainWindow.on('closed', () => {
+    console.log('[AionUi] Main window closed');
+  });
 
   // 只在开发环境自动打开 DevTools / Only auto-open DevTools in development
   // 使用 app.isPackaged 判断更可靠，打包后的应用不会自动打开 DevTools
   // Using app.isPackaged is more reliable, packaged apps won't auto-open DevTools
-  if (!app.isPackaged) {
+  const disableDevToolsByEnv = process.env.AIONUI_DISABLE_DEVTOOLS === '1' || process.env.AIONUI_E2E_TEST === '1';
+  if (!app.isPackaged && !disableDevToolsByEnv) {
     mainWindow.webContents.openDevTools();
   }
 
@@ -369,6 +715,15 @@ const createWindow = (): void => {
 
   mainWindow.webContents.on('devtools-closed', () => {
     ipcBridge.application.devToolsStateChanged.emit({ isOpen: false });
+  });
+
+  // 关闭拦截：当启用"关闭到托盘"时，隐藏窗口而非关闭
+  // Close interception: hide window instead of closing when "close to tray" is enabled
+  mainWindow.on('close', (event) => {
+    if (closeToTrayEnabled && !isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
   });
 };
 
@@ -413,6 +768,31 @@ ipcBridge.application.openDevTools.provider(() => {
 });
 
 const handleAppReady = async (): Promise<void> => {
+  console.log('[AionUi] app.whenReady resolved');
+
+  // CLI mode: print app version and exit immediately (used by CI smoke tests)
+  if (isVersionMode) {
+    console.log(app.getVersion());
+    app.exit(0);
+    return;
+  }
+
+  // Register aion-asset:// protocol handler.
+  // Converts aion-asset://asset/C:/path/to/file.svg → file:///C:/path/to/file.svg
+  // and serves the local file through Electron's net module.
+  protocol.handle(AION_ASSET_PROTOCOL, (request) => {
+    const url = new URL(request.url);
+    // pathname is /C:/path/to/file.svg — strip leading slash on Windows
+    let filePath = decodeURIComponent(url.pathname);
+    if (process.platform === 'win32' && filePath.startsWith('/') && /^\/[A-Za-z]:/.test(filePath)) {
+      filePath = filePath.slice(1);
+    }
+    if (!fs.existsSync(filePath)) {
+      console.warn(`[aion-asset] File not found: ${request.url} -> ${filePath}`);
+    }
+    return net.fetch(pathToFileURL(filePath).href);
+  });
+
   // Set dock icon in development mode on macOS
   // In production, the icon is set via forge.config.ts packagerConfig.icon
   if (process.platform === 'darwin' && !app.isPackaged && app.dock) {
@@ -474,7 +854,63 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
+    // Initialize ACP detector BEFORE creating the window to prevent a race
+    // condition where the renderer fetches getAvailableAgents before detection
+    // finishes, caching an empty result via SWR.
+    await initializeAcpDetector();
+
     createWindow();
+
+    // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
+    // Read language setting and initialize main process i18n, then refresh tray menu
+    try {
+      const savedLanguage = await ProcessConfig.get('language');
+      await setInitialLanguage(savedLanguage);
+      // 语言设置完成后，如果托盘已存在，刷新菜单 / After language is set, refresh tray menu if it exists
+      if (tray) {
+        await refreshTrayMenu();
+      }
+    } catch (error) {
+      console.error('[index] Failed to initialize i18n language:', error);
+    }
+
+    // 初始化关闭到托盘设置 / Initialize close-to-tray setting
+    if (isE2ETestMode) {
+      closeToTrayEnabled = false;
+      destroyTray();
+    } else {
+      try {
+        const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
+        closeToTrayEnabled = savedCloseToTray ?? false;
+        if (closeToTrayEnabled) {
+          createOrUpdateTray();
+        }
+      } catch {
+        // Ignore storage read errors, default to false
+      }
+
+      // 监听设置变更（通过 bridge 库）/ Listen for setting changes (via bridge library)
+      onCloseToTrayChanged((enabled) => {
+        closeToTrayEnabled = enabled;
+        if (enabled) {
+          createOrUpdateTray();
+        } else {
+          destroyTray();
+        }
+      });
+    }
+
+    // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
+    onLanguageChanged(() => {
+      void refreshTrayMenu();
+    });
+
+    if (!isE2ETestMode) {
+      // 窗口创建后异步恢复 WebUI，不阻塞 UI / Restore WebUI async after window creation, non-blocking
+      restoreDesktopWebUIFromPreferences().catch((error) => {
+        console.error('[WebUI] Failed to auto-restore:', error);
+      });
+    }
 
     // Flush pending deep-link URL (received before window was ready)
     if (pendingDeepLinkUrl) {
@@ -487,11 +923,26 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  // 启动时初始化ACP检测器 (skip in --resetpass mode)
-  if (!isResetPasswordMode) {
+  // WebUI mode also needs ACP detection for remote agent access
+  if (isWebUIMode) {
     await initializeAcpDetector();
-    // Preload shell environment in background for faster ACP connections
-    void loadShellEnvironmentAsync();
+  }
+
+  if (!isResetPasswordMode) {
+    // Preload shell environment and apply it to process.env so workers forked
+    // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
+    // This ensures custom skills that depend on globally installed tools work correctly.
+    void loadShellEnvironmentAsync().then((shellEnv) => {
+      if (shellEnv.PATH) {
+        process.env.PATH = mergePaths(process.env.PATH, shellEnv.PATH);
+      }
+      // Apply other shell env vars (SSL certs, auth tokens) that may be missing
+      for (const [key, value] of Object.entries(shellEnv)) {
+        if (key !== 'PATH' && !process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    });
   }
 
   // Verify CDP is ready and log status
@@ -500,7 +951,9 @@ const handleAppReady = async (): Promise<void> => {
     const cdpReady = await verifyCdpReady(cdpPort);
     if (cdpReady) {
       console.log(`[CDP] Remote debugging server ready at http://127.0.0.1:${cdpPort}`);
-      console.log(`[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`);
+      console.log(
+        `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:${cdpPort}`
+      );
     } else {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
     }
@@ -553,6 +1006,10 @@ void app
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  // 当关闭到托盘启用时，不退出应用 / Don't quit when close-to-tray is enabled
+  if (closeToTrayEnabled) {
+    return;
+  }
   // In WebUI mode, don't quit when windows are closed since we're running a web server
   if (!isWebUIMode && process.platform !== 'darwin') {
     app.quit();
@@ -562,13 +1019,25 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (!isWebUIMode && app.isReady() && BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+  if (!isWebUIMode && app.isReady()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
+      mainWindow.show();
+      mainWindow.focus();
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.show();
+      }
+    } else if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
   }
 });
 
 app.on('before-quit', async () => {
+  console.log('[AionUi] before-quit');
+  isQuitting = true;
   isExplicitQuit = true;
+  destroyTray();
   // 在应用退出前清理工作进程
   WorkerManage.clear();
 
@@ -579,6 +1048,14 @@ app.on('before-quit', async () => {
   } catch (error) {
     console.error('[App] Failed to shutdown ChannelManager:', error);
   }
+});
+
+app.on('will-quit', () => {
+  console.log('[AionUi] will-quit');
+});
+
+app.on('quit', (_event, exitCode) => {
+  console.log(`[AionUi] quit (exitCode=${exitCode})`);
 });
 
 // In this file you can include the rest of your app's specific main process
