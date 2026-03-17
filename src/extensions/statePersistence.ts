@@ -24,7 +24,7 @@ function resolveStatesFile(): string {
 
 /**
  * Persisted state format on disk.
- * Stored at ~/.aionui/extension-states.json by default.
+ * Stored at ~/.aionui/extension-states.json (release) or ~/.aionui-dev/extension-states.json (dev) by default.
  * Can be overridden via AIONUI_EXTENSION_STATES_FILE.
  */
 interface PersistedStates {
