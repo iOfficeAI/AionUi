@@ -54,11 +54,11 @@ function resolveResourcesDir(): string | null {
 type BundledBunManifest = {
   platform: string;
   arch: string;
+  version: string;
   generatedAt: string;
-  source: {
-    bun: string | null;
-    bunx: string | null;
-  };
+  sourceType: 'cache' | 'system' | 'download' | 'none';
+  cacheDir: string;
+  source: Record<string, string>;
   files: string[];
   skipped?: boolean;
   reason?: string;
@@ -87,8 +87,11 @@ describe('Packaged bundled bun resources integrity', () => {
 
       expect(manifest.platform).toBeTruthy();
       expect(manifest.arch).toBeTruthy();
+      expect(manifest.version).toBeTruthy();
+      expect(manifest.cacheDir).toBeTruthy();
       expect(Array.isArray(manifest.files)).toBe(true);
       expect(manifest.skipped).not.toBe(true);
+      expect(['cache', 'system', 'download']).toContain(manifest.sourceType);
 
       const requiredFiles = manifest.platform === 'win32' ? ['bun.exe', 'bunx.exe'] : ['bun', 'bunx'];
       for (const requiredFile of requiredFiles) {
