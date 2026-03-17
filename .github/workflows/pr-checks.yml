@@ -121,7 +121,7 @@ jobs:
         continue-on-error: true
         run: bun run test:coverage
 
-      - name: Upload coverage to Codecov
+      - name: Upload coverage to Codecov (Linux coverage only)
         if: always() && hashFiles('coverage/lcov.info') != ''
         uses: codecov/codecov-action@v5
         with:
@@ -140,6 +140,7 @@ jobs:
           else
             echo "## Coverage check" >> $GITHUB_STEP_SUMMARY
             echo "Coverage command passed." >> $GITHUB_STEP_SUMMARY
+            echo "Uploaded Linux (ubuntu-latest) coverage to Codecov." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload coverage artifacts
