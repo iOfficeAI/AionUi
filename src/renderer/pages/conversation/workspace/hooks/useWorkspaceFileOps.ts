@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { base64ToBlob, BINARY_MIME_MAP } from '@/renderer/utils/base64';
+import { downloadFileFromPath } from '@/renderer/utils/download';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
@@ -446,24 +446,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       closeContextMenu();
 
       try {
-        // 通过 getImageBase64 以 base64 字符串读取文件，兼容 WebUI 的 WebSocket 传输
-        // Read file as base64 string via getImageBase64, compatible with WebUI WebSocket transport
-        const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
-
-        // Decode base64 in-memory with atob to avoid CSP blocking fetch of data: URLs.
-        // Resolve MIME type from file extension for accuracy (data URL prefix may be octet-stream).
-        const ext = nodeData.name.split('.').pop()?.toLowerCase() ?? '';
-        const mimeType = BINARY_MIME_MAP[ext] ?? 'application/octet-stream';
-        const blob = base64ToBlob(dataUrl, mimeType);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = nodeData.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
+        await downloadFileFromPath(nodeData.fullPath, nodeData.name);
         messageApi.success(t('conversation.workspace.contextMenu.downloadSuccess'));
       } catch (error) {
         messageApi.error(t('conversation.workspace.contextMenu.downloadFailed'));

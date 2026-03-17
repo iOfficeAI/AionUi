@@ -38,16 +38,18 @@ describe('base64ToBlob', () => {
 
 describe('BINARY_MIME_MAP', () => {
   it('maps common Office extensions to correct MIME types', () => {
-    expect(BINARY_MIME_MAP['xlsx']).toBe(
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
+    expect(BINARY_MIME_MAP['xlsx']).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     expect(BINARY_MIME_MAP['pdf']).toBe('application/pdf');
-    expect(BINARY_MIME_MAP['docx']).toBe(
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    );
-    expect(BINARY_MIME_MAP['pptx']).toBe(
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-    );
+    expect(BINARY_MIME_MAP['docx']).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    expect(BINARY_MIME_MAP['pptx']).toBe('application/vnd.openxmlformats-officedocument.presentationml.presentation');
+  });
+
+  it('maps archive extensions to correct MIME types', () => {
+    expect(BINARY_MIME_MAP['zip']).toBe('application/zip');
+    expect(BINARY_MIME_MAP['tar']).toBe('application/x-tar');
+    expect(BINARY_MIME_MAP['gz']).toBe('application/gzip');
+    expect(BINARY_MIME_MAP['7z']).toBe('application/x-7z-compressed');
+    expect(BINARY_MIME_MAP['rar']).toBe('application/vnd.rar');
   });
 
   it('does not contain an entry for unknown extensions', () => {

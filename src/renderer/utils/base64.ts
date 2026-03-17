@@ -17,6 +17,12 @@ export const BINARY_MIME_MAP: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   doc: 'application/msword',
   odt: 'application/vnd.oasis.opendocument.text',
+  zip: 'application/zip',
+  tar: 'application/x-tar',
+  gz: 'application/gzip',
+  bz2: 'application/x-bzip2',
+  '7z': 'application/x-7z-compressed',
+  rar: 'application/vnd.rar',
 };
 
 /**
