@@ -7,9 +7,9 @@
 import type { BrowserWindow } from 'electron';
 import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
-import { ipcBridge } from '../common';
+import { ipcBridge } from '@/common';
 import i18n from '@process/i18n';
-import WorkerManage from './WorkerManage';
+import WorkerManage from '@process/WorkerManage';
 
 let tray: Tray | null = null;
 let closeToTrayEnabled = false;
