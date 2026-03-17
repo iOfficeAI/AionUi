@@ -6,3 +6,6 @@ android/
 *.tsbuildinfo
 .env
 .env.local
+build-*.ipa
+build-*.apk
+build-*.aab

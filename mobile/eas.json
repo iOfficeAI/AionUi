@@ -1,23 +1,41 @@
 {
   "cli": {
-    "version": ">= 15.0.0"
+    "version": ">= 15.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      }
-    },
-    "preview": {
       "distribution": "internal"
     },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "distribution": "store"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
-      "autoIncrement": true
+      "ios": {},
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "liangzhewei@gmail.com",
+        "appleTeamId": "M4AG47ZV62"
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "liangzhewei@gmail.com",
+        "appleTeamId": "M4AG47ZV62"
+      }
+    }
   }
 }

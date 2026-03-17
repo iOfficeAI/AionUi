@@ -1,11 +1,13 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
+import VERSION from './versions/version.json';
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
     name: 'AionUi Mobile',
     slug: 'aionui-mobile',
-    version: '0.1.0',
+    version: VERSION.version,
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'aionui-mobile',
@@ -13,12 +15,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.aionui.mobile',
+      buildNumber: String(VERSION.buildNumber),
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
         backgroundColor: '#1a1a2e',
       },
       package: 'com.aionui.mobile',
+      versionCode: VERSION.buildNumber,
     },
     web: {
       output: 'static',
@@ -27,6 +34,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client'],
     experiments: {
       typedRoutes: true,
+    },
+    extra: {
+      eas: {
+        projectId: '34b66303-fd5c-4d86-a790-0665d55f2017',
+      },
     },
   };
 };

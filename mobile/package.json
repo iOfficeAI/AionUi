@@ -6,13 +6,24 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "android:device": "expo run:android --device",
     "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
     "web": "expo start --web",
     "lint": "expo lint",
     "ts:check": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "build": "node scripts/build.js",
+    "build:dev:ios": "node scripts/build.js --profile development --platform ios --local",
+    "build:dev:android": "node scripts/build.js --profile development --platform android --local",
+    "build:preview:ios": "node scripts/build.js --profile preview --platform ios --local",
+    "build:preview:android": "node scripts/build.js --profile preview --platform android --local",
+    "build:prod:ios": "node scripts/build.js --profile production --platform ios",
+    "build:prod:android": "node scripts/build.js --profile production --platform android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
