@@ -4,13 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
 import { ipcBridge } from '../../common';
 import { getSystemDir, ProcessEnv } from '../initStorage';
 import { copyDirectoryRecursively } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { getZoomFactor, setZoomFactor } from '../utils/zoom';
-import { getCdpStatus, updateCdpConfig, verifyCdpReady } from '../../utils/configureChromium';
+import { getCdpStatus, updateCdpConfig } from '../../utils/configureChromium';
+
+let mainWindowRef: BrowserWindow | null = null;
+
+export function setApplicationMainWindow(win: BrowserWindow): void {
+  mainWindowRef = win;
+}
 
 export function initApplicationBridge(): void {
   ipcBridge.application.restart.provider(() => {
@@ -43,8 +50,38 @@ export function initApplicationBridge(): void {
     return Promise.resolve(app.getPath(name));
   });
 
+  ipcBridge.application.isDevToolsOpened.provider(() => {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      return Promise.resolve(mainWindowRef.webContents.isDevToolsOpened());
+    }
+    return Promise.resolve(false);
+  });
+
   ipcBridge.application.openDevTools.provider(() => {
-    // This will be handled by the main window when needed
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      const wasOpen = mainWindowRef.webContents.isDevToolsOpened();
+
+      if (wasOpen) {
+        mainWindowRef.webContents.closeDevTools();
+        return Promise.resolve(false);
+      } else {
+        return new Promise((resolve) => {
+          const onOpened = () => {
+            mainWindowRef!.webContents.off('devtools-opened', onOpened);
+            resolve(true);
+          };
+
+          mainWindowRef!.webContents.once('devtools-opened', onOpened);
+          mainWindowRef!.webContents.openDevTools();
+
+          setTimeout(() => {
+            mainWindowRef!.webContents.off('devtools-opened', onOpened);
+            const isNowOpen = mainWindowRef!.webContents.isDevToolsOpened();
+            resolve(isNowOpen);
+          }, 500);
+        });
+      }
+    }
     return Promise.resolve(false);
   });
 

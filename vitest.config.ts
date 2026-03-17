@@ -51,6 +51,9 @@ export default defineConfig({
       // 例如: 'src/process/services/newService.ts'
       include: [
         // Process / bridge
+        'src/process/tray.ts',
+        'src/process/deepLink.ts',
+        'src/process/webuiConfig.ts',
         'src/process/bridge/services/WebuiService.ts',
         'src/process/database/index.ts',
         'src/webserver/auth/service/AuthService.ts',
