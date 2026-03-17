@@ -135,12 +135,22 @@ jobs:
         shell: bash
         run: |
           if [ "${{ steps.coverage.outcome }}" = "failure" ]; then
+            echo "::warning::Coverage tests failed (non-blocking). Check logs for failed test details."
             echo "## Coverage check (non-blocking warning)" >> $GITHUB_STEP_SUMMARY
             echo "Coverage command failed in this run. Please review test failures in logs." >> $GITHUB_STEP_SUMMARY
+            if [ -f coverage/lcov.info ]; then
+              echo "lcov.info exists, Codecov upload can still run." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "lcov.info not found, Codecov upload was skipped." >> $GITHUB_STEP_SUMMARY
+            fi
           else
             echo "## Coverage check" >> $GITHUB_STEP_SUMMARY
             echo "Coverage command passed." >> $GITHUB_STEP_SUMMARY
-            echo "Uploaded Linux (ubuntu-latest) coverage to Codecov." >> $GITHUB_STEP_SUMMARY
+            if [ -f coverage/lcov.info ]; then
+              echo "Uploaded Linux (ubuntu-latest) coverage to Codecov." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "Coverage passed but lcov.info is missing; Codecov upload was skipped." >> $GITHUB_STEP_SUMMARY
+            fi
           fi
 
       - name: Upload coverage artifacts
