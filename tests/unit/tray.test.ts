@@ -220,11 +220,15 @@ describe('tray module', () => {
   });
 
   describe('context menu content', () => {
-    const setupWithOverrides = (overrides: () => void) => {
+    const setupWithOverrides = () => {
       vi.resetModules();
       vi.clearAllMocks();
       mockModules();
-      overrides();
+      mockListTasks.mockReturnValue([]);
+      mockGetUserConversations.mockReturnValue({ data: [] });
+      mockGetDatabase.mockImplementation(() => ({
+        getUserConversations: mockGetUserConversations,
+      }));
     };
 
     const getTemplateFromRefresh = async () => {
@@ -237,17 +241,12 @@ describe('tray module', () => {
     };
 
     it('should include recent conversations when available', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@process/database', () => ({
-          getDatabase: vi.fn(() => ({
-            getUserConversations: vi.fn(() => ({
-              data: [
-                { id: '1', name: 'Test Chat' },
-                { id: '2', name: 'Another Chat' },
-              ],
-            })),
-          })),
-        }));
+      setupWithOverrides();
+      mockGetUserConversations.mockReturnValue({
+        data: [
+          { id: '1', name: 'Test Chat' },
+          { id: '2', name: 'Another Chat' },
+        ],
       });
 
       const templateArg = await getTemplateFromRefresh();
@@ -257,14 +256,9 @@ describe('tray module', () => {
     });
 
     it('should truncate long conversation titles to 20 chars', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@process/database', () => ({
-          getDatabase: vi.fn(() => ({
-            getUserConversations: vi.fn(() => ({
-              data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
-            })),
-          })),
-        }));
+      setupWithOverrides();
+      mockGetUserConversations.mockReturnValue({
+        data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
       });
 
       const expectedTitle = 'A very long conversation title that exceeds twenty characters'.slice(0, 20) + '...';
@@ -274,11 +268,8 @@ describe('tray module', () => {
     });
 
     it('should show running tasks count', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@process/WorkerManage', () => ({
-          default: { listTasks: vi.fn(() => [{ id: '1' }, { id: '2' }, { id: '3' }]) },
-        }));
-      });
+      setupWithOverrides();
+      mockListTasks.mockReturnValue([{ id: '1' }, { id: '2' }, { id: '3' }]);
 
       const templateArg = await getTemplateFromRefresh();
       const taskItem = templateArg.find((item: any) => item.label?.includes('3'));
@@ -287,12 +278,9 @@ describe('tray module', () => {
     });
 
     it('should gracefully handle database errors for recent conversations', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@process/database', () => ({
-          getDatabase: vi.fn(() => {
-            throw new Error('DB unavailable');
-          }),
-        }));
+      setupWithOverrides();
+      mockGetDatabase.mockImplementation(() => {
+        throw new Error('DB unavailable');
       });
 
       await getTemplateFromRefresh();
