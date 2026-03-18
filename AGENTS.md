@@ -16,6 +16,20 @@ See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for
 - **Style files**: kebab-case or `ComponentName.module.css`
 - **Unused params**: prefix with `_`
 
+### UI Library & Icons
+
+- **Components**: `@arco-design/web-react` — no raw interactive HTML (`<button>`, `<input>`, `<select>`, etc.)
+- **Icons**: `@icon-park/react`
+
+### CSS
+
+- Prefer **UnoCSS utility classes**; complex styles use **CSS Modules** (`ComponentName.module.css`)
+- Colors must use **semantic tokens** from `uno.config.ts` or CSS variables — no hardcoded values
+- Arco overrides go in the component's CSS Module via `:global()` — no global override files
+- Global styles only in `src/renderer/styles/`
+
+See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for full CSS and UI library rules.
+
 ### TypeScript
 
 - Strict mode enabled — no `any`, no implicit returns

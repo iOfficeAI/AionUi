@@ -213,6 +213,24 @@ A single directory must not contain more than **10** direct children (files + su
 
 ---
 
+## UI Library & Icon Standards
+
+- **Component library**: `@arco-design/web-react` — all new UI must use Arco components first
+- **Icon library**: `@icon-park/react` — all icons must come from this library
+- **No raw HTML for interactive elements**: Do not use `<button>`, `<input>`, `<select>`, `<textarea>`, `<modal>`, etc. Use Arco equivalents (`Button`, `Input`, `Select`, `Modal`, etc.)
+- **Layout tags are fine**: `<div>`, `<span>`, `<section>`, `<nav>`, `<main>` may be used freely
+
+## CSS Conventions
+
+- **Prefer UnoCSS utility classes** for simple styles (`flex items-center gap-8px`)
+- **Complex/reusable styles**: Must use **CSS Modules** (`ComponentName.module.css`). Plain `.css` files are not allowed for component styles
+- **Semantic color tokens only**: Use `uno.config.ts` semantic colors (`text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. Hardcoded color values (`#86909C`, `rgb(...)`) are forbidden. Exception: theme presets under `CssThemeSettings/presets/`
+- **No inline styles** except for dynamically computed values
+- **Arco style overrides**: Co-locate in the component's CSS Module via `:global(.arco-xxx)`. No global override files
+- **Global styles**: Only in `src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `src/renderer/` root
+
+---
+
 ## Renderer Process (`src/renderer/`)
 
 ### Structure
