@@ -6,12 +6,35 @@
 
 import { logger } from '@office-ai/platform';
 import { initAllBridges } from './bridge';
+import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
+import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
 import { cronService } from '@process/services/cron/CronService';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import WorkerManage from '@process/WorkerManage';
 
 logger.config({ print: true });
 
+// Thin shim: adapts the existing WorkerManage module to IWorkerTaskManager.
+// WorkerManage uses BaseAgentManager internally; the cast to IAgentManager is safe
+// because all concrete managers implement the interface in practice.
+// This shim will be replaced in PR 4 when WorkerTaskManager is introduced.
+const workerTaskManagerShim: IWorkerTaskManager = {
+  getTask: (id) => (WorkerManage.getTaskById(id) as any) ?? undefined,
+  getOrBuildTask: (id, opts) => WorkerManage.getTaskByIdRollbackBuild(id, opts) as any,
+  addTask: (id, task) => WorkerManage.addTask(id, task as any),
+  kill: (id) => WorkerManage.kill(id),
+  clear: () => WorkerManage.clear(),
+  listTasks: () => WorkerManage.listTasks() as any,
+};
+
+const repo = new SqliteConversationRepository();
+const conversationServiceImpl = new ConversationServiceImpl(repo);
+
 // 初始化所有IPC桥接
-initAllBridges();
+initAllBridges({
+  conversationService: conversationServiceImpl,
+  workerTaskManager: workerTaskManagerShim,
+});
 
 // Initialize cron service (load jobs from database and start timers)
 void cronService.init().catch((error) => {
