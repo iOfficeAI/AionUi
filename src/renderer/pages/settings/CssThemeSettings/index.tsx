@@ -4,19 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage, type ICssTheme } from '@/common/storage';
+import { ConfigStorage, type ICssTheme } from '@/common/storage.ts';
 import { ipcBridge } from '@/common';
-import { uuid } from '@/common/utils';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { resolveCssByActiveTheme, setExtensionThemesCache } from '@/renderer/utils/themeCssSync';
+import { uuid } from '@/common/utils.ts';
+import { useThemeContext } from '@renderer/context/ThemeContext.tsx';
+import { resolveCssByActiveTheme, setExtensionThemesCache } from '@renderer/utils/themeCssSync.ts';
 import { Button, Message, Modal } from '@arco-design/web-react';
 import { EditTwo, Plus, CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import CssThemeModal from './CssThemeModal';
-import { PRESET_THEMES, DEFAULT_THEME_ID } from './presets';
-import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import CssThemeModal from './CssThemeModal.tsx';
+import { PRESET_THEMES, DEFAULT_THEME_ID } from './presets.ts';
+import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils.ts';
+import { resolveExtensionAssetUrl } from '@renderer/utils/platform.ts';
 
 interface ThemePreviewPalette {
   appBg: string;

@@ -8,14 +8,16 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import type { FileMetadata } from '../services/FileService';
-import { isSupportedFile, FileService } from '../services/FileService';
+import { isSupportedFile, FileService, MAX_UPLOAD_SIZE_MB } from '../services/FileService';
 
 export interface UseDragUploadOptions {
   supportedExts?: string[];
   onFilesAdded?: (files: FileMetadata[]) => void;
+  /** Conversation ID for WebUI file uploads */
+  conversationId?: string;
 }
 
-export const useDragUpload = ({ supportedExts = [], onFilesAdded }: UseDragUploadOptions) => {
+export const useDragUpload = ({ supportedExts = [], onFilesAdded, conversationId }: UseDragUploadOptions) => {
   const { t } = useTranslation();
   const [isFileDragging, setIsFileDragging] = useState(false);
 
@@ -87,18 +89,22 @@ export const useDragUpload = ({ supportedExts = [], onFilesAdded }: UseDragUploa
             length: validFiles.length,
             item: (index: number) => validFiles[index] || null,
           }) as unknown as FileList;
-          const processedFiles = await FileService.processDroppedFiles(validFileList);
+          const processedFiles = await FileService.processDroppedFiles(validFileList, conversationId);
 
           if (processedFiles.length > 0) {
             onFilesAdded(processedFiles);
           }
         }
       } catch (err) {
-        console.error('Failed to process dropped files:', err);
-        Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
+        if (err instanceof Error && err.message === 'FILE_TOO_LARGE') {
+          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
+        } else {
+          console.error('Failed to process dropped files:', err);
+          Message.error(t('conversation.workspace.dragFailed', 'Failed to process dropped files'));
+        }
       }
     },
-    [onFilesAdded, supportedExts, t]
+    [conversationId, onFilesAdded, supportedExts, t]
   );
 
   const dragHandlers = {

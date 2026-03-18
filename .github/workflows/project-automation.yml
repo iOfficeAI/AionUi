@@ -1,10 +1,7 @@
 name: '📋 Project Automation'
 
 on:
-  issues:
-    types: [opened, closed, reopened]
-  pull_request:
-    types: [opened, closed, reopened]
+  workflow_dispatch: # disabled: requires GitHub App credentials (APP_ID + APP_PRIVATE_KEY)
 
 # Minimal permissions at workflow level, jobs use PROJECT_TOKEN secret
 permissions:

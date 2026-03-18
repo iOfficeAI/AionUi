@@ -190,3 +190,6 @@ kylindoc/
 .workspace/
 lint-results.txt
 .worktrees/
+
+# Superpowers brainstorm tool (runtime files, session data)
+.superpowers/

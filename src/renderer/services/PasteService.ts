@@ -6,7 +6,37 @@
 
 import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
-import { getFileExtension } from './FileService';
+import { getFileExtension, uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from './FileService';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+
+const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+
+/**
+ * Create a temporary file in a platform-aware way.
+ * Electron desktop uses IPC, WebUI uses HTTP API.
+ */
+async function createTempFile(
+  fileName: string,
+  data: Uint8Array,
+  contentType: string,
+  conversationId?: string
+): Promise<string | null> {
+  if (data.byteLength > MAX_UPLOAD_SIZE_BYTES) {
+    throw new Error('FILE_TOO_LARGE');
+  }
+  if (isElectronDesktop()) {
+    const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
+    if (tempPath) {
+      await ipcBridge.fs.writeFile.invoke({ path: tempPath, data });
+    }
+    return tempPath;
+  }
+  // WebUI: upload via HTTP multipart
+  const arrayBuf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const blob = new Blob([arrayBuf], { type: contentType });
+  const file = new File([blob], fileName, { type: contentType });
+  return uploadFileViaHttp(file, conversationId || '');
+}
 
 type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
 
@@ -102,7 +132,8 @@ class PasteServiceClass {
     event: React.ClipboardEvent | ClipboardEvent,
     supportedExts: string[],
     onFilesAdded: (files: FileMetadata[]) => void,
-    onTextPaste?: (text: string) => void
+    onTextPaste?: (text: string) => void,
+    conversationId?: string
   ): Promise<boolean> {
     // 立即事件冒泡,避免全局监听器重复处理
     event.stopPropagation();
@@ -138,11 +169,8 @@ class PasteServiceClass {
               const isSystemGenerated = file.name && /^[a-zA-Z]?_?\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/.test(file.name);
               const fileName = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
 
-              // 创建临时文件并写入数据
-              const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
-              if (tempPath) {
-                await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
-              }
+              // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
+              const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId);
 
               if (tempPath) {
                 fileList.push({
@@ -154,6 +182,9 @@ class PasteServiceClass {
                 });
               }
             } catch (error) {
+              if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+                throw error;
+              }
               console.error('创建临时文件失败:', error);
             }
           } else {
@@ -190,11 +221,14 @@ class PasteServiceClass {
               // 使用原文件名
               const fileName = file.name;
 
-              // 创建临时文件并写入数据
-              const tempPath = await ipcBridge.fs.createTempFile.invoke({ fileName });
+              // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
+              const tempPath = await createTempFile(
+                fileName,
+                uint8Array,
+                file.type || 'application/octet-stream',
+                conversationId
+              );
               if (tempPath) {
-                await ipcBridge.fs.writeFile.invoke({ path: tempPath, data: uint8Array });
-
                 fileList.push({
                   name: fileName,
                   path: tempPath,
@@ -204,6 +238,9 @@ class PasteServiceClass {
                 });
               }
             } catch (error) {
+              if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+                throw error;
+              }
               console.error('创建临时文件失败:', error);
             }
           } else {

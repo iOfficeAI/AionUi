@@ -4,19 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICssTheme } from '@/common/storage';
+import type { ICssTheme } from '@/common/storage.ts';
 import { ipcBridge } from '@/common';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { iconColors } from '@/renderer/theme/colors';
+import { useThemeContext } from '@renderer/context/ThemeContext.tsx';
+import { iconColors } from '@renderer/theme/colors.ts';
 import { Button, Input } from '@arco-design/web-react';
-import AionModal from '@/renderer/components/base/AionModal';
+import AionModal from '@renderer/components/base/AionModal.tsx';
 import { Plus, Delete } from '@icon-park/react';
 import CodeMirror from '@uiw/react-codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CSSProperties } from 'react';
-import { injectBackgroundCssBlock } from './backgroundUtils';
+import { injectBackgroundCssBlock } from './backgroundUtils.ts';
 
 /** CodeMirror 编辑器样式 / CodeMirror editor styles */
 const CODE_MIRROR_STYLE: CSSProperties = {

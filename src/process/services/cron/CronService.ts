@@ -12,7 +12,8 @@ import { addMessage } from '@process/message';
 import { powerSaveBlocker } from 'electron';
 import { Cron } from 'croner';
 import i18n, { i18nReady } from '@process/i18n';
-import WorkerManage from '../../WorkerManage';
+import { workerTaskManager } from '../../task/workerTaskManagerSingleton';
+import type BaseAgentManager from '../../task/BaseAgentManager';
 import { copyFilesToDirectory } from '../../utils';
 import { cronBusyGuard } from './CronBusyGuard';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -389,22 +390,22 @@ class CronService {
       // 尽量复用已有任务实例，避免不必要的重连
       let task;
       try {
-        const existingTask = WorkerManage.getTaskById(conversationId);
+        const existingTask = workerTaskManager.getTask(conversationId);
         if (existingTask) {
           // Try to enable yoloMode on existing task without killing it
-          const yoloEnabled = await existingTask.ensureYoloMode();
+          const yoloEnabled = await (existingTask as BaseAgentManager<unknown>).ensureYoloMode();
           if (yoloEnabled) {
             task = existingTask;
           } else {
             // Cannot enable yoloMode dynamically, fall back to kill and recreate
-            WorkerManage.kill(conversationId);
-            task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
+            workerTaskManager.kill(conversationId);
+            task = await workerTaskManager.getOrBuildTask(conversationId, {
               yoloMode: true,
             });
           }
         } else {
           // No existing task, create new one with yoloMode=true
-          task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
+          task = await workerTaskManager.getOrBuildTask(conversationId, {
             yoloMode: true,
           });
         }

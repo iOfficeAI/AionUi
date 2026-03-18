@@ -1,0 +1,28 @@
+codecov:
+  require_ci_to_pass: false
+  max_report_age: off
+
+coverage:
+  precision: 2
+  round: down
+  range: '0...100'
+
+comment:
+  layout: 'reach,diff,flags,files'
+  behavior: default
+  require_changes: false
+
+status:
+  project:
+    default:
+      target: 80%
+      threshold: 0%
+      informational: true
+  patch:
+    default:
+      informational: true
+
+ignore:
+  - 'tests/**'
+  - 'docs/**'
+  - '**/*.md'

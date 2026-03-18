@@ -24,6 +24,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../messag
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
+import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
@@ -120,7 +121,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     },
     model: TProviderWithModel
   ) {
-    super('gemini', { ...data, model });
+    super('gemini', { ...data, model }, new IpcAgentEventEmitter());
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
