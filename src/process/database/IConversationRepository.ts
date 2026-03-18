@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 // src/process/database/IConversationRepository.ts
 // All methods are synchronous (better-sqlite3 driver).
 // The service layer is async to allow future migration.

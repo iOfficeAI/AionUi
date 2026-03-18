@@ -8,8 +8,7 @@ import { ForkTask } from '@/worker/fork/ForkTask';
 import path from 'path';
 import { ipcBridge } from '../../common';
 import type { IConfirmation } from '../../common/chatLib';
-
-type AgentType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+import type { AgentType, AgentStatus } from './agentTypes';
 
 /**
  * @description agent任务基础类
@@ -21,7 +20,7 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
   type: AgentType;
   protected conversation_id: string;
   protected confirmations: Array<IConfirmation<ConfirmationOption>> = [];
-  status: 'pending' | 'running' | 'finished' | undefined;
+  status: AgentStatus | undefined;
 
   /**
    * Whether this agent is in yolo mode (auto-approve)

@@ -1,10 +1,17 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 // src/process/services/IConversationService.ts
 
 import type { TChatConversation, TProviderWithModel, ConversationSource } from '@/common/storage';
 import type { AcpBackendAll } from '@/types/acpTypes';
+import type { AgentType } from '@process/task/agentTypes';
 
 export interface CreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+  type: AgentType;
   id?: string;
   name?: string;
   model: TProviderWithModel;
