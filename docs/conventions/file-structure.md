@@ -92,11 +92,44 @@ Cross-process communication MUST go through:
 | Interface | `I<Name>Service.ts` | `IConversationService.ts` |
 | Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
 
+## Directory Size Limit
+
+A single directory must not contain more than **10** direct children (files + subdirectories). When a directory approaches this limit, split its contents into subdirectories grouped by responsibility.
+
 ## Renderer Component Rules
 
 - **Single file** when self-contained; **directory** when it has sub-components/hooks
 - Directory-based components must have `index.tsx` entry point
 - Page-private code stays under `pages/<PageName>/`; move to shared only when a second consumer appears
+
+### `src/renderer/components/` Structure
+
+`components/` is for shared components used across multiple pages. It has two layers:
+
+**Fixed layer:**
+- `base/` — Generic UI primitives with no business logic. The only fixed subdirectory. Components here must not depend on app-specific context or domain logic.
+
+**Business layer:**
+- Create subdirectories by **business domain**, using lowercase naming (categorical directory rule)
+- Create a domain subdirectory when **≥ 2** shared components belong to the same domain
+- A single component may stay at the `components/` root temporarily until a second component in the same domain appears
+
+**Constraints:**
+- The `components/` root must not exceed **10** direct children (files + directories)
+- Components used by only **one** page must live in `pages/<PageName>/components/`, not here
+
+```
+src/renderer/components/
+├── base/           # UI primitives — AionModal, AionSelect, FlexFullContainer, etc.
+├── chat/           # Conversation/message domain (example, not exhaustive)
+├── agent/          # Agent selection/configuration domain
+├── settings/       # Settings domain
+├── layout/         # Window frame and layout
+├── media/          # File preview, image viewer
+└── index.ts        # Public re-exports (optional)
+```
+
+> The business subdirectory list above is illustrative. New domains are created as needed following the same rules.
 
 ### Page Module Structure
 

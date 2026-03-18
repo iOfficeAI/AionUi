@@ -207,6 +207,12 @@ src/process/
 
 ---
 
+## Directory Size Limit
+
+A single directory must not contain more than **10** direct children (files + subdirectories). When approaching this limit, split contents into subdirectories grouped by responsibility.
+
+---
+
 ## Renderer Process (`src/renderer/`)
 
 ### Structure
@@ -231,6 +237,36 @@ src/renderer/
 Single file → self-contained, no sub-components. Directory → has internal structure, must have `index.tsx`.
 
 **Rule**: If a component needs even one private sub-component or hook, convert to a directory.
+
+### `src/renderer/components/` — Layered Structure
+
+`components/` holds shared components used across multiple pages. It is organized in two layers:
+
+**Fixed layer:**
+- `base/` — Generic UI primitives (Modal, Select, ScrollArea, etc.). No business logic, no app-specific context dependencies. This is the only fixed subdirectory.
+
+**Business layer:**
+- Create subdirectories by **business domain**, using lowercase naming (categorical directory rule)
+- Create a domain subdirectory when **≥ 2** shared components belong to the same domain
+- A single component may stay at the `components/` root until a second same-domain component appears
+
+**Constraints:**
+- The `components/` root must not exceed **10** direct children
+- `base/` components must not depend on business logic or app-specific context
+- Components used by only **one** page belong in `pages/<PageName>/components/`, not here
+
+```
+src/renderer/components/
+├── base/           # UI primitives — AionModal, FlexFullContainer, etc.
+├── chat/           # Conversation/message domain (example)
+├── agent/          # Agent selection/configuration domain
+├── settings/       # Settings domain
+├── layout/         # Window frame and layout
+├── media/          # File preview, image viewer
+└── ...             # New domains added as needed
+```
+
+> Business subdirectories above are illustrative, not exhaustive. New domains follow the same rules.
 
 ### Page Module Structure
 
