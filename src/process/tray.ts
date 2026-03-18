@@ -7,7 +7,7 @@
 import type { BrowserWindow } from 'electron';
 import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
-import { ipcBridge } from '../common';
+import { ipcBridge } from '@/common';
 import i18n from '@process/i18n';
 import { workerTaskManager } from './task/workerTaskManagerSingleton';
 
@@ -51,7 +51,7 @@ const getTrayIcon = (): Electron.NativeImage => {
 const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
-      const { getDatabase } = await import('./database');
+      const { getDatabase } = await import('@process/database');
       const db = getDatabase();
       const result = db.getUserConversations(undefined, 0, 5);
       return (result.data || [])

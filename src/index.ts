@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as Sentry from '@sentry/electron/main';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+});
+
 import './utils/configureConsoleLog';
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
 import './utils/configureChromium';
@@ -135,23 +141,14 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-// 主进程全局错误处理器
 // Global error handlers for main process
-// 捕获未处理的同步异常，防止显示 Electron 默认错误对话框
-// Catch uncaught synchronous exceptions to prevent Electron's default error dialog
+// Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog
 process.on('uncaughtException', (_error) => {
-  // 在生产环境中，可以将错误记录到文件或上报到错误追踪服务
-  // In production, errors can be logged to file or sent to error tracking service
-  if (process.env.NODE_ENV !== 'development') {
-    // TODO: Add error logging or reporting
-  }
+  // Sentry captures this automatically
 });
 
-// 捕获未处理的 Promise 拒绝，避免应用崩溃
-// Catch unhandled Promise rejections to prevent app crashes
 process.on('unhandledRejection', (_reason, _promise) => {
-  // 可以在这里添加错误上报逻辑
-  // Error reporting logic can be added here
+  // Sentry captures this automatically
 });
 
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
