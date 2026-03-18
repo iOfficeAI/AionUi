@@ -4,18 +4,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '../ui/ThemedText';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useConversations } from '../../context/ConversationContext';
 import { useFilesTab } from '../../context/FilesTabContext';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import { api } from '../../services/api';
+import { bridge } from '../../services/bridge';
 
-type DirEntry = {
+type IDirOrFile = {
   name: string;
-  path: string;
-  isDirectory: boolean;
-  size?: number;
+  fullPath: string;
+  relativePath: string;
+  isDir: boolean;
+  isFile: boolean;
+  children?: IDirOrFile[];
 };
 
-type FlatItem = DirEntry & {
+type FlatItem = {
+  name: string;
+  fullPath: string;
+  relativePath: string;
+  isDir: boolean;
+  isFile: boolean;
   depth: number;
   isExpanded?: boolean;
 };
@@ -27,44 +35,47 @@ type WorkspaceFilesSidebarProps = {
 export function WorkspaceFilesSidebar({ navigation }: WorkspaceFilesSidebarProps) {
   const { t } = useTranslation();
   const { currentWorkspace, workspaceDisplayName, workspaceChanged } = useWorkspace();
+  const { activeConversationId } = useConversations();
   const { openTab } = useFilesTab();
   const background = useThemeColor({}, 'background');
   const border = useThemeColor({}, 'border');
   const tint = useThemeColor({}, 'tint');
   const iconColor = useThemeColor({}, 'icon');
 
-  const [tree, setTree] = useState<DirEntry[]>([]);
+  const [tree, setTree] = useState<IDirOrFile[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
-  const fetchFiles = useCallback(
-    async (path: string) => {
-      setLoading(true);
-      try {
-        const res = await api.get('/api/directory/browse', {
-          params: { path, showFiles: true },
-        });
-        if (res.data?.items) {
-          setTree(res.data.items);
-        }
-      } catch {
-        Alert.alert(t('common.error'), t('workspace.errorLoading'));
-      } finally {
-        setLoading(false);
+  const fetchFiles = useCallback(async () => {
+    if (!activeConversationId || !currentWorkspace) return;
+    setLoading(true);
+    try {
+      const res = await bridge.request<IDirOrFile[]>('conversation.get-workspace', {
+        conversation_id: activeConversationId,
+        workspace: currentWorkspace,
+        path: currentWorkspace,
+        search: '',
+      });
+      if (Array.isArray(res)) {
+        setTree(res);
       }
-    },
-    [t]
-  );
+    } catch {
+      Alert.alert(t('common.error'), t('workspace.errorLoading'));
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationId, currentWorkspace]);
 
-  // Load files when workspace changes
+  // Load files when workspace or active conversation changes
   useEffect(() => {
-    if (currentWorkspace) {
+    if (currentWorkspace && activeConversationId) {
       setExpanded(new Set());
-      void fetchFiles(currentWorkspace);
+      void fetchFiles();
     } else {
       setTree([]);
     }
-  }, [currentWorkspace, fetchFiles]);
+  }, [currentWorkspace, activeConversationId, fetchFiles]);
 
   // Reset expansion when workspace changes to different project
   useEffect(() => {
@@ -73,69 +84,54 @@ export function WorkspaceFilesSidebar({ navigation }: WorkspaceFilesSidebarProps
     }
   }, [workspaceChanged]);
 
-  const toggleFolder = useCallback(async (entry: DirEntry) => {
+  const toggleExpand = useCallback((entry: { fullPath: string }) => {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(entry.path)) {
-        next.delete(entry.path);
+      if (next.has(entry.fullPath)) {
+        next.delete(entry.fullPath);
       } else {
-        next.add(entry.path);
+        next.add(entry.fullPath);
       }
       return next;
     });
-
-    // Load subdirectory contents on first expansion
-    try {
-      const res = await api.get('/api/directory/browse', {
-        params: { path: entry.path, showFiles: true },
-      });
-      if (res.data?.items) {
-        setTree((prev) => {
-          // Add children under parent — store as flat list, we handle nesting in flattenTree
-          const children: DirEntry[] = res.data.items;
-          const existingPaths = new Set(prev.map((e) => e.path));
-          const newEntries = children.filter((c: DirEntry) => !existingPaths.has(c.path));
-          return [...prev, ...newEntries];
-        });
-      }
-    } catch {
-      // Silently ignore — folder may be empty
-    }
   }, []);
 
-  // Build flat list for FlatList with depth-based indentation
+  // Flatten the nested tree for FlatList rendering
   const flatData = useMemo(() => {
-    if (!currentWorkspace) return [];
+    if (!tree.length) return [];
+    const rootChildren = tree[0]?.children ?? [];
 
-    const buildFlat = (entries: DirEntry[], parentPath: string, depth: number): FlatItem[] => {
+    const sortNodes = (nodes: IDirOrFile[]): IDirOrFile[] =>
+      [...nodes].sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+    const flatten = (nodes: IDirOrFile[], depth: number): FlatItem[] => {
       const result: FlatItem[] = [];
-      const children = entries
-        .filter((e) => {
-          // Direct children of parentPath
-          const parent = e.path.substring(0, e.path.lastIndexOf('/')) || '/';
-          return parent === parentPath;
-        })
-        .sort((a, b) => {
-          // Directories first, then alphabetical
-          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-          return a.name.localeCompare(b.name);
+      for (const node of sortNodes(nodes)) {
+        const isExpanded = node.isDir && expanded.has(node.fullPath);
+        result.push({
+          name: node.name,
+          fullPath: node.fullPath,
+          relativePath: node.relativePath,
+          isDir: node.isDir,
+          isFile: node.isFile,
+          depth,
+          isExpanded,
         });
-
-      for (const entry of children) {
-        const isExpanded = expanded.has(entry.path);
-        result.push({ ...entry, depth, isExpanded });
-        if (entry.isDirectory && isExpanded) {
-          result.push(...buildFlat(entries, entry.path, depth + 1));
+        if (isExpanded && node.children) {
+          result.push(...flatten(node.children, depth + 1));
         }
       }
       return result;
     };
 
-    return buildFlat(tree, currentWorkspace, 0);
-  }, [tree, expanded, currentWorkspace]);
+    return flatten(rootChildren, 0);
+  }, [tree, expanded]);
 
-  const handleFileSelect = (path: string) => {
-    openTab(path);
+  const handleFileSelect = (fullPath: string) => {
+    openTab(fullPath);
     navigation.closeDrawer();
   };
 
@@ -152,10 +148,10 @@ export function WorkspaceFilesSidebar({ navigation }: WorkspaceFilesSidebarProps
   const renderItem = ({ item }: { item: FlatItem }) => (
     <TouchableOpacity
       style={[styles.item, { paddingLeft: 16 + 16 * item.depth }]}
-      onPress={() => (item.isDirectory ? toggleFolder(item) : handleFileSelect(item.path))}
+      onPress={() => (item.isDir ? toggleExpand(item) : handleFileSelect(item.fullPath))}
       activeOpacity={0.6}
     >
-      {item.isDirectory && (
+      {item.isDir && (
         <Ionicons
           name={item.isExpanded ? 'chevron-down' : 'chevron-forward'}
           size={14}
@@ -164,9 +160,9 @@ export function WorkspaceFilesSidebar({ navigation }: WorkspaceFilesSidebarProps
         />
       )}
       <Ionicons
-        name={item.isDirectory ? (item.isExpanded ? 'folder-open' : 'folder') : 'document-outline'}
+        name={item.isDir ? (item.isExpanded ? 'folder-open' : 'folder') : 'document-outline'}
         size={18}
-        color={item.isDirectory ? tint : iconColor}
+        color={item.isDir ? tint : iconColor}
         style={styles.icon}
       />
       <ThemedText style={styles.itemName} numberOfLines={1}>
@@ -193,7 +189,7 @@ export function WorkspaceFilesSidebar({ navigation }: WorkspaceFilesSidebarProps
         <FlatList
           data={flatData}
           renderItem={renderItem}
-          keyExtractor={(item) => item.path}
+          keyExtractor={(item) => item.fullPath}
           initialNumToRender={20}
           maxToRenderPerBatch={10}
           windowSize={5}
