@@ -1217,3 +1217,7 @@ body::after {
 
 ::selection { background: rgba(184, 140, 220, 0.28); }
 [data-theme='dark'] ::selection { background: rgba(192, 144, 224, 0.32); }
+
+/* AionUi Theme Background Start */
+/* Preview cover only: do not auto-inject full-page background image */
+/* AionUi Theme Background End */
