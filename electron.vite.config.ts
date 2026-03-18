@@ -1,5 +1,6 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import { resolve } from 'path';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
@@ -44,6 +45,16 @@ const mainAliases = {
 
 export default defineConfig(({ mode }) => {
   const isDevelopment = mode === 'development';
+  const enableSentrySourceMaps = !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
+
+  const sentryPluginOptions = {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sourcemaps: {
+      filesToDeleteAfterUpload: ['./out/**/*.map'],
+    },
+  };
 
   return {
     main: {
@@ -64,10 +75,11 @@ export default defineConfig(({ mode }) => {
               }),
             ]
           : []),
+        ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
       ],
       resolve: { alias: mainAliases, extensions: ['.ts', '.tsx', '.js', '.json'] },
       build: {
-        sourcemap: false,
+        sourcemap: enableSentrySourceMaps ? 'hidden' : false,
         reportCompressedSize: false,
         rollupOptions: {
           input: {
@@ -87,7 +99,10 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      define: { 'process.env.env': JSON.stringify(process.env.env) },
+      define: {
+        'process.env.env': JSON.stringify(process.env.env),
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+      },
     },
 
     preload: {
@@ -131,10 +146,14 @@ export default defineConfig(({ mode }) => {
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
         dedupe: ['react', 'react-dom', 'react-router-dom'],
       },
-      plugins: [UnoCSS(unoConfig), iconParkPlugin()],
+      plugins: [
+        UnoCSS(unoConfig),
+        iconParkPlugin(),
+        ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
+      ],
       build: {
         target: 'es2022',
-        sourcemap: isDevelopment,
+        sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
         minify: !isDevelopment,
         reportCompressedSize: false,
         chunkSizeWarningLimit: 1500,
@@ -180,6 +199,7 @@ export default defineConfig(({ mode }) => {
       },
       define: {
         'process.env.env': JSON.stringify(process.env.env),
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
         global: 'globalThis',
       },
       optimizeDeps: {

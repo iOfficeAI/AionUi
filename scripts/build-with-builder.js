@@ -14,6 +14,7 @@ const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const prepareBundledBun = require('./prepareBundledBun');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -429,7 +430,11 @@ try {
     return;
   }
 
-  // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
+  // 5. Prepare bundled bun/bunx binaries (for packaged runtime usage)
+  // This only affects packaging assets; runtime integration will be added in a future PR.
+  prepareBundledBun();
+
+  // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
   // Always disable auto-publish to avoid electron-builder's implicit tag-based publishing
   // Publishing is handled by a separate release job in CI

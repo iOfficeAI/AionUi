@@ -6,6 +6,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import type { IncomingMessage } from 'http';
+import cookie from 'cookie';
 import { AuthService } from '../service/AuthService';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
@@ -218,17 +219,7 @@ export const TokenMiddleware = {
     // 2. 从 Cookie 提取 (WebUI 模式)
     const cookieHeader = req.headers['cookie'];
     if (typeof cookieHeader === 'string') {
-      const cookies = cookieHeader.split(';').reduce(
-        (acc, cookie) => {
-          const [key, value] = cookie.trim().split('=');
-          if (key && value) {
-            acc[key] = decodeURIComponent(value);
-          }
-          return acc;
-        },
-        {} as Record<string, string>
-      );
-
+      const cookies = cookie.parse(cookieHeader);
       const cookieToken = cookies[AUTH_CONFIG.COOKIE.NAME];
       if (cookieToken) {
         return cookieToken;

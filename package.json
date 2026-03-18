@@ -10,11 +10,11 @@
   "scripts": {
     "start": "electron-vite dev",
     "cli": "electron-vite dev",
-    "webui": "rm -rf out/renderer && bun run cli -- --webui",
-    "webui:remote": "rm -rf out/renderer && bun run cli -- --webui --remote",
-    "webui:prod": "cross-env NODE_ENV=production bun run cli -- --webui",
-    "webui:prod:remote": "cross-env NODE_ENV=production bun run cli -- --webui --remote",
-    "resetpass": "bun run cli -- --resetpass",
+    "webui": "rm -rf out/renderer && electron-vite dev -- --webui",
+    "webui:remote": "rm -rf out/renderer && electron-vite dev -- --webui --remote",
+    "webui:prod": "cross-env NODE_ENV=production electron-vite dev -- --webui",
+    "webui:prod:remote": "cross-env NODE_ENV=production electron-vite dev -- --webui --remote",
+    "resetpass": "electron-vite dev -- --resetpass",
     "package": "electron-vite build",
     "make": "electron-vite build",
     "dist": "node scripts/build-with-builder.js",
@@ -48,7 +48,8 @@
     "debug:custom-agent": "bunx tsx scripts/debug-custom-agent.ts",
     "test:e2e": "playwright test --config playwright.config.ts",
     "prepare": "husky",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts"
   },
   "keywords": [],
   "author": {
@@ -60,6 +61,7 @@
     "@electron/fuses": "^1.8.0",
     "@electron/notarize": "^3.1.0",
     "@playwright/test": "^1.58.2",
+    "@sentry/vite-plugin": "^5.1.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -122,6 +124,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@office-ai/aioncli-core": "^0.30.0",
     "@office-ai/platform": "^0.3.16",
+    "@sentry/electron": "^7.10.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@uiw/codemirror-extensions-langs": "^4.25.1",
