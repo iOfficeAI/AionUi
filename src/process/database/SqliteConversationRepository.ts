@@ -54,11 +54,7 @@ export class SqliteConversationRepository implements IConversationRepository {
    * The interface accepts (cursor?, offset?, limit?) for forward compatibility.
    * We map offset/limit → page/pageSize, ignoring cursor (not supported by SQLite impl).
    */
-  getUserConversations(
-    _cursor?: string,
-    offset?: number,
-    limit?: number,
-  ): PaginatedResult<TChatConversation> {
+  getUserConversations(_cursor?: string, offset?: number, limit?: number): PaginatedResult<TChatConversation> {
     const pageSize = limit ?? 50;
     const page = offset !== undefined && pageSize > 0 ? Math.floor(offset / pageSize) : 0;
     const result = this.db.getUserConversations(undefined, page, pageSize);
