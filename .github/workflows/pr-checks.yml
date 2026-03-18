@@ -7,8 +7,13 @@ on:
         description: 'PR number to run checks on'
         required: true
         type: string
+      skip_build_test:
+        description: 'Skip the build test job (saves ~45 min)'
+        type: boolean
+        required: false
+        default: false
   pull_request:
-    types: [opened, synchronize, edited]
+    types: [opened, synchronize, edited, closed]
     branches: [main, dev]
     paths-ignore:
       - '**/*.md'
@@ -30,10 +35,18 @@ env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
+  # Cancel in-progress runs when PR is closed (merged or manually closed)
+  cancel-if-closed:
+    name: Cancel if PR closed
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR closed, cancelling in-progress runs via concurrency."
+
   # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -73,7 +86,7 @@ jobs:
   # Job 2: Unit tests across all platforms
   unit-tests:
     name: Unit Tests (${{ matrix.os }})
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -112,7 +125,7 @@ jobs:
   # Job 3: Coverage test (Linux only)
   coverage-tests:
     name: Coverage Test
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -194,7 +207,7 @@ jobs:
 
   i18n-check:
     name: I18n Check
-    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
@@ -246,7 +259,7 @@ jobs:
   # Job 4: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
-    if: github.event.action != 'edited'
+    if: github.event.action != 'edited' && github.event.action != 'closed' && inputs.skip_build_test != true
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -528,7 +541,7 @@ jobs:
   # Job 5: Test release scripts (fast, no build required)
   release-script-test:
     name: Release Script Test
-    if: github.event.action != 'edited'
+    if: github.event.action != 'edited' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
