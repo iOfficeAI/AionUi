@@ -26,6 +26,9 @@ vi.mock('child_process', () => ({
 vi.mock('@process/utils/shellEnv', () => ({
   findSuitableNodeBin: vi.fn(() => null),
   getEnhancedEnv: vi.fn(() => ({ PATH: '/usr/bin' })),
+  getWindowsShellExecutionOptions: vi.fn(() =>
+    process.platform === 'win32' ? { shell: true, windowsHide: true } : {}
+  ),
   resolveNpxPath: vi.fn(() => 'npx'),
 }));
 

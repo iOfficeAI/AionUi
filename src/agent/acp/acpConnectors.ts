@@ -22,7 +22,12 @@ import {
   CODEX_ACP_BRIDGE_VERSION,
   CODEX_ACP_NPX_PACKAGE,
 } from '@/types/acpTypes';
-import { findSuitableNodeBin, getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
+import {
+  findSuitableNodeBin,
+  getEnhancedEnv,
+  getWindowsShellExecutionOptions,
+  resolveNpxPath,
+} from '@process/utils/shellEnv';
 import { mainLog, mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
@@ -260,7 +265,7 @@ async function prepareCodex(): Promise<NpxPrepareResult> {
     env: cleanEnv,
     timeout: 5000,
     windowsHide: true,
-    ...(process.platform === 'win32' ? { shell: true } : {}),
+    ...getWindowsShellExecutionOptions(),
   };
   const diagnostics: {
     bridgeVersion: string;
