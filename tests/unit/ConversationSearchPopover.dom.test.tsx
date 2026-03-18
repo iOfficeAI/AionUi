@@ -84,7 +84,7 @@ describe('ConversationSearchPopover', () => {
     openTabMock.mockReset();
     blockMobileInputFocusMock.mockReset();
     blurActiveElementMock.mockReset();
-    localStorage.clear();
+    globalThis.localStorage?.clear?.();
   });
 
   afterEach(() => {
