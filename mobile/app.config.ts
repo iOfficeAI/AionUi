@@ -18,6 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       buildNumber: String(VERSION.buildNumber),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        NSCameraUsageDescription: 'AionUi needs camera access to scan QR codes for server login.',
       },
     },
     android: {
@@ -31,7 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       output: 'static',
       favicon: './assets/images/icon.png',
     },
-    plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client'],
+    plugins: ['expo-router', 'expo-secure-store', 'expo-dev-client', 'expo-camera'],
     experiments: {
       typedRoutes: true,
     },

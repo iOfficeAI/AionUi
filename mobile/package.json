@@ -21,8 +21,11 @@
     "build:dev:ios": "node scripts/build.js --profile development --platform ios --local",
     "build:dev:android": "node scripts/build.js --profile development --platform android --local",
     "build:preview:ios": "node scripts/build.js --profile preview --platform ios --local",
+    "build:preview:ios:submit": "node scripts/build.js --profile preview --platform ios --local --auto-submit",
+    "build:preview:ios:direct": "node scripts/build.js --profile preview --platform ios --local --direct-submit",
     "build:preview:android": "node scripts/build.js --profile preview --platform android --local",
     "build:prod:ios": "node scripts/build.js --profile production --platform ios",
+    "build:prod:ios:submit": "node scripts/build.js --profile production --platform ios --auto-submit",
     "build:prod:android": "node scripts/build.js --profile production --platform android"
   },
   "dependencies": {
@@ -33,6 +36,7 @@
     "@shopify/flash-list": "2.0.2",
     "axios": "^1.13.2",
     "expo": "~55.0.4",
+    "expo-camera": "~55.0.10",
     "expo-constants": "~55.0.7",
     "expo-dev-client": "^55.0.17",
     "expo-linking": "~55.0.7",
