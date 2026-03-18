@@ -1,12 +1,5 @@
-import React, { useEffect } from 'react';
-import {
-  View,
-  Modal,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Modal, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '../ui/ThemedText';
 import { useConversations, type AgentInfo } from '../../context/ConversationContext';
@@ -28,6 +21,7 @@ const agentIcons: Record<string, string> = {
 export function NewConversationModal({ visible, onClose, onCreated }: NewConversationModalProps) {
   const { t } = useTranslation();
   const { availableAgents, fetchAgents, createConversation } = useConversations();
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const tint = useThemeColor({}, 'tint');
   const background = useThemeColor({}, 'background');
   const surface = useThemeColor({}, 'surface');
@@ -36,7 +30,8 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
 
   useEffect(() => {
     if (visible) {
-      fetchAgents();
+      setIsLoadingAgents(true);
+      fetchAgents().finally(() => setIsLoadingAgents(false));
     }
   }, [visible, fetchAgents]);
 
@@ -64,28 +59,30 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
         </View>
         <View style={styles.agentInfo}>
           <ThemedText style={styles.agentName}>{item.label || item.name}</ThemedText>
-          <ThemedText type="caption">{item.backend}</ThemedText>
+          <ThemedText type='caption'>{item.backend}</ThemedText>
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType='slide' transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.sheet, { backgroundColor: background }]}>
           <View style={[styles.header, { borderBottomColor: border }]}>
             <ThemedText style={styles.title}>{t('conversations.newConversation')}</ThemedText>
             <TouchableOpacity onPress={onClose}>
-              <ThemedText style={[styles.closeButton, { color: tint }]}>
-                {t('common.close')}
-              </ThemedText>
+              <ThemedText style={[styles.closeButton, { color: tint }]}>{t('common.close')}</ThemedText>
             </TouchableOpacity>
           </View>
 
-          {availableAgents.length === 0 ? (
+          {isLoadingAgents ? (
             <View style={styles.loading}>
-              <ActivityIndicator size="small" color={tint} />
+              <ActivityIndicator size='small' color={tint} />
+            </View>
+          ) : availableAgents.length === 0 ? (
+            <View style={styles.loading}>
+              <ThemedText type='caption'>{t('conversations.noAgents')}</ThemedText>
             </View>
           ) : (
             <FlatList

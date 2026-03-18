@@ -30,10 +30,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
     }
   }, [messages.length]);
 
-  const renderItem = useCallback(
-    ({ item }: { item: TMessage }) => <MessageBubble message={item} />,
-    []
-  );
+  const renderItem = useCallback(({ item }: { item: TMessage }) => <MessageBubble message={item} />, []);
 
   const keyExtractor = useCallback((item: TMessage) => item.id, []);
 
@@ -51,13 +48,13 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <ThemedText type="caption">{t('conversations.empty')}</ThemedText>
+            <ThemedText type='caption'>{t('conversations.empty')}</ThemedText>
           </View>
         }
       />
       {isStreaming && (
         <View style={styles.streamingIndicator}>
-          <ThemedText type="caption">{t('chat.thinking')}</ThemedText>
+          <ThemedText type='caption'>{t('chat.thinking')}</ThemedText>
         </View>
       )}
       <ChatInputBar onSend={sendMessage} onStop={stopGeneration} isStreaming={isStreaming} />

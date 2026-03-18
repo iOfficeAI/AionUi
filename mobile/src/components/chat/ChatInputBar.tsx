@@ -37,7 +37,7 @@ export function ChatInputBar({ onSend, onStop, isStreaming, disabled }: ChatInpu
           value={text}
           onChangeText={setText}
           placeholder={t('chat.inputPlaceholder')}
-          placeholderTextColor="#C0C0C0"
+          placeholderTextColor='#C0C0C0'
           multiline
           maxLength={10000}
           editable={!disabled}
@@ -46,11 +46,11 @@ export function ChatInputBar({ onSend, onStop, isStreaming, disabled }: ChatInpu
         />
         {isStreaming ? (
           <TouchableOpacity style={styles.stopButton} onPress={onStop} activeOpacity={0.7}>
-            <Ionicons name="stop-circle" size={28} color={error} />
+            <Ionicons name='stop-circle' size={28} color={error} />
           </TouchableOpacity>
         ) : showSend ? (
           <TouchableOpacity style={styles.sendButton} onPress={handleSend} activeOpacity={0.7}>
-            <Ionicons name="arrow-up-circle" size={32} color={tint} />
+            <Ionicons name='arrow-up-circle' size={32} color={tint} />
           </TouchableOpacity>
         ) : null}
       </View>

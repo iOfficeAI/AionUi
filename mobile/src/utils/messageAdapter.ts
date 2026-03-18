@@ -232,10 +232,7 @@ export function composeMessage(message: TMessage | undefined, list: TMessage[]):
   if (message.type === 'acp_tool_call') {
     for (let i = 0; i < list.length; i++) {
       const msg = list[i];
-      if (
-        msg.type === 'acp_tool_call' &&
-        msg.content.update?.toolCallId === message.content.update?.toolCallId
-      ) {
+      if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
         const updated = [...list];
         updated[i] = { ...msg, content: { ...msg.content, ...message.content } };
         return updated;

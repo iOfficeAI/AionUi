@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { useEffect } from 'react';
 import { ChatProvider } from '../../src/context/ChatContext';
 import { ChatScreen } from '../../src/components/chat/ChatScreen';
 import { useConversations } from '../../src/context/ConversationContext';

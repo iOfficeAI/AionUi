@@ -42,24 +42,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
     case 'tips': {
       const tipType = message.content.type;
-      const bgColor =
-        tipType === 'error'
-          ? '#FFF1F0'
-          : tipType === 'warning'
-            ? '#FFF7E8'
-            : '#E8FFEA';
-      const textColor =
-        tipType === 'error'
-          ? '#F53F3F'
-          : tipType === 'warning'
-            ? '#FF7D00'
-            : '#00B42A';
+      const bgColor = tipType === 'error' ? '#FFF1F0' : tipType === 'warning' ? '#FFF7E8' : '#E8FFEA';
+      const textColor = tipType === 'error' ? '#F53F3F' : tipType === 'warning' ? '#FF7D00' : '#00B42A';
       return (
         <View style={styles.tipRow}>
           <View style={[styles.tipBubble, { backgroundColor: bgColor }]}>
-            <ThemedText style={[styles.tipText, { color: textColor }]}>
-              {message.content.content}
-            </ThemedText>
+            <ThemedText style={[styles.tipText, { color: textColor }]}>{message.content.content}</ThemedText>
           </View>
         </View>
       );
@@ -71,7 +59,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       return (
         <View style={styles.tipRow}>
           <View style={styles.statusBubble}>
-            <ThemedText type="caption">
+            <ThemedText type='caption'>
               {agentName}: {status}
             </ThemedText>
           </View>
@@ -109,7 +97,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <ThemedText style={styles.planTitle}>Plan</ThemedText>
             {entries.map((entry: any, i: number) => (
               <View key={i} style={styles.planEntry}>
-                <ThemedText type="caption">
+                <ThemedText type='caption'>
                   {entry.status === 'completed' ? '\u2705' : entry.status === 'in_progress' ? '\u23F3' : '\u2B55'}{' '}
                   {entry.title || entry.description}
                 </ThemedText>

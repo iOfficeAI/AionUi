@@ -28,11 +28,7 @@ export function ConversationList() {
 
   const renderItem = useCallback(
     ({ item }: { item: Conversation }) => (
-      <ConversationItem
-        conversation={item}
-        onPress={() => handlePress(item)}
-        onDelete={handleDelete}
-      />
+      <ConversationItem conversation={item} onPress={() => handlePress(item)} onDelete={handleDelete} />
     ),
     [handlePress, handleDelete]
   );
@@ -40,10 +36,10 @@ export function ConversationList() {
   if (!isLoading && conversations.length === 0) {
     return (
       <View style={styles.empty}>
-        <ThemedText type="subtitle" style={styles.emptyTitle}>
+        <ThemedText type='subtitle' style={styles.emptyTitle}>
           {t('conversations.empty')}
         </ThemedText>
-        <ThemedText type="caption">{t('conversations.emptyHint')}</ThemedText>
+        <ThemedText type='caption'>{t('conversations.emptyHint')}</ThemedText>
       </View>
     );
   }

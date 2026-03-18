@@ -1,11 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { bridge } from '../services/bridge';
-import {
-  transformMessage,
-  composeMessage,
-  type TMessage,
-  type IResponseMessage,
-} from '../utils/messageAdapter';
+import { transformMessage, composeMessage, type TMessage, type IResponseMessage } from '../utils/messageAdapter';
 import { uuid } from '../utils/uuid';
 
 type ChatContextType = {

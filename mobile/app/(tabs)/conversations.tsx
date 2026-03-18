@@ -24,14 +24,10 @@ export default function ConversationsScreen() {
         onPress={() => setShowNewModal(true)}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name='add' size={28} color='#fff' />
       </TouchableOpacity>
 
-      <NewConversationModal
-        visible={showNewModal}
-        onClose={() => setShowNewModal(false)}
-        onCreated={handleCreated}
-      />
+      <NewConversationModal visible={showNewModal} onClose={() => setShowNewModal(false)} onCreated={handleCreated} />
     </View>
   );
 }

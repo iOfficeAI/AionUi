@@ -24,7 +24,7 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Connection Section */}
       <View style={styles.section}>
-        <ThemedText type="caption" style={styles.sectionTitle}>
+        <ThemedText type='caption' style={styles.sectionTitle}>
           {t('settings.connection').toUpperCase()}
         </ThemedText>
         <View style={styles.card}>
@@ -35,22 +35,19 @@ export default function SettingsScreen() {
                 style={[
                   styles.statusDot,
                   {
-                    backgroundColor:
-                      connectionState === 'connected' ? '#00B42A' : '#F53F3F',
+                    backgroundColor: connectionState === 'connected' ? '#00B42A' : '#F53F3F',
                   },
                 ]}
               />
-              <ThemedText type="caption">
-                {connectionState === 'connected'
-                  ? t('settings.connected')
-                  : t('settings.disconnected')}
+              <ThemedText type='caption'>
+                {connectionState === 'connected' ? t('settings.connected') : t('settings.disconnected')}
               </ThemedText>
             </View>
           </View>
           {config && (
             <View style={styles.row}>
               <ThemedText>{t('settings.serverAddress')}</ThemedText>
-              <ThemedText type="caption">
+              <ThemedText type='caption'>
                 {config.host}:{config.port}
               </ThemedText>
             </View>
@@ -61,20 +58,20 @@ export default function SettingsScreen() {
       {/* Actions */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.actionButton} onPress={handleDisconnect}>
-          <Ionicons name="log-out-outline" size={20} color="#F53F3F" />
+          <Ionicons name='log-out-outline' size={20} color='#F53F3F' />
           <ThemedText style={styles.dangerText}>{t('settings.changeServer')}</ThemedText>
         </TouchableOpacity>
       </View>
 
       {/* About */}
       <View style={styles.section}>
-        <ThemedText type="caption" style={styles.sectionTitle}>
+        <ThemedText type='caption' style={styles.sectionTitle}>
           {t('settings.about').toUpperCase()}
         </ThemedText>
         <View style={styles.card}>
           <View style={styles.row}>
             <ThemedText>{t('settings.version')}</ThemedText>
-            <ThemedText type="caption">0.1.0</ThemedText>
+            <ThemedText type='caption'>0.1.0</ThemedText>
           </View>
         </View>
       </View>

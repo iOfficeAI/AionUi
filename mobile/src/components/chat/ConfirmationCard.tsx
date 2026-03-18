@@ -30,7 +30,7 @@ export function ConfirmationCard({ content, msgId }: ConfirmationCardProps) {
     <View style={styles.container}>
       <ThemedText style={styles.title}>{title}</ThemedText>
       {description ? (
-        <ThemedText type="caption" style={styles.description} numberOfLines={6}>
+        <ThemedText type='caption' style={styles.description} numberOfLines={6}>
           {description}
         </ThemedText>
       ) : null}
@@ -50,9 +50,7 @@ export function ConfirmationCard({ content, msgId }: ConfirmationCardProps) {
               onPress={() => handleConfirm(opt.value)}
               activeOpacity={0.7}
             >
-              <ThemedText
-                style={[styles.buttonText, isApprove ? styles.approveText : styles.denyText]}
-              >
+              <ThemedText style={[styles.buttonText, isApprove ? styles.approveText : styles.denyText]}>
                 {opt.label || (isApprove ? t('chat.approve') : t('chat.deny'))}
               </ThemedText>
             </TouchableOpacity>

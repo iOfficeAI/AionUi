@@ -1,16 +1,20 @@
 /**
  * Bridge service: request-response abstraction over WebSocket.
- * Mirrors the @office-ai/platform bridge pattern:
- * - emit(name, data) to send
- * - listen for responses via message name matching
- *
- * The AionUi WebSocket protocol uses same-name event routing:
- * Client sends { name, data } → server processes → responds with { name, result }.
+ * Uses the @office-ai/platform subscribe protocol:
+ * - Client sends: { name: 'subscribe-{key}', data: { id, data } }
+ * - Server responds: { name: 'subscribe.callback-{key}{id}', data: result }
+ * - Emitter events (server-push) use direct names (no subscribe prefix).
  */
 
 import { wsService } from './websocket';
 
 type BridgeCallback = (data: unknown) => void;
+
+let requestCounter = 0;
+
+function generateRequestId(): string {
+  return `m_${Date.now()}_${(++requestCounter).toString(36)}`;
+}
 
 class BridgeService {
   private listeners = new Map<string, Set<BridgeCallback>>();
@@ -28,30 +32,35 @@ class BridgeService {
 
   /**
    * Send a request and wait for a response (provider pattern).
-   * The server responds with the same event name.
+   * Uses subscribe protocol: subscribe-{name} → subscribe.callback-{name}{id}
    */
   request<T = unknown>(name: string, data?: unknown, timeoutMs = 30000): Promise<T> {
+    const id = generateRequestId();
+    const callbackName = `subscribe.callback-${name}${id}`;
+
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         unsub();
         reject(new Error(`Bridge request '${name}' timed out after ${timeoutMs}ms`));
       }, timeoutMs);
 
-      const unsub = this.on(name, (responseData) => {
+      const unsub = this.on(callbackName, (responseData) => {
         clearTimeout(timer);
         unsub();
         resolve(responseData as T);
       });
 
-      wsService.send(name, data);
+      wsService.send(`subscribe-${name}`, { id, data });
     });
   }
 
   /**
    * Send a fire-and-forget message (emitter pattern).
+   * Uses subscribe protocol without listening for callback.
    */
   emit(name: string, data?: unknown) {
-    wsService.send(name, data);
+    const id = generateRequestId();
+    wsService.send(`subscribe-${name}`, { id, data });
   }
 
   /**

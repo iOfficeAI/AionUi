@@ -5,6 +5,7 @@
  * Usage:
  *   node scripts/build.js --profile development --platform ios --local
  *   node scripts/build.js --profile preview --platform ios --local --auto-submit
+ *   node scripts/build.js --profile preview --platform ios --local --direct-submit
  *   node scripts/build.js --profile production --platform ios
  */
 
@@ -20,6 +21,7 @@ const platformIndex = args.indexOf('--platform');
 const platform = platformIndex !== -1 ? args[platformIndex + 1] : 'ios';
 const isLocal = args.includes('--local');
 const autoSubmit = args.includes('--auto-submit');
+const directSubmit = args.includes('--direct-submit');
 
 if (!profile) {
   console.error('Error: --profile is required (e.g., --profile preview or --profile production)');
@@ -52,10 +54,10 @@ try {
 // Build eas command args
 const outputExt = platform === 'ios' ? '.ipa' : '.apk';
 const localOutputPath = path.join(__dirname, '..', `build-${Date.now()}${outputExt}`);
-let buildArgs = args.filter((a) => a !== '--auto-submit');
+let buildArgs = args.filter((a) => a !== '--auto-submit' && a !== '--direct-submit');
 
 // For local builds with submit, capture output path for later submission
-if (isLocal && autoSubmit) {
+if (isLocal && (autoSubmit || directSubmit)) {
   if (!buildArgs.includes('--output')) {
     buildArgs.push('--output', localOutputPath);
   }
@@ -86,8 +88,8 @@ console.log(`\nRunning: ${easCommand}\n`);
 const appleEnv =
   platform === 'ios'
     ? {
-        ...(process.env.EXPO_APPLE_TEAM_ID ? { EXPO_APPLE_TEAM_ID: process.env.EXPO_APPLE_TEAM_ID } : {}),
-        ...(process.env.EXPO_APPLE_ID ? { EXPO_APPLE_ID: process.env.EXPO_APPLE_ID } : {}),
+        EXPO_APPLE_TEAM_ID: process.env.EXPO_APPLE_TEAM_ID || 'M4AG47ZV62',
+        EXPO_APPLE_ID: process.env.EXPO_APPLE_ID || 'liangzhewei@gmail.com',
         ...(applePassword ? { EXPO_APPLE_PASSWORD: applePassword } : {}),
       }
     : {};
@@ -111,28 +113,48 @@ try {
   process.exit(1);
 }
 
-// Submit the artifact (iOS local builds with --auto-submit)
-if (platform === 'ios' && isLocal && autoSubmit) {
+// Submit the artifact (iOS local builds with --auto-submit or --direct-submit)
+if (platform === 'ios' && isLocal && (autoSubmit || directSubmit)) {
   const outputFile = buildArgs[buildArgs.indexOf('--output') + 1];
   if (!fs.existsSync(outputFile)) {
     console.error(`\nBuild artifact not found at ${outputFile}`);
     process.exit(1);
   }
 
-  const submitCommand = `eas submit --platform ${platform} --path ${outputFile}`;
-  console.log(`\nSubmitting to TestFlight: ${submitCommand}\n`);
-  try {
-    execSync(submitCommand, {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        ...(process.env.EXPO_APPLE_TEAM_ID ? { EXPO_APPLE_TEAM_ID: process.env.EXPO_APPLE_TEAM_ID } : {}),
-        ...(process.env.EXPO_APPLE_ID ? { EXPO_APPLE_ID: process.env.EXPO_APPLE_ID } : {}),
-      },
-    });
-    console.log('\nSuccessfully submitted to TestFlight!');
-  } catch (error) {
-    console.error('\nSubmit to TestFlight failed');
-    process.exit(1);
+  if (directSubmit) {
+    // Upload directly to App Store Connect via xcrun altool (bypasses EAS)
+    const appleId = process.env.APPLE_ID || 'liangzhewei@gmail.com';
+    const submitCommand = `xcrun altool --upload-app -f "${outputFile}" -t ${platform} -u "${appleId}" -p "@keychain:AC_PASSWORD"`;
+    console.log(`\nUploading directly to TestFlight: xcrun altool --upload-app\n`);
+    try {
+      execSync(submitCommand, { stdio: 'inherit' });
+      console.log('\nSuccessfully uploaded to TestFlight!');
+    } catch (error) {
+      console.error('\nDirect upload to TestFlight failed');
+      console.error(
+        '  Make sure your App-Specific Password is saved in Keychain as "AC_PASSWORD".',
+      );
+      console.error(
+        '  To save it: security add-generic-password -a "liangzhewei@gmail.com" -s "AC_PASSWORD" -w "<your-app-specific-password>" -U',
+      );
+      process.exit(1);
+    }
+  } else {
+    // Upload via EAS submit
+    const submitCommand = `eas submit --platform ${platform} --path ${outputFile} --non-interactive`;
+    console.log(`\nSubmitting to TestFlight: ${submitCommand}\n`);
+    try {
+      execSync(submitCommand, {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          ...appleEnv,
+        },
+      });
+      console.log('\nSuccessfully submitted to TestFlight!');
+    } catch (error) {
+      console.error('\nSubmit to TestFlight failed');
+      process.exit(1);
+    }
   }
 }

@@ -37,6 +37,7 @@
     "newConversation": "New Conversation",
     "deleteConfirm": "Delete this conversation?",
     "deleteMessage": "This action cannot be undone.",
+    "noAgents": "No agents available",
     "statusPending": "Pending",
     "statusRunning": "Running",
     "statusFinished": "Finished"

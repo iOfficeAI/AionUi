@@ -17,11 +17,7 @@ const WebSocketContext = createContext<WebSocketContextType>({
  * Wrap your app with this so components can access the bridge.
  */
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  return (
-    <WebSocketContext.Provider value={{ bridge, wsService }}>
-      {children}
-    </WebSocketContext.Provider>
-  );
+  return <WebSocketContext.Provider value={{ bridge, wsService }}>{children}</WebSocketContext.Provider>;
 }
 
 export function useWebSocket() {

@@ -44,11 +44,7 @@ export function ConversationItem({ conversation, onPress, onDelete }: Conversati
   const agentType = conversation.extra?.backend || conversation.type;
   const badgeColor = agentBadgeColors[agentType] || '#6B7280';
   const statusDot =
-    conversation.status === 'running'
-      ? success
-      : conversation.status === 'pending'
-        ? warning
-        : undefined;
+    conversation.status === 'running' ? success : conversation.status === 'pending' ? warning : undefined;
 
   const handleLongPress = () => {
     if (!onDelete) return;
@@ -73,7 +69,7 @@ export function ConversationItem({ conversation, onPress, onDelete }: Conversati
         },
         (index) => {
           if (index === 1) confirmDelete();
-        },
+        }
       );
     } else {
       confirmDelete();
@@ -94,17 +90,15 @@ export function ConversationItem({ conversation, onPress, onDelete }: Conversati
             {conversation.name || 'Untitled'}
           </ThemedText>
         </View>
-        <ThemedText type="caption">{formatTime(conversation.modifyTime)}</ThemedText>
+        <ThemedText type='caption'>{formatTime(conversation.modifyTime)}</ThemedText>
       </View>
 
       <View style={styles.row}>
         <View style={[styles.badge, { backgroundColor: badgeColor + '20' }]}>
-          <ThemedText style={[styles.badgeText, { color: badgeColor }]}>
-            {agentType}
-          </ThemedText>
+          <ThemedText style={[styles.badgeText, { color: badgeColor }]}>{agentType}</ThemedText>
         </View>
         {conversation.model?.useModel && (
-          <ThemedText type="caption" numberOfLines={1} style={styles.model}>
+          <ThemedText type='caption' numberOfLines={1} style={styles.model}>
             {conversation.model.useModel}
           </ThemedText>
         )}

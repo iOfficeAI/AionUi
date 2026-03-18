@@ -65,15 +65,11 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
         <ThemedText style={styles.toolName} numberOfLines={expanded ? undefined : 1}>
           {title}
         </ThemedText>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color="#86909C"
-        />
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color='#86909C' />
       </TouchableOpacity>
       {expanded && content.description && (
         <View style={styles.detail}>
-          <ThemedText type="caption">{content.description}</ThemedText>
+          <ThemedText type='caption'>{content.description}</ThemedText>
         </View>
       )}
     </View>
@@ -92,21 +88,13 @@ function ToolItem({ tool }: { tool: any }) {
         <ThemedText style={styles.toolName} numberOfLines={1}>
           {tool.description || tool.name || 'Tool'}
         </ThemedText>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color="#86909C"
-        />
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color='#86909C' />
       </TouchableOpacity>
       {expanded && (
         <View style={styles.detail}>
-          {tool.name && (
-            <ThemedText type="caption">
-              {tool.name}
-            </ThemedText>
-          )}
+          {tool.name && <ThemedText type='caption'>{tool.name}</ThemedText>}
           {typeof tool.resultDisplay === 'string' && tool.resultDisplay && (
-            <ThemedText type="caption" numberOfLines={8}>
+            <ThemedText type='caption' numberOfLines={8}>
               {tool.resultDisplay}
             </ThemedText>
           )}
