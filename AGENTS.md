@@ -2,11 +2,18 @@
 
 ## Code Conventions
 
+### File & Directory Structure
+
+See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for complete rules on directory naming, page module layout, and shared vs private code placement. Agents working in this repository must also read and follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files, modules, or making structure decisions.
+
 ### Naming
 
 - **Components**: PascalCase (`Button.tsx`, `Modal.tsx`)
 - **Utilities**: camelCase (`formatDate.ts`)
-- **Constants**: UPPER_SNAKE_CASE
+- **Hooks**: camelCase with `use` prefix (`useTheme.ts`)
+- **Constants files**: camelCase (`constants.ts`) — values inside use UPPER_SNAKE_CASE
+- **Type files**: camelCase (`types.ts`)
+- **Style files**: kebab-case or `ComponentName.module.css`
 - **Unused params**: prefix with `_`
 
 ### TypeScript
@@ -29,58 +36,9 @@ See [docs/tech/architecture.md](docs/tech/architecture.md) for details.
 
 ## Testing
 
-**Framework**: Vitest 4 (`vitest.config.ts`)
+**Framework**: Vitest 4 (`vitest.config.ts`). Run `bun run test` before every commit. Coverage target ≥ 80%.
 
-**Structure**:
-- `tests/unit/` - Individual functions, utilities, components
-- `tests/integration/` - IPC, database, service interactions
-- `tests/regression/` - Regression test cases
-- `tests/e2e/` - End-to-end tests (Playwright, `playwright.config.ts`)
-
-**Two test environments**:
-- `node` (default) - main process, utilities, services
-- `jsdom` - files named `*.dom.test.ts`
-
-**Workflow rules**:
-- Run `bun run test` before every commit
-- New features must include corresponding test cases
-- When modifying logic, update affected existing tests
-- New source files added to feature areas must be included in coverage config (`vitest.config.ts` → `coverage.include`)
-
-**Coverage target**: ≥ 80% for all files listed in `coverage.include`. Run `bun run test:coverage` to verify before opening a PR.
-
-### Test Quality Rules
-
-Coverage percentage is a floor, not a goal. A test only has value if it would **fail when the behavior it describes breaks**.
-
-**1. Describe behavior, not code structure**
-
-```typescript
-// Wrong — describes implementation
-it('should call repo.getConversation', ...)
-
-// Correct — describes behavior
-it('should return cached task without hitting repo on second call', ...)
-it('should reject with error when conversation does not exist', ...)
-```
-
-**2. Every describe block must cover at least one failure path**
-
-Happy-path-only tests leave the most dangerous code untested. For every module, ask:
-- What happens when the dependency returns `undefined` / throws?
-- What happens at the boundary (empty list, max retries reached, past timestamp)?
-
-**3. One behavior per test**
-
-Keep each `it()` focused. More than 3 `expect()` calls in one test is a signal it is testing too much at once.
-
-**4. Self-check before committing**
-
-After writing a test, mentally delete the core logic it targets. If the test would still pass, rewrite it — it is not guarding anything.
-
-**5. Start from risk, not from coverage gaps**
-
-Before writing tests for a module, list the scenarios most likely to produce bugs in production. Write those first. Coverage is the outcome of that process, not the starting point.
+See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflow, quality rules, and checklist.
 
 ## Code Quality
 
@@ -99,46 +57,25 @@ Common Prettier rules (avoid a fix pass):
 
 ## Git Conventions
 
-### Commit Messages
+Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf. **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
-- **Language**: English
-- **Format**: `<type>(<scope>): <subject>`
-- **Types**: feat, fix, refactor, chore, docs, test, style, perf
+See the `commit` skill (`.claude/skills/commit/SKILL.md`) for complete workflow, quality gates, and rules.
 
-Examples:
+## Skills Index
 
-```
-feat(cron): implement scheduled task system
-fix(webui): correct modal z-index issue
-chore: remove debug console.log statements
-```
+Detailed rules and guidelines are organized into Skills for better modularity:
 
-### No AI Signature (MANDATORY)
+| Skill | Purpose | Triggers |
+|-------|---------|----------|
+| **architecture** | File & directory structure conventions for all process types | Creating files, adding modules, architectural decisions |
+| **i18n** | Internationalization workflow and standards | Adding user-facing text, creating components with text |
+| **testing** | Testing workflow and quality standards | Writing tests, adding features, before claiming completion |
+| **commit** | Structured git commit workflow with quality checks | Committing code, `/commit`, `/oss-pr` |
 
-**NEVER add any AI-related signatures to commits or PRs.** This includes:
-
-- `Co-Authored-By: <any AI tool name>` or similar attribution lines
-- `Generated with <AI tool>` or similar markers in commit messages or PR descriptions
-- Any other AI-generated footer or byline
-
-This is a strict rule that applies to all AI coding assistants. Violating this will pollute the git history.
+> Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 
 ## Internationalization
 
-Translation files: `src/renderer/i18n/locales/<lang>/<module>.json`. Always use i18n keys for user-facing text — never hardcode strings in components.
+All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/shared/i18n-config.json`.
 
-Supported languages: `en-US` (reference), `zh-CN`, `zh-TW`, `ja-JP`, `ko-KR`, `tr-TR`.
-
-When adding or modifying user-facing text, **always update all language files**. After changes, run the i18n validation script to verify completeness:
-
-```bash
-node scripts/check-i18n.js
-```
-
-This script checks: directory structure, missing keys across locales, empty translations, invalid `t()` key usages, and type definition sync. **Fix all errors before committing.**
-
-If you added new i18n keys, also regenerate the type definitions:
-
-```bash
-bun run i18n:types
-```
+See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
