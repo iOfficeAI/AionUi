@@ -18,10 +18,19 @@ import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type NanoBotAgentManager from '../task/NanoBotAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
+import { refreshTrayMenu } from '../tray';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
 import WorkerManage from '../WorkerManage';
 import { migrateConversationToDatabase } from './migrationUtils';
+
+const refreshTrayMenuSafely = async (): Promise<void> => {
+  try {
+    await refreshTrayMenu();
+  } catch (error) {
+    console.warn('[conversationBridge] Failed to refresh tray menu:', error);
+  }
+};
 
 export function initConversationBridge(): void {
   ipcBridge.openclawConversation.getRuntime.provider(async ({ conversation_id }) => {
@@ -83,6 +92,7 @@ export function initConversationBridge(): void {
       throw new Error(result.error || 'Failed to create conversation');
     }
 
+    await refreshTrayMenuSafely();
     return result.conversation;
   });
 
@@ -253,6 +263,7 @@ export function initConversationBridge(): void {
           }
         }
 
+        await refreshTrayMenuSafely();
         return Promise.resolve(conversation);
       } catch (error) {
         console.error('[conversationBridge] Failed to create conversation with conversation:', error);
@@ -308,6 +319,7 @@ export function initConversationBridge(): void {
         return false;
       }
 
+      await refreshTrayMenuSafely();
       return true;
     } catch (error) {
       console.error('[conversationBridge] Failed to remove conversation:', error);
@@ -348,6 +360,10 @@ export function initConversationBridge(): void {
           } catch (killErr) {
             // ignore kill error, will lazily rebuild later
           }
+        }
+
+        if (result.success && Object.hasOwn(updates, 'name')) {
+          await refreshTrayMenuSafely();
         }
 
         return result.success;
