@@ -158,7 +158,8 @@
       "download": "ダウンロード",
       "downloadSuccess": "ダウンロードしました",
       "downloadFailed": "ダウンロードに失敗しました"
-    }
+    },
+    "largeFileWarning": "ファイルが大きすぎます ({{size}}MB)、最初の {{chars}} 文字のみ表示"
   },
   "minimap": {
     "searchAria": "会話を検索",

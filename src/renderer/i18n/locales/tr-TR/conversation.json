@@ -153,7 +153,8 @@
       "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
-    "collapse": "Çalışma Alanını Daralt"
+    "collapse": "Çalışma Alanını Daralt",
+    "largeFileWarning": "Dosya çok büyük ({{size}}MB), sadece ilk {{chars}} karakter gösteriliyor"
   },
   "minimap": {
     "searchAria": "Sohbeti ara",

@@ -158,7 +158,8 @@
       "download": "下载",
       "downloadSuccess": "下载成功",
       "downloadFailed": "下载失败"
-    }
+    },
+    "largeFileWarning": "文件过大 ({{size}}MB)，仅显示前 {{chars}} 个字符"
   },
   "minimap": {
     "searchAria": "搜索会话",

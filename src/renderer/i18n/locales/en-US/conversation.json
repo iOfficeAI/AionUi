@@ -158,7 +158,8 @@
       "download": "Download",
       "downloadSuccess": "Download successful",
       "downloadFailed": "Download failed"
-    }
+    },
+    "largeFileWarning": "File too large ({{size}}MB), showing first {{chars}} characters only"
   },
   "minimap": {
     "searchAria": "Search conversation",

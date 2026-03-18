@@ -393,8 +393,35 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
           // 图片: 读取为 Base64 格式 / Image: Read as Base64 format
           content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
         } else {
-          // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
-          content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+          // 文本文件：先获取文件元数据检查大小 / Text files: get metadata first to check size
+          const MAX_PREVIEW_SIZE = 1024 * 1024; // 1MB 预览限制 / 1MB preview limit
+          let fileSize = 0;
+          
+          try {
+            const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: nodeData.fullPath });
+            fileSize = metadata.size;
+          } catch {
+            // 如果获取元数据失败，继续尝试读取 / If metadata fails, continue to try reading
+          }
+          
+          if (fileSize > MAX_PREVIEW_SIZE) {
+            // 大文件使用分块读取 / Large file: use chunked reading
+            content = await ipcBridge.fs.readFileChunked.invoke({ 
+              path: nodeData.fullPath, 
+              maxBytes: LARGE_TEXT_PREVIEW_MAX_LENGTH 
+            });
+            isLargeTextTruncated = true;
+            // 显示大文件警告 / Show large file warning
+            messageApi.warning(
+              t('conversation.workspace.largeFileWarning', {
+                size: (fileSize / 1024 / 1024).toFixed(1),
+                chars: LARGE_TEXT_PREVIEW_MAX_LENGTH.toLocaleString()
+              })
+            );
+          } else {
+            // 小文件正常读取 / Small file: normal reading
+            content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+          }
 
           // 大文本仅保留前一段预览内容，避免切换/关闭 tab 时卡顿
           // Keep only first chunk for large text preview to reduce tab switch/close jank

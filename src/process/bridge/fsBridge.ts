@@ -379,6 +379,44 @@ export function initFsBridge(): void {
     }
   });
 
+  // 分块读取文件内容（用于大文件预览）/ Read file content in chunks (for large file preview)
+  ipcBridge.fs.readFileChunked.provider(async ({ path: filePath, maxBytes = 1024 * 1024 }) => {
+    try {
+      // 先获取文件状态 / Get file stats first
+      const stats = await fs.stat(filePath);
+      
+      // 如果文件小于限制，直接读取全部内容 / If file is smaller than limit, read entire content
+      if (stats.size <= maxBytes) {
+        return await fs.readFile(filePath, 'utf-8');
+      }
+      
+      // 打开文件进行分块读取 / Open file for chunked reading
+      const fd = await fs.open(filePath, 'r');
+      try {
+        const buffer = Buffer.alloc(maxBytes);
+        const { bytesRead } = await fd.read(buffer, 0, maxBytes, 0);
+        
+        // 将 Buffer 转换为 UTF-8 字符串，处理可能的截断字符 / Convert Buffer to UTF-8 string, handle possible truncated characters
+        let content = buffer.toString('utf-8', 0, bytesRead);
+        
+        // 如果内容在末尾被截断，移除最后一个不完整的字符 / If content is truncated at the end, remove the last incomplete character
+        // 查找最后一个完整的 Unicode 字符 / Find the last complete Unicode character
+        const lastChar = content.charCodeAt(content.length - 1);
+        if (lastChar >= 0xd800 && lastChar <= 0xdbff) {
+          // 高代理对的开头，需要移除 / Start of high surrogate pair, need to remove
+          content = content.slice(0, -1);
+        }
+        
+        return content;
+      } finally {
+        await fd.close();
+      }
+    } catch (error) {
+      console.error('Failed to read file chunked:', error);
+      throw error;
+    }
+  });
+
   // 写入文件
   ipcBridge.fs.writeFile.provider(async ({ path: filePath, data }) => {
     try {

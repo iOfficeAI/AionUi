@@ -352,6 +352,7 @@ export type I18nKey =
   | 'conversation.workspace.contextMenu.downloadFailed'
   | 'conversation.workspace.contextMenu.downloadSuccess'
   | 'conversation.workspace.contextMenu.open'
+  | 'conversation.workspace.largeFileWarning'
   | 'conversation.workspace.contextMenu.openFailed'
   | 'conversation.workspace.contextMenu.openLocation'
   | 'conversation.workspace.contextMenu.preview'

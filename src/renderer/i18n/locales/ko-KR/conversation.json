@@ -158,7 +158,8 @@
       "download": "다운로드",
       "downloadSuccess": "다운로드 완료",
       "downloadFailed": "다운로드 실패"
-    }
+    },
+    "largeFileWarning": "파일이 너무 큽니다 ({{size}}MB), 처음 {{chars}} 문자만 표시"
   },
   "minimap": {
     "searchAria": "대화 검색",
