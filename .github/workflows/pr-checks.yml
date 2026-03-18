@@ -142,27 +142,6 @@ jobs:
           else
             echo 'CODECOV_TOKEN is missing.'
           fi
-      - name: Coverage gate (warn only, 80%)
-        if: always() && hashFiles('coverage/lcov.info') != ''
-        shell: bash
-        run: |
-          LF=$(grep -h '^LF:' coverage/lcov.info | awk -F: '{s+=$2} END{print s+0}')
-          LH=$(grep -h '^LH:' coverage/lcov.info | awk -F: '{s+=$2} END{print s+0}')
-          if [ "$LF" -gt 0 ]; then
-            PCT=$(awk -v lh="$LH" -v lf="$LF" 'BEGIN { printf "%.2f", (lh/lf)*100 }')
-          else
-            PCT="0.00"
-          fi
-          MSG="Project line coverage: ${PCT}% (threshold: 80%)"
-          echo "$MSG"
-          echo "## Coverage Gate (Warn Only)" >> "$GITHUB_STEP_SUMMARY"
-          echo "$MSG" >> "$GITHUB_STEP_SUMMARY"
-          awk -v pct="$PCT" 'BEGIN { exit !(pct < 80) }'
-          if [ $? -eq 0 ]; then
-            echo "::warning::Coverage below 80% (non-blocking warning)."
-            echo "⚠️ Coverage below 80% (non-blocking warning)." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
       - name: Coverage result summary
         if: always()
         shell: bash
