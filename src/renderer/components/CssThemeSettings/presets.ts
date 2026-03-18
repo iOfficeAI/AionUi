@@ -3536,6 +3536,10 @@ body {
 [data-theme='dark'] ::selection {
   background: color-mix(in srgb, var(--brand) 30%, transparent);
 }
+
+/* AionUi Theme Background Start */
+/* Preview cover only: do not auto-inject full-page background image */
+/* AionUi Theme Background End */
 `,
     createdAt: Date.now(),
     updatedAt: Date.now(),
