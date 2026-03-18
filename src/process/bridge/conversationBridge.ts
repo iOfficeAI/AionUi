@@ -8,13 +8,13 @@ import type { CodexAgentManager } from '@/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
+import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ipcBridge } from '../../common';
 import { getSkillsDir, ProcessChat } from '../initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import type NanoBotAgentManager from '../task/NanoBotAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
@@ -297,15 +297,6 @@ export function initConversationBridge(
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = workerTaskManager.getTask(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
-    if (
-      task.type !== 'gemini' &&
-      task.type !== 'acp' &&
-      task.type !== 'codex' &&
-      task.type !== 'openclaw-gateway' &&
-      task.type !== 'nanobot'
-    ) {
-      return { success: false, msg: 'not support' };
-    }
     await task.stop();
     return { success: true };
   });
@@ -334,23 +325,12 @@ export function initConversationBridge(
     }
   });
 
-  // 通用 sendMessage 实现 - 自动根据 conversation 类型分发
+  // 通用 sendMessage 实现 - 统一调用 IAgentManager.sendMessage
+  // Generic sendMessage - dispatches via IAgentManager.sendMessage interface
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-    let task:
-      | GeminiAgentManager
-      | AcpAgentManager
-      | CodexAgentManager
-      | OpenClawAgentManager
-      | NanoBotAgentManager
-      | undefined;
+    let task: IAgentManager | undefined;
     try {
-      task = (await workerTaskManager.getOrBuildTask(conversation_id)) as unknown as
-        | GeminiAgentManager
-        | AcpAgentManager
-        | CodexAgentManager
-        | OpenClawAgentManager
-        | NanoBotAgentManager
-        | undefined;
+      task = await workerTaskManager.getOrBuildTask(conversation_id);
     } catch (err) {
       console.error(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
       return { success: false, msg: err instanceof Error ? err.message : 'conversation not found' };
@@ -360,59 +340,35 @@ export function initConversationBridge(
       return { success: false, msg: 'conversation not found' };
     }
 
-    // 复制文件到工作空间（所有 agents 统一处理）
     // Copy files to workspace (unified for all agents)
     const workspaceFiles = await copyFilesToDirectory(task.workspace, files, false);
 
+    // Precompute agent content with optional skill injection.
+    // OpenClaw uses full-content mode: inject full skill text rather than index paths,
+    // because the CLI may not proactively read SKILL.md files the way ACP agents do.
+    let agentContent = other.input;
+    if (other.injectSkills?.length) {
+      agentContent = await prepareFirstMessage(other.input, { enabledSkills: other.injectSkills });
+      // Provide absolute skills directory so agent can resolve relative script paths
+      // e.g. "skills/star-office-helper/scripts/..." → "${skillsDir}/star-office-helper/scripts/..."
+      const skillsDir = getSkillsDir();
+      agentContent = agentContent.replace(
+        '[User Request]',
+        `[Skills Directory]\nSkills are installed at: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them as "${skillsDir}/{name}/scripts/...".\n\n[User Request]`
+      );
+    }
+
     try {
-      // 根据 task 类型调用对应的 sendMessage 方法
-      if (task.type === 'gemini') {
-        await (task as GeminiAgentManager).sendMessage({ ...other, files: workspaceFiles });
-        return { success: true };
-      } else if (task.type === 'acp') {
-        await (task as AcpAgentManager).sendMessage({
-          content: other.input,
-          files: workspaceFiles,
-          msg_id: other.msg_id,
-        });
-        return { success: true };
-      } else if (task.type === 'codex') {
-        await (task as CodexAgentManager).sendMessage({
-          content: other.input,
-          files: workspaceFiles,
-          msg_id: other.msg_id,
-        });
-        return { success: true };
-      } else if (task.type === 'openclaw-gateway') {
-        // Inject full skill content when requested (e.g. star-office-helper install flow).
-        // OpenClaw uses full-content mode (not index mode) because it may not proactively
-        // read SKILL.md files from paths like ACP agents (Claude Code CLI) do.
-        let agentContent = other.input;
-        if (other.injectSkills?.length) {
-          agentContent = await prepareFirstMessage(other.input, { enabledSkills: other.injectSkills });
-          // Provide absolute skills directory so agent can resolve relative script paths
-          // e.g. "skills/star-office-helper/scripts/..." → "${skillsDir}/star-office-helper/scripts/..."
-          const skillsDir = getSkillsDir();
-          agentContent = agentContent.replace(
-            '[User Request]',
-            `[Skills Directory]\nSkills are installed at: ${skillsDir}\nWhen skill instructions reference relative paths like "skills/{name}/scripts/...", resolve them as "${skillsDir}/{name}/scripts/...".\n\n[User Request]`
-          );
-        }
-        // Save original user text to chat history (not the injected version),
-        // then send the injected content to the agent only.
-        const manager = task as OpenClawAgentManager;
-        await manager.sendMessage({ content: other.input, agentContent, files: workspaceFiles, msg_id: other.msg_id });
-        return { success: true };
-      } else if (task.type === 'nanobot') {
-        await (task as NanoBotAgentManager).sendMessage({
-          content: other.input,
-          files: workspaceFiles,
-          msg_id: other.msg_id,
-        });
-        return { success: true };
-      } else {
-        return { success: false, msg: `Unsupported task type: ${task.type}` };
-      }
+      // Pass unified data — each agent reads the fields it needs from the unknown payload.
+      // `content` aliases `input` for ACP/Codex/NanoBot/OpenClaw agents.
+      // `agentContent` carries the skill-injected text for OpenClaw (equals `input` when no skills).
+      await task.sendMessage({
+        ...other,
+        content: other.input,
+        files: workspaceFiles,
+        agentContent,
+      });
+      return { success: true };
     } catch (err: unknown) {
       return { success: false, msg: err instanceof Error ? err.message : String(err) };
     }
