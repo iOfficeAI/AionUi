@@ -179,7 +179,6 @@ export function initConversationBridge(
           const channelManager = getChannelManager();
           if (channelManager.isInitialized()) {
             await channelManager.cleanupConversation(id);
-            console.log(`[conversationBridge] Cleaned up channel resources for ${source} conversation ${id}`);
           }
         } catch (cleanupError) {
           console.warn('[conversationBridge] Failed to cleanup channel resources:', cleanupError);
@@ -246,14 +245,13 @@ export function initConversationBridge(
       const history = await ProcessChat.get('chat.history');
       const fileConversation = (history || []).find((item) => item.id === id);
       if (fileConversation) {
-        // Update status from running task
+        // Update status from running task without mutating the file storage object
         const task = workerTaskManager.getTask(id);
-        fileConversation.status = task?.status || 'finished';
 
         // Lazy migrate this conversation to database in background
         void migrateConversationToDatabase(fileConversation);
 
-        return fileConversation;
+        return { ...fileConversation, status: task?.status || 'finished' };
       }
 
       return undefined;
@@ -290,7 +288,6 @@ export function initConversationBridge(
       // 捕获 abort 错误，避免 unhandled rejection
       // Catch abort errors to avoid unhandled rejection
       if (error instanceof Error && error.message.includes('aborted')) {
-        console.log('[Workspace] Read directory aborted:', error.message);
         return [];
       }
       throw error;
@@ -339,8 +336,6 @@ export function initConversationBridge(
 
   // 通用 sendMessage 实现 - 自动根据 conversation 类型分发
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-    console.log(`[conversationBridge] sendMessage called: conversation_id=${conversation_id}, msg_id=${other.msg_id}`);
-
     let task:
       | GeminiAgentManager
       | AcpAgentManager
@@ -357,15 +352,13 @@ export function initConversationBridge(
         | NanoBotAgentManager
         | undefined;
     } catch (err) {
-      console.log(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
+      console.error(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
       return { success: false, msg: err instanceof Error ? err.message : 'conversation not found' };
     }
 
     if (!task) {
-      console.log(`[conversationBridge] sendMessage: conversation not found: ${conversation_id}`);
       return { success: false, msg: 'conversation not found' };
     }
-    console.log(`[conversationBridge] sendMessage: found task type=${task.type}, status=${task.status}`);
 
     // 复制文件到工作空间（所有 agents 统一处理）
     // Copy files to workspace (unified for all agents)

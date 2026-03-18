@@ -4,11 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {
-  IConversationService,
-  CreateConversationParams,
-  MigrateConversationParams,
-} from './IConversationService';
+import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
 import type { IConversationRepository } from '@process/database/IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -44,11 +40,7 @@ export class ConversationServiceImpl implements IConversationService {
     this.repo.deleteConversation(id);
   }
 
-  async updateConversation(
-    id: string,
-    updates: Partial<TChatConversation>,
-    mergeExtra?: boolean,
-  ): Promise<void> {
+  async updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void> {
     let finalUpdates = updates;
     if (mergeExtra && updates.extra) {
       const existing = this.repo.getConversation(id);
@@ -78,11 +70,7 @@ export class ConversationServiceImpl implements IConversationService {
       let hasMore = true;
 
       while (hasMore) {
-        const { data: messages, hasMore: more } = this.repo.getMessages(
-          sourceConversationId,
-          page,
-          pageSize,
-        );
+        const { data: messages, hasMore: more } = this.repo.getMessages(sourceConversationId, page, pageSize);
         for (const msg of messages) {
           this.repo.insertMessage({
             ...msg,
@@ -122,10 +110,10 @@ export class ConversationServiceImpl implements IConversationService {
       if (sourceMsgs.total === newMsgs.total) {
         this.repo.deleteConversation(sourceConversationId);
       } else {
-        console.error(
-          '[ConversationServiceImpl] Migration integrity check failed: message counts do not match.',
-          { source: sourceMsgs.total, new: newMsgs.total },
-        );
+        console.error('[ConversationServiceImpl] Migration integrity check failed: message counts do not match.', {
+          source: sourceMsgs.total,
+          new: newMsgs.total,
+        });
       }
     }
 
@@ -148,7 +136,7 @@ export class ConversationServiceImpl implements IConversationService {
           params.extra.enabledSkills as string[] | undefined,
           params.extra.presetAssistantId,
           params.extra.sessionMode,
-          params.extra.isHealthCheck,
+          params.extra.isHealthCheck
         );
         break;
       }
@@ -173,21 +161,17 @@ export class ConversationServiceImpl implements IConversationService {
       }
     }
 
-    // Apply optional overrides
-    if (params.id) {
-      conversation.id = params.id;
-    }
-    if (params.name) {
-      conversation.name = params.name;
-    }
-    if (params.source) {
-      conversation.source = params.source;
-    }
-    if (params.channelChatId) {
-      conversation.channelChatId = params.channelChatId;
-    }
+    // Apply optional overrides without mutating the object returned by agent factories
+    const overrides: Partial<TChatConversation> = {};
+    if (params.id) overrides.id = params.id;
+    if (params.name) overrides.name = params.name;
+    if (params.source) overrides.source = params.source;
+    if (params.channelChatId) overrides.channelChatId = params.channelChatId;
+    // The spread preserves the discriminant field (type) from `conversation`;
+    // the assertion is safe because `overrides` only contains non-discriminant fields.
+    const finalConversation = { ...conversation, ...overrides } as TChatConversation;
 
-    this.repo.createConversation(conversation);
-    return conversation;
+    this.repo.createConversation(finalConversation);
+    return finalConversation;
   }
 }

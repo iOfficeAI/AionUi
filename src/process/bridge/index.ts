@@ -35,19 +35,19 @@ import { initNotificationBridge } from './notificationBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 
 export interface BridgeDependencies {
-  conversationService?: IConversationService;
-  workerTaskManager?: IWorkerTaskManager;
+  conversationService: IConversationService;
+  workerTaskManager: IWorkerTaskManager;
 }
 
 /**
  * 初始化所有IPC桥接模块
  */
-export function initAllBridges(deps?: BridgeDependencies): void {
+export function initAllBridges(deps: BridgeDependencies): void {
   initDialogBridge();
   initShellBridge();
   initFsBridge();
   initFileWatchBridge();
-  initConversationBridge(deps?.conversationService, deps?.workerTaskManager);
+  initConversationBridge(deps.conversationService, deps.workerTaskManager);
   initApplicationBridge();
   initGeminiConversationBridge();
   // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
