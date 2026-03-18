@@ -65,6 +65,13 @@ export default defineConfig({
         'src/process/services/cron/CronStore.ts',
         'src/process/bridge/cronBridge.ts',
         'src/process/bridge/conversationBridge.ts',
+        // Decoupling layer (interfaces + implementations)
+        'src/process/database/SqliteConversationRepository.ts',
+        'src/process/services/ConversationServiceImpl.ts',
+        'src/process/task/AgentFactory.ts',
+        'src/process/task/WorkerTaskManager.ts',
+        'src/process/task/IpcAgentEventEmitter.ts',
+        'src/process/task/BaseAgentManager.ts',
         'src/process/bridge/updateBridge.ts',
         'src/process/bridge/applicationBridge.ts',
         'src/utils/configureChromium.ts',
