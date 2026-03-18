@@ -83,6 +83,41 @@ bun run test:e2e           # E2E tests (Playwright)
 - When modifying logic, update affected existing tests
 - New source files added to feature areas must be included in coverage config (`vitest.config.ts` → `coverage.include`)
 
+**Coverage target**: ≥ 80% for all files listed in `coverage.include`. Run `bun run test:coverage` to verify before opening a PR.
+
+### Test Quality Rules
+
+Coverage percentage is a floor, not a goal. A test only has value if it would **fail when the behavior it describes breaks**.
+
+**1. Describe behavior, not code structure**
+
+```typescript
+// Wrong — describes implementation
+it('should call repo.getConversation', ...)
+
+// Correct — describes behavior
+it('should return cached task without hitting repo on second call', ...)
+it('should reject with error when conversation does not exist', ...)
+```
+
+**2. Every describe block must cover at least one failure path**
+
+Happy-path-only tests leave the most dangerous code untested. For every module, ask:
+- What happens when the dependency returns `undefined` / throws?
+- What happens at the boundary (empty list, max retries reached, past timestamp)?
+
+**3. One behavior per test**
+
+Keep each `it()` focused. More than 3 `expect()` calls in one test is a signal it is testing too much at once.
+
+**4. Self-check before committing**
+
+After writing a test, mentally delete the core logic it targets. If the test would still pass, rewrite it — it is not guarding anything.
+
+**5. Start from risk, not from coverage gaps**
+
+Before writing tests for a module, list the scenarios most likely to produce bugs in production. Write those first. Coverage is the outcome of that process, not the starting point.
+
 ## Code Quality
 
 **Run `bun run lint:fix` after editing any `.ts` / `.tsx` file** — Prettier is enforced in CI and formatting errors block merges.
