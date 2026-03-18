@@ -5,6 +5,7 @@ import { ThemedText } from '../ui/ThemedText';
 import { MessageBubble } from './MessageBubble';
 import { ChatInputBar } from './ChatInputBar';
 import { useChat } from '../../context/ChatContext';
+import { useThemeColor } from '../../hooks/useThemeColor';
 import type { TMessage } from '../../utils/messageAdapter';
 
 type ChatScreenProps = {
@@ -15,6 +16,8 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
   const { t } = useTranslation();
   const { messages, isStreaming, loadConversation, sendMessage, stopGeneration } = useChat();
   const flatListRef = useRef<FlatList>(null);
+  const background = useThemeColor({}, 'background');
+  const surface = useThemeColor({}, 'surface');
 
   useEffect(() => {
     loadConversation(conversationId);
@@ -36,7 +39,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
@@ -53,7 +56,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
         }
       />
       {isStreaming && (
-        <View style={styles.streamingIndicator}>
+        <View style={[styles.streamingIndicator, { backgroundColor: surface }]}>
           <ThemedText type='caption'>{t('chat.thinking')}</ThemedText>
         </View>
       )}
@@ -65,7 +68,6 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   list: {
     paddingVertical: 12,
@@ -80,7 +82,6 @@ const styles = StyleSheet.create({
   streamingIndicator: {
     paddingHorizontal: 16,
     paddingVertical: 4,
-    backgroundColor: '#F7F8FA',
     alignItems: 'center',
   },
 });

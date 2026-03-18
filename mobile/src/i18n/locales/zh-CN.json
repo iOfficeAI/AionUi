@@ -26,7 +26,7 @@
     "disconnected": "已断开与服务器的连接"
   },
   "tabs": {
-    "conversations": "对话",
+    "chat": "聊天",
     "files": "文件",
     "settings": "设置"
   },
@@ -53,7 +53,10 @@
     "toolError": "错误",
     "approve": "允许",
     "deny": "拒绝",
-    "permissionRequest": "权限请求"
+    "permissionRequest": "权限请求",
+    "newChat": "新建聊天",
+    "noConversation": "未选择对话",
+    "startChatHint": "创建一个新对话开始使用"
   },
   "files": {
     "title": "文件",

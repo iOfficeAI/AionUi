@@ -21,5 +21,5 @@ export default function IndexScreen() {
     return <Redirect href='/connect' />;
   }
 
-  return <Redirect href='/(tabs)/conversations' />;
+  return <Redirect href='/(tabs)/chat' />;
 }

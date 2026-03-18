@@ -37,6 +37,8 @@ type ConversationContextType = {
   conversations: Conversation[];
   isLoading: boolean;
   availableAgents: AgentInfo[];
+  activeConversationId: string | null;
+  setActiveConversationId: (id: string | null) => void;
   refresh: () => Promise<void>;
   fetchAgents: () => Promise<void>;
   createConversation: (params: CreateConversationParams) => Promise<Conversation | null>;
@@ -47,6 +49,8 @@ const ConversationContext = createContext<ConversationContextType>({
   conversations: [],
   isLoading: false,
   availableAgents: [],
+  activeConversationId: null,
+  setActiveConversationId: () => {},
   refresh: async () => {},
   fetchAgents: async () => {},
   createConversation: async () => null,
@@ -57,6 +61,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [availableAgents, setAvailableAgents] = useState<AgentInfo[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const { connectionState } = useConnection();
 
   const refresh = useCallback(async () => {
@@ -80,11 +85,19 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   // Auto-fetch when connected
   useEffect(() => {
     if (connectionState === 'connected') {
-      refresh();
+      void refresh();
     } else {
       setConversations([]);
+      setActiveConversationId(null);
     }
   }, [connectionState, refresh]);
+
+  // Auto-select most recent conversation when loaded and no active selection
+  useEffect(() => {
+    if (conversations.length > 0 && !activeConversationId) {
+      setActiveConversationId(conversations[0].id);
+    }
+  }, [conversations, activeConversationId]);
 
   const fetchAgents = useCallback(async () => {
     if (connectionState !== 'connected') return;
@@ -128,6 +141,11 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     async (id: string) => {
       try {
         await bridge.request('remove-conversation', { id });
+        // If deleting the active conversation, switch to next one
+        if (id === activeConversationId) {
+          const remaining = conversations.filter((c) => c.id !== id);
+          setActiveConversationId(remaining.length > 0 ? remaining[0].id : null);
+        }
         await refresh();
         return true;
       } catch (e) {
@@ -135,7 +153,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         return false;
       }
     },
-    [refresh]
+    [refresh, activeConversationId, conversations]
   );
 
   return (
@@ -144,6 +162,8 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         conversations,
         isLoading,
         availableAgents,
+        activeConversationId,
+        setActiveConversationId,
         refresh,
         fetchAgents,
         createConversation,

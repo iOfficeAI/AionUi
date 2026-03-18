@@ -31,15 +31,6 @@ export default function RootLayout() {
                 <Stack.Screen name='connect' />
                 <Stack.Screen name='(tabs)' />
                 <Stack.Screen
-                  name='conversation/[id]'
-                  options={{
-                    headerShown: true,
-                    headerTitle: '',
-                    headerBackTitle: 'Back',
-                    animation: 'slide_from_right',
-                  }}
-                />
-                <Stack.Screen
                   name='file-preview'
                   options={{
                     headerShown: true,

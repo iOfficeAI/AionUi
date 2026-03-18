@@ -79,7 +79,7 @@ export default function ConnectScreen() {
         });
       });
 
-      router.replace('/(tabs)/conversations');
+      router.replace('/(tabs)/chat');
     } catch (e: any) {
       const msg = e.message === 'auth_failed' ? t('connect.invalidToken') : t('connect.connectionFailed');
       Alert.alert(t('common.error'), msg, [{ text: t('common.ok'), onPress: () => (scannedRef.current = false) }]);

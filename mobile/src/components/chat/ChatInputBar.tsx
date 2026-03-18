@@ -18,6 +18,8 @@ export function ChatInputBar({ onSend, onStop, isStreaming, disabled }: ChatInpu
   const surface = useThemeColor({}, 'surface');
   const border = useThemeColor({}, 'border');
   const error = useThemeColor({}, 'error');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
   const [text, setText] = useState('');
 
   const handleSend = () => {
@@ -33,11 +35,11 @@ export function ChatInputBar({ onSend, onStop, isStreaming, disabled }: ChatInpu
     <View style={[styles.container, { borderTopColor: border, backgroundColor: background }]}>
       <View style={[styles.inputRow, { backgroundColor: surface }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: textColor }]}
           value={text}
           onChangeText={setText}
           placeholder={t('chat.inputPlaceholder')}
-          placeholderTextColor='#C0C0C0'
+          placeholderTextColor={textSecondary}
           multiline
           maxLength={10000}
           editable={!disabled}

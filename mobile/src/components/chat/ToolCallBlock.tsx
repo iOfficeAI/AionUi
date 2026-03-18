@@ -3,36 +3,48 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../ui/ThemedText';
 import { useTranslation } from 'react-i18next';
+import { useThemeColor } from '../../hooks/useThemeColor';
 
 type ToolCallBlockProps = {
   content: any;
   type: 'tool_call' | 'tool_group' | 'acp_tool_call' | 'codex_tool_call';
 };
 
-const statusIcons: Record<string, { icon: string; color: string }> = {
-  Executing: { icon: 'play-circle', color: '#165DFF' },
-  Success: { icon: 'checkmark-circle', color: '#00B42A' },
-  Error: { icon: 'close-circle', color: '#F53F3F' },
-  Canceled: { icon: 'remove-circle', color: '#86909C' },
-  Pending: { icon: 'time', color: '#FF7D00' },
-  Confirming: { icon: 'help-circle', color: '#722ED1' },
-  // For codex/acp tool calls
-  executing: { icon: 'play-circle', color: '#165DFF' },
-  success: { icon: 'checkmark-circle', color: '#00B42A' },
-  error: { icon: 'close-circle', color: '#F53F3F' },
-  pending: { icon: 'time', color: '#FF7D00' },
-  canceled: { icon: 'remove-circle', color: '#86909C' },
-};
+function useStatusIcons() {
+  const tint = useThemeColor({}, 'tint');
+  const success = useThemeColor({}, 'success');
+  const error = useThemeColor({}, 'error');
+  const warning = useThemeColor({}, 'warning');
+  const icon = useThemeColor({}, 'icon');
+
+  return {
+    Executing: { icon: 'play-circle' as const, color: tint },
+    Success: { icon: 'checkmark-circle' as const, color: success },
+    Error: { icon: 'close-circle' as const, color: error },
+    Canceled: { icon: 'remove-circle' as const, color: icon },
+    Pending: { icon: 'time' as const, color: warning },
+    Confirming: { icon: 'help-circle' as const, color: '#722ED1' },
+    executing: { icon: 'play-circle' as const, color: tint },
+    success: { icon: 'checkmark-circle' as const, color: success },
+    error: { icon: 'close-circle' as const, color: error },
+    pending: { icon: 'time' as const, color: warning },
+    canceled: { icon: 'remove-circle' as const, color: icon },
+  };
+}
 
 export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const surface = useThemeColor({}, 'surface');
+  const border = useThemeColor({}, 'border');
+  const iconColor = useThemeColor({}, 'icon');
+  const statusIcons = useStatusIcons();
 
   if (type === 'tool_group' && Array.isArray(content)) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: surface }]}>
         {content.map((tool: any, i: number) => (
-          <ToolItem key={tool.callId || i} tool={tool} />
+          <ToolItem key={tool.callId || i} tool={tool} surface={surface} border={border} iconColor={iconColor} />
         ))}
       </View>
     );
@@ -40,7 +52,7 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
 
   if (type === 'tool_call') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: surface }]}>
         <ToolItem
           tool={{
             name: content.name,
@@ -48,6 +60,9 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
             status: content.status === 'success' ? 'Success' : content.status === 'error' ? 'Error' : 'Executing',
             callId: content.callId,
           }}
+          surface={surface}
+          border={border}
+          iconColor={iconColor}
         />
       </View>
     );
@@ -56,19 +71,23 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
   // codex_tool_call or acp_tool_call
   const status = content.status || 'pending';
   const title = content.title || content.description || content.kind || t('chat.toolCall');
-  const info = statusIcons[status] || statusIcons.pending;
+  const info = statusIcons[status as keyof typeof statusIcons] || statusIcons.pending;
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.item} onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-        <Ionicons name={info.icon as any} size={18} color={info.color} />
+    <View style={[styles.container, { backgroundColor: surface }]}>
+      <TouchableOpacity
+        style={[styles.item, { borderBottomColor: border }]}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name={info.icon} size={18} color={info.color} />
         <ThemedText style={styles.toolName} numberOfLines={expanded ? undefined : 1}>
           {title}
         </ThemedText>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color='#86909C' />
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={iconColor} />
       </TouchableOpacity>
       {expanded && content.description && (
-        <View style={styles.detail}>
+        <View style={[styles.detail, { backgroundColor: surface }]}>
           <ThemedText type='caption'>{content.description}</ThemedText>
         </View>
       )}
@@ -76,22 +95,37 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
   );
 }
 
-function ToolItem({ tool }: { tool: any }) {
+function ToolItem({
+  tool,
+  surface,
+  border,
+  iconColor,
+}: {
+  tool: any;
+  surface: string;
+  border: string;
+  iconColor: string;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const statusIcons = useStatusIcons();
   const status = tool.status || 'Executing';
-  const info = statusIcons[status] || statusIcons.Pending;
+  const info = statusIcons[status as keyof typeof statusIcons] || statusIcons.Pending;
 
   return (
     <View>
-      <TouchableOpacity style={styles.item} onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-        <Ionicons name={info.icon as any} size={18} color={info.color} />
+      <TouchableOpacity
+        style={[styles.item, { borderBottomColor: border }]}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name={info.icon} size={18} color={info.color} />
         <ThemedText style={styles.toolName} numberOfLines={1}>
           {tool.description || tool.name || 'Tool'}
         </ThemedText>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color='#86909C' />
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={iconColor} />
       </TouchableOpacity>
       {expanded && (
-        <View style={styles.detail}>
+        <View style={[styles.detail, { backgroundColor: surface }]}>
           {tool.name && <ThemedText type='caption'>{tool.name}</ThemedText>}
           {typeof tool.resultDisplay === 'string' && tool.resultDisplay && (
             <ThemedText type='caption' numberOfLines={8}>
@@ -106,7 +140,6 @@ function ToolItem({ tool }: { tool: any }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F7F8FA',
     borderRadius: 10,
     overflow: 'hidden',
     marginVertical: 4,
@@ -118,7 +151,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E8EB',
   },
   toolName: {
     flex: 1,
@@ -127,7 +159,6 @@ const styles = StyleSheet.create({
   detail: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F2F3F5',
     gap: 4,
   },
 });

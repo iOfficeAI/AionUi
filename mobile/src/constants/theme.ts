@@ -14,6 +14,13 @@ export const Colors = {
     error: '#F53F3F',
     success: '#00B42A',
     warning: '#FF7D00',
+    codeBackground: '#F2F3F5',
+    codeForeground: '#D4380D',
+    tipErrorBg: '#FFF1F0',
+    tipWarningBg: '#FFF7E8',
+    tipSuccessBg: '#E8FFEA',
+    confirmBg: '#FFF7E8',
+    confirmBorder: '#FFD666',
   },
   dark: {
     text: '#ECEDEE',
@@ -28,6 +35,13 @@ export const Colors = {
     error: '#F76560',
     success: '#27C346',
     warning: '#FF9A2E',
+    codeBackground: '#2A2D2F',
+    codeForeground: '#FF7875',
+    tipErrorBg: '#2A1215',
+    tipWarningBg: '#2B2111',
+    tipSuccessBg: '#162312',
+    confirmBg: '#2B2111',
+    confirmBorder: '#AA8800',
   },
 };
 

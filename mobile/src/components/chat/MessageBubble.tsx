@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { ThemedText } from '../ui/ThemedText';
 import { MarkdownContent } from './MarkdownContent';
 import { ToolCallBlock } from './ToolCallBlock';
@@ -13,9 +12,14 @@ type MessageBubbleProps = {
 };
 
 export function MessageBubble({ message }: MessageBubbleProps) {
-  const { t } = useTranslation();
   const tint = useThemeColor({}, 'tint');
   const surface = useThemeColor({}, 'surface');
+  const error = useThemeColor({}, 'error');
+  const warning = useThemeColor({}, 'warning');
+  const success = useThemeColor({}, 'success');
+  const tipErrorBg = useThemeColor({}, 'tipErrorBg');
+  const tipWarningBg = useThemeColor({}, 'tipWarningBg');
+  const tipSuccessBg = useThemeColor({}, 'tipSuccessBg');
 
   switch (message.type) {
     case 'text': {
@@ -42,8 +46,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
     case 'tips': {
       const tipType = message.content.type;
-      const bgColor = tipType === 'error' ? '#FFF1F0' : tipType === 'warning' ? '#FFF7E8' : '#E8FFEA';
-      const textColor = tipType === 'error' ? '#F53F3F' : tipType === 'warning' ? '#FF7D00' : '#00B42A';
+      const bgColor = tipType === 'error' ? tipErrorBg : tipType === 'warning' ? tipWarningBg : tipSuccessBg;
+      const textColor = tipType === 'error' ? error : tipType === 'warning' ? warning : success;
       return (
         <View style={styles.tipRow}>
           <View style={[styles.tipBubble, { backgroundColor: bgColor }]}>
@@ -58,7 +62,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       const agentName = message.content.agentName || message.content.backend;
       return (
         <View style={styles.tipRow}>
-          <View style={styles.statusBubble}>
+          <View style={[styles.statusBubble, { backgroundColor: surface }]}>
             <ThemedText type='caption'>
               {agentName}: {status}
             </ThemedText>
@@ -93,7 +97,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       const entries = message.content?.entries || [];
       return (
         <View style={[styles.row, styles.rowLeft]}>
-          <View style={styles.planContainer}>
+          <View style={[styles.planContainer, { backgroundColor: surface }]}>
             <ThemedText style={styles.planTitle}>Plan</ThemedText>
             {entries.map((entry: any, i: number) => (
               <View key={i} style={styles.planEntry}>
@@ -160,7 +164,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F2F3F5',
   },
   toolContainer: {
     maxWidth: '90%',
@@ -169,7 +172,6 @@ const styles = StyleSheet.create({
     maxWidth: '90%',
   },
   planContainer: {
-    backgroundColor: '#F7F8FA',
     borderRadius: 12,
     padding: 14,
     maxWidth: '90%',
