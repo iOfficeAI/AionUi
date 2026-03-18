@@ -123,19 +123,25 @@ jobs:
         run: bun run test:coverage
 
       - name: Upload coverage to Codecov (Linux coverage only)
-        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository == 'iOfficeAI/AionUi'
+        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository == 'iOfficeAI/AionUi' && secrets.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: iOfficeAI/AionUi
           files: coverage/lcov.info
           fail_ci_if_error: false
           verbose: true
-
-      - name: Skip Codecov upload for non-canonical repos
-        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository != 'iOfficeAI/AionUi'
+      - name: Skip Codecov upload when preconditions are not met
+        if: always() && hashFiles('coverage/lcov.info') != '' && (github.repository != 'iOfficeAI/AionUi' || secrets.CODECOV_TOKEN == '')
+        shell: bash
         run: |
-          echo 'Skipping Codecov upload: repository mismatch for configured token.'
-
+          echo 'Skipping Codecov upload due to unmet preconditions.'
+          echo "Repository: ${{ github.repository }}"
+          if [ "${{ secrets.CODECOV_TOKEN != '' }}" = "true" ]; then
+            echo 'CODECOV_TOKEN is configured.'
+          else
+            echo 'CODECOV_TOKEN is missing.'
+          fi
       - name: Coverage gate (warn only, 80%)
         if: always() && hashFiles('coverage/lcov.info') != ''
         shell: bash
