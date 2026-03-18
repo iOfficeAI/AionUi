@@ -6,6 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const originalPlatform = process.platform;
+
 // Shared mock instances that survive across dynamic imports
 const mockTrayInstance = {
   setToolTip: vi.fn(),
@@ -26,6 +28,23 @@ const mockNativeImage = {
   resize: vi.fn().mockReturnThis(),
   isEmpty: vi.fn(() => false),
 };
+const mockDock = {
+  show: vi.fn(),
+  hide: vi.fn(),
+};
+
+const createMockWindow = () =>
+  ({
+    isDestroyed: vi.fn(() => false),
+    isMinimized: vi.fn(() => false),
+    restore: vi.fn(),
+    show: vi.fn(),
+    focus: vi.fn(),
+    hide: vi.fn(),
+    webContents: {
+      send: vi.fn(),
+    },
+  }) as any;
 
 // Tray must be a proper constructor for `new Tray(icon)` to work
 class MockTray {
@@ -41,6 +60,7 @@ const mockModules = () => {
       relaunch: vi.fn(),
       exit: vi.fn(),
       quit: vi.fn(),
+      dock: mockDock,
     },
     Tray: MockTray,
     Menu: {
@@ -76,10 +96,12 @@ describe('tray module', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
     mockModules();
   });
 
   afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
     vi.doUnmock('electron');
     vi.doUnmock('@/common');
     vi.doUnmock('@process/i18n');
@@ -108,7 +130,7 @@ describe('tray module', () => {
 
     it('should set main window reference', async () => {
       const { setTrayMainWindow } = await import('@/process/tray');
-      const mockWindow = { show: vi.fn(), focus: vi.fn() } as any;
+      const mockWindow = createMockWindow();
 
       expect(() => setTrayMainWindow(mockWindow)).not.toThrow();
     });
@@ -285,6 +307,41 @@ describe('tray module', () => {
 
       // Should still build menu without crashing
       expect(mockBuildFromTemplate).toHaveBeenCalled();
+    });
+
+    it('should hide window and dock when hide-to-tray is clicked on macOS', async () => {
+      setupWithOverrides();
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      const { setTrayMainWindow } = await import('@/process/tray');
+      const mockWindow = createMockWindow();
+      setTrayMainWindow(mockWindow);
+
+      const templateArg = await getTemplateFromRefresh();
+      const hideToTrayItem = templateArg.find((item: any) => item.label === 'common.tray.closeToTray');
+
+      hideToTrayItem.click();
+
+      expect(mockWindow.hide).toHaveBeenCalledOnce();
+      expect(mockDock.hide).toHaveBeenCalledOnce();
+    });
+
+    it('should restore window and show dock when show-window is clicked on macOS', async () => {
+      setupWithOverrides();
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      const { setTrayMainWindow } = await import('@/process/tray');
+      const mockWindow = createMockWindow();
+      mockWindow.isMinimized.mockReturnValue(true);
+      setTrayMainWindow(mockWindow);
+
+      const templateArg = await getTemplateFromRefresh();
+      const showWindowItem = templateArg.find((item: any) => item.label === 'common.tray.showWindow');
+
+      showWindowItem.click();
+
+      expect(mockDock.show).toHaveBeenCalledOnce();
+      expect(mockWindow.restore).toHaveBeenCalledOnce();
+      expect(mockWindow.show).toHaveBeenCalledOnce();
+      expect(mockWindow.focus).toHaveBeenCalledOnce();
     });
   });
 });

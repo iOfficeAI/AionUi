@@ -7,7 +7,6 @@
 import type { BrowserWindow } from 'electron';
 import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
-import { ipcBridge } from '@/common';
 import i18n from '@process/i18n';
 import { workerTaskManager } from './task/workerTaskManagerSingleton';
 
@@ -75,8 +74,23 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
 
   const showAndFocus = () => {
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.show();
+      }
+      if (mainWindowRef.isMinimized()) {
+        mainWindowRef.restore();
+      }
       mainWindowRef.show();
       mainWindowRef.focus();
+    }
+  };
+
+  const hideToTray = () => {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      mainWindowRef.hide();
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.hide();
+      }
     }
   };
 
@@ -84,6 +98,10 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     {
       label: i18n.t('common.tray.showWindow'),
       click: showAndFocus,
+    },
+    {
+      label: i18n.t('common.tray.closeToTray'),
+      click: hideToTray,
     },
     { type: 'separator' },
     {
@@ -127,15 +145,6 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   });
 
   template.push({ type: 'separator' });
-  template.push({
-    label: i18n.t('common.tray.closeToTray'),
-    type: 'checkbox',
-    checked: closeToTrayEnabled,
-    click: async () => {
-      const newState = !closeToTrayEnabled;
-      void ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: newState });
-    },
-  });
   template.push({
     label: i18n.t('common.tray.checkUpdate'),
     click: () => {
@@ -186,6 +195,12 @@ export const createOrUpdateTray = (): void => {
 
     tray.on('double-click', () => {
       if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+        if (process.platform === 'darwin' && app.dock) {
+          void app.dock.show();
+        }
+        if (mainWindowRef.isMinimized()) {
+          mainWindowRef.restore();
+        }
         mainWindowRef.show();
         mainWindowRef.focus();
       }

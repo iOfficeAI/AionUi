@@ -57,7 +57,7 @@
   "refresh": "Refresh",
   "tray.showWindow": "Show AionUi",
   "tray.newChat": "New Chat",
-  "tray.closeToTray": "Close to Tray",
+  "tray.closeToTray": "Hide to Tray",
   "tray.about": "About AionUi",
   "tray.restart": "Restart App",
   "tray.quit": "Quit",
