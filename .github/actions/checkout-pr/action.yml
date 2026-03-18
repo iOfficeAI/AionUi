@@ -1,5 +1,5 @@
-name: '⬇️ Checkout PR'
-description: 'Checkout the correct ref for both pull_request and workflow_dispatch triggers'
+name: '🔍 Resolve PR Context'
+description: 'Resolve the correct ref and base branch for pull_request and workflow_dispatch triggers. Must be called after actions/checkout.'
 inputs:
   pr_number:
     description: 'PR number (only used when triggered via workflow_dispatch)'
@@ -8,18 +8,9 @@ inputs:
   github_token:
     description: 'GitHub token for gh API calls'
     required: true
-  fetch_depth:
-    description: 'fetch-depth for actions/checkout'
-    required: false
-    default: '1'
 runs:
   using: 'composite'
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: ${{ inputs.fetch_depth }}
-
     - name: Resolve PR context
       shell: bash
       env:

@@ -37,12 +37,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout PR
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve PR context
         uses: ./.github/actions/checkout-pr
         with:
           pr_number: ${{ inputs.pr_number }}
           github_token: ${{ github.token }}
-          fetch_depth: '0'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -77,7 +81,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-14, windows-2022]
     steps:
-      - name: Checkout PR
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve PR context
         uses: ./.github/actions/checkout-pr
         with:
           pr_number: ${{ inputs.pr_number }}
@@ -109,7 +116,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout PR
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve PR context
         uses: ./.github/actions/checkout-pr
         with:
           pr_number: ${{ inputs.pr_number }}
