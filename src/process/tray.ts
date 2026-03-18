@@ -9,7 +9,7 @@ import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
 import { ipcBridge } from '../common';
 import i18n from '@process/i18n';
-import WorkerManage from './WorkerManage';
+import { workerTaskManager } from './task/workerTaskManagerSingleton';
 
 let tray: Tray | null = null;
 let closeToTrayEnabled = false;
@@ -64,7 +64,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
 
   const getRunningTasksCount = (): number => {
     try {
-      return WorkerManage.listTasks().length;
+      return workerTaskManager.listTasks().length;
     } catch {
       return 0;
     }
