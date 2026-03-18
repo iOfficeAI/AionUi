@@ -8,14 +8,17 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
-import { useCallback, useState } from 'react';
+import { uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MessageApi, PasteConfirmState, SelectedNodeRef } from '../types';
 import { getTargetFolderPath } from '../utils/treeHelpers';
 
 interface UseWorkspacePasteOptions {
+  conversationId: string;
   workspace: string;
   messageApi: MessageApi;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 
   // Dependencies from useWorkspaceTree
   files: IDirOrFile[];
@@ -35,6 +38,7 @@ interface UseWorkspacePasteOptions {
  */
 export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
   const {
+    conversationId,
     workspace,
     messageApi,
     t,
@@ -51,40 +55,100 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
   // Track paste target folder (for visual feedback)
   const [pasteTargetFolder, setPasteTargetFolder] = useState<string | null>(null);
 
-  /**
-   * 添加文件（从文件系统选择器）
-   * Add files (from file system picker)
-   */
-  const handleAddFiles = useCallback(() => {
-    ipcBridge.dialog.showOpen
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const copyFilesIntoWorkspace = useCallback(
+    async (selectedFiles: string[]) => {
+      if (!selectedFiles.length) {
+        return;
+      }
+
+      const result = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths: selectedFiles, workspace });
+      const copiedFiles = result.data?.copiedFiles ?? [];
+      const failedFiles = result.data?.failedFiles ?? [];
+
+      if (copiedFiles.length > 0) {
+        setTimeout(() => {
+          refreshWorkspace();
+        }, 300);
+      }
+
+      if (!result.success || failedFiles.length > 0) {
+        const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
+        messageApi.warning(fallback || t('common.unknownError') || 'Copy failed');
+      }
+    },
+    [workspace, refreshWorkspace, messageApi, t]
+  );
+
+  const handleSelectHostFiles = useCallback(() => {
+    void ipcBridge.dialog.showOpen
       .invoke({
         properties: ['openFile', 'multiSelections'],
         defaultPath: workspace,
       })
       .then((selectedFiles) => {
         if (selectedFiles && selectedFiles.length > 0) {
-          return ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths: selectedFiles, workspace }).then((result) => {
-            const copiedFiles = result.data?.copiedFiles ?? [];
-            const failedFiles = result.data?.failedFiles ?? [];
-
-            if (copiedFiles.length > 0) {
-              setTimeout(() => {
-                refreshWorkspace();
-              }, 300);
-            }
-
-            if (!result.success || failedFiles.length > 0) {
-              // 部分或全部失败时给出显式提示 / Surface warning when any copy operation fails
-              const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
-              messageApi.warning(fallback || t('common.unknownError') || 'Copy failed');
-            }
-          });
+          return copyFilesIntoWorkspace(selectedFiles);
         }
       })
       .catch(() => {
         // Silently ignore errors
       });
-  }, [workspace, refreshWorkspace, messageApi, t]);
+  }, [copyFilesIntoWorkspace, workspace]);
+
+  const handleUploadDeviceFiles = useCallback(() => {
+    if (isElectronDesktop()) {
+      handleSelectHostFiles();
+      return;
+    }
+
+    if (!fileInputRef.current) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.style.display = 'none';
+      input.addEventListener('change', async () => {
+        const fileList = input.files;
+        if (!fileList || fileList.length === 0) return;
+        let successCount = 0;
+        try {
+          for (let i = 0; i < fileList.length; i++) {
+            try {
+              await uploadFileViaHttp(fileList[i], conversationId);
+              successCount++;
+            } catch (error) {
+              if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+                messageApi.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }) || 'File too large');
+              } else {
+                messageApi.error(t('common.unknownError') || 'Upload failed');
+              }
+            }
+          }
+          if (successCount > 0) {
+            messageApi.success(t('common.fileAttach.uploadSuccess') || 'Uploaded');
+            setTimeout(() => refreshWorkspace(), 300);
+          }
+        } catch {
+          // unexpected error
+        }
+        input.value = '';
+      });
+      document.body.appendChild(input);
+      fileInputRef.current = input;
+    }
+
+    fileInputRef.current.click();
+  }, [conversationId, handleSelectHostFiles, messageApi, refreshWorkspace, t]);
+
+  useEffect(() => {
+    return () => {
+      if (fileInputRef.current?.parentNode) {
+        fileInputRef.current.parentNode.removeChild(fileInputRef.current);
+      }
+      fileInputRef.current = null;
+    };
+  }, []);
 
   /**
    * 处理文件粘贴（从粘贴服务）
@@ -114,7 +178,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
           const failedFiles = res.data?.failedFiles ?? [];
 
           if (copiedFiles.length > 0) {
-            messageApi.success(t('messages.responseSentSuccessfully') || 'Pasted');
+            messageApi.success(t('common.fileAttach.uploadSuccess') || 'Pasted');
             setTimeout(() => refreshWorkspace(), 300);
           }
 
@@ -168,7 +232,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       const failedFiles = res.data?.failedFiles ?? [];
 
       if (copiedFiles.length > 0) {
-        messageApi.success(t('messages.responseSentSuccessfully') || 'Pasted');
+        messageApi.success(t('common.fileAttach.uploadSuccess') || 'Pasted');
         setTimeout(() => refreshWorkspace(), 300);
       }
 
@@ -188,19 +252,18 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
   // 注册粘贴服务以在工作空间组件获得焦点时捕获全局粘贴事件
   // Register paste service to catch global paste events when workspace component is focused
   const { onFocus } = usePasteService({
-    // 传递空数组以指示"允许所有文件类型" / Pass empty array to indicate "allow all file types"
     supportedExts: [],
     onFilesAdded: (files) => {
-      // files 是来自 PasteService 的 FileMetadata；映射到简单的格式
-      // files are FileMetadata from PasteService; map to simple shape
       const meta = files.map((f) => ({ name: f.name, path: f.path }));
       void handleFilesToAdd(meta);
     },
+    conversationId,
   });
 
   return {
     pasteTargetFolder,
-    handleAddFiles,
+    handleSelectHostFiles,
+    handleUploadDeviceFiles,
     handleFilesToAdd,
     handlePasteConfirm,
     onFocusPaste: onFocus,

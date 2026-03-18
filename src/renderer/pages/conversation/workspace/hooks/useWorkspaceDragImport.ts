@@ -8,13 +8,15 @@ import { useCallback, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import type { TFunction } from 'i18next';
 import { ipcBridge } from '@/common';
-import { FileService } from '@/renderer/services/FileService';
+import { FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
 import type { MessageApi } from '../types';
 
 interface UseWorkspaceDragImportOptions {
   onFilesDropped: (files: Array<{ path: string; name: string }>) => Promise<void> | void;
   messageApi: MessageApi;
   t: TFunction<'translation'>;
+  /** Conversation ID for WebUI HTTP uploads */
+  conversationId: string;
 }
 
 interface DroppedItem {
@@ -38,7 +40,12 @@ const dedupeItems = (items: DroppedItem[]): DroppedItem[] => {
   return Array.from(map.values());
 };
 
-export function useWorkspaceDragImport({ onFilesDropped, messageApi, t }: UseWorkspaceDragImportOptions) {
+export function useWorkspaceDragImport({
+  onFilesDropped,
+  messageApi,
+  t,
+  conversationId,
+}: UseWorkspaceDragImportOptions) {
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -74,16 +81,19 @@ export function useWorkspaceDragImport({ onFilesDropped, messageApi, t }: UseWor
     }
   }, []);
 
-  const createTempItemsFromFiles = useCallback(async (files: File[]): Promise<DroppedItem[]> => {
-    if (!files.length) return [];
-    const pseudoList = Object.assign([...files], {
-      length: files.length,
-      item: (index: number) => files[index] || null,
-    }) as unknown as FileList;
+  const createTempItemsFromFiles = useCallback(
+    async (files: File[]): Promise<DroppedItem[]> => {
+      if (!files.length) return [];
+      const pseudoList = Object.assign([...files], {
+        length: files.length,
+        item: (index: number) => files[index] || null,
+      }) as unknown as FileList;
 
-    const processed = await FileService.processDroppedFiles(pseudoList);
-    return processed.map((meta) => ({ path: meta.path, name: meta.name, kind: 'file' }));
-  }, []);
+      const processed = await FileService.processDroppedFiles(pseudoList, conversationId);
+      return processed.map((meta) => ({ path: meta.path, name: meta.name, kind: 'file' as const }));
+    },
+    [conversationId]
+  );
 
   /**
    * 解析拖拽的项目，检测是文件还是目录
@@ -166,7 +176,13 @@ export function useWorkspaceDragImport({ onFilesDropped, messageApi, t }: UseWor
         try {
           tempItems = await createTempItemsFromFiles(filesWithoutPath);
         } catch (error) {
-          console.error('[WorkspaceDragImport] Failed to create temp files:', error);
+          if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
+            messageApi.error(
+              t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB, defaultValue: 'File exceeds {{max}}MB limit' })
+            );
+          } else {
+            console.error('[WorkspaceDragImport] Failed to create temp files:', error);
+          }
         }
       }
 
@@ -193,7 +209,7 @@ export function useWorkspaceDragImport({ onFilesDropped, messageApi, t }: UseWor
         );
       }
     },
-    [resolveDroppedItems, createTempItemsFromFiles, messageApi, onFilesDropped, resetDragState, t]
+    [conversationId, createTempItemsFromFiles, messageApi, onFilesDropped, resetDragState, resolveDroppedItems, t]
   );
 
   const dragHandlers = {
