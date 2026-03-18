@@ -87,18 +87,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onConversationClick(conversation);
   };
 
-  const renderStatusIndicator = () => {
-    if (batchMode) {
+  const renderCompletionUnreadDot = () => {
+    if (batchMode || !hasCompletionUnread || isGenerating) {
       return null;
     }
 
     return (
-      <span className='mr-8px h-20px w-12px flex items-center justify-center flex-shrink-0'>
-        {isGenerating ? (
-          <Spin size={12} />
-        ) : hasCompletionUnread ? (
-          <span className='h-10px w-10px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)]' />
-        ) : null}
+      <span className='absolute right-10px top-1/2 -translate-y-1/2 flex items-center justify-center group-hover:hidden'>
+        <span className='h-8px w-8px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)]' />
       </span>
     );
   };
@@ -133,8 +129,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             <Checkbox checked={checked} />
           </span>
         )}
-        {renderStatusIndicator()}
-        {renderLeadingIcon()}
+        {isGenerating && !batchMode ? <Spin size={16} className='flex-shrink-0' /> : renderLeadingIcon()}
         <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px pr-18px'>
           <Tooltip
             content={conversation.name}
@@ -156,6 +151,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           </Tooltip>
         </FlexFullContainer>
 
+        {renderCompletionUnreadDot()}
         {!batchMode && (
           <div
             className={classNames(
