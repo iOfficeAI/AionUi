@@ -101,11 +101,11 @@ describe('WorkerTaskManager', () => {
     const mgr = new WorkerTaskManager(makeFactory() as any);
     mgr.addTask('c1', makeAgent('c1', 'gemini') as any);
     mgr.addTask('c2', makeAgent('c2', 'acp') as any);
-    mgr.addTask('c3', makeAgent('c3', 'codex') as any);
+    mgr.addTask('c3', makeAgent('c3', 'nanobot') as any);
     expect(mgr.listTasks()).toEqual([
       { id: 'c1', type: 'gemini' },
       { id: 'c2', type: 'acp' },
-      { id: 'c3', type: 'codex' },
+      { id: 'c3', type: 'nanobot' },
     ]);
   });
 

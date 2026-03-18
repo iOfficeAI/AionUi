@@ -62,8 +62,8 @@ describe('BaseAgentManager with injected emitter', () => {
     expect(emitter.emitConfirmationAdd).toHaveBeenCalledOnce();
   });
 
-  it('addConfirmation works for codex agent type', () => {
-    const { agent, emitter } = makeAgent('codex');
+  it('addConfirmation works for openclaw-gateway agent type', () => {
+    const { agent, emitter } = makeAgent('openclaw-gateway');
     agent.testAdd({ id: 'conf3', callId: 'call3', options: [] });
     expect(emitter.emitConfirmationAdd).toHaveBeenCalledOnce();
   });
@@ -143,7 +143,7 @@ describe('BaseAgentManager with injected emitter', () => {
   });
 
   it('sendMessage() calls postMessagePromise with send.message', async () => {
-    const { agent } = makeAgent('codex');
+    const { agent } = makeAgent('acp');
     const spy = vi.spyOn(agent as any, 'postMessagePromise').mockResolvedValue(undefined);
     await agent.sendMessage({ content: 'hello', msg_id: 'm1' });
     expect(spy).toHaveBeenCalledWith('send.message', { content: 'hello', msg_id: 'm1' });
