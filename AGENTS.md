@@ -59,7 +59,7 @@ Common Prettier rules (avoid a fix pass):
 
 Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf. **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
-See the `commit` skill (`.claude/skills/commit/SKILL.md`) for complete workflow, quality gates, and rules.
+See the `commit` skill (`.claude/skills/commit/SKILL.md`) for complete workflow, quality gates, and rules. For pull request creation, see the `pr` skill (`.claude/skills/pr/SKILL.md`).
 
 ## Skills Index
 
@@ -71,6 +71,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **i18n** | Internationalization workflow and standards | Adding user-facing text, creating components with text |
 | **testing** | Testing workflow and quality standards | Writing tests, adding features, before claiming completion |
 | **commit** | Structured git commit workflow with quality checks | Committing code, `/commit`, `/oss-pr` |
+| **pr** | Pull request workflow: ensure issue exists, push branch, open PR | Creating pull requests, after committing, `/oss-pr` |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 
