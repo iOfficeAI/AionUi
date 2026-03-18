@@ -1,6 +1,12 @@
-name: '✓PR Checks'
+name: '✅ PR Checks'
 
 on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to run checks on'
+        required: true
+        type: string
   pull_request:
     types: [opened, synchronize, edited]
     branches: [main, dev]
@@ -11,7 +17,7 @@ on:
       - '.github/ISSUE_TEMPLATE/**'
 
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number }}
+  group: pr-checks-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 permissions:
@@ -27,7 +33,7 @@ jobs:
   # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,6 +41,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Resolve PR context
+        uses: ./.github/actions/checkout-pr
+        with:
+          pr_number: ${{ inputs.pr_number }}
+          github_token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -56,12 +68,12 @@ jobs:
         run: npm install -g @j178/prek
 
       - name: Run prek checks
-        run: prek run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
+        run: prek run --from-ref origin/${{ env.PR_BASE_REF }} --to-ref HEAD
 
   # Job 2: Unit tests across all platforms
   unit-tests:
     name: Unit Tests (${{ matrix.os }})
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -71,6 +83,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Resolve PR context
+        uses: ./.github/actions/checkout-pr
+        with:
+          pr_number: ${{ inputs.pr_number }}
+          github_token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -94,12 +112,18 @@ jobs:
   # Job 3: Coverage test (Linux only)
   coverage-tests:
     name: Coverage Test
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Resolve PR context
+        uses: ./.github/actions/checkout-pr
+        with:
+          pr_number: ${{ inputs.pr_number }}
+          github_token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -170,7 +194,7 @@ jobs:
 
   i18n-check:
     name: I18n Check
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: true
