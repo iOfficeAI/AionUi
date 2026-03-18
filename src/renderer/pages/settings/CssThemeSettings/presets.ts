@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICssTheme } from '@/common/storage';
+import type { ICssTheme } from '@/common/storage.ts';
 
 import {
   defaultThemeCover,
@@ -13,7 +13,7 @@ import {
   retroWindowsCover,
   y2kJpCover,
   retromaObsidianBookCover,
-} from './themeCovers';
+} from './themeCovers.ts';
 
 // Theme CSS loaded as raw strings via Vite ?raw imports
 import defaultCss from './presets/default.css?raw';
