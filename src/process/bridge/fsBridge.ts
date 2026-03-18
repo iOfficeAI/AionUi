@@ -356,8 +356,16 @@ export function initFsBridge(): void {
   });
 
   // 读取文件内容（UTF-8编码）/ Read file content (UTF-8 encoding)
+  // 最大文件大小限制：5MB / Max file size limit: 5MB
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
   ipcBridge.fs.readFile.provider(async ({ path: filePath }) => {
     try {
+      // 先检查文件大小，避免大文件导致主进程卡顿
+      // Check file size first to avoid blocking the main process with large files
+      const stats = await fs.stat(filePath);
+      if (stats.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed size is 5MB.`);
+      }
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {
@@ -369,6 +377,12 @@ export function initFsBridge(): void {
   // 读取二进制文件为 ArrayBuffer / Read binary file as ArrayBuffer
   ipcBridge.fs.readFileBuffer.provider(async ({ path: filePath }) => {
     try {
+      // 先检查文件大小，避免大文件导致主进程卡顿
+      // Check file size first to avoid blocking the main process with large files
+      const stats = await fs.stat(filePath);
+      if (stats.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed size is 5MB.`);
+      }
       const buffer = await fs.readFile(filePath);
       // 将 Node.js Buffer 转换为 ArrayBuffer
       // Convert Node.js Buffer to ArrayBuffer
