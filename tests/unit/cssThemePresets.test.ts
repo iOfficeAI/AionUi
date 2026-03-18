@@ -98,7 +98,7 @@ describe('CssThemeSettings preset CSS files', () => {
         const css = cssMap.get(file)!;
         expect(css).toContain(BACKGROUND_BLOCK_START);
         expect(css).toContain(BACKGROUND_BLOCK_END);
-      },
+      }
     );
 
     it('default.css should NOT have a background sentinel (Default theme is skipped by code)', () => {
@@ -124,7 +124,7 @@ describe('CssThemeSettings backgroundUtils', () => {
   const injectBackgroundCssBlock = (css: string, imageDataUrl: string): string => {
     const pattern = new RegExp(
       `${BACKGROUND_BLOCK_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?${BACKGROUND_BLOCK_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\n?`,
-      'g',
+      'g'
     );
     if (!css) return buildBackgroundCss(imageDataUrl);
     const cleanedCss = css.replace(pattern, '').trim();

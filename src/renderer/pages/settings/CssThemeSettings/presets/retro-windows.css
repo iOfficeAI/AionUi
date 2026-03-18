@@ -88,7 +88,7 @@
 
 /* 全局字体 - 经典 Windows 字体 */
 body {
-  font-family: "MS Sans Serif", "Tahoma", "Arial", "Microsoft YaHei", sans-serif;
+  font-family: 'MS Sans Serif', 'Tahoma', 'Arial', 'Microsoft YaHei', sans-serif;
 }
 
 /* 全局背景色 - 经典 Windows 米色 */
@@ -99,7 +99,7 @@ html {
 
 /* 全局主要背景区域 */
 .arco-layout,
-[class*="layout"] {
+[class*='layout'] {
   background-color: var(--bg-1, #f0f0f0);
 }
 
@@ -134,17 +134,19 @@ html {
 .layout-sider-header {
   background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
   color: white;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* 按钮内的图标 - 保持原有样式，不强制设置 */
-button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
-.arco-btn:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
+button:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg,
+.arco-btn:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg {
   /* 保持图标原有样式 */
 }
 
 /* 主要按钮内的图标 - 保持原有样式 */
-.arco-btn-primary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
+.arco-btn-primary:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg {
   /* 保持图标原有样式 */
 }
 
@@ -157,7 +159,7 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 
 /* 半透明遮罩层 */
 .layout-content.bg-1::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -175,14 +177,14 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 
 /* 聊天页面背景图 - Windows 经典配色 */
 .chat-layout-header,
-[class*="chat-layout"] .arco-layout-content,
-[class*="conversation"] .arco-layout-content {
+[class*='chat-layout'] .arco-layout-content,
+[class*='conversation'] .arco-layout-content {
   position: relative;
 }
 
-[class*="chat-layout"] .arco-layout-content::before,
-[class*="conversation"] .arco-layout-content::before {
-  content: "";
+[class*='chat-layout'] .arco-layout-content::before,
+[class*='conversation'] .arco-layout-content::before {
+  content: '';
   position: absolute;
   inset: 0;
   background: transparent;
@@ -192,8 +194,8 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 }
 
 /* 确保聊天内容在背景图之上 */
-[class*="chat-layout"] .arco-layout-content > *,
-[class*="conversation"] .arco-layout-content > * {
+[class*='chat-layout'] .arco-layout-content > *,
+[class*='conversation'] .arco-layout-content > * {
   position: relative;
   z-index: 1;
 }
@@ -206,27 +208,32 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 
 /* 首页对话框和输入区域 - 确保完全可见 */
 .guidLayout,
-[class*="guid"] {
+[class*='guid'] {
   position: relative;
   z-index: 10;
 }
 
 /* 输入框文本域 - 确保文字清晰可见 */
 .guidInputCard textarea,
-[class*="guidInputCard"] textarea {
+[class*='guidInputCard'] textarea {
   background-color: rgba(255, 255, 255, 0.98);
   color: var(--color-text-1);
 }
 
 /* ==================== 输入框 Input ==================== */
 /* 发送框样式 - 只针对可见的发送框容器，排除模型选择器等系统组件 */
-.sendbox-container:not([class*="model"]):not([class*="Model"]),
-[class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
+.sendbox-container:not([class*='model']):not([class*='Model']),
+[class*='sendbox']:not([class*='input']):not([class*='textarea']):not([class*='model']):not([class*='Model']):not(
+    [class*='tools']
+  ) {
   border-radius: 4px; /* 经典 Windows 方角 */
   border: 2px outset #c0c0c0; /* 经典 3D 边框效果 */
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
@@ -236,32 +243,35 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
   backdrop-filter: blur(4px);
   border: 2px outset #c0c0c0; /* 经典 3D 边框 */
   border-radius: 4px;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* 发送框内的文本域 - 保持原有样式，只调整边框 */
 .sendbox-container textarea,
-[class*="sendbox"] textarea {
+[class*='sendbox'] textarea {
   border: none;
   background: transparent;
   color: var(--color-text-1); /* 确保文字清晰 */
 }
 
 .sendbox-container:focus-within,
-[class*="sendbox"]:focus-within {
+[class*='sendbox']:focus-within {
   border: 2px inset #808080; /* 聚焦时变为内陷效果 */
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* 发送框内图标颜色调整 - 排除模型选择按钮和系统组件 */
-.sendbox-container svg:not(.sendbox-model-btn svg):not([class*="model"] svg),
-[class*="sendbox"]:not([class*="model"]):not([class*="Model"]) svg:not(.sendbox-model-btn svg) {
+.sendbox-container svg:not(.sendbox-model-btn svg):not([class*='model'] svg),
+[class*='sendbox']:not([class*='model']):not([class*='Model']) svg:not(.sendbox-model-btn svg) {
   color: #0078d4;
   transition: color 0.3s ease;
 }
 
-.sendbox-container svg:not(.sendbox-model-btn svg):not([class*="model"] svg):hover,
-[class*="sendbox"]:not([class*="model"]):not([class*="Model"]) svg:not(.sendbox-model-btn svg):hover {
+.sendbox-container svg:not(.sendbox-model-btn svg):not([class*='model'] svg):hover,
+[class*='sendbox']:not([class*='model']):not([class*='Model']) svg:not(.sendbox-model-btn svg):hover {
   color: #1a86d9;
   transform: scale(1.1);
 }
@@ -269,39 +279,46 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 /* ==================== 消息气泡 Message ==================== */
 /* 用户消息气泡 - 经典 Windows 蓝色 */
 .message-item.user .message-bubble,
-[class*="message"][class*="user"] .message-content {
+[class*='message'][class*='user'] .message-content {
   background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
   color: white;
   border-radius: 4px; /* 方角 */
   border: 1px solid #005a9e;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
   padding: 12px 16px;
 }
 
 /* AI 消息气泡 - 经典 Windows 白色 */
 .message-item.ai .message-bubble,
-[class*="message"][class*="ai"] .message-content,
-[class*="message"][class*="assistant"] .message-content {
+[class*='message'][class*='ai'] .message-content,
+[class*='message'][class*='assistant'] .message-content {
   background-color: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(4px);
   border: 1px solid #c0c0c0;
   border-radius: 4px; /* 方角 */
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 12px 16px;
   color: var(--color-text-1); /* 确保文字清晰 */
 }
 
 /* 工具调用消息 - 保持原有样式，只微调背景色以融入主题 */
 .message-item.ai .arco-alert,
-[class*="message"][class*="ai"] .arco-alert,
-[class*="message"][class*="assistant"] .arco-alert,
-.message-item.ai [class*="alert"],
-[class*="message"][class*="ai"] [class*="alert"],
-[class*="message"][class*="assistant"] [class*="alert"] {
+[class*='message'][class*='ai'] .arco-alert,
+[class*='message'][class*='assistant'] .arco-alert,
+.message-item.ai [class*='alert'],
+[class*='message'][class*='ai'] [class*='alert'],
+[class*='message'][class*='assistant'] [class*='alert'] {
   background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid #c0c0c0;
   border-radius: 4px;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1);
   backdrop-filter: none;
   margin: 4px 0;
   color: var(--color-text-1); /* 确保文字清晰 */
@@ -309,33 +326,35 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 
 /* 工具调用卡片 - 恢复原有样式，微调 */
 .message-item.ai .arco-card,
-[class*="message"][class*="ai"] .arco-card,
-[class*="message"][class*="assistant"] .arco-card,
-.message-item.ai [class*="card"],
-[class*="message"][class*="ai"] [class*="card"],
-[class*="message"][class*="assistant"] [class*="card"] {
+[class*='message'][class*='ai'] .arco-card,
+[class*='message'][class*='assistant'] .arco-card,
+.message-item.ai [class*='card'],
+[class*='message'][class*='ai'] [class*='card'],
+[class*='message'][class*='assistant'] [class*='card'] {
   background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid #c0c0c0;
   border-radius: 4px;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.8),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.1);
   backdrop-filter: none;
   margin: 4px 0;
   color: var(--color-text-1); /* 确保文字清晰 */
 }
 
 /* 工具调用相关的内容区域 - 恢复简洁样式 */
-.message-item.ai [class*="tool"]:not([class*="message"]):not([class*="bubble"]),
-[class*="message"][class*="ai"] [class*="tool"]:not([class*="message"]):not([class*="bubble"]),
-.message-item.ai [class*="Tool"]:not([class*="message"]):not([class*="bubble"]),
-[class*="message"][class*="ai"] [class*="Tool"]:not([class*="message"]):not([class*="bubble"]),
-.message-item.ai [class*="WebFetch"],
-[class*="message"][class*="ai"] [class*="WebFetch"],
-.message-item.ai [class*="web_search"],
-[class*="message"][class*="ai"] [class*="web_search"],
-.message-item.ai [class*="exec_command"],
-[class*="message"][class*="ai"] [class*="exec_command"],
-.message-item.ai [class*="mcp_tool"],
-[class*="message"][class*="ai"] [class*="mcp_tool"] {
+.message-item.ai [class*='tool']:not([class*='message']):not([class*='bubble']),
+[class*='message'][class*='ai'] [class*='tool']:not([class*='message']):not([class*='bubble']),
+.message-item.ai [class*='Tool']:not([class*='message']):not([class*='bubble']),
+[class*='message'][class*='ai'] [class*='Tool']:not([class*='message']):not([class*='bubble']),
+.message-item.ai [class*='WebFetch'],
+[class*='message'][class*='ai'] [class*='WebFetch'],
+.message-item.ai [class*='web_search'],
+[class*='message'][class*='ai'] [class*='web_search'],
+.message-item.ai [class*='exec_command'],
+[class*='message'][class*='ai'] [class*='exec_command'],
+.message-item.ai [class*='mcp_tool'],
+[class*='message'][class*='ai'] [class*='mcp_tool'] {
   background-color: transparent;
   border: none;
   border-radius: 0;
@@ -344,10 +363,10 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 }
 
 /* 工具调用状态标签 - 恢复简洁样式 */
-.message-item.ai [class*="status"]:not([class*="message"]):not([class*="bubble"]),
-[class*="message"][class*="ai"] [class*="status"]:not([class*="message"]):not([class*="bubble"]),
-.message-item.ai [class*="Status"]:not([class*="message"]):not([class*="bubble"]),
-[class*="message"][class*="ai"] [class*="Status"]:not([class*="message"]):not([class*="bubble"]) {
+.message-item.ai [class*='status']:not([class*='message']):not([class*='bubble']),
+[class*='message'][class*='ai'] [class*='status']:not([class*='message']):not([class*='bubble']),
+.message-item.ai [class*='Status']:not([class*='message']):not([class*='bubble']),
+[class*='message'][class*='ai'] [class*='Status']:not([class*='message']):not([class*='bubble']) {
   background-color: rgba(255, 255, 255, 0.95);
   border: 1px solid #c0c0c0;
   border-radius: 4px;
@@ -357,77 +376,85 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 
 /* ==================== 按钮 Button ==================== */
 /* 主要按钮样式 - 经典 Windows 3D 按钮效果 */
-.arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
-button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+.arco-btn-primary:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']),
+button[type='primary']:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']) {
   background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
   border: 2px outset #0078d4;
   border-radius: 4px; /* 方角 */
   font-weight: normal;
   color: white;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
-.arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
-button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+.arco-btn-primary:hover:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']),
+button[type='primary']:hover:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']) {
   background: linear-gradient(180deg, #1a86d9 0%, #0078d4 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
-.arco-btn-primary:active:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
-button[type="primary"]:active:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+.arco-btn-primary:active:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']),
+button[type='primary']:active:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']) {
   border: 2px inset #005a9e;
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* 成功状态按钮 - Windows 绿（适度使用） */
 .arco-btn-success,
-button[type="success"] {
+button[type='success'] {
   background: linear-gradient(180deg, #00a300 0%, #008000 100%);
   border: 2px outset #00a300;
   border-radius: 4px;
   color: white;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
 .arco-btn-success:hover,
-button[type="success"]:hover {
+button[type='success']:hover {
   background: linear-gradient(180deg, #00c300 0%, #00a300 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 .arco-btn-success:active,
-button[type="success"]:active {
+button[type='success']:active {
   border: 2px inset #008000;
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Windows 绿点缀 - 用于成功提示、确认按钮等 */
-.arco-alert[class*="success"],
-[class*="alert"][class*="success"],
+.arco-alert[class*='success'],
+[class*='alert'][class*='success'],
 .arco-message-success,
-[class*="message"][class*="success"] {
+[class*='message'][class*='success'] {
   background-color: rgba(0, 163, 0, 0.1);
   border: 1px solid #00a300;
   border-left: 3px solid #00a300;
 }
 
 /* 链接 hover 时可以使用 Windows 绿 */
-a:not([class*="button"]):not([class*="btn"])[class*="success"],
-a:not([class*="button"]):not([class*="btn"])[class*="confirm"] {
+a:not([class*='button']):not([class*='btn'])[class*='success'],
+a:not([class*='button']):not([class*='btn'])[class*='confirm'] {
   color: #00a300;
 }
 
-a:not([class*="button"]):not([class*="btn"])[class*="success"]:hover,
-a:not([class*="button"]):not([class*="btn"])[class*="confirm"]:hover {
+a:not([class*='button']):not([class*='btn'])[class*='success']:hover,
+a:not([class*='button']):not([class*='btn'])[class*='confirm']:hover {
   color: #00c300;
   text-decoration: underline;
 }
 
 /* Windows 绿点缀 - 复选框选中状态 */
 .arco-checkbox-checked .arco-checkbox-icon,
-input[type="checkbox"]:checked {
+input[type='checkbox']:checked {
   background-color: #00a300;
   border-color: #00a300;
 }
@@ -438,7 +465,7 @@ input[type="checkbox"]:checked {
 
 /* Windows 绿点缀 - 单选框选中状态 */
 .arco-radio-checked .arco-radio-button,
-input[type="radio"]:checked {
+input[type='radio']:checked {
   border-color: #00a300;
 }
 
@@ -447,19 +474,19 @@ input[type="radio"]:checked {
 }
 
 /* Windows 绿点缀 - 进度条成功状态 */
-.arco-progress-line[class*="success"],
-.arco-progress-line[data-status="success"] {
+.arco-progress-line[class*='success'],
+.arco-progress-line[data-status='success'] {
   background-color: rgba(0, 163, 0, 0.1);
 }
 
-.arco-progress-line[class*="success"] .arco-progress-line-inner,
-.arco-progress-line[data-status="success"] .arco-progress-line-inner {
+.arco-progress-line[class*='success'] .arco-progress-line-inner,
+.arco-progress-line[data-status='success'] .arco-progress-line-inner {
   background-color: #00a300;
 }
 
 /* Windows 绿点缀 - 标签成功状态 */
-.arco-tag[class*="success"],
-.arco-tag[data-color="green"] {
+.arco-tag[class*='success'],
+.arco-tag[data-color='green'] {
   background-color: rgba(0, 163, 0, 0.1);
   border-color: #00a300;
   color: #00a300;
@@ -467,9 +494,9 @@ input[type="radio"]:checked {
 
 /* 明确排除模型选择按钮及其所有子元素，保持系统默认样式 */
 .sendbox-model-btn,
-[class*="sendbox-model"],
+[class*='sendbox-model'],
 .sendbox-model-btn *,
-[class*="sendbox-model"] * {
+[class*='sendbox-model'] * {
   /* 重置所有可能被影响的样式 */
   color: inherit;
   fill: inherit;
@@ -482,9 +509,9 @@ input[type="radio"]:checked {
 
 /* 排除发送框工具区域（包含模型选择器） */
 .sendbox-tools,
-[class*="sendbox-tools"],
+[class*='sendbox-tools'],
 .sendbox-tools *,
-[class*="sendbox-tools"] * {
+[class*='sendbox-tools'] * {
   color: inherit;
   fill: inherit;
   background: inherit;
@@ -505,7 +532,9 @@ input[type="radio"]:checked {
   background: linear-gradient(180deg, #c0c0c0 0%, #808080 100%);
   border: 1px solid #808080;
   border-radius: 0; /* 方角 */
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.2);
   transition: background 0.2s ease;
 }
 
@@ -532,7 +561,9 @@ input[type="radio"]:checked {
 ::-webkit-scrollbar-button {
   background: #c0c0c0;
   border: 1px solid #808080;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.5),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.2);
 }
 
 ::-webkit-scrollbar-button:hover {
@@ -547,37 +578,37 @@ input[type="radio"]:checked {
 }
 
 /* 链接样式 */
-a:not([class*="button"]):not([class*="btn"]) {
+a:not([class*='button']):not([class*='btn']) {
   color: #0078d4;
   transition: color 0.2s ease;
 }
 
-a:hover:not([class*="button"]):not([class*="btn"]) {
+a:hover:not([class*='button']):not([class*='btn']) {
   color: #005a9e;
   text-decoration: underline;
 }
 
 /* 次要按钮图标颜色 - 排除模型选择器 */
-.arco-btn-secondary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
-button[type="secondary"]:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
+.arco-btn-secondary:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg,
+button[type='secondary']:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg {
   color: #0078d4;
   transition: color 0.2s ease;
 }
 
-.arco-btn-secondary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:hover,
-button[type="secondary"]:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:hover {
+.arco-btn-secondary:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg:hover,
+button[type='secondary']:not(.sendbox-model-btn):not([class*='model']):not([class*='Model']) svg:hover {
   color: #1a86d9;
 }
 
 /* 消息区域图标颜色 - 只针对消息气泡内的图标 */
 .message-item .message-content svg,
-[class*="message"] [class*="content"] svg {
+[class*='message'] [class*='content'] svg {
   color: #404040;
   transition: color 0.2s ease;
 }
 
 .message-item:hover .message-content svg,
-[class*="message"]:hover [class*="content"] svg {
+[class*='message']:hover [class*='content'] svg {
   color: #0078d4;
 }
 
@@ -651,11 +682,11 @@ button[type="secondary"]:not(.sendbox-model-btn):not([class*="model"]):not([clas
 /* ==================== Windows 经典元素（适度添加） ==================== */
 /* 经典输入框 - Windows 95/98 风格 */
 .arco-input,
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
-input[type="search"] {
+input[type='text'],
+input[type='password'],
+input[type='email'],
+input[type='number'],
+input[type='search'] {
   background-color: var(--bg-2);
   border: 2px inset var(--border-base);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
@@ -669,15 +700,17 @@ input[type="search"] {
 .arco-input:focus,
 input:focus {
   border: 2px inset var(--color-primary);
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--color-primary);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 0 1px var(--color-primary);
   outline: none;
 }
 
 /* 经典复选框和单选框 - Windows 95/98 风格 */
 .arco-checkbox,
 .arco-radio,
-input[type="checkbox"],
-input[type="radio"] {
+input[type='checkbox'],
+input[type='radio'] {
   width: 13px;
   height: 13px;
   border: 2px inset var(--border-base);
@@ -692,16 +725,16 @@ input[type="radio"] {
 
 .arco-checkbox:checked,
 .arco-radio:checked,
-input[type="checkbox"]:checked,
-input[type="radio"]:checked {
+input[type='checkbox']:checked,
+input[type='radio']:checked {
   background-color: var(--bg-active);
   border: 2px inset var(--border-base);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .arco-checkbox:checked::after,
-input[type="checkbox"]:checked::after {
-  content: "✓";
+input[type='checkbox']:checked::after {
+  content: '✓';
   display: block;
   color: var(--text-primary);
   font-size: 10px;
@@ -715,8 +748,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .arco-radio:checked::after,
-input[type="radio"]:checked::after {
-  content: "";
+input[type='radio']:checked::after {
+  content: '';
   display: block;
   width: 5px;
   height: 5px;
@@ -728,11 +761,11 @@ input[type="radio"]:checked::after {
 /* ==================== 表单标签样式 - 保持简洁 ==================== */
 /* 表单标签 - 移除不必要的背景色和边框，只作为标题显示 */
 .arco-form-label-item,
-[class*="form-label"],
-[class*="arco-form-label"],
-.arco-col[class*="form-label"],
+[class*='form-label'],
+[class*='arco-form-label'],
+.arco-col[class*='form-label'],
 .arco-form-item-label,
-[class*="arco-form-item-label"] {
+[class*='arco-form-item-label'] {
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -743,22 +776,22 @@ input[type="radio"]:checked::after {
 
 /* 表单标签文字 - 确保清晰可见 */
 .arco-form-label-item *,
-[class*="form-label"] *,
-[class*="arco-form-label"] *,
-.arco-col[class*="form-label"] *,
+[class*='form-label'] *,
+[class*='arco-form-label'] *,
+.arco-col[class*='form-label'] *,
 .arco-form-item-label *,
-[class*="arco-form-item-label"] * {
+[class*='arco-form-item-label'] * {
   color: var(--color-text-1) !important;
   background-color: transparent !important;
 }
 
 /* 深色模式表单标签 */
 [data-theme='dark'] .arco-form-label-item,
-[data-theme='dark'] [class*="form-label"],
-[data-theme='dark'] [class*="arco-form-label"],
-[data-theme='dark'] .arco-col[class*="form-label"],
+[data-theme='dark'] [class*='form-label'],
+[data-theme='dark'] [class*='arco-form-label'],
+[data-theme='dark'] .arco-col[class*='form-label'],
 [data-theme='dark'] .arco-form-item-label,
-[data-theme='dark'] [class*="arco-form-item-label"] {
+[data-theme='dark'] [class*='arco-form-item-label'] {
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -766,11 +799,11 @@ input[type="radio"]:checked::after {
 }
 
 [data-theme='dark'] .arco-form-label-item *,
-[data-theme='dark'] [class*="form-label"] *,
-[data-theme='dark'] [class*="arco-form-label"] *,
-[data-theme='dark'] .arco-col[class*="form-label"] *,
+[data-theme='dark'] [class*='form-label'] *,
+[data-theme='dark'] [class*='arco-form-label'] *,
+[data-theme='dark'] .arco-col[class*='form-label'] *,
 [data-theme='dark'] .arco-form-item-label *,
-[data-theme='dark'] [class*="arco-form-item-label"] * {
+[data-theme='dark'] [class*='arco-form-item-label'] * {
   color: var(--color-text-1) !important;
   background-color: transparent !important;
 }
@@ -864,7 +897,7 @@ input[type="radio"]:checked::after {
 }
 
 [data-theme='dark'] .arco-layout,
-[data-theme='dark'] [class*="layout"] {
+[data-theme='dark'] [class*='layout'] {
   background-color: var(--bg-1);
 }
 
@@ -894,146 +927,169 @@ input[type="radio"]:checked::after {
 
 [data-theme='dark'] .layout-sider-header {
   background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* ===== 深色模式背景图 ===== */
 /* 参考 Hello Kitty 模式：只在 ::before 上设置半透明遮罩 */
 [data-theme='dark'] .layout-content.bg-1::before {
-  background: linear-gradient(
-    135deg,
-    rgba(26, 42, 58, 0.7) 0%,
-    rgba(30, 46, 62, 0.75) 50%,
-    rgba(26, 42, 58, 0.7) 100%
-  );
+  background: linear-gradient(135deg, rgba(26, 42, 58, 0.7) 0%, rgba(30, 46, 62, 0.75) 50%, rgba(26, 42, 58, 0.7) 100%);
 }
 
-[data-theme='dark'] [class*="chat-layout"] .arco-layout-content::before,
-[data-theme='dark'] [class*="conversation"] .arco-layout-content::before {
+[data-theme='dark'] [class*='chat-layout'] .arco-layout-content::before,
+[data-theme='dark'] [class*='conversation'] .arco-layout-content::before {
   opacity: 0.2;
   filter: brightness(0.9) saturate(1.1);
 }
 
 /* ===== 深色模式输入框 ===== */
 [data-theme='dark'] .guidInputCard textarea,
-[data-theme='dark'] [class*="guidInputCard"] textarea {
+[data-theme='dark'] [class*='guidInputCard'] textarea {
   background-color: rgba(38, 38, 38, 0.98);
   color: var(--color-text-1);
 }
 
-[data-theme='dark'] .sendbox-container:not([class*="model"]):not([class*="Model"]),
-[data-theme='dark'] [class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
+[data-theme='dark'] .sendbox-container:not([class*='model']):not([class*='Model']),
+[data-theme='dark']
+  [class*='sendbox']:not([class*='input']):not([class*='textarea']):not([class*='model']):not([class*='Model']):not(
+    [class*='tools']
+  ) {
   background-color: rgba(38, 38, 38, 0.95);
   border: 2px outset var(--border-base);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.1),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme='dark'] .sendbox-container textarea,
-[data-theme='dark'] [class*="sendbox"] textarea {
+[data-theme='dark'] [class*='sendbox'] textarea {
   color: var(--text-primary);
 }
 
 [data-theme='dark'] .guidInputCard {
   background-color: rgba(38, 38, 38, 0.95);
   border: 2px outset var(--border-base);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.1),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* ===== 深色模式消息气泡 ===== */
 [data-theme='dark'] .message-item.user .message-bubble,
-[data-theme='dark'] [class*="message"][class*="user"] .message-content {
+[data-theme='dark'] [class*='message'][class*='user'] .message-content {
   background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
   color: var(--text-white);
   border: 1px solid #004578;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme='dark'] .message-item.ai .message-bubble,
 [data-theme='dark'] .message-item.assistant .message-bubble,
-[data-theme='dark'] [class*="message"][class*="ai"] .message-content,
-[data-theme='dark'] [class*="message"][class*="assistant"] .message-content {
+[data-theme='dark'] [class*='message'][class*='ai'] .message-content,
+[data-theme='dark'] [class*='message'][class*='assistant'] .message-content {
   background: rgba(38, 38, 38, 0.98);
   border: 1px solid var(--border-base);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.1),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.3);
   color: var(--text-primary);
 }
 
 [data-theme='dark'] .message-item.ai .arco-alert,
-[data-theme='dark'] [class*="message"][class*="ai"] .arco-alert,
-[data-theme='dark'] .message-item.ai [class*="alert"],
-[data-theme='dark'] [class*="message"][class*="ai"] [class*="alert"] {
+[data-theme='dark'] [class*='message'][class*='ai'] .arco-alert,
+[data-theme='dark'] .message-item.ai [class*='alert'],
+[data-theme='dark'] [class*='message'][class*='ai'] [class*='alert'] {
   background-color: rgba(38, 38, 38, 0.9);
   border-color: var(--border-base);
   color: var(--text-primary);
 }
 
 [data-theme='dark'] .message-item.ai .arco-card,
-[data-theme='dark'] [class*="message"][class*="ai"] .arco-card,
-[data-theme='dark'] .message-item.ai [class*="card"],
-[data-theme='dark'] [class*="message"][class*="ai"] [class*="card"] {
+[data-theme='dark'] [class*='message'][class*='ai'] .arco-card,
+[data-theme='dark'] .message-item.ai [class*='card'],
+[data-theme='dark'] [class*='message'][class*='ai'] [class*='card'] {
   background-color: rgba(38, 38, 38, 0.9);
   border-color: var(--border-base);
   color: var(--text-primary);
 }
 
 /* ===== 深色模式按钮 ===== */
-[data-theme='dark'] .arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
-[data-theme='dark'] button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+[data-theme='dark']
+  .arco-btn-primary:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']),
+[data-theme='dark']
+  button[type='primary']:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']) {
   background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
   border: 2px outset #005a9e;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme='dark'] .arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
-[data-theme='dark'] button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+[data-theme='dark']
+  .arco-btn-primary:hover:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']),
+[data-theme='dark']
+  button[type='primary']:hover:not([class*='icon']):not([class*='circle']):not([class*='model']):not([class*='Model']) {
   background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 3px 6px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme='dark'] .arco-btn-success,
-[data-theme='dark'] button[type="success"] {
+[data-theme='dark'] button[type='success'] {
   background: linear-gradient(180deg, #388e3c 0%, #2e7d32 100%);
   border: 2px outset #388e3c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme='dark'] .arco-btn-success:hover,
-[data-theme='dark'] button[type="success"]:hover {
+[data-theme='dark'] button[type='success']:hover {
   background: linear-gradient(180deg, #4caf50 0%, #388e3c 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 3px 6px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 /* 深色模式 Windows 绿点缀 */
-[data-theme='dark'] .arco-alert[class*="success"],
-[data-theme='dark'] [class*="alert"][class*="success"],
+[data-theme='dark'] .arco-alert[class*='success'],
+[data-theme='dark'] [class*='alert'][class*='success'],
 [data-theme='dark'] .arco-message-success,
-[data-theme='dark'] [class*="message"][class*="success"] {
+[data-theme='dark'] [class*='message'][class*='success'] {
   background-color: rgba(76, 175, 80, 0.15);
   border: 1px solid #4caf50;
   border-left: 3px solid #4caf50;
 }
 
-[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="success"],
-[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="confirm"] {
+[data-theme='dark'] a:not([class*='button']):not([class*='btn'])[class*='success'],
+[data-theme='dark'] a:not([class*='button']):not([class*='btn'])[class*='confirm'] {
   color: #4caf50;
 }
 
-[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="success"]:hover,
-[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="confirm"]:hover {
+[data-theme='dark'] a:not([class*='button']):not([class*='btn'])[class*='success']:hover,
+[data-theme='dark'] a:not([class*='button']):not([class*='btn'])[class*='confirm']:hover {
   color: #66bb6a;
   text-decoration: underline;
 }
 
 /* 深色模式 Windows 绿点缀 - 复选框选中状态 */
 [data-theme='dark'] .arco-checkbox-checked .arco-checkbox-icon,
-[data-theme='dark'] input[type="checkbox"]:checked {
+[data-theme='dark'] input[type='checkbox']:checked {
   background-color: #4caf50;
   border-color: #4caf50;
 }
 
 /* 深色模式 Windows 绿点缀 - 单选框选中状态 */
 [data-theme='dark'] .arco-radio-checked .arco-radio-button,
-[data-theme='dark'] input[type="radio"]:checked {
+[data-theme='dark'] input[type='radio']:checked {
   border-color: #4caf50;
 }
 
@@ -1042,19 +1098,19 @@ input[type="radio"]:checked::after {
 }
 
 /* 深色模式 Windows 绿点缀 - 进度条成功状态 */
-[data-theme='dark'] .arco-progress-line[class*="success"],
-[data-theme='dark'] .arco-progress-line[data-status="success"] {
+[data-theme='dark'] .arco-progress-line[class*='success'],
+[data-theme='dark'] .arco-progress-line[data-status='success'] {
   background-color: rgba(76, 175, 80, 0.15);
 }
 
-[data-theme='dark'] .arco-progress-line[class*="success"] .arco-progress-line-inner,
-[data-theme='dark'] .arco-progress-line[data-status="success"] .arco-progress-line-inner {
+[data-theme='dark'] .arco-progress-line[class*='success'] .arco-progress-line-inner,
+[data-theme='dark'] .arco-progress-line[data-status='success'] .arco-progress-line-inner {
   background-color: #4caf50;
 }
 
 /* 深色模式 Windows 绿点缀 - 标签成功状态 */
-[data-theme='dark'] .arco-tag[class*="success"],
-[data-theme='dark'] .arco-tag[data-color="green"] {
+[data-theme='dark'] .arco-tag[class*='success'],
+[data-theme='dark'] .arco-tag[data-color='green'] {
   background-color: rgba(76, 175, 80, 0.15);
   border-color: #4caf50;
   color: #4caf50;
@@ -1064,7 +1120,9 @@ input[type="radio"]:checked::after {
 [data-theme='dark'] ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #5a5a5a 0%, #404040 100%);
   border: 1px solid #5a5a5a;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.2),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.4);
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
@@ -1080,7 +1138,9 @@ input[type="radio"]:checked::after {
 [data-theme='dark'] ::-webkit-scrollbar-button {
   background: var(--bg-3);
   border: 1px solid var(--border-base);
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.1),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.4);
 }
 
 /* ===== 深色模式其他元素 ===== */
@@ -1089,11 +1149,11 @@ input[type="radio"]:checked::after {
   color: var(--text-white);
 }
 
-[data-theme='dark'] a:not([class*="button"]):not([class*="btn"]) {
+[data-theme='dark'] a:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary);
 }
 
-[data-theme='dark'] a:hover:not([class*="button"]):not([class*="btn"]) {
+[data-theme='dark'] a:hover:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-light-1);
 }
 
@@ -1151,11 +1211,11 @@ input[type="radio"]:checked::after {
 
 /* ===== 深色模式输入框 ===== */
 [data-theme='dark'] .arco-input,
-[data-theme='dark'] input[type="text"],
-[data-theme='dark'] input[type="password"],
-[data-theme='dark'] input[type="email"],
-[data-theme='dark'] input[type="number"],
-[data-theme='dark'] input[type="search"] {
+[data-theme='dark'] input[type='text'],
+[data-theme='dark'] input[type='password'],
+[data-theme='dark'] input[type='email'],
+[data-theme='dark'] input[type='number'],
+[data-theme='dark'] input[type='search'] {
   background-color: var(--bg-2);
   border: 2px inset var(--border-base);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.4);
@@ -1165,14 +1225,16 @@ input[type="radio"]:checked::after {
 [data-theme='dark'] .arco-input:focus,
 [data-theme='dark'] input:focus {
   border: 2px inset var(--color-primary);
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-primary);
+  box-shadow:
+    inset 1px 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--color-primary);
 }
 
 /* ===== 深色模式复选框和单选框 ===== */
 [data-theme='dark'] .arco-checkbox,
 [data-theme='dark'] .arco-radio,
-[data-theme='dark'] input[type="checkbox"],
-[data-theme='dark'] input[type="radio"] {
+[data-theme='dark'] input[type='checkbox'],
+[data-theme='dark'] input[type='radio'] {
   background-color: var(--bg-2);
   border: 2px inset var(--border-base);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.4);
@@ -1180,8 +1242,8 @@ input[type="radio"]:checked::after {
 
 [data-theme='dark'] .arco-checkbox:checked,
 [data-theme='dark'] .arco-radio:checked,
-[data-theme='dark'] input[type="checkbox"]:checked,
-[data-theme='dark'] input[type="radio"]:checked {
+[data-theme='dark'] input[type='checkbox']:checked,
+[data-theme='dark'] input[type='radio']:checked {
   background-color: var(--bg-active);
   border: 2px inset var(--border-base);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
@@ -1211,7 +1273,7 @@ input[type="radio"]:checked::after {
 /* ==================== 打印样式 ==================== */
 @media print {
   .layout-content.bg-1::before,
-  [class*="chat-layout"] .arco-layout-content::before {
+  [class*='chat-layout'] .arco-layout-content::before {
     display: none;
   }
 

@@ -105,7 +105,7 @@
 
 /* ========== 全局样式 ========== */
 body {
-  font-family: "Inter", "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', 'Microsoft YaHei', sans-serif;
   background-color: var(--bg-1);
 }
 
@@ -115,7 +115,7 @@ html {
 
 /* ========== 布局样式 ========== */
 .arco-layout,
-[class*="layout"] {
+[class*='layout'] {
   background-color: var(--bg-1);
 }
 
@@ -154,32 +154,33 @@ html {
 /* ========== 图标样式 - 简化选择器 ========== */
 /* 全局图标默认颜色 */
 .theme-icon svg,
-svg:not([class*="model"] svg):not([class*="Model"] svg) {
+svg:not([class*='model'] svg):not([class*='Model'] svg) {
   fill: none;
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
-  transition: stroke var(--transition-duration) var(--transition-timing),
-              color var(--transition-duration) var(--transition-timing);
+  transition:
+    stroke var(--transition-duration) var(--transition-timing),
+    color var(--transition-duration) var(--transition-timing);
 }
 
 .theme-icon svg:hover,
-svg:not([class*="model"] svg):not([class*="Model"] svg):hover {
+svg:not([class*='model'] svg):not([class*='Model'] svg):hover {
   fill: none;
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
 }
 
 /* 按钮内图标 */
-button:not([class*="model"]) svg,
-.arco-btn:not([class*="model"]) svg {
+button:not([class*='model']) svg,
+.arco-btn:not([class*='model']) svg {
   fill: none;
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
   transition: stroke var(--transition-duration) var(--transition-timing);
 }
 
-button:not([class*="model"]) svg:hover,
-.arco-btn:not([class*="model"]) svg:hover {
+button:not([class*='model']) svg:hover,
+.arco-btn:not([class*='model']) svg:hover {
   fill: none;
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
@@ -199,7 +200,7 @@ button:not([class*="model"]) svg:hover,
 
 /* 半透明遮罩层 */
 .layout-content.bg-1::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -217,14 +218,14 @@ button:not([class*="model"]) svg:hover,
 
 /* 聊天页面背景图 */
 .chat-layout-header,
-[class*="chat-layout"] .arco-layout-content,
-[class*="conversation"] .arco-layout-content {
+[class*='chat-layout'] .arco-layout-content,
+[class*='conversation'] .arco-layout-content {
   position: relative;
 }
 
-[class*="chat-layout"] .arco-layout-content::before,
-[class*="conversation"] .arco-layout-content::before {
-  content: "";
+[class*='chat-layout'] .arco-layout-content::before,
+[class*='conversation'] .arco-layout-content::before {
+  content: '';
   position: absolute;
   inset: 0;
   background: transparent;
@@ -235,15 +236,15 @@ button:not([class*="model"]) svg:hover,
 
 /* 确保内容在背景之上 */
 .layout-content.bg-1 > *,
-[class*="chat-layout"] .arco-layout-content > *,
-[class*="conversation"] .arco-layout-content > * {
+[class*='chat-layout'] .arco-layout-content > *,
+[class*='conversation'] .arco-layout-content > * {
   position: relative;
   z-index: 1;
 }
 
 /* ========== 输入框和发送框 ========== */
 .guidLayout,
-[class*="guid"] {
+[class*='guid'] {
   position: relative;
   z-index: 10;
 }
@@ -257,14 +258,16 @@ button:not([class*="model"]) svg:hover,
 }
 
 .guidInputCard textarea,
-[class*="guidInputCard"] textarea {
+[class*='guidInputCard'] textarea {
   background-color: rgba(255, 255, 255, 0.98);
   color: var(--color-text-1);
 }
 
 /* 发送框样式 */
-.sendbox-container:not([class*="model"]):not([class*="Model"]),
-[class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
+.sendbox-container:not([class*='model']):not([class*='Model']),
+[class*='sendbox']:not([class*='input']):not([class*='textarea']):not([class*='model']):not([class*='Model']):not(
+    [class*='tools']
+  ) {
   border-radius: 16px;
   border: 2px solid var(--border-base-color);
   background-color: rgba(255, 255, 255, 0.8);
@@ -274,27 +277,27 @@ button:not([class*="model"]) svg:hover,
 }
 
 .sendbox-container textarea,
-[class*="sendbox"] textarea {
+[class*='sendbox'] textarea {
   border: none;
   background: transparent;
 }
 
 .sendbox-container:focus-within,
-[class*="sendbox"]:focus-within {
+[class*='sendbox']:focus-within {
   border-color: var(--color-primary-light-1);
   box-shadow: 0 6px 24px rgba(59, 130, 246, 0.3);
 }
 
-.sendbox-container svg:not([class*="model"] svg),
-[class*="sendbox"]:not([class*="model"]) svg {
+.sendbox-container svg:not([class*='model'] svg),
+[class*='sendbox']:not([class*='model']) svg {
   fill: none;
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
   transition: stroke var(--transition-duration) var(--transition-timing);
 }
 
-.sendbox-container svg:not([class*="model"] svg):hover,
-[class*="sendbox"]:not([class*="model"]) svg:hover {
+.sendbox-container svg:not([class*='model'] svg):hover,
+[class*='sendbox']:not([class*='model']) svg:hover {
   fill: none;
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
@@ -303,7 +306,7 @@ button:not([class*="model"]) svg:hover,
 
 /* ========== 消息气泡 ========== */
 .message-item.user .message-bubble,
-[class*="message"][class*="user"] .message-content {
+[class*='message'][class*='user'] .message-content {
   background: var(--gradient-primary);
   color: white;
   border-radius: 16px 16px 4px 16px;
@@ -313,8 +316,8 @@ button:not([class*="model"]) svg:hover,
 }
 
 .message-item.ai .message-bubble,
-[class*="message"][class*="ai"] .message-content,
-[class*="message"][class*="assistant"] .message-content {
+[class*='message'][class*='ai'] .message-content,
+[class*='message'][class*='assistant'] .message-content {
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 2px solid #bfdbfe;
@@ -325,11 +328,11 @@ button:not([class*="model"]) svg:hover,
 
 /* 工具调用相关样式 */
 .message-item.ai .arco-alert,
-[class*="message"][class*="ai"] .arco-alert,
-[class*="message"][class*="assistant"] .arco-alert,
-.message-item.ai [class*="alert"],
-[class*="message"][class*="ai"] [class*="alert"],
-[class*="message"][class*="assistant"] [class*="alert"] {
+[class*='message'][class*='ai'] .arco-alert,
+[class*='message'][class*='assistant'] .arco-alert,
+.message-item.ai [class*='alert'],
+[class*='message'][class*='ai'] [class*='alert'],
+[class*='message'][class*='assistant'] [class*='alert'] {
   background-color: rgba(255, 255, 255, 0.6);
   border: 1px solid #bfdbfe;
   border-radius: 8px;
@@ -337,19 +340,19 @@ button:not([class*="model"]) svg:hover,
 }
 
 .message-item.ai .arco-card,
-[class*="message"][class*="ai"] .arco-card,
-[class*="message"][class*="assistant"] .arco-card,
-.message-item.ai [class*="card"],
-[class*="message"][class*="ai"] [class*="card"],
-[class*="message"][class*="assistant"] [class*="card"] {
+[class*='message'][class*='ai'] .arco-card,
+[class*='message'][class*='assistant'] .arco-card,
+.message-item.ai [class*='card'],
+[class*='message'][class*='ai'] [class*='card'],
+[class*='message'][class*='assistant'] [class*='card'] {
   background-color: rgba(255, 255, 255, 0.6);
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   margin: 4px 0;
 }
 
-.message-item.ai [class*="status"]:not([class*="message"]):not([class*="bubble"]),
-[class*="message"][class*="ai"] [class*="status"]:not([class*="message"]):not([class*="bubble"]) {
+.message-item.ai [class*='status']:not([class*='message']):not([class*='bubble']),
+[class*='message'][class*='ai'] [class*='status']:not([class*='message']):not([class*='bubble']) {
   background-color: rgba(255, 255, 255, 0.8);
   border: 1px solid #bfdbfe;
   border-radius: 6px;
@@ -357,8 +360,8 @@ button:not([class*="model"]) svg:hover,
 }
 
 /* ========== 按钮样式 ========== */
-.arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+.arco-btn-primary:not([class*='icon']):not([class*='circle']):not([class*='model']),
+button[type='primary']:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: var(--gradient-primary);
   border-color: var(--color-primary-base);
   border-radius: 12px;
@@ -367,22 +370,22 @@ button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="
   transition: all var(--transition-duration) var(--transition-timing);
 }
 
-.arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+.arco-btn-primary:hover:not([class*='icon']):not([class*='circle']):not([class*='model']),
+button[type='primary']:hover:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: var(--gradient-primary-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
-.arco-btn-secondary:not([class*="model"]) svg,
-button[type="secondary"]:not([class*="model"]) svg {
+.arco-btn-secondary:not([class*='model']) svg,
+button[type='secondary']:not([class*='model']) svg {
   fill: none;
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
 }
 
-.arco-btn-secondary:not([class*="model"]) svg:hover,
-button[type="secondary"]:not([class*="model"]) svg:hover {
+.arco-btn-secondary:not([class*='model']) svg:hover,
+button[type='secondary']:not([class*='model']) svg:hover {
   fill: none;
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
@@ -423,12 +426,12 @@ button[type="secondary"]:not([class*="model"]) svg:hover {
   color: white;
 }
 
-a:not([class*="button"]):not([class*="btn"]) {
+a:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-base);
   transition: color var(--transition-duration) var(--transition-timing);
 }
 
-a:hover:not([class*="button"]):not([class*="btn"]) {
+a:hover:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-light-1);
   text-decoration: underline;
 }
@@ -578,27 +581,27 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 }
 
 /* 深色模式图标 */
-[data-theme='dark'] svg:not([class*="model"] svg),
+[data-theme='dark'] svg:not([class*='model'] svg),
 [data-theme='dark'] .theme-icon svg {
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
 }
 
-[data-theme='dark'] svg:not([class*="model"] svg):hover,
+[data-theme='dark'] svg:not([class*='model'] svg):hover,
 [data-theme='dark'] .theme-icon svg:hover {
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
   filter: drop-shadow(0 0 8px rgba(147, 197, 253, 0.6));
 }
 
-[data-theme='dark'] button:not([class*="model"]) svg,
-[data-theme='dark'] .arco-btn:not([class*="model"]) svg {
+[data-theme='dark'] button:not([class*='model']) svg,
+[data-theme='dark'] .arco-btn:not([class*='model']) svg {
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
 }
 
-[data-theme='dark'] button:not([class*="model"]) svg:hover,
-[data-theme='dark'] .arco-btn:not([class*="model"]) svg:hover {
+[data-theme='dark'] button:not([class*='model']) svg:hover,
+[data-theme='dark'] .arco-btn:not([class*='model']) svg:hover {
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
   filter: drop-shadow(0 0 8px rgba(147, 197, 253, 0.6));
@@ -609,8 +612,8 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
   background: linear-gradient(135deg, rgba(15, 23, 41, 0.8) 0%, rgba(30, 58, 90, 0.85) 50%, rgba(15, 23, 41, 0.8) 100%);
 }
 
-[data-theme='dark'] [class*="chat-layout"] .arco-layout-content::before,
-[data-theme='dark'] [class*="conversation"] .arco-layout-content::before {
+[data-theme='dark'] [class*='chat-layout'] .arco-layout-content::before,
+[data-theme='dark'] [class*='conversation'] .arco-layout-content::before {
   opacity: 0.2;
   filter: brightness(1.1) saturate(1.3) hue-rotate(-10deg);
 }
@@ -619,37 +622,44 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 [data-theme='dark'] .guidInputCard {
   background: linear-gradient(135deg, rgba(30, 58, 90, 0.9) 0%, rgba(45, 74, 111, 0.9) 100%);
   border: 3px solid var(--color-primary-base);
-  box-shadow: 0 8px 32px rgba(96, 165, 250, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(96, 165, 250, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .guidInputCard textarea,
-[data-theme='dark'] [class*="guidInputCard"] textarea {
+[data-theme='dark'] [class*='guidInputCard'] textarea {
   background-color: rgba(30, 58, 90, 0.8);
   color: var(--color-text-1);
 }
 
-[data-theme='dark'] .sendbox-container:not([class*="model"]),
-[data-theme='dark'] [class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="tools"]) {
+[data-theme='dark'] .sendbox-container:not([class*='model']),
+[data-theme='dark']
+  [class*='sendbox']:not([class*='input']):not([class*='textarea']):not([class*='model']):not([class*='tools']) {
   border: 3px solid var(--color-primary-base);
   background: linear-gradient(135deg, rgba(30, 58, 90, 0.85) 0%, rgba(45, 74, 111, 0.85) 100%);
-  box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 24px rgba(96, 165, 250, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .sendbox-container:focus-within,
-[data-theme='dark'] [class*="sendbox"]:focus-within {
+[data-theme='dark'] [class*='sendbox']:focus-within {
   border-color: var(--color-primary-light-1);
-  box-shadow: 0 8px 32px rgba(147, 197, 253, 0.5), 0 0 20px rgba(96, 165, 250, 0.4);
+  box-shadow:
+    0 8px 32px rgba(147, 197, 253, 0.5),
+    0 0 20px rgba(96, 165, 250, 0.4);
   transform: translateY(-2px);
 }
 
-[data-theme='dark'] .sendbox-container svg:not([class*="model"] svg),
-[data-theme='dark'] [class*="sendbox"]:not([class*="model"]) svg {
+[data-theme='dark'] .sendbox-container svg:not([class*='model'] svg),
+[data-theme='dark'] [class*='sendbox']:not([class*='model']) svg {
   stroke: var(--color-primary-base);
   color: var(--color-primary-base);
 }
 
-[data-theme='dark'] .sendbox-container svg:not([class*="model"] svg):hover,
-[data-theme='dark'] [class*="sendbox"]:not([class*="model"]) svg:hover {
+[data-theme='dark'] .sendbox-container svg:not([class*='model'] svg):hover,
+[data-theme='dark'] [class*='sendbox']:not([class*='model']) svg:hover {
   stroke: var(--color-primary-light-1);
   color: var(--color-primary-light-1);
   filter: drop-shadow(0 0 8px rgba(147, 197, 253, 0.8));
@@ -657,58 +667,64 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 
 /* 深色模式消息气泡 */
 [data-theme='dark'] .message-item.user .message-bubble,
-[data-theme='dark'] [class*="message"][class*="user"] .message-content {
+[data-theme='dark'] [class*='message'][class*='user'] .message-content {
   background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
-  box-shadow: 0 6px 20px rgba(96, 165, 250, 0.5), 0 0 0 2px rgba(147, 197, 253, 0.3);
+  box-shadow:
+    0 6px 20px rgba(96, 165, 250, 0.5),
+    0 0 0 2px rgba(147, 197, 253, 0.3);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme='dark'] .message-item.ai .message-bubble,
-[data-theme='dark'] [class*="message"][class*="ai"] .message-content,
-[data-theme='dark'] [class*="message"][class*="assistant"] .message-content {
+[data-theme='dark'] [class*='message'][class*='ai'] .message-content,
+[data-theme='dark'] [class*='message'][class*='assistant'] .message-content {
   background: linear-gradient(135deg, rgba(30, 58, 90, 0.9) 0%, rgba(45, 74, 111, 0.9) 100%);
   border: 2px solid var(--border-base-color);
-  box-shadow: 0 6px 20px rgba(96, 165, 250, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 6px 20px rgba(96, 165, 250, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .message-item.ai .arco-alert,
-[data-theme='dark'] [class*="message"][class*="ai"] .arco-alert,
-[data-theme='dark'] [class*="message"][class*="assistant"] .arco-alert,
-[data-theme='dark'] .message-item.ai [class*="alert"],
-[data-theme='dark'] [class*="message"][class*="ai"] [class*="alert"],
-[data-theme='dark'] [class*="message"][class*="assistant"] [class*="alert"] {
+[data-theme='dark'] [class*='message'][class*='ai'] .arco-alert,
+[data-theme='dark'] [class*='message'][class*='assistant'] .arco-alert,
+[data-theme='dark'] .message-item.ai [class*='alert'],
+[data-theme='dark'] [class*='message'][class*='ai'] [class*='alert'],
+[data-theme='dark'] [class*='message'][class*='assistant'] [class*='alert'] {
   background-color: rgba(30, 42, 71, 0.7);
   border: 1px solid var(--border-base-color);
 }
 
 [data-theme='dark'] .message-item.ai .arco-card,
-[data-theme='dark'] [class*="message"][class*="ai"] .arco-card,
-[data-theme='dark'] [class*="message"][class*="assistant"] .arco-card,
-[data-theme='dark'] .message-item.ai [class*="card"],
-[data-theme='dark'] [class*="message"][class*="ai"] [class*="card"],
-[data-theme='dark'] [class*="message"][class*="assistant"] [class*="card"] {
+[data-theme='dark'] [class*='message'][class*='ai'] .arco-card,
+[data-theme='dark'] [class*='message'][class*='assistant'] .arco-card,
+[data-theme='dark'] .message-item.ai [class*='card'],
+[data-theme='dark'] [class*='message'][class*='ai'] [class*='card'],
+[data-theme='dark'] [class*='message'][class*='assistant'] [class*='card'] {
   background-color: rgba(30, 42, 71, 0.7);
   border: 1px solid var(--border-base-color);
 }
 
-[data-theme='dark'] .message-item.ai [class*="status"]:not([class*="message"]):not([class*="bubble"]),
-[data-theme='dark'] [class*="message"][class*="ai"] [class*="status"]:not([class*="message"]):not([class*="bubble"]) {
+[data-theme='dark'] .message-item.ai [class*='status']:not([class*='message']):not([class*='bubble']),
+[data-theme='dark'] [class*='message'][class*='ai'] [class*='status']:not([class*='message']):not([class*='bubble']) {
   background-color: rgba(30, 58, 90, 0.9);
   border: 1px solid var(--border-base-color);
 }
 
 /* 深色模式按钮 */
-[data-theme='dark'] .arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-[data-theme='dark'] button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+[data-theme='dark'] .arco-btn-primary:not([class*='icon']):not([class*='circle']):not([class*='model']),
+[data-theme='dark'] button[type='primary']:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: var(--gradient-primary);
   border-color: var(--color-primary-dark-1);
   box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
 }
 
-[data-theme='dark'] .arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-[data-theme='dark'] button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+[data-theme='dark'] .arco-btn-primary:hover:not([class*='icon']):not([class*='circle']):not([class*='model']),
+[data-theme='dark'] button[type='primary']:hover:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: var(--gradient-primary-hover);
-  box-shadow: 0 8px 24px rgba(147, 197, 253, 0.6), 0 0 20px rgba(96, 165, 250, 0.5);
+  box-shadow:
+    0 8px 24px rgba(147, 197, 253, 0.6),
+    0 0 20px rgba(96, 165, 250, 0.5);
   transform: translateY(-2px);
 }
 
@@ -729,12 +745,12 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 }
 
 /* 深色模式链接 */
-[data-theme='dark'] a:not([class*="button"]):not([class*="btn"]) {
+[data-theme='dark'] a:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-base);
   text-decoration-color: rgba(96, 165, 250, 0.4);
 }
 
-[data-theme='dark'] a:hover:not([class*="button"]):not([class*="btn"]) {
+[data-theme='dark'] a:hover:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-light-1);
   text-shadow: 0 0 8px rgba(147, 197, 253, 0.5);
 }
@@ -746,7 +762,9 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
   background: linear-gradient(135deg, #2d4a6f 0%, #1e3a5a 100%);
   color: var(--text-base-color);
   border: 2px solid var(--color-primary-base);
-  box-shadow: 0 6px 20px rgba(96, 165, 250, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 6px 20px rgba(96, 165, 250, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .arco-tooltip-arrow,
@@ -787,7 +805,7 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 [data-theme='dark'] .arco-input,
 [data-theme='dark'] .arco-textarea,
 [data-theme='dark'] .arco-select-view,
-[data-theme='dark'] input:not([type="checkbox"]):not([type="radio"]):not([type="button"]),
+[data-theme='dark'] input:not([type='checkbox']):not([type='radio']):not([type='button']),
 [data-theme='dark'] textarea {
   background-color: rgba(30, 58, 90, 0.6);
   border: 2px solid var(--color-primary-base);
@@ -796,7 +814,7 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 
 [data-theme='dark'] .arco-input:hover,
 [data-theme='dark'] .arco-textarea:hover,
-[data-theme='dark'] input:not([type="checkbox"]):not([type="radio"]):hover,
+[data-theme='dark'] input:not([type='checkbox']):not([type='radio']):hover,
 [data-theme='dark'] textarea:hover {
   background-color: rgba(45, 74, 111, 0.7);
   border-color: var(--color-primary-light-1);
@@ -804,7 +822,7 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 
 [data-theme='dark'] .arco-input:focus,
 [data-theme='dark'] .arco-textarea:focus,
-[data-theme='dark'] input:not([type="checkbox"]):not([type="radio"]):focus,
+[data-theme='dark'] input:not([type='checkbox']):not([type='radio']):focus,
 [data-theme='dark'] textarea:focus {
   background-color: rgba(45, 74, 111, 0.8);
   border-color: var(--color-primary-light-1);
@@ -831,7 +849,7 @@ a:hover:not([class*="button"]):not([class*="btn"]) {
 /* 深色模式文字 */
 [data-theme='dark'] .arco-typography,
 [data-theme='dark'] p,
-[data-theme='dark'] span:not([class*="icon"]) {
+[data-theme='dark'] span:not([class*='icon']) {
   color: var(--color-text-2);
 }
 
