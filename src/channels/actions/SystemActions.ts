@@ -8,7 +8,7 @@ import { acpDetector } from '@/agent/acp/AcpDetector';
 import type { TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { ConversationService } from '@/process/services/conversationService';
-import WorkerManage from '@/process/WorkerManage';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
@@ -159,7 +159,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
     // Kill the worker for the old conversation
     if (existingSession.conversationId) {
       try {
-        WorkerManage.kill(existingSession.conversationId);
+        workerTaskManager.kill(existingSession.conversationId);
       } catch (err) {
         console.warn(`[SystemActions] Failed to kill old conversation:`, err);
       }
@@ -634,7 +634,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
 
     if (existingSession.conversationId) {
       try {
-        WorkerManage.kill(existingSession.conversationId);
+        workerTaskManager.kill(existingSession.conversationId);
       } catch (err) {
         console.warn(`[SystemActions] Failed to kill old conversation:`, err);
       }

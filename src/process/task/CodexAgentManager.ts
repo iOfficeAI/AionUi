@@ -27,6 +27,7 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { getDatabase } from '@process/database';
 import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import i18n from '@process/i18n';
@@ -48,7 +49,6 @@ const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
  * that were created before the ACP migration.
  */
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
-  workspace?: string;
   agent!: CodexAgent; // Initialized in bootstrap promise
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
@@ -65,9 +65,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
-    super('codex', data);
+    super('codex', data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
-    this.workspace = data.workspace;
+    this.workspace = data.workspace ?? '';
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
     this.status = 'pending';
     this.currentMode = data.sessionMode || 'default';

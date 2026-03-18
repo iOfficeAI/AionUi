@@ -27,7 +27,7 @@ import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from
 import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/i18n';
-import WorkerManage from './process/WorkerManage';
+import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
@@ -613,7 +613,7 @@ app.on('before-quit', async () => {
   isExplicitQuit = true;
   destroyTray();
   // 在应用退出前清理工作进程
-  WorkerManage.clear();
+  workerTaskManager.clear();
 
   // Shutdown Channel subsystem
   try {

@@ -14,6 +14,7 @@ import { uuid } from '@/renderer/utils/common';
 import type { UtilityProcess } from 'electron';
 import { app, utilityProcess } from 'electron';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
+import type { MainToWorkerMessage } from '../WorkerProtocol';
 import { Pipe } from './pipe';
 
 /**
@@ -123,7 +124,7 @@ export class ForkTask<Data> extends Pipe {
     });
   }
   // 向子进程发送回调
-  postMessage(type: string, data: any, extPrams: Record<string, any> = {}) {
+  postMessage(type: MainToWorkerMessage['type'] | string, data: unknown, extPrams: Record<string, unknown> = {}) {
     if (!this.fcp) throw new Error('fork task not enabled');
     this.fcp.postMessage({ type, data, ...extPrams });
   }

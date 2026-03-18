@@ -63,8 +63,8 @@ const mockModules = () => {
     default: { t: vi.fn((key: string) => key) },
   }));
 
-  vi.doMock('@process/WorkerManage', () => ({
-    default: { listTasks: mockListTasks },
+  vi.doMock('@process/task/workerTaskManagerSingleton', () => ({
+    workerTaskManager: { listTasks: mockListTasks },
   }));
 
   vi.doMock('@process/database', () => ({
@@ -83,7 +83,7 @@ describe('tray module', () => {
     vi.doUnmock('electron');
     vi.doUnmock('@/common');
     vi.doUnmock('@process/i18n');
-    vi.doUnmock('@process/WorkerManage');
+    vi.doUnmock('@process/task/workerTaskManagerSingleton');
     vi.doUnmock('@process/database');
   });
 
@@ -269,7 +269,7 @@ describe('tray module', () => {
 
     it('should show running tasks count', async () => {
       setupWithOverrides();
-      mockListTasks.mockReturnValue([{ id: '1' }, { id: '2' }, { id: '3' }]);
+      mockListTasks.mockReturnValue([{ id: '1' }, { id: '2' }, { id: '3' }] as never[]);
 
       const templateArg = await getTemplateFromRefresh();
       const taskItem = templateArg.find((item: any) => item.label?.includes('3'));

@@ -1,35 +1,5 @@
 # AionUi - Project Guide
 
-## Tech Stack
-
-Key choices that affect how code is written:
-
-- **Electron 37** + **electron-vite 5** — multi-process desktop app, not a web app
-- **React 19** + **TypeScript 5.8** (strict mode)
-- **Vitest 4** — test framework
-- **Arco Design 2** + **UnoCSS 66** — UI and styling
-- **Zod** — data validation at boundaries
-
-## Development Commands
-
-```bash
-# Development
-bun run start              # Start dev environment
-bun run webui              # Start WebUI server
-
-# Code Quality
-bun run lint               # Run ESLint
-bun run lint:fix           # Auto-fix lint issues
-bun run format             # Format with Prettier
-
-# Testing
-bun run test               # Run all tests (run before every commit)
-bun run test:watch         # Watch mode
-bun run test:coverage      # Coverage report
-bun run test:integration   # Integration tests only
-bun run test:e2e           # E2E tests (Playwright)
-```
-
 ## Code Conventions
 
 ### Naming
@@ -41,27 +11,21 @@ bun run test:e2e           # E2E tests (Playwright)
 
 ### TypeScript
 
-- Strict mode enabled
+- Strict mode enabled — no `any`, no implicit returns
 - Use path aliases: `@/*`, `@process/*`, `@renderer/*`, `@worker/*`
 - Prefer `type` over `interface` (per ESLint config)
+- English for code comments; JSDoc for public functions
 
-### React
+### Architecture
 
-- Functional components only
-- Hooks: `use*` prefix
-- Event handlers: `on*` prefix
-- Props type: `${ComponentName}Props`
+Three process types — never mix their APIs:
 
-### Styling
+- `src/process/` — main process, no DOM APIs
+- `src/renderer/` — renderer, no Node.js APIs
+- `src/worker/` — fork workers, no Electron APIs
 
-- UnoCSS atomic classes preferred
-- CSS modules for component-specific styles: `*.module.css`
-- Use Arco Design semantic colors
-
-### Comments
-
-- English for code comments
-- JSDoc for function documentation
+Cross-process communication must go through the IPC bridge (`src/preload.ts`).
+See [docs/tech/architecture.md](docs/tech/architecture.md) for details.
 
 ## Testing
 
@@ -83,15 +47,52 @@ bun run test:e2e           # E2E tests (Playwright)
 - When modifying logic, update affected existing tests
 - New source files added to feature areas must be included in coverage config (`vitest.config.ts` → `coverage.include`)
 
+**Coverage target**: ≥ 80% for all files listed in `coverage.include`. Run `bun run test:coverage` to verify before opening a PR.
+
+### Test Quality Rules
+
+Coverage percentage is a floor, not a goal. A test only has value if it would **fail when the behavior it describes breaks**.
+
+**1. Describe behavior, not code structure**
+
+```typescript
+// Wrong — describes implementation
+it('should call repo.getConversation', ...)
+
+// Correct — describes behavior
+it('should return cached task without hitting repo on second call', ...)
+it('should reject with error when conversation does not exist', ...)
+```
+
+**2. Every describe block must cover at least one failure path**
+
+Happy-path-only tests leave the most dangerous code untested. For every module, ask:
+- What happens when the dependency returns `undefined` / throws?
+- What happens at the boundary (empty list, max retries reached, past timestamp)?
+
+**3. One behavior per test**
+
+Keep each `it()` focused. More than 3 `expect()` calls in one test is a signal it is testing too much at once.
+
+**4. Self-check before committing**
+
+After writing a test, mentally delete the core logic it targets. If the test would still pass, rewrite it — it is not guarding anything.
+
+**5. Start from risk, not from coverage gaps**
+
+Before writing tests for a module, list the scenarios most likely to produce bugs in production. Write those first. Coverage is the outcome of that process, not the starting point.
+
 ## Code Quality
 
-**Run `bun run lint:fix` after editing any `.ts` / `.tsx` file** — Prettier is enforced in CI and formatting errors block merges.
+Run these after every edit — all three are enforced in CI and block merges:
 
-**Run `bun run format` after editing `.css` / `.json` / `.md` files** — these file types are also checked by Prettier in CI.
+```bash
+bun run lint:fix       # after editing .ts / .tsx
+bun run format         # after editing .css / .json / .md
+bunx tsc --noEmit      # verify no type errors
+```
 
-**Run `bunx tsc --noEmit` to verify there are no type errors** — TypeScript strict mode is enabled and type errors block merges.
-
-Common Prettier rules to follow (avoids needing a fix pass):
+Common Prettier rules (avoid a fix pass):
 - Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
 - Trailing commas required in multi-line arrays/objects
 - Single quotes for strings
@@ -121,16 +122,6 @@ chore: remove debug console.log statements
 - Any other AI-generated footer or byline
 
 This is a strict rule that applies to all AI coding assistants. Violating this will pollute the git history.
-
-## Architecture Notes
-
-Three process types: Main (`src/process/`), Renderer (`src/renderer/`), Worker (`src/worker/`).
-
-- `src/process/` — no DOM APIs
-- `src/renderer/` — no Node.js APIs
-- Cross-process communication must go through the IPC bridge (`src/preload.ts`)
-
-See [docs/tech/architecture.md](docs/tech/architecture.md) for IPC, WebUI, and Cron details.
 
 ## Internationalization
 

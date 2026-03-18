@@ -27,6 +27,7 @@ import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 import BaseAgentManager from './BaseAgentManager';
+import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
@@ -79,7 +80,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
 
   constructor(data: AcpAgentManagerData) {
-    super('acp', data);
+    super('acp', data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;

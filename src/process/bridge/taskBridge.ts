@@ -13,15 +13,15 @@
  */
 
 import { ipcBridge } from '@/common';
-import WorkerManage from '../WorkerManage';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 
 export function initTaskBridge(): void {
   // 暂停所有运行中的任务 / Stop all running tasks
   ipcBridge.task.stopAll.provider(async () => {
     try {
-      const tasks = WorkerManage.listTasks();
+      const tasks = workerTaskManager.listTasks();
       const stopPromises = tasks.map((taskInfo) => {
-        const task = WorkerManage.getTaskById(taskInfo.id);
+        const task = workerTaskManager.getTask(taskInfo.id);
         return task?.stop?.();
       });
       await Promise.allSettled(stopPromises);
@@ -35,7 +35,7 @@ export function initTaskBridge(): void {
   // 获取运行中的任务数量 / Get count of running tasks
   ipcBridge.task.getRunningCount.provider(async () => {
     try {
-      const tasks = WorkerManage.listTasks();
+      const tasks = workerTaskManager.listTasks();
       return { success: true, count: tasks.length };
     } catch (error) {
       console.error('Failed to get running task count:', error);
