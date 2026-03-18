@@ -22,7 +22,12 @@ import {
   CODEX_ACP_BRIDGE_VERSION,
   CODEX_ACP_NPX_PACKAGE,
 } from '@/types/acpTypes';
-import { findSuitableNodeBin, getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
+import {
+  findSuitableNodeBin,
+  getEnhancedEnv,
+  getWindowsShellExecutionOptions,
+  resolveNpxPath,
+} from '@process/utils/shellEnv';
 import { mainLog, mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
@@ -256,6 +261,12 @@ async function prepareCodex(): Promise<NpxPrepareResult> {
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
 
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
+  const codexExecOptions = {
+    env: cleanEnv,
+    timeout: 5000,
+    windowsHide: true,
+    ...getWindowsShellExecutionOptions(),
+  };
   const diagnostics: {
     bridgeVersion: string;
     bridgePackage: string;
@@ -275,22 +286,14 @@ async function prepareCodex(): Promise<NpxPrepareResult> {
   };
 
   try {
-    const { stdout } = await execFile(codexCommand, ['--version'], {
-      env: cleanEnv,
-      timeout: 5000,
-      windowsHide: true,
-    });
+    const { stdout } = await execFile(codexCommand, ['--version'], codexExecOptions);
     diagnostics.codexCliVersion = stdout.trim() || diagnostics.codexCliVersion;
   } catch (error) {
     mainWarn('[ACP codex]', 'Failed to read codex CLI version', error);
   }
 
   try {
-    const { stdout } = await execFile(codexCommand, ['login', 'status'], {
-      env: cleanEnv,
-      timeout: 5000,
-      windowsHide: true,
-    });
+    const { stdout } = await execFile(codexCommand, ['login', 'status'], codexExecOptions);
     diagnostics.loginStatus = stdout.trim() || diagnostics.loginStatus;
     diagnostics.hasChatGptSession = /chatgpt/i.test(diagnostics.loginStatus);
   } catch (error) {

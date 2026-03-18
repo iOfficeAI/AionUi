@@ -20,12 +20,15 @@ vi.mock('child_process', () => ({
       cb(null, { stdout: '', stderr: '' });
     }
   ),
-  execFileSync: vi.fn(() => 'v20.0.0\n'),
+  execFileSync: vi.fn(() => 'v20.10.0\n'),
 }));
 
 vi.mock('@process/utils/shellEnv', () => ({
   findSuitableNodeBin: vi.fn(() => null),
   getEnhancedEnv: vi.fn(() => ({ PATH: '/usr/bin' })),
+  getWindowsShellExecutionOptions: vi.fn(() =>
+    process.platform === 'win32' ? { shell: true, windowsHide: true } : {}
+  ),
   resolveNpxPath: vi.fn(() => 'npx'),
 }));
 
@@ -34,9 +37,10 @@ vi.mock('@process/utils/mainLogger', () => ({
   mainWarn: vi.fn(),
 }));
 
-import { spawn } from 'child_process';
-import { createGenericSpawnConfig, spawnNpxBackend } from '../../src/agent/acp/acpConnectors';
+import { execFile as execFileCb, spawn } from 'child_process';
+import { connectCodex, createGenericSpawnConfig, spawnNpxBackend } from '../../src/agent/acp/acpConnectors';
 
+const mockExecFile = vi.mocked(execFileCb);
 const mockSpawn = vi.mocked(spawn);
 
 describe('spawnNpxBackend - Windows UTF-8 fix', () => {
@@ -164,5 +168,74 @@ describe('createGenericSpawnConfig - Windows path handling', () => {
     expect(config.command).toBe('npx');
     expect(config.args).toContain('@pkg/cli');
     expect(config.args).toContain('--acp');
+  });
+});
+
+describe('connectCodex - Windows diagnostics', () => {
+  let originalPlatform: PropertyDescriptor | undefined;
+  const mockChild = { unref: vi.fn() };
+
+  beforeEach(() => {
+    originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+    mockExecFile.mockImplementation(
+      (
+        _cmd: string,
+        args: string[],
+        _opts: unknown,
+        cb: (err: null, result: { stdout: string; stderr: string }) => void
+      ) => {
+        if (args[0] === '--version') {
+          cb(null, { stdout: '0.0.1\n', stderr: '' });
+          return undefined as never;
+        }
+
+        cb(null, { stdout: 'Logged in with ChatGPT\n', stderr: '' });
+        return undefined as never;
+      }
+    );
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    if (originalPlatform) {
+      Object.defineProperty(process, 'platform', originalPlatform);
+    }
+  });
+
+  it('uses shell execution for codex.cmd probes on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectCodex('C:\\cwd', { setup, cleanup });
+
+    expect(mockExecFile).toHaveBeenNthCalledWith(
+      1,
+      'codex.cmd',
+      ['--version'],
+      expect.objectContaining({
+        env: { PATH: '/usr/bin' },
+        shell: true,
+        timeout: 5000,
+        windowsHide: true,
+      }),
+      expect.any(Function)
+    );
+    expect(mockExecFile).toHaveBeenNthCalledWith(
+      2,
+      'codex.cmd',
+      ['login', 'status'],
+      expect.objectContaining({
+        env: { PATH: '/usr/bin' },
+        shell: true,
+        timeout: 5000,
+        windowsHide: true,
+      }),
+      expect.any(Function)
+    );
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(cleanup).not.toHaveBeenCalled();
   });
 });

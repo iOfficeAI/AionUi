@@ -26,7 +26,7 @@ import os from 'os';
 import path from 'path';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
 import { mainLog } from '@process/utils/mainLogger';
-import { getNpxCacheDir, resolveNpxPath } from '@process/utils/shellEnv';
+import { getNpxCacheDir, getWindowsShellExecutionOptions, resolveNpxPath } from '@process/utils/shellEnv';
 import {
   ACP_PERF_LOG,
   connectClaude,
@@ -154,7 +154,11 @@ export class AcpConnection {
           const npmPath = resolveNpxPath(cleanEnv)
             .replace(/npx$/, 'npm')
             .replace(/npx\.cmd$/, 'npm.cmd');
-          await execFile(npmPath, ['cache', 'clean', '--force'], { env: cleanEnv, timeout: 30000 });
+          await execFile(npmPath, ['cache', 'clean', '--force'], {
+            env: cleanEnv,
+            timeout: 30000,
+            ...getWindowsShellExecutionOptions(),
+          });
           console.warn('[ACP] npm cache cleaned, retrying connection...');
         } catch (cleanError) {
           console.warn('[ACP] Failed to clean npm cache:', cleanError);

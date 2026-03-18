@@ -194,28 +194,26 @@ describe('tray module', () => {
 
   describe('refreshTrayMenu', () => {
     it('should rebuild context menu when tray exists', async () => {
-      const { Menu } = await import('electron');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
 
       createOrUpdateTray();
       // Wait for initial async menu build to complete
       await new Promise((r) => setTimeout(r, 50));
       mockTrayInstance.setContextMenu.mockClear();
-      (Menu.buildFromTemplate as ReturnType<typeof vi.fn>).mockClear();
+      mockBuildFromTemplate.mockClear();
 
       await refreshTrayMenu();
 
-      expect(Menu.buildFromTemplate).toHaveBeenCalledOnce();
+      expect(mockBuildFromTemplate).toHaveBeenCalledOnce();
       expect(mockTrayInstance.setContextMenu).toHaveBeenCalledWith(mockMenuInstance);
     });
 
     it('should be a no-op when no tray exists', async () => {
-      const { Menu } = await import('electron');
       const { refreshTrayMenu } = await import('@/process/tray');
 
       await refreshTrayMenu();
 
-      expect(Menu.buildFromTemplate).not.toHaveBeenCalled();
+      expect(mockBuildFromTemplate).not.toHaveBeenCalled();
     });
   });
 

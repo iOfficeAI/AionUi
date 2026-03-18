@@ -25,6 +25,17 @@ export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager
 ): void {
+  const emitConversationListChanged = (
+    conversation: Pick<TChatConversation, 'id' | 'source'>,
+    action: 'created' | 'updated' | 'deleted'
+  ) => {
+    ipcBridge.conversation.listChanged.emit({
+      conversationId: conversation.id,
+      action,
+      source: conversation.source || 'aionui',
+    });
+  };
+
   ipcBridge.openclawConversation.getRuntime.provider(async ({ conversation_id }) => {
     try {
       const conversation = await conversationService.getConversation(conversation_id);
@@ -74,10 +85,12 @@ export function initConversationBridge(
   });
 
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
-    return await conversationService.createConversation({
+    const conversation = await conversationService.createConversation({
       ...params,
       source: 'aionui', // Mark conversations created by AionUI as aionui
     });
+    emitConversationListChanged(conversation, 'created');
+    return conversation;
   });
 
   // Manually reload conversation context (Gemini): inject recent history into memory
@@ -149,11 +162,16 @@ export function initConversationBridge(
       try {
         void workerTaskManager.getOrBuildTask(conversation.id);
 
-        return await conversationService.createWithMigration({
+        const result = await conversationService.createWithMigration({
           conversation,
           sourceConversationId,
           migrateCron,
         });
+        emitConversationListChanged(result, 'created');
+        if (sourceConversationId) {
+          emitConversationListChanged({ id: sourceConversationId, source: conversation.source }, 'deleted');
+        }
+        return result;
       } catch (error) {
         console.error('[conversationBridge] Failed to create conversation with conversation:', error);
         return Promise.resolve(conversation);
@@ -187,6 +205,9 @@ export function initConversationBridge(
       }
 
       await conversationService.deleteConversation(id);
+      if (conversation) {
+        emitConversationListChanged(conversation, 'deleted');
+      }
       return true;
     } catch (error) {
       console.error('[conversationBridge] Failed to remove conversation:', error);
@@ -205,6 +226,10 @@ export function initConversationBridge(
         // model change detection for task rebuild
 
         await conversationService.updateConversation(id, updates, mergeExtra);
+
+        if (existing) {
+          emitConversationListChanged(existing, 'updated');
+        }
 
         // If model changed, kill running task to force rebuild with new model on next send
         if (modelChanged) {
