@@ -1,8 +1,8 @@
 # Main Process Decoupling — Phase 2 Design
 
 **Date:** 2026-03-18
-**Branch:** zynx/refactor/main-process-decouple
-**Depends on:** Phase 1 (PR #1402)
+**Branch:** zynx/refactor/main-process-decouple-phase2
+**Depends on:** Phase 1 (PR #1402, **merged**)
 **Goal:** Decouple all remaining main-process modules so that every business-logic class can be unit-tested without Electron, SQLite, or any singleton.
 
 ---
@@ -44,6 +44,8 @@ The following modules still contain direct singleton or `getDatabase()` calls th
 | `channelBridge.ts` | Calls `getDatabase()` directly for channel/user/session data |
 | `databaseBridge.ts` | Calls `getDatabase()` and `ProcessChat` directly |
 | `extensionsBridge.ts` | Calls `getDatabase()` and imports `workerTaskManager` singleton |
+| `applicationBridge.ts` | Imports `workerTaskManager` singleton directly |
+| `conversationBridge.ts` | Line 125 still calls `getDatabase()` in `listAllConversations` path |
 | `conversationService.ts` (old) | Still referenced by some modules; should be removed |
 
 ---
@@ -67,9 +69,24 @@ All principles from Phase 1 remain in force:
 
 **Solution:** Add `IConversationRepository` to the constructor. The repository handles both DB lookup and file-storage fallback internally, or the singleton wiring handles the fallback.
 
-#### Interface change (none needed — `IConversationRepository` already exists)
+#### Interface change — add `listAllConversations`
 
-The existing interface already provides `getConversation(id)`. The `ProcessChat` file-storage fallback can be moved into `SqliteConversationRepository` or into a thin `FallbackConversationRepository` decorator — whichever is simpler.
+The existing interface already provides `getConversation(id)`. Two additions are needed in this PR:
+
+1. **`listAllConversations()`** — currently `conversationBridge.ts` line 125 calls `getDatabase()` directly in its `listAllConversations` handler. Add this method to `IConversationRepository` so the bridge can use the injected repo instead.
+
+```typescript
+export interface IConversationRepository {
+  // ...existing methods...
+  listAllConversations(): TChatConversation[];
+}
+```
+
+`SqliteConversationRepository` implements it via the existing DB query.
+
+2. **Fix `conversationBridge.ts` line 125** — replace the `getDatabase()` call with `this.repo.listAllConversations()`. This closes the last remaining coupling in `conversationBridge`.
+
+The `ProcessChat` file-storage fallback can be moved into `SqliteConversationRepository` or into a thin `FallbackConversationRepository` decorator — whichever is simpler.
 
 #### `WorkerTaskManager` constructor (after PR-A)
 
@@ -120,13 +137,21 @@ const repo = new SqliteConversationRepository();
 export const workerTaskManager = new WorkerTaskManager(agentFactory, repo);
 ```
 
-#### New tests (`tests/unit/WorkerTaskManager.test.ts`)
+#### New tests
 
-- `getOrBuildTask` hits repo on cache miss
-- `getOrBuildTask` returns `Promise.reject` when repo returns `undefined`
+**`tests/unit/WorkerTaskManager.test.ts`**
+
 - `getOrBuildTask` returns cached task without hitting repo on second call
+- `getOrBuildTask` hits repo on cache miss and builds task correctly
+- `getOrBuildTask` **[failure path]** rejects with error when repo returns `undefined`
+- `getOrBuildTask` **[failure path]** rejects when `skipCache` is set and repo returns `undefined`
 
-**Coverage target:** `WorkerTaskManager.ts` ≥ 80%
+**`tests/unit/conversationBridge.test.ts`** (new assertions)
+
+- `listAllConversations` returns data from injected repo — no `getDatabase()` call
+- `listAllConversations` **[failure path]** returns empty array when repo returns `[]`
+
+**Coverage target:** `WorkerTaskManager.ts` ≥ 80%, `conversationBridge.ts` ≥ 80%
 
 ---
 
@@ -164,6 +189,18 @@ export function initGeminiConversationBridge(workerTaskManager: IWorkerTaskManag
 
 **`acpConversationBridge.ts`** — same pattern. Note that `acpConversationBridge` also does `instanceof AcpAgentManager` checks; these remain valid because the concrete type is still injected via the singleton at startup. The bridge only needs the `IWorkerTaskManager` interface for `getTask` / `getOrBuildTask` lookups — the `instanceof` casts are downcasts that are safe at the call site.
 
+**`applicationBridge.ts`**
+
+```typescript
+// Before
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+export function initApplicationBridge(): void { ... }
+
+// After
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): void { ... }
+```
+
 **`initBridge.ts`** (call site)
 
 ```typescript
@@ -172,15 +209,32 @@ import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 initTaskBridge(workerTaskManager);
 initGeminiConversationBridge(workerTaskManager);
 initAcpConversationBridge(workerTaskManager);
+initApplicationBridge(workerTaskManager);
 ```
 
 #### New tests
 
-- `taskBridge`: `stopAll` calls `task.stop()` for each running task; `getRunningCount` returns correct length
-- `geminiConversationBridge`: `confirmMessage` returns error when task not found; routes confirm to correct task
-- `acpConversationBridge`: `getMode` returns `{ initialized: false }` when task absent
+**`tests/unit/taskBridge.test.ts`**
 
-**Coverage target:** `taskBridge.ts`, `geminiConversationBridge.ts` ≥ 80%
+- `stopAll` stops every running task and returns correct stopped count
+- `getRunningCount` returns zero when no tasks are active
+- `getRunningCount` **[failure path]** returns correct count after a task throws during stop
+
+**`tests/unit/geminiConversationBridge.test.ts`**
+
+- `confirmMessage` routes the confirmation payload to the correct task
+- `confirmMessage` **[failure path]** returns error response when task is not found in manager
+
+**`tests/unit/acpConversationBridge.test.ts`**
+
+- `getMode` **[failure path]** returns `{ initialized: false }` when no task exists for the conversation
+
+**`tests/unit/applicationBridge.test.ts`**
+
+- Handler triggers task lookup via injected `workerTaskManager`
+- **[failure path]** handler returns error when `workerTaskManager.getTask` returns `undefined`
+
+**Coverage target:** `taskBridge.ts`, `geminiConversationBridge.ts`, `applicationBridge.ts` ≥ 80%
 
 ---
 
@@ -323,18 +377,20 @@ export const cronService = new CronService(
 
 #### New tests (`tests/unit/CronService.test.ts`)
 
-Core scenarios to test (using mock implementations of all 4 interfaces):
+Core scenarios to test (using mock implementations of all 4 interfaces).
 
-- `init()` starts timers for all enabled jobs
-- `init()` removes orphan jobs (conversation not found in repo)
+Ordered highest-risk first (Rule 5):
+
+- `executeJob()` **[failure path]** skips execution and stops retrying when conversation is busy and retries exceed `maxRetries`
+- `executeJob()` **[failure path]** schedules a retry timer when conversation is busy and retries are within limit
+- `handleSystemResume()` **[failure path]** inserts missed-job messages for jobs that fired while system was asleep
+- `init()` **[failure path]** removes orphan jobs whose conversation no longer exists in repo
+- `executeJob()` calls `executor.executeJob`, updates job state, and emits completion
+- `init()` starts timers for all enabled jobs at correct intervals
 - `addJob()` inserts into repo and emits `jobCreated`
-- `addJob()` throws when conversation already has a job
-- `updateJob()` restarts timer when `enabled` flips to `true`
+- `addJob()` **[failure path]** throws when conversation already has a scheduled job
+- `updateJob()` restarts timer when `enabled` flips from `false` to `true`
 - `removeJob()` stops timer and emits `jobRemoved`
-- `executeJob()` skips execution when conversation is busy + retries > maxRetries
-- `executeJob()` schedules retry timer when busy and retries within limit
-- `executeJob()` calls `executor.executeJob` on success and updates job state
-- `handleSystemResume()` marks missed jobs and inserts missed-job messages
 
 **Coverage target:** `CronService.ts` ≥ 80%
 
@@ -467,7 +523,11 @@ export function initExtensionsBridge(
 #### Steps
 
 1. `grep -r "conversationService" src/` — find all remaining references
-2. Migrate each reference to `ConversationServiceImpl` / `IConversationService`
+2. Migrate each reference to `ConversationServiceImpl` / `IConversationService`. Confirmed references beyond `src/process/` include:
+   - `src/channels/actions/SystemActions.ts`
+   - `src/channels/gateway/ActionExecutor.ts`
+
+   Both files must be updated to depend on `IConversationService` injected at startup via `initBridge.ts`.
 3. Delete `src/process/services/conversationService.ts`
 4. Update `vitest.config.ts` `coverage.include` to add all Phase 2 new files:
    - `src/process/database/FallbackConversationRepository.ts`
@@ -519,6 +579,8 @@ initBridge.ts  (wires all singletons, passes via constructor injection)
        │
        ├── acpConvBridge       ──▶  IWorkerTaskManager
        │
+       ├── applicationBridge   ──▶  IWorkerTaskManager
+       │
        ├── cronBridge          ──▶  ICronService (thin wrapper)
        │
        ├── channelBridge       ──▶  IChannelRepository
@@ -563,6 +625,16 @@ WorkerTaskManager
 
 ## Testing Strategy
 
+### Writing quality tests (Test Quality Rules)
+
+Coverage percentage is a floor, not a goal. Follow these rules for every PR:
+
+1. **Describe behavior, not code structure** — test names must describe what the system does, not which method it calls.
+2. **Every `describe` block must cover at least one failure path** — what happens when a dependency returns `undefined`, throws, or returns an empty list?
+3. **One behavior per `it()`** — more than 3 `expect()` calls in one test signals it is testing too much.
+4. **Self-check**: mentally delete the core logic the test targets; if the test still passes, rewrite it.
+5. **Start from risk** — list the scenarios most likely to produce production bugs for each module and write those first. Coverage is the outcome, not the starting point.
+
 ### Mock approach per interface
 
 ```typescript
@@ -575,6 +647,7 @@ const mockRepo: IConversationRepository = {
   getMessages: vi.fn(),
   insertMessage: vi.fn(),
   getUserConversations: vi.fn(),
+  listAllConversations: vi.fn(),
   searchMessages: vi.fn(),
 };
 ```
@@ -584,9 +657,11 @@ const mockRepo: IConversationRepository = {
 | File | Target |
 |------|--------|
 | `WorkerTaskManager.ts` | ≥ 80% |
+| `conversationBridge.ts` | ≥ 80% |
 | `CronService.ts` | ≥ 80% |
 | `taskBridge.ts` | ≥ 80% |
 | `geminiConversationBridge.ts` | ≥ 80% |
+| `applicationBridge.ts` | ≥ 80% |
 | `databaseBridge.ts` | ≥ 80% |
 | `ActivitySnapshotBuilder.ts` | ≥ 80% |
 | All new `I*.ts` interface files | 100% (interfaces have no runtime code) |
