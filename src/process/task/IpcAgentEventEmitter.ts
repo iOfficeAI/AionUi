@@ -27,6 +27,10 @@ export class IpcAgentEventEmitter implements IAgentEventEmitter {
   }
 
   emitMessage(conversationId: string, event: AgentMessageEvent): void {
-    ipcBridge.conversation.message.emit({ ...event, conversation_id: conversationId });
+    ipcBridge.conversation.responseStream.emit({
+      ...event,
+      conversation_id: conversationId,
+      msg_id: (event.data as any)?.msg_id ?? '',
+    });
   }
 }
