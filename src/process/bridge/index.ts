@@ -5,6 +5,8 @@
  */
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
+import type { IConversationService } from '@process/services/IConversationService';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
@@ -32,15 +34,20 @@ import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 
+export interface BridgeDependencies {
+  conversationService: IConversationService;
+  workerTaskManager: IWorkerTaskManager;
+}
+
 /**
  * 初始化所有IPC桥接模块
  */
-export function initAllBridges(): void {
+export function initAllBridges(deps: BridgeDependencies): void {
   initDialogBridge();
   initShellBridge();
   initFsBridge();
   initFileWatchBridge();
-  initConversationBridge();
+  initConversationBridge(deps.conversationService, deps.workerTaskManager);
   initApplicationBridge();
   initGeminiConversationBridge();
   // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
