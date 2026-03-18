@@ -17,13 +17,15 @@ function useStatusIcons() {
   const warning = useThemeColor({}, 'warning');
   const icon = useThemeColor({}, 'icon');
 
+  const purple = useThemeColor({}, 'purple');
+
   return {
     Executing: { icon: 'play-circle' as const, color: tint },
     Success: { icon: 'checkmark-circle' as const, color: success },
     Error: { icon: 'close-circle' as const, color: error },
     Canceled: { icon: 'remove-circle' as const, color: icon },
     Pending: { icon: 'time' as const, color: warning },
-    Confirming: { icon: 'help-circle' as const, color: '#722ED1' },
+    Confirming: { icon: 'help-circle' as const, color: purple },
     executing: { icon: 'play-circle' as const, color: tint },
     success: { icon: 'checkmark-circle' as const, color: success },
     error: { icon: 'close-circle' as const, color: error },

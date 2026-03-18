@@ -4,10 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../../../src/components/ui/ThemedText';
 import { useConnection } from '../../../src/context/ConnectionContext';
+import { useThemeColor } from '../../../src/hooks/useThemeColor';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const { config, connectionState, disconnect } = useConnection();
+  const surface = useThemeColor({}, 'surface');
+  const border = useThemeColor({}, 'border');
+  const success = useThemeColor({}, 'success');
+  const error = useThemeColor({}, 'error');
 
   const handleDisconnect = () => {
     Alert.alert(t('common.disconnect'), t('connect.disconnected'), [
@@ -27,15 +32,15 @@ export default function SettingsScreen() {
         <ThemedText type='caption' style={styles.sectionTitle}>
           {t('settings.connection').toUpperCase()}
         </ThemedText>
-        <View style={styles.card}>
-          <View style={styles.row}>
+        <View style={[styles.card, { backgroundColor: surface }]}>
+          <View style={[styles.row, { borderBottomColor: border }]}>
             <ThemedText>{t('settings.connectionStatus')}</ThemedText>
             <View style={styles.statusRow}>
               <View
                 style={[
                   styles.statusDot,
                   {
-                    backgroundColor: connectionState === 'connected' ? '#00B42A' : '#F53F3F',
+                    backgroundColor: connectionState === 'connected' ? success : error,
                   },
                 ]}
               />
@@ -45,7 +50,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           {config && (
-            <View style={styles.row}>
+            <View style={[styles.row, { borderBottomColor: border }]}>
               <ThemedText>{t('settings.serverAddress')}</ThemedText>
               <ThemedText type='caption'>
                 {config.host}:{config.port}
@@ -57,9 +62,9 @@ export default function SettingsScreen() {
 
       {/* Actions */}
       <View style={styles.section}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleDisconnect}>
-          <Ionicons name='log-out-outline' size={20} color='#F53F3F' />
-          <ThemedText style={styles.dangerText}>{t('settings.changeServer')}</ThemedText>
+        <TouchableOpacity style={[styles.actionButton, { backgroundColor: surface }]} onPress={handleDisconnect}>
+          <Ionicons name='log-out-outline' size={20} color={error} />
+          <ThemedText style={{ color: error, fontWeight: '500' }}>{t('settings.changeServer')}</ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -68,8 +73,8 @@ export default function SettingsScreen() {
         <ThemedText type='caption' style={styles.sectionTitle}>
           {t('settings.about').toUpperCase()}
         </ThemedText>
-        <View style={styles.card}>
-          <View style={styles.row}>
+        <View style={[styles.card, { backgroundColor: surface }]}>
+          <View style={[styles.row, { borderBottomColor: border }]}>
             <ThemedText>{t('settings.version')}</ThemedText>
             <ThemedText type='caption'>0.1.0</ThemedText>
           </View>
@@ -89,7 +94,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -100,7 +104,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F0F0F0',
   },
   statusRow: {
     flexDirection: 'row',
@@ -116,13 +119,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
-  },
-  dangerText: {
-    color: '#F53F3F',
-    fontWeight: '500',
   },
 });

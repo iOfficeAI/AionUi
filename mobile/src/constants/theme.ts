@@ -21,6 +21,7 @@ export const Colors = {
     tipSuccessBg: '#E8FFEA',
     confirmBg: '#FFF7E8',
     confirmBorder: '#FFD666',
+    purple: '#722ED1',
   },
   dark: {
     text: '#ECEDEE',
@@ -42,6 +43,7 @@ export const Colors = {
     tipSuccessBg: '#162312',
     confirmBg: '#2B2111',
     confirmBorder: '#AA8800',
+    purple: '#B37FEB',
   },
 };
 
