@@ -16,8 +16,11 @@ export type Conversation = {
   model: { id: string; useModel: string };
   extra: {
     workspace?: string;
+    customWorkspace?: boolean;
     backend?: string;
     agentName?: string;
+    pinned?: boolean;
+    pinnedAt?: number;
   };
 };
 

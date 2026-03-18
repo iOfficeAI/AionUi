@@ -39,6 +39,7 @@ export default function TabLayout() {
         name='files'
         options={{
           title: t('tabs.files'),
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <Ionicons name='folder-outline' size={size} color={color} />,
         }}
       />

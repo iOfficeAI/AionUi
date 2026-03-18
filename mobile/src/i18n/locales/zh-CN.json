@@ -58,11 +58,26 @@
     "noConversation": "未选择对话",
     "startChatHint": "创建一个新对话开始使用"
   },
+  "workspace": {
+    "temporarySpace": "临时会话",
+    "today": "今天",
+    "yesterday": "昨天",
+    "recent7Days": "最近 7 天",
+    "earlier": "更早",
+    "pinned": "已置顶",
+    "noWorkspace": "当前会话未关联工作区",
+    "errorLoading": "加载工作区文件失败",
+    "openFiles": "打开的文件",
+    "openNewFile": "打开新文件",
+    "sessions": "个会话"
+  },
   "files": {
     "title": "文件",
     "empty": "暂无文件",
     "parentDirectory": "上级目录",
-    "errorLoading": "加载目录失败"
+    "errorLoading": "加载目录失败",
+    "copyPath": "复制路径",
+    "viewInfo": "查看信息"
   },
   "filePreview": {
     "loading": "加载文件中...",

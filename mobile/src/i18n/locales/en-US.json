@@ -58,11 +58,26 @@
     "noConversation": "No conversation selected",
     "startChatHint": "Create a new conversation to get started"
   },
+  "workspace": {
+    "temporarySpace": "Temporary Session",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "recent7Days": "Last 7 Days",
+    "earlier": "Earlier",
+    "pinned": "Pinned",
+    "noWorkspace": "No workspace associated with current session",
+    "errorLoading": "Failed to load workspace files",
+    "openFiles": "Open Files",
+    "openNewFile": "Open New File",
+    "sessions": "sessions"
+  },
   "files": {
     "title": "Files",
     "empty": "No files",
     "parentDirectory": "Parent Directory",
-    "errorLoading": "Failed to load directory"
+    "errorLoading": "Failed to load directory",
+    "copyPath": "Copy Path",
+    "viewInfo": "View Info"
   },
   "filePreview": {
     "loading": "Loading file...",
