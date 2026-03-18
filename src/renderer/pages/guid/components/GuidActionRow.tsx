@@ -8,13 +8,14 @@ import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { getCleanFileNames } from '@/renderer/services/FileService';
+import { getCleanFileNames, FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
 import PresetAgentTag from './PresetAgentTag';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, FolderOpen, Plus, Shield, UploadOne } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
 
@@ -74,6 +75,36 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 
+  // Browser file picker ref (WebUI only)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleLocalFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const fileList = e.target.files;
+      if (!fileList || fileList.length === 0) return;
+      setUploading(true);
+      try {
+        const processed = await FileService.processDroppedFiles(fileList);
+        if (processed.length > 0) {
+          onFilesUploaded(processed.map((f) => f.path));
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '';
+        if (msg === 'FILE_TOO_LARGE') {
+          Message.error(t('common.fileAttach.tooLarge', { max: MAX_UPLOAD_SIZE_MB }));
+        } else {
+          Message.error(t('common.fileAttach.failed'));
+        }
+      } finally {
+        setUploading(false);
+      }
+      // Reset so the same file can be re-selected
+      e.target.value = '';
+    },
+    [onFilesUploaded, t]
+  );
+
   const getModeDisplayLabel = (mode: AgentModeOption): string =>
     t(`agentMode.${mode.value}`, { defaultValue: mode.label });
 
@@ -83,63 +114,84 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       : `${t('agentMode.permission')} · ${getModeDisplayLabel(currentModeOption)}`
     : t('agentMode.permission');
 
+  const isWebUI = !isElectronDesktop();
+
+  const menuContent = (
+    <Menu
+      className='min-w-200px'
+      onClickMenuItem={(key) => {
+        if (key === 'file') {
+          ipcBridge.dialog.showOpen
+            .invoke({ properties: ['openFile', 'multiSelections'] })
+            .then((uploadedFiles) => {
+              if (uploadedFiles && uploadedFiles.length > 0) {
+                onFilesUploaded(uploadedFiles);
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to open file dialog:', error);
+            });
+        } else if (key === 'device') {
+          fileInputRef.current?.click();
+        } else if (key === 'workspace') {
+          ipcBridge.dialog.showOpen
+            .invoke({ properties: ['openDirectory'] })
+            .then((dirs) => {
+              if (dirs && dirs[0]) {
+                onSelectWorkspace(dirs[0]);
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to open directory dialog:', error);
+            });
+        }
+      }}
+    >
+      {isWebUI ? (
+        <>
+          <Menu.Item key='file'>
+            <div className='flex items-center gap-8px'>
+              <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+              <span>{t('common.fileAttach.hostFiles')}</span>
+            </div>
+          </Menu.Item>
+          <Menu.Item key='device'>
+            <div className='flex items-center gap-8px'>
+              <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+              <span>{t('common.fileAttach.myDevice')}</span>
+            </div>
+          </Menu.Item>
+        </>
+      ) : (
+        <Menu.Item key='file'>
+          <div className='flex items-center gap-8px'>
+            <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+            <span>{t('conversation.welcome.uploadFile')}</span>
+          </div>
+        </Menu.Item>
+      )}
+      <Menu.Item key='workspace'>
+        <div className='flex items-center gap-8px'>
+          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+          <span>{t('conversation.welcome.specifyWorkspace')}</span>
+        </div>
+      </Menu.Item>
+    </Menu>
+  );
+
   return (
     <div className={styles.actionRow}>
       <div className={styles.actionTools}>
         <div className={styles.actionEntry}>
-          <Dropdown
-            trigger='hover'
-            onVisibleChange={setIsPlusDropdownOpen}
-            droplist={
-              <Menu
-                className='min-w-200px'
-                onClickMenuItem={(key) => {
-                  if (key === 'file') {
-                    ipcBridge.dialog.showOpen
-                      .invoke({ properties: ['openFile', 'multiSelections'] })
-                      .then((uploadedFiles) => {
-                        if (uploadedFiles && uploadedFiles.length > 0) {
-                          onFilesUploaded(uploadedFiles);
-                        }
-                      })
-                      .catch((error) => {
-                        console.error('Failed to open file dialog:', error);
-                      });
-                  } else if (key === 'workspace') {
-                    ipcBridge.dialog.showOpen
-                      .invoke({ properties: ['openDirectory'] })
-                      .then((dirs) => {
-                        if (dirs && dirs[0]) {
-                          onSelectWorkspace(dirs[0]);
-                        }
-                      })
-                      .catch((error) => {
-                        console.error('Failed to open directory dialog:', error);
-                      });
-                  }
-                }}
-              >
-                <Menu.Item key='file'>
-                  <div className='flex items-center gap-8px'>
-                    <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                    <span>{t('conversation.welcome.uploadFile')}</span>
-                  </div>
-                </Menu.Item>
-                <Menu.Item key='workspace'>
-                  <div className='flex items-center gap-8px'>
-                    <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                    <span>{t('conversation.welcome.specifyWorkspace')}</span>
-                  </div>
-                </Menu.Item>
-              </Menu>
-            }
-          >
+          <Dropdown trigger='hover' onVisibleChange={setIsPlusDropdownOpen} droplist={menuContent}>
             <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
               <Button
                 type='text'
                 shape='circle'
                 className={isPlusDropdownOpen ? styles.plusButtonRotate : ''}
                 icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+                loading={uploading}
+                disabled={uploading}
               ></Button>
               {files.length > 0 && (
                 <Tooltip
@@ -151,6 +203,15 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               )}
             </span>
           </Dropdown>
+          {isWebUI && (
+            <input
+              ref={fileInputRef}
+              type='file'
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleLocalFileChange}
+            />
+          )}
         </div>
 
         <div

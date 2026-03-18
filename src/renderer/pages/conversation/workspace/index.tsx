@@ -19,9 +19,9 @@ import {
   isTemporaryWorkspace as checkIsTemporaryWorkspace,
   getWorkspaceDisplayName as getDisplayName,
 } from '@/renderer/utils/workspace';
-import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
+import { Checkbox, Dropdown, Empty, Input, Menu, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Down, FileText, FolderOpen, Refresh, Search, AlarmClock } from '@icon-park/react';
+import { Down, FileText, FolderOpen, Plus, Refresh, Search, AlarmClock } from '@icon-park/react';
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -84,6 +84,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Search state
   const [searchText, setSearchText] = useState('');
   const [showSearch, setShowSearch] = useState(true);
+
+  // Host file selector state (WebUI: use DirectorySelectionModal instead of native dialog)
+  const [showHostFileSelector, setShowHostFileSelector] = useState(false);
   const searchInputRef = useRef<RefInputType | null>(null);
 
   // Workspace migration modal state
@@ -124,6 +127,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
   const modalsHook = useWorkspaceModals();
   const pasteHook = useWorkspacePaste({
+    conversationId: conversation_id,
     workspace,
     messageApi,
     t,
@@ -140,6 +144,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     messageApi,
     t,
     onFilesDropped: pasteHook.handleFilesToAdd,
+    conversationId: conversation_id,
   });
 
   // 只在用户主动打开搜索时聚焦，不在会话切换时自动聚焦
@@ -430,6 +435,35 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const isContextMenuNodeFile = !!contextMenuNode?.isFile;
   const isContextMenuNodeRoot =
     !!contextMenuNode && (!contextMenuNode.relativePath || contextMenuNode.relativePath === '');
+  const handleHostFileSelected = useCallback(
+    (paths: string[] | undefined) => {
+      setShowHostFileSelector(false);
+      if (paths && paths.length > 0) {
+        void pasteHook.handleFilesToAdd(paths.map((p) => ({ name: p.split('/').pop() || p, path: p })));
+      }
+    },
+    [pasteHook]
+  );
+
+  const workspaceUploadMenu = (
+    <Menu
+      onClickMenuItem={(key) => {
+        if (key === 'host') {
+          if (isElectronDesktop()) {
+            pasteHook.handleSelectHostFiles();
+          } else {
+            setShowHostFileSelector(true);
+          }
+        }
+        if (key === 'device') {
+          pasteHook.handleUploadDeviceFiles();
+        }
+      }}
+    >
+      <Menu.Item key='host'>{t('common.fileAttach.hostFiles')}</Menu.Item>
+      <Menu.Item key='device'>{t('common.fileAttach.myDevice')}</Menu.Item>
+    </Menu>
+  );
 
   // Check if file supports preview
   const isPreviewSupported = (() => {
@@ -885,6 +919,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           onCancel={() => setShowDirectorySelector(false)}
         />
 
+        {/* Host File Selection Modal (for WebUI workspace + button) */}
+        <DirectorySelectionModal
+          visible={showHostFileSelector}
+          isFileMode
+          onConfirm={handleHostFileSelected}
+          onCancel={() => setShowHostFileSelector(false)}
+        />
+
         {/* Search Input - 最上方 */}
         <div className='px-12px'>
           {(showSearch || searchText) && (
@@ -949,6 +991,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               )}
             </div>
             <div className='workspace-toolbar-actions flex items-center gap-8px flex-shrink-0'>
+              {!isElectronDesktop() && (
+                <Dropdown droplist={workspaceUploadMenu} trigger='click' position='bl'>
+                  <span>
+                    <Plus
+                      className='workspace-toolbar-icon-btn lh-[1] flex cursor-pointer'
+                      theme='outline'
+                      size='16'
+                      fill={iconColors.secondary}
+                    />
+                  </span>
+                </Dropdown>
+              )}
               {isTemporaryWorkspace && (
                 <Tooltip content={t('conversation.workspace.changeWorkspace')}>
                   <span>
