@@ -4,6 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as Sentry from '@sentry/electron/renderer';
+
+Sentry.init();
+
+// TODO: Remove after verifying Sentry source maps
+setTimeout(() => {
+  throw new Error('Sentry source map test: if you see this file path in Sentry, source maps work!');
+}, 3000);
+
 import './bootstrap/runtimePatches';
 import type { PropsWithChildren } from 'react';
 import React from 'react';
