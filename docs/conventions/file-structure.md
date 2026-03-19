@@ -4,19 +4,32 @@ Rules for organizing files and directories across the entire Electron project.
 
 ## Project Layout
 
+AionUi is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
+
+### Target Structure
+
 ```
 src/
-├── process/       # Main process — Electron APIs, IPC, DB, services
-├── renderer/      # Renderer process — React UI, no Node.js APIs
-├── worker/        # Worker processes — background agent execution
-├── preload.ts     # IPC bridge — contextBridge between main ↔ renderer
-├── common/        # Shared across processes — types, adapters, utilities
-├── agent/         # Agent implementations — platform-specific AI connections
-├── channels/      # Multi-channel messaging — Lark, DingTalk, Telegram
-├── extensions/    # Extension system — plugin loading, resolvers, sandbox
-├── webserver/     # Express + WebSocket — WebUI server
-└── index.ts       # Main process entry point
+├── renderer/          # Renderer layer — React UI, no Node.js APIs
+├── process/           # Main process layer — all Node.js / Electron business
+│   ├── bridge/        #   IPC handlers
+│   ├── services/      #   Business logic
+│   ├── database/      #   SQLite
+│   ├── task/          #   Agent/task management
+│   ├── agent/         #   AI platform connections
+│   ├── channels/      #   Multi-channel messaging
+│   ├── extensions/    #   Plugin system
+│   ├── webserver/     #   WebUI server
+│   ├── worker/        #   Background workers (fork)
+│   └── i18n/          #   Main-process i18n
+├── common/            # Shared layer — cross-process types, adapters, utilities
+├── preload.ts         # IPC bridge — contextBridge between main ↔ renderer
+└── index.ts           # Main process entry point
 ```
+
+### Current Structure (transitional)
+
+Some main-process modules still live at `src/` root and will be migrated incrementally. New modules should be created in the **target** location when possible.
 
 ## Directory Naming — Two Conventions by Process
 

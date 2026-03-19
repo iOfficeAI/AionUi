@@ -22,97 +22,68 @@ Guide for file placement and structure decisions across the entire Electron proj
 
 ---
 
+# Part 1 — Global Rules
+
+Rules that apply across **all** process layers.
+
 ## Project Layout
 
-AionUi is a multi-process Electron app. Code is organized by **process boundary**:
+AionUi is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
+
+### Target Structure
+
+The long-term goal is a clean three-layer layout with minimal `src/` root items:
 
 ```
 src/
-├── process/       # Main process — Electron APIs, IPC, DB, services
-├── renderer/      # Renderer process — React UI, no Node.js APIs
-├── worker/        # Worker processes — background agent execution
-├── preload.ts     # IPC bridge — contextBridge between main ↔ renderer
-├── common/        # Shared across processes — types, adapters, utilities
-├── agent/         # Agent implementations — platform-specific AI connections
-├── channels/      # Multi-channel messaging — Lark, DingTalk, Telegram
-├── extensions/    # Extension system — plugin loading, resolvers, sandbox
-├── webserver/     # Express + WebSocket — WebUI server
-├── adapter/       # Platform adapters — browser vs main environment
-├── shared/        # Minimal shared config (i18n-config.json)
-├── types/         # Global type declarations
-├── utils/         # App-level utilities (menu, chromium config)
-└── index.ts       # Main process entry point
+├── renderer/          # Renderer layer — React UI, no Node.js APIs
+├── process/           # Main process layer — all Node.js / Electron business
+│   ├── bridge/        #   IPC handlers
+│   ├── services/      #   Business logic
+│   ├── database/      #   SQLite
+│   ├── task/          #   Agent/task management
+│   ├── agent/         #   AI platform connections
+│   ├── channels/      #   Multi-channel messaging
+│   ├── extensions/    #   Plugin system
+│   ├── webserver/     #   WebUI server
+│   ├── worker/        #   Background workers (fork)
+│   └── i18n/          #   Main-process i18n
+├── common/            # Shared layer — cross-process types, adapters, utilities
+├── preload.ts         # IPC bridge — contextBridge between main ↔ renderer
+└── index.ts           # Main process entry point
 ```
 
-## Directory Naming — Two Conventions by Process
+### Current Structure (transitional)
 
-This project straddles two ecosystems. Each follows its own convention:
-
-| Scope | Directory naming | Reason |
-|-------|-----------------|--------|
-| **Renderer** (`src/renderer/`) | **PascalCase** for component/module dirs | React ecosystem convention — directory name = component name |
-| **Everything else** (process, worker, agent, common, etc.) | **lowercase** | Node.js ecosystem convention |
-| **Categorical directories** (everywhere) | **lowercase** | `components/`, `hooks/`, `utils/`, `services/`, `bridge/` are categories, not entities |
-| **Platform directories** (renderer pages) | **lowercase** | Mirror `src/agent/<platform>/` naming for cross-process consistency |
-
-### Renderer examples
+The codebase is migrating toward the target. Currently, some main-process modules still live at `src/` root:
 
 ```
-src/renderer/
-├── components/              # categorical → lowercase
-│   ├── SettingsModal/       # component → PascalCase
-│   └── EmojiPicker/         # component → PascalCase
-├── pages/                   # categorical → lowercase
-│   ├── settings/            # top-level page → lowercase (route segment)
-│   │   ├── CssThemeSettings/   # feature module → PascalCase
-│   │   └── McpManagement/      # feature module → PascalCase
-│   └── conversation/        # top-level page → lowercase
-│       ├── GroupedHistory/  # feature module → PascalCase
-│       ├── Workspace/       # feature module → PascalCase
-│       ├── acp/             # platform dir → lowercase (mirrors src/agent/acp/)
-│       └── components/      # categorical → lowercase
-└── hooks/                   # categorical → lowercase
+src/
+│
+│ ── Renderer Layer ──────────────────────────────
+├── renderer/      # React UI — no Node.js APIs
+│
+│ ── Main Process Layer ──────────────────────────
+├── process/       # Electron APIs, IPC handlers, DB, services
+├── agent/         # AI platform connections — TARGET: process/agent/
+├── channels/      # Multi-channel messaging — TARGET: process/channels/
+├── extensions/    # Extension system — TARGET: process/extensions/
+├── webserver/     # Express + WebSocket — TARGET: process/webserver/
+├── worker/        # Background workers — TARGET: process/worker/
+│
+│ ── Middle / Shared Layer ───────────────────────
+├── preload.ts     # IPC bridge
+├── common/        # Shared across processes
+├── adapter/       # Platform adapters — TARGET: common/adapters/
+├── shared/        # Minimal config — TARGET: common/
+│
+│ ── App Entry & Global ──────────────────────────
+├── index.ts       # Main process entry point
+├── types/         # Global type declarations — TARGET: common/types/
+└── utils/         # App-level utilities — TARGET: common/utils/
 ```
 
-### Platform directory exception
-
-Directories under `pages/` that correspond to an agent platform in `src/agent/` (e.g., `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) use **lowercase** to maintain cross-process naming consistency. These are NOT feature modules — they are platform-specific implementations that mirror the backend structure.
-
-### Non-renderer examples
-
-```
-src/process/
-├── bridge/           # lowercase
-├── services/         # lowercase
-│   ├── cron/         # lowercase
-│   └── mcp-services/ # lowercase (kebab-case for multi-word)
-├── database/         # lowercase
-└── task/             # lowercase
-
-src/agent/
-├── acp/              # lowercase
-├── gemini/           # lowercase
-└── openclaw/         # lowercase
-```
-
-### Quick test
-
-> "Is this directory inside `src/renderer/` AND does it represent a specific component or feature module (not a category)?"
->
-> **YES** → PascalCase. **NO** → lowercase.
-
-## File Naming — Same Everywhere
-
-File naming follows content type, regardless of process:
-
-| Content | Convention | Examples |
-|---------|-----------|----------|
-| React components, classes | PascalCase | `SettingsModal.tsx`, `CronService.ts` |
-| Hooks | camelCase with `use` prefix | `useTheme.ts`, `useCronJobs.ts` |
-| Utilities, helpers | camelCase | `formatDate.ts`, `cronUtils.ts` |
-| Entry points | `index.ts` / `index.tsx` | Required for directory-based modules |
-| Config, types, constants | camelCase | `types.ts`, `constants.ts` |
-| Styles | kebab-case or `Name.module.css` | `chat-layout.css` |
+> **Migration rule**: New modules should be created in the **target** location when possible. Existing modules will be migrated incrementally.
 
 ## Process Boundary Rules
 
@@ -136,6 +107,40 @@ import { something } from '@process/services/foo';  // crashes at runtime
 // Use IPC instead
 const result = await window.api.someMethod();       // goes through preload
 ```
+
+## Directory Size Limit
+
+A single directory must not contain more than **10** direct children (files + subdirectories). When approaching this limit, split contents into subdirectories grouped by responsibility.
+
+**Single-file directory rule**: A directory containing only 1 file should be merged into its parent or a related directory. Do not create a directory for a single file.
+
+## Directory Naming — Two Conventions by Process
+
+| Scope | Directory naming | Reason |
+|-------|-----------------|--------|
+| **Renderer** (`src/renderer/`) | **PascalCase** for component/module dirs | React ecosystem convention — directory name = component name |
+| **Everything else** (process, worker, agent, common, etc.) | **lowercase** | Node.js ecosystem convention |
+| **Categorical directories** (everywhere) | **lowercase** | `components/`, `hooks/`, `utils/`, `services/`, `bridge/` are categories, not entities |
+| **Platform directories** (everywhere) | **lowercase** | `acp/`, `codex/`, `gemini/` etc. always lowercase for cross-process consistency |
+
+### Quick test
+
+> "Is this directory inside `src/renderer/` AND does it represent a specific component or feature module (not a category or platform)?"
+>
+> **YES** → PascalCase. **NO** → lowercase.
+
+## File Naming — Same Everywhere
+
+File naming follows content type, regardless of process:
+
+| Content | Convention | Examples |
+|---------|-----------|----------|
+| React components, classes | PascalCase | `SettingsModal.tsx`, `CronService.ts` |
+| Hooks | camelCase with `use` prefix | `useTheme.ts`, `useCronJobs.ts` |
+| Utilities, helpers | camelCase | `formatDate.ts`, `cronUtils.ts` |
+| Entry points | `index.ts` / `index.tsx` | Required for directory-based modules |
+| Config, types, constants | camelCase | `types.ts`, `constants.ts` |
+| Styles | kebab-case or `Name.module.css` | `chat-layout.css` |
 
 ## Top-Level Directory Decision Tree
 
@@ -172,75 +177,9 @@ Is it a messaging channel (Lark, DingTalk, Telegram)?
 
 ---
 
-## Main Process (`src/process/`)
+# Part 2 — Renderer Layer (`src/renderer/`)
 
-### Structure
-
-```
-src/process/
-├── bridge/        # IPC handlers — one file per domain
-│   ├── index.ts   # Registers all bridges
-│   └── *Bridge.ts # Individual bridge files
-├── services/      # Business logic services
-│   ├── cron/      # Complex service → subdirectory
-│   └── mcp-services/
-├── database/      # SQLite layer — schema, migrations, repositories
-├── task/          # Agent/task management — managers, factories
-├── utils/         # Main-process-only utilities
-└── i18n/          # Main-process i18n
-```
-
-### Naming Conventions
-
-| Type | Pattern | Examples |
-|------|---------|----------|
-| Bridge | `<domain>Bridge.ts` (camelCase) | `cronBridge.ts`, `webuiBridge.ts` |
-| Service | `<Name>Service.ts` (PascalCase) | `CronService.ts`, `McpService.ts` |
-| Service interface | `I<Name>Service.ts` | `IConversationService.ts` |
-| Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
-| Agent Manager | `<Platform>AgentManager.ts` | `AcpAgentManager.ts` |
-
-### Adding a New IPC Bridge
-
-1. Create `src/process/bridge/<domain>Bridge.ts`
-2. Register it in `src/process/bridge/index.ts`
-3. Expose the channel in `src/preload.ts`
-4. Add renderer-side types if needed
-
-### Adding a New Service
-
-- Simple service → single file in `src/process/services/`
-- Complex service (multiple files) → subdirectory: `src/process/services/<name>/`
-
----
-
-## Directory Size Limit
-
-A single directory must not contain more than **10** direct children (files + subdirectories). When approaching this limit, split contents into subdirectories grouped by responsibility.
-
----
-
-## UI Library & Icon Standards
-
-- **Component library**: `@arco-design/web-react` — all new UI must use Arco components first
-- **Icon library**: `@icon-park/react` — all icons must come from this library
-- **No raw HTML for interactive elements**: Do not use `<button>`, `<input>`, `<select>`, `<textarea>`, `<modal>`, etc. Use Arco equivalents (`Button`, `Input`, `Select`, `Modal`, etc.)
-- **Layout tags are fine**: `<div>`, `<span>`, `<section>`, `<nav>`, `<main>` may be used freely
-
-## CSS Conventions
-
-- **Prefer UnoCSS utility classes** for simple styles (`flex items-center gap-8px`)
-- **Complex/reusable styles**: Must use **CSS Modules** (`ComponentName.module.css`). Plain `.css` files are not allowed for component styles
-- **Semantic color tokens only**: Use `uno.config.ts` semantic colors (`text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. Hardcoded color values (`#86909C`, `rgb(...)`) are forbidden. Exception: theme presets under `CssThemeSettings/presets/`
-- **No inline styles** except for dynamically computed values
-- **Arco style overrides**: Co-locate in the component's CSS Module via `:global(.arco-xxx)`. No global override files
-- **Global styles**: Only in `src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `src/renderer/` root
-
----
-
-## Renderer Process (`src/renderer/`)
-
-### Root Directory — Standard Layout
+## Root Directory — Standard Layout
 
 The renderer root must contain **at most 3 entry files + 7 directories = 10 items**.
 
@@ -264,15 +203,29 @@ src/renderer/
 - Component files (`.tsx`) → move to `components/` or `pages/`
 - Single-file directories (only 1 file inside) → merge into a related directory
 
-### Single File vs Directory
+## UI Library & Icon Standards
+
+- **Component library**: `@arco-design/web-react` — all new UI must use Arco components first
+- **Icon library**: `@icon-park/react` — all icons must come from this library
+- **No raw HTML for interactive elements**: Do not use `<button>`, `<input>`, `<select>`, `<textarea>`, `<modal>`, etc. Use Arco equivalents (`Button`, `Input`, `Select`, `Modal`, etc.)
+- **Layout tags are fine**: `<div>`, `<span>`, `<section>`, `<nav>`, `<main>` may be used freely
+
+## CSS Conventions
+
+- **Prefer UnoCSS utility classes** for simple styles (`flex items-center gap-8px`)
+- **Complex/reusable styles**: Must use **CSS Modules** (`ComponentName.module.css`). Plain `.css` files are not allowed for component styles
+- **Semantic color tokens only**: Use `uno.config.ts` semantic colors (`text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. Hardcoded color values (`#86909C`, `rgb(...)`) are forbidden. Exception: theme presets under `CssThemeSettings/presets/`
+- **No inline styles** except for dynamically computed values
+- **Arco style overrides**: Co-locate in the component's CSS Module via `:global(.arco-xxx)`. No global override files
+- **Global styles**: Only in `src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `src/renderer/` root
+
+## Single File vs Directory
 
 Single file → self-contained, no sub-components. Directory → has internal structure, must have `index.tsx`.
 
 **Rule**: If a component needs even one private sub-component or hook, convert to a directory.
 
-**Single-file directory rule**: A directory containing only 1 file should be merged into its parent or a related directory. Do not create a directory for a single file.
-
-### `src/renderer/components/` — Layered Structure
+## `src/renderer/components/` — Layered Structure
 
 `components/` holds shared components used across multiple pages. It is organized in two layers:
 
@@ -302,7 +255,7 @@ src/renderer/components/
 
 > Business subdirectories above are illustrative, not exhaustive. New domains follow the same rules.
 
-### `src/renderer/hooks/` — Grouping by Business Domain
+## `src/renderer/hooks/` — Grouping by Business Domain
 
 When `hooks/` exceeds 10 direct children, group hooks into business domain subdirectories. Each subdirectory holds hooks related to that domain. Generic hooks with no clear domain stay at the root.
 
@@ -321,7 +274,7 @@ hooks/
 
 > Domain names are recommendations. Create new domains as needed following the same pattern. The root must stay ≤ 10 direct children.
 
-### `src/renderer/utils/` — Grouping by Business Domain
+## `src/renderer/utils/` — Grouping by Business Domain
 
 Same principle as `hooks/`. When `utils/` exceeds 10 direct children, group into domain subdirectories. Pure utility functions with no clear domain stay at the root.
 
@@ -342,7 +295,7 @@ utils/
 
 > The root must stay ≤ 10 direct children.
 
-### Page Module Structure
+## Page Module Structure
 
 ```
 PageName/                  # PascalCase
@@ -360,7 +313,7 @@ PageName/                  # PascalCase
 
 Only create sub-directories you need. Use these exact names.
 
-### Page-Level Directory Naming
+## Page-Level Directory Naming
 
 Inside a page module (e.g., `pages/conversation/`), three types of subdirectories exist:
 
@@ -372,7 +325,26 @@ Inside a page module (e.g., `pages/conversation/`), three types of subdirectorie
 
 Platform directories are an exception to the PascalCase rule for feature modules. They use lowercase to maintain cross-process naming consistency with `src/agent/<platform>/`.
 
-### Shared vs Page-Private Code
+### Renderer examples
+
+```
+src/renderer/
+├── components/              # categorical → lowercase
+│   ├── SettingsModal/       # component → PascalCase
+│   └── EmojiPicker/         # component → PascalCase
+├── pages/                   # categorical → lowercase
+│   ├── settings/            # top-level page → lowercase (route segment)
+│   │   ├── CssThemeSettings/   # feature module → PascalCase
+│   │   └── McpManagement/      # feature module → PascalCase
+│   └── conversation/        # top-level page → lowercase
+│       ├── GroupedHistory/  # feature module → PascalCase
+│       ├── Workspace/       # feature module → PascalCase
+│       ├── acp/             # platform dir → lowercase (mirrors src/agent/acp/)
+│       └── components/      # categorical → lowercase
+└── hooks/                   # categorical → lowercase
+```
+
+## Shared vs Page-Private Code
 
 | Scope | Location |
 |-------|----------|
@@ -381,12 +353,92 @@ Platform directories are an exception to the PascalCase rule for feature modules
 
 **Promotion rule**: Start page-private. Move to shared only when a second consumer appears.
 
-### Component Entry Points
+## Component Entry Points
 
 - Directory-based components **must** have `index.tsx` as the public entry point
 - Do not import internal files from outside the directory
 
 ---
+
+# Part 3 — Main Process Layer (`src/process/`)
+
+## Structure
+
+```
+src/process/
+├── bridge/        # IPC handlers — one file per domain
+│   ├── index.ts   # Registers all bridges
+│   └── *Bridge.ts # Individual bridge files
+├── services/      # Business logic services
+│   ├── cron/      # Complex service → subdirectory
+│   └── mcp-services/
+├── database/      # SQLite layer — schema, migrations, repositories
+├── task/          # Agent/task management — managers, factories
+├── utils/         # Main-process-only utilities
+└── i18n/          # Main-process i18n
+```
+
+## Naming Conventions
+
+| Type | Pattern | Examples |
+|------|---------|----------|
+| Bridge | `<domain>Bridge.ts` (camelCase) | `cronBridge.ts`, `webuiBridge.ts` |
+| Service | `<Name>Service.ts` (PascalCase) | `CronService.ts`, `McpService.ts` |
+| Service interface | `I<Name>Service.ts` | `IConversationService.ts` |
+| Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
+| Agent Manager | `<Platform>AgentManager.ts` | `AcpAgentManager.ts` |
+
+### Non-renderer examples
+
+```
+src/process/
+├── bridge/           # lowercase
+├── services/         # lowercase
+│   ├── cron/         # lowercase
+│   └── mcp-services/ # lowercase (kebab-case for multi-word)
+├── database/         # lowercase
+└── task/             # lowercase
+
+src/agent/
+├── acp/              # lowercase
+├── gemini/           # lowercase
+└── openclaw/         # lowercase
+```
+
+## Adding a New IPC Bridge
+
+1. Create `src/process/bridge/<domain>Bridge.ts`
+2. Register it in `src/process/bridge/index.ts`
+3. Expose the channel in `src/preload.ts`
+4. Add renderer-side types if needed
+
+## Adding a New Service
+
+- Simple service → single file in `src/process/services/`
+- Complex service (multiple files) → subdirectory: `src/process/services/<name>/`
+
+---
+
+# Part 4 — Middle / Shared Layer
+
+## Preload (`src/preload.ts`)
+
+The IPC bridge between main and renderer processes. Uses `contextBridge` to expose safe APIs to the renderer.
+
+- All main ↔ renderer communication goes through this file
+- Only `contextBridge` and `ipcRenderer` APIs allowed here
+- No DOM manipulation, no Node.js `fs`
+
+## Shared Code (`src/common/`)
+
+Code imported by **both** main and renderer processes.
+
+**Belongs here**: shared types, API adapters, protocol converters, storage keys.
+**Does NOT belong here**: React components → `renderer/`, Node.js-specific code → `process/`.
+
+## Agent Implementations (`src/agent/`)
+
+One directory per AI platform (lowercase): `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`. Each has its own `index.ts` entry. Agent code runs in the main process or worker process.
 
 ## Worker Process (`src/worker/`)
 
@@ -398,24 +450,18 @@ src/worker/
 └── index.ts
 ```
 
----
+## Other Main Process Modules
 
-## Shared Code (`src/common/`)
-
-Code imported by **both** main and renderer processes.
-
-**Belongs here**: shared types, API adapters, protocol converters, storage keys.
-**Does NOT belong here**: React components → `renderer/`, Node.js-specific code → `process/`.
-
----
-
-## Agent Implementations (`src/agent/`)
-
-One directory per AI platform (lowercase): `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`. Each has its own `index.ts` entry.
+| Module | Location | Purpose |
+|--------|----------|---------|
+| Channels | `src/channels/` | Multi-channel messaging (Lark, DingTalk, Telegram) |
+| Extensions | `src/extensions/` | Plugin loading, resolvers, sandbox |
+| WebServer | `src/webserver/` | Express + WebSocket for WebUI |
+| Adapter | `src/adapter/` | Platform adapters (browser vs main environment) |
 
 ---
 
-## Quick Checklist
+# Quick Checklist
 
 Before submitting code with new files:
 
