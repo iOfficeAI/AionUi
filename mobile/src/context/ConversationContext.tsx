@@ -108,9 +108,11 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const fetchAgents = useCallback(async () => {
     if (connectionState !== 'connected') return;
     try {
-      const data = await bridge.request<AgentInfo[]>('acp.get-available-agents');
-      if (Array.isArray(data)) {
-        setAvailableAgents(data);
+      const response = await bridge.request<{ success: boolean; data?: AgentInfo[] }>(
+        'acp.get-available-agents',
+      );
+      if (response?.success && Array.isArray(response.data)) {
+        setAvailableAgents(response.data);
       }
     } catch (e) {
       console.warn('[Conversations] Failed to fetch agents:', e);
