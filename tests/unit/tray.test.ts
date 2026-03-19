@@ -252,8 +252,9 @@ describe('tray module', () => {
     };
 
     const getTemplateFromRefresh = async () => {
-      // Pre-import electron to ensure doMock is resolved before tray imports it
+      // Pre-import mocked modules to ensure doMock is resolved before tray imports them
       await import('electron');
+      await import('@process/database');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
       createOrUpdateTray();
       const previousCalls = mockBuildFromTemplate.mock.calls.length;
