@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AvailableAgent } from './types';
+import type { AvailableAgent } from './agentTypes';
 
 export const AVAILABLE_AGENTS_SWR_KEY = 'acp.agents.available';
 
