@@ -5,6 +5,7 @@
  */
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
+import type { IChannelRepository } from '@process/database/IChannelRepository';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { initAcpConversationBridge } from './acpConversationBridge';
@@ -37,6 +38,7 @@ import { initExtensionsBridge } from './extensionsBridge';
 export interface BridgeDependencies {
   conversationService: IConversationService;
   workerTaskManager: IWorkerTaskManager;
+  channelRepo: IChannelRepository;
 }
 
 /**
@@ -63,7 +65,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
-  initChannelBridge();
+  initChannelBridge(deps.channelRepo);
   initCronBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
