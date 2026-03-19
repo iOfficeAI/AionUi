@@ -19,28 +19,21 @@
  * Extension assistants are fully read-only.
  */
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
-import { resolveLocaleKey } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
-import type { AcpBackendConfig } from '@/types/acpTypes';
-
+import {
+  useAssistantBackends,
+  useAssistantEditor,
+  useAssistantList,
+  useAssistantSkills,
+} from '@/renderer/hooks/assistant';
 import {
   hasBuiltinSkills,
   isEmoji as isEmojiUtil,
-  isExtensionAssistant as isExtensionAssistantUtil,
-  normalizeExtensionAssistants,
   resolveAvatarImageSrc as resolveAvatarImageSrcUtil,
-  sortAssistants as sortAssistantsUtil,
 } from './AssistantManagement/assistantUtils';
-import type {
-  AssistantListItem,
-  AssistantManagementProps,
-  ExternalSource,
-  PendingSkill,
-  SkillInfo,
-} from './AssistantManagement/types';
+import type { AssistantListItem, AssistantManagementProps } from './AssistantManagement/types';
 import {
   Avatar,
   Button,
@@ -57,73 +50,57 @@ import {
 import { Close, Delete, FolderOpen, Plus, Refresh, Robot, Search, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR, { mutate } from 'swr';
 
 const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) => {
-  const { t, i18n } = useTranslation();
-  const [assistants, setAssistants] = useState<AssistantListItem[]>([]);
-  const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
-  const [editVisible, setEditVisible] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editContext, setEditContext] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
-  // editAgent holds either a built-in PresetAgentType or an extension adapter ID (e.g. "ext-buddy")
-  const [editAgent, setEditAgent] = useState<string>('gemini');
-  const [editSkills, setEditSkills] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
-  const [promptViewMode, setPromptViewMode] = useState<'edit' | 'preview'>('preview');
-  const [drawerWidth, setDrawerWidth] = useState(500);
-  // Skills 选择模式相关 state / Skills selection mode states
-  const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
-  const [customSkills, setCustomSkills] = useState<string[]>([]); // 通过 Add Skills 添加到此助手的 skills 名称 / Skill names added via Add Skills
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]); // 启用的 skills（勾选状态）/ Enabled skills
-  const [skillsModalVisible, setSkillsModalVisible] = useState(false);
-  const [skillPath, setSkillPath] = useState(''); // Skill folder path input
-  const [commonPaths, setCommonPaths] = useState<Array<{ name: string; path: string }>>([]); // Common skill paths detected
-  const [availableBackends, setAvailableBackends] = useState<Set<string>>(new Set(['gemini']));
-  const [externalSources, setExternalSources] = useState<ExternalSource[]>([]);
-  const [activeSourceTab, setActiveSourceTab] = useState<string>('');
-  const [searchExternalQuery, setSearchExternalQuery] = useState('');
-  const [externalSkillsLoading, setExternalSkillsLoading] = useState(false);
-  const [showAddPathModal, setShowAddPathModal] = useState(false);
-  const [customPathName, setCustomPathName] = useState('');
-  const [customPathValue, setCustomPathValue] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]); // 待导入的 skills / Pending skills to import
-  const [deletePendingSkillName, setDeletePendingSkillName] = useState<string | null>(null); // 待删除的 pending skill 名称 / Pending skill name to delete
-  const [deleteCustomSkillName, setDeleteCustomSkillName] = useState<string | null>(null); // 待从助手移除的 custom skill 名称 / Custom skill to remove from assistant
+  const { t } = useTranslation();
   const textareaWrapperRef = useRef<HTMLDivElement>(null);
-  const localeKey = resolveLocaleKey(i18n.language);
+  const [drawerWidth, setDrawerWidth] = useState(500);
+
   const avatarImageMap: Record<string, string> = {
     'cowork.svg': coworkSvg,
-    '🛠️': coworkSvg,
+    '\u{1F6E0}\u{FE0F}': coworkSvg,
   };
 
-  // Load extension-contributed ACP adapters so they appear in the main agent dropdown
-  const { data: extensionAcpAdapters } = useSWR('extensions.acpAdapters', () =>
-    ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[])
-  );
+  // Compose hooks
+  const {
+    assistants,
+    activeAssistantId,
+    setActiveAssistantId,
+    activeAssistant,
+    isReadonlyAssistant,
+    isExtensionAssistant,
+    loadAssistants,
+    localeKey,
+  } = useAssistantList();
 
-  // Load extension-contributed assistants for Settings > Assistants list
-  const { data: extensionAssistants } = useSWR('extensions.assistants', () =>
-    ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])
-  );
+  const { availableBackends, extensionAcpAdapters, refreshAgentDetection } = useAssistantBackends();
 
-  const normalizedExtAssistants = React.useMemo<AssistantListItem[]>(
-    () => normalizeExtensionAssistants(extensionAssistants || []),
-    [extensionAssistants]
-  );
+  const editor = useAssistantEditor({
+    localeKey,
+    activeAssistant,
+    isReadonlyAssistant,
+    isExtensionAssistant,
+    setActiveAssistantId,
+    loadAssistants,
+    refreshAgentDetection,
+    message,
+  });
 
-  const isExtensionAssistant = useCallback(
-    (assistant: AssistantListItem | null | undefined) => isExtensionAssistantUtil(assistant),
-    []
-  );
+  const skills = useAssistantSkills({
+    skillsModalVisible: editor.skillsModalVisible,
+    customSkills: editor.customSkills,
+    selectedSkills: editor.selectedSkills,
+    pendingSkills: editor.pendingSkills,
+    availableSkills: editor.availableSkills,
+    setPendingSkills: editor.setPendingSkills,
+    setCustomSkills: editor.setCustomSkills,
+    setSelectedSkills: editor.setSelectedSkills,
+    message,
+  });
 
   // Auto focus textarea when drawer opens
   useEffect(() => {
-    if (editVisible && promptViewMode === 'edit') {
+    if (editor.editVisible && editor.promptViewMode === 'edit') {
       // Small delay to ensure the drawer animation is complete
       const timer = setTimeout(() => {
         const textarea = textareaWrapperRef.current?.querySelector('textarea');
@@ -131,7 +108,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [editVisible, promptViewMode]);
+  }, [editor.editVisible, editor.promptViewMode]);
 
   useEffect(() => {
     const updateDrawerWidth = () => {
@@ -144,140 +121,6 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     window.addEventListener('resize', updateDrawerWidth);
     return () => window.removeEventListener('resize', updateDrawerWidth);
   }, []);
-
-  // Load available agent backends from ACP detector
-  useEffect(() => {
-    void (async () => {
-      try {
-        const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-        if (resp.success && resp.data) {
-          setAvailableBackends(new Set(resp.data.map((a) => a.backend)));
-        }
-      } catch {
-        // fallback to default
-      }
-    })();
-  }, []);
-
-  // Reload external skills data
-  const handleRefreshExternal = useCallback(async () => {
-    setExternalSkillsLoading(true);
-    setRefreshing(true);
-    try {
-      const response = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      if (response.success && response.data) {
-        setExternalSources(response.data);
-        if (response.data.length > 0 && !response.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(response.data[0].source);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to detect external skills:', error);
-    } finally {
-      setExternalSkillsLoading(false);
-      setRefreshing(false);
-    }
-  }, [activeSourceTab]);
-
-  // Detect external skill paths when modal opens
-  useEffect(() => {
-    if (skillsModalVisible) {
-      setSearchExternalQuery('');
-      void handleRefreshExternal();
-    }
-  }, [skillsModalVisible, handleRefreshExternal]);
-
-  const handleAddCustomPath = useCallback(async () => {
-    if (!customPathName.trim() || !customPathValue.trim()) return;
-    try {
-      const result = await ipcBridge.fs.addCustomExternalPath.invoke({
-        name: customPathName.trim(),
-        path: customPathValue.trim(),
-      });
-      if (result.success) {
-        setShowAddPathModal(false);
-        setCustomPathName('');
-        setCustomPathValue('');
-        message.success(t('common.success', { defaultValue: 'Successfully added path' }));
-        void handleRefreshExternal();
-      } else {
-        message.error(result.msg || 'Failed to add path');
-      }
-    } catch (error) {
-      message.error('Failed to add custom path');
-    }
-  }, [customPathName, customPathValue, handleRefreshExternal, message, t]);
-
-  const refreshAgentDetection = useCallback(async () => {
-    try {
-      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
-      await mutate('acp.agents.available');
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  // 从文件加载助手规则内容 / Load assistant rule content from file
-  const loadAssistantContext = useCallback(
-    async (assistantId: string): Promise<string> => {
-      try {
-        const content = await ipcBridge.fs.readAssistantRule.invoke({ assistantId, locale: localeKey });
-        return content || '';
-      } catch (error) {
-        console.error(`Failed to load rule for ${assistantId}:`, error);
-        return '';
-      }
-    },
-    [localeKey]
-  );
-
-  // 从文件加载助手技能内容 / Load assistant skill content from file
-  const loadAssistantSkills = useCallback(
-    async (assistantId: string): Promise<string> => {
-      try {
-        const content = await ipcBridge.fs.readAssistantSkill.invoke({ assistantId, locale: localeKey });
-        return content || '';
-      } catch (error) {
-        console.error(`Failed to load skills for ${assistantId}:`, error);
-        return '';
-      }
-    },
-    [localeKey]
-  );
-
-  const sortAssistants = useCallback((agents: AssistantListItem[]) => sortAssistantsUtil(agents), []);
-
-  const loadAssistants = useCallback(async () => {
-    try {
-      // 从配置中读取已存储的助手（包含内置助手和用户自定义助手）
-      // Read stored assistants from config (includes builtin and user-defined)
-      const localAgents: AssistantListItem[] = (await ConfigStorage.get('acp.customAgents')) || [];
-
-      const mergedAgents = [...localAgents];
-      for (const extAssistant of normalizedExtAssistants) {
-        if (!mergedAgents.some((agent) => agent.id === extAssistant.id)) {
-          mergedAgents.push(extAssistant);
-        }
-      }
-
-      const sortedAssistants = sortAssistants(mergedAgents);
-
-      setAssistants(sortedAssistants);
-      setActiveAssistantId((prev) => {
-        if (prev && sortedAssistants.some((assistant) => assistant.id === prev)) return prev;
-        return sortedAssistants[0]?.id || null;
-      });
-    } catch (error) {
-      console.error('Failed to load assistant presets:', error);
-    }
-  }, [normalizedExtAssistants, sortAssistants]);
-
-  useEffect(() => {
-    void loadAssistants();
-  }, [loadAssistants]);
-
-  const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
-  const isReadonlyAssistant = Boolean(activeAssistant && isExtensionAssistant(activeAssistant));
 
   const isEmoji = useCallback((str: string) => isEmojiUtil(str), []);
 
@@ -315,380 +158,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     [isEmoji, resolveAvatarImageSrc]
   );
 
-  const handleEdit = async (assistant: AssistantListItem) => {
-    setIsCreating(false);
-    setActiveAssistantId(assistant.id);
-    setEditName(assistant.name || '');
-    setEditDescription(assistant.description || '');
-    setEditAvatar(assistant.avatar || '');
-    setEditAgent(assistant.presetAgentType || 'gemini');
-    setPendingSkills([]);
-    setDeletePendingSkillName(null);
-    setDeleteCustomSkillName(null);
-    setEditVisible(true);
-
-    // 扩展助手直接展示扩展内 context，不走本地规则文件
-    if (isExtensionAssistant(assistant)) {
-      setPromptViewMode('preview');
-      setEditContext(assistant.context || '');
-      setEditSkills('');
-      setAvailableSkills([]);
-      setSelectedSkills(Array.isArray(assistant.enabledSkills) ? assistant.enabledSkills : []);
-      setCustomSkills([]);
-      return;
-    }
-
-    // 先加载规则、技能内容 / Load rules, skills content
-    try {
-      const [context, skills] = await Promise.all([
-        loadAssistantContext(assistant.id),
-        loadAssistantSkills(assistant.id),
-      ]);
-      setEditContext(context);
-      setEditSkills(skills);
-
-      // 对于有 skillFiles 配置的内置助手和所有自定义助手，加载技能列表 / Load skills list for builtin assistants with skillFiles and all custom assistants
-      if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
-        const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
-        setAvailableSkills(skillsList);
-        // selectedSkills: 启用的 skills / Enabled skills
-        setSelectedSkills(assistant.enabledSkills || []);
-        // customSkills: 通过 Add Skills 添加的 skills 名称 / Skills added via Add Skills
-        setCustomSkills(assistant.customSkillNames || []);
-      } else {
-        setAvailableSkills([]);
-        setSelectedSkills([]);
-        setCustomSkills([]);
-      }
-    } catch (error) {
-      console.error('Failed to load assistant content:', error);
-      setEditContext('');
-      setEditSkills('');
-      setAvailableSkills([]);
-      setSelectedSkills([]);
-    }
-  };
-
-  // 创建助手功能 / Create assistant function
-  const handleCreate = async () => {
-    setIsCreating(true);
-    setActiveAssistantId(null);
-    setEditName('');
-    setEditDescription('');
-    setEditContext('');
-    setEditAvatar('🤖');
-    setEditAgent('gemini');
-    setEditSkills('');
-    setSelectedSkills([]); // 没有启用的 skills
-    setCustomSkills([]); // 没有通过 Add Skills 添加的 skills
-    setPromptViewMode('edit'); // 创建助手时，规则默认处于编辑状态 / Default to edit mode when creating
-    setEditVisible(true);
-
-    // 加载可用的skills列表 / Load available skills list
-    try {
-      const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
-      setAvailableSkills(skillsList);
-    } catch (error) {
-      console.error('Failed to load skills:', error);
-      setAvailableSkills([]);
-    }
-  };
-
-  // 复制新建助手功能 / Duplicate assistant function
-  const handleDuplicate = async (assistant: AssistantListItem) => {
-    setIsCreating(true);
-    setActiveAssistantId(null);
-    setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
-    setEditDescription(assistant.descriptionI18n?.[localeKey] || assistant.description || '');
-    setEditAvatar(assistant.avatar || '🤖');
-    setEditAgent(assistant.presetAgentType || 'gemini');
-    setPromptViewMode('edit');
-    setEditVisible(true);
-
-    // 加载原助手的规则和技能内容 / Load original assistant's rules and skills
-    try {
-      const [skillsList, context, skills] = isExtensionAssistant(assistant)
-        ? await Promise.all([
-            ipcBridge.fs.listAvailableSkills.invoke(),
-            Promise.resolve(assistant.context || ''),
-            Promise.resolve(''),
-          ])
-        : await Promise.all([
-            ipcBridge.fs.listAvailableSkills.invoke(),
-            loadAssistantContext(assistant.id),
-            loadAssistantSkills(assistant.id),
-          ]);
-
-      setEditContext(context);
-      setEditSkills(skills);
-      setAvailableSkills(skillsList);
-      setSelectedSkills(assistant.enabledSkills || []);
-      setCustomSkills(assistant.customSkillNames || []);
-    } catch (error) {
-      console.error('Failed to load assistant content for duplication:', error);
-      setEditContext('');
-      setEditSkills('');
-      setAvailableSkills([]);
-      setSelectedSkills([]);
-      setCustomSkills([]);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      // 验证必填字段 / Validate required fields
-      if (!editName.trim()) {
-        message.error(t('settings.assistantNameRequired', { defaultValue: 'Assistant name is required' }));
-        return;
-      }
-
-      // 扩展助手为只读配置，不能直接保存覆盖
-      if (!isCreating && activeAssistant && isExtensionAssistant(activeAssistant)) {
-        message.warning(
-          t('settings.extensionAssistantReadonly', {
-            defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.',
-          })
-        );
-        return;
-      }
-
-      // 先导入所有待导入的 skills（跳过已存在的）/ Import pending skills (skip existing ones)
-      if (pendingSkills.length > 0) {
-        // 过滤出真正需要导入的 skills（不在 availableSkills 中的）
-        const skillsToImport = pendingSkills.filter(
-          (pending) => !availableSkills.some((available) => available.name === pending.name)
-        );
-
-        if (skillsToImport.length > 0) {
-          for (const pendingSkill of skillsToImport) {
-            try {
-              // 使用 importSkillWithSymlink 保持与技能中心一致 / Use importSkillWithSymlink to align with Skills Hub
-              const response = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: pendingSkill.path });
-              if (!response.success) {
-                message.error(`Failed to import skill "${pendingSkill.name}": ${response.msg}`);
-                return;
-              }
-            } catch (error) {
-              console.error(`Failed to import skill "${pendingSkill.name}":`, error);
-              message.error(`Failed to import skill "${pendingSkill.name}"`);
-              return;
-            }
-          }
-          // 导入成功后重新加载 skills 列表 / Reload skills list after successful import
-          const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
-          setAvailableSkills(skillsList);
-        }
-      }
-
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
-
-      // 计算最终的 customSkills：合并现有的 + 待导入的 / Calculate final customSkills: merge existing + pending
-      const pendingSkillNames = pendingSkills.map((s) => s.name);
-      const finalCustomSkills = Array.from(new Set([...customSkills, ...pendingSkillNames]));
-
-      if (isCreating) {
-        // 创建新助手 / Create new assistant
-        const newId = `custom-${Date.now()}`;
-        const newAssistant: AcpBackendConfig = {
-          id: newId,
-          name: editName,
-          description: editDescription,
-          avatar: editAvatar,
-          isPreset: true,
-          isBuiltin: false,
-          presetAgentType: editAgent,
-          enabled: true,
-          enabledSkills: selectedSkills,
-          customSkillNames: finalCustomSkills,
-        };
-
-        // 保存规则文件 / Save rule file
-        if (editContext.trim()) {
-          await ipcBridge.fs.writeAssistantRule.invoke({
-            assistantId: newId,
-            locale: localeKey,
-            content: editContext,
-          });
-        }
-
-        const updatedAgents = [...agents, newAssistant];
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
-        setActiveAssistantId(newId);
-        await loadAssistants();
-        message.success(t('common.createSuccess', { defaultValue: 'Created successfully' }));
-      } else {
-        // 更新现有助手 / Update existing assistant
-        if (!activeAssistant) return;
-
-        const updatedAgent: AcpBackendConfig = {
-          ...activeAssistant,
-          name: editName,
-          description: editDescription,
-          avatar: editAvatar,
-          presetAgentType: editAgent,
-          enabledSkills: selectedSkills,
-          customSkillNames: finalCustomSkills,
-        };
-
-        // 保存规则文件（如果有更改）/ Save rule file (if changed)
-        if (editContext.trim()) {
-          await ipcBridge.fs.writeAssistantRule.invoke({
-            assistantId: activeAssistant.id,
-            locale: localeKey,
-            content: editContext,
-          });
-        }
-
-        const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
-        await ConfigStorage.set('acp.customAgents', updatedAgents);
-        await loadAssistants();
-        message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
-      }
-
-      setEditVisible(false);
-      setPendingSkills([]); // 清空待导入列表 / Clear pending skills list
-      await refreshAgentDetection();
-    } catch (error) {
-      console.error('Failed to save assistant:', error);
-      message.error(t('common.failed', { defaultValue: 'Failed' }));
-    }
-  };
-
-  const handleDeleteClick = () => {
-    if (!activeAssistant) return;
-    // 不能删除内置助手 / Cannot delete builtin assistants
-    if (activeAssistant.isBuiltin) {
-      message.warning(t('settings.cannotDeleteBuiltin', { defaultValue: 'Cannot delete builtin assistants' }));
-      return;
-    }
-    // 扩展助手是扩展贡献，不允许在此处删除
-    if (isExtensionAssistant(activeAssistant)) {
-      message.warning(
-        t('settings.extensionAssistantReadonly', {
-          defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.',
-        })
-      );
-      return;
-    }
-    setDeleteConfirmVisible(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!activeAssistant) return;
-    try {
-      // 1. 删除规则和技能文件 / Delete rule and skill files
-      await Promise.all([
-        ipcBridge.fs.deleteAssistantRule.invoke({ assistantId: activeAssistant.id }),
-        ipcBridge.fs.deleteAssistantSkill.invoke({ assistantId: activeAssistant.id }),
-      ]);
-
-      // 2. 从配置中移除助手 / Remove assistant from config
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
-      const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
-
-      // Reload merged assistant list (local + extensions)
-      await loadAssistants();
-      setDeleteConfirmVisible(false);
-      setEditVisible(false);
-      message.success(t('common.success', { defaultValue: 'Success' }));
-      await refreshAgentDetection();
-    } catch (error) {
-      console.error('Failed to delete assistant:', error);
-      message.error(t('common.failed', { defaultValue: 'Failed' }));
-    }
-  };
-
-  // Toggle assistant enabled state / 切换助手启用状态
-  const handleToggleEnabled = async (assistant: AssistantListItem, enabled: boolean) => {
-    if (isExtensionAssistant(assistant)) {
-      message.warning(
-        t('settings.extensionAssistantReadonly', {
-          defaultValue: 'Extension assistants are read-only. You can duplicate it and edit the copy.',
-        })
-      );
-      return;
-    }
-
-    try {
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
-      const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
-      await ConfigStorage.set('acp.customAgents', updatedAgents);
-
-      // Reload merged assistant list (local + extensions)
-      await loadAssistants();
-      await refreshAgentDetection();
-    } catch (error) {
-      console.error('Failed to toggle assistant:', error);
-      message.error(t('common.failed', { defaultValue: 'Failed' }));
-    }
-  };
-
-  const handleAddFoundSkills = (skillsToAdd: Array<{ name: string; description: string; path: string }>) => {
-    let addedCount = 0;
-    let skippedCount = 0;
-    const newPendingSkills: PendingSkill[] = [];
-    const newCustomSkillNames: string[] = [];
-    const newSelectedSkills: string[] = [];
-
-    for (const skill of skillsToAdd) {
-      const { name, description, path: sPath } = skill;
-
-      // 检查是否已经在此助手的列表中 / Check if already in this assistant's list
-      const alreadyInAssistant = customSkills.includes(name) || newCustomSkillNames.includes(name);
-
-      if (alreadyInAssistant) {
-        skippedCount++;
-        continue;
-      }
-
-      // 检查是否系统已存在 / Check if already exists in system
-      const existsInAvailable = availableSkills.some((s) => s.name === name);
-      const existsInPending = pendingSkills.some((s) => s.name === name);
-
-      if (!existsInAvailable && !existsInPending) {
-        // 只有系统不存在时才添加到待导入列表 / Only add to pending if not in system
-        newPendingSkills.push({ path: sPath, name, description });
-      }
-
-      newCustomSkillNames.push(name);
-      newSelectedSkills.push(name);
-      addedCount++;
-    }
-
-    if (addedCount > 0) {
-      setPendingSkills([...pendingSkills, ...newPendingSkills]);
-      setCustomSkills([...customSkills, ...newCustomSkillNames]);
-      setSelectedSkills([...selectedSkills, ...newSelectedSkills]);
-      const skippedCountText =
-        skippedCount > 0
-          ? ` (${t('settings.skippedCount', { count: skippedCount, defaultValue: `${skippedCount} skipped` })})`
-          : '';
-      message.success(
-        t('settings.skillsAdded', {
-          addedCount,
-          skippedCountText,
-          defaultValue: `${addedCount} skills added and selected${skippedCountText}`,
-        })
-      );
-    } else if (skippedCount > 0) {
-      message.warning(t('settings.allSkillsExist', { defaultValue: 'All found skills already exist' }));
-    }
-  };
-
-  const activeSource = externalSources.find((s) => s.source === activeSourceTab);
-
-  const filteredExternalSkills = React.useMemo(() => {
-    if (!activeSource) return [];
-    if (!searchExternalQuery.trim()) return activeSource.skills;
-    const lowerQuery = searchExternalQuery.toLowerCase();
-    return activeSource.skills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
-    );
-  }, [activeSource, searchExternalQuery]);
-
-  const editAvatarImage = resolveAvatarImageSrc(editAvatar);
+  const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar);
 
   return (
     <div>
@@ -707,7 +177,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             icon={<Plus size={14} fill='currentColor' />}
             onClick={(e) => {
               e.stopPropagation();
-              void handleCreate();
+              void editor.handleCreate();
             }}
           >
             {t('settings.createAssistant', { defaultValue: 'Create' })}
@@ -729,7 +199,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                       className='group bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
                       onClick={() => {
                         setActiveAssistantId(assistant.id);
-                        void handleEdit(assistant);
+                        void editor.handleEdit(assistant);
                       }}
                     >
                       <div className='flex items-center gap-12px min-w-0'>
@@ -748,7 +218,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                           className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleDuplicate(assistant);
+                            void editor.handleDuplicate(assistant);
                           }}
                         >
                           {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
@@ -758,7 +228,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                           checked={assistantIsExtension ? true : assistant.enabled !== false}
                           disabled={assistantIsExtension}
                           onChange={(checked) => {
-                            void handleToggleEnabled(assistant, checked);
+                            void editor.handleToggleEnabled(assistant, checked);
                           }}
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -768,7 +238,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                           icon={<SettingOne size={16} />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            void handleEdit(assistant);
+                            void editor.handleEdit(assistant);
                           }}
                         />
                       </div>
@@ -789,14 +259,14 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         title={
           <>
             <span>
-              {isCreating
+              {editor.isCreating
                 ? t('settings.createAssistant', { defaultValue: 'Create Assistant' })
                 : t('settings.editAssistant', { defaultValue: 'Assistant Details' })}
             </span>
             <div
               onClick={(e) => {
                 e.stopPropagation();
-                setEditVisible(false);
+                editor.setEditVisible(false);
               }}
               className='absolute right-4 top-2 cursor-pointer text-t-secondary hover:text-t-primary transition-colors p-1'
               style={{ zIndex: 10, WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -806,13 +276,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
           </>
         }
         closable={false}
-        visible={editVisible}
+        visible={editor.editVisible}
         placement='right'
         width={drawerWidth}
         zIndex={1200}
         autoFocus={false}
         onCancel={() => {
-          setEditVisible(false);
+          editor.setEditVisible(false);
         }}
         headerStyle={{ background: 'var(--color-bg-1)' }}
         bodyStyle={{ background: 'var(--color-bg-1)' }}
@@ -821,27 +291,27 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             <div className='flex items-center gap-8px'>
               <Button
                 type='primary'
-                onClick={handleSave}
-                disabled={!isCreating && isReadonlyAssistant}
+                onClick={editor.handleSave}
+                disabled={!editor.isCreating && isReadonlyAssistant}
                 className='w-[100px] rounded-[100px]'
               >
-                {isCreating
+                {editor.isCreating
                   ? t('common.create', { defaultValue: 'Create' })
                   : t('common.save', { defaultValue: 'Save' })}
               </Button>
               <Button
                 onClick={() => {
-                  setEditVisible(false);
+                  editor.setEditVisible(false);
                 }}
                 className='w-[100px] rounded-[100px] bg-fill-2'
               >
                 {t('common.cancel', { defaultValue: 'Cancel' })}
               </Button>
             </div>
-            {!isCreating && !activeAssistant?.isBuiltin && !isExtensionAssistant(activeAssistant) && (
+            {!editor.isCreating && !activeAssistant?.isBuiltin && !isExtensionAssistant(activeAssistant) && (
               <Button
                 status='danger'
-                onClick={handleDeleteClick}
+                onClick={editor.handleDeleteClick}
                 className='rounded-[100px]'
                 style={{ backgroundColor: 'rgb(var(--danger-1))' }}
               >
@@ -863,14 +333,14 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                   <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px'>
                     {editAvatarImage ? (
                       <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} />
-                    ) : editAvatar ? (
-                      <span className='text-24px'>{editAvatar}</span>
+                    ) : editor.editAvatar ? (
+                      <span className='text-24px'>{editor.editAvatar}</span>
                     ) : (
                       <Robot theme='outline' size={20} />
                     )}
                   </Avatar>
                 ) : (
-                  <EmojiPicker value={editAvatar} onChange={(emoji) => setEditAvatar(emoji)} placement='br'>
+                  <EmojiPicker value={editor.editAvatar} onChange={(emoji) => editor.setEditAvatar(emoji)} placement='br'>
                     <div className='cursor-pointer'>
                       <Avatar
                         shape='square'
@@ -879,8 +349,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                       >
                         {editAvatarImage ? (
                           <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} />
-                        ) : editAvatar ? (
-                          <span className='text-24px'>{editAvatar}</span>
+                        ) : editor.editAvatar ? (
+                          <span className='text-24px'>{editor.editAvatar}</span>
                         ) : (
                           <Robot theme='outline' size={20} />
                         )}
@@ -889,8 +359,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                   </EmojiPicker>
                 )}
                 <Input
-                  value={editName}
-                  onChange={(value) => setEditName(value)}
+                  value={editor.editName}
+                  onChange={(value) => editor.setEditName(value)}
                   disabled={activeAssistant?.isBuiltin || isReadonlyAssistant}
                   placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })}
                   className='flex-1 rounded-4px bg-bg-1'
@@ -903,8 +373,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               </Typography.Text>
               <Input
                 className='mt-10px rounded-4px bg-bg-1'
-                value={editDescription}
-                onChange={(value) => setEditDescription(value)}
+                value={editor.editDescription}
+                onChange={(value) => editor.setEditDescription(value)}
                 disabled={activeAssistant?.isBuiltin || isReadonlyAssistant}
                 placeholder={t('settings.assistantDescriptionPlaceholder', {
                   defaultValue: 'What can this assistant help with?',
@@ -915,8 +385,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               <Typography.Text bold>{t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}</Typography.Text>
               <Select
                 className='mt-10px w-full rounded-4px'
-                value={editAgent}
-                onChange={(value) => setEditAgent(value as string)}
+                value={editor.editAgent}
+                onChange={(value) => editor.setEditAgent(value as string)}
                 disabled={isReadonlyAssistant}
               >
                 {[
@@ -959,14 +429,14 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 {!activeAssistant?.isBuiltin && !isReadonlyAssistant && (
                   <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
                     <div
-                      className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`}
-                      onClick={() => setPromptViewMode('edit')}
+                      className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${editor.promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`}
+                      onClick={() => editor.setPromptViewMode('edit')}
                     >
                       {t('settings.promptEdit', { defaultValue: 'Edit' })}
                     </div>
                     <div
-                      className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'preview' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`}
-                      onClick={() => setPromptViewMode('preview')}
+                      className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${editor.promptViewMode === 'preview' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`}
+                      onClick={() => editor.setPromptViewMode('preview')}
                     >
                       {t('settings.promptPreview', { defaultValue: 'Preview' })}
                     </div>
@@ -979,11 +449,11 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     overflow: 'auto',
                   }}
                 >
-                  {promptViewMode === 'edit' && !activeAssistant?.isBuiltin && !isReadonlyAssistant ? (
+                  {editor.promptViewMode === 'edit' && !activeAssistant?.isBuiltin && !isReadonlyAssistant ? (
                     <div ref={textareaWrapperRef} className='h-full'>
                       <Input.TextArea
-                        value={editContext}
-                        onChange={(value) => setEditContext(value)}
+                        value={editor.editContext}
+                        onChange={(value) => editor.setEditContext(value)}
                         placeholder={t('settings.assistantRulesPlaceholder', {
                           defaultValue: 'Enter rules in Markdown format...',
                         })}
@@ -993,8 +463,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     </div>
                   ) : (
                     <div className='p-16px'>
-                      {editContext ? (
-                        <MarkdownView hiddenCodeCopyButton>{editContext}</MarkdownView>
+                      {editor.editContext ? (
+                        <MarkdownView hiddenCodeCopyButton>{editor.editContext}</MarkdownView>
                       ) : (
                         <div className='text-t-secondary text-center py-32px'>
                           {t('settings.promptPreviewEmpty', { defaultValue: 'No content to preview' })}
@@ -1005,8 +475,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 </div>
               </div>
             </div>
-            {/* 创建助手或编辑有 skillFiles 配置的内置助手/自定义助手时显示技能选择 / Show skills selection when creating or editing builtin assistants with skillFiles/custom assistants */}
-            {(isCreating ||
+            {/* Show skills selection when creating or editing builtin assistants with skillFiles/custom assistants */}
+            {(editor.isCreating ||
               (activeAssistantId && hasBuiltinSkills(activeAssistantId)) ||
               (activeAssistant && !activeAssistant.isBuiltin && !isExtensionAssistant(activeAssistant))) && (
               <div className='flex-shrink-0 mt-16px'>
@@ -1016,16 +486,16 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     size='small'
                     type='outline'
                     icon={<Plus size={14} />}
-                    onClick={() => setSkillsModalVisible(true)}
+                    onClick={() => editor.setSkillsModalVisible(true)}
                     className='rounded-[100px]'
                   >
                     {t('settings.addSkills', { defaultValue: 'Add Skills' })}
                   </Button>
                 </div>
 
-                {/* Skills 折叠面板 / Skills Collapse */}
+                {/* Skills Collapse */}
                 <Collapse defaultActiveKey={['custom-skills']}>
-                  {/* 通过 Add Skills 添加的 Skills / Custom Skills (Pending + Imported) */}
+                  {/* Custom Skills (Pending + Imported) */}
                   <Collapse.Item
                     header={
                       <span className='text-13px font-medium'>
@@ -1036,25 +506,25 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     className='mb-8px'
                     extra={
                       <span className='text-12px text-t-secondary'>
-                        {pendingSkills.length + availableSkills.filter((skill) => skill.isCustom).length}
+                        {editor.pendingSkills.length + editor.availableSkills.filter((skill) => skill.isCustom).length}
                       </span>
                     }
                   >
                     <div className='space-y-4px'>
-                      {/* 待导入的 skills (Pending) / Pending skills (not yet imported) */}
-                      {pendingSkills.map((skill) => (
+                      {/* Pending skills (not yet imported) */}
+                      {editor.pendingSkills.map((skill) => (
                         <div
                           key={`pending-${skill.name}`}
                           className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px group'
                         >
                           <Checkbox
-                            checked={selectedSkills.includes(skill.name)}
+                            checked={editor.selectedSkills.includes(skill.name)}
                             className='mt-2px cursor-pointer'
                             onChange={() => {
-                              if (selectedSkills.includes(skill.name)) {
-                                setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                              if (editor.selectedSkills.includes(skill.name)) {
+                                editor.setSelectedSkills(editor.selectedSkills.filter((s) => s !== skill.name));
                               } else {
-                                setSelectedSkills([...selectedSkills, skill.name]);
+                                editor.setSelectedSkills([...editor.selectedSkills, skill.name]);
                               }
                             }}
                           />
@@ -1073,7 +543,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             className='opacity-0 group-hover:opacity-100 transition-opacity p-4px hover:bg-fill-2 rounded-4px'
                             onClick={(e) => {
                               e.stopPropagation();
-                              setDeletePendingSkillName(skill.name);
+                              editor.setDeletePendingSkillName(skill.name);
                             }}
                             title='Remove'
                           >
@@ -1081,8 +551,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                           </button>
                         </div>
                       ))}
-                      {/* 所有已导入的 custom skills / All imported custom skills */}
-                      {availableSkills
+                      {/* All imported custom skills */}
+                      {editor.availableSkills
                         .filter((skill) => skill.isCustom)
                         .map((skill) => (
                           <div
@@ -1090,13 +560,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px group'
                           >
                             <Checkbox
-                              checked={selectedSkills.includes(skill.name)}
+                              checked={editor.selectedSkills.includes(skill.name)}
                               className='mt-2px cursor-pointer'
                               onChange={() => {
-                                if (selectedSkills.includes(skill.name)) {
-                                  setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                                if (editor.selectedSkills.includes(skill.name)) {
+                                  editor.setSelectedSkills(editor.selectedSkills.filter((s) => s !== skill.name));
                                 } else {
-                                  setSelectedSkills([...selectedSkills, skill.name]);
+                                  editor.setSelectedSkills([...editor.selectedSkills, skill.name]);
                                 }
                               }}
                             />
@@ -1117,7 +587,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                               className='opacity-0 group-hover:opacity-100 transition-opacity p-4px hover:bg-fill-2 rounded-4px'
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDeleteCustomSkillName(skill.name);
+                                editor.setDeleteCustomSkillName(skill.name);
                               }}
                               title={t('settings.removeFromAssistant', { defaultValue: 'Remove from assistant' })}
                             >
@@ -1125,7 +595,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             </button>
                           </div>
                         ))}
-                      {pendingSkills.length === 0 && availableSkills.filter((skill) => skill.isCustom).length === 0 && (
+                      {editor.pendingSkills.length === 0 && editor.availableSkills.filter((skill) => skill.isCustom).length === 0 && (
                         <div className='text-center text-t-secondary text-12px py-16px'>
                           {t('settings.noCustomSkills', { defaultValue: 'No custom skills added' })}
                         </div>
@@ -1133,7 +603,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     </div>
                   </Collapse.Item>
 
-                  {/* 内置 Skills / Builtin Skills */}
+                  {/* Builtin Skills */}
                   <Collapse.Item
                     header={
                       <span className='text-13px font-medium'>
@@ -1143,13 +613,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     name='builtin-skills'
                     extra={
                       <span className='text-12px text-t-secondary'>
-                        {availableSkills.filter((skill) => !skill.isCustom).length}
+                        {editor.availableSkills.filter((skill) => !skill.isCustom).length}
                       </span>
                     }
                   >
-                    {availableSkills.filter((skill) => !skill.isCustom).length > 0 ? (
+                    {editor.availableSkills.filter((skill) => !skill.isCustom).length > 0 ? (
                       <div className='space-y-4px'>
-                        {availableSkills
+                        {editor.availableSkills
                           .filter((skill) => !skill.isCustom)
                           .map((skill) => (
                             <div
@@ -1157,13 +627,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                               className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'
                             >
                               <Checkbox
-                                checked={selectedSkills.includes(skill.name)}
+                                checked={editor.selectedSkills.includes(skill.name)}
                                 className='mt-2px cursor-pointer'
                                 onChange={() => {
-                                  if (selectedSkills.includes(skill.name)) {
-                                    setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                                  if (editor.selectedSkills.includes(skill.name)) {
+                                    editor.setSelectedSkills(editor.selectedSkills.filter((s) => s !== skill.name));
                                   } else {
-                                    setSelectedSkills([...selectedSkills, skill.name]);
+                                    editor.setSelectedSkills([...editor.selectedSkills, skill.name]);
                                   }
                                 }}
                               />
@@ -1194,9 +664,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       {/* Delete Confirmation Modal */}
       <Modal
         title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })}
-        visible={deleteConfirmVisible}
-        onCancel={() => setDeleteConfirmVisible(false)}
-        onOk={handleDeleteConfirm}
+        visible={editor.deleteConfirmVisible}
+        onCancel={() => editor.setDeleteConfirmVisible(false)}
+        onOk={editor.handleDeleteConfirm}
         okButtonProps={{ status: 'danger' }}
         okText={t('common.delete', { defaultValue: 'Delete' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
@@ -1222,10 +692,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
       {/* Skills Modal - Aligned with Skills Hub */}
       <Modal
-        visible={skillsModalVisible}
+        visible={editor.skillsModalVisible}
         onCancel={() => {
-          setSkillsModalVisible(false);
-          setSearchExternalQuery('');
+          editor.setSkillsModalVisible(false);
+          skills.setSearchExternalQuery('');
         }}
         footer={null}
         title={t('settings.addSkillsTitle', { defaultValue: 'Add Skills' })}
@@ -1238,14 +708,14 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
           <div className='flex items-center justify-between mb-16px shrink-0 gap-16px'>
             <div className='flex-1 overflow-x-auto custom-scrollbar pb-4px'>
               <div className='flex items-center gap-8px min-w-max'>
-                {externalSources.map((source) => {
-                  const isActive = activeSourceTab === source.source;
+                {skills.externalSources.map((source) => {
+                  const isActive = skills.activeSourceTab === source.source;
                   return (
                     <button
                       key={source.source}
                       type='button'
                       className={`outline-none cursor-pointer px-12px py-6px text-12px rd-[100px] transition-all duration-300 flex items-center gap-6px border ${isActive ? 'bg-primary-6 border-primary-6 text-white shadow-sm font-medium' : 'bg-fill-2 border-transparent text-t-secondary hover:bg-fill-3 hover:text-t-primary'}`}
-                      onClick={() => setActiveSourceTab(source.source)}
+                      onClick={() => skills.setActiveSourceTab(source.source)}
                     >
                       {source.name}
                       <span
@@ -1262,15 +732,15 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               <button
                 type='button'
                 className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2'
-                onClick={() => void handleRefreshExternal()}
+                onClick={() => void skills.handleRefreshExternal()}
                 title={t('common.refresh', { defaultValue: 'Refresh' })}
               >
-                <Refresh theme='outline' size={16} className={refreshing ? 'animate-spin' : ''} />
+                <Refresh theme='outline' size={16} className={skills.refreshing ? 'animate-spin' : ''} />
               </button>
               <button
                 type='button'
                 className='outline-none border border-dashed border-border-1 hover:border-primary-4 cursor-pointer w-28px h-28px text-t-tertiary hover:text-primary-6 hover:bg-primary-1 rd-full transition-all duration-300 flex items-center justify-center bg-transparent shrink-0'
-                onClick={() => setShowAddPathModal(true)}
+                onClick={() => skills.setShowAddPathModal(true)}
                 title={t('common.add', { defaultValue: 'Add Custom Path' })}
               >
                 <Plus size={16} />
@@ -1281,21 +751,21 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
           <Input
             prefix={<Search />}
             placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
-            value={searchExternalQuery}
-            onChange={(val) => setSearchExternalQuery(val)}
+            value={skills.searchExternalQuery}
+            onChange={(val) => skills.setSearchExternalQuery(val)}
             className='mb-12px shrink-0 rounded-[8px] bg-fill-2'
           />
 
           <div className='flex-1 overflow-y-auto custom-scrollbar bg-fill-1 rounded-8px p-12px'>
-            {externalSkillsLoading ? (
+            {skills.externalSkillsLoading ? (
               <div className='h-full flex items-center justify-center text-t-tertiary'>
                 {t('common.loading', { defaultValue: 'Loading...' })}
               </div>
-            ) : activeSource ? (
-              filteredExternalSkills.length > 0 ? (
+            ) : skills.activeSource ? (
+              skills.filteredExternalSkills.length > 0 ? (
                 <div className='flex flex-col gap-8px'>
-                  {filteredExternalSkills.map((skill) => {
-                    const isAdded = customSkills.includes(skill.name);
+                  {skills.filteredExternalSkills.map((skill) => {
+                    const isAdded = editor.customSkills.includes(skill.name);
                     return (
                       <div
                         key={skill.path}
@@ -1327,7 +797,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                               type='primary'
                               className='rounded-[100px]'
                               onClick={() => {
-                                handleAddFoundSkills([skill]);
+                                skills.handleAddFoundSkills([skill]);
                               }}
                             >
                               <Plus size={14} className='mr-4px' />
@@ -1355,20 +825,20 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
       {/* Delete Pending Skill Confirmation Modal */}
       <Modal
-        visible={deletePendingSkillName !== null}
-        onCancel={() => setDeletePendingSkillName(null)}
+        visible={editor.deletePendingSkillName !== null}
+        onCancel={() => editor.setDeletePendingSkillName(null)}
         title={t('settings.deletePendingSkillTitle', { defaultValue: 'Delete Pending Skill' })}
         okButtonProps={{ status: 'danger' }}
         okText={t('common.delete', { defaultValue: 'Delete' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
         onOk={() => {
-          if (deletePendingSkillName) {
-            // 从 pendingSkills 和 customSkills 中删除 / Remove from pendingSkills and customSkills
-            setPendingSkills(pendingSkills.filter((s) => s.name !== deletePendingSkillName));
-            setCustomSkills(customSkills.filter((s) => s !== deletePendingSkillName));
-            // 如果该 skill 被选中，也从选中列表移除 / Also remove from selectedSkills if selected
-            setSelectedSkills(selectedSkills.filter((s) => s !== deletePendingSkillName));
-            setDeletePendingSkillName(null);
+          if (editor.deletePendingSkillName) {
+            // Remove from pendingSkills and customSkills
+            editor.setPendingSkills(editor.pendingSkills.filter((s) => s.name !== editor.deletePendingSkillName));
+            editor.setCustomSkills(editor.customSkills.filter((s) => s !== editor.deletePendingSkillName));
+            // Also remove from selectedSkills if selected
+            editor.setSelectedSkills(editor.selectedSkills.filter((s) => s !== editor.deletePendingSkillName));
+            editor.setDeletePendingSkillName(null);
             message.success(t('settings.skillDeleted', { defaultValue: 'Skill removed from pending list' }));
           }
         }}
@@ -1378,7 +848,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       >
         <p>
           {t('settings.deletePendingSkillConfirm', {
-            defaultValue: `Are you sure you want to remove "${deletePendingSkillName}"? This skill has not been imported yet.`,
+            defaultValue: `Are you sure you want to remove "${editor.deletePendingSkillName}"? This skill has not been imported yet.`,
           })}
         </p>
         <div className='mt-12px text-12px text-t-secondary bg-fill-2 p-12px rounded-lg'>
@@ -1391,19 +861,19 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
       {/* Remove Custom Skill from Assistant Modal */}
       <Modal
-        visible={deleteCustomSkillName !== null}
-        onCancel={() => setDeleteCustomSkillName(null)}
+        visible={editor.deleteCustomSkillName !== null}
+        onCancel={() => editor.setDeleteCustomSkillName(null)}
         title={t('settings.removeCustomSkillTitle', { defaultValue: 'Remove Skill from Assistant' })}
         okButtonProps={{ status: 'danger' }}
         okText={t('common.remove', { defaultValue: 'Remove' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
         onOk={() => {
-          if (deleteCustomSkillName) {
-            // 从 customSkills 中移除 / Remove from customSkills
-            setCustomSkills(customSkills.filter((s) => s !== deleteCustomSkillName));
-            // 如果该 skill 被选中，也从选中列表移除 / Also remove from selectedSkills if selected
-            setSelectedSkills(selectedSkills.filter((s) => s !== deleteCustomSkillName));
-            setDeleteCustomSkillName(null);
+          if (editor.deleteCustomSkillName) {
+            // Remove from customSkills
+            editor.setCustomSkills(editor.customSkills.filter((s) => s !== editor.deleteCustomSkillName));
+            // Also remove from selectedSkills if selected
+            editor.setSelectedSkills(editor.selectedSkills.filter((s) => s !== editor.deleteCustomSkillName));
+            editor.setDeleteCustomSkillName(null);
             message.success(
               t('settings.skillRemovedFromAssistant', { defaultValue: 'Skill removed from this assistant' })
             );
@@ -1415,7 +885,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       >
         <p>
           {t('settings.removeCustomSkillConfirm', {
-            defaultValue: `Are you sure you want to remove "${deleteCustomSkillName}" from this assistant?`,
+            defaultValue: `Are you sure you want to remove "${editor.deleteCustomSkillName}" from this assistant?`,
           })}
         </p>
         <div className='mt-12px text-12px text-t-secondary bg-fill-2 p-12px rounded-lg'>
@@ -1429,16 +899,16 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       {/* Add Custom External Path Modal */}
       <Modal
         title={t('settings.skillsHub.addCustomPath', { defaultValue: '添加自定义技能路径' })}
-        visible={showAddPathModal}
+        visible={skills.showAddPathModal}
         onCancel={() => {
-          setShowAddPathModal(false);
-          setCustomPathName('');
-          setCustomPathValue('');
+          skills.setShowAddPathModal(false);
+          skills.setCustomPathName('');
+          skills.setCustomPathValue('');
         }}
-        onOk={() => void handleAddCustomPath()}
+        onOk={() => void skills.handleAddCustomPath()}
         okText={t('common.confirm', { defaultValue: '确认' })}
         cancelText={t('common.cancel', { defaultValue: '取消' })}
-        okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
+        okButtonProps={{ disabled: !skills.customPathName.trim() || !skills.customPathValue.trim() }}
         autoFocus={false}
         focusLock
         wrapStyle={{ zIndex: 10000 }}
@@ -1451,8 +921,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             </div>
             <Input
               placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: '例：我的自定义技能' })}
-              value={customPathName}
-              onChange={(v) => setCustomPathName(v)}
+              value={skills.customPathName}
+              onChange={(v) => skills.setCustomPathName(v)}
               className='rd-6px'
             />
           </div>
@@ -1465,8 +935,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 placeholder={t('settings.skillsHub.customPathPlaceholder', {
                   defaultValue: '例：C:\\Users\\me\\.mytools\\skills',
                 })}
-                value={customPathValue}
-                onChange={(v) => setCustomPathValue(v)}
+                value={skills.customPathValue}
+                onChange={(v) => skills.setCustomPathValue(v)}
                 className='flex-1 rd-6px'
               />
               <Button
@@ -1475,7 +945,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                   try {
                     const result = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
                     if (result && result.length > 0) {
-                      setCustomPathValue(result[0]);
+                      skills.setCustomPathValue(result[0]);
                     }
                   } catch (e) {
                     console.error('Failed to select directory', e);

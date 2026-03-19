@@ -2,16 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { TMessage } from '@/common/chatLib';
 import { MAX_LINE_LEN } from '@/renderer/pages/conversation/components/minimapTypes';
-import {
-  buildSearchSnippet,
-  buildTurnPreview,
-} from '@/renderer/pages/conversation/components/minimapUtils';
+import { buildSearchSnippet, buildTurnPreview } from '@/renderer/pages/conversation/components/minimapUtils';
 
 // Helper to create a text message with sensible defaults
 function textMsg(
   content: string,
   position: 'left' | 'right',
-  overrides: Partial<{ id: string; msg_id: string }> = {},
+  overrides: Partial<{ id: string; msg_id: string }> = {}
 ): TMessage {
   return {
     id: overrides.id ?? `msg-${Math.random().toString(36).slice(2, 8)}`,
@@ -121,11 +118,7 @@ describe('buildTurnPreview', () => {
   });
 
   it('only uses the first assistant message as the answer for a turn', () => {
-    const msgs = [
-      textMsg('Q', 'right'),
-      textMsg('First answer', 'left'),
-      textMsg('Second answer', 'left'),
-    ];
+    const msgs = [textMsg('Q', 'right'), textMsg('First answer', 'left'), textMsg('Second answer', 'left')];
     const turns = buildTurnPreview(msgs);
 
     expect(turns).toHaveLength(1);

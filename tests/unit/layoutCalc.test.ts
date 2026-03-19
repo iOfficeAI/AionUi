@@ -290,13 +290,62 @@ describe('calcLayoutMetrics', () => {
 
   describe('parameterized: layout combinations', () => {
     it.each([
-      { isDesktop: true, isMobile: false, workspaceEnabled: true, rightSiderCollapsed: false, isPreviewOpen: true, label: 'desktop+workspace+preview' },
-      { isDesktop: true, isMobile: false, workspaceEnabled: true, rightSiderCollapsed: true, isPreviewOpen: true, label: 'desktop+workspace collapsed+preview' },
-      { isDesktop: true, isMobile: false, workspaceEnabled: true, rightSiderCollapsed: false, isPreviewOpen: false, label: 'desktop+workspace+no preview' },
-      { isDesktop: true, isMobile: false, workspaceEnabled: false, rightSiderCollapsed: false, isPreviewOpen: true, label: 'desktop+no workspace+preview' },
-      { isDesktop: true, isMobile: false, workspaceEnabled: false, rightSiderCollapsed: false, isPreviewOpen: false, label: 'desktop+no workspace+no preview' },
-      { isDesktop: false, isMobile: true, workspaceEnabled: true, rightSiderCollapsed: false, isPreviewOpen: true, label: 'mobile+workspace+preview' },
-      { isDesktop: false, isMobile: true, workspaceEnabled: false, rightSiderCollapsed: false, isPreviewOpen: false, label: 'mobile+no workspace+no preview' },
+      {
+        isDesktop: true,
+        isMobile: false,
+        workspaceEnabled: true,
+        rightSiderCollapsed: false,
+        isPreviewOpen: true,
+        label: 'desktop+workspace+preview',
+      },
+      {
+        isDesktop: true,
+        isMobile: false,
+        workspaceEnabled: true,
+        rightSiderCollapsed: true,
+        isPreviewOpen: true,
+        label: 'desktop+workspace collapsed+preview',
+      },
+      {
+        isDesktop: true,
+        isMobile: false,
+        workspaceEnabled: true,
+        rightSiderCollapsed: false,
+        isPreviewOpen: false,
+        label: 'desktop+workspace+no preview',
+      },
+      {
+        isDesktop: true,
+        isMobile: false,
+        workspaceEnabled: false,
+        rightSiderCollapsed: false,
+        isPreviewOpen: true,
+        label: 'desktop+no workspace+preview',
+      },
+      {
+        isDesktop: true,
+        isMobile: false,
+        workspaceEnabled: false,
+        rightSiderCollapsed: false,
+        isPreviewOpen: false,
+        label: 'desktop+no workspace+no preview',
+      },
+      {
+        isDesktop: false,
+        isMobile: true,
+        workspaceEnabled: true,
+        rightSiderCollapsed: false,
+        isPreviewOpen: true,
+        label: 'mobile+workspace+preview',
+      },
+      {
+        isDesktop: false,
+        isMobile: true,
+        workspaceEnabled: false,
+        rightSiderCollapsed: false,
+        isPreviewOpen: false,
+        label: 'mobile+no workspace+no preview',
+      },
     ])('should produce valid metrics for $label', (combo) => {
       const m = calcLayoutMetrics(makeInput(combo));
       assertAllMetricsValid(m);

@@ -6,10 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
-import { STORAGE_KEYS } from '@/common/storageKeys';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import useDebounce from '@/renderer/hooks/ui/useDebounce';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter } from '@/renderer/utils/emitter';
@@ -20,24 +18,22 @@ import {
   getWorkspaceDisplayName as getDisplayName,
 } from '@/renderer/utils/workspace/workspace';
 import { Checkbox, Dropdown, Empty, Input, Menu, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
-import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Down, FileText, FolderOpen, Plus, Refresh, Search, AlarmClock } from '@icon-park/react';
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useCronJobs } from '@/renderer/pages/cron/hooks/useCronJobs';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
-import { uuid } from '@/common/utils';
+import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
 import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
+import { useWorkspaceMigration } from './hooks/useWorkspaceMigration';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
+import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import './workspace.css';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
 import {
-  collectFilePaths,
   computeContextMenuPosition,
   extractNodeData,
   extractNodeKey,
@@ -83,56 +79,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
-  const navigate = useNavigate();
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
 
-  // Search state
-  const [searchText, setSearchText] = useState('');
-  const [showSearch, setShowSearch] = useState(true);
-
-  // Host file selector state (WebUI: use DirectorySelectionModal instead of native dialog)
-  const [showHostFileSelector, setShowHostFileSelector] = useState(false);
-  const searchInputRef = useRef<RefInputType | null>(null);
-
-  // Workspace migration modal state
-  const [showMigrationModal, setShowMigrationModal] = useState(false);
-  const [showDirectorySelector, setShowDirectorySelector] = useState(false);
-  const [selectedTargetPath, setSelectedTargetPath] = useState('');
-  const [migrationLoading, setMigrationLoading] = useState(false);
-  const [showCronMigrationPrompt, setShowCronMigrationPrompt] = useState(false);
-
-  // Cron jobs hook
-  const { jobs, loading: cronLoading } = useCronJobs(conversation_id);
-
-  // Workspace tree collapse state - 全局统一的折叠状态
-  // 切换会话时保持折叠状态不变，只更新工作目录内容
-  const [isWorkspaceCollapsed, setIsWorkspaceCollapsed] = useState(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.WORKSPACE_TREE_COLLAPSE);
-      if (stored) {
-        // 直接存储boolean值，不按workspace路径区分
-        return stored === 'true';
-      }
-    } catch {
-      // 忽略错误
-    }
-    return false; // 默认展开
-  });
-
-  // 持久化折叠状态 - 全局统一
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.WORKSPACE_TREE_COLLAPSE, String(isWorkspaceCollapsed));
-    } catch {
-      // 忽略错误
-    }
-  }, [isWorkspaceCollapsed]);
-
   // Initialize all hooks
+  const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
   const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
   const modalsHook = useWorkspaceModals();
   const pasteHook = useWorkspacePaste({
@@ -156,29 +110,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     conversationId: conversation_id,
   });
 
-  // 只在用户主动打开搜索时聚焦，不在会话切换时自动聚焦
-  // Only focus search input when user actively opens search, not on conversation switch
-  const previousShowSearchRef = useRef<boolean | null>(null);
-  useEffect(() => {
-    // 首次渲染或会话切换时不聚焦
-    if (previousShowSearchRef.current === null) {
-      previousShowSearchRef.current = showSearch;
-      return;
-    }
-
-    // 只在从 false 变为 true 时聚焦（用户主动打开搜索）
-    if (showSearch && !previousShowSearchRef.current) {
-      const timer = window.setTimeout(() => {
-        searchInputRef.current?.focus?.();
-      }, 0);
-      previousShowSearchRef.current = showSearch;
-      return () => {
-        window.clearTimeout(timer);
-      };
-    }
-
-    previousShowSearchRef.current = showSearch;
-  }, [showSearch]);
+  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -222,17 +154,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     closeDeleteModal: modalsHook.closeDeleteModal,
   });
 
-  // Debounced search handler
-  const onSearch = useDebounce(
-    (value: string) => {
-      void treeHook.loadWorkspace(workspace, value).then((files) => {
-        setShowSearch(files.length > 0 && files[0]?.children?.length > 0);
-      });
-    },
-    200,
-    [workspace, treeHook.loadWorkspace]
-  );
-
   // Context menu calculations
   const hasOriginalFiles = treeHook.files.length > 0 && treeHook.files[0]?.children?.length > 0;
   const rootName = treeHook.files[0]?.name ?? '';
@@ -252,166 +173,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     return getDisplayName(workspace);
   }, [workspace, isTemporaryWorkspace, t]);
 
-  // Workspace migration handlers
-  const handleOpenMigrationModal = useCallback(() => {
-    setShowMigrationModal(true);
-  }, []);
-
-  const handleOpenWorkspaceRoot = useCallback(async () => {
-    try {
-      await ipcBridge.shell.showItemInFolder.invoke(workspace);
-    } catch (error) {
-      messageApi.error(t('conversation.workspace.contextMenu.revealFailed'));
-    }
-  }, [messageApi, t, workspace]);
-
-  // Handle directory selection from DirectorySelectionModal (webui)
-  const handleSelectDirectoryFromModal = useCallback((paths: string[] | undefined) => {
-    setShowDirectorySelector(false);
-    if (paths && paths.length > 0) {
-      setSelectedTargetPath(paths[0]);
-    }
-  }, []);
-
-  // Handle folder selection - use native dialog on Electron, modal on webui
-  const handleSelectFolder = useCallback(async () => {
-    if (isElectronDesktop()) {
-      // Electron: use native file dialog
-      try {
-        const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
-        if (files && files.length > 0) {
-          setSelectedTargetPath(files[0]);
-        }
-      } catch (error) {
-        console.error('Failed to open directory dialog:', error);
-        messageApi.error(t('conversation.workspace.migration.selectFolderError'));
-      }
-    } else {
-      // WebUI: show directory selection modal
-      setShowDirectorySelector(true);
-    }
-  }, [messageApi, t]);
-
-  const executeMigration = useCallback(
-    async (migrateCron: boolean) => {
-      const targetWorkspace = selectedTargetPath.trim();
-      setMigrationLoading(true);
-
-      try {
-        // Get current conversation data
-        const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
-        const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
-
-        if (!currentConversation) {
-          throw new Error('Current conversation not found');
-        }
-
-        // Get all files from the workspace
-        const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
-          conversation_id,
-          workspace,
-          path: workspace,
-        });
-
-        // Recursively collect all file paths
-        const filePaths = collectFilePaths(workspaceFiles);
-
-        // Copy all files to the target workspace / 复制所有文件到目标工作区
-        if (filePaths.length > 0) {
-          const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
-            filePaths,
-            workspace: targetWorkspace,
-            sourceRoot: workspace,
-          });
-          if (!copyResult?.success) {
-            throw new Error(copyResult?.msg || 'Failed to copy workspace files');
-          }
-        }
-
-        // Create new conversation with the new workspace / 使用新工作区创建会话
-        const newId = uuid();
-        const newConversation = {
-          ...currentConversation,
-          id: newId,
-          name: currentConversation.name,
-          createTime: Date.now(),
-          modifyTime: Date.now(),
-        };
-
-        // Update the workspace in extra field / 更新 extra 中的 workspace 信息
-        newConversation.extra = {
-          ...(currentConversation.extra ?? {}),
-          workspace: targetWorkspace,
-          customWorkspace: true,
-        };
-
-        await ipcBridge.conversation.createWithConversation.invoke({
-          conversation: newConversation,
-          sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
-          migrateCron,
-        });
-
-        // Close modal and reset state / 关闭弹窗并重置状态
-        setShowMigrationModal(false);
-        setShowCronMigrationPrompt(false);
-        setSelectedTargetPath('');
-        setMigrationLoading(false);
-
-        // Navigate to new conversation / 跳转到新的会话
-        void navigate(`/conversation/${newId}`);
-        emitter.emit('chat.history.refresh');
-        messageApi.success(t('conversation.workspace.migration.success'));
-      } catch (error) {
-        console.error('Failed to migrate workspace:', error);
-        messageApi.error(t('conversation.workspace.migration.error'));
-        setMigrationLoading(false);
-      }
-    },
-    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate]
-  );
-
-  const handleMigrationConfirm = useCallback(async () => {
-    if (!isTemporaryWorkspace) {
-      messageApi.error(t('conversation.workspace.migration.error'));
-      return;
-    }
-
-    const targetWorkspace = selectedTargetPath.trim();
-    if (!targetWorkspace) {
-      messageApi.error(t('conversation.workspace.migration.noTargetPath'));
-      return;
-    }
-
-    if (targetWorkspace === workspace) {
-      messageApi.warning(t('conversation.workspace.migration.selectFolderError'));
-      return;
-    }
-
-    // Check if jobs are still loading
-    if (cronLoading) {
-      console.log('[Workspace] Waiting for cron jobs to load before migration...');
-      messageApi.info(t('common.loading'));
-      return;
-    }
-
-    console.log('[Workspace] handleMigrationConfirm triggered. Current jobs count:', jobs.length);
-
-    // Check for cron jobs before migrating
-    if (jobs.length > 0) {
-      setShowCronMigrationPrompt(true);
-      return;
-    }
-
-    await executeMigration(false);
-  }, [jobs, cronLoading, isTemporaryWorkspace, selectedTargetPath, workspace, t, messageApi, executeMigration]);
-
-  const handleCloseMigrationModal = useCallback(() => {
-    if (!migrationLoading) {
-      setShowMigrationModal(false);
-      setShowCronMigrationPrompt(false);
-      setSelectedTargetPath('');
-    }
-  }, [migrationLoading]);
+  // Migration hook
+  const migrationHook = useWorkspaceMigration({
+    conversation_id,
+    workspace,
+    messageApi,
+    t,
+    isTemporaryWorkspace,
+  });
 
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
@@ -422,16 +191,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const isContextMenuNodeFile = !!contextMenuNode?.isFile;
   const isContextMenuNodeRoot =
     !!contextMenuNode && (!contextMenuNode.relativePath || contextMenuNode.relativePath === '');
-  const handleHostFileSelected = useCallback(
-    (paths: string[] | undefined) => {
-      setShowHostFileSelector(false);
-      if (paths && paths.length > 0) {
-        void pasteHook.handleFilesToAdd(paths.map((p) => ({ name: p.split('/').pop() || p, path: p })));
-      }
-    },
-    [pasteHook]
-  );
-
   const workspaceUploadMenu = (
     <Menu
       onClickMenuItem={(key) => {
@@ -439,7 +198,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           if (isElectronDesktop()) {
             pasteHook.handleSelectHostFiles();
           } else {
-            setShowHostFileSelector(true);
+            searchHook.setShowHostFileSelector(true);
           }
         }
         if (key === 'device') {
@@ -685,9 +444,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Workspace Migration Modal */}
         <Modal
-          visible={showMigrationModal}
+          visible={migrationHook.showMigrationModal}
           title={t('conversation.workspace.migration.title')}
-          onCancel={handleCloseMigrationModal}
+          onCancel={migrationHook.handleCloseMigrationModal}
           footer={null}
           style={{ borderRadius: '12px' }}
           className='workspace-migration-modal'
@@ -712,13 +471,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   backgroundColor: 'var(--color-bg-1)',
                   border: '1px solid var(--color-border-2)',
                 }}
-                onClick={handleSelectFolder}
+                onClick={migrationHook.handleSelectFolder}
               >
                 <span
                   className='text-14px'
-                  style={{ color: selectedTargetPath ? 'var(--color-text-1)' : 'var(--color-text-3)' }}
+                  style={{ color: migrationHook.selectedTargetPath ? 'var(--color-text-1)' : 'var(--color-text-3)' }}
                 >
-                  {selectedTargetPath || t('conversation.workspace.migration.selectFolder')}
+                  {migrationHook.selectedTargetPath || t('conversation.workspace.migration.selectFolder')}
                 </span>
                 <FolderOpen theme='outline' size='18' fill='var(--color-text-3)' />
               </div>
@@ -745,8 +504,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'var(--color-fill-2)';
                 }}
-                onClick={handleCloseMigrationModal}
-                disabled={migrationLoading}
+                onClick={migrationHook.handleCloseMigrationModal}
+                disabled={migrationHook.migrationLoading}
               >
                 {t('common.cancel')}
               </button>
@@ -754,24 +513,24 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 className='px-24px py-8px rounded-20px text-14px font-medium transition-all'
                 style={{
                   border: 'none',
-                  backgroundColor: migrationLoading ? 'var(--color-fill-3)' : 'var(--color-text-1)',
+                  backgroundColor: migrationHook.migrationLoading ? 'var(--color-fill-3)' : 'var(--color-text-1)',
                   color: 'var(--color-bg-1)',
-                  cursor: migrationLoading ? 'not-allowed' : 'pointer',
+                  cursor: migrationHook.migrationLoading ? 'not-allowed' : 'pointer',
                 }}
                 onMouseEnter={(e) => {
-                  if (!migrationLoading) {
+                  if (!migrationHook.migrationLoading) {
                     e.currentTarget.style.opacity = '0.85';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!migrationLoading) {
+                  if (!migrationHook.migrationLoading) {
                     e.currentTarget.style.opacity = '1';
                   }
                 }}
-                onClick={handleMigrationConfirm}
-                disabled={migrationLoading || !selectedTargetPath}
+                onClick={migrationHook.handleMigrationConfirm}
+                disabled={migrationHook.migrationLoading || !migrationHook.selectedTargetPath}
               >
-                {migrationLoading ? t('conversation.workspace.migration.migrating') : t('common.confirm')}
+                {migrationHook.migrationLoading ? t('conversation.workspace.migration.migrating') : t('common.confirm')}
               </button>
             </div>
           </div>
@@ -779,9 +538,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Cron Migration Modal */}
         <Modal
-          visible={showCronMigrationPrompt}
+          visible={migrationHook.showCronMigrationPrompt}
           title={t('conversation.workspace.migration.cronMigrationTitle')}
-          onCancel={handleCloseMigrationModal}
+          onCancel={migrationHook.handleCloseMigrationModal}
           footer={null}
           style={{ borderRadius: '12px' }}
           className='cron-migration-modal'
@@ -817,8 +576,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   backgroundColor: 'var(--color-fill-2)',
                   color: 'var(--color-text-1)',
                 }}
-                onClick={() => executeMigration(false)}
-                disabled={migrationLoading}
+                onClick={() => migrationHook.executeMigration(false)}
+                disabled={migrationHook.migrationLoading}
               >
                 {t('conversation.workspace.migration.cronMigrationSkip')}
               </button>
@@ -830,8 +589,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   color: 'var(--color-bg-1)',
                   cursor: 'pointer',
                 }}
-                onClick={() => executeMigration(true)}
-                disabled={migrationLoading}
+                onClick={() => migrationHook.executeMigration(true)}
+                disabled={migrationHook.migrationLoading}
               >
                 {t('conversation.workspace.migration.cronMigrationConfirm')}
               </button>
@@ -841,31 +600,31 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
         {/* Directory Selection Modal (for WebUI only) */}
         <DirectorySelectionModal
-          visible={showDirectorySelector}
-          onConfirm={handleSelectDirectoryFromModal}
-          onCancel={() => setShowDirectorySelector(false)}
+          visible={migrationHook.showDirectorySelector}
+          onConfirm={migrationHook.handleSelectDirectoryFromModal}
+          onCancel={migrationHook.closeDirectorySelector}
         />
 
         {/* Host File Selection Modal (for WebUI workspace + button) */}
         <DirectorySelectionModal
-          visible={showHostFileSelector}
+          visible={searchHook.showHostFileSelector}
           isFileMode
-          onConfirm={handleHostFileSelected}
-          onCancel={() => setShowHostFileSelector(false)}
+          onConfirm={(paths) => searchHook.handleHostFileSelected(paths, pasteHook.handleFilesToAdd)}
+          onCancel={() => searchHook.setShowHostFileSelector(false)}
         />
 
         {/* Search Input - 最上方 */}
         <div className='px-12px'>
-          {(showSearch || searchText) && (
+          {(searchHook.showSearch || searchHook.searchText) && (
             <div className='pb-8px workspace-toolbar-search'>
               <Input
                 className='w-full workspace-search-input'
-                ref={searchInputRef}
+                ref={searchHook.searchInputRef}
                 placeholder={t('conversation.workspace.searchPlaceholder')}
-                value={searchText}
+                value={searchHook.searchText}
                 onChange={(value) => {
-                  setSearchText(value);
-                  onSearch(value);
+                  searchHook.setSearchText(value);
+                  searchHook.onSearch(value);
                 }}
                 allowClear
                 prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
@@ -877,7 +636,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         {/* Toolbar */}
         <div className='px-12px'>
           {/* Border divider - 搜索框下方分界线 */}
-          {!isWorkspaceCollapsed && (showSearch || searchText) && <div className='border-b border-b-base' />}
+          {!isWorkspaceCollapsed && (searchHook.showSearch || searchHook.searchText) && (
+            <div className='border-b border-b-base' />
+          )}
 
           {/* Directory name with collapse and action icons */}
           <div className='workspace-toolbar-row flex items-center justify-between gap-8px'>
@@ -898,13 +659,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                     className='workspace-title-label font-bold text-14px text-t-primary overflow-hidden text-ellipsis whitespace-nowrap transition-colors hover:text-[rgb(var(--primary-6))] hover:underline underline-offset-3'
                     onClick={(event) => {
                       event.stopPropagation();
-                      void handleOpenWorkspaceRoot();
+                      void migrationHook.handleOpenWorkspaceRoot();
                     }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
                         event.stopPropagation();
-                        void handleOpenWorkspaceRoot();
+                        void migrationHook.handleOpenWorkspaceRoot();
                       }
                     }}
                   >
@@ -935,7 +696,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   <span>
                     <ChangeWorkspaceIcon
                       className='workspace-toolbar-icon-btn line-height-0 cursor-pointer w-24px h-24px flex-shrink-0'
-                      onClick={handleOpenMigrationModal}
+                      onClick={migrationHook.handleOpenMigrationModal}
                     />
                   </span>
                 </Tooltip>
@@ -1059,10 +820,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   description={
                     <div>
                       <span className='text-t-secondary font-bold text-14px'>
-                        {searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}
+                        {searchHook.searchText
+                          ? t('conversation.workspace.search.empty')
+                          : t('conversation.workspace.empty')}
                       </span>
                       <div className='text-t-secondary'>
-                        {searchText ? '' : t('conversation.workspace.emptyDescription')}
+                        {searchHook.searchText ? '' : t('conversation.workspace.emptyDescription')}
                       </div>
                     </div>
                   }

@@ -1,52 +1,40 @@
-import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { STORAGE_KEYS } from '@/common/storageKeys';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
+import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
+import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/usePreviewAutoCollapse';
+import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
+import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
-import { emitter } from '@/renderer/utils/emitter';
-import { blurActiveElement } from '@/renderer/utils/ui/focus';
-import { Input, Layout as ArcoLayout, Message } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
-import {
-  WORKSPACE_HAS_FILES_EVENT,
-  WORKSPACE_TOGGLE_EVENT,
-  dispatchWorkspaceStateEvent,
-  dispatchWorkspaceToggleEvent,
-  type WorkspaceHasFilesDetail,
-} from '@/renderer/utils/workspace/workspaceEvents';
+import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
+import { isMacEnvironment, isWindowsEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 import {
-  detectMobileViewportOrTouch,
-  isMacEnvironment,
-  isWindowsEnvironment,
-} from '@/renderer/pages/conversation/utils/detectPlatform';
-import {
-  MIN_CHAT_PANEL_PX,
-  MIN_PREVIEW_PANEL_PX,
-  MIN_WORKSPACE_PANEL_PX,
   MIN_WORKSPACE_RATIO,
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
+import { Input, Layout as ArcoLayout } from '@arco-design/web-react';
+import { ExpandLeft, ExpandRight } from '@icon-park/react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
 import './chat-layout.css';
 
-interface WorkspaceHeaderProps {
+type WorkspaceHeaderProps = {
   children?: React.ReactNode;
   showToggle?: boolean;
   collapsed: boolean;
   onToggle: () => void;
   togglePlacement?: 'left' | 'right';
-}
+};
 
 const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
   children,
@@ -78,7 +66,6 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
   </div>
 );
 
-// headerExtra 用于在会话头部右侧插入自定义操作（如模型选择）
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
 const ChatLayout: React.FC<{
   children: React.ReactNode;
@@ -87,51 +74,48 @@ const ChatLayout: React.FC<{
   siderTitle?: React.ReactNode;
   backend?: string;
   agentName?: string;
-  /** 自定义 agent logo（可以是 SVG 路径或 emoji 字符串）/ Custom agent logo (can be SVG path or emoji string) */
+  /** Custom agent logo (can be SVG path or emoji string) */
   agentLogo?: string;
-  /** 是否为 emoji 类型的 logo / Whether the logo is an emoji */
+  /** Whether the logo is an emoji */
   agentLogoIsEmoji?: boolean;
   headerExtra?: React.ReactNode;
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
-  /** 会话 ID，用于模式切换 / Conversation ID for mode switching */
+  /** Conversation ID for mode switching */
   conversationId?: string;
 }> = (props) => {
   const { t } = useTranslation();
   const { conversationId } = props;
-  // 工作空间面板折叠状态 - 全局持久化
-  // Workspace panel collapse state - globally persisted
-  const [rightSiderCollapsed, setRightSiderCollapsed] = useState(() => {
-    if (detectMobileViewportOrTouch()) {
-      return true;
-    }
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE);
-      if (stored !== null) {
-        return stored === 'true';
-      }
-    } catch {
-      // 忽略错误
-    }
-    return true; // 默认折叠
-  });
-  // 当前活跃的会话 ID（用于记录用户手动操作偏好）
-  // Current active conversation ID (for recording user manual operation preference)
-  const currentConversationIdRef = useRef<string | undefined>(undefined);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
-  // 右侧栏折叠状态引用 / Mirror ref for collapse state
-  const rightCollapsedRef = useRef(rightSiderCollapsed);
-  const previousWorkspaceCollapsedRef = useRef<boolean | null>(null);
-  const previousSiderCollapsedRef = useRef<boolean | null>(null);
-  const previousPreviewOpenRef = useRef(false);
+  const isDesktop = !layout?.isMobile;
+  const isMobile = Boolean(layout?.isMobile);
 
-  // 预览面板状态 / Preview panel state
+  // Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
+
+  // --- Hook A: workspace collapse ---
+  const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
+    workspaceEnabled,
+    isMobile,
+    conversationId,
+  });
+
+  // --- Hook B: container width ---
+  const { containerRef, containerWidth } = useContainerWidth();
+
+  // --- Hook C: title rename ---
+  const { openTabs, updateTabName } = useConversationTabs();
+  const hasTabs = openTabs.length > 0;
+
+  const { editingTitle, setEditingTitle, titleDraft, setTitleDraft, renameLoading, canRenameTitle, submitTitleRename } =
+    useTitleRename({
+      title: props.title,
+      conversationId,
+      updateTabName,
+    });
 
   // Fetch custom agents config as fallback when agentName is not provided
   const { data: customAgents } = useSWR(backend === 'custom' && !agentName ? 'acp.customAgents' : null, () =>
@@ -145,218 +129,6 @@ const ChatLayout: React.FC<{
     ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
     backend;
 
-  // 获取 tabs 状态，有 tabs 时隐藏会话标题
-  const { openTabs, updateTabName } = useConversationTabs();
-  const hasTabs = openTabs.length > 0;
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(typeof props.title === 'string' ? props.title : '');
-  const [renameLoading, setRenameLoading] = useState(false);
-
-  useEffect(() => {
-    if (typeof props.title === 'string') {
-      setTitleDraft(props.title);
-    }
-  }, [props.title]);
-
-  const canRenameTitle = typeof props.title === 'string' && !!conversationId;
-
-  const submitTitleRename = async () => {
-    if (!canRenameTitle) return;
-    const nextTitle = titleDraft.trim();
-    const currentTitle = typeof props.title === 'string' ? props.title.trim() : '';
-
-    if (!nextTitle) {
-      setTitleDraft(currentTitle);
-      setEditingTitle(false);
-      return;
-    }
-
-    if (nextTitle === currentTitle) {
-      setEditingTitle(false);
-      return;
-    }
-
-    setRenameLoading(true);
-    try {
-      const success = await ipcBridge.conversation.update.invoke({
-        id: conversationId,
-        updates: { name: nextTitle },
-      });
-
-      if (success) {
-        updateTabName(conversationId, nextTitle);
-        emitter.emit('chat.history.refresh');
-        setEditingTitle(false);
-        Message.success(t('conversation.history.renameSuccess'));
-      } else {
-        Message.error(t('conversation.history.renameFailed'));
-      }
-    } catch (error) {
-      console.error('Failed to update conversation title:', error);
-      Message.error(t('conversation.history.renameFailed'));
-    } finally {
-      setRenameLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-    const handleWorkspaceToggle = () => {
-      if (!workspaceEnabled) {
-        return;
-      }
-      setRightSiderCollapsed((prev) => {
-        const newState = !prev;
-        // 记录用户手动操作偏好 / Record user manual operation preference
-        const conversationId = currentConversationIdRef.current;
-        if (conversationId) {
-          try {
-            localStorage.setItem(`workspace-preference-${conversationId}`, newState ? 'collapsed' : 'expanded');
-          } catch {
-            // 忽略错误
-          }
-        }
-        return newState;
-      });
-    };
-    window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
-    return () => {
-      window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
-    };
-  }, [workspaceEnabled]);
-
-  // 根据文件状态自动展开/折叠工作空间面板（优先使用用户手动偏好）
-  // Auto expand/collapse workspace panel based on files state (user preference takes priority)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !workspaceEnabled) {
-      return undefined;
-    }
-    const handleHasFiles = (event: Event) => {
-      const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail;
-      const conversationId = detail.conversationId;
-
-      // 更新当前会话 ID / Update current conversation ID
-      currentConversationIdRef.current = conversationId;
-
-      // 移动端始终保持工作空间收起，避免进入会话时被自动拉起覆盖主对话区
-      if (layout?.isMobile) {
-        if (!rightCollapsedRef.current) {
-          setRightSiderCollapsed(true);
-        }
-        return;
-      }
-
-      // 检查用户是否有手动设置的偏好 / Check if user has manual preference
-      let userPreference: 'expanded' | 'collapsed' | null = null;
-      if (conversationId) {
-        try {
-          const stored = localStorage.getItem(`workspace-preference-${conversationId}`);
-          if (stored === 'expanded' || stored === 'collapsed') {
-            userPreference = stored;
-          }
-        } catch {
-          // 忽略错误
-        }
-      }
-
-      // 如果有用户偏好，按偏好设置；否则按文件状态决定
-      // If user has preference, use it; otherwise decide by file state
-      if (userPreference) {
-        const shouldCollapse = userPreference === 'collapsed';
-        if (shouldCollapse !== rightSiderCollapsed) {
-          setRightSiderCollapsed(shouldCollapse);
-        }
-      } else {
-        // 无用户偏好：有文件展开，没文件折叠
-        // No user preference: expand if has files, collapse if not
-        if (detail.hasFiles && rightSiderCollapsed) {
-          setRightSiderCollapsed(false);
-        } else if (!detail.hasFiles && !rightSiderCollapsed) {
-          setRightSiderCollapsed(true);
-        }
-      }
-    };
-    window.addEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
-    return () => {
-      window.removeEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
-    };
-  }, [layout?.isMobile, workspaceEnabled, rightSiderCollapsed]);
-
-  useEffect(() => {
-    if (!workspaceEnabled) {
-      dispatchWorkspaceStateEvent(true);
-      return;
-    }
-    dispatchWorkspaceStateEvent(rightSiderCollapsed);
-  }, [rightSiderCollapsed, workspaceEnabled]);
-
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) {
-      setContainerWidth(typeof window === 'undefined' ? 0 : window.innerWidth);
-      return;
-    }
-    setContainerWidth(element.offsetWidth);
-    if (typeof ResizeObserver === 'undefined') {
-      return;
-    }
-    const observer = new ResizeObserver((entries) => {
-      if (!entries.length) return;
-      setContainerWidth(entries[0].contentRect.width);
-    });
-    observer.observe(element);
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-  useEffect(() => {
-    rightCollapsedRef.current = rightSiderCollapsed;
-  }, [rightSiderCollapsed]);
-
-  // 持久化工作空间面板折叠状态
-  // Persist workspace panel collapse state
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE, String(rightSiderCollapsed));
-    } catch {
-      // 忽略错误
-    }
-  }, [rightSiderCollapsed]);
-
-  useEffect(() => {
-    if (!workspaceEnabled) {
-      setRightSiderCollapsed(true);
-    }
-  }, [workspaceEnabled]);
-
-  useEffect(() => {
-    if (!workspaceEnabled || !layout?.isMobile || rightCollapsedRef.current) {
-      return;
-    }
-    setRightSiderCollapsed(true);
-  }, [layout?.isMobile, workspaceEnabled]);
-
-  // 移动端切换会话时强制收起工作空间，防止第一次进入会话被工作空间面板覆盖
-  useEffect(() => {
-    if (!workspaceEnabled || !layout?.isMobile) {
-      return;
-    }
-    setRightSiderCollapsed(true);
-  }, [conversationId, layout?.isMobile, workspaceEnabled]);
-
-  // 移动端切换会话时，强制清除输入焦点，避免软键盘被自动唤起
-  useEffect(() => {
-    if (!layout?.isMobile) {
-      return;
-    }
-    const rafId = requestAnimationFrame(() => {
-      blurActiveElement();
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [conversationId, layout?.isMobile]);
-
   const {
     splitRatio: workspaceSplitRatio,
     setSplitRatio: setWorkspaceSplitRatio,
@@ -367,9 +139,6 @@ const ChatLayout: React.FC<{
     maxWidth: 40,
     storageKey: 'chat-workspace-split-ratio',
   });
-
-  const isDesktop = !layout?.isMobile;
-  const isMobile = Boolean(layout?.isMobile);
 
   // Pre-hook metrics: compute dynamic min/max for the chat-preview split hook
   const { dynamicChatMinRatio, dynamicChatMaxRatio } = calcLayoutMetrics({
@@ -414,79 +183,32 @@ const ChatLayout: React.FC<{
     isMobile,
   });
 
-  useEffect(() => {
-    if (!workspaceEnabled || !isPreviewOpen || !isDesktop || rightSiderCollapsed) {
-      return;
-    }
-    const safeContainerWidth = Math.max(containerWidth || 0, 1);
-    const minChatPreviewRatioByPx = ((MIN_CHAT_PANEL_PX + MIN_PREVIEW_PANEL_PX) / safeContainerWidth) * 100;
-    const maxWorkspaceByPx = 100 - minChatPreviewRatioByPx;
-    const maxWorkspace = Math.max(MIN_WORKSPACE_RATIO, Math.min(40, maxWorkspaceByPx));
-    if (workspaceSplitRatio > maxWorkspace) {
-      setWorkspaceSplitRatio(maxWorkspace);
-    }
-    // 宽度非常紧张时，优先保证聊天+预览可见，自动收起工作空间
-    if (safeContainerWidth < MIN_CHAT_PANEL_PX + MIN_PREVIEW_PANEL_PX + MIN_WORKSPACE_PANEL_PX) {
-      setRightSiderCollapsed(true);
-    }
-    // 故意不将 workspaceSplitRatio 加入依赖，避免拖动工作空间时触发额外的 effect
-  }, [
+  // --- Hook D: preview auto-collapse ---
+  usePreviewAutoCollapse({
+    isPreviewOpen,
+    isDesktop,
+    workspaceEnabled,
+    rightSiderCollapsed,
+    setRightSiderCollapsed,
+    siderCollapsed: layout?.siderCollapsed,
+    setSiderCollapsed: layout?.setSiderCollapsed,
+  });
+
+  // --- Hook E: layout constraints ---
+  useLayoutConstraints({
     containerWidth,
+    workspaceEnabled,
     isDesktop,
     isPreviewOpen,
     rightSiderCollapsed,
-    setWorkspaceSplitRatio,
-    workspaceEnabled,
+    setRightSiderCollapsed,
     workspaceSplitRatio,
-  ]);
-
-  useEffect(() => {
-    if (!workspaceEnabled || !isPreviewOpen || !isDesktop) {
-      return;
-    }
-    const clampedChat = Math.max(dynamicChatMinRatio, Math.min(dynamicChatMaxRatio, chatSplitRatio));
-    if (clampedChat !== chatSplitRatio) {
-      setChatSplitRatio(clampedChat);
-    }
-  }, [
+    setWorkspaceSplitRatio,
     chatSplitRatio,
-    dynamicChatMaxRatio,
-    dynamicChatMinRatio,
-    isDesktop,
-    isPreviewOpen,
     setChatSplitRatio,
-    workspaceEnabled,
-  ]);
-
-  // 预览打开时自动收起侧边栏和工作空间 / Auto-collapse sidebar and workspace when preview opens
-  useEffect(() => {
-    if (!workspaceEnabled || !isDesktop) {
-      previousPreviewOpenRef.current = false;
-      return;
-    }
-
-    if (isPreviewOpen && !previousPreviewOpenRef.current) {
-      if (previousWorkspaceCollapsedRef.current === null) {
-        previousWorkspaceCollapsedRef.current = rightSiderCollapsed;
-      }
-      if (previousSiderCollapsedRef.current === null && typeof layout?.siderCollapsed !== 'undefined') {
-        previousSiderCollapsedRef.current = layout.siderCollapsed;
-      }
-      setRightSiderCollapsed(true);
-      layout?.setSiderCollapsed?.(true);
-    } else if (!isPreviewOpen && previousPreviewOpenRef.current) {
-      if (previousWorkspaceCollapsedRef.current !== null) {
-        setRightSiderCollapsed(previousWorkspaceCollapsedRef.current);
-        previousWorkspaceCollapsedRef.current = null;
-      }
-      if (previousSiderCollapsedRef.current !== null && layout?.setSiderCollapsed) {
-        layout.setSiderCollapsed(previousSiderCollapsedRef.current);
-        previousSiderCollapsedRef.current = null;
-      }
-    }
-
-    previousPreviewOpenRef.current = isPreviewOpen;
-  }, [isPreviewOpen, isDesktop, layout, rightSiderCollapsed, workspaceEnabled]);
+    dynamicChatMinRatio,
+    dynamicChatMaxRatio,
+  });
 
   const headerBlock = (
     <>
@@ -604,7 +326,6 @@ const ChatLayout: React.FC<{
     </>
   );
 
-  // 预览打开时使用顶部标题栏布局（聊天+预览位于标题栏下方）
   // When preview is open on desktop, keep chat+preview below the header.
   const useHeaderFullWidth = isPreviewOpen && isDesktop;
 
@@ -819,7 +540,7 @@ const ChatLayout: React.FC<{
           </>
         )}
 
-        {/* 移动端工作空间遮罩层 / Mobile workspace backdrop */}
+        {/* Mobile workspace backdrop */}
         {workspaceEnabled && layout?.isMobile && !rightSiderCollapsed && (
           <div
             className='fixed inset-0 bg-black/30 z-90'
@@ -828,7 +549,7 @@ const ChatLayout: React.FC<{
           />
         )}
 
-        {/* 移动端工作空间（保持原有的固定定位）/ Mobile workspace (keep original fixed positioning) */}
+        {/* Mobile workspace (keep original fixed positioning) */}
         {workspaceEnabled && layout?.isMobile && (
           <div
             className='!bg-1 relative chat-layout-right-sider'
