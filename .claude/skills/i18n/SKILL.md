@@ -2,7 +2,7 @@
 name: i18n
 description: |
   Internationalization (i18n) workflow and standards for managing translations.
-  Use when: (1) Adding new user-facing text, (2) Creating new components with text,
+  Use when: (1) Adding new user-facing text, (2) Creating new components with user-facing text,
   (3) Reviewing code for i18n compliance, (4) Adding a new translation module.
 ---
 

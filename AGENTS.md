@@ -84,7 +84,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | Skill | Purpose | Triggers |
 |-------|---------|----------|
 | **architecture** | File & directory structure conventions for all process types | Creating files, adding modules, architectural decisions |
-| **i18n** | Internationalization workflow and standards | Adding user-facing text, creating components with text |
+| **i18n** | Internationalization workflow and standards | Adding user-facing text, creating components with user-facing text |
 | **testing** | Testing workflow and quality standards | Writing tests, adding features, before claiming completion |
 | **commit** | Structured git commit workflow with quality checks | Committing code, `/commit`, `/oss-pr` |
 | **pr** | Pull request workflow: ensure issue exists, push branch, open PR | Creating pull requests, after committing, `/oss-pr` |
