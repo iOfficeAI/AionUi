@@ -963,9 +963,13 @@ export function initFsBridge(): void {
 
       try {
         await fs.access(targetDir);
+        // Skill already exists in user directory, treat as success (skip copy)
+        // 用户目录已存在同名 skill，视为成功（跳过复制）
+        console.log(`[fsBridge] Skill "${skillName}" already exists in user skills, skipping import`);
         return {
-          success: false,
-          msg: `Skill "${skillName}" already exists in user skills`,
+          success: true,
+          data: { skillName },
+          msg: `Skill "${skillName}" already exists`,
         };
       } catch {
         // User skill doesn't exist

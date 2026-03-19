@@ -313,9 +313,10 @@ export async function loadCliConfig({
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
-    // Disable native SkillManager to prevent XML <available_skills> injection into system prompt
-    // AionUi uses its own skill mechanism (AcpSkillManager) with plain-text index injection
-    skillsSupport: false,
+    // Enable native SkillManager for workspace-based skill discovery
+    // Skills are symlinked into workspace .gemini/skills/ by setupAssistantWorkspace()
+    // Native activate_skill tool handles: body injection + folder structure + directory permission
+    skillsSupport: true,
     // 启用 fetch 错误重试，处理 "exception TypeError: fetch failed sending request" 错误
     // Enable retry on fetch errors to handle "exception TypeError: fetch failed sending request"
     // 这通常是由网络不稳定或代理问题导致的临时错误

@@ -160,18 +160,15 @@ export class GeminiAgentManager extends BaseAgentManager<
           }
         }
 
-        // Build system instructions with skills INDEX only (not full content)
-        // 使用 skills 索引构建系统指令（不注入全文，按需通过 activate_skill 加载）
-        // Builtin skills (e.g. cron) are auto-included in the index by AcpSkillManager
+        // presetRules are now written to GEMINI.md by setupAssistantWorkspace()
+        // and loaded natively by Gemini CLI via loadServerHierarchicalMemory()
+        // Skills are symlinked into .gemini/skills/ and discovered natively by SkillManager
+        // No prompt injection needed -> native mechanisms handle everything
+
+        // Merge builtin skill names into enabledSkills for the worker's skill discovery
+        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
-        const finalPresetRules = await buildSystemInstructionsWithSkillsIndex({
-          presetContext: this.presetRules,
-          enabledSkills: this.enabledSkills,
-        });
-
-        // Merge builtin skill names into enabledSkills for the worker's activate_skill tool
-        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 activate_skill 能找到它们
         const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
         const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
 
@@ -193,11 +190,13 @@ export class GeminiAgentManager extends BaseAgentManager<
           webSearchEngine: this.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
-          presetRules: finalPresetRules,
+          // presetRules are no longer injected here — they are in GEMINI.md
+          // Keep for backward compatibility with existing conversations
+          presetRules: this.presetRules,
           contextContent: this.contextContent,
           skillsDir: getSkillsDir(),
-          // 启用的 skills 列表（含内置 skills），用于 worker 的 activate_skill 工具
-          // Enabled skills list (including builtins) for worker's activate_skill tool
+          // 启用的 skills 列表（含内置 skills），用于 worker 的 SkillManager
+          // Enabled skills list (including builtins) for worker's SkillManager
           enabledSkills: allEnabledSkills,
           // Yolo mode: derived from currentMode, not directly from legacy config
           yoloMode: effectiveYoloMode,
