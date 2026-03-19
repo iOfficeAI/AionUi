@@ -1,5 +1,5 @@
 import { AIONUI_FILES_MARKER, AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
-import type { FileOrFolderItem } from '@/renderer/types/files';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string | FileOrFolderItem>): string[] => {
   const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path)).filter(Boolean);

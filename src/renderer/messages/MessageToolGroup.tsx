@@ -18,7 +18,7 @@ import MessageFileChanges from './codex/MessageFileChanges';
 import CollapsibleContent from '../components/CollapsibleContent';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
-import { ToolConfirmationOutcome } from '../types/tool-confirmation';
+import { ToolConfirmationOutcome } from '@renderer/utils/toolConfirmation';
 import { ImagePreviewContext } from './MessageList';
 import { COLLAPSE_CONFIG, TEXT_CONFIG } from './constants';
 import type { ImageGenerationResult, WriteFileResult } from './types';

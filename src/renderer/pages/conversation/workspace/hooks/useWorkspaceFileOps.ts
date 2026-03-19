@@ -16,7 +16,7 @@ import {
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
-import type { FileOrFolderItem } from '@/renderer/types/files';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { getPathSeparator, replacePathInList, updateTreeForRename } from '../utils/treeHelpers';
 
 interface UseWorkspaceFileOpsOptions {

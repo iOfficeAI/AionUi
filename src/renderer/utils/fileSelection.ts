@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { FileOrFolderItem } from '@/renderer/types/files';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export type FileSelectionItem = string | FileOrFolderItem;
 

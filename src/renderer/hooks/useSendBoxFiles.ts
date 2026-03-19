@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { getCleanFileNames } from '@/renderer/services/FileService';
-import type { FileOrFolderItem } from '@/renderer/types/files';
+import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 /**
  * 创建通用的setUploadFile函数
