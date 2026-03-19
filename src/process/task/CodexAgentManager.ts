@@ -10,7 +10,7 @@ import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';

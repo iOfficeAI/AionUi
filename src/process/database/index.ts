@@ -32,10 +32,10 @@ import type {
   IChannelPairingCodeRow,
   PluginType,
   PluginStatus,
-} from '@/channels/types';
+} from '@process/channels/types';
 import type { ConversationSource, TProviderWithModel } from '@/common/storage';
-import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
-import { encryptCredentials, decryptCredentials } from '@/channels/utils/credentialCrypto';
+import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@process/channels/types';
+import { encryptCredentials, decryptCredentials } from '@process/channels/utils/credentialCrypto';
 
 type IConversationMessageSearchRow = IConversationRow & {
   message_id: string;

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IChannelPluginStatus } from '@/channels/types';
+import type { IChannelPluginStatus } from '@process/channels/types';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';

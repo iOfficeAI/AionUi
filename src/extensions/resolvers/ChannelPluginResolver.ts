@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 import fs from 'fs';
-import { BasePlugin, type PluginConfirmHandler, type PluginMessageHandler } from '@/channels/plugins/BasePlugin';
+import { BasePlugin, type PluginConfirmHandler, type PluginMessageHandler } from '@process/channels/plugins/BasePlugin';
 import type { LoadedExtension, ExtChannelPlugin } from '../types';
 import { isPathWithinDirectory } from '../sandbox/pathSafety';
 import { resolveRuntimeEntryPath } from './utils/entryPointResolver';

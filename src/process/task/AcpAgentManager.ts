@@ -1,5 +1,5 @@
 import { AcpAgent } from '@/agent/acp';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chatLib';
 import type { SlashCommandItem } from '@/common/slash/types';

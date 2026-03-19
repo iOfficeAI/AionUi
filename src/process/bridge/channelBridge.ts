@@ -5,13 +5,13 @@
  */
 
 import { channel } from '@/common/ipcBridge';
-import { getChannelManager } from '@/channels/core/ChannelManager';
-import { getPairingService } from '@/channels/pairing/PairingService';
+import { getChannelManager } from '@process/channels/core/ChannelManager';
+import { getPairingService } from '@process/channels/pairing/PairingService';
 import { ExtensionRegistry } from '@/extensions';
 import { toAssetUrl } from '@/extensions/protocol/assetProtocol';
 import * as path from 'path';
-import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
-import { hasPluginCredentials } from '@/channels/types';
+import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@process/channels/types';
+import { hasPluginCredentials } from '@process/channels/types';
 import type { IChannelRepository } from '@process/database/IChannelRepository';
 
 /**

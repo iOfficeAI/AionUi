@@ -5,7 +5,7 @@
  */
 
 import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
