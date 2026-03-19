@@ -199,7 +199,6 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
 
 <p align="center"><em>遠程監管你的 Agent — Claude、Gemini、Codex，瀏覽器或手機即可遠程控制與查看，如同 Claude Code remote。</em></p>
 
-
 > [遠端網際網路存取教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork 演示
@@ -553,7 +552,6 @@ brew install aionui
 - [發布更新](https://github.com/iOfficeAI/AionUi/releases) — 取得最新版本
 - [Discord 社群](https://discord.gg/2QAwJn7Egx) — 英語社群
 - [微信群](./resources/wechat_group_5.png) — 中文社群
-
 
 ### 貢獻
 

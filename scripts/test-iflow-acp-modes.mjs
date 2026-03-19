@@ -163,7 +163,9 @@ async function main() {
       console.log(`  modes.availableModes:`);
       if (modes.availableModes && modes.availableModes.length > 0) {
         for (const m of modes.availableModes) {
-          console.log(`    - id: "${m.id}", name: "${m.name}"${m.description ? ', desc: "' + m.description + '"' : ''}`);
+          console.log(
+            `    - id: "${m.id}", name: "${m.name}"${m.description ? ', desc: "' + m.description + '"' : ''}`
+          );
         }
       } else {
         console.log('    (empty or not present)');
@@ -191,7 +193,9 @@ async function main() {
         const modeResp = await send('session/set_mode', { sessionId, modeId });
         const hasError = modeResp.error != null;
         const symbol = hasError ? '✗' : '✓';
-        console.log(`  ${symbol} set_mode("${modeId}") => ${hasError ? 'ERROR: ' + JSON.stringify(modeResp.error) : 'SUCCESS ' + JSON.stringify(modeResp.result ?? {})}`);
+        console.log(
+          `  ${symbol} set_mode("${modeId}") => ${hasError ? 'ERROR: ' + JSON.stringify(modeResp.error) : 'SUCCESS ' + JSON.stringify(modeResp.result ?? {})}`
+        );
       } catch (err) {
         console.log(`  ✗ set_mode("${modeId}") => TIMEOUT/ERROR: ${err.message}`);
       }
@@ -213,7 +217,6 @@ async function main() {
       console.log('  session/set_mode is likely NOT SUPPORTED.');
     }
     console.log('='.repeat(60));
-
   } catch (err) {
     log('ERROR', err.message);
   } finally {

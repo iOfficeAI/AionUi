@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchSlashQuery } from '@/renderer/hooks/useSlashCommandController';
+import { matchSlashQuery } from '@/renderer/hooks/chat/useSlashCommandController';
 
 describe('matchSlashQuery', () => {
   it('matches slash pattern ^/([a-zA-Z0-9_-]*)$', () => {

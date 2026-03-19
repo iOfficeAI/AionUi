@@ -4,7 +4,7 @@ import {
   CSS_SYNC_RECENT_UPDATE_WINDOW_MS,
   computeCssSyncDecision,
   resolveCssByActiveTheme,
-} from '@/renderer/utils/themeCssSync';
+} from '@/renderer/utils/theme/themeCssSync';
 
 const NEW_CSS = '.new-theme-flag { color: rgb(1, 2, 3); }';
 const OLD_CSS = '.old-theme-flag { color: rgb(3, 2, 1); }';

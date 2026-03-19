@@ -233,6 +233,10 @@ describe('tray module', () => {
     it('should be a no-op when no tray exists', async () => {
       const { refreshTrayMenu } = await import('@/process/tray');
 
+      // Flush any pending micro-tasks from previous tests, then clear
+      await new Promise((r) => setTimeout(r, 50));
+      mockBuildFromTemplate.mockClear();
+
       await refreshTrayMenu();
 
       expect(mockBuildFromTemplate).not.toHaveBeenCalled();
@@ -252,8 +256,9 @@ describe('tray module', () => {
     };
 
     const getTemplateFromRefresh = async () => {
-      // Pre-import electron to ensure doMock is resolved before tray imports it
+      // Pre-import mocked modules to ensure doMock is resolved before tray imports them
       await import('electron');
+      await import('@process/database');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
       createOrUpdateTray();
       const previousCalls = mockBuildFromTemplate.mock.calls.length;

@@ -28,78 +28,171 @@ Perform a thorough local code review with full project context — reads source 
 If `$ARGUMENTS` is non-empty, use it as the PR number.
 
 Otherwise run:
+
 ```bash
 gh pr view --json number -q .number
 ```
 
 If this also fails (not on a PR branch), abort with:
+
 > No PR number provided and cannot detect one from the current branch. Usage: `/pr-review <pr_number>`
 
-### Step 2 — Check Working Tree
+### Step 2 — Check CI Status
+
+```bash
+gh pr view <PR_NUMBER> --json statusCheckRollup \
+  --jq '.statusCheckRollup[] | {name: .name, status: .status, conclusion: .conclusion}'
+```
+
+**必检 job 列表：**
+
+- `Code Quality`
+- `Unit Tests (ubuntu-latest)`
+- `Unit Tests (macos-14)`
+- `Unit Tests (windows-2022)`
+- `Coverage Test`
+- `i18n-check`
+
+（`build-test` 为可选 job，不纳入必检范围。）
+
+**特殊情形：** 满足以下任一条件时，跳过此步骤，直接继续：
+
+- `statusCheckRollup` 为空（CI 从未触发）
+- `statusCheckRollup` 非空，但所有必检 job 均不在列表中（说明 pr-checks.yml 工作流整体未触发，如仅改动 docs/md 文件的 PR）
+
+**解析逻辑：** 对上述必检 job 逐一检查，跳过列表中不存在的 job，对存在的分三种情形处理：
+
+**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`）
+
+直接继续后续步骤，无需提示。
+
+**情形 2 — 部分仍在运行**（存在 `status` 为 `QUEUED` 或 `IN_PROGRESS` 的必检 job）
+
+显示警告并询问：
+
+> ⏳ 以下 CI job 尚未完成：[job 列表]
+> PR CI 未全部完成，建议等待后再 review。是否仍要继续？(yes/no)
+
+- 用户选 **no** → 终止
+- 用户选 **yes** → 继续后续步骤
+
+**情形 3 — 存在失败**（存在 `conclusion` 为 `FAILURE` 或 `CANCELLED` 的必检 job）
+
+显示警告并询问：
+
+> ❌ 以下 CI job 未通过：[job 列表及结论]
+> PR CI 存在失败，review 结论可能不准确。是否仍要继续？(yes/no)
+
+- 用户选 **yes** → 继续，并在最终报告"变更概述"段落末尾追加 CI 状态警告（格式见"报告增强"节）
+- 用户选 **no** → 终止 review，随即询问：
+
+  > 是否在 PR #\<PR_NUMBER\> 发表评论，提醒作者修复失败的 CI job？(yes/no)
+  - 用户选 **yes** → 发布 CI 失败提醒评论（格式见下方"CI 失败提醒评论"节），然后退出
+  - 用户选 **no** → 直接退出
+
+#### CI 失败提醒评论
+
+当 CI 失败且用户选择不继续 review 但选择发布提醒时，评论格式：
+
+```bash
+gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
+
+## CI 检查未通过
+
+以下 job 在本次 review 时未通过，请修复：
+
+| Job | 结论 |
+|-----|------|
+| <失败的 job 名称> | ❌ <FAILURE 或 CANCELLED> |
+
+本次 code review 暂缓，待 CI 全部通过后将重新执行。"
+```
+
+（仅列出实际失败的 job，跳过已通过的。）
+
+#### 报告增强
+
+当 CI 存在失败但用户选择继续时，在最终报告"变更概述"段落末尾追加：
+
+```
+> ⚠️ **CI 状态警告**：以下 job 在 review 时未通过：`<job 名称>`（<结论>）。本报告结论仅供参考，建议修复 CI 后重新 review。
+```
+
+---
+
+### Step 3 — Check Working Tree
 
 ```bash
 git status --porcelain
 ```
 
 If the output is non-empty, abort with:
+
 > Working tree has uncommitted changes. Please commit or stash them before running pr-review.
 
-### Step 3 — Record Current Branch
+### Step 4 — Record Current Branch
 
 ```bash
 git branch --show-current
 ```
 
-Save this as `<original_branch>` for Step 9.
+Save this as `<original_branch>` for Step 10.
 
-### Step 4 — Checkout PR Branch
+### Step 5 — Checkout PR Branch
 
 ```bash
 gh pr checkout <PR_NUMBER>
 ```
 
 Save the checked-out branch name:
+
 ```bash
 git branch --show-current
 ```
 
-### Step 5 — Collect Context (Parallel)
+### Step 6 — Collect Context (Parallel)
 
 Run the following in parallel:
 
 **PR metadata:**
+
 ```bash
 gh pr view <PR_NUMBER> --json title,body,author,labels,headRefName,baseRefName,state,createdAt,updatedAt
 ```
 
 **Full diff (no truncation):**
+
 ```bash
 git diff origin/<baseRefName>...HEAD
 ```
 
 **Changed file list:**
+
 ```bash
 git diff --name-status origin/<baseRefName>...HEAD
 ```
 
 **Existing pr-assess comment (if any):**
+
 ```bash
 gh pr view <PR_NUMBER> --json comments --jq '.comments[] | select(.body | startswith("<!-- pr-assess-bot -->")) | .body'
 ```
 
 If a pr-assess comment exists, use it as supplementary context (risk signals, change overview) when forming your review. Do not re-verify its conclusions — treat it as background information only.
 
-### Step 6 — Read Changed File Contents
+### Step 7 — Read Changed File Contents
 
 Use the Read tool to read each changed file locally.
 
 **Skip:**
+
 - `*.lock` files
 - Images, fonts
 - `dist/`, `node_modules/`, `.cache/`
 - `*.map`, `*.min.js`, `*.min.css`
 
 **Priority order (read highest priority first):**
+
 1. `src/process/`
 2. `src/channels/`
 3. `src/common/`
@@ -108,7 +201,7 @@ Use the Read tool to read each changed file locally.
 
 Also read key interface/type definition files imported by the changed files when they provide important context.
 
-### Step 7 — Perform Code Review
+### Step 8 — Perform Code Review
 
 Write the code review report in **Chinese**.
 
@@ -136,6 +229,7 @@ Review dimensions:
 **只报告真实存在的问题。** 如果某个维度代码没有问题，跳过即可，不要为了显示"有在认真 review"而凑问题。以实际代码为准，有则报告，无则如实说代码干净。方案合理性维度同理——如果方案本身没有问题，如实写"方案合理"即可，不要为了体现"有深度"而刻意挑剔。
 
 For each issue found:
+
 1. Specify file path and line number(s)
 2. Quote the problematic code
 3. Explain why it is an issue
@@ -145,10 +239,11 @@ Use the following report template:
 
 ---
 
-```markdown
+````markdown
 ## Code Review：<PR 标题> (#<PR_NUMBER>)
 
 ### 变更概述
+
 [2–3 句话说明这个 PR 改了什么，影响了哪些模块。]
 
 ---
@@ -168,13 +263,16 @@ Use the following report template:
 **文件**：`path/to/file.ts`，第 N 行
 
 **问题代码**：
+
 ```ts
 // 有问题的代码
 ```
+````
 
 **问题说明**：[说明为什么有问题]
 
 **修复建议**：
+
 ```ts
 // 修复后的代码
 ```
@@ -201,14 +299,15 @@ Use the following report template:
 
 ### 汇总
 
-| # | 严重级别 | 文件 | 问题 |
-|---|---------|------|------|
-| 1 | 🔴 CRITICAL | `file.ts:N` | ... |
-| 2 | 🟠 HIGH | `file.ts:N` | ... |
+| #   | 严重级别    | 文件        | 问题 |
+| --- | ----------- | ----------- | ---- |
+| 1   | 🔴 CRITICAL | `file.ts:N` | ...  |
+| 2   | 🟠 HIGH     | `file.ts:N` | ...  |
 
 ### 结论
 
 [以下三选一：]
+
 - ✅ **批准合并** — 无阻塞性问题
 - ⚠️ **有条件批准** — 存在小问题，处理后可合并
 - ❌ **需要修改** — 存在阻塞性问题，必须先解决
@@ -216,8 +315,10 @@ Use the following report template:
 [一句话说明理由]
 
 ---
-*本报告由本地 `pr-review` skill 生成，包含完整项目上下文，无截断限制。*
-```
+
+_本报告由本地 `pr-review` skill 生成，包含完整项目上下文，无截断限制。_
+
+````
 
 ---
 
@@ -225,7 +326,7 @@ If no issues are found across all dimensions, output:
 
 > ✅ 未发现明显问题，代码质量良好，建议批准合并。
 
-### Step 8 — Ask to Post Comment
+### Step 9 — Ask to Post Comment
 
 Print the complete review report to the terminal, then ask the user:
 
@@ -236,9 +337,10 @@ If the user says **yes**:
 1. Check for an existing review comment:
 ```bash
 gh pr view <PR_NUMBER> --json comments --jq '.comments[] | select(.body | startswith("<!-- pr-review-bot -->")) | .databaseId'
-```
+````
 
 2. If a previous comment exists, update it:
+
 ```bash
 gh api repos/{owner}/{repo}/issues/comments/<comment_id> -X PATCH -f body="<!-- pr-review-bot -->
 
@@ -246,23 +348,27 @@ gh api repos/{owner}/{repo}/issues/comments/<comment_id> -X PATCH -f body="<!-- 
 ```
 
 3. If no previous comment exists, create a new one:
+
 ```bash
 gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 
 <review_report>"
 ```
 
-### Step 9 — Cleanup
+### Step 10 — Cleanup
 
 Switch back to the original branch:
+
 ```bash
 git checkout <original_branch>
 ```
 
 Ask the user:
+
 > 是否删除本地 PR 分支 `<pr_branch>`？(yes/no)
 
 If yes:
+
 ```bash
 git branch -D <pr_branch>
 ```

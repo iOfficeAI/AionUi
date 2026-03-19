@@ -8,7 +8,7 @@ description: |
 
 # PR Review Fix Skill
 
-Automated workflow to resolve all issues surfaced in a pr-review report — parse summary → create fix branch → fix by priority → quality gate → commit → open follow-up PR → verify.
+Automated workflow to resolve all issues surfaced in a pr-review report — parse summary → detect PR status → create fix branch or checkout original branch → fix by priority → quality gate → commit → publish → verify.
 
 **Announce at start:** "I'm using pr-fix skill to fix all review issues."
 
@@ -50,6 +50,7 @@ gh pr view <PR_NUMBER> --json comments \
 ```
 
 If no review comment is found, abort with:
+
 > No pr-review report found. Please run `/pr-review <pr_number>` first.
 
 ---
@@ -59,24 +60,26 @@ If no review comment is found, abort with:
 Locate the **汇总** section in the review report:
 
 ```markdown
-| # | 严重级别 | 文件 | 问题 |
-|---|---------|------|------|
-| 1 | 🔴 CRITICAL | `file.ts:N` | ... |
+| #   | 严重级别    | 文件        | 问题 |
+| --- | ----------- | ----------- | ---- |
+| 1   | 🔴 CRITICAL | `file.ts:N` | ...  |
 ```
 
 Build an ordered issue list, grouped by severity:
 
 | Priority | Severity | Emoji |
-|----------|----------|-------|
+| -------- | -------- | ----- |
 | 1        | CRITICAL | 🔴    |
 | 2        | HIGH     | 🟠    |
 | 3        | MEDIUM   | 🟡    |
 | 4        | LOW      | 🔵    |
 
 If the 汇总 table is empty, abort with:
+
 > No issues found in the review summary. Nothing to fix.
 
 **LOW issues — ask user once:**
+
 > 检测到 N 个 LOW 级别问题。是否一并修复？(yes/no)
 
 If **no**, exclude LOW issues from this run.
@@ -96,24 +99,52 @@ gh pr view <PR_NUMBER> --json headRefName,baseRefName \
   -q '{head: .headRefName, base: .baseRefName}'
 ```
 
+```bash
+# Check whether the PR has been merged
+gh pr view <PR_NUMBER> --json state -q '.state'
+# Returns: "MERGED" or "OPEN"
+```
+
+```bash
+# Check whether the PR is from a fork
+gh pr view <PR_NUMBER> --json isCrossRepository -q '.isCrossRepository'
+# Returns: true (fork) or false (internal branch)
+```
+
 If working tree is dirty, abort with:
+
 > Working tree has uncommitted changes. Please commit or stash them before running pr-fix.
 
-Save `<original_head_branch>` and `<base_branch>` for Step 3.
+Save `<head_branch>`, `<base_branch>`, `<state>`, and `<isCrossRepository>` for Step 3.
+
+**Determine path based on results:**
+
+| state    | isCrossRepository | Path                             |
+| -------- | ----------------- | -------------------------------- |
+| `MERGED` | any               | Path A — create follow-up PR     |
+| `OPEN`   | `false`           | Path B — push to original branch |
+| `OPEN`   | `true`            | **ABORT**                        |
+
+If state is `OPEN` and isCrossRepository is `true`, abort with:
+
+> PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
+> Please wait for the PR to be merged, then run `/pr-fix` again.
 
 ---
 
-### Step 3 — Create Fix Branch
+### Step 3 — Prepare Working Branch
 
-Derive the fix branch name from `<original_head_branch>`:
+#### Path A — Create follow-up PR (state=MERGED, any source)
 
-| Original branch           | Scope      | Fix branch                       |
-|---------------------------|------------|----------------------------------|
-| `feat/webui-file-upload`  | `webui`    | `fix/webui-review-followup`      |
-| `fix/cron-timezone`       | `cron`     | `fix/cron-review-followup`       |
+Derive the fix branch name from `<head_branch>`:
+
+| Original branch             | Scope                  | Fix branch                                 |
+| --------------------------- | ---------------------- | ------------------------------------------ |
+| `feat/webui-file-upload`    | `webui`                | `fix/webui-review-followup`                |
+| `fix/cron-timezone`         | `cron`                 | `fix/cron-review-followup`                 |
 | `feat/image-generation-mcp` | `image-generation-mcp` | `fix/image-generation-mcp-review-followup` |
 
-**Rule:** Split on `/`, take segment after the first `/`, use that as scope (trim any trailing `-` suffixes if desired).
+**Rule:** Split on `/`, take segment after the first `/`, use that as scope.
 
 ```bash
 git fetch origin <base_branch>
@@ -121,6 +152,18 @@ git checkout <base_branch>
 git pull origin <base_branch>
 git checkout -b fix/<scope>-review-followup
 ```
+
+#### Path B — Push to original branch (state=OPEN, isCrossRepository=false)
+
+Check out the existing head branch directly — no new branch needed:
+
+```bash
+git fetch origin <head_branch>
+git checkout <head_branch>
+git pull origin <head_branch>
+```
+
+Fixes will be committed directly onto this branch, and the open PR will update automatically.
 
 ---
 
@@ -172,7 +215,9 @@ Review follow-up for #<PR_NUMBER>
 
 ---
 
-### Step 7 — Create Follow-up PR
+### Step 7 — Publish
+
+#### Path A — Create follow-up PR
 
 Follow the [pr skill](../pr/SKILL.md) — **skip** Step 2 (Issue Association), do NOT create a new issue.
 
@@ -205,7 +250,17 @@ EOF
 )"
 ```
 
-Output the new PR URL to the user.
+Save `<NEW_PR_NUMBER>` from the output. Output the new PR URL to the user.
+
+#### Path B — Push to original branch
+
+```bash
+git push origin <head_branch>
+```
+
+Output to user:
+
+> 已推送到 `<head_branch>`，PR #<PR_NUMBER> 已自动更新。无需创建新 PR。
 
 ---
 
@@ -217,9 +272,13 @@ For each issue in the original summary table, verify the fix exists in actual co
 2. Grep for the original problematic pattern to confirm it is gone
 3. Confirm the corrected code is in place
 
-Output:
+**Both paths must post the verification report as a PR comment AND output it in the conversation.**
 
-```markdown
+#### Path A — Post comment to follow-up PR
+
+```bash
+gh pr comment <NEW_PR_NUMBER> --body "$(cat <<'EOF'
+<!-- pr-fix-verification -->
 ## PR Fix 验证报告
 
 **原始 PR:** #<PR_NUMBER>
@@ -232,7 +291,32 @@ Output:
 | 3 | 🔵 LOW      | `file.ts:N` | <原始问题> | —       | ⏭️ 跳过 |
 
 **总结：** ✅ 已修复 N 个 | ❌ 未能修复 N 个 | ⏭️ 跳过 N 个
+EOF
+)"
 ```
+
+#### Path B — Post comment to original PR
+
+```bash
+gh pr comment <PR_NUMBER> --body "$(cat <<'EOF'
+<!-- pr-fix-verification -->
+## PR Fix 验证报告
+
+**原始 PR:** #<PR_NUMBER>
+**修复方式:** 直接推送到 `<head_branch>`
+
+| # | 严重级别 | 文件 | 问题 | 修复方式 | 状态 |
+|---|---------|------|------|---------|------|
+| 1 | 🔴 CRITICAL | `file.ts:N` | <原始问题> | <修复措施> | ✅ 已修复 |
+| 2 | 🟠 HIGH     | `file.ts:N` | <原始问题> | <修复措施> | ✅ 已修复 |
+| 3 | 🔵 LOW      | `file.ts:N` | <原始问题> | —       | ⏭️ 跳过 |
+
+**总结：** ✅ 已修复 N 个 | ❌ 未能修复 N 个 | ⏭️ 跳过 N 个
+EOF
+)"
+```
+
+After posting, output the same verification table in the conversation for immediate review.
 
 ---
 
@@ -250,11 +334,18 @@ Output:
 ```
 0. Get review report (current session OR fetch from PR comments)
 1. Parse 汇总 table → ordered issue list; ask about LOW issues
-2. Pre-flight: clean working tree + fetch original PR branch info
-3. git checkout <base> && git pull && git checkout -b fix/<scope>-review-followup
-4. Fix issues CRITICAL→HIGH→MEDIUM→LOW; bunx tsc --noEmit after each file batch
-5. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
-6. Commit: fix(<scope>): address review issues from PR #N
-7. gh pr create — Follow-up to #N (skip issue creation)
-8. Verify each fix → output verification table (✅ / ❌ / ⏭️)
+2. Pre-flight: clean working tree + fetch PR branch info
+   + detect: state (merged/open) + isCrossRepository (fork/internal)
+   → Path A: state=MERGED (any source) — create follow-up PR
+   → Path B: state=OPEN + isCrossRepository=false — push to original branch
+   → ABORT: state=OPEN + isCrossRepository=true — wait for merge
+3a. [Path A] git checkout <base> && git pull && git checkout -b fix/<scope>-review-followup
+3b. [Path B] git checkout <head_branch> && git pull
+4.  Fix issues CRITICAL→HIGH→MEDIUM→LOW; bunx tsc --noEmit after each file batch
+5.  bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test
+6.  Commit: fix(<scope>): address review issues from PR #N
+7a. [Path A] gh pr create — Follow-up to #N → record NEW_PR_NUMBER
+7b. [Path B] git push origin <head_branch> (PR auto-updated, no new PR)
+8a. [Path A] Verify → post as gh pr comment NEW_PR_NUMBER + output in conversation
+8b. [Path B] Verify → post as gh pr comment PR_NUMBER + output in conversation
 ```

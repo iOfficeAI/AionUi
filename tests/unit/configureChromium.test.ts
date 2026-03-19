@@ -11,6 +11,11 @@ import path from 'path';
 
 const originalEnv = { ...process.env };
 
+// The real CDP registry file persists across tests and may contain live entries
+// from running AionUi instances, causing port conflicts. Back it up and restore.
+const REAL_REGISTRY = path.join(os.homedir(), '.aionui-cdp-registry.json');
+let savedRegistry: string | null = null;
+
 function createSandbox(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-cdp-test-'));
 }
@@ -38,8 +43,11 @@ async function loadConfigureChromium(options: SetupOptions = {}) {
     fs.writeFileSync(configPath, JSON.stringify(options.config, null, 2), 'utf-8');
   }
 
+  // Write registry to the REAL path because vi.doMock('os') does not properly
+  // intercept os.homedir() for Node built-in modules during module-level evaluation.
+  // The real registry is backed up/restored in beforeEach/afterEach.
   if (options.registry) {
-    fs.writeFileSync(registryPath, JSON.stringify(options.registry, null, 2), 'utf-8');
+    fs.writeFileSync(REAL_REGISTRY, JSON.stringify(options.registry, null, 2), 'utf-8');
   }
 
   process.env = { ...originalEnv };
@@ -94,6 +102,13 @@ describe('configureChromium CDP (lightweight mock + file sandbox)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Backup and clear the real registry to isolate tests from running instances
+    try {
+      savedRegistry = fs.existsSync(REAL_REGISTRY) ? fs.readFileSync(REAL_REGISTRY, 'utf-8') : null;
+      fs.writeFileSync(REAL_REGISTRY, '[]', 'utf-8');
+    } catch {
+      savedRegistry = null;
+    }
   });
 
   afterEach(() => {
@@ -102,6 +117,16 @@ describe('configureChromium CDP (lightweight mock + file sandbox)', () => {
       restore?.();
     }
     process.env = { ...originalEnv };
+    // Restore the real registry
+    try {
+      if (savedRegistry !== null) {
+        fs.writeFileSync(REAL_REGISTRY, savedRegistry, 'utf-8');
+      } else if (fs.existsSync(REAL_REGISTRY)) {
+        fs.unlinkSync(REAL_REGISTRY);
+      }
+    } catch {
+      // best-effort
+    }
   });
 
   it('Defaults to disabled in packaged builds even when config.enabled=true', async () => {

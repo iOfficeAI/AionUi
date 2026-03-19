@@ -1,5 +1,5 @@
 # Pre-commit configuration for AionUi
-# Ensures local checks match CI checks (TypeScript, ESLint, Prettier)
+# Ensures local checks match CI checks (TypeScript, Oxlint, Oxfmt)
 #
 # Installation:
 #   pip install pre-commit  (or: brew install pre-commit / choco install pre-commit)
@@ -49,24 +49,24 @@ repos:
         files: \.(ts|tsx)$
         pass_filenames: false
 
-  # ESLint (checks staged files only)
+  # Oxlint (replaces ESLint — checks staged files only)
   - repo: local
     hooks:
-      - id: eslint
-        name: ESLint
+      - id: oxlint
+        name: Oxlint
         entry: bun run lint
         language: system
-        files: \.(ts|tsx)$
+        files: \.(ts|tsx|js|jsx)$
         pass_filenames: false
 
-  # Prettier (checks staged files only)
+  # Oxfmt (replaces Prettier — checks staged files only)
   - repo: local
     hooks:
-      - id: prettier
-        name: Prettier
+      - id: oxfmt
+        name: Oxfmt
         entry: bun run format:check
         language: system
-        files: \.(ts|tsx|js|jsx|json|css|md)$
+        files: \.(ts|tsx|js|jsx|json|css|md|yaml|yml|toml)$
         pass_filenames: false
 
   # i18n translation files validation
@@ -76,7 +76,7 @@ repos:
         name: i18n Check
         entry: node scripts/check-i18n.js
         language: system
-        files: ^src/renderer/i18n/locales/
+        files: ^src/renderer/services/i18n/locales/
         pass_filenames: false
 
   # Commit message format (Conventional Commits)

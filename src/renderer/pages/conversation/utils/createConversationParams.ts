@@ -8,8 +8,8 @@ import { ConfigStorage } from '@/common/storage';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { TProviderWithModel } from '@/common/storage';
 import { resolveLocaleKey } from '@/common/utils';
-import { loadPresetAssistantResources } from '@/renderer/shared/agents/presetAssistantResources';
-import type { AvailableAgent } from '@/renderer/shared/agents/types';
+import { loadPresetAssistantResources } from '@/renderer/utils/model/presetAssistantResources';
+import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import type { AcpBackend, AcpBackendAll } from '@/types/acpTypes';
 
 /**

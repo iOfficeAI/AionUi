@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useDragUpload } from '@/renderer/hooks/useDragUpload';
-import { usePasteService } from '@/renderer/hooks/usePasteService';
+import { useDragUpload } from '@/renderer/hooks/file/useDragUpload';
+import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { measureCaretTop, scrollCaretToLastLine } from '../utils/caretUtils';
 import { useCallback, useEffect, useState } from 'react';

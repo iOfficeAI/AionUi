@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 
 describe('buildDisplayMessage', () => {
   const workspace = '/tmp/aion/workspace-1';

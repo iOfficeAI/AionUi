@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-import type { TimelineSection } from '../../src/renderer/pages/conversation/grouped-history/types';
+import type { TimelineSection } from '../../src/renderer/pages/conversation/GroupedHistory/types';
 
 // ── localStorage mock ────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ vi.mock('react-i18next', () => ({
 // Shared ref so the hoisted mock factory can read the latest value
 const testState = { sections: [] as TimelineSection[] };
 
-vi.mock('../../src/renderer/pages/conversation/grouped-history/utils/groupingHelpers', () => ({
+vi.mock('../../src/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
   buildGroupedHistory: () => ({
     pinnedConversations: [],
     timelineSections: testState.sections,
@@ -85,7 +85,7 @@ const makeWorkspaceSection = (workspaces: string[]): TimelineSection[] => [
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 // Import the hook statically since mocks are hoisted
-import { useConversations } from '../../src/renderer/pages/conversation/grouped-history/hooks/useConversations';
+import { useConversations } from '../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversations';
 
 describe('useConversations - workspace expansion', () => {
   beforeEach(() => {

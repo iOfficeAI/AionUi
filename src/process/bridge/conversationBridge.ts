@@ -246,7 +246,7 @@ export function initConversationBridge(
           }
         }
 
-        if (Object.hasOwn(updates, 'name')) {
+        if ('name' in updates) {
           await refreshTrayMenuSafely();
         }
 

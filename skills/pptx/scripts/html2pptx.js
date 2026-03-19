@@ -76,7 +76,10 @@ function validateDimensions(bodyDimensions, pres) {
     const layoutHeight = pres.presLayout.height / EMU_PER_IN;
 
     if (Math.abs(layoutWidth - widthInches) > 0.1 || Math.abs(layoutHeight - heightInches) > 0.1) {
-      errors.push(`HTML dimensions (${widthInches.toFixed(1)}" × ${heightInches.toFixed(1)}") ` + `don't match presentation layout (${layoutWidth.toFixed(1)}" × ${layoutHeight.toFixed(1)}")`);
+      errors.push(
+        `HTML dimensions (${widthInches.toFixed(1)}" × ${heightInches.toFixed(1)}") ` +
+          `don't match presentation layout (${layoutWidth.toFixed(1)}" × ${layoutHeight.toFixed(1)}")`
+      );
     }
   }
   return errors;
@@ -103,7 +106,10 @@ function validateTextBoxPosition(slideData, bodyDimensions) {
         };
         const textPrefix = getText().substring(0, 50) + (getText().length > 50 ? '...' : '');
 
-        errors.push(`Text box "${textPrefix}" ends too close to bottom edge ` + `(${distanceFromBottom.toFixed(2)}" from bottom, minimum ${minBottomMargin}" required)`);
+        errors.push(
+          `Text box "${textPrefix}" ends too close to bottom edge ` +
+            `(${distanceFromBottom.toFixed(2)}" from bottom, minimum ${minBottomMargin}" required)`
+        );
       }
     }
   }
@@ -114,7 +120,9 @@ function validateTextBoxPosition(slideData, bodyDimensions) {
 // Helper: Add background to slide
 async function addBackground(slideData, targetSlide, tmpDir) {
   if (slideData.background.type === 'image' && slideData.background.path) {
-    let imagePath = slideData.background.path.startsWith('file://') ? slideData.background.path.replace('file://', '') : slideData.background.path;
+    let imagePath = slideData.background.path.startsWith('file://')
+      ? slideData.background.path.replace('file://', '')
+      : slideData.background.path;
     targetSlide.background = { path: imagePath };
   } else if (slideData.background.type === 'color' && slideData.background.value) {
     targetSlide.background = { color: slideData.background.value };
@@ -225,7 +233,8 @@ function addElements(slideData, targetSlide, pres) {
       if (el.style.align) textOptions.align = el.style.align;
       if (el.style.margin) textOptions.margin = el.style.margin;
       if (el.style.rotate !== undefined) textOptions.rotate = el.style.rotate;
-      if (el.style.transparency !== null && el.style.transparency !== undefined) textOptions.transparency = el.style.transparency;
+      if (el.style.transparency !== null && el.style.transparency !== undefined)
+        textOptions.transparency = el.style.transparency;
 
       targetSlide.addText(el.text, textOptions);
     }
@@ -431,7 +440,14 @@ async function extractSlideData(page) {
           const computed = window.getComputedStyle(node);
 
           // Handle inline elements with computed styles
-          if (node.tagName === 'SPAN' || node.tagName === 'B' || node.tagName === 'STRONG' || node.tagName === 'I' || node.tagName === 'EM' || node.tagName === 'U') {
+          if (
+            node.tagName === 'SPAN' ||
+            node.tagName === 'B' ||
+            node.tagName === 'STRONG' ||
+            node.tagName === 'I' ||
+            node.tagName === 'EM' ||
+            node.tagName === 'U'
+          ) {
             const isBold = computed.fontWeight === 'bold' || parseInt(computed.fontWeight) >= 600;
             if (isBold && !shouldSkipBold(computed.fontFamily)) options.bold = true;
             if (computed.fontStyle === 'italic') options.italic = true;
@@ -451,16 +467,24 @@ async function extractSlideData(page) {
 
             // Validate: Check for margins on inline elements
             if (computed.marginLeft && parseFloat(computed.marginLeft) > 0) {
-              errors.push(`Inline element <${node.tagName.toLowerCase()}> has margin-left which is not supported in PowerPoint. Remove margin from inline elements.`);
+              errors.push(
+                `Inline element <${node.tagName.toLowerCase()}> has margin-left which is not supported in PowerPoint. Remove margin from inline elements.`
+              );
             }
             if (computed.marginRight && parseFloat(computed.marginRight) > 0) {
-              errors.push(`Inline element <${node.tagName.toLowerCase()}> has margin-right which is not supported in PowerPoint. Remove margin from inline elements.`);
+              errors.push(
+                `Inline element <${node.tagName.toLowerCase()}> has margin-right which is not supported in PowerPoint. Remove margin from inline elements.`
+              );
             }
             if (computed.marginTop && parseFloat(computed.marginTop) > 0) {
-              errors.push(`Inline element <${node.tagName.toLowerCase()}> has margin-top which is not supported in PowerPoint. Remove margin from inline elements.`);
+              errors.push(
+                `Inline element <${node.tagName.toLowerCase()}> has margin-top which is not supported in PowerPoint. Remove margin from inline elements.`
+              );
             }
             if (computed.marginBottom && parseFloat(computed.marginBottom) > 0) {
-              errors.push(`Inline element <${node.tagName.toLowerCase()}> has margin-bottom which is not supported in PowerPoint. Remove margin from inline elements.`);
+              errors.push(
+                `Inline element <${node.tagName.toLowerCase()}> has margin-bottom which is not supported in PowerPoint. Remove margin from inline elements.`
+              );
             }
 
             // Recursively process the child node. This will flatten nested spans into multiple runs.
@@ -491,7 +515,10 @@ async function extractSlideData(page) {
 
     // Validate: Check for CSS gradients
     if (bgImage && (bgImage.includes('linear-gradient') || bgImage.includes('radial-gradient'))) {
-      errors.push('CSS gradients are not supported. Use Sharp to rasterize gradients as PNG images first, ' + "then reference with background-image: url('gradient.png')");
+      errors.push(
+        'CSS gradients are not supported. Use Sharp to rasterize gradients as PNG images first, ' +
+          "then reference with background-image: url('gradient.png')"
+      );
     }
 
     let background;
@@ -529,11 +556,19 @@ async function extractSlideData(page) {
       if (textTags.includes(el.tagName)) {
         const computed = window.getComputedStyle(el);
         const hasBg = computed.backgroundColor && computed.backgroundColor !== 'rgba(0, 0, 0, 0)';
-        const hasBorder = (computed.borderWidth && parseFloat(computed.borderWidth) > 0) || (computed.borderTopWidth && parseFloat(computed.borderTopWidth) > 0) || (computed.borderRightWidth && parseFloat(computed.borderRightWidth) > 0) || (computed.borderBottomWidth && parseFloat(computed.borderBottomWidth) > 0) || (computed.borderLeftWidth && parseFloat(computed.borderLeftWidth) > 0);
+        const hasBorder =
+          (computed.borderWidth && parseFloat(computed.borderWidth) > 0) ||
+          (computed.borderTopWidth && parseFloat(computed.borderTopWidth) > 0) ||
+          (computed.borderRightWidth && parseFloat(computed.borderRightWidth) > 0) ||
+          (computed.borderBottomWidth && parseFloat(computed.borderBottomWidth) > 0) ||
+          (computed.borderLeftWidth && parseFloat(computed.borderLeftWidth) > 0);
         const hasShadow = computed.boxShadow && computed.boxShadow !== 'none';
 
         if (hasBg || hasBorder || hasShadow) {
-          errors.push(`Text element <${el.tagName.toLowerCase()}> has ${hasBg ? 'background' : hasBorder ? 'border' : 'shadow'}. ` + 'Backgrounds, borders, and shadows are only supported on <div> elements, not text elements.');
+          errors.push(
+            `Text element <${el.tagName.toLowerCase()}> has ${hasBg ? 'background' : hasBorder ? 'border' : 'shadow'}. ` +
+              'Backgrounds, borders, and shadows are only supported on <div> elements, not text elements.'
+          );
           return;
         }
       }
@@ -542,7 +577,9 @@ async function extractSlideData(page) {
       if (el.className && el.className.includes('placeholder')) {
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) {
-          errors.push(`Placeholder "${el.id || 'unnamed'}" has ${rect.width === 0 ? 'width: 0' : 'height: 0'}. Check the layout CSS.`);
+          errors.push(
+            `Placeholder "${el.id || 'unnamed'}" has ${rect.width === 0 ? 'width: 0' : 'height: 0'}. Check the layout CSS.`
+          );
         } else {
           placeholders.push({
             id: el.id || `placeholder-${placeholders.length}`,
@@ -586,7 +623,10 @@ async function extractSlideData(page) {
           if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent.trim();
             if (text) {
-              errors.push(`DIV element contains unwrapped text "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}". ` + 'All text must be wrapped in <p>, <h1>-<h6>, <ul>, or <ol> tags to appear in PowerPoint.');
+              errors.push(
+                `DIV element contains unwrapped text "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}". ` +
+                  'All text must be wrapped in <p>, <h1>-<h6>, <ul>, or <ol> tags to appear in PowerPoint.'
+              );
             }
           }
         }
@@ -594,7 +634,10 @@ async function extractSlideData(page) {
         // Check for background images on shapes
         const bgImage = computed.backgroundImage;
         if (bgImage && bgImage !== 'none') {
-          errors.push('Background images on DIV elements are not supported. ' + 'Use solid colors or borders for shapes, or use slide.addImage() in PptxGenJS to layer images.');
+          errors.push(
+            'Background images on DIV elements are not supported. ' +
+              'Use solid colors or borders for shapes, or use slide.addImage() in PptxGenJS to layer images.'
+          );
           return;
         }
 
@@ -775,7 +818,8 @@ async function extractSlideData(page) {
             color: rgbToHex(computed.color),
             transparency: extractAlpha(computed.color),
             align: computed.textAlign === 'start' ? 'left' : computed.textAlign,
-            lineSpacing: computed.lineHeight && computed.lineHeight !== 'normal' ? pxToPoints(computed.lineHeight) : null,
+            lineSpacing:
+              computed.lineHeight && computed.lineHeight !== 'normal' ? pxToPoints(computed.lineHeight) : null,
             paraSpaceBefore: 0,
             paraSpaceAfter: pxToPoints(computed.marginBottom),
             // PptxGenJS margin array is [left, right, bottom, top]
@@ -797,7 +841,10 @@ async function extractSlideData(page) {
 
       // Validate: Check for manual bullet symbols in text elements (not in lists)
       if (el.tagName !== 'LI' && /^[•\-\*▪▸○●◆◇■□]\s/.test(text.trimStart())) {
-        errors.push(`Text element <${el.tagName.toLowerCase()}> starts with bullet symbol "${text.substring(0, 20)}...". ` + 'Use <ul> or <ol> lists instead of manual bullet symbols.');
+        errors.push(
+          `Text element <${el.tagName.toLowerCase()}> starts with bullet symbol "${text.substring(0, 20)}...". ` +
+            'Use <ul> or <ol> lists instead of manual bullet symbols.'
+        );
         return;
       }
 
@@ -814,7 +861,12 @@ async function extractSlideData(page) {
         paraSpaceBefore: pxToPoints(computed.marginTop),
         paraSpaceAfter: pxToPoints(computed.marginBottom),
         // PptxGenJS margin array is [left, right, bottom, top] (not [top, right, bottom, left] as documented)
-        margin: [pxToPoints(computed.paddingLeft), pxToPoints(computed.paddingRight), pxToPoints(computed.paddingBottom), pxToPoints(computed.paddingTop)],
+        margin: [
+          pxToPoints(computed.paddingLeft),
+          pxToPoints(computed.paddingRight),
+          pxToPoints(computed.paddingBottom),
+          pxToPoints(computed.paddingTop),
+        ],
       };
 
       const transparency = extractAlpha(computed.color);
@@ -932,7 +984,10 @@ async function html2pptx(htmlFile, pres, options = {}) {
 
     // Throw all errors at once if any exist
     if (validationErrors.length > 0) {
-      const errorMessage = validationErrors.length === 1 ? validationErrors[0] : `Multiple validation errors found:\n${validationErrors.map((e, i) => `  ${i + 1}. ${e}`).join('\n')}`;
+      const errorMessage =
+        validationErrors.length === 1
+          ? validationErrors[0]
+          : `Multiple validation errors found:\n${validationErrors.map((e, i) => `  ${i + 1}. ${e}`).join('\n')}`;
       throw new Error(errorMessage);
     }
 

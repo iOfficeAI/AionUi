@@ -56,23 +56,24 @@ Is it a messaging channel (Lark, DingTalk, Telegram)?
 
 **Hard rules — violating them causes runtime crashes.**
 
-| Process | Can use | Cannot use |
-|---------|---------|------------|
-| **Main** (`src/process/`) | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React) |
-| **Renderer** (`src/renderer/`) | DOM APIs, React, browser APIs | Node.js APIs (`fs`, `path`), Electron main APIs |
-| **Worker** (`src/worker/`) | Node.js APIs | DOM APIs, Electron APIs |
-| **Preload** (`src/preload.ts`) | `contextBridge`, `ipcRenderer` | DOM manipulation, Node.js `fs` |
+| Process                        | Can use                                                    | Cannot use                                      |
+| ------------------------------ | ---------------------------------------------------------- | ----------------------------------------------- |
+| **Main** (`src/process/`)      | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React)          |
+| **Renderer** (`src/renderer/`) | DOM APIs, React, browser APIs                              | Node.js APIs (`fs`, `path`), Electron main APIs |
+| **Worker** (`src/worker/`)     | Node.js APIs                                               | DOM APIs, Electron APIs                         |
+| **Preload** (`src/preload.ts`) | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
 
 Cross-process communication:
+
 - Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
 - Main ↔ Worker: fork protocol via `src/worker/WorkerProtocol.ts`
 
 ```typescript
 // NEVER in renderer
-import { something } from '@process/services/foo';  // crashes at runtime
+import { something } from '@process/services/foo'; // crashes at runtime
 
 // Use IPC instead
-const result = await window.api.someMethod();       // goes through preload
+const result = await window.api.someMethod(); // goes through preload
 ```
 
 ---
@@ -81,25 +82,25 @@ const result = await window.api.someMethod();       // goes through preload
 
 ### Directories
 
-| Scope | Convention | Reason |
-|-------|-----------|--------|
-| **Renderer** component/module dirs | PascalCase | React convention — dir name = component name |
-| **Everything else** | lowercase | Node.js convention |
-| **Categorical dirs** (everywhere) | lowercase | `components/`, `hooks/`, `utils/`, `services/` |
-| **Platform dirs** (everywhere) | lowercase | `acp/`, `codex/`, `gemini/` — cross-process consistency |
+| Scope                              | Convention | Reason                                                  |
+| ---------------------------------- | ---------- | ------------------------------------------------------- |
+| **Renderer** component/module dirs | PascalCase | React convention — dir name = component name            |
+| **Everything else**                | lowercase  | Node.js convention                                      |
+| **Categorical dirs** (everywhere)  | lowercase  | `components/`, `hooks/`, `utils/`, `services/`          |
+| **Platform dirs** (everywhere)     | lowercase  | `acp/`, `codex/`, `gemini/` — cross-process consistency |
 
 > Quick test: "Inside `src/renderer/` AND represents a specific component/feature (not a category)?" → PascalCase. Otherwise → lowercase.
 
 ### Files
 
-| Content | Convention | Examples |
-|---------|-----------|----------|
-| React components, classes | PascalCase | `SettingsModal.tsx`, `CronService.ts` |
-| Hooks | camelCase with `use` prefix | `useTheme.ts`, `useCronJobs.ts` |
-| Utilities, helpers | camelCase | `formatDate.ts`, `cronUtils.ts` |
-| Entry points | `index.ts` / `index.tsx` | Required for directory-based modules |
-| Config, types, constants | camelCase | `types.ts`, `constants.ts` |
-| Styles | kebab-case or `Name.module.css` | `chat-layout.css` |
+| Content                   | Convention                      | Examples                              |
+| ------------------------- | ------------------------------- | ------------------------------------- |
+| React components, classes | PascalCase                      | `SettingsModal.tsx`, `CronService.ts` |
+| Hooks                     | camelCase with `use` prefix     | `useTheme.ts`, `useCronJobs.ts`       |
+| Utilities, helpers        | camelCase                       | `formatDate.ts`, `cronUtils.ts`       |
+| Entry points              | `index.ts` / `index.tsx`        | Required for directory-based modules  |
+| Config, types, constants  | camelCase                       | `types.ts`, `constants.ts`            |
+| Styles                    | kebab-case or `Name.module.css` | `chat-layout.css`                     |
 
 ---
 
@@ -114,11 +115,11 @@ const result = await window.api.someMethod();       // goes through preload
 
 Tests mirror source files in `tests/` subdirectories:
 
-| Source | Test |
-|--------|------|
-| `src/process/services/CronService.ts` | `tests/unit/cronService.test.ts` |
-| `src/renderer/hooks/ui/useAutoScroll.ts` | `tests/unit/useAutoScroll.dom.test.ts` |
-| `src/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
+| Source                                   | Test                                            |
+| ---------------------------------------- | ----------------------------------------------- |
+| `src/process/services/CronService.ts`    | `tests/unit/cronService.test.ts`                |
+| `src/renderer/hooks/ui/useAutoScroll.ts` | `tests/unit/useAutoScroll.dom.test.ts`          |
+| `src/extensions/ExtensionLoader.ts`      | `tests/unit/extensions/extensionLoader.test.ts` |
 
 When `tests/unit/` exceeds 10 direct children, group into subdirectories matching source structure.
 

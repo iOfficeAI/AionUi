@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import FilePreview from '@/renderer/components/FilePreview';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
+import FilePreview from '@/renderer/components/media/FilePreview';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { FolderOpen } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';

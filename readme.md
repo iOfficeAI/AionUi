@@ -553,7 +553,6 @@ brew install aionui
 - [Discord Community](https://discord.gg/2QAwJn7Egx) — English community
 - [WeChat Group](./resources/wechat_group_5.png) — Chinese community
 
-
 ### Contributing
 
 1. Fork this project

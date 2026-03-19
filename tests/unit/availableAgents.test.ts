@@ -9,8 +9,8 @@ import {
   AVAILABLE_AGENTS_SWR_KEY,
   filterAvailableAgentsForUi,
   splitConversationDropdownAgents,
-} from '../../src/renderer/shared/agents/availableAgents';
-import type { AvailableAgent } from '../../src/renderer/shared/agents/types';
+} from '../../src/renderer/utils/model/availableAgents';
+import type { AvailableAgent } from '../../src/renderer/utils/model/agentTypes';
 
 describe('availableAgents helpers', () => {
   const agents: AvailableAgent[] = [

@@ -140,7 +140,9 @@ Examples:
       if (options.theme && mermaid.THEMES) {
         themeColors = mermaid.THEMES[options.theme];
         if (!themeColors) {
-          console.error(`Warning: Unknown theme "${options.theme}". Available: ${Object.keys(mermaid.THEMES).join(', ')}`);
+          console.error(
+            `Warning: Unknown theme "${options.theme}". Available: ${Object.keys(mermaid.THEMES).join(', ')}`
+          );
         }
       }
       result = await mermaid.renderMermaid(mermaidCode, themeColors);

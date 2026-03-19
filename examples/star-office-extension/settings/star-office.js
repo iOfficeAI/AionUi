@@ -67,7 +67,9 @@
       };
     });
 
-    const runningConversations = Number(input.runningConversations || agents.filter((a) => a.runtimeStatus === 'running').length);
+    const runningConversations = Number(
+      input.runningConversations || agents.filter((a) => a.runtimeStatus === 'running').length
+    );
     const totalConversations = Number(input.totalConversations || agents.length);
 
     return {

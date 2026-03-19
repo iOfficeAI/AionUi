@@ -53,6 +53,7 @@ Try in the following order until successful:
   ```
 
 - **Verify**: Confirm files copied
+
   ```bash
   ls parse-character-card.js package.json
   ```

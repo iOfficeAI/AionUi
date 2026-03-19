@@ -3,9 +3,9 @@ import { Spin } from '@arco-design/web-react';
 import React, { useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
-import ChatConversation from './ChatConversation';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useConversationTabs } from './context/ConversationTabsContext';
+import ChatConversation from './components/ChatConversation';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useConversationTabs } from './hooks/ConversationTabsContext';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();

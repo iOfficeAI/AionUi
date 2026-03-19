@@ -157,7 +157,7 @@ describe('getEnhancedEnv', () => {
     expect(typeof result.PATH).toBe('string');
     // Spot-check: no undefined string values were injected
     for (const [k, v] of Object.entries(result)) {
-      (expect(typeof v).toBe('string'), `key ${k} has non-string value`);
+      expect(typeof v).toBe('string');
     }
   });
 });

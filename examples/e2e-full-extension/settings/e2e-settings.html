@@ -1,77 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E2E Test Settings</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 16px;
-      color: #333;
-      background: transparent;
-    }
-    h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
-    .field { margin-bottom: 12px; }
-    .field label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
-    .field input, .field select {
-      width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;
-      font-size: 14px; outline: none; transition: border-color 0.2s;
-    }
-    .field input:focus, .field select:focus { border-color: #4f6ef7; }
-    .info { font-size: 12px; color: #999; margin-top: 16px; }
-  </style>
-</head>
-<body>
-  <h2 data-i18n="title">E2E Extension Settings</h2>
-  <div class="field">
-    <label for="endpoint" data-i18n="endpoint">Test Endpoint</label>
-    <input id="endpoint" type="text" placeholder="http://localhost:19999" />
-  </div>
-  <div class="field">
-    <label for="timeout" data-i18n="timeout">Request Timeout (ms)</label>
-    <input id="timeout" type="number" value="5000" />
-  </div>
-  <div class="field">
-    <label for="mode" data-i18n="mode">Test Mode</label>
-    <select id="mode">
-      <option value="mock" data-i18n="mode-mock">Mock</option>
-      <option value="live" data-i18n="mode-live">Live</option>
-    </select>
-  </div>
-  <p class="info" data-i18n="info">This is a demo settings page contributed by the E2E Full Test Extension.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>E2E Test Settings</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 16px;
+        color: #333;
+        background: transparent;
+      }
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+      .field {
+        margin-bottom: 12px;
+      }
+      .field label {
+        display: block;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 4px;
+      }
+      .field input,
+      .field select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .field input:focus,
+      .field select:focus {
+        border-color: #4f6ef7;
+      }
+      .info {
+        font-size: 12px;
+        color: #999;
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2 data-i18n="title">E2E Extension Settings</h2>
+    <div class="field">
+      <label for="endpoint" data-i18n="endpoint">Test Endpoint</label>
+      <input id="endpoint" type="text" placeholder="http://localhost:19999" />
+    </div>
+    <div class="field">
+      <label for="timeout" data-i18n="timeout">Request Timeout (ms)</label>
+      <input id="timeout" type="number" value="5000" />
+    </div>
+    <div class="field">
+      <label for="mode" data-i18n="mode">Test Mode</label>
+      <select id="mode">
+        <option value="mock" data-i18n="mode-mock">Mock</option>
+        <option value="live" data-i18n="mode-live">Live</option>
+      </select>
+    </div>
+    <p class="info" data-i18n="info">This is a demo settings page contributed by the E2E Full Test Extension.</p>
 
-  <script>
-    (() => {
-      const applyTranslations = (payload) => {
-        const pageTranslations = payload && payload.translations && payload.translations.settings && payload.translations.settings.page;
-        if (!pageTranslations || typeof pageTranslations !== 'object') return;
+    <script>
+      (() => {
+        const applyTranslations = (payload) => {
+          const pageTranslations =
+            payload && payload.translations && payload.translations.settings && payload.translations.settings.page;
+          if (!pageTranslations || typeof pageTranslations !== 'object') return;
 
-        if (payload.locale) {
-          document.documentElement.lang = payload.locale;
-        }
+          if (payload.locale) {
+            document.documentElement.lang = payload.locale;
+          }
 
-        document.querySelectorAll('[data-i18n]').forEach((element) => {
-          const key = element.getAttribute('data-i18n');
-          const value = key ? pageTranslations[key] : undefined;
-          if (typeof value === 'string') {
-            element.textContent = value;
+          document.querySelectorAll('[data-i18n]').forEach((element) => {
+            const key = element.getAttribute('data-i18n');
+            const value = key ? pageTranslations[key] : undefined;
+            if (typeof value === 'string') {
+              element.textContent = value;
+            }
+          });
+        };
+
+        window.addEventListener('message', (event) => {
+          const data = event.data || {};
+          if (data.type === 'aion:init') {
+            applyTranslations(data);
           }
         });
-      };
 
-      window.addEventListener('message', (event) => {
-        const data = event.data || {};
-        if (data.type === 'aion:init') {
-          applyTranslations(data);
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'aion:get-locale' }, '*');
         }
-      });
-
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'aion:get-locale' }, '*');
-      }
-    })();
-  </script>
-</body>
+      })();
+    </script>
+  </body>
 </html>

@@ -449,7 +449,19 @@ triggers: Word, 文档, .docx, 报告, 信函, 备忘录, 手稿, 论文, 文章
 
 ```javascript
 // 使用 docx 包 for Node.js
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, Header, Footer, PageNumber } = require('docx');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  Table,
+  TableRow,
+  TableCell,
+  Header,
+  Footer,
+  PageNumber,
+} = require('docx');
 
 const doc = new Document({
   sections: [
@@ -484,7 +496,13 @@ const doc = new Document({
 
         // 正文
         new Paragraph({
-          children: [new TextRun({ text: '这是 ', bold: false }), new TextRun({ text: '粗体', bold: true }), new TextRun({ text: ' 和 ' }), new TextRun({ text: '斜体', italics: true }), new TextRun({ text: ' 文本。' })],
+          children: [
+            new TextRun({ text: '这是 ', bold: false }),
+            new TextRun({ text: '粗体', bold: true }),
+            new TextRun({ text: ' 和 ' }),
+            new TextRun({ text: '斜体', italics: true }),
+            new TextRun({ text: ' 文本。' }),
+          ],
         }),
 
         // 项目列表
@@ -497,10 +515,16 @@ const doc = new Document({
         new Table({
           rows: [
             new TableRow({
-              children: [new TableCell({ children: [new Paragraph('表头 1')] }), new TableCell({ children: [new Paragraph('表头 2')] })],
+              children: [
+                new TableCell({ children: [new Paragraph('表头 1')] }),
+                new TableCell({ children: [new Paragraph('表头 2')] }),
+              ],
             }),
             new TableRow({
-              children: [new TableCell({ children: [new Paragraph('单元格 1')] }), new TableCell({ children: [new Paragraph('单元格 2')] })],
+              children: [
+                new TableCell({ children: [new Paragraph('单元格 1')] }),
+                new TableCell({ children: [new Paragraph('单元格 2')] }),
+              ],
             }),
           ],
         }),

@@ -7,8 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/storage';
 import { emitter } from '@/renderer/utils/emitter';
-import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
-import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
+import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { isAcpRoutedPresetType, type PresetAgentType } from '@/types/acpTypes';
 import { Message } from '@arco-design/web-react';
 import { useCallback } from 'react';

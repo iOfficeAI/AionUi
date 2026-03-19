@@ -6,8 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { iconColors } from '@/renderer/theme/colors';
-import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
+import { iconColors } from '@/renderer/styles/colors';
+import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';

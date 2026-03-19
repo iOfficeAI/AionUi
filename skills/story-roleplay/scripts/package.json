@@ -7,7 +7,7 @@
     "parse": "node parse-character-card.js"
   },
   "dependencies": {
-    "png-chunks-extract": "1.0.0",
-    "png-chunk-text": "1.0.0"
+    "png-chunk-text": "1.0.0",
+    "png-chunks-extract": "1.0.0"
   }
 }
