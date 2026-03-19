@@ -114,6 +114,16 @@ export class ChannelMessageService {
       return;
     }
 
+    // Skip transient UI state messages that don't need channel processing.
+    // These types are emitted by agent managers (e.g., GeminiAgentManager) for
+    // internal lifecycle tracking but are not valid for transformMessage().
+    // 跳过不需要 Channel 处理的临时 UI 状态消息（如 thought, finished 等）
+    const skipTypes = ['thought', 'finished', 'system', 'available_commands',
+      'acp_model_info', 'codex_model_info', 'acp_context_usage', 'request_trace'];
+    if (skipTypes.includes(event.type)) {
+      return;
+    }
+
     // 转换消息
     // Transform message
     const message = transformMessage(event);
@@ -334,3 +344,4 @@ export function getChannelMessageService(): ChannelMessageService {
 // Backward compatibility export
 // 向后兼容的导出
 export { ChannelMessageService as ChannelGeminiService, getChannelMessageService as getChannelGeminiService };
+
