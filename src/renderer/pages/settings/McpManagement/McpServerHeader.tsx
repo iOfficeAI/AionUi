@@ -145,27 +145,29 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
               agentInstallStatus={agentInstallStatus}
               isLoadingAgentStatus={isServerLoading(server.name)}
             />
-            <Dropdown
-              trigger='hover'
-              droplist={
-                <Menu>
-                  <Menu.Item key='edit' onClick={() => onEditServer(server)}>
-                    <div className='flex items-center gap-2'>
-                      <Write size={'14'} />
-                      {t('settings.mcpEditServer')}
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
-                    <div className='flex items-center gap-2 text-red-500'>
-                      <DeleteFour size={'14'} />
-                      {t('settings.mcpDeleteServer')}
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-            >
-              <Button size='mini' icon={<SettingOne size={'14'} />} />
-            </Dropdown>
+            {!server.builtin && (
+              <Dropdown
+                trigger='hover'
+                droplist={
+                  <Menu>
+                    <Menu.Item key='edit' onClick={() => onEditServer(server)}>
+                      <div className='flex items-center gap-2'>
+                        <Write size={'14'} />
+                        {t('settings.mcpEditServer')}
+                      </div>
+                    </Menu.Item>
+                    <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
+                      <div className='flex items-center gap-2 text-red-500'>
+                        <DeleteFour size={'14'} />
+                        {t('settings.mcpDeleteServer')}
+                      </div>
+                    </Menu.Item>
+                  </Menu>
+                }
+              >
+                <Button size='mini' icon={<SettingOne size={'14'} />} />
+              </Dropdown>
+            )}
           </div>
           <Switch
             checked={server.enabled}

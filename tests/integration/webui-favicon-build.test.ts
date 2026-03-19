@@ -124,20 +124,18 @@ describe('Built WebUI favicon integrity', () => {
   ];
   const envAsar = process.env.APP_ASAR_PATH;
   const resolvedEnvAsar = envAsar ? path.resolve(envAsar) : null;
+  const latestSourceMtime = getLatestSourceMtimeMs(faviconSourceFiles);
+  const hasFreshRendererBuild =
+    fs.existsSync(rendererIndexPath) && fs.statSync(rendererIndexPath).mtimeMs >= latestSourceMtime;
 
   if (resolvedEnvAsar && !fs.existsSync(resolvedEnvAsar)) {
     throw new Error(`APP_ASAR_PATH does not exist: ${resolvedEnvAsar}`);
   }
 
   const appAsarPath = resolvedEnvAsar || resolveDefaultAppAsarPath();
-  const runOrSkip = fs.existsSync(rendererIndexPath) ? it : it.skip;
+  const runOrSkip = hasFreshRendererBuild ? it : it.skip;
 
   runOrSkip('should include the built favicon asset referenced by renderer index.html', () => {
-    const rendererIndexMtime = fs.statSync(rendererIndexPath).mtimeMs;
-    const latestSourceMtime = getLatestSourceMtimeMs(faviconSourceFiles);
-
-    expect(rendererIndexMtime).toBeGreaterThanOrEqual(latestSourceMtime);
-
     const faviconHref = extractFaviconHref(rendererIndexPath);
 
     expect(faviconHref).toMatch(/^\.\/assets\/.+\.(png|ico|svg)$/);

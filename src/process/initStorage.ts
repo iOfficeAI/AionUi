@@ -30,6 +30,7 @@ import {
 } from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
+import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './builtinMcp/constants';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -615,6 +616,141 @@ const getDefaultMcpServers = (): IMcpServer[] => {
   }));
 };
 
+const getBuiltinMcpBaseDir = (): string => {
+  const mainModuleDir =
+    typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
+  return path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
+};
+
+/**
+ * Resolve the path to a built-in MCP server entry script.
+ * In development the file lives next to the main process bundle (out/main/);
+ * in production it's inside the packaged app.
+ */
+const getBuiltinMcpScriptPath = (scriptName: string): string => {
+  // initStorage may itself be code-split into out/main/chunks/.
+  // Built-in MCP entry files are emitted next to the main entry in out/main/.
+  return path.resolve(getBuiltinMcpBaseDir(), `${scriptName}.js`);
+};
+
+/**
+ * Ensure built-in MCP servers exist in mcp.config.
+ * - Creates missing entries with enabled: false
+ * - Updates command path if app location changed
+ * - Migrates old tools.imageGenerationModel.switch to MCP server enabled state
+ */
+const ensureBuiltinMcpServers = async (): Promise<void> => {
+  try {
+    const mcpServers: IMcpServer[] = (await configFile.get('mcp.config').catch((): IMcpServer[] => [])) || [];
+    const now = Date.now();
+    let changed = false;
+
+    const scriptPath = getBuiltinMcpScriptPath('builtin-mcp-image-gen');
+
+    // Check if built-in image gen server already exists
+    const existingIdx = mcpServers.findIndex((s) => s.builtin === true && s.id === BUILTIN_IMAGE_GEN_ID);
+
+    // Migrate old switch setting
+    let shouldEnable = false;
+    const oldConfig = await configFile.get('tools.imageGenerationModel').catch((): undefined => undefined);
+    if (oldConfig && oldConfig.switch === true) {
+      shouldEnable = true;
+    }
+
+    // Build env vars from existing image generation model config
+    const buildEnvFromConfig = (cfg: typeof oldConfig): Record<string, string> => {
+      if (!cfg) return {};
+      const env: Record<string, string> = {};
+      if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
+      if (cfg.baseUrl) env.AIONUI_IMG_BASE_URL = cfg.baseUrl;
+      if (cfg.apiKey) env.AIONUI_IMG_API_KEY = cfg.apiKey;
+      if (cfg.useModel) env.AIONUI_IMG_MODEL = cfg.useModel;
+      return env;
+    };
+
+    const buildOriginalJson = (scriptPathValue: string, env: Record<string, string>) =>
+      JSON.stringify(
+        {
+          [BUILTIN_IMAGE_GEN_NAME]: {
+            command: 'node',
+            args: [scriptPathValue],
+            env,
+          },
+        },
+        null,
+        2
+      );
+
+    if (existingIdx >= 0) {
+      // Update command path in case app location changed
+      const existing = mcpServers[existingIdx];
+      const needsNameMigration =
+        existing.name !== BUILTIN_IMAGE_GEN_NAME &&
+        BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(existing.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
+      if (needsNameMigration) {
+        existing.name = BUILTIN_IMAGE_GEN_NAME;
+        changed = true;
+      }
+      if (existing.transport.type === 'stdio' && existing.transport.command === 'node') {
+        const currentArgs = existing.transport.args || [];
+        if (currentArgs[0] !== scriptPath || needsNameMigration) {
+          existing.transport.args = [scriptPath];
+          existing.originalJson = buildOriginalJson(scriptPath, existing.transport.env || {});
+          existing.updatedAt = now;
+          changed = true;
+        }
+      }
+      // If migrating from old switch, enable the server
+      if (shouldEnable && !existing.enabled) {
+        existing.enabled = true;
+        existing.transport = {
+          ...existing.transport,
+          env: {
+            ...(existing.transport as IMcpServer['transport'] & { env?: Record<string, string> }).env,
+            ...buildEnvFromConfig(oldConfig),
+          },
+        } as IMcpServer['transport'];
+        existing.updatedAt = now;
+        changed = true;
+      }
+    } else {
+      // Create new built-in image gen server
+      const env = buildEnvFromConfig(oldConfig);
+      const newServer: IMcpServer = {
+        id: BUILTIN_IMAGE_GEN_ID,
+        name: BUILTIN_IMAGE_GEN_NAME,
+        description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
+        enabled: shouldEnable,
+        builtin: true,
+        transport: {
+          type: 'stdio',
+          command: 'node',
+          args: [scriptPath],
+          env,
+        },
+        createdAt: now,
+        updatedAt: now,
+        originalJson: buildOriginalJson(scriptPath, env),
+      };
+      mcpServers.push(newServer);
+      changed = true;
+    }
+
+    if (changed) {
+      await configFile.set('mcp.config', mcpServers);
+      console.log('[AionUi] Built-in MCP servers ensured');
+    }
+
+    // Clear old switch flag after migration
+    if (shouldEnable && oldConfig) {
+      const { switch: _switch, ...rest } = oldConfig;
+      await configFile.set('tools.imageGenerationModel', rest as typeof oldConfig);
+    }
+  } catch (error) {
+    console.error('[AionUi] Failed to ensure built-in MCP servers:', error);
+  }
+};
+
 /**
  * 启动时清理异常遗留的健康检测临时会话
  * Cleanup orphaned health-check temporary conversations on startup
@@ -685,6 +821,10 @@ const initStorage = async () => {
   } catch (error) {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
+
+  // 4.1 Ensure built-in MCP servers exist and are up-to-date
+  await ensureBuiltinMcpServers();
+
   // 5. 初始化内置助手（Assistants）
   try {
     // 5.1 初始化内置助手的规则文件到用户目录
@@ -849,7 +989,7 @@ export const getSystemDir = () => {
  * 获取助手规则目录路径（供其他模块使用）
  * Get assistant rules directory path (for use by other modules)
  */
-export { getAssistantsDir, getSkillsDir, getBuiltinSkillsDir };
+export { getAssistantsDir, getSkillsDir, getBuiltinSkillsDir, BUILTIN_IMAGE_GEN_ID, getBuiltinMcpScriptPath };
 
 /**
  * Skills 内容缓存，避免重复从文件系统读取

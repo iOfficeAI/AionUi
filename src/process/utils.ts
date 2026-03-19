@@ -9,10 +9,35 @@ import { app } from 'electron';
 import { getEnvAwareName } from '@/common/appEnv';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import { getSystemDir } from './initStorage';
+
+const hasElectronAppPath = (): boolean => {
+  return typeof app?.getPath === 'function';
+};
+
+const getElectronPathOrFallback = (name: 'temp' | 'home' | 'userData'): string => {
+  if (hasElectronAppPath()) {
+    try {
+      return app.getPath(name);
+    } catch (_error) {
+      // Fall through to deterministic filesystem paths for tests and non-Electron environments.
+    }
+  }
+
+  switch (name) {
+    case 'temp':
+      return os.tmpdir();
+    case 'home':
+      return os.homedir();
+    case 'userData':
+      return path.join(os.tmpdir(), getEnvAwareName('aionui-user-data'));
+  }
+};
+
 export const getTempPath = () => {
-  const rootPath = app.getPath('temp');
+  const rootPath = getElectronPathOrFallback('temp');
   return path.join(rootPath, 'aionui');
 };
 
@@ -27,11 +52,11 @@ export const getTempPath = () => {
  */
 const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
   // Only needed on macOS where Application Support has a space
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' || !hasElectronAppPath()) {
     return targetPath;
   }
 
-  const homePath = app.getPath('home');
+  const homePath = getElectronPathOrFallback('home');
   const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
@@ -79,7 +104,7 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
  * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
  */
 export const getDataPath = (): string => {
-  const rootPath = app.getPath('userData');
+  const rootPath = getElectronPathOrFallback('userData');
   const dataPath = path.join(rootPath, 'aionui');
   return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
@@ -91,7 +116,7 @@ export const getDataPath = (): string => {
  * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
  */
 export const getConfigPath = (): string => {
-  const rootPath = app.getPath('userData');
+  const rootPath = getElectronPathOrFallback('userData');
   const configPath = path.join(rootPath, 'config');
   return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };

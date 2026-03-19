@@ -15,5 +15,5 @@ import { app } from 'electron';
  * getEnvAwareName('.aionui-config') // release → '.aionui-config', dev → '.aionui-config-dev'
  */
 export function getEnvAwareName(baseName: string): string {
-  return app.isPackaged ? baseName : `${baseName}-dev`;
+  return app?.isPackaged === true ? baseName : `${baseName}-dev`;
 }

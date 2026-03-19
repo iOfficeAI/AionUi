@@ -20,11 +20,16 @@ interface McpManagementProps {
   message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0];
 }
 
+const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
+
+const isVisibleMcpServer = (server: IMcpServer) => !(server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID);
+
 const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   const { t } = useTranslation();
 
   // 使用自定义hooks管理各种状态和操作
   const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
+  const visibleMcpServers = React.useMemo(() => mcpServers.filter(isVisibleMcpServer), [mcpServers]);
   const {
     agentInstallStatus,
     setAgentInstallStatus,
@@ -267,10 +272,10 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         name={'mcp-servers'}
       >
         <div>
-          {mcpServers.length === 0 && extensionMcpServers.length === 0 ? (
+          {visibleMcpServers.length === 0 && extensionMcpServers.length === 0 ? (
             <div className='text-center py-8 text-t-secondary'>{t('settings.mcpNoServersFound')}</div>
           ) : (
-            mcpServers.map((server) => (
+            visibleMcpServers.map((server) => (
               <McpServerItem
                 key={server.id}
                 server={server}

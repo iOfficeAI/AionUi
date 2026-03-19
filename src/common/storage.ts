@@ -71,7 +71,8 @@ export interface IConfigStorageRefer {
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string | { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {
-    switch: boolean;
+    /** @deprecated Image generation is now controlled via built-in MCP server toggle */
+    switch?: boolean;
   };
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
@@ -449,6 +450,8 @@ export interface IMcpServer {
   createdAt: number;
   updatedAt: number;
   originalJson: string; // 存储原始JSON配置，用于编辑时的准确显示
+  /** Built-in MCP server managed by AionUi (hide edit/delete in UI) */
+  builtin?: boolean;
 }
 
 export interface IMcpTool {

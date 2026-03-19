@@ -92,6 +92,8 @@ export default defineConfig(({ mode }) => {
             codex: resolve('src/worker/codex.ts'),
             'openclaw-gateway': resolve('src/worker/openclaw-gateway.ts'),
             nanobot: resolve('src/worker/nanobot.ts'),
+            // Built-in MCP server entry points
+            'builtin-mcp-image-gen': resolve('src/process/builtinMcp/imageGenServer.ts'),
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
