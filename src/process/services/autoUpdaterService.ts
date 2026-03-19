@@ -6,8 +6,39 @@
 
 import { autoUpdater } from 'electron-updater';
 import type { ProgressInfo, UpdateInfo } from 'electron-updater';
+import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+
+/**
+ * Returns the appropriate update channel name based on the current platform and architecture.
+ * Returns undefined for the default channel (Windows x64 / Linux x64).
+ */
+export function getUpdateChannel(): string | undefined {
+  const { platform, arch } = process;
+
+  // electron-updater appends a platform suffix to the channel name:
+  //   macOS  → "-mac"       (e.g. "latest" → "latest-mac.yml")
+  //   Linux  → "-linux"     (+ arch suffix for non-x64, e.g. "latest-linux-arm64.yml")
+  //   Windows → ""          (no suffix, e.g. "latest.yml")
+  //
+  // Linux arm64 is handled natively by electron-updater (appends "-linux-arm64"),
+  // so only Windows arm64 and macOS arm64 need a custom channel.
+
+  if (platform === 'win32' && arch === 'arm64') {
+    // "latest-win-arm64" + "" → "latest-win-arm64.yml"
+    return 'latest-win-arm64';
+  }
+  if (platform === 'darwin' && arch === 'arm64') {
+    // "latest-arm64" + "-mac" → "latest-arm64-mac.yml"
+    return 'latest-arm64';
+  }
+  // macOS x64  → default "latest" + "-mac"         → "latest-mac.yml"
+  // Linux x64  → default "latest" + "-linux"       → "latest-linux.yml"
+  // Linux arm64→ default "latest" + "-linux-arm64"  → "latest-linux-arm64.yml"
+  // Win x64    → default "latest" + ""             → "latest.yml"
+  return undefined;
+}
 
 export interface AutoUpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
@@ -48,6 +79,14 @@ class AutoUpdaterService extends EventEmitter {
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+
+    // Set the correct update channel based on platform and architecture before
+    // any update checks are performed
+    const channel = getUpdateChannel();
+    if (channel !== undefined) {
+      autoUpdater.channel = channel;
+      log.info(`Update channel set to: ${channel}`);
+    }
   }
 
   /**
@@ -103,7 +142,10 @@ class AutoUpdaterService extends EventEmitter {
     // Remove each registered handler from autoUpdater to prevent
     // duplicate handler accumulation across multiple initialize() calls in tests
     for (const [event, handler] of this._autoUpdaterHandlers) {
-      autoUpdater.removeListener(event as Parameters<typeof autoUpdater.removeListener>[0], handler as Parameters<typeof autoUpdater.removeListener>[1]);
+      autoUpdater.removeListener(
+        event as Parameters<typeof autoUpdater.removeListener>[0],
+        handler as Parameters<typeof autoUpdater.removeListener>[1]
+      );
     }
     this._autoUpdaterHandlers.clear();
   }
@@ -127,10 +169,13 @@ class AutoUpdaterService extends EventEmitter {
    */
   setAllowPrerelease(allow: boolean): void {
     this._allowPrerelease = allow;
-    autoUpdater.allowPrerelease = allow;
-    // When allowing prerelease, also allow downgrade for channel switching
-    autoUpdater.allowDowngrade = allow;
-    log.info(`Prerelease updates ${allow ? 'enabled' : 'disabled'}`);
+    // Do NOT set autoUpdater.allowPrerelease here.
+    // electron-updater's prerelease mode conflicts with custom channel names
+    // (e.g. 'latest-arm64'): it treats the channel as a prerelease identifier
+    // and tries to match it against tag prerelease components, which always fails
+    // with "No published versions on GitHub".
+    // Prerelease filtering is handled by the manual update check (GitHub API) instead.
+    log.info(`Prerelease updates ${allow ? 'enabled' : 'disabled'} (manual check only)`);
   }
 
   /**
@@ -220,6 +265,12 @@ class AutoUpdaterService extends EventEmitter {
       if (!result) {
         return { success: false, error: 'checkForUpdates returned null (not packaged or dev mode)' };
       }
+      // Only report updateInfo when electron-updater internally confirms the update is available.
+      // When isUpdateAvailable is false, updateInfoAndProvider is NOT set internally,
+      // so a subsequent downloadUpdate() call would fail with "Please check update first".
+      if (!result.isUpdateAvailable) {
+        return { success: true };
+      }
       return {
         success: true,
         updateInfo: result.updateInfo,
@@ -254,7 +305,15 @@ class AutoUpdaterService extends EventEmitter {
 
   quitAndInstall(): void {
     log.info('Quitting and installing update...');
-    autoUpdater.quitAndInstall(false, true);
+    // On macOS, autoUpdater.quitAndInstall() closes all windows but the
+    // 'window-all-closed' handler does NOT call app.quit() (standard macOS
+    // behavior + close-to-tray). This leaves the process alive and Squirrel
+    // cannot finish replacing the app bundle. Force-exit after a short delay
+    // to let Squirrel receive the install signal.
+    autoUpdater.quitAndInstall(true, true);
+    setTimeout(() => {
+      app.exit(0);
+    }, 1000);
   }
 
   /**

@@ -17,6 +17,7 @@
     "unknown": "Unknown status"
   },
   "config": {
-    "reasoning_effort": "Reasoning Effort"
+    "reasoning_effort": "Reasoning Effort",
+    "default": "Default"
   }
 }

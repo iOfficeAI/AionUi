@@ -12,7 +12,12 @@ interface McpAgentStatusDisplayProps {
   alwaysVisible?: boolean;
 }
 
-const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus, alwaysVisible = false }) => {
+const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
+  serverName,
+  agentInstallStatus,
+  isLoadingAgentStatus,
+  alwaysVisible = false,
+}) => {
   const agents = agentInstallStatus[serverName] || [];
 
   if (!agents.length && !isLoadingAgentStatus) {
@@ -41,7 +46,12 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
                       transitionDelay: animationDelay,
                     }}
                   >
-                    <img src={logo} alt={agent} className='w-[21px] h-[21px] border border-solid border-[var(--color-border-2)] rounded-sm' style={{ backgroundColor: 'var(--dialog-fill-0)' }} />
+                    <img
+                      src={logo}
+                      alt={agent}
+                      className='w-[21px] h-[21px] border border-solid border-[var(--color-border-2)] rounded-sm'
+                      style={{ backgroundColor: 'var(--dialog-fill-0)' }}
+                    />
                   </div>
                 </Tooltip>
               );

@@ -23,9 +23,40 @@
 .actionTools {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 1;
   min-width: 0;
+}
+
+.actionEntry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-right: 0;
+}
+
+.actionConfigGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.actionConfigGroupWithDivider > :first-child {
+  position: relative;
+}
+
+.actionConfigGroupWithDivider > :first-child::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  width: 1px;
+  height: 18px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-4) 55%, transparent);
 }
 
 /* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
@@ -34,6 +65,8 @@
   border: none !important;
   box-shadow: none !important;
   color: var(--color-text-2) !important;
+  padding-inline: 10px !important;
+  min-height: 28px !important;
 }
 
 .actionTools :global(.sendbox-model-btn:hover) {
@@ -41,6 +74,14 @@
   border: none !important;
   box-shadow: none !important;
   color: var(--color-text-1) !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
+  gap: 0 !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
+  gap: 6px !important;
 }
 
 .actionSubmit {
@@ -127,6 +168,19 @@
 
   .actionTools > * {
     flex: 0 0 auto;
+  }
+
+  .actionEntry {
+    margin-right: 0;
+  }
+
+  .actionConfigGroup {
+    gap: 12px;
+  }
+
+  .actionConfigGroupWithDivider > :first-child::after {
+    right: -6px;
+    height: 16px;
   }
 
   .actionSubmit {

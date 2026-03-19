@@ -45,7 +45,13 @@ const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
   const toolDetails = getToolDetails();
 
   return (
-    <BaseToolCallDisplay toolCallId={toolCallId} title={getDisplayTitle()} status={status} description={description} icon='🔌'>
+    <BaseToolCallDisplay
+      toolCallId={toolCallId}
+      title={getDisplayTitle()}
+      status={status}
+      description={description}
+      icon='🔌'
+    >
       {/* Display tool details if available 显示工具详情 */}
       {toolDetails && (
         <div className='text-sm mb-2'>
@@ -60,7 +66,9 @@ const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
             {toolDetails.arguments && (
               <div className='mt-2'>
                 <div className='text-xs text-t-secondary mb-1'>{t('tools.labels.arguments')}</div>
-                <pre className='text-xs bg-2 p-2 rounded border border-b-base overflow-x-auto text-t-primary'>{JSON.stringify(toolDetails.arguments, null, 2)}</pre>
+                <pre className='text-xs bg-2 p-2 rounded border border-b-base overflow-x-auto text-t-primary'>
+                  {JSON.stringify(toolDetails.arguments, null, 2)}
+                </pre>
               </div>
             )}
           </div>
@@ -72,7 +80,9 @@ const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
         <div className='text-sm mb-2'>
           <div className='text-xs text-t-secondary mb-1'>{t('tools.labels.result')}</div>
           <div className='bg-1 p-2 rounded text-sm max-h-40 overflow-y-auto border border-b-base'>
-            <pre className='text-xs whitespace-pre-wrap text-t-primary'>{typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2)}</pre>
+            <pre className='text-xs whitespace-pre-wrap text-t-primary'>
+              {typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2)}
+            </pre>
           </div>
         </div>
       )}

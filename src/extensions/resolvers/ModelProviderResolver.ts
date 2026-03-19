@@ -51,7 +51,11 @@ export function resolveModelProviders(extensions: LoadedExtension[]): ResolvedMo
   return providers;
 }
 
-function convertModelProvider(provider: ExtModelProvider, ext: LoadedExtension, globalId: string): ResolvedModelProvider {
+function convertModelProvider(
+  provider: ExtModelProvider,
+  ext: LoadedExtension,
+  globalId: string
+): ResolvedModelProvider {
   let logoUrl: string | undefined;
 
   if (provider.logo) {

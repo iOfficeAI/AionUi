@@ -157,14 +157,26 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
   };
 
   return (
-    <Modal visible={visible} onCancel={onClose} title={t('settings.editApiKey')} footer={null} style={{ maxWidth: '500px', width: '90vw' }} unmountOnExit>
+    <Modal
+      visible={visible}
+      onCancel={onClose}
+      title={t('settings.editApiKey')}
+      footer={null}
+      style={{ maxWidth: '500px', width: '90vw' }}
+      unmountOnExit
+    >
       <div className='flex flex-col gap-12px'>
         {/* Key 列表 */}
         <div className='flex flex-col gap-8px max-h-300px overflow-y-auto'>
           {keys.map((key) => (
             <div key={key.id} className='flex items-center gap-8px'>
               <div className='flex-1'>
-                <Input value={key.value} onChange={(v) => updateKeyValue(key.id, v)} disabled={!key.editing} placeholder={t('settings.apiKeyPlaceholder')} />
+                <Input
+                  value={key.value}
+                  onChange={(v) => updateKeyValue(key.id, v)}
+                  disabled={!key.editing}
+                  placeholder={t('settings.apiKeyPlaceholder')}
+                />
               </div>
               {/* 操作按钮 - 编辑状态时只显示保存按钮 */}
               {key.value.trim() && (
@@ -172,7 +184,13 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
                   {key.editing ? (
                     // 编辑状态：只显示保存按钮
                     <Tooltip content={t('common.save')}>
-                      <Button type='text' size='mini' icon={<CheckSmall theme='outline' size={16} className='flex' />} onClick={() => toggleEditing(key.id)} status='success' />
+                      <Button
+                        type='text'
+                        size='mini'
+                        icon={<CheckSmall theme='outline' size={16} className='flex' />}
+                        onClick={() => toggleEditing(key.id)}
+                        status='success'
+                      />
                     </Tooltip>
                   ) : (
                     // 非编辑状态：显示状态图标 + 测试 + 编辑 + 删除
@@ -180,13 +198,30 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
                       {/* 状态图标 - 在测试按钮左边 */}
                       {key.status !== 'pending' && <div className='flex items-center'>{getStatusIcon(key.status)}</div>}
                       <Tooltip content={t('settings.testKey')}>
-                        <Button type='text' size='mini' icon={<Shield theme='outline' size={16} className='flex' />} onClick={() => testKey(key.id)} loading={key.status === 'testing'} />
+                        <Button
+                          type='text'
+                          size='mini'
+                          icon={<Shield theme='outline' size={16} className='flex' />}
+                          onClick={() => testKey(key.id)}
+                          loading={key.status === 'testing'}
+                        />
                       </Tooltip>
                       <Tooltip content={t('common.edit')}>
-                        <Button type='text' size='mini' icon={<Edit theme='outline' size={16} className='flex' />} onClick={() => toggleEditing(key.id)} />
+                        <Button
+                          type='text'
+                          size='mini'
+                          icon={<Edit theme='outline' size={16} className='flex' />}
+                          onClick={() => toggleEditing(key.id)}
+                        />
                       </Tooltip>
                       <Tooltip content={t('common.delete')}>
-                        <Button type='text' size='mini' icon={<Delete theme='outline' size={16} className='flex' />} onClick={() => deleteKey(key.id)} status='danger' />
+                        <Button
+                          type='text'
+                          size='mini'
+                          icon={<Delete theme='outline' size={16} className='flex' />}
+                          onClick={() => deleteKey(key.id)}
+                          status='danger'
+                        />
                       </Tooltip>
                     </>
                   )}
@@ -204,15 +239,33 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
               <>
                 {hasTestedKeys && hasInvalidKeys && (
                   <Tooltip content={t('settings.deleteInvalidKeys')}>
-                    <Button type='text' size='small' icon={<DeleteFive theme='outline' size={16} className='flex' />} onClick={deleteInvalidKeys} status='danger' />
+                    <Button
+                      type='text'
+                      size='small'
+                      icon={<DeleteFive theme='outline' size={16} className='flex' />}
+                      onClick={deleteInvalidKeys}
+                      status='danger'
+                    />
                   </Tooltip>
                 )}
                 <Tooltip content={t('settings.testAllKeys')}>
-                  <Button type='text' size='small' icon={<Shield theme='outline' size={16} className='flex' />} onClick={testAllKeys} />
+                  <Button
+                    type='text'
+                    size='small'
+                    icon={<Shield theme='outline' size={16} className='flex' />}
+                    onClick={testAllKeys}
+                  />
                 </Tooltip>
               </>
             )}
-            <Button className='flex' type='outline' size='small' icon={<Plus theme='outline' size={14} className='' />} onClick={addKey} style={{ minWidth: 70 }}>
+            <Button
+              className='flex'
+              type='outline'
+              size='small'
+              icon={<Plus theme='outline' size={14} className='' />}
+              onClick={addKey}
+              style={{ minWidth: 70 }}
+            >
               {t('common.add')}
             </Button>
           </div>

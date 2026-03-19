@@ -6,12 +6,38 @@
 
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
+import { getEnvAwareName } from '@/common/appEnv';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import { getSystemDir } from './initStorage';
+
+const hasElectronAppPath = (): boolean => {
+  return typeof app?.getPath === 'function';
+};
+
+const getElectronPathOrFallback = (name: 'temp' | 'home' | 'userData'): string => {
+  if (hasElectronAppPath()) {
+    try {
+      return app.getPath(name);
+    } catch (_error) {
+      // Fall through to deterministic filesystem paths for tests and non-Electron environments.
+    }
+  }
+
+  switch (name) {
+    case 'temp':
+      return os.tmpdir();
+    case 'home':
+      return os.homedir();
+    case 'userData':
+      return path.join(os.tmpdir(), getEnvAwareName('aionui-user-data'));
+  }
+};
+
 export const getTempPath = () => {
-  const rootPath = app.getPath('temp');
+  const rootPath = getElectronPathOrFallback('temp');
   return path.join(rootPath, 'aionui');
 };
 
@@ -26,11 +52,11 @@ export const getTempPath = () => {
  */
 const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
   // Only needed on macOS where Application Support has a space
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' || !hasElectronAppPath()) {
     return targetPath;
   }
 
-  const homePath = app.getPath('home');
+  const homePath = getElectronPathOrFallback('home');
   const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
@@ -72,23 +98,27 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
 };
 
 /**
- * Get data path, using CLI-safe symlink (~/.aionui) on macOS.
- * 获取数据目录路径，macOS 上使用 ~/.aionui 符号链接。
+ * Get data path, using CLI-safe symlink on macOS.
+ * Release builds use ~/.aionui; dev builds use ~/.aionui-dev.
+ * 获取数据目录路径，macOS 上使用符号链接。
+ * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
  */
 export const getDataPath = (): string => {
-  const rootPath = app.getPath('userData');
+  const rootPath = getElectronPathOrFallback('userData');
   const dataPath = path.join(rootPath, 'aionui');
-  return ensureCliSafeSymlink(dataPath, '.aionui');
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
 
 /**
- * Get config path, using CLI-safe symlink (~/.aionui-config) on macOS.
- * 获取配置目录路径，macOS 上使用 ~/.aionui-config 符号链接。
+ * Get config path, using CLI-safe symlink on macOS.
+ * Release builds use ~/.aionui-config; dev builds use ~/.aionui-config-dev.
+ * 获取配置目录路径，macOS 上使用符号链接。
+ * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
  */
 export const getConfigPath = (): string => {
-  const rootPath = app.getPath('userData');
+  const rootPath = getElectronPathOrFallback('userData');
   const configPath = path.join(rootPath, 'config');
-  return ensureCliSafeSymlink(configPath, '.aionui-config');
+  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };
 
 export const generateHashWithFullName = (fullName: string): string => {
@@ -126,8 +156,13 @@ export async function readDirectoryRecursive(
     if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
   };
 
-  const stats = await fs.stat(dirPath);
-  if (!stats.isDirectory()) {
+  try {
+    const stats = await fs.stat(dirPath);
+    if (!stats.isDirectory()) {
+      return null;
+    }
+  } catch {
+    // Directory may have been deleted (e.g. cleaned-up temp workspace)
     return null;
   }
   const result: IDirOrFile = {
@@ -154,7 +189,13 @@ export async function readDirectoryRecursive(
     const itemPath = path.join(dirPath, item);
     if (fileService && fileService.shouldIgnoreFile(itemPath)) continue;
 
-    const itemStats = await fs.stat(itemPath);
+    let itemStats: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      itemStats = await fs.stat(itemPath);
+    } catch {
+      // File may have been deleted between readdir and stat (race condition)
+      continue;
+    }
     if (itemStats.isDirectory()) {
       process.dir += 1;
       const child = await readDirectoryRecursive(itemPath, {

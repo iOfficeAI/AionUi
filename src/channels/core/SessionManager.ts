@@ -70,7 +70,12 @@ export class SessionManager {
    * Create a new session for a user
    * This will clear any existing session for the same user+chat combo
    */
-  createSession(user: IChannelUser, agentType: ChannelAgentType = 'gemini', workspace?: string, chatId?: string): IChannelSession {
+  createSession(
+    user: IChannelUser,
+    agentType: ChannelAgentType = 'gemini',
+    workspace?: string,
+    chatId?: string
+  ): IChannelSession {
     // Generate a new conversationId
     return this.createSessionWithConversation(user, uuid(), agentType, workspace, chatId);
   }
@@ -78,7 +83,13 @@ export class SessionManager {
   /**
    * Create a new session with a specific conversation ID
    */
-  createSessionWithConversation(user: IChannelUser, conversationId: string, agentType: ChannelAgentType = 'gemini', workspace?: string, chatId?: string): IChannelSession {
+  createSessionWithConversation(
+    user: IChannelUser,
+    conversationId: string,
+    agentType: ChannelAgentType = 'gemini',
+    workspace?: string,
+    chatId?: string
+  ): IChannelSession {
     const db = getDatabase();
     const key = this.buildKey(user.id, chatId);
 

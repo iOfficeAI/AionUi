@@ -120,7 +120,10 @@ export default defineConfig({
 
     // Arco Design 官方浅色系 primary/success/warning/danger/link-light-1 到 -light-4
     // Arco Design light variants: bg-primary-light-1, bg-success-light-1, etc.
-    [/^bg-(primary|success|warning|danger|link)-light-([1-4])$/, ([, color, d]: RegExpExecArray) => ({ 'background-color': `var(--color-${color}-light-${d})` })],
+    [
+      /^bg-(primary|success|warning|danger|link)-light-([1-4])$/,
+      ([, color, d]: RegExpExecArray) => ({ 'background-color': `var(--color-${color}-light-${d})` }),
+    ],
 
     // Arco Design 官方色阶 primary/success/warning/danger 1-9
     // Arco Design color levels: bg-primary-1, text-primary-1, border-primary-1, etc.

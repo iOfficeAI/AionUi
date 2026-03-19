@@ -20,7 +20,12 @@ interface ChannelConflictWarningProps {
 /**
  * Warning component when OpenClaw channel conflicts with AionUi Channels
  */
-export const ChannelConflictWarning: React.FC<ChannelConflictWarningProps> = ({ platform, openclawConfigPath, onDisableOpenClaw, onIgnore }) => {
+export const ChannelConflictWarning: React.FC<ChannelConflictWarningProps> = ({
+  platform,
+  openclawConfigPath,
+  onDisableOpenClaw,
+  onIgnore,
+}) => {
   const platformName = platform === 'lark' ? 'Lark/Feishu' : 'Telegram';
   const channelKey = platform === 'lark' ? 'feishu' : 'telegram';
 
@@ -99,7 +104,10 @@ export const ChannelConflictWarning: React.FC<ChannelConflictWarningProps> = ({ 
 /**
  * Compact warning banner (for settings page)
  */
-export const ChannelConflictBanner: React.FC<{ platform: 'lark' | 'telegram'; onLearnMore: () => void }> = ({ platform, onLearnMore }) => {
+export const ChannelConflictBanner: React.FC<{ platform: 'lark' | 'telegram'; onLearnMore: () => void }> = ({
+  platform,
+  onLearnMore,
+}) => {
   const platformName = platform === 'lark' ? 'Lark/Feishu' : 'Telegram';
 
   return (

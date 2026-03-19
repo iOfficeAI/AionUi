@@ -89,7 +89,9 @@ test.describe('WebUI Service', () => {
         await page.waitForFunction(
           () => {
             const text = document.body.textContent || '';
-            return text.includes('✓') || text.includes('Running') || text.includes('运行中') || text.includes('running');
+            return (
+              text.includes('✓') || text.includes('Running') || text.includes('运行中') || text.includes('running')
+            );
           },
           { timeout: 5000 }
         );
@@ -98,7 +100,8 @@ test.describe('WebUI Service', () => {
       }
 
       const body = await page.locator('body').textContent();
-      const isRunning = body?.includes('✓') || body?.includes('Running') || body?.includes('运行中') || body?.includes('running');
+      const isRunning =
+        body?.includes('✓') || body?.includes('Running') || body?.includes('运行中') || body?.includes('running');
 
       // If it started, toggle off to clean up
       if (isRunning) {

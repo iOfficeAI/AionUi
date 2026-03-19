@@ -25,7 +25,13 @@ interface MarkdownEditorProps {
  * 基于 CodeMirror 实现，支持语法高亮和实时编辑
  * Based on CodeMirror, supports syntax highlighting and live editing
  */
-const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange, readOnly = false, containerRef, onScroll }) => {
+const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
+  value,
+  onChange,
+  readOnly = false,
+  containerRef,
+  onScroll,
+}) => {
   const { theme } = useThemeContext();
   const editorWrapperRef = useRef<HTMLDivElement>(null);
 

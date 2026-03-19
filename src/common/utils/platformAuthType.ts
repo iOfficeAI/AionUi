@@ -51,7 +51,12 @@ export function getAuthTypeFromPlatform(platform: string): AuthType {
  * @param provider 包含platform和可选authType的provider配置
  * @returns 认证类型
  */
-export function getProviderAuthType(provider: { platform: string; authType?: AuthType; modelProtocols?: Record<string, string>; useModel?: string }): AuthType {
+export function getProviderAuthType(provider: {
+  platform: string;
+  authType?: AuthType;
+  modelProtocols?: Record<string, string>;
+  useModel?: string;
+}): AuthType {
   // 如果明确指定了authType，直接使用
   if (provider.authType) {
     return provider.authType;

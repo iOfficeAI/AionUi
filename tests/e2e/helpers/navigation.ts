@@ -58,6 +58,12 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
   }
 
   await page.evaluate((h) => window.location.assign(h), hash);
+  // Wait for the URL hash to actually reflect the target route before proceeding
+  try {
+    await page.waitForFunction((h) => window.location.hash === h, hash, { timeout: 10_000 });
+  } catch {
+    // Best-effort: continue if URL didn't update (e.g. auth redirect)
+  }
   // Give React a tick to begin re-rendering after hash change
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   // Wait for body to have meaningful content (event-driven, no fixed sleep)
@@ -65,6 +71,15 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
     await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: 10_000 });
   } catch {
     // Best-effort: if content doesn't appear, continue with the test
+  }
+}
+
+async function navigateWithRetry(page: Page, hash: string): Promise<void> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await navigateTo(page, hash);
+    if (isAlreadyAt(page, hash)) {
+      return;
+    }
   }
 }
 
@@ -82,17 +97,17 @@ export async function waitForSettle(page: Page, timeoutMs = 3000): Promise<void>
 
 /** Navigate to the guid / chat page. */
 export async function goToGuid(page: Page): Promise<void> {
-  await navigateTo(page, ROUTES.guid);
+  await navigateWithRetry(page, ROUTES.guid);
 }
 
 /** Navigate to a settings tab. */
 export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> {
-  await navigateTo(page, ROUTES.settings[tab]);
+  await navigateWithRetry(page, ROUTES.settings[tab]);
 }
 
 /** Navigate to an extension-contributed settings tab by its ID. */
 export async function goToExtensionSettings(page: Page, tabId: string): Promise<void> {
-  await navigateTo(page, ROUTES.extensionSettings(tabId));
+  await navigateWithRetry(page, ROUTES.extensionSettings(tabId));
 }
 
 /** Track whether we have already navigated to the channels tab in this session. */
@@ -104,7 +119,9 @@ let _onChannelsTab = false;
  * Uses a session-level flag to skip re-navigation when already on the tab.
  */
 export async function goToChannelsTab(page: Page): Promise<void> {
-  const channelItem = page.locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`).first();
+  const channelItem = page
+    .locator(`${channelItemById('telegram')}, ${channelItemById('lark')}, ${channelItemById('dingtalk')}`)
+    .first();
 
   // Quick check: if we're already on the channels tab, verify a channel item is still visible
   if (_onChannelsTab && isAlreadyAt(page, ROUTES.settings.webui)) {
@@ -115,7 +132,9 @@ export async function goToChannelsTab(page: Page): Promise<void> {
   await goToSettings(page, 'webui');
 
   // Ensure route transition is actually complete before locating inner tabs
-  await page.waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 }).catch(() => undefined);
+  await page
+    .waitForFunction(() => window.location.hash.startsWith('#/settings/webui'), { timeout: 12_000 })
+    .catch(() => undefined);
 
   const stableTab = page.locator(webuiTabByKey('channels')).first();
   const fallbackTab = page

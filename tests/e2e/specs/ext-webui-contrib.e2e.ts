@@ -81,7 +81,9 @@ test.describe('Extension WebUI Contributions', () => {
       }, port);
 
       expect(result.status).toBe(200);
-      expect(result.contentType.toLowerCase().includes('image/svg') || result.bodyPreview.includes('<svg')).toBeTruthy();
+      expect(
+        result.contentType.toLowerCase().includes('image/svg') || result.bodyPreview.includes('<svg')
+      ).toBeTruthy();
     } finally {
       await stopWebuiIfStarted(page, startedByTest);
     }
@@ -121,7 +123,10 @@ test.describe('Extension WebUI Contributions', () => {
     const { port, startedByTest } = webui;
 
     try {
-      const disableResult = (await invokeBridge(page, 'extensions.disable', { name: 'ext-feishu', reason: 'e2e-check' })) as {
+      const disableResult = (await invokeBridge(page, 'extensions.disable', {
+        name: 'ext-feishu',
+        reason: 'e2e-check',
+      })) as {
         success?: boolean;
         msg?: string;
       };

@@ -27,13 +27,21 @@ export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'ope
  * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
  * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
  */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'codebuddy', 'opencode', 'codex', 'qwen'] as const;
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = [
+  'claude',
+  'codebuddy',
+  'opencode',
+  'codex',
+  'qwen',
+] as const;
 
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
-export const CLAUDE_ACP_BRIDGE_VERSION = '0.18.0';
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
 export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
+
+export const CODEBUDDY_ACP_NPX_PACKAGE = '@tencent-ai/codebuddy-code';
 
 /**
  * 检查预设 Agent 类型是否需要通过 ACP 后端路由
@@ -61,6 +69,7 @@ export type AcpBackendAll =
   | 'openclaw-gateway' // OpenClaw Gateway WebSocket
   | 'vibe' // Mistral Vibe CLI
   | 'nanobot' // nanobot CLI
+  | 'cursor' // Cursor AI Agent CLI
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -357,7 +366,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     id: 'codebuddy',
     name: 'CodeBuddy',
     cliCommand: 'codebuddy',
-    defaultCliPath: 'npx @tencent-ai/codebuddy-code',
+    defaultCliPath: `npx ${CODEBUDDY_ACP_NPX_PACKAGE}`,
     authRequired: true,
     enabled: true, // ✅ Tencent CodeBuddy Code CLI，使用 `codebuddy --acp` 启动
     supportsStreaming: false,
@@ -453,6 +462,17 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true,
     supportsStreaming: false,
   },
+  cursor: {
+    id: 'cursor',
+    name: 'Cursor Agent',
+    // Note: Cursor CLI uses the generic command name "agent". Detection relies on `which agent`
+    // which may match other tools. Users should ensure the Cursor CLI is the `agent` on their PATH.
+    cliCommand: 'agent',
+    authRequired: true, // Requires active Cursor subscription
+    enabled: true, // ✅ Cursor AI Agent CLI, launched via `agent acp`
+    supportsStreaming: false,
+    acpArgs: ['acp'], // Cursor uses `agent acp` subcommand
+  },
   custom: {
     id: 'custom',
     name: 'Custom Agent',
@@ -464,7 +484,9 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
 };
 
 // 仅启用的后端配置 / Enabled backends only
-export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled));
+export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(
+  Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled)
+);
 
 // 当前启用的后端类型 / Currently enabled backend types
 export type AcpBackend = keyof typeof ACP_BACKENDS_ALL;
@@ -517,7 +539,12 @@ export interface AcpError {
 export type AcpResult<T = unknown> = { success: true; data: T } | { success: false; error: AcpError };
 
 // 创建 ACP 错误的辅助函数 / Helper function to create ACP errors
-export function createAcpError(type: AcpErrorType, message: string, retryable: boolean = false, details?: unknown): AcpError {
+export function createAcpError(
+  type: AcpErrorType,
+  message: string,
+  retryable: boolean = false,
+  details?: unknown
+): AcpError {
   return {
     type,
     code: type.toString(),
@@ -709,6 +736,38 @@ export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   };
 }
 
+/** Usage update notification from ACP backend (context window utilization, supported by claude-agent-acp and codex-acp) */
+export interface UsageUpdatePayload extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'usage_update';
+    /** Total tokens currently in context */
+    used: number;
+    /** Context window capacity (max tokens) */
+    size: number;
+    /** Cumulative session cost */
+    cost?: {
+      amount: number;
+      currency: string;
+    };
+  };
+}
+
+/** Per-turn token usage from PromptResponse (unstable ACP spec, supported by codex-acp) */
+export interface AcpPromptResponseUsage {
+  /** Total input tokens (includes context from previous turns) */
+  inputTokens: number;
+  /** Total output tokens for this turn */
+  outputTokens: number;
+  /** Sum of all token types */
+  totalTokens: number;
+  /** Tokens read from cache */
+  cachedReadTokens?: number | null;
+  /** Tokens written to cache */
+  cachedWriteTokens?: number | null;
+  /** Reasoning/thinking tokens */
+  thoughtTokens?: number | null;
+}
+
 // ===== ACP Models types (unstable API) =====
 
 /** An available model returned by session/new (unstable API) */
@@ -743,7 +802,16 @@ export interface AcpModelInfo {
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | ConfigOptionsUpdatePayload;
+export type AcpSessionUpdate =
+  | AgentMessageChunkUpdate
+  | AgentThoughtChunkUpdate
+  | ToolCallUpdate
+  | ToolCallUpdateStatus
+  | PlanUpdate
+  | AvailableCommandsUpdate
+  | UserMessageChunkUpdate
+  | ConfigOptionsUpdatePayload
+  | UsageUpdatePayload;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
@@ -877,4 +945,8 @@ export interface AcpFileWriteMessage {
  * ACP incoming message union type.
  * TypeScript can automatically narrow the type based on the method field.
  */
-export type AcpIncomingMessage = AcpSessionUpdateNotification | AcpPermissionRequestMessage | AcpFileReadMessage | AcpFileWriteMessage;
+export type AcpIncomingMessage =
+  | AcpSessionUpdateNotification
+  | AcpPermissionRequestMessage
+  | AcpFileReadMessage
+  | AcpFileWriteMessage;

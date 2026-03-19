@@ -76,7 +76,8 @@ function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: b
   }
 
   const resolved = resolveExtensionAssetUrl(value) || value;
-  const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(resolved);
+  const isImage =
+    /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(resolved);
   if (isImage) {
     return { logo: resolved, isEmoji: false };
   }
@@ -107,7 +108,10 @@ function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo 
 /**
  * Build assistant info from a custom agent config
  */
-function buildCustomAgentInfo(customAgent: { name?: string; nameI18n?: Record<string, string>; avatar?: string }, locale: string): PresetAssistantInfo {
+function buildCustomAgentInfo(
+  customAgent: { name?: string; nameI18n?: Record<string, string>; avatar?: string },
+  locale: string
+): PresetAssistantInfo {
   const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
   const normalized = normalizeAvatar(typeof customAgent.avatar === 'string' ? customAgent.avatar : '');
 
@@ -132,13 +136,19 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   const { i18n } = useTranslation();
 
   // Fetch custom agents to support custom preset assistants
-  const { data: customAgents, isLoading: isLoadingCustomAgents } = useSWR('acp.customAgents', () => ConfigStorage.get('acp.customAgents'));
+  const { data: customAgents, isLoading: isLoadingCustomAgents } = useSWR('acp.customAgents', () =>
+    ConfigStorage.get('acp.customAgents')
+  );
 
   // Fetch extension-contributed assistants
-  const { data: extensionAssistants, isLoading: isLoadingExtAssistants } = useSWR('extensions.assistants', () => ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]));
+  const { data: extensionAssistants, isLoading: isLoadingExtAssistants } = useSWR('extensions.assistants', () =>
+    ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])
+  );
 
   // Fetch extension-contributed ACP adapters (for ext:{extensionName}:{adapterId} conversations)
-  const { data: extensionAcpAdapters, isLoading: isLoadingExtAdapters } = useSWR('extensions.acpAdapters', () => ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[]));
+  const { data: extensionAcpAdapters, isLoading: isLoadingExtAdapters } = useSWR('extensions.acpAdapters', () =>
+    ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[])
+  );
 
   return useMemo(() => {
     if (!conversation) return { info: null, isLoading: false };
@@ -153,7 +163,8 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     }
 
     // Custom/extension data still loading — don't fall through to fallback yet
-    if (isLoadingCustomAgents || isLoadingExtAssistants || isLoadingExtAdapters) return { info: null as PresetAssistantInfo | null, isLoading: true };
+    if (isLoadingCustomAgents || isLoadingExtAssistants || isLoadingExtAdapters)
+      return { info: null as PresetAssistantInfo | null, isLoading: true };
 
     // If not found in built-in presets, try to find in custom agents
     if (customAgents && Array.isArray(customAgents)) {
@@ -170,7 +181,10 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         const locale = i18n.language || 'en-US';
         const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
         const nameI18n = extAssistant.nameI18n as Record<string, string> | undefined;
-        const name = nameI18n?.[localeKey] || nameI18n?.[locale] || (typeof extAssistant.name === 'string' ? extAssistant.name : String(presetId));
+        const name =
+          nameI18n?.[localeKey] ||
+          nameI18n?.[locale] ||
+          (typeof extAssistant.name === 'string' ? extAssistant.name : String(presetId));
         const avatar = typeof extAssistant.avatar === 'string' ? extAssistant.avatar : '';
         const normalized = normalizeAvatar(avatar);
         return { info: { name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
@@ -199,5 +213,14 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     }
 
     return { info: null, isLoading: false };
-  }, [conversation, i18n.language, customAgents, isLoadingCustomAgents, extensionAssistants, isLoadingExtAssistants, extensionAcpAdapters, isLoadingExtAdapters]);
+  }, [
+    conversation,
+    i18n.language,
+    customAgents,
+    isLoadingCustomAgents,
+    extensionAssistants,
+    isLoadingExtAssistants,
+    extensionAcpAdapters,
+    isLoadingExtAdapters,
+  ]);
 }

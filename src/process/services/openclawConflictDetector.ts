@@ -62,7 +62,11 @@ function findOpenClawConfigPath(): string | null {
   // Check state directory
   const stateDir = process.env.OPENCLAW_STATE_DIR?.replace(/^~/, os.homedir()) || path.join(os.homedir(), '.openclaw');
 
-  const candidates = [path.join(stateDir, 'openclaw.json'), path.join(stateDir, 'clawdbot.json'), path.join(os.homedir(), '.clawdbot', 'clawdbot.json')];
+  const candidates = [
+    path.join(stateDir, 'openclaw.json'),
+    path.join(stateDir, 'clawdbot.json'),
+    path.join(os.homedir(), '.clawdbot', 'clawdbot.json'),
+  ];
 
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
@@ -108,7 +112,9 @@ export function detectLarkConflict(aionuiAppId: string): ConflictInfo | null {
   // Check all accounts
   for (const [accountName, account] of Object.entries(feishu.accounts)) {
     if (account.enabled && account.appId === aionuiAppId) {
-      console.warn(`[OpenClawConflictDetector] Lark conflict detected: OpenClaw account "${accountName}" uses same appId: ${aionuiAppId}`);
+      console.warn(
+        `[OpenClawConflictDetector] Lark conflict detected: OpenClaw account "${accountName}" uses same appId: ${aionuiAppId}`
+      );
       return {
         platform: 'lark',
         openclawEnabled: true,

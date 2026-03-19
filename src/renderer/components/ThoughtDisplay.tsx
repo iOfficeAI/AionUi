@@ -35,7 +35,12 @@ const formatElapsedTime = (seconds: number): string => {
   return `${minutes}m ${remainingSeconds}s`;
 };
 
-const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'default', running = false, onStop: _onStop }) => {
+const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
+  thought,
+  style = 'default',
+  running = false,
+  onStop: _onStop,
+}) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -87,7 +92,10 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
   // 运行中但没有 thought 时显示默认处理状态
   if (running && !thought?.subject) {
     return (
-      <div className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary flex items-center gap-8px' style={containerStyle}>
+      <div
+        className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary flex items-center gap-8px'
+        style={containerStyle}
+      >
         <Spin size={14} />
         <span className='text-t-secondary'>
           {t('conversation.chat.processing')}
@@ -108,7 +116,9 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
           {thought.subject}
         </Tag>
         {showDescription && <span className='flex-1 truncate'>{thought.description}</span>}
-        {running && <span className='text-t-tertiary text-12px whitespace-nowrap'>({formatElapsedTime(elapsedTime)})</span>}
+        {running && (
+          <span className='text-t-tertiary text-12px whitespace-nowrap'>({formatElapsedTime(elapsedTime)})</span>
+        )}
       </div>
     </div>
   );

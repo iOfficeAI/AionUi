@@ -53,7 +53,12 @@ interface TelegramConfigFormProps {
   onTokenChange?: (token: string) => void;
 }
 
-const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange, onTokenChange }) => {
+const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
+  pluginStatus,
+  modelSelection,
+  onStatusChange,
+  onTokenChange,
+}) => {
   const { t } = useTranslation();
 
   const [telegramToken, setTelegramToken] = useState('');
@@ -66,8 +71,12 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
   // Agent selection (used for Telegram conversations)
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean; isExtension?: boolean }>>([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>({ backend: 'gemini' });
+  const [availableAgents, setAvailableAgents] = useState<
+    Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isPreset?: boolean; isExtension?: boolean }>
+  >([]);
+  const [selectedAgent, setSelectedAgent] = useState<{ backend: AcpBackendAll; name?: string; customAgentId?: string }>(
+    { backend: 'gemini' }
+  );
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -109,10 +118,21 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   useEffect(() => {
     const loadAgentsAndSelection = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([acpConversation.getAvailableAgents.invoke(), ConfigStorage.get('assistant.telegram.agent')]);
+        const [agentsResp, saved] = await Promise.all([
+          acpConversation.getAvailableAgents.invoke(),
+          ConfigStorage.get('assistant.telegram.agent'),
+        ]);
 
         if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data.filter((a) => !a.isPreset).map((a) => ({ backend: a.backend, name: a.name, customAgentId: a.customAgentId, isPreset: a.isPreset, isExtension: a.isExtension }));
+          const list = agentsResp.data
+            .filter((a) => !a.isPreset)
+            .map((a) => ({
+              backend: a.backend,
+              name: a.name,
+              customAgentId: a.customAgentId,
+              isPreset: a.isPreset,
+              isExtension: a.isExtension,
+            }));
           setAvailableAgents(list);
         }
 
@@ -136,7 +156,9 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   const persistSelectedAgent = async (agent: { backend: AcpBackendAll; customAgentId?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.telegram.agent', agent);
-      await channel.syncChannelSettings.invoke({ platform: 'telegram', agent }).catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
+      await channel.syncChannelSettings
+        .invoke({ platform: 'telegram', agent })
+        .catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[TelegramConfig] Failed to save agent:', error);
@@ -188,7 +210,9 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
       if (result.success && result.data?.success) {
         setTokenTested(true);
         setTestedBotUsername(result.data.botUsername || null);
-        Message.success(t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.data.botUsername || 'unknown'}`));
+        Message.success(
+          t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.data.botUsername || 'unknown'}`)
+        );
 
         // Auto-enable bot after successful test
         await handleAutoEnable();
@@ -297,31 +321,70 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
   };
 
   const isGeminiAgent = selectedAgent.backend === 'gemini';
-  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const agentOptions: Array<{ backend: AcpBackendAll; name: string; customAgentId?: string; isExtension?: boolean }> =
+    availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
-      <PreferenceRow label={t('settings.assistant.botToken', 'Bot Token')} description={t('settings.assistant.botTokenDesc', 'Open Telegram, find @BotFather and send /newbot to get your Bot Token.')}>
+      <PreferenceRow
+        label={t('settings.assistant.botToken', 'Bot Token')}
+        description={t(
+          'settings.assistant.botTokenDesc',
+          'Open Telegram, find @BotFather and send /newbot to get your Bot Token.'
+        )}
+      >
         <div className='flex items-center gap-8px'>
           {authorizedUsers.length > 0 ? (
-            <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+            <Tooltip
+              content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}
+            >
               <span>
-                <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
+                <Input.Password
+                  value={telegramToken}
+                  onChange={handleTokenChange}
+                  placeholder={
+                    authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'
+                  }
+                  style={{ width: 240 }}
+                  visibilityToggle
+                  disabled={authorizedUsers.length > 0}
+                />
               </span>
             </Tooltip>
           ) : (
-            <Input.Password value={telegramToken} onChange={handleTokenChange} placeholder={authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'} style={{ width: 240 }} visibilityToggle disabled={authorizedUsers.length > 0} />
+            <Input.Password
+              value={telegramToken}
+              onChange={handleTokenChange}
+              placeholder={
+                authorizedUsers.length > 0 || pluginStatus?.hasToken ? '••••••••••••••••' : '123456:ABC-DEF...'
+              }
+              style={{ width: 240 }}
+              visibilityToggle
+              disabled={authorizedUsers.length > 0}
+            />
           )}
           {authorizedUsers.length > 0 ? (
-            <Tooltip content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}>
+            <Tooltip
+              content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}
+            >
               <span>
-                <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
+                <Button
+                  type='outline'
+                  loading={testLoading}
+                  onClick={handleTestConnection}
+                  disabled={authorizedUsers.length > 0}
+                >
                   {t('settings.assistant.testConnection', 'Test')}
                 </Button>
               </span>
             </Tooltip>
           ) : (
-            <Button type='outline' loading={testLoading} onClick={handleTestConnection} disabled={authorizedUsers.length > 0}>
+            <Button
+              type='outline'
+              loading={testLoading}
+              onClick={handleTestConnection}
+              disabled={authorizedUsers.length > 0}
+            >
               {t('settings.assistant.testConnection', 'Test')}
             </Button>
           )}
@@ -330,19 +393,30 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
 
       {/* Agent Selection */}
       <div className='flex flex-col gap-8px'>
-        <PreferenceRow label={t('settings.agent', 'Agent')} description={t('settings.assistant.agentDescTelegram', 'Used for Telegram conversations')}>
+        <PreferenceRow
+          label={t('settings.agent', 'Agent')}
+          description={t('settings.assistant.agentDescTelegram', 'Used for Telegram conversations')}
+        >
           <Dropdown
             trigger='click'
             position='br'
             droplist={
-              <Menu selectedKeys={[selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend]}>
+              <Menu
+                selectedKeys={[
+                  selectedAgent.customAgentId
+                    ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                    : selectedAgent.backend,
+                ]}
+              >
                 {agentOptions.map((a) => {
                   const key = a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
-                        const currentKey = selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend;
+                        const currentKey = selectedAgent.customAgentId
+                          ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                          : selectedAgent.backend;
                         if (key === currentKey) {
                           return;
                         }
@@ -359,7 +433,17 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
             }
           >
             <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-              <span className='truncate'>{selectedAgent.name || availableAgents.find((a) => (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) === (selectedAgent.customAgentId ? `${selectedAgent.backend}|${selectedAgent.customAgentId}` : selectedAgent.backend))?.name || selectedAgent.backend}</span>
+              <span className='truncate'>
+                {selectedAgent.name ||
+                  availableAgents.find(
+                    (a) =>
+                      (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) ===
+                      (selectedAgent.customAgentId
+                        ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                        : selectedAgent.backend)
+                  )?.name ||
+                  selectedAgent.backend}
+              </span>
               <Down theme='outline' size={14} />
             </Button>
           </Dropdown>
@@ -367,8 +451,16 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
       </div>
 
       {/* Default Model Selection */}
-      <PreferenceRow label={t('settings.assistant.defaultModel', '对话模型')} description={t('settings.assistant.defaultModelDesc', '用于Agent对话时调用')}>
-        <GeminiModelSelector selection={isGeminiAgent ? modelSelection : undefined} disabled={!isGeminiAgent} label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined} variant='settings' />
+      <PreferenceRow
+        label={t('settings.assistant.defaultModel', '对话模型')}
+        description={t('settings.assistant.defaultModelDesc', '用于Agent对话时调用')}
+      >
+        <GeminiModelSelector
+          selection={isGeminiAgent ? modelSelection : undefined}
+          disabled={!isGeminiAgent}
+          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined}
+          variant='settings'
+        />
       </PreferenceRow>
 
       {/* Next Steps Guide - show when bot is enabled and no authorized users yet */}
@@ -385,13 +477,19 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
               )}
             </p>
             <p className='m-0'>
-              <strong>2.</strong> {t('settings.assistant.step2', 'Send any message or click /start to initiate pairing')}
+              <strong>2.</strong>{' '}
+              {t('settings.assistant.step2', 'Send any message or click /start to initiate pairing')}
             </p>
             <p className='m-0'>
-              <strong>3.</strong> {t('settings.assistant.step3', 'A pairing request will appear below. Click "Approve" to authorize the user.')}
+              <strong>3.</strong>{' '}
+              {t(
+                'settings.assistant.step3',
+                'A pairing request will appear below. Click "Approve" to authorize the user.'
+              )}
             </p>
             <p className='m-0'>
-              <strong>4.</strong> {t('settings.assistant.step4', 'Once approved, you can start chatting with Gemini through Telegram!')}
+              <strong>4.</strong>{' '}
+              {t('settings.assistant.step4', 'Once approved, you can start chatting with Gemini through Telegram!')}
             </p>
           </div>
         </div>
@@ -403,7 +501,13 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
           <SectionHeader
             title={t('settings.assistant.pendingPairings', 'Pending Pairing Requests')}
             action={
-              <Button size='mini' type='text' icon={<Refresh size={14} />} loading={pairingLoading} onClick={loadPendingPairings}>
+              <Button
+                size='mini'
+                type='text'
+                icon={<Refresh size={14} />}
+                loading={pairingLoading}
+                onClick={loadPendingPairings}
+              >
                 {t('common.refresh', 'Refresh')}
               </Button>
             }
@@ -423,22 +527,37 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
                     <div className='flex items-center gap-8px'>
                       <span className='text-14px font-500 text-t-primary'>{pairing.displayName || 'Unknown User'}</span>
                       <Tooltip content={t('settings.assistant.copyCode', 'Copy pairing code')}>
-                        <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => copyToClipboard(pairing.code)}>
+                        <button
+                          className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                          onClick={() => copyToClipboard(pairing.code)}
+                        >
                           <Copy size={14} />
                         </button>
                       </Tooltip>
                     </div>
                     <div className='text-12px text-t-tertiary mt-4px'>
-                      {t('settings.assistant.pairingCode', 'Code')}: <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
+                      {t('settings.assistant.pairingCode', 'Code')}:{' '}
+                      <code className='bg-fill-3 px-4px rd-2px'>{pairing.code}</code>
                       <span className='mx-8px'>|</span>
                       {t('settings.assistant.expiresIn', 'Expires in')}: {getRemainingTime(pairing.expiresAt)}
                     </div>
                   </div>
                   <div className='flex items-center gap-8px'>
-                    <Button type='primary' size='small' icon={<CheckOne size={14} />} onClick={() => handleApprovePairing(pairing.code)}>
+                    <Button
+                      type='primary'
+                      size='small'
+                      icon={<CheckOne size={14} />}
+                      onClick={() => handleApprovePairing(pairing.code)}
+                    >
                       {t('settings.assistant.approve', 'Approve')}
                     </Button>
-                    <Button type='secondary' size='small' status='danger' icon={<CloseOne size={14} />} onClick={() => handleRejectPairing(pairing.code)}>
+                    <Button
+                      type='secondary'
+                      size='small'
+                      status='danger'
+                      icon={<CloseOne size={14} />}
+                      onClick={() => handleRejectPairing(pairing.code)}
+                    >
                       {t('settings.assistant.reject', 'Reject')}
                     </Button>
                   </div>
@@ -455,7 +574,13 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={
-              <Button size='mini' type='text' icon={<Refresh size={14} />} loading={usersLoading} onClick={loadAuthorizedUsers}>
+              <Button
+                size='mini'
+                type='text'
+                icon={<Refresh size={14} />}
+                loading={usersLoading}
+                onClick={loadAuthorizedUsers}
+              >
                 {t('common.refresh', 'Refresh')}
               </Button>
             }
@@ -480,7 +605,13 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
                     </div>
                   </div>
                   <Tooltip content={t('settings.assistant.revokeAccess', 'Revoke access')}>
-                    <Button type='text' status='danger' size='small' icon={<Delete size={16} />} onClick={() => handleRevokeUser(user.id)} />
+                    <Button
+                      type='text'
+                      status='danger'
+                      size='small'
+                      icon={<Delete size={16} />}
+                      onClick={() => handleRevokeUser(user.id)}
+                    />
                   </Tooltip>
                 </div>
               ))}

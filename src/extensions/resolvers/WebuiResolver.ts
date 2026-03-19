@@ -48,7 +48,12 @@ function isNamespacedForExtension(pathname: string, extensionName: string): bool
   return pathname === namespace || pathname.startsWith(`${namespace}/`);
 }
 
-function validateWebuiContribution(webui: ExtWebui, ext: LoadedExtension, seenApiRoutes: Set<string>, seenAssetPrefixes: Set<string>): ExtWebui | null {
+function validateWebuiContribution(
+  webui: ExtWebui,
+  ext: LoadedExtension,
+  seenApiRoutes: Set<string>,
+  seenAssetPrefixes: Set<string>
+): ExtWebui | null {
   const extDir = ext.directory;
   const extName = ext.manifest.name;
   const sanitized: ExtWebui = {};
@@ -67,7 +72,9 @@ function validateWebuiContribution(webui: ExtWebui, ext: LoadedExtension, seenAp
         continue;
       }
       if (!isNamespacedForExtension(routePath, extName) || isReservedWebuiPath(routePath)) {
-        console.warn(`[Extensions] WebUI API route must be namespaced under "/${extName}" and avoid reserved prefixes: ${routePath}`);
+        console.warn(
+          `[Extensions] WebUI API route must be namespaced under "/${extName}" and avoid reserved prefixes: ${routePath}`
+        );
         continue;
       }
       if (seenApiRoutes.has(routePath)) {
@@ -78,14 +85,20 @@ function validateWebuiContribution(webui: ExtWebui, ext: LoadedExtension, seenAp
       if (!absPath) {
         const rawPath = path.resolve(extDir, route.entryPoint);
         if (!isPathWithinDirectory(rawPath, extDir)) {
-          console.warn(`[Extensions] WebUI API route path traversal attempt: ${route.entryPoint} in ${extName}, skipping`);
+          console.warn(
+            `[Extensions] WebUI API route path traversal attempt: ${route.entryPoint} in ${extName}, skipping`
+          );
           continue;
         }
-        console.warn(`[Extensions] WebUI API route entryPoint not found (dist/source): ${route.entryPoint} (extension: ${extName}), skipping`);
+        console.warn(
+          `[Extensions] WebUI API route entryPoint not found (dist/source): ${route.entryPoint} (extension: ${extName}), skipping`
+        );
         continue;
       }
       if (!isPathWithinDirectory(absPath, extDir)) {
-        console.warn(`[Extensions] WebUI API route path traversal attempt: ${route.entryPoint} in ${extName}, skipping`);
+        console.warn(
+          `[Extensions] WebUI API route path traversal attempt: ${route.entryPoint} in ${extName}, skipping`
+        );
         continue;
       }
       validApiRoutes.push({ ...route, path: routePath, entryPoint: absPath });
@@ -104,7 +117,9 @@ function validateWebuiContribution(webui: ExtWebui, ext: LoadedExtension, seenAp
           console.warn(`[Extensions] WebUI WS handler path traversal attempt: ${handler.entryPoint} in ${extName}`);
           continue;
         }
-        console.warn(`[Extensions] WebUI WS handler entryPoint not found (dist/source): ${handler.entryPoint} (extension: ${extName})`);
+        console.warn(
+          `[Extensions] WebUI WS handler entryPoint not found (dist/source): ${handler.entryPoint} (extension: ${extName})`
+        );
         continue;
       }
       if (!isPathWithinDirectory(absPath, extDir)) {
@@ -124,7 +139,9 @@ function validateWebuiContribution(webui: ExtWebui, ext: LoadedExtension, seenAp
           console.warn(`[Extensions] WebUI middleware path traversal attempt: ${mw.entryPoint} in ${extName}`);
           continue;
         }
-        console.warn(`[Extensions] WebUI middleware entryPoint not found (dist/source): ${mw.entryPoint} (extension: ${extName})`);
+        console.warn(
+          `[Extensions] WebUI middleware entryPoint not found (dist/source): ${mw.entryPoint} (extension: ${extName})`
+        );
         continue;
       }
       if (!isPathWithinDirectory(absPath, extDir)) {
@@ -144,20 +161,28 @@ function validateWebuiContribution(webui: ExtWebui, ext: LoadedExtension, seenAp
         continue;
       }
       if (!isNamespacedForExtension(urlPrefix, extName) || isReservedWebuiPath(urlPrefix)) {
-        console.warn(`[Extensions] WebUI static asset prefix must be namespaced under "/${extName}" and avoid reserved prefixes: ${urlPrefix}`);
+        console.warn(
+          `[Extensions] WebUI static asset prefix must be namespaced under "/${extName}" and avoid reserved prefixes: ${urlPrefix}`
+        );
         continue;
       }
       if (seenAssetPrefixes.has(urlPrefix)) {
-        console.warn(`[Extensions] Duplicate WebUI static asset prefix across extensions: ${urlPrefix}, skipping (${extName})`);
+        console.warn(
+          `[Extensions] Duplicate WebUI static asset prefix across extensions: ${urlPrefix}, skipping (${extName})`
+        );
         continue;
       }
       const absPath = path.resolve(extDir, asset.directory);
       if (!isPathWithinDirectory(absPath, extDir)) {
-        console.warn(`[Extensions] WebUI static asset path traversal attempt: ${asset.directory} in ${extName}, skipping`);
+        console.warn(
+          `[Extensions] WebUI static asset path traversal attempt: ${asset.directory} in ${extName}, skipping`
+        );
         continue;
       }
       if (!existsSync(absPath)) {
-        console.warn(`[Extensions] WebUI static asset directory not found: ${absPath} (extension: ${extName}), skipping`);
+        console.warn(
+          `[Extensions] WebUI static asset directory not found: ${absPath} (extension: ${extName}), skipping`
+        );
         continue;
       }
       validStaticAssets.push({ ...asset, urlPrefix });

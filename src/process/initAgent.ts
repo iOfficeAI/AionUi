@@ -96,7 +96,12 @@ export async function setupAssistantWorkspace(
  * Note: File copying is handled by copyFilesToDirectory in sendMessage
  * This avoids files being copied twice
  */
-const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, _defaultFiles?: string[], providedCustomWorkspace?: boolean) => {
+const buildWorkspaceWidthFiles = async (
+  defaultWorkspaceName: string,
+  workspace?: string,
+  _defaultFiles?: string[],
+  providedCustomWorkspace?: boolean
+) => {
   // 使用前端提供的customWorkspace标志，如果没有则根据workspace参数判断
   const customWorkspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
 
@@ -112,8 +117,25 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[], presetAssistantId?: string, sessionMode?: string, isHealthCheck?: boolean): Promise<TChatConversation> => {
-  const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
+export const createGeminiAgent = async (
+  model: TProviderWithModel,
+  workspace?: string,
+  defaultFiles?: string[],
+  webSearchEngine?: 'google' | 'default',
+  customWorkspace?: boolean,
+  contextFileName?: string,
+  presetRules?: string,
+  enabledSkills?: string[],
+  presetAssistantId?: string,
+  sessionMode?: string,
+  isHealthCheck?: boolean
+): Promise<TChatConversation> => {
+  const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(
+    `gemini-temp-${Date.now()}`,
+    workspace,
+    defaultFiles,
+    customWorkspace
+  );
 
   // 对 temp workspace 设置 skill symlinks（原生 SkillManager 自动发现）
   // Set up skill symlinks for native SkillManager discovery
@@ -156,7 +178,12 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `${extra.backend}-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
 
   // 对 temp workspace 设置 skill symlinks（原生发现）
   if (!customWorkspace) {
@@ -198,7 +225,12 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
 /** @deprecated Legacy Codex creation. New Codex conversations use ACP protocol via createAcpAgent. */
 export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `codex-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
 
   // 对 temp workspace 设置 skill symlinks
   if (!customWorkspace) {
@@ -237,7 +269,12 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
 
 export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`nanobot-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `nanobot-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
 
   // 对 temp workspace 设置 skill symlinks
   if (!customWorkspace) {
@@ -264,7 +301,12 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
 
 export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`openclaw-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `openclaw-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
 
   // 对 temp workspace 设置 skill symlinks
   if (!customWorkspace) {

@@ -23,7 +23,14 @@ import type { ChannelAgentType } from '../../types';
  * Displayed persistently below the message input
  */
 export function createMainMenuKeyboard(): Keyboard {
-  return new Keyboard().text('🆕 New Chat').text('🔄 Agent').row().text('📊 Status').text('❓ Help').resized().persistent();
+  return new Keyboard()
+    .text('🆕 New Chat')
+    .text('🔄 Agent')
+    .row()
+    .text('📊 Status')
+    .text('❓ Help')
+    .resized()
+    .persistent();
 }
 
 /**
@@ -50,7 +57,10 @@ export interface AgentDisplayInfo {
  * @param availableAgents - List of available agents to display
  * @param currentAgent - Currently selected agent type
  */
-export function createAgentSelectionKeyboard(availableAgents: AgentDisplayInfo[], currentAgent?: ChannelAgentType): InlineKeyboard {
+export function createAgentSelectionKeyboard(
+  availableAgents: AgentDisplayInfo[],
+  currentAgent?: ChannelAgentType
+): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
   // Add agents in rows of 2
@@ -73,7 +83,11 @@ export function createAgentSelectionKeyboard(availableAgents: AgentDisplayInfo[]
  * Action buttons for AI response messages
  */
 export function createResponseActionsKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('📋 Copy', 'action:copy').text('🔄 Regenerate', 'action:regenerate').row().text('💬 Continue', 'action:continue');
+  return new InlineKeyboard()
+    .text('📋 Copy', 'action:copy')
+    .text('🔄 Regenerate', 'action:regenerate')
+    .row()
+    .text('💬 Continue', 'action:continue');
 }
 
 /**
@@ -108,7 +122,11 @@ export function createSessionControlKeyboard(): InlineKeyboard {
  * Help menu keyboard
  */
 export function createHelpKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🤖 Features', 'help:features').text('🔗 Pairing Guide', 'help:pairing').row().text('💬 Tips', 'help:tips');
+  return new InlineKeyboard()
+    .text('🤖 Features', 'help:features')
+    .text('🔗 Pairing Guide', 'help:pairing')
+    .row()
+    .text('💬 Tips', 'help:tips');
 }
 
 /**
@@ -123,7 +141,10 @@ export function createErrorRecoveryKeyboard(): InlineKeyboard {
  * @param callId - The tool call ID for tracking
  * @param options - Array of { label, value } options
  */
-export function createToolConfirmationKeyboard(callId: string, options: Array<{ label: string; value: string }>): InlineKeyboard {
+export function createToolConfirmationKeyboard(
+  callId: string,
+  options: Array<{ label: string; value: string }>
+): InlineKeyboard {
   const keyboard = new InlineKeyboard();
   // 每行最多显示 2 个按钮
   // Show at most 2 buttons per row

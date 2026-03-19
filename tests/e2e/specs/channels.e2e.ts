@@ -92,7 +92,12 @@ test.describe('Channels', () => {
       const ariaDisabled = await sw.getAttribute('aria-disabled');
       const dataDisabled = await sw.getAttribute('data-channel-switch-disabled');
       const disabledAttr = await sw.getAttribute('disabled');
-      expect(cls.includes('arco-switch-disabled') || ariaDisabled === 'true' || dataDisabled === 'true' || disabledAttr !== null).toBeTruthy();
+      expect(
+        cls.includes('arco-switch-disabled') ||
+          ariaDisabled === 'true' ||
+          dataDisabled === 'true' ||
+          disabledAttr !== null
+      ).toBeTruthy();
     }
   });
 

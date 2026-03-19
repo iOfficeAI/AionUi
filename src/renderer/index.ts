@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as Sentry from '@sentry/electron/renderer';
+
+Sentry.init();
+
 import './bootstrap/runtimePatches';
 import type { PropsWithChildren } from 'react';
 import React from 'react';
@@ -61,7 +65,16 @@ const arcoLocales: Record<string, typeof enUS> = {
   'en-US': enUS,
 };
 
-const AppProviders: React.FC<PropsWithChildren> = ({ children }) => React.createElement(AuthProvider, null, React.createElement(ThemeProvider, null, React.createElement(PreviewProvider, null, React.createElement(ConversationTabsProvider, null, children))));
+const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
+  React.createElement(
+    AuthProvider,
+    null,
+    React.createElement(
+      ThemeProvider,
+      null,
+      React.createElement(PreviewProvider, null, React.createElement(ConversationTabsProvider, null, children))
+    )
+  );
 
 const Config: React.FC<PropsWithChildren> = ({ children }) => {
   const {

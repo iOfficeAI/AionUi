@@ -31,7 +31,9 @@ function makeAgent(backend: string, acpSessionId?: string): AcpAgent {
   });
 }
 
-const CONFIG_OPTIONS: AcpSessionConfigOption[] = [{ id: 'model', category: 'model', type: 'select', currentValue: 'gpt-4o', options: [] }];
+const CONFIG_OPTIONS: AcpSessionConfigOption[] = [
+  { id: 'model', category: 'model', type: 'select', currentValue: 'gpt-4o', options: [] },
+];
 const MODELS: AcpSessionModels = {
   currentModelId: 'gpt-4o',
   availableModels: [{ id: 'gpt-4o' }, { id: 'o3' }],
@@ -168,7 +170,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
 
     await (agent as any).createOrResumeSession();
 
-    expect(newSession).toHaveBeenCalledWith(expect.any(String));
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
   it('creates a fresh session when no acpSessionId is stored', async () => {
@@ -181,7 +183,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
     await (agent as any).createOrResumeSession();
 
     expect(loadSession).not.toHaveBeenCalled();
-    expect(newSession).toHaveBeenCalledWith(expect.any(String));
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
   it('updates acpSessionId when resume returns a new session ID', async () => {

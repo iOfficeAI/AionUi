@@ -60,12 +60,19 @@ export interface IConfigStorageRefer {
   language: string;
   theme: string;
   colorScheme: string;
+  /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
+  'webui.desktop.enabled'?: boolean;
+  /** 桌面模式下是否允许远程访问 / Allow remote access in desktop mode */
+  'webui.desktop.allowRemote'?: boolean;
+  /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
+  'webui.desktop.port'?: number;
   customCss: string; // 自定义 CSS 样式
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string | { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {
-    switch: boolean;
+    /** @deprecated Image generation is now controlled via built-in MCP server toggle */
+    switch?: boolean;
   };
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
@@ -82,6 +89,10 @@ export interface IConfigStorageRefer {
   'migration.promptsI18nAdded'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
+  // 任务完成时显示系统通知 / Show system notification when task completes
+  'system.notificationEnabled'?: boolean;
+  // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes
+  'system.cronNotificationEnabled'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -115,6 +126,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Skills Market: whether the aionui-skills builtin skill is enabled
+  'skillsMarket.enabled'?: boolean;
 }
 
 export interface IEnvStorageRefer {
@@ -200,6 +213,10 @@ export type TChatConversation =
           acpSessionId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
           acpSessionUpdatedAt?: number;
+          /** Last context usage from usage_update */
+          lastTokenUsage?: TokenUsageData;
+          /** Context window capacity from usage_update */
+          lastContextLimit?: number;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
           sessionMode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
@@ -415,7 +432,11 @@ export interface IMcpServerTransportStreamableHTTP {
   headers?: Record<string, string>;
 }
 
-export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP | IMcpServerTransportStreamableHTTP;
+export type IMcpServerTransport =
+  | IMcpServerTransportStdio
+  | IMcpServerTransportSSE
+  | IMcpServerTransportHTTP
+  | IMcpServerTransportStreamableHTTP;
 
 export interface IMcpServer {
   id: string;
@@ -429,7 +450,12 @@ export interface IMcpServer {
   createdAt: number;
   updatedAt: number;
   originalJson: string; // 存储原始JSON配置，用于编辑时的准确显示
+  /** Built-in MCP server managed by AionUi (hide edit/delete in UI) */
+  builtin?: boolean;
 }
+
+/** Stable ID for the built-in image generation MCP server */
+export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 
 export interface IMcpTool {
   name: string;

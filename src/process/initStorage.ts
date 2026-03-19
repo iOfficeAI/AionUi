@@ -11,11 +11,26 @@ import { app } from 'electron';
 import { application } from '../common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
-import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
+import type {
+  IChatConversationRefer,
+  IConfigStorageRefer,
+  IEnvStorageRefer,
+  IMcpServer,
+  TChatConversation,
+  TProviderWithModel,
+} from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, ensureDirectory, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import {
+  copyDirectoryRecursively,
+  ensureDirectory,
+  getConfigPath,
+  getDataPath,
+  getTempPath,
+  verifyDirectoryFiles,
+} from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
+import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './builtinMcp/constants';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -258,7 +273,9 @@ const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cach
 const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
 
 // 创建带字段迁移的聊天历史代理
-const isGeminiConversation = (conversation: TChatConversation): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
+const isGeminiConversation = (
+  conversation: TChatConversation
+): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
   return conversation.type === 'gemini';
 };
 
@@ -287,7 +304,10 @@ const chatFile = {
 
     return data;
   },
-  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]): Promise<IChatConversationRefer[K]> {
+  async set<K extends keyof IChatConversationRefer>(
+    key: K,
+    value: IChatConversationRefer[K]
+  ): Promise<IChatConversationRefer[K]> {
     return await _chatFile.set(key, value);
   },
 };
@@ -317,7 +337,9 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
     },
     backup(conversation_id: string) {
       const storage = buildMessageListStorage(conversation_id, dir);
-      return storage.backup(path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt'));
+      return storage.backup(
+        path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
+      );
     },
   };
 };
@@ -372,7 +394,13 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         path.join(appPath, dirPath), // Fallback to asar path
       ];
     } else {
-      candidates = [path.join(appPath, dirPath), path.join(appPath, '..', dirPath), path.join(appPath, '..', '..', dirPath), path.join(appPath, '..', '..', '..', dirPath), path.join(process.cwd(), dirPath)];
+      candidates = [
+        path.join(appPath, dirPath),
+        path.join(appPath, '..', dirPath),
+        path.join(appPath, '..', '..', dirPath),
+        path.join(appPath, '..', '..', '..', dirPath),
+        path.join(process.cwd(), dirPath),
+      ];
     }
 
     for (const candidate of candidates) {
@@ -385,7 +413,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     return candidates[0];
   };
 
-  const presetsNeedDefaultRulesDir = ASSISTANT_PRESETS.some((preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0);
+  const presetsNeedDefaultRulesDir = ASSISTANT_PRESETS.some(
+    (preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0
+  );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
   const builtinSkillsDir = resolveBuiltinDir('skills');
   const userSkillsDir = getSkillsDir();
@@ -524,7 +554,13 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
-    const enabledByDefault = preset.id === 'cowork' || preset.id === 'openclaw-setup' || preset.id === 'story-roleplay' || preset.id === 'moltbook' || preset.id === 'beautiful-mermaid';
+    const enabledByDefault =
+      preset.id === 'cowork' ||
+      preset.id === 'openclaw-setup' ||
+      preset.id === 'star-office-helper' ||
+      preset.id === 'story-roleplay' ||
+      preset.id === 'moltbook' ||
+      preset.id === 'beautiful-mermaid';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -578,6 +614,152 @@ const getDefaultMcpServers = (): IMcpServer[] => {
     updatedAt: now,
     originalJson: JSON.stringify({ [name]: config }, null, 2),
   }));
+};
+
+const getBuiltinMcpBaseDir = (): string => {
+  const mainModuleDir =
+    typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
+  return path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
+};
+
+/**
+ * Resolve the path to a built-in MCP server entry script.
+ * In development the file lives next to the main process bundle (out/main/);
+ * in production it's inside the packaged app.
+ */
+const getBuiltinMcpScriptPath = (scriptName: string): string => {
+  // initStorage may itself be code-split into out/main/chunks/.
+  // Built-in MCP entry files are emitted next to the main entry in out/main/.
+  return path.resolve(getBuiltinMcpBaseDir(), `${scriptName}.js`);
+};
+
+/**
+ * Ensure built-in MCP servers exist in mcp.config.
+ * - Creates missing entries with enabled: false
+ * - Updates command path if app location changed
+ * - Migrates old tools.imageGenerationModel.switch to MCP server enabled state
+ */
+const ensureBuiltinMcpServers = async (): Promise<void> => {
+  try {
+    const mcpServers: IMcpServer[] = (await configFile.get('mcp.config').catch((): IMcpServer[] => [])) || [];
+    const now = Date.now();
+    let changed = false;
+
+    const scriptPath = getBuiltinMcpScriptPath('builtin-mcp-image-gen');
+
+    // Check if built-in image gen server already exists
+    const existingIdx = mcpServers.findIndex((s) => s.builtin === true && s.id === BUILTIN_IMAGE_GEN_ID);
+
+    // Migrate old switch setting
+    let shouldEnable = false;
+    const oldConfig = await configFile.get('tools.imageGenerationModel').catch((): undefined => undefined);
+    if (oldConfig && oldConfig.switch === true) {
+      shouldEnable = true;
+    }
+
+    // Build env vars from existing image generation model config
+    const buildEnvFromConfig = (cfg: typeof oldConfig): Record<string, string> => {
+      if (!cfg) return {};
+      const env: Record<string, string> = {};
+      if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
+      if (cfg.baseUrl) env.AIONUI_IMG_BASE_URL = cfg.baseUrl;
+      if (cfg.apiKey) env.AIONUI_IMG_API_KEY = cfg.apiKey;
+      if (cfg.useModel) env.AIONUI_IMG_MODEL = cfg.useModel;
+      return env;
+    };
+
+    const buildOriginalJson = (scriptPathValue: string, env: Record<string, string>) =>
+      JSON.stringify(
+        {
+          [BUILTIN_IMAGE_GEN_NAME]: {
+            command: 'node',
+            args: [scriptPathValue],
+            env,
+          },
+        },
+        null,
+        2
+      );
+
+    if (existingIdx >= 0) {
+      // Update command path in case app location changed
+      const existing = mcpServers[existingIdx];
+      const needsNameMigration =
+        existing.name !== BUILTIN_IMAGE_GEN_NAME &&
+        BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(existing.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
+
+      const needsPathUpdate =
+        existing.transport.type === 'stdio' &&
+        existing.transport.command === 'node' &&
+        ((existing.transport.args || [])[0] !== scriptPath || needsNameMigration);
+
+      const needsMigration = shouldEnable && !existing.enabled;
+
+      if (needsNameMigration || needsPathUpdate || needsMigration) {
+        let updatedTransport: IMcpServer['transport'] = existing.transport;
+
+        if (existing.transport.type === 'stdio') {
+          const mergedEnv = needsMigration
+            ? { ...(existing.transport.env ?? {}), ...buildEnvFromConfig(oldConfig) }
+            : existing.transport.env;
+          updatedTransport = {
+            ...existing.transport,
+            ...(needsPathUpdate && { args: [scriptPath] }),
+            ...(needsMigration && { env: mergedEnv }),
+          };
+        }
+
+        const newOriginalJson =
+          needsPathUpdate && updatedTransport.type === 'stdio'
+            ? buildOriginalJson(scriptPath, updatedTransport.env ?? {})
+            : existing.originalJson;
+
+        mcpServers[existingIdx] = {
+          ...existing,
+          name: needsNameMigration ? BUILTIN_IMAGE_GEN_NAME : existing.name,
+          transport: updatedTransport,
+          originalJson: newOriginalJson,
+          enabled: needsMigration ? true : existing.enabled,
+          updatedAt: now,
+        };
+        changed = true;
+      }
+    } else {
+      // Create new built-in image gen server
+      const env = buildEnvFromConfig(oldConfig);
+      const newServer: IMcpServer = {
+        id: BUILTIN_IMAGE_GEN_ID,
+        name: BUILTIN_IMAGE_GEN_NAME,
+        description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
+        enabled: shouldEnable,
+        builtin: true,
+        transport: {
+          type: 'stdio',
+          command: 'node',
+          args: [scriptPath],
+          env,
+        },
+        createdAt: now,
+        updatedAt: now,
+        originalJson: buildOriginalJson(scriptPath, env),
+      };
+      mcpServers.push(newServer);
+      changed = true;
+    }
+
+    if (changed) {
+      await configFile.set('mcp.config', mcpServers);
+      console.log('[AionUi] Built-in MCP servers ensured');
+    }
+
+    // Clear old switch flag after migration
+    if (shouldEnable && oldConfig) {
+      const { switch: _switch, ...rest } = oldConfig;
+      await configFile.set('tools.imageGenerationModel', rest as typeof oldConfig);
+    }
+  } catch (error) {
+    console.error('[AionUi] Failed to ensure built-in MCP servers:', error);
+  }
 };
 
 /**
@@ -650,6 +832,10 @@ const initStorage = async () => {
   } catch (error) {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
+
+  // 4.1 Ensure built-in MCP servers exist and are up-to-date
+  await ensureBuiltinMcpServers();
+
   // 5. 初始化内置助手（Assistants）
   try {
     // 5.1 初始化内置助手的规则文件到用户目录
@@ -697,9 +883,18 @@ const initStorage = async () => {
         // 检查 promptsI18n 是否需要更新（如果不存在或已更改，或需要迁移）
         // Check if promptsI18n needs update (if missing, changed, or migration needed)
         const promptsI18nMissing = !existing.promptsI18n && builtin.promptsI18n;
-        const promptsI18nChanged = existing.promptsI18n && builtin.promptsI18n && JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
+        const promptsI18nChanged =
+          existing.promptsI18n &&
+          builtin.promptsI18n &&
+          JSON.stringify(existing.promptsI18n) !== JSON.stringify(builtin.promptsI18n);
         const needsPromptsI18nUpdate = needsPromptsI18nMigration || promptsI18nMissing || promptsI18nChanged;
-        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || needsPromptsI18nUpdate;
+        const shouldUpdate =
+          existing.name !== builtin.name ||
+          existing.description !== builtin.description ||
+          existing.avatar !== builtin.avatar ||
+          existing.isPreset !== builtin.isPreset ||
+          existing.isBuiltin !== builtin.isBuiltin ||
+          needsPromptsI18nUpdate;
         // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
         const needsEnabledFix = existing.enabled === undefined || needsMigration;
@@ -713,12 +908,20 @@ const initStorage = async () => {
         // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设置 enabledSkills 时）
         // Add default enabled skills for builtin assistants with defaultEnabledSkills (only during migration and if user hasn't set enabledSkills)
         let resolvedEnabledSkills = existing.enabledSkills;
-        const needsSkillsMigration = needsBuiltinSkillsMigration && builtin.enabledSkills && (!existing.enabledSkills || existing.enabledSkills.length === 0);
+        const needsSkillsMigration =
+          needsBuiltinSkillsMigration &&
+          builtin.enabledSkills &&
+          (!existing.enabledSkills || existing.enabledSkills.length === 0);
         if (needsSkillsMigration) {
           resolvedEnabledSkills = builtin.enabledSkills;
         }
 
-        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) || needsPromptsI18nUpdate) {
+        if (
+          shouldUpdate ||
+          needsEnabledFix ||
+          (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) ||
+          needsPromptsI18nUpdate
+        ) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,
@@ -779,11 +982,15 @@ export const ProcessChatMessage = chatMessageFile;
 export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
+  // electron-log writes to the platform-standard logs directory
+  const logDir = path.join(app.getPath('logs'));
+
   return {
     cacheDir: cacheDir,
     // getDataPath() returns CLI-safe path (symlink on macOS) to avoid spaces
     // getDataPath() 返回 CLI 安全路径（macOS 上的符号链接）以避免空格问题
     workDir: dirConfig?.workDir || getDataPath(),
+    logDir,
     platform: process.platform as PlatformType,
     arch: process.arch as ArchitectureType,
   };
@@ -793,7 +1000,7 @@ export const getSystemDir = () => {
  * 获取助手规则目录路径（供其他模块使用）
  * Get assistant rules directory path (for use by other modules)
  */
-export { getAssistantsDir, getSkillsDir, getBuiltinSkillsDir };
+export { getAssistantsDir, getSkillsDir, getBuiltinSkillsDir, BUILTIN_IMAGE_GEN_ID, getBuiltinMcpScriptPath };
 
 /**
  * Skills 内容缓存，避免重复从文件系统读取

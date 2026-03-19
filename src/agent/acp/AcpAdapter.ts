@@ -6,7 +6,15 @@
 
 import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/types/acpTypes';
+import type {
+  AcpBackend,
+  AcpSessionUpdate,
+  AgentMessageChunkUpdate,
+  AgentThoughtChunkUpdate,
+  PlanUpdate,
+  ToolCallUpdate,
+  ToolCallUpdateStatus,
+} from '@/types/acpTypes';
 
 /**
  * Adapter class to convert ACP messages to AionUI message format
@@ -104,6 +112,10 @@ export class AcpAdapter {
       // Config option updates (e.g., model switch) are handled by AcpConnection
       // directly in handleIncomingRequest; no chat message conversion needed.
       case 'config_option_update':
+        break;
+
+      // Usage updates are emitted directly by AcpAgent; no chat message conversion needed.
+      case 'usage_update':
         break;
 
       // Disabled: available_commands messages are too noisy and distracting in the chat UI

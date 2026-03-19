@@ -97,7 +97,10 @@ function loadShellEnvironment(): Record<string, string> {
     }
   } catch (error) {
     // Silent fail - shell environment loading is best-effort
-    console.warn('[ShellEnv] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
+    console.warn(
+      '[ShellEnv] Failed to load shell environment:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   if (PERF_LOG) console.log(`[ShellEnv] connect: shell env loaded ${Date.now() - startTime}ms`);
@@ -167,7 +170,10 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
     if (PERF_LOG) console.log(`[ShellEnv] preload: shell env async loaded ${Date.now() - startTime}ms`);
   } catch (error) {
     cachedShellEnv = {};
-    console.warn('[ShellEnv] Failed to async load shell environment:', error instanceof Error ? error.message : String(error));
+    console.warn(
+      '[ShellEnv] Failed to async load shell environment:',
+      error instanceof Error ? error.message : String(error)
+    );
   }
 
   return cachedShellEnv;
@@ -221,19 +227,42 @@ function getWindowsExtraToolPaths(): string[] {
   const homeDir = os.homedir();
   const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
   const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local');
+  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+  const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
   const currentPath = process.env.PATH || '';
 
   const candidates = [
     // npm global packages (most common - installed with Node.js)
     path.join(appData, 'npm'),
+    // Node.js official installer
+    path.join(programFiles, 'nodejs'),
     // nvm-windows: %APPDATA%\nvm (the active version symlink lives here)
     process.env.NVM_HOME || path.join(appData, 'nvm'),
+    // nvm-windows symlink directory (where the active node version is linked)
+    process.env.NVM_SYMLINK || path.join(programFiles, 'nodejs'),
+    // fnm-windows: FNM_MULTISHELL_PATH is set per-shell session
+    ...(process.env.FNM_MULTISHELL_PATH ? [process.env.FNM_MULTISHELL_PATH] : []),
+    path.join(localAppData, 'fnm_multishells'),
     // Volta: cross-platform Node version manager
     path.join(homeDir, '.volta', 'bin'),
     // Scoop: Windows package manager
     process.env.SCOOP ? path.join(process.env.SCOOP, 'shims') : path.join(homeDir, 'scoop', 'shims'),
     // pnpm global store shims
     path.join(localAppData, 'pnpm'),
+    // Chocolatey
+    path.join(process.env.ChocolateyInstall || 'C:\\ProgramData\\chocolatey', 'bin'),
+    // Git for Windows — provides cygpath, git, and POSIX utilities.
+    // Claude Code's agent-sdk calls `cygpath` internally on Windows; if this
+    // directory is missing from PATH the SDK fails with "cygpath: not found".
+    path.join(programFiles, 'Git', 'cmd'),
+    path.join(programFiles, 'Git', 'bin'),
+    path.join(programFiles, 'Git', 'usr', 'bin'),
+    path.join(programFilesX86, 'Git', 'cmd'),
+    path.join(programFilesX86, 'Git', 'bin'),
+    path.join(programFilesX86, 'Git', 'usr', 'bin'),
+    // Cygwin — alternative source for cygpath
+    'C:\\cygwin64\\bin',
+    'C:\\cygwin\\bin',
   ];
 
   return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));
@@ -377,6 +406,10 @@ function parseEnvOutput(output: string): Record<string, string> {
   return result;
 }
 
+export function getWindowsShellExecutionOptions(): { shell?: boolean; windowsHide?: boolean } {
+  return process.platform === 'win32' ? { shell: true, windowsHide: true } : {};
+}
+
 /**
  * Resolve a modern npx binary (npm >= 7) from the same directory as the
  * active node binary.  Old standalone npx packages (npm v5/v6 era) don't
@@ -396,17 +429,40 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
+      ...getWindowsShellExecutionOptions(),
     })
       .trim()
-      .split('\n')[0]; // `where` on Windows may return multiple lines
+      .split(/\r?\n/)[0]; // `where` on Windows may return multiple lines
     const npxCandidate = path.join(path.dirname(nodePath), npxName);
-    // Verify the candidate exists AND is modern (npm >= 7 bundles npx >= 7)
-    const versionOutput = execFileSync(npxCandidate, ['--version'], {
-      env,
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
+
+    let versionOutput = '';
+    if (isWindows) {
+      // Packaged Windows builds may resolve a bundled node.exe whose sibling
+      // npx.cmd exists, but its bundled npm JS files are missing. Probe the
+      // npm entrypoint JS directly so we only trust a complete Node+npm install.
+      const npmBinDir = path.join(path.dirname(nodePath), 'node_modules', 'npm', 'bin');
+      const npmPrefixJs = path.join(npmBinDir, 'npm-prefix.js');
+      const npxCliJs = path.join(npmBinDir, 'npx-cli.js');
+      if (!existsSync(npxCandidate) || !existsSync(npmPrefixJs) || !existsSync(npxCliJs)) {
+        throw new Error('Node-adjacent npx.cmd or bundled npm scripts are missing');
+      }
+      versionOutput = execFileSync(nodePath, [npxCliJs, '--version'], {
+        env,
+        encoding: 'utf-8',
+        timeout: 5000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
+      }).trim();
+    } else {
+      // Verify the candidate exists AND is modern (npm >= 7 bundles npx >= 7)
+      versionOutput = execFileSync(npxCandidate, ['--version'], {
+        env,
+        encoding: 'utf-8',
+        timeout: 5000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim();
+    }
+
     const majorVersion = parseInt(versionOutput.split('.')[0], 10);
     if (majorVersion >= 7) {
       return npxCandidate;
@@ -452,4 +508,48 @@ export function loadFullShellEnvironment(): Record<string, string> {
     console.warn('[ShellEnv] Failed to load full shell env:', error instanceof Error ? error.message : String(error));
   }
   return cachedFullShellEnv;
+}
+
+/**
+ * Log a one-time environment diagnostics snapshot.
+ * Called once at app startup; output goes to electron-log file via console,
+ * so users can share the log file for debugging (#1157).
+ */
+export function logEnvironmentDiagnostics(): void {
+  const isWindows = process.platform === 'win32';
+  const tag = '[ShellEnv-Diag]';
+
+  console.log(`${tag} platform=${process.platform}, arch=${process.arch}, node=${process.version}`);
+  console.log(`${tag} process.env.PATH (first 300): ${(process.env.PATH || '(empty)').substring(0, 300)}`);
+
+  if (!isWindows) return;
+
+  // Windows-specific diagnostics for cygpath / Git / tool discovery
+  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+  const gitUsrBin = path.join(programFiles, 'Git', 'usr', 'bin');
+  const cygpathPath = path.join(gitUsrBin, 'cygpath.exe');
+
+  console.log(`${tag} APPDATA=${process.env.APPDATA || '(unset)'}`);
+  console.log(`${tag} LOCALAPPDATA=${process.env.LOCALAPPDATA || '(unset)'}`);
+  console.log(`${tag} ProgramFiles=${programFiles}`);
+  console.log(`${tag} Git usr/bin dir: ${existsSync(gitUsrBin) ? 'EXISTS' : 'MISSING'} (${gitUsrBin})`);
+  console.log(`${tag} cygpath.exe: ${existsSync(cygpathPath) ? 'EXISTS' : 'MISSING'} (${cygpathPath})`);
+
+  // Report which extra paths will be appended
+  const enhanced = getEnhancedEnv();
+  console.log(`${tag} Enhanced PATH (first 500): ${enhanced.PATH.substring(0, 500)}`);
+}
+
+/**
+ * Return the platform-specific path to the npm _npx cache directory.
+ *
+ * - Windows: %LOCALAPPDATA%\npm-cache\_npx
+ * - POSIX:   ~/.npm/_npx
+ */
+export function getNpxCacheDir(): string {
+  const npmCacheBase =
+    process.platform === 'win32'
+      ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'npm-cache')
+      : path.join(os.homedir(), '.npm');
+  return path.join(npmCacheBase, '_npx');
 }

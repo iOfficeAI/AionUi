@@ -145,7 +145,13 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
   // 渲染步骤1: 选择Agent
   const renderStep1 = () => (
     <div className='py-4'>
-      <Select placeholder={t('settings.mcpSelectCLI')} value={selectedAgent} onChange={setSelectedAgent} className='w-full' size='large'>
+      <Select
+        placeholder={t('settings.mcpSelectCLI')}
+        value={selectedAgent}
+        onChange={setSelectedAgent}
+        className='w-full'
+        size='large'
+      >
         {detectedAgents.map((agent) => (
           <Select.Option key={agent.backend} value={agent.backend}>
             {agent.name}
@@ -173,7 +179,11 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
           </div>
           <div className='bg-base rounded-lg max-h-[200px] overflow-y-auto'>
             {importableServers.map((server, index) => (
-              <div key={index} className='p-3' style={index < importableServers.length - 1 ? { borderBottom: '1px solid var(--bg-3)' } : undefined}>
+              <div
+                key={index}
+                className='p-3'
+                style={index < importableServers.length - 1 ? { borderBottom: '1px solid var(--bg-3)' } : undefined}
+              >
                 <div className='font-medium text-t-primary'>{server.name}</div>
                 {server.description && <div className='text-sm text-t-secondary mt-1'>{server.description}</div>}
               </div>
@@ -193,11 +203,17 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
         <div>
           <div className='mb-3 flex items-center gap-2'>
             <Check theme='filled' size={20} fill={iconColors.success} />
-            <span className='text-t-primary'>{t('settings.mcpImportedSuccess', { count: importableServers.length })}</span>
+            <span className='text-t-primary'>
+              {t('settings.mcpImportedSuccess', { count: importableServers.length })}
+            </span>
           </div>
           <div className='bg-base rounded-lg max-h-[200px] overflow-y-auto'>
             {importableServers.map((server, index) => (
-              <div key={index} className='p-3' style={index < importableServers.length - 1 ? { borderBottom: '1px solid var(--bg-3)' } : undefined}>
+              <div
+                key={index}
+                className='p-3'
+                style={index < importableServers.length - 1 ? { borderBottom: '1px solid var(--bg-3)' } : undefined}
+              >
                 <div className='font-medium text-t-primary'>{server.name}</div>
                 {server.description && <div className='text-sm text-t-secondary mt-1'>{server.description}</div>}
               </div>
@@ -219,7 +235,13 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
           <Button onClick={onCancel} className='min-w-100px' style={{ borderRadius: 8 }}>
             {t('common.cancel')}
           </Button>
-          <Button type='primary' onClick={handleNextStep} disabled={!selectedAgent} className='min-w-120px' style={{ borderRadius: 8 }}>
+          <Button
+            type='primary'
+            onClick={handleNextStep}
+            disabled={!selectedAgent}
+            className='min-w-120px'
+            style={{ borderRadius: 8 }}
+          >
             {t('settings.mcpNextStep')}
           </Button>
         </>
@@ -229,7 +251,13 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
           <Button onClick={handlePrevStep} className='min-w-100px' style={{ borderRadius: 8 }}>
             {t('settings.mcpPrevStep')}
           </Button>
-          <Button type='primary' onClick={handleNextStep} disabled={loadingImport || importableServers.length === 0} className='min-w-120px' style={{ borderRadius: 8 }}>
+          <Button
+            type='primary'
+            onClick={handleNextStep}
+            disabled={loadingImport || importableServers.length === 0}
+            className='min-w-120px'
+            style={{ borderRadius: 8 }}
+          >
             {t('settings.mcpImportButton')}
           </Button>
         </>
@@ -243,14 +271,33 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
   );
 
   return (
-    <AionModal header={{ title: t('settings.mcpOneKeyImport'), showClose: true }} visible={visible} onCancel={onCancel} footer={{ render: renderFooter }} style={{ width: 600, height: 420 }} contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'hidden', height: 420 - 96 }}>
+    <AionModal
+      header={{ title: t('settings.mcpOneKeyImport'), showClose: true }}
+      visible={visible}
+      onCancel={onCancel}
+      footer={{ render: renderFooter }}
+      style={{ width: 600, height: 420 }}
+      contentStyle={{
+        borderRadius: 16,
+        padding: '24px',
+        background: 'var(--bg-1)',
+        overflow: 'hidden',
+        height: 420 - 96,
+      }}
+    >
       <div className='flex flex-col h-275px mt-20px'>
         <div className='mb-6 text-t-secondary text-sm'>{t('settings.mcpImportDescription')}</div>
 
         <div className='mb-6'>
           <AionSteps current={currentStep} size='small'>
-            <AionSteps.Step title={t('settings.mcpStepSelectAgent')} icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
-            <AionSteps.Step title={t('settings.mcpStepFetchTools')} icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+            <AionSteps.Step
+              title={t('settings.mcpStepSelectAgent')}
+              icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined}
+            />
+            <AionSteps.Step
+              title={t('settings.mcpStepFetchTools')}
+              icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined}
+            />
             <AionSteps.Step title={t('settings.mcpStepImportSuccess')} />
           </AionSteps>
         </div>

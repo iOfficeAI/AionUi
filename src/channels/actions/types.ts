@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ActionCategory, IChannelUser, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
+import type {
+  ActionCategory,
+  IChannelUser,
+  IUnifiedIncomingMessage,
+  IUnifiedOutgoingMessage,
+  PluginType,
+} from '../types';
 
 /**
  * Action context passed to action handlers

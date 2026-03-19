@@ -133,7 +133,11 @@ export class ExtensionRegistry {
         const state = this.extensionStates.get(ext.manifest.name)!;
         if (!state.enabled) continue;
 
-        const { isFirstInstall, isUpgrade } = needsInstallHook(ext.manifest.name, ext.manifest.version, persistedStates);
+        const { isFirstInstall, isUpgrade } = needsInstallHook(
+          ext.manifest.name,
+          ext.manifest.version,
+          persistedStates
+        );
         const isFirstTime = isFirstInstall || isUpgrade;
 
         try {
@@ -155,7 +159,21 @@ export class ExtensionRegistry {
       await this.resolveContributions();
       this.initialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(`[Extensions] Registry initialized in ${elapsed}ms: ` + `${this.extensions.length} extension(s), ` + `${this._acpAdapters.length} adapter(s), ` + `${this._mcpServers.length} MCP server(s), ` + `${this._assistants.length} assistant(s), ` + `${this._agents.length} agent(s), ` + `${this._skills.length} skill(s), ` + `${this._themes.length} theme(s), ` + `${this._channelPlugins.size} channel plugin(s), ` + `${this._webuiContributions.length} webui contribution(s), ` + `${this._settingsTabs.length} settings tab(s), ` + `${this._modelProviders.length} model provider(s), ` + `${Object.keys(this._extI18n).length} i18n locale(s)`);
+      console.log(
+        `[Extensions] Registry initialized in ${elapsed}ms: ` +
+          `${this.extensions.length} extension(s), ` +
+          `${this._acpAdapters.length} adapter(s), ` +
+          `${this._mcpServers.length} MCP server(s), ` +
+          `${this._assistants.length} assistant(s), ` +
+          `${this._agents.length} agent(s), ` +
+          `${this._skills.length} skill(s), ` +
+          `${this._themes.length} theme(s), ` +
+          `${this._channelPlugins.size} channel plugin(s), ` +
+          `${this._webuiContributions.length} webui contribution(s), ` +
+          `${this._settingsTabs.length} settings tab(s), ` +
+          `${this._modelProviders.length} model provider(s), ` +
+          `${Object.keys(this._extI18n).length} i18n locale(s)`
+      );
     } catch (error) {
       console.error('[Extensions] Failed to initialize registry:', error);
       // Do NOT mark as initialized on error — allow retry on next call
@@ -300,13 +318,20 @@ export class ExtensionRegistry {
     this._mcpServers = resolveMcpServers(enabledExtensions);
     this._skills = resolveSkills(enabledExtensions);
     this._themes = resolveThemes(enabledExtensions);
-    this._channelPlugins = resolveChannelPlugins(enabledExtensions) as Map<string, { constructor: unknown; meta: unknown }>;
+    this._channelPlugins = resolveChannelPlugins(enabledExtensions) as Map<
+      string,
+      { constructor: unknown; meta: unknown }
+    >;
     this._webuiContributions = resolveWebuiContributions(enabledExtensions);
     this._settingsTabs = resolveSettingsTabs(enabledExtensions);
     this._modelProviders = resolveModelProviders(enabledExtensions);
 
     // Async resolvers run in parallel to reduce extension init latency
-    const [assistants, agents, extI18n] = await Promise.all([resolveAssistants(enabledExtensions), resolveAgents(enabledExtensions), resolveExtensionI18n(enabledExtensions)]);
+    const [assistants, agents, extI18n] = await Promise.all([
+      resolveAssistants(enabledExtensions),
+      resolveAgents(enabledExtensions),
+      resolveExtensionI18n(enabledExtensions),
+    ]);
 
     this._assistants = assistants;
     this._agents = agents;

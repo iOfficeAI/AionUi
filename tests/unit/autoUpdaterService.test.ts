@@ -6,12 +6,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { autoUpdater } from 'electron-updater';
+import { getUpdateChannel } from '@/process/services/autoUpdaterService';
 
 // Mock electron modules
 vi.mock('electron', () => ({
   app: {
     getVersion: vi.fn(() => '1.0.0'),
     isPackaged: true,
+    exit: vi.fn(),
   },
 }));
 
@@ -23,6 +25,7 @@ vi.mock('electron-updater', () => ({
     autoInstallOnAppQuit: true,
     allowPrerelease: false,
     allowDowngrade: false,
+    channel: null,
     on: vi.fn(),
     removeListener: vi.fn(),
     removeAllListeners: vi.fn(),
@@ -133,7 +136,7 @@ describe('AutoUpdaterService', () => {
       expect(result.error).toBe('AutoUpdaterService not initialized');
     });
 
-    it('should check for updates successfully', async () => {
+    it('should check for updates successfully when update is available', async () => {
       autoUpdaterService.initialize(mockStatusBroadcast);
 
       const mockUpdateInfo = {
@@ -143,6 +146,7 @@ describe('AutoUpdaterService', () => {
       };
 
       vi.mocked(autoUpdater.checkForUpdates).mockResolvedValueOnce({
+        isUpdateAvailable: true,
         updateInfo: mockUpdateInfo,
       });
 
@@ -150,6 +154,20 @@ describe('AutoUpdaterService', () => {
 
       expect(result.success).toBe(true);
       expect(result.updateInfo).toEqual(mockUpdateInfo);
+    });
+
+    it('should return no updateInfo when isUpdateAvailable is false', async () => {
+      autoUpdaterService.initialize(mockStatusBroadcast);
+
+      vi.mocked(autoUpdater.checkForUpdates).mockResolvedValueOnce({
+        isUpdateAvailable: false,
+        updateInfo: { version: '1.0.0', releaseDate: '2025-01-01' },
+      });
+
+      const result = await autoUpdaterService.checkForUpdates();
+
+      expect(result.success).toBe(true);
+      expect(result.updateInfo).toBeUndefined();
     });
 
     it('should handle check for updates error', async () => {
@@ -217,10 +235,17 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('quitAndInstall', () => {
-    it('should call quitAndInstall on autoUpdater', () => {
-      autoUpdaterService.quitAndInstall();
+    it('should call quitAndInstall on autoUpdater and force exit after delay', async () => {
+      vi.useFakeTimers();
+      const { app } = vi.mocked(await import('electron'));
 
-      expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(false, true);
+      autoUpdaterService.quitAndInstall();
+      expect(autoUpdater.quitAndInstall).toHaveBeenCalledWith(true, true);
+
+      // app.exit is called after a 1s delay
+      vi.advanceTimersByTime(1000);
+      expect(app.exit).toHaveBeenCalledWith(0);
+      vi.useRealTimers();
     });
   });
 
@@ -242,19 +267,18 @@ describe('AutoUpdaterService', () => {
   });
 
   describe('setAllowPrerelease', () => {
-    it('should enable prerelease updates', () => {
+    it('should store prerelease preference without setting autoUpdater.allowPrerelease', () => {
       autoUpdaterService.setAllowPrerelease(true);
 
       expect(autoUpdaterService.allowPrerelease).toBe(true);
-      expect(autoUpdater.allowPrerelease).toBe(true);
-      expect(autoUpdater.allowDowngrade).toBe(true);
+      // autoUpdater.allowPrerelease must NOT be set — it conflicts with custom channel names
+      expect(autoUpdater.allowPrerelease).toBe(false);
     });
 
-    it('should disable prerelease updates', () => {
+    it('should disable prerelease preference', () => {
       autoUpdaterService.setAllowPrerelease(false);
 
       expect(autoUpdaterService.allowPrerelease).toBe(false);
-      expect(autoUpdater.allowPrerelease).toBe(false);
     });
   });
 
@@ -376,7 +400,9 @@ describe('AutoUpdaterService', () => {
 
     it('should throw when triggering an event before initialize', () => {
       // Handler not registered yet — triggerEventForTest must throw a clear error
-      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow('No handler registered for autoUpdater event "checking-for-update"');
+      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow(
+        'No handler registered for autoUpdater event "checking-for-update"'
+      );
     });
   });
 
@@ -394,6 +420,52 @@ describe('AutoUpdaterService', () => {
 
       // Should not throw
       expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).not.toThrow();
+    });
+  });
+
+  describe('getUpdateChannel', () => {
+    const originalPlatform = process.platform;
+    const originalArch = process.arch;
+
+    afterEach(() => {
+      Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true });
+      Object.defineProperty(process, 'arch', { value: originalArch, writable: true });
+    });
+
+    it('should return latest-win-arm64 for Windows ARM64', () => {
+      Object.defineProperty(process, 'platform', { value: 'win32', writable: true });
+      Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
+      expect(getUpdateChannel()).toBe('latest-win-arm64');
+    });
+
+    it('should return latest-arm64 for macOS ARM64 (electron-updater appends -mac)', () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin', writable: true });
+      Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
+      expect(getUpdateChannel()).toBe('latest-arm64');
+    });
+
+    it('should return undefined for macOS x64 (default latest-mac.yml)', () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin', writable: true });
+      Object.defineProperty(process, 'arch', { value: 'x64', writable: true });
+      expect(getUpdateChannel()).toBeUndefined();
+    });
+
+    it('should return undefined for Linux ARM64 (electron-updater appends -linux-arm64)', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', writable: true });
+      Object.defineProperty(process, 'arch', { value: 'arm64', writable: true });
+      expect(getUpdateChannel()).toBeUndefined();
+    });
+
+    it('should return undefined for Windows x64 (default channel)', () => {
+      Object.defineProperty(process, 'platform', { value: 'win32', writable: true });
+      Object.defineProperty(process, 'arch', { value: 'x64', writable: true });
+      expect(getUpdateChannel()).toBeUndefined();
+    });
+
+    it('should return undefined for Linux x64 (default channel)', () => {
+      Object.defineProperty(process, 'platform', { value: 'linux', writable: true });
+      Object.defineProperty(process, 'arch', { value: 'x64', writable: true });
+      expect(getUpdateChannel()).toBeUndefined();
     });
   });
 
@@ -434,7 +506,9 @@ describe('AutoUpdaterService', () => {
       autoUpdaterService.resetForTest();
 
       // After reset, handlers are gone — triggerEventForTest must throw
-      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow('No handler registered for autoUpdater event "checking-for-update"');
+      expect(() => autoUpdaterService.triggerEventForTest('checking-for-update')).toThrow(
+        'No handler registered for autoUpdater event "checking-for-update"'
+      );
     });
   });
 });

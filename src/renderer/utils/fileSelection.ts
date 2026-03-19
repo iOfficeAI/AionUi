@@ -19,7 +19,10 @@ const getItemPath = (item: FileSelectionItem): string | undefined => {
  * 合并工作空间文件/文件夹选择，去重并保留元数据
  * Merge workspace selections while deduplicating and keeping richer metadata when available
  */
-export const mergeFileSelectionItems = (current: FileSelectionItem[], additions: FileSelectionItem[]): FileSelectionItem[] => {
+export const mergeFileSelectionItems = (
+  current: FileSelectionItem[],
+  additions: FileSelectionItem[]
+): FileSelectionItem[] => {
   if (!Array.isArray(additions) || additions.length === 0) {
     return current;
   }

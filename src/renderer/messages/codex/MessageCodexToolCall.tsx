@@ -13,7 +13,10 @@ import McpToolDisplay from './ToolCallComponent/McpToolDisplay';
 import TurnDiffDisplay from './ToolCallComponent/TurnDiffDisplay';
 import GenericDisplay from './ToolCallComponent/GenericDisplay';
 
-type ExecCommandContent = Extract<CodexToolCallUpdate, { subtype: 'exec_command_begin' | 'exec_command_output_delta' | 'exec_command_end' }>;
+type ExecCommandContent = Extract<
+  CodexToolCallUpdate,
+  { subtype: 'exec_command_begin' | 'exec_command_output_delta' | 'exec_command_end' }
+>;
 type WebSearchContent = Extract<CodexToolCallUpdate, { subtype: 'web_search_begin' | 'web_search_end' }>;
 type PatchContent = Extract<CodexToolCallUpdate, { subtype: 'patch_apply_begin' | 'patch_apply_end' }>;
 type McpToolContent = Extract<CodexToolCallUpdate, { subtype: 'mcp_tool_call_begin' | 'mcp_tool_call_end' }>;
