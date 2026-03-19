@@ -130,3 +130,10 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/common/config/i18n-config.json`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
+See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
+
+## UI Design Context (AOU)
+
+Before implementing non-trivial UI changes, read `.aionui-ui-context.md` first.
+
+All UI rules for AionUi are maintained there, including reuse strategy, component selection, theme adaptation, workflow, and PR evidence expectations.
