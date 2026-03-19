@@ -57,7 +57,16 @@
     "newChat": "New Chat",
     "noConversation": "No conversation selected",
     "startChatHint": "Create a new conversation to get started",
-    "pendingHint": "Send a message to start the conversation"
+    "pendingHint": "Send a message to start the conversation",
+    "selectWorkspace": "Workspace",
+    "selectFiles": "Files",
+    "selectModel": "Model",
+    "selectMode": "Mode",
+    "recentWorkspaces": "Recent Workspaces",
+    "noRecentWorkspaces": "No recent workspaces",
+    "filesSelected": "{{count}} file(s) selected",
+    "browseFiles": "Browse Files",
+    "done": "Done"
   },
   "workspace": {
     "temporarySpace": "Temporary Session",

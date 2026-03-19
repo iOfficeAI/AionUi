@@ -39,6 +39,17 @@ type CreateConversationParams = {
   customWorkspace?: boolean;
   model?: { id: string; useModel: string };
   input?: string;
+  defaultFiles?: string[];
+  sessionMode?: string;
+  currentModelId?: string;
+};
+
+export type CommitNewChatOptions = {
+  workspace?: string;
+  customWorkspace?: boolean;
+  defaultFiles?: string[];
+  sessionMode?: string;
+  currentModelId?: string;
 };
 
 type ConversationContextType = {
@@ -49,7 +60,7 @@ type ConversationContextType = {
   pendingAgent: AgentInfo | null;
   setActiveConversationId: (id: string | null) => void;
   startNewChat: (agent: AgentInfo) => void;
-  commitNewChat: (message: string) => Promise<void>;
+  commitNewChat: (message: string, options?: CommitNewChatOptions) => Promise<void>;
   cancelNewChat: () => void;
   refresh: () => Promise<void>;
   fetchAgents: () => Promise<void>;
@@ -161,6 +172,9 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
             agentName: params.agentName,
             ...(workspace ? { workspace, customWorkspace: params.customWorkspace ?? true } : {}),
             ...(params.cliPath ? { cliPath: params.cliPath } : {}),
+            ...(params.defaultFiles?.length ? { defaultFiles: params.defaultFiles } : {}),
+            ...(params.sessionMode ? { sessionMode: params.sessionMode } : {}),
+            ...(params.currentModelId ? { currentModelId: params.currentModelId } : {}),
           },
         };
         const result = await bridge.request<Conversation>('create-conversation', fullParams);
@@ -182,13 +196,14 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const commitNewChat = useCallback(
-    async (message: string) => {
+    async (message: string, options?: CommitNewChatOptions) => {
       if (!pendingAgent) return;
       const agent = pendingAgent;
       const result = await createConversation({
         agentBackend: agent.backend,
         agentName: agent.name,
         input: message,
+        ...options,
       });
       if (result?.id) {
         setPendingInitialMessage(result.id, message);
@@ -196,7 +211,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         setActiveConversationIdRaw(result.id);
       }
     },
-    [pendingAgent, createConversation]
+    [pendingAgent, createConversation],
   );
 
   const cancelNewChat = useCallback(() => {

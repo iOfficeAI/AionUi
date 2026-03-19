@@ -57,7 +57,16 @@
     "newChat": "新建聊天",
     "noConversation": "未选择对话",
     "startChatHint": "创建一个新对话开始使用",
-    "pendingHint": "发送消息以开始对话"
+    "pendingHint": "发送消息以开始对话",
+    "selectWorkspace": "工作区",
+    "selectFiles": "文件",
+    "selectModel": "模型",
+    "selectMode": "模式",
+    "recentWorkspaces": "最近的工作区",
+    "noRecentWorkspaces": "暂无最近的工作区",
+    "filesSelected": "已选择 {{count}} 个文件",
+    "browseFiles": "浏览文件",
+    "done": "完成"
   },
   "workspace": {
     "temporarySpace": "临时会话",
