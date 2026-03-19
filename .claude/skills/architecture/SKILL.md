@@ -26,7 +26,52 @@ Guide for file placement and structure decisions across the entire Electron proj
 
 Rules that apply across **all** process layers.
 
-## Project Layout
+## Repository Root
+
+The project root directory contains source code, configuration, documentation, and application assets. Keep it organized by category.
+
+### Root Directory Rules
+
+- **README translations** belong in `docs/readme/`, not at root. Only the main `readme.md` stays at root (GitHub convention)
+- **Guide documents** (`*_GUIDE.md`, `CODE_STYLE.md`, etc.) belong in `docs/`
+- **Config files** (`tsconfig.json`, `package.json`, `electron-builder.yml`, etc.) stay at root — this is Node.js/Electron ecosystem convention and unavoidable
+- **Build artifacts** (`out/`, `node_modules/`) are gitignored or ephemeral, not counted toward structure
+
+### Target Root Structure
+
+```
+项目根/
+├── src/                    # Source code
+├── tests/                  # Tests
+├── docs/                   # All documentation (readme translations, guides, conventions, plans)
+├── scripts/                # Build and tooling scripts
+├── skills/                 # Built-in skill templates (app feature)
+├── assistant/              # Built-in assistant presets (app feature)
+├── examples/               # Extension development examples
+├── resources/              # Static resources (icons, images, installers)
+├── public/                 # Vite public assets
+├── patches/                # npm patches
+├── homebrew/               # Homebrew formula
+├── readme.md               # Main README (GitHub convention)
+├── AGENTS.md               # AI agent conventions (all agents)
+├── CLAUDE.md               # Claude-specific config
+├── LICENSE                 # License
+└── ...                     # Build config files (package.json, tsconfig.json, etc.)
+```
+
+### Current Root Cleanup Targets
+
+| Action | Files | Effect |
+|--------|-------|--------|
+| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md` | -7 files from root |
+| Move guides to `docs/` | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` | -3 files from root |
+| Remove build artifacts | `${env.ELECTRON_CACHE}` | -1 file from root |
+
+> **Migration rule**: New documentation files should be created in `docs/`, not at project root.
+
+---
+
+## Project Layout (`src/`)
 
 AionUi is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
 
