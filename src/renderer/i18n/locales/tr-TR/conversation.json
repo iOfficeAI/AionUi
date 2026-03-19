@@ -16,7 +16,10 @@
     "none": "Hiçbiri",
     "quickActionsTitle": "AionUi neler yapabilir?",
     "quickActionFeedback": "Geri bildirim veya öneriniz mi var?",
-    "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!"
+    "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
+    "skillsMarketDetails": "Ayrıntılar >>"
   },
   "history": {
     "today": "Bugün",
@@ -65,6 +68,16 @@
     "deleteSuccess": "Başarıyla silindi",
     "deleteFailed": "Silme başarısız oldu"
   },
+  "historySearch": {
+    "tooltip": "Mesajları ara",
+    "title": "Sohbet içeriğini ara",
+    "description": "Anahtar kelimeyle geçmiş mesajları arayın, kaydırarak daha fazla yükleyin ve eşleşen mesaja tıklayarak gidin.",
+    "placeholder": "Mesaj içeriğini ara...",
+    "idle": "Mesajları aramak için anahtar kelime girin",
+    "empty": "Eşleşen mesaj bulunamadı",
+    "loadingMore": "Daha fazla yükleniyor...",
+    "untitled": "Adsız sohbet"
+  },
   "tabs": {
     "closeAll": "Tümünü Kapat",
     "closeLeft": "Sol tarafı kapat",
@@ -104,7 +117,11 @@
       "selectFolderError": "Klasör seçilemedi",
       "success": "Çalışma alanı başarıyla taşındı",
       "error": "Çalışma alanı taşınamadı",
-      "migrating": "Taşınıyor..."
+      "migrating": "Taşınıyor...",
+      "cronMigrationTitle": "Zamanlanmış görevler bulundu",
+      "cronMigrationHint": "Mevcut konuşmada zamanlanmış görevler var. Bunları yeni çalışma alanına taşımak ister misiniz?",
+      "cronMigrationConfirm": "Taşı ve güncelle",
+      "cronMigrationSkip": "Taşıma (silinecek)"
     },
     "dragOverlayTitle": "İçe aktarmak için bırakın",
     "dragOverlayDesc": "Dosyaları veya klasörleri bu çalışma alanına kopyalamak için buraya sürükleyin.",
@@ -130,10 +147,20 @@
       "addToChat": "Sohbete ekle",
       "addedToChat": "Sohbete eklendi",
       "openFailed": "Açılamadı",
-      "revealFailed": "İçeren klasör açılamadı"
+      "revealFailed": "İçeren klasör açılamadı",
+      "download": "İndir",
+      "downloadSuccess": "İndirme başarılı",
+      "downloadFailed": "İndirme başarısız"
     },
     "expand": "Çalışma Alanını Genişlet",
     "collapse": "Çalışma Alanını Daralt"
+  },
+  "minimap": {
+    "searchAria": "Sohbeti ara",
+    "searchHint": "Anahtar kelime aramak için buraya tıkla",
+    "empty": "Henüz soru-cevap içeriği yok",
+    "noMatch": "Eşleşen içerik bulunamadı",
+    "count": "{{count}} dönüş"
   },
   "chat": {
     "noModelSelected": "Mevcut oturum için model seçilmedi, mesaj gönderilemiyor",
@@ -175,5 +202,12 @@
     "request_sent": "İstek ajana gönderildi",
     "failed": "Oluşturulamadı",
     "preset_registered": "Ajan hazır ayarı başarıyla kaydedildi!"
-  }
+  },
+  "dropdown": {
+    "cliAgents": "CLI Agents",
+    "presetAssistants": "Preset Assistants"
+  },
+  "noAgentsAvailable": "No agents available",
+  "noModelConfigured": "No model configured. Please configure in settings.",
+  "createFailed": "Failed to create conversation"
 }

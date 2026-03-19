@@ -11,6 +11,7 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip
 import { useLayoutContext } from './context/LayoutContext';
 import { blurActiveElement } from './utils/focus';
 import { useThemeContext } from './context/ThemeContext';
+import ConversationSearchPopover from './pages/conversation/grouped-history/ConversationSearchPopover';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('./pages/conversation/WorkspaceGroupedHistory'));
 const SettingsSider = React.lazy(() => import('./pages/settings/SettingsSider'));
@@ -61,6 +62,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleToggleBatchMode = () => {
     setIsBatchMode((prev) => !prev);
   };
+  const handleConversationSelect = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+  };
   const handleQuickThemeToggle = () => {
     void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -87,7 +94,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <div className='mb-8px shrink-0 flex items-center gap-8px'>
               <Tooltip {...siderTooltipProps} content={t('conversation.welcome.newConversation')} position='right'>
                 <div
-                  className={classNames('h-40px flex-1 flex items-center justify-start gap-10px px-12px hover:bg-hover rd-0.5rem cursor-pointer group', isMobile && 'sider-action-btn-mobile')}
+                  className={classNames(
+                    'h-40px flex-1 flex items-center justify-start gap-10px px-12px hover:bg-hover rd-0.5rem cursor-pointer group',
+                    isMobile && 'sider-action-btn-mobile'
+                  )}
                   onClick={() => {
                     cleanupSiderTooltips();
                     blurActiveElement();
@@ -102,19 +112,49 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                     }
                   }}
                 >
-                  <Plus theme='outline' size='24' fill={iconColors.primary} className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
-                  <span className='collapsed-hidden font-bold text-t-primary leading-24px'>{t('conversation.welcome.newConversation')}</span>
+                  <Plus
+                    theme='outline'
+                    size='24'
+                    fill={iconColors.primary}
+                    className='block leading-none shrink-0'
+                    style={{ lineHeight: 0 }}
+                  />
+                  <span className='collapsed-hidden font-bold text-t-primary leading-24px'>
+                    {t('conversation.welcome.newConversation')}
+                  </span>
                 </div>
               </Tooltip>
-              <Tooltip {...siderTooltipProps} content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')} position='right'>
+              <Tooltip {...siderTooltipProps} content={t('conversation.historySearch.tooltip')} position='right'>
+                <div>
+                  <ConversationSearchPopover
+                    onSessionClick={onSessionClick}
+                    onConversationSelect={handleConversationSelect}
+                    buttonClassName={classNames(isMobile && 'sider-action-icon-btn-mobile')}
+                  />
+                </div>
+              </Tooltip>
+              <Tooltip
+                {...siderTooltipProps}
+                content={isBatchMode ? t('conversation.history.batchModeExit') : t('conversation.history.batchManage')}
+                position='right'
+              >
                 <div
-                  className={classNames('h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent', isMobile && 'sider-action-icon-btn-mobile', {
-                    'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
-                    'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary': isBatchMode,
-                  })}
+                  className={classNames(
+                    'h-40px w-40px rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent',
+                    isMobile && 'sider-action-icon-btn-mobile',
+                    {
+                      'hover:bg-fill-2 hover:border-[var(--color-border-2)]': !isBatchMode,
+                      'bg-[rgba(var(--primary-6),0.12)] border-[rgba(var(--primary-6),0.24)] text-primary': isBatchMode,
+                    }
+                  )}
                   onClick={handleToggleBatchMode}
                 >
-                  <ListCheckbox theme='outline' size='20' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
+                  <ListCheckbox
+                    theme='outline'
+                    size='20'
+                    className='block leading-none shrink-0'
+                    style={{ lineHeight: 0 }}
+                  />
                 </div>
               </Tooltip>
             </div>
@@ -128,25 +168,54 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       <div className='shrink-0 sider-footer mt-auto pt-8px'>
         <div className='flex flex-col gap-8px'>
           {isSettings && (
-            <Tooltip {...siderTooltipProps} content={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')} position='right'>
-              <div onClick={handleQuickThemeToggle} className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors hover:bg-hover active:bg-fill-2', isMobile && 'sider-footer-btn-mobile')} aria-label={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}>
-                {theme === 'dark' ? <IconSunFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} /> : <IconMoonFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} />}
+            <Tooltip
+              {...siderTooltipProps}
+              content={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
+              position='right'
+            >
+              <div
+                onClick={handleQuickThemeToggle}
+                className={classNames(
+                  'flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors hover:bg-hover active:bg-fill-2',
+                  isMobile && 'sider-footer-btn-mobile'
+                )}
+                aria-label={theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
+              >
+                {theme === 'dark' ? (
+                  <IconSunFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} />
+                ) : (
+                  <IconMoonFill style={{ fontSize: 18, color: 'rgb(var(--primary-6))' }} />
+                )}
                 <span className='collapsed-hidden text-t-primary'>
                   {t('settings.theme')} · {theme === 'dark' ? t('settings.darkMode') : t('settings.lightMode')}
                 </span>
               </div>
             </Tooltip>
           )}
-          <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
+          <Tooltip
+            {...siderTooltipProps}
+            content={isSettings ? t('common.back') : t('common.settings')}
+            position='right'
+          >
             <div
               onClick={handleSettingsClick}
-              className={classNames('flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors', isMobile && 'sider-footer-btn-mobile', {
-                'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
-                'hover:bg-hover hover:shadow-sm active:bg-fill-2': !isSettings,
-              })}
+              className={classNames(
+                'flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem cursor-pointer transition-colors',
+                isMobile && 'sider-footer-btn-mobile',
+                {
+                  'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
+                  'hover:bg-hover hover:shadow-sm active:bg-fill-2': !isSettings,
+                }
+              )}
             >
-              {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} /> : <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />}
-              <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
+              {isSettings ? (
+                <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} />
+              ) : (
+                <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />
+              )}
+              <span className='collapsed-hidden text-t-primary'>
+                {isSettings ? t('common.back') : t('common.settings')}
+              </span>
             </div>
           </Tooltip>
         </div>

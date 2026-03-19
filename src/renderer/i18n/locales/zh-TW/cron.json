@@ -43,5 +43,19 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "全部定時任務",
   "noTasks": "暫無定時任務",
-  "runNowSuccess": "任務已觸發執行"
+  "runNowSuccess": "任務已觸發執行",
+  "notification": {
+    "taskComplete": "任務完成",
+    "scheduledTask": "定時任務",
+    "scheduledTaskComplete": "{{title}}的定時任務完成",
+    "taskDone": "任務已完成"
+  },
+  "error": {
+    "alreadyExists": "此對話已存在定時任務 \"{{name}}\" (ID: {{id}})。請先刪除它，或使用 [CRON_LIST] 查看已有任務。",
+    "missedJob": "⏰ 定時任務 \"{{name}}\" 在系統休眠期間未執行。\n預定時間：{{time}}\n計時器已重啟，將在下次預定時間運行。",
+    "jobNotFound": "未找到腳本: {{id}}",
+    "conversationNotFound": "未找到對話",
+    "scheduledTimePassed": "定時時間已過",
+    "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過"
+  }
 }

@@ -84,7 +84,11 @@ export interface GeminiRequest {
 /**
  * Converter for transforming OpenAI chat completion format to/from Gemini format
  */
-export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompletionParams, GeminiRequest, OpenAIChatCompletionResponse> {
+export class OpenAI2GeminiConverter implements ProtocolConverter<
+  OpenAIChatCompletionParams,
+  GeminiRequest,
+  OpenAIChatCompletionResponse
+> {
   private readonly config: ConverterConfig;
 
   constructor(config: ConverterConfig = {}) {
@@ -137,7 +141,14 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
 
     // Check if request seems to be for image generation
     // 检查请求是否为图片生成
-    const isImageGeneration = parts.some((part) => part.text && (part.text.toLowerCase().includes('generate image') || part.text.toLowerCase().includes('create image') || part.text.toLowerCase().includes('draw') || part.text.toLowerCase().includes('make image')));
+    const isImageGeneration = parts.some(
+      (part) =>
+        part.text &&
+        (part.text.toLowerCase().includes('generate image') ||
+          part.text.toLowerCase().includes('create image') ||
+          part.text.toLowerCase().includes('draw') ||
+          part.text.toLowerCase().includes('make image'))
+    );
 
     // Use the model passed in params, don't override with hardcoded model
     // 使用传入的模型，不要硬编码覆盖

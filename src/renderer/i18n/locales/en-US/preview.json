@@ -55,6 +55,7 @@
   "pathLabel": "Path",
   "noTabs": "No tabs open",
   "openInPanelTooltip": "View in preview panel",
+  "largeTextTruncatedHint": "Large file preview mode: showing first {{count}} characters for performance.",
   "errors": {
     "missingFilePath": "File path is missing",
     "openWithoutPath": "Unable to open: file path is not provided",

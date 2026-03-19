@@ -5,9 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
+import { downloadFileFromPath } from '@/renderer/utils/download';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
+import {
+  LARGE_TEXT_PREVIEW_MAX_LENGTH,
+  LARGE_TEXT_PREVIEW_THRESHOLD,
+} from '@/renderer/pages/conversation/preview/constants';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
@@ -49,7 +54,29 @@ interface UseWorkspaceFileOpsOptions {
  * File operations logic (open, delete, rename, preview, add to chat)
  */
 export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
-  const { workspace, eventPrefix, messageApi, t, setFiles, setSelected, setExpandedKeys, selectedKeysRef, selectedNodeRef, ensureNodeSelected, refreshWorkspace, renameModal, deleteModal, renameLoading, setRenameLoading, closeRenameModal, closeDeleteModal, closeContextMenu, setRenameModal, setDeleteModal, openPreview } = options;
+  const {
+    workspace,
+    eventPrefix,
+    messageApi,
+    t,
+    setFiles,
+    setSelected,
+    setExpandedKeys,
+    selectedKeysRef,
+    selectedNodeRef,
+    ensureNodeSelected,
+    refreshWorkspace,
+    renameModal,
+    deleteModal,
+    renameLoading,
+    setRenameLoading,
+    closeRenameModal,
+    closeDeleteModal,
+    closeContextMenu,
+    setRenameModal,
+    setDeleteModal,
+    openPreview,
+  } = options;
 
   /**
    * 打开文件或文件夹（使用系统默认程序）
@@ -124,7 +151,18 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       messageApi.error(t('conversation.workspace.contextMenu.deleteFailed'));
       setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
-  }, [deleteModal.target, closeDeleteModal, eventPrefix, messageApi, refreshWorkspace, t, setSelected, selectedKeysRef, selectedNodeRef, setDeleteModal]);
+  }, [
+    deleteModal.target,
+    closeDeleteModal,
+    eventPrefix,
+    messageApi,
+    refreshWorkspace,
+    t,
+    setSelected,
+    selectedKeysRef,
+    selectedNodeRef,
+    setDeleteModal,
+  ]);
 
   /**
    * 超时包装器
@@ -220,7 +258,21 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     } finally {
       setRenameLoading(false);
     }
-  }, [closeRenameModal, eventPrefix, messageApi, renameLoading, renameModal, t, waitWithTimeout, setFiles, setExpandedKeys, setSelected, selectedKeysRef, selectedNodeRef, setRenameLoading]);
+  }, [
+    closeRenameModal,
+    eventPrefix,
+    messageApi,
+    renameLoading,
+    renameModal,
+    t,
+    waitWithTimeout,
+    setFiles,
+    setExpandedKeys,
+    setSelected,
+    selectedKeysRef,
+    selectedNodeRef,
+    setRenameLoading,
+  ]);
 
   /**
    * 添加到聊天
@@ -264,6 +316,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
 
         let contentType: PreviewContentType = 'code';
         let content = '';
+        let isLargeTextTruncated = false;
 
         // 根据扩展名判断文件类型 / Determine file type based on extension
         if (ext === 'md' || ext === 'markdown') {
@@ -282,7 +335,51 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
           contentType = 'html';
         } else if (imageExtensions.includes(ext)) {
           contentType = 'image';
-        } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'json', 'xml', 'yaml', 'yml', 'txt', 'log', 'sh', 'bash', 'zsh', 'fish', 'sql', 'rb', 'php', 'swift', 'kt', 'scala', 'r', 'lua', 'vim', 'toml', 'ini', 'cfg', 'conf', 'env', 'gitignore', 'dockerignore', 'editorconfig'].includes(ext)) {
+        } else if (
+          [
+            'js',
+            'ts',
+            'tsx',
+            'jsx',
+            'py',
+            'java',
+            'go',
+            'rs',
+            'c',
+            'cpp',
+            'h',
+            'hpp',
+            'css',
+            'scss',
+            'json',
+            'xml',
+            'yaml',
+            'yml',
+            'txt',
+            'log',
+            'sh',
+            'bash',
+            'zsh',
+            'fish',
+            'sql',
+            'rb',
+            'php',
+            'swift',
+            'kt',
+            'scala',
+            'r',
+            'lua',
+            'vim',
+            'toml',
+            'ini',
+            'cfg',
+            'conf',
+            'env',
+            'gitignore',
+            'dockerignore',
+            'editorconfig',
+          ].includes(ext)
+        ) {
           contentType = 'code';
         } else {
           // 未知扩展名也默认为 code 类型，尝试作为文本读取 / Unknown extensions also default to code type, try to read as text
@@ -298,6 +395,13 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
         } else {
           // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
           content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+
+          // 大文本仅保留前一段预览内容，避免切换/关闭 tab 时卡顿
+          // Keep only first chunk for large text preview to reduce tab switch/close jank
+          if (contentType === 'code' && content.length > LARGE_TEXT_PREVIEW_THRESHOLD) {
+            content = content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH);
+            isLargeTextTruncated = true;
+          }
         }
 
         // 打开预览面板并传入文件元数据 / Open preview panel with file metadata
@@ -309,7 +413,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
           language: ext,
           // Markdown 和图片文件默认为只读模式
           // Markdown and image files default to read-only mode
-          editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+          editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
         });
       } catch (error) {
         messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));
@@ -332,6 +436,25 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     [closeContextMenu, ensureNodeSelected, setRenameModal]
   );
 
+  /**
+   * 下载文件到本地（直接从磁盘读取二进制，不经过预览）
+   * Download file to local system (read binary directly from disk, bypassing preview)
+   */
+  const handleDownloadFile = useCallback(
+    async (nodeData: IDirOrFile | null) => {
+      if (!nodeData || !nodeData.isFile || !nodeData.fullPath) return;
+      closeContextMenu();
+
+      try {
+        await downloadFileFromPath(nodeData.fullPath, nodeData.name);
+        messageApi.success(t('conversation.workspace.contextMenu.downloadSuccess'));
+      } catch (error) {
+        messageApi.error(t('conversation.workspace.contextMenu.downloadFailed'));
+      }
+    },
+    [closeContextMenu, messageApi, t]
+  );
+
   return {
     handleOpenNode,
     handleRevealNode,
@@ -341,5 +464,6 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     handleAddToChat,
     handlePreviewFile,
     openRenameModal,
+    handleDownloadFile,
   };
 }

@@ -12,7 +12,9 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec, safeExecFile } from '@process/utils/safeExec';
 
 /** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
-const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
+const getExecEnv = () => ({
+  env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv,
+});
 
 export function buildClaudeStdioJsonConfig(server: IMcpServer): string {
   if (server.transport.type !== 'stdio') {
@@ -81,7 +83,8 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             const displayName = isBuiltinImageGenName(name.trim()) || isBuiltinImageGenTransport({ command, args }) ? BUILTIN_IMAGE_GEN_NAME : name.trim();
 
             // 解析状态：Connected, Disconnected, Failed to connect, 等
-            const isConnected = statusText.toLowerCase().includes('connected') && !statusText.toLowerCase().includes('disconnect');
+            const isConnected =
+              statusText.toLowerCase().includes('connected') && !statusText.toLowerCase().includes('disconnect');
             const status = isConnected ? 'connected' : 'disconnected';
 
             // 构建transport对象
@@ -162,7 +165,11 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
               console.warn(`Failed to add MCP ${server.name} to Claude Code:`, error);
               // 继续处理其他服务器，不要因为一个失败就停止
             }
-          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+          } else if (
+            server.transport.type === 'sse' ||
+            server.transport.type === 'http' ||
+            server.transport.type === 'streamable_http'
+          ) {
             // 处理 SSE/HTTP/Streamable HTTP 传输类型
             // Claude CLI 使用 --transport http 处理 HTTP 和 Streamable HTTP
             // 格式: claude mcp add -s user --transport <type> <name> <url> [--header ...]

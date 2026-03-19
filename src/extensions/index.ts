@@ -15,7 +15,13 @@ export { resolveThemes } from './resolvers/ThemeResolver';
 export { resolveExtensionI18n, getExtI18nForLocale } from './resolvers/I18nResolver';
 export type { ExtensionLocaleData, AggregatedExtI18n } from './resolvers/I18nResolver';
 
-export { resolveEnvTemplates, resolveEnvInObject, isGlobalStrictMode, clearStrictModeCache, UndefinedEnvVariableError } from './envResolver';
+export {
+  resolveEnvTemplates,
+  resolveEnvInObject,
+  isGlobalStrictMode,
+  clearStrictModeCache,
+  UndefinedEnvVariableError,
+} from './envResolver';
 
 export { resolveFileRefs } from './fileResolver';
 
@@ -37,7 +43,12 @@ export { analyzePermissions, getOverallRiskLevel, ExtPermissionsSchema } from '.
 export type { ExtPermissions, PermissionSummary, PermissionLevel } from './permissions';
 
 // --- Engine Validation (Figma-inspired API version locking) ---
-export { validateEngineCompatibility, filterByEngineCompatibility, AIONUI_VERSION, EXTENSION_API_VERSION } from './engineValidator';
+export {
+  validateEngineCompatibility,
+  filterByEngineCompatibility,
+  AIONUI_VERSION,
+  EXTENSION_API_VERSION,
+} from './engineValidator';
 
 // --- Sandbox (Figma-inspired worker thread isolation) ---
 export { SandboxHost, createSandbox, destroySandbox, destroyAllSandboxes, getSandbox } from './sandbox';
@@ -49,4 +60,19 @@ export type { ExtUIMessage, ExtUIResponse, ExtUIMessageHandler } from './uiProto
 
 export { RESERVED_NAME_PREFIXES, PRESET_AGENT_TYPES } from './types';
 
-export type { ExtensionManifest, ExtContributes, ExtAcpAdapter, ExtMcpServer, ExtAssistant, ExtAgent, ExtSkill, ExtChannelPlugin, ExtTheme, ExtModelProvider, ExtWebui, ExtensionSource, LoadedExtension, ExtensionState } from './types';
+export type {
+  ExtensionManifest,
+  ExtContributes,
+  ExtAcpAdapter,
+  ExtMcpServer,
+  ExtAssistant,
+  ExtAgent,
+  ExtSkill,
+  ExtChannelPlugin,
+  ExtTheme,
+  ExtModelProvider,
+  ExtWebui,
+  ExtensionSource,
+  LoadedExtension,
+  ExtensionState,
+} from './types';

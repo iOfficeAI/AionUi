@@ -9,7 +9,17 @@ export const isDefaultModel = (value?: string | null, label?: string | null): bo
   return text.includes('default') || text.includes('recommended') || text.includes('默认');
 };
 
-export const getModelDisplayLabel = ({ selectedValue, selectedLabel, defaultModelLabel, fallbackLabel }: { selectedValue?: string | null; selectedLabel?: string | null; defaultModelLabel: string; fallbackLabel: string }): string => {
+export const getModelDisplayLabel = ({
+  selectedValue,
+  selectedLabel,
+  defaultModelLabel,
+  fallbackLabel,
+}: {
+  selectedValue?: string | null;
+  selectedLabel?: string | null;
+  defaultModelLabel: string;
+  fallbackLabel: string;
+}): string => {
   if (!selectedLabel) return fallbackLabel;
   return isDefaultModel(selectedValue, selectedLabel) ? defaultModelLabel : selectedLabel;
 };

@@ -100,7 +100,14 @@ interface SubModalProps {
  */
 export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, children }) => {
   return (
-    <AionModal visible={visible} onCancel={onCancel} footer={null} className='settings-sub-modal' size='medium' title={title}>
+    <AionModal
+      visible={visible}
+      onCancel={onCancel}
+      footer={null}
+      className='settings-sub-modal'
+      size='medium'
+      title={title}
+    >
       <AionScrollArea className='h-full px-20px pb-16px text-14px text-t-primary'>{children}</AionScrollArea>
     </AionModal>
   );
@@ -195,9 +202,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
 
     // Modal built-in tabs (subset — no display/agent route pages)
     const builtinItems: MenuItem[] = [
-      { key: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='20' fill={iconColors.secondary} /> },
-      { key: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} /> },
-      { key: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} /> },
+      {
+        key: 'gemini',
+        label: t('settings.gemini'),
+        icon: <Gemini theme='outline' size='20' fill={iconColors.secondary} />,
+      },
+      {
+        key: 'model',
+        label: t('settings.model'),
+        icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} />,
+      },
+      {
+        key: 'tools',
+        label: t('settings.tools'),
+        icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
+      },
     ];
 
     if (isDesktop) {
@@ -208,7 +227,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       });
     }
 
-    builtinItems.push({ key: 'system', label: t('settings.system'), icon: <Computer theme='outline' size='20' fill={iconColors.secondary} /> }, { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> });
+    builtinItems.push(
+      {
+        key: 'system',
+        label: t('settings.system'),
+        icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
+      },
+      { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> }
+    );
 
     // Extension tabs — position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -235,7 +261,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       return {
         key: tab.id,
         label: resolveExtTabName(tab),
-        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-20px h-20px object-contain' /> : <Puzzle theme='outline' size='20' fill={iconColors.secondary} />,
+        icon: resolvedIcon ? (
+          <img src={resolvedIcon} alt='' className='w-20px h-20px object-contain' />
+        ) : (
+          <Puzzle theme='outline' size='20' fill={iconColors.secondary} />
+        ),
       };
     };
 
@@ -311,7 +341,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       const isActive = activeTab === tabKey;
       return (
         <div key={tabKey} className='w-full h-full' style={{ display: isActive ? 'block' : 'none' }}>
-          <ExtensionSettingsTabContent tabId={extTab.id} entryUrl={extTab.entryUrl} extensionName={extTab._extensionName} />
+          <ExtensionSettingsTabContent
+            tabId={extTab.id}
+            entryUrl={extTab.entryUrl}
+            extensionName={extTab._extensionName}
+          />
         </div>
       );
     });
@@ -328,7 +362,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   // 移动端菜单（Tabs切换）/ Mobile menu (Tabs)
   const mobileMenu = (
     <div className='mt-16px mb-20px overflow-x-auto'>
-      <Tabs activeTab={activeTab} onChange={handleTabChange} type='line' size='default' className='settings-mobile-tabs [&_.arco-tabs-nav]:border-b-0'>
+      <Tabs
+        activeTab={activeTab}
+        onChange={handleTabChange}
+        type='line'
+        size='default'
+        className='settings-mobile-tabs [&_.arco-tabs-nav]:border-b-0'
+      >
         {menuItems.map((item) => (
           <Tabs.TabPane key={item.key} title={item.label} />
         ))}
@@ -343,10 +383,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         {menuItems.map((item) => (
           <div
             key={item.key}
-            className={classNames('flex items-center px-14px py-10px rd-8px cursor-pointer transition-all duration-150 select-none', {
-              'bg-aou-2 text-t-primary': activeTab === item.key,
-              'text-t-secondary hover:bg-fill-1': activeTab !== item.key,
-            })}
+            className={classNames(
+              'flex items-center px-14px py-10px rd-8px cursor-pointer transition-all duration-150 select-none',
+              {
+                'bg-aou-2 text-t-primary': activeTab === item.key,
+                'text-t-secondary hover:bg-fill-1': activeTab !== item.key,
+              }
+            )}
             onClick={() => setActiveTab(item.key)}
           >
             <span className='mr-12px text-16px line-height-[10px]'>{item.icon}</span>
@@ -365,7 +408,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         footer={null}
         className='settings-modal'
         style={{
-          width: isMobile ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
+          width: isMobile
+            ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)`
+            : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
           maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
           borderRadius: '16px',
         }}
@@ -380,7 +425,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         >
           {isMobile ? mobileMenu : desktopMenu}
 
-          <AionScrollArea className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}>
+          <AionScrollArea
+            className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
+          >
             {renderBuiltinContent()}
             {renderExtensionTabs()}
           </AionScrollArea>

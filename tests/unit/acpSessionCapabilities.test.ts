@@ -31,7 +31,9 @@ function makeAgent(backend: string, acpSessionId?: string): AcpAgent {
   });
 }
 
-const CONFIG_OPTIONS: AcpSessionConfigOption[] = [{ id: 'model', category: 'model', type: 'select', currentValue: 'gpt-4o', options: [] }];
+const CONFIG_OPTIONS: AcpSessionConfigOption[] = [
+  { id: 'model', category: 'model', type: 'select', currentValue: 'gpt-4o', options: [] },
+];
 const MODELS: AcpSessionModels = {
   currentModelId: 'gpt-4o',
   availableModels: [{ id: 'gpt-4o' }, { id: 'o3' }],

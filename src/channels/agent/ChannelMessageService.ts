@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import WorkerManage from '@/process/WorkerManage';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { getDatabase } from '@/process/database';
 import type BaseAgentManager from '@/process/task/BaseAgentManager';
+import type { IAgentManager } from '@process/task/IAgentManager';
 import { composeMessage, transformMessage, type TMessage } from '../../common/chatLib';
 import { uuid } from '../../common/utils';
 import { channelEventBus, type IAgentMessageEvent } from './ChannelEventBus';
@@ -146,7 +147,12 @@ export class ChannelMessageService {
    * @param onStream - Callback for streaming updates
    * @returns Promise that resolves when streaming is complete
    */
-  async sendMessage(_sessionId: string, conversationId: string, message: string, onStream: StreamCallback): Promise<string> {
+  async sendMessage(
+    _sessionId: string,
+    conversationId: string,
+    message: string,
+    onStream: StreamCallback
+  ): Promise<string> {
     // 确保服务已初始化
     // Ensure service is initialized
     this.initialize();
@@ -157,15 +163,19 @@ export class ChannelMessageService {
 
     // 获取任务
     // Get task
-    let task: BaseAgentManager<unknown>;
+    let task: IAgentManager;
     try {
       // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
       // Check conversation source, enable yoloMode if it's from a Channel
       const db = getDatabase();
       const dbResult = db.getConversation(conversationId);
-      const isFromChannel = dbResult.success && (dbResult.data?.source === 'lark' || dbResult.data?.source === 'telegram' || dbResult.data?.source === 'dingtalk');
+      const isFromChannel =
+        dbResult.success &&
+        (dbResult.data?.source === 'lark' ||
+          dbResult.data?.source === 'telegram' ||
+          dbResult.data?.source === 'dingtalk');
 
-      task = await WorkerManage.getTaskByIdRollbackBuild(conversationId, {
+      task = await workerTaskManager.getOrBuildTask(conversationId, {
         yoloMode: isFromChannel,
       });
     } catch (error) {
@@ -201,12 +211,25 @@ export class ChannelMessageService {
 
       // Build payload based on agent type.
       // Gemini expects { input }, ACP/Codex expect { content }.
-      const payload: { input?: string; content?: string; msg_id: string } = task.type === 'gemini' ? { input: message, msg_id: msgId } : task.type === 'acp' || task.type === 'codex' ? { content: message, msg_id: msgId } : { content: message, msg_id: msgId };
+      const payload: { input?: string; content?: string; msg_id: string } =
+        task.type === 'gemini'
+          ? { input: message, msg_id: msgId }
+          : task.type === 'acp' || task.type === 'codex'
+            ? { content: message, msg_id: msgId }
+            : { content: message, msg_id: msgId };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
         console.error(`[ChannelMessageService] Send error:`, error);
-        onStream({ type: 'tips', id: uuid(), conversation_id: conversationId, content: { type: 'error', content: errorMessage } }, true);
+        onStream(
+          {
+            type: 'tips',
+            id: uuid(),
+            conversation_id: conversationId,
+            content: { type: 'error', content: errorMessage },
+          },
+          true
+        );
         this.activeStreams.delete(conversationId);
         reject(error);
       });
@@ -241,7 +264,7 @@ export class ChannelMessageService {
    */
   async stopStreaming(conversationId: string): Promise<void> {
     try {
-      const task = WorkerManage.getTaskById(conversationId);
+      const task = workerTaskManager.getTask(conversationId);
       if (task) {
         await task.stop();
       }
@@ -261,7 +284,7 @@ export class ChannelMessageService {
    */
   async confirm(conversationId: string, callId: string, value: string): Promise<void> {
     try {
-      const task = WorkerManage.getTaskById(conversationId);
+      const task = workerTaskManager.getTask(conversationId);
       if (!task) {
         throw new Error(`Task not found for conversation ${conversationId}`);
       }

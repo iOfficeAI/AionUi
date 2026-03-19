@@ -13,13 +13,24 @@ import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
+import './Diff2Html.css';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePreviewLauncher } from '../hooks/usePreviewLauncher';
 import CollapsibleContent from './CollapsibleContent';
 
-const Diff2Html = ({ diff, className, title, filePath }: { diff: string; className?: string; title?: string; filePath?: string }) => {
+const Diff2Html = ({
+  diff,
+  className,
+  title,
+  filePath,
+}: {
+  diff: string;
+  className?: string;
+  title?: string;
+  filePath?: string;
+}) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
   const { launchPreview, loading: previewLoading } = usePreviewLauncher();
@@ -140,10 +151,13 @@ const Diff2Html = ({ diff, className, title, filePath }: { diff: string; classNa
     <CollapsibleContent maxHeight={160} defaultCollapsed={true} className={className}>
       <div className='relative w-full max-w-full overflow-x-auto' style={{ WebkitOverflowScrolling: 'touch' }}>
         <div
-          className={classNames('![&_.line-num1]:hidden ![&_.line-num2]:w-30px [&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px min-w-0 max-w-full [&_div.d2f-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]  [&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3', {
-            '[&_.d2h-file-diff]:hidden [&_.d2h-files-diff]:hidden': collapse,
-            'd2h-dark-color-scheme': theme === 'dark',
-          })}
+          className={classNames(
+            '![&_.line-num1]:hidden ![&_.line-num2]:w-30px [&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px min-w-0 max-w-full [&_div.d2f-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]  [&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3',
+            {
+              '[&_.d2h-file-diff]:hidden [&_.d2h-files-diff]:hidden': collapse,
+              'd2h-dark-color-scheme': theme === 'dark',
+            }
+          )}
           ref={containerRef}
           dangerouslySetInnerHTML={{
             __html: diffHtmlContent,
@@ -158,13 +172,35 @@ const Diff2Html = ({ diff, className, title, filePath }: { diff: string; classNa
               </Checkbox>
 
               <Tooltip content={t('preview.openInPanelTooltip')}>
-                <Button type='text' size='mini' onClick={handlePreviewClick as any} disabled={previewLoading} icon={<PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />}>
+                <Button
+                  type='text'
+                  size='mini'
+                  onClick={handlePreviewClick as any}
+                  disabled={previewLoading}
+                  icon={<PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />}
+                >
                   {t('preview.preview')}
                 </Button>
               </Tooltip>
 
               {/* 折叠按钮 / Collapse button */}
-              {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}
+              {collapse ? (
+                <ExpandDownOne
+                  theme='outline'
+                  size='14'
+                  fill={iconColors.secondary}
+                  className='flex items-center'
+                  onClick={() => setCollapse(false)}
+                />
+              ) : (
+                <FoldUpOne
+                  theme='outline'
+                  size='14'
+                  fill={iconColors.secondary}
+                  className='flex items-center'
+                  onClick={() => setCollapse(true)}
+                />
+              )}
             </>,
             operatorRef.current
           )}

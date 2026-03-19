@@ -10,6 +10,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
 
+// ============ Environment Separation ============
+// MUST be the very first code to run: set app name before any getPath() call.
+// In development, use 'AionUi-Dev' so userData is isolated from the production install.
+// 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
+// 这必须在所有其他代码之前执行，因为 getPath('userData') 会锁定当前的 app 名称
+if (!app.isPackaged) {
+  app.setName('AionUi-Dev');
+}
+
 // Configure Chromium command-line flags for WebUI and CLI modes
 // 为 WebUI 和 CLI 模式配置 Chromium 命令行参数
 
@@ -140,7 +149,9 @@ function findAvailablePort(preferredPort: number): number {
     return preferredPort;
   }
 
-  console.log(`[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`);
+  console.log(
+    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
+  );
 
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
     if (!usedPorts.has(p)) {
@@ -149,7 +160,9 @@ function findAvailablePort(preferredPort: number): number {
     }
   }
 
-  console.warn(`[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`);
+  console.warn(
+    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`
+  );
   return preferredPort;
 }
 

@@ -58,6 +58,30 @@ export const MIN_SPLIT_WIDTH = 20;
 export const MAX_SPLIT_WIDTH = 80;
 
 /**
+ * 大文本进入预览裁剪的阈值（字符）
+ * Threshold for enabling large-text preview truncation (characters)
+ */
+export const LARGE_TEXT_PREVIEW_THRESHOLD = 120_000;
+
+/**
+ * 大文本预览最多保留字符数（字符）
+ * Maximum characters kept for truncated large-text previews
+ */
+export const LARGE_TEXT_PREVIEW_MAX_LENGTH = 40_000;
+
+/**
+ * 代码查看器降级渲染阈值（字符）
+ * Threshold for switching CodeViewer to lightweight rendering
+ */
+export const LARGE_TEXT_VIEWER_THRESHOLD = 30_000;
+
+/**
+ * 代码查看器在大文本场景的最大渲染字符数（字符）
+ * Maximum rendered characters in CodeViewer for large text
+ */
+export const LARGE_TEXT_VIEWER_RENDER_LIMIT = 20_000;
+
+/**
  * 具有内置打开按钮的文件类型
  * File types with built-in open buttons
  */

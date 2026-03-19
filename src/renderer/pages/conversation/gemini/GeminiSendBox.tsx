@@ -13,19 +13,20 @@ import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck'
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
+import FileAttachButton from '@/renderer/components/FileAttachButton';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
-import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
-import { Button, Message, Tag } from '@arco-design/web-react';
-import { Plus, Shield } from '@icon-park/react';
+import { Message, Tag } from '@arco-design/web-react';
+import { Shield } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +39,7 @@ const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   uploadFile: [],
 });
 
-const useGeminiMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
+export const useGeminiMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
   const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
@@ -154,13 +155,6 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
 
-      // Cancel pending finish timeout if new message arrives
-      const pendingTimeout = (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout;
-      if (pendingTimeout && message.type !== 'finish') {
-        clearTimeout(pendingTimeout);
-        (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = undefined;
-      }
-
       switch (message.type) {
         case 'thought':
           // Auto-recover streamRunning if thought arrives after finish
@@ -178,25 +172,22 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           break;
         case 'finish':
           {
-            // If waitingResponse is true (tool just completed, waiting for AI to continue),
-            // don't start timeout - let AI continue naturally
-            // 如果 waitingResponse=true（工具刚完成，等待 AI 继续），不启动 timeout
-            if (!waitingResponseRef.current) {
-              // Use delayed reset to detect true end of task
-              const timeoutId = setTimeout(() => {
-                setStreamRunning(false);
-                streamRunningRef.current = false;
-                setWaitingResponse(false);
-                waitingResponseRef.current = false;
-                setThought({ subject: '', description: '' });
-              }, 1000);
-              (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = timeoutId;
-            }
+            // Immediate state reset (notification is handled by centralized hook)
+            // 立即重置状态（通知由集中化 hook 处理）
+            setStreamRunning(false);
+            streamRunningRef.current = false;
+            setWaitingResponse(false);
+            waitingResponseRef.current = false;
+            setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
-              console.log(`%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #52c41a; font-weight: bold', 'color: inherit');
+              console.log(
+                `%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                'color: #52c41a; font-weight: bold',
+                'color: inherit'
+              );
               requestTraceRef.current = null;
             }
           }
@@ -307,7 +298,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
               provider: String(trace.platform || trace.provider || 'unknown'),
               modelId: String(trace.modelId || 'unknown'),
             };
-            console.log(`%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.modelId} | ${new Date().toISOString()}`, 'color: #1890ff; font-weight: bold', 'color: inherit', trace);
+            console.log(
+              `%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.modelId} | ${new Date().toISOString()}`,
+              'color: #1890ff; font-weight: bold',
+              'color: inherit',
+              trace
+            );
           }
           break;
         default: {
@@ -317,7 +313,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             // Log request error
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
-              console.log(`%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`, 'color: #ff4d4f; font-weight: bold', 'color: inherit', message.data);
+              console.log(
+                `%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                'color: #ff4d4f; font-weight: bold',
+                'color: inherit',
+                message.data
+              );
               requestTraceRef.current = null;
             }
           } else {
@@ -384,15 +385,26 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
 
   const resetState = useCallback(() => {
     setWaitingResponse(false);
+    waitingResponseRef.current = false;
     setStreamRunning(false);
     streamRunningRef.current = false;
     setHasActiveTools(false);
     hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    // Clear active message ID to prevent filtering events from new messages after stop
+    activeMsgIdRef.current = null;
   }, []);
 
-  return { thought, setThought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState };
+  return {
+    thought,
+    setThought,
+    running,
+    tokenUsage,
+    setActiveMsgId,
+    setWaitingResponse,
+    resetState,
+  };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -447,7 +459,8 @@ const GeminiSendBox: React.FC<{
   const [isNewConversation, setIsNewConversation] = useState(true); // 是否是新对话（无消息历史）
   const autoSwitchTriggeredRef = useRef(false); // 防止重复触发
 
-  const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
+  const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } =
+    modelSelection;
 
   // 判断是否无 auth（无 Google 登录且无 API key 配置）
   // Check if no auth (no Google login AND no API key configured)
@@ -474,14 +487,18 @@ const GeminiSendBox: React.FC<{
   const resolveFallbackTarget = useCallback(
     (exhaustedModels: Set<string>) => {
       if (!currentModel) return null;
-      const provider = providers.find((item) => item.id === currentModel.id) || providers.find((item) => item.platform?.toLowerCase().includes('gemini-with-google-auth'));
+      const provider =
+        providers.find((item) => item.id === currentModel.id) ||
+        providers.find((item) => item.platform?.toLowerCase().includes('gemini-with-google-auth'));
       if (!provider) return null;
 
       const isGoogleAuthProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
       const manualOption = isGoogleAuthProvider ? geminiModeLookup.get('manual') : undefined;
       const manualModels = manualOption?.subModels?.map((model) => model.value) || [];
       const availableModels = isGoogleAuthProvider ? manualModels : getAvailableModels(provider);
-      const candidates = availableModels.filter((model) => model && model !== currentModel.useModel && !exhaustedModels.has(model) && model !== 'manual');
+      const candidates = availableModels.filter(
+        (model) => model && model !== currentModel.useModel && !exhaustedModels.has(model) && model !== 'manual'
+      );
 
       if (!candidates.length) return null;
       const scoreModel = (modelName: string) => {
@@ -506,8 +523,19 @@ const GeminiSendBox: React.FC<{
   const isQuotaErrorMessage = useCallback((data: unknown) => {
     if (typeof data !== 'string') return false;
     const text = data.toLowerCase();
-    const hasQuota = text.includes('quota') || text.includes('resource_exhausted') || text.includes('model_capacity_exhausted') || text.includes('no capacity available');
-    const hasLimit = text.includes('limit') || text.includes('exceed') || text.includes('exhaust') || text.includes('status: 429') || text.includes('code 429') || text.includes('429') || text.includes('ratelimitexceeded');
+    const hasQuota =
+      text.includes('quota') ||
+      text.includes('resource_exhausted') ||
+      text.includes('model_capacity_exhausted') ||
+      text.includes('no capacity available');
+    const hasLimit =
+      text.includes('limit') ||
+      text.includes('exceed') ||
+      text.includes('exhaust') ||
+      text.includes('status: 429') ||
+      text.includes('code 429') ||
+      text.includes('429') ||
+      text.includes('ratelimitexceeded');
     return hasQuota && hasLimit;
   }, []);
 
@@ -529,7 +557,11 @@ const GeminiSendBox: React.FC<{
 
     // 检测 API key 相关错误 - 这些是用户配置问题，应该显示错误而非自动切换
     // Detect API key related errors - these are user config issues, show error instead of auto-switch
-    const hasInvalidApiKey = text.includes('api key not valid') || text.includes('api_key_invalid') || text.includes('invalid api key') || text.includes('google_api_key');
+    const hasInvalidApiKey =
+      text.includes('api key not valid') ||
+      text.includes('api_key_invalid') ||
+      text.includes('invalid api key') ||
+      text.includes('google_api_key');
     return hasInvalidApiKey;
   }, []);
 
@@ -592,18 +624,30 @@ const GeminiSendBox: React.FC<{
       }
       const fallbackTarget = resolveFallbackTarget(exhaustedModelsRef.current);
       if (!fallbackTarget || !currentModel || fallbackTarget.model === currentModel.useModel) {
-        Message.warning(t('conversation.chat.quotaExceededNoFallback', { defaultValue: 'Model quota reached. Please switch to another available model.' }));
+        Message.warning(
+          t('conversation.chat.quotaExceededNoFallback', {
+            defaultValue: 'Model quota reached. Please switch to another available model.',
+          })
+        );
         return;
       }
 
       void handleSelectModel(fallbackTarget.provider, fallbackTarget.model).then(() => {
-        Message.success(t('conversation.chat.quotaSwitched', { defaultValue: `Switched to ${fallbackTarget.model}.`, model: fallbackTarget.model }));
+        Message.success(
+          t('conversation.chat.quotaSwitched', {
+            defaultValue: `Switched to ${fallbackTarget.model}.`,
+            model: fallbackTarget.model,
+          })
+        );
       });
     },
     [currentModel, handleSelectModel, isApiErrorMessage, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
-  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(conversation_id, handleGeminiError);
+  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(
+    conversation_id,
+    handleGeminiError
+  );
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -620,10 +664,12 @@ const GeminiSendBox: React.FC<{
     autoSwitchTriggeredRef.current = false;
     resetAgentCheck();
 
-    void ipcBridge.database.getConversationMessages.invoke({ conversation_id, page: 0, pageSize: 1 }).then((messages) => {
-      const hasMessages = messages && messages.length > 0;
-      setIsNewConversation(!hasMessages);
-    });
+    void ipcBridge.database.getConversationMessages
+      .invoke({ conversation_id, page: 0, pageSize: 1 })
+      .then((messages) => {
+        const hasMessages = messages && messages.length > 0;
+        setIsNewConversation(!hasMessages);
+      });
   }, [conversation_id, resetAgentCheck]);
 
   // Dismiss the setup card
@@ -833,7 +879,21 @@ const GeminiSendBox: React.FC<{
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       {/* Agent Setup Card - 仅在新对话+无auth时显示，自动切换到可用agent */}
       {/* Only show for new conversation + no auth, auto-switch to available agent */}
-      {showSetupCard && isNewConversation && hasNoAuth && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} autoSwitch={true} initialMessage={content} />}
+      {showSetupCard && isNewConversation && hasNoAuth && (
+        <AgentSetupCard
+          conversationId={conversation_id}
+          currentAgent={currentAgent}
+          error={agentError}
+          isChecking={agentIsChecking}
+          progress={checkProgress}
+          availableAgents={availableAgents}
+          bestAgent={bestAgent}
+          onDismiss={handleDismissSetupCard}
+          onRetry={handleRetryCheck}
+          autoSwitch={true}
+          initialMessage={content}
+        />
+      )}
 
       <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
@@ -844,7 +904,11 @@ const GeminiSendBox: React.FC<{
         disabled={!currentModel?.useModel}
         // 占位提示同步右上角选择的模型，确保用户感知当前目标
         // Keep placeholder in sync with header selection so users know the active target
-        placeholder={currentModel?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) }) : t('conversation.chat.noModelSelected')}
+        placeholder={
+          currentModel?.useModel
+            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) })
+            : t('conversation.chat.noModelSelected')
+        }
         onStop={handleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
@@ -853,18 +917,36 @@ const GeminiSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />
-            <AgentModeSelector backend='gemini' conversationId={conversation_id} compact compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />} modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })} compactLabelPrefix={t('agentMode.permission')} hideCompactLabelPrefixOnMobile />
+            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <AgentModeSelector
+              backend='gemini'
+              conversationId={conversation_id}
+              compact
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+            />
           </div>
         }
-        sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}
+        sendButtonPrefix={
+          <ContextUsageIndicator
+            tokenUsage={tokenUsage}
+            contextLimit={getModelContextLimit(currentModel?.useModel)}
+            size={24}
+          />
+        }
         prefix={
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
                 ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -875,7 +957,9 @@ const GeminiSendBox: React.FC<{
                         key={path}
                         path={path}
                         onRemove={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
                           emitter.emit('gemini.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}

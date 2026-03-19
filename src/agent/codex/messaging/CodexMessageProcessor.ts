@@ -55,7 +55,12 @@ export class CodexMessageProcessor {
     );
   }
 
-  handleReasoningMessage(msg: Extract<CodexEventMsg, { type: 'agent_reasoning_delta' }> | Extract<CodexEventMsg, { type: 'agent_reasoning' }> | Extract<CodexEventMsg, { type: 'agent_reasoning_section_break' }>) {
+  handleReasoningMessage(
+    msg:
+      | Extract<CodexEventMsg, { type: 'agent_reasoning_delta' }>
+      | Extract<CodexEventMsg, { type: 'agent_reasoning' }>
+      | Extract<CodexEventMsg, { type: 'agent_reasoning_section_break' }>
+  ) {
     // 根据事件类型处理不同的数据结构 - TypeScript 自动类型缩窄
     let deltaText = '';
     if (msg.type === 'agent_reasoning_delta') {
@@ -169,7 +174,9 @@ export class CodexMessageProcessor {
 
     // Use error code for structured error handling
     // The data will contain error code info that can be translated on frontend
-    const errorData = processedError.code ? `ERROR_${processedError.code}: ${message}` : processedError.userMessage || message;
+    const errorData = processedError.code
+      ? `ERROR_${processedError.code}: ${message}`
+      : processedError.userMessage || message;
 
     const errMsg = {
       type: 'error' as const,

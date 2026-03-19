@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/download';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
@@ -23,10 +24,26 @@ import PPTPreview from '../viewers/PPTViewer';
 import TextEditor from '../editors/TextEditor';
 import WordPreview from '../viewers/WordViewer';
 import URLViewer from '../viewers/URLViewer';
-import { PreviewTabs, PreviewToolbar, PreviewContextMenu, PreviewConfirmModals, PreviewHistoryDropdown, type ContextMenuState, type CloseTabConfirmState, type PreviewTab } from '.';
+import {
+  PreviewTabs,
+  PreviewToolbar,
+  PreviewContextMenu,
+  PreviewConfirmModals,
+  PreviewHistoryDropdown,
+  type ContextMenuState,
+  type CloseTabConfirmState,
+  type PreviewTab,
+} from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
-import { usePreviewHistory, usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
+import {
+  usePreviewHistory,
+  usePreviewKeyboardShortcuts,
+  useScrollSync,
+  useTabOverflow,
+  useThemeDetection,
+} from '../../hooks';
 import { useTranslation } from 'react-i18next';
+import './preview.css';
 
 /**
  * 预览面板主组件
@@ -37,7 +54,18 @@ import { useTranslation } from 'react-i18next';
  */
 const PreviewPanel: React.FC = () => {
   const { t } = useTranslation();
-  const { isOpen, tabs, activeTabId, activeTab, closeTab, switchTab, closePreview, updateContent, saveContent, addDomSnippet } = usePreviewContext();
+  const {
+    isOpen,
+    tabs,
+    activeTabId,
+    activeTab,
+    closeTab,
+    switchTab,
+    closePreview,
+    updateContent,
+    saveContent,
+    addDomSnippet,
+  } = usePreviewContext();
   const layout = useLayoutContext();
 
   // 视图状态 / View states
@@ -68,7 +96,18 @@ const PreviewPanel: React.FC = () => {
   });
 
   // eslint-disable-next-line max-len
-  const { historyVersions, historyLoading, snapshotSaving, historyError, historyTarget, refreshHistory, handleSaveSnapshot, handleSnapshotSelect, messageApi, messageContextHolder } = usePreviewHistory({
+  const {
+    historyVersions,
+    historyLoading,
+    snapshotSaving,
+    historyError,
+    historyTarget,
+    refreshHistory,
+    handleSaveSnapshot,
+    handleSnapshotSelect,
+    messageApi,
+    messageContextHolder,
+  } = usePreviewHistory({
     activeTab,
     updateContent,
   });
@@ -262,79 +301,68 @@ const PreviewPanel: React.FC = () => {
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
     try {
-      let blob: Blob | null = null;
-      let ext = 'txt';
-      const nameExt = metadata?.fileName?.split('.').pop();
+      const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
 
-      // 图片文件：从 Base64 数据或文件路径读取 / Image files: read from Base64 data or file path
-      if (contentType === 'image') {
-        let dataUrl = content;
-        // 如果没有 Base64 数据，从文件路径读取 / If no Base64 data, read from file path
-        if (!dataUrl && metadata?.filePath) {
-          dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: metadata.filePath });
-        }
-
-        if (!dataUrl) {
-          messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
-          return;
-        }
-
-        // 将 Base64 数据转换为 Blob / Convert Base64 data to Blob
-        blob = await fetch(dataUrl).then((res) => res.blob());
-
-        // 优先使用文件名扩展名，其次使用 MIME 类型扩展名，最后默认为 png
-        // Prefer filename extension, then MIME type extension, finally default to png
-        const mimeExt = blob.type && blob.type.includes('/') ? blob.type.split('/').pop() : undefined;
-        ext = nameExt || mimeExt || 'png';
-      } else {
-        // 文本文件：创建文本 Blob / Text files: create text Blob
-        let mimeType = 'text/plain;charset=utf-8';
-        if (contentType === 'markdown') mimeType = 'text/markdown;charset=utf-8';
-        else if (contentType === 'html') mimeType = 'text/html;charset=utf-8';
-        blob = new Blob([content], { type: mimeType });
-
-        // 根据内容类型设置文件扩展名 / Set file extension based on content type
-        if (nameExt) ext = nameExt;
-        else if (contentType === 'markdown') ext = 'md';
-        else if (contentType === 'diff') ext = 'diff';
-        else if (contentType === 'code') {
-          // 代码文件：根据语言设置扩展名 / Code files: set extension based on language
-          const lang = metadata?.language;
-          if (lang === 'javascript' || lang === 'js') ext = 'js';
-          else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
-          else if (lang === 'python' || lang === 'py') ext = 'py';
-          else if (lang === 'java') ext = 'java';
-          else if (lang === 'cpp' || lang === 'c++') ext = 'cpp';
-          else if (lang === 'c') ext = 'c';
-          else if (lang === 'html') ext = 'html';
-          else if (lang === 'css') ext = 'css';
-          else if (lang === 'json') ext = 'json';
-        } else if (contentType === 'html') {
-          ext = 'html';
-        }
-      }
-
-      if (!blob) {
-        messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+      if (metadata?.filePath) {
+        // All files with a disk path (binary, image, zip, etc.) — unified path
+        await downloadFileFromPath(metadata.filePath, rawFileName);
         return;
       }
 
-      // 创建下载链接并触发下载 / Create download link and trigger download
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
-      if (metadata?.fileName && nameExt) {
-        link.download = rawFileName;
-      } else {
+      if (contentType === 'image') {
+        // Pure base64 image (no file path on disk)
+        if (!content) {
+          messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+          return;
+        }
+        const blob = await fetch(content).then((res) => res.blob());
+        const nameExt = metadata?.fileName?.split('.').pop();
+        const mimeExt = blob.type?.includes('/') ? blob.type.split('/').pop() : undefined;
+        const ext = nameExt || mimeExt || 'png';
         const normalizedExt = ext.toLowerCase();
         const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
-        link.download = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+        const fileName = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        return;
       }
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url); // 释放 URL 对象 / Release URL object
+
+      // Text / code content (no file path, no binary)
+      const nameExt = metadata?.fileName?.split('.').pop();
+      let mimeType = 'text/plain;charset=utf-8';
+      let ext = 'txt';
+      if (contentType === 'markdown') {
+        mimeType = 'text/markdown;charset=utf-8';
+        ext = 'md';
+      } else if (contentType === 'html') {
+        mimeType = 'text/html;charset=utf-8';
+        ext = 'html';
+      } else if (contentType === 'diff') {
+        ext = 'diff';
+      } else if (contentType === 'code') {
+        // Code files: set extension based on language
+        const lang = metadata?.language;
+        if (lang === 'javascript' || lang === 'js') ext = 'js';
+        else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
+        else if (lang === 'python' || lang === 'py') ext = 'py';
+        else if (lang === 'java') ext = 'java';
+        else if (lang === 'cpp' || lang === 'c++') ext = 'cpp';
+        else if (lang === 'c') ext = 'c';
+        else if (lang === 'html') ext = 'html';
+        else if (lang === 'css') ext = 'css';
+        else if (lang === 'json') ext = 'json';
+      }
+      if (nameExt) ext = nameExt;
+      const normalizedExt = ext.toLowerCase();
+      const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
+      const fileName = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+      downloadTextContent(content, fileName, mimeType);
     } catch (error) {
       console.error('[PreviewPanel] Failed to download file:', error);
       messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
@@ -360,7 +388,16 @@ const PreviewPanel: React.FC = () => {
   // 渲染历史下拉菜单 / Render history dropdown
   const renderHistoryDropdown = () => {
     // eslint-disable-next-line max-len
-    return <PreviewHistoryDropdown historyVersions={historyVersions} historyLoading={historyLoading} historyError={historyError} historyTarget={historyTarget} currentTheme={currentTheme} onSnapshotSelect={handleSnapshotSelect} />;
+    return (
+      <PreviewHistoryDropdown
+        historyVersions={historyVersions}
+        historyLoading={historyLoading}
+        historyError={historyError}
+        historyTarget={historyTarget}
+        currentTheme={currentTheme}
+        onSnapshotSelect={handleSnapshotSelect}
+      />
+    );
   };
 
   // 渲染预览内容 / Render preview content
@@ -387,7 +424,12 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <MarkdownEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} />
+                <MarkdownEditor
+                  value={content}
+                  onChange={updateContent}
+                  containerRef={editorContainerRef}
+                  onScroll={handleEditorScroll}
+                />
               </div>
               {/* 拖动分割线 / Drag handle */}
               {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
@@ -399,7 +441,13 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
               </div>
               <div className='flex flex-col flex-1 overflow-hidden'>
-                <MarkdownPreview content={content} hideToolbar containerRef={previewContainerRef} onScroll={handlePreviewScroll} filePath={metadata?.filePath} />
+                <MarkdownPreview
+                  content={content}
+                  hideToolbar
+                  containerRef={previewContainerRef}
+                  onScroll={handlePreviewScroll}
+                  filePath={metadata?.filePath}
+                />
               </div>
             </div>
           </div>
@@ -407,7 +455,16 @@ const PreviewPanel: React.FC = () => {
       }
 
       // 非分屏模式：单栏（原文或预览）/ Non-split mode: Single panel (source or preview)
-      return <MarkdownPreview content={content} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} onContentChange={updateContent} filePath={metadata?.filePath} />;
+      return (
+        <MarkdownPreview
+          content={content}
+          hideToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onContentChange={updateContent}
+          filePath={metadata?.filePath}
+        />
+      );
     }
 
     // HTML 模式 / HTML mode
@@ -418,7 +475,13 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} inspectMode={inspectMode} onElementSelected={handleElementSelected} />
+              <HTMLRenderer
+                content={content}
+                filePath={metadata?.filePath}
+                copySuccessMessage={t('preview.html.copySuccess')}
+                inspectMode={inspectMode}
+                onElementSelected={handleElementSelected}
+              />
             </div>
           );
         }
@@ -432,7 +495,13 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <HTMLEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} filePath={metadata?.filePath} />
+                <HTMLEditor
+                  value={content}
+                  onChange={updateContent}
+                  containerRef={editorContainerRef}
+                  onScroll={handleEditorScroll}
+                  filePath={metadata?.filePath}
+                />
               </div>
               {/* 拖动分割线 / Drag handle */}
               {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
@@ -446,7 +515,15 @@ const PreviewPanel: React.FC = () => {
               <div className='flex flex-col flex-1 overflow-hidden'>
                 {/* prettier-ignore */}
                 {/* eslint-disable-next-line max-len */}
-                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
+                <HTMLRenderer
+                  content={content}
+                  filePath={metadata?.filePath}
+                  containerRef={previewContainerRef}
+                  onScroll={handlePreviewScroll}
+                  inspectMode={inspectMode}
+                  copySuccessMessage={t('preview.html.copySuccess')}
+                  onElementSelected={handleElementSelected}
+                />
               </div>
             </div>
           </div>
@@ -464,7 +541,13 @@ const PreviewPanel: React.FC = () => {
         // 预览模式 / Preview mode
         return (
           <div className='flex-1 overflow-hidden'>
-            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
+            <HTMLRenderer
+              content={content}
+              filePath={metadata?.filePath}
+              inspectMode={inspectMode}
+              copySuccessMessage={t('preview.html.copySuccess')}
+              onElementSelected={handleElementSelected}
+            />
           </div>
         );
       }
@@ -472,7 +555,15 @@ const PreviewPanel: React.FC = () => {
 
     // 其他类型：全屏预览 / Other types: Full-screen preview
     if (contentType === 'diff') {
-      return <DiffPreview content={content} metadata={metadata} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} />;
+      return (
+        <DiffPreview
+          content={content}
+          metadata={metadata}
+          hideToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      );
     } else if (contentType === 'code') {
       // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
       if (isSplitScreenEnabled && isEditMode && isEditable) {
@@ -512,7 +603,15 @@ const PreviewPanel: React.FC = () => {
         );
       }
       // 否则显示代码预览 / Otherwise show code preview
-      return <CodePreview content={content} language={metadata?.language} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} />;
+      return (
+        <CodePreview
+          content={content}
+          language={metadata?.language}
+          hideToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      );
     } else if (contentType === 'pdf') {
       return <PDFPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'ppt') {
@@ -522,7 +621,13 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'excel') {
       return <ExcelPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'image') {
-      return <ImagePreview filePath={metadata?.filePath} content={content} fileName={metadata?.fileName || metadata?.title} />;
+      return (
+        <ImagePreview
+          filePath={metadata?.filePath}
+          content={content}
+          fileName={metadata?.fileName || metadata?.title}
+        />
+      );
     } else if (contentType === 'url') {
       // URL 预览模式 / URL preview mode
       return <URLViewer url={content} title={metadata?.title} />;
@@ -545,11 +650,28 @@ const PreviewPanel: React.FC = () => {
 
         {/* 确认对话框 / Confirmation modals */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewConfirmModals showExitConfirm={showExitConfirm} closeTabConfirm={closeTabConfirm} onConfirmExit={handleConfirmExit} onCancelExit={handleCancelExit} onSaveAndCloseTab={handleSaveAndCloseTab} onCloseWithoutSave={handleCloseWithoutSave} onCancelCloseTab={handleCancelCloseTab} />
+        <PreviewConfirmModals
+          showExitConfirm={showExitConfirm}
+          closeTabConfirm={closeTabConfirm}
+          onConfirmExit={handleConfirmExit}
+          onCancelExit={handleCancelExit}
+          onSaveAndCloseTab={handleSaveAndCloseTab}
+          onCloseWithoutSave={handleCloseWithoutSave}
+          onCancelCloseTab={handleCancelCloseTab}
+        />
 
         {/* Tab 栏 / Tab bar */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} onClosePanel={closePreview} />
+        <PreviewTabs
+          tabs={previewTabs}
+          activeTabId={activeTabId}
+          tabFadeState={tabFadeState}
+          tabsContainerRef={tabsContainerRef}
+          onSwitchTab={switchTab}
+          onCloseTab={handleCloseTab}
+          onContextMenu={handleTabContextMenu}
+          onClosePanel={closePreview}
+        />
 
         {/* 工具栏（URL 类型不显示工具栏，因为不需要下载/编辑等功能）/ Toolbar (hidden for URL type as it doesn't need download/edit features) */}
         {contentType !== 'url' && (
@@ -596,7 +718,16 @@ const PreviewPanel: React.FC = () => {
 
         {/* Tab 右键菜单 / Tab context menu */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewContextMenu contextMenu={contextMenu} tabs={previewTabs} currentTheme={currentTheme} onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })} onCloseLeft={handleCloseLeft} onCloseRight={handleCloseRight} onCloseOthers={handleCloseOthers} onCloseAll={handleCloseAll} />
+        <PreviewContextMenu
+          contextMenu={contextMenu}
+          tabs={previewTabs}
+          currentTheme={currentTheme}
+          onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })}
+          onCloseLeft={handleCloseLeft}
+          onCloseRight={handleCloseRight}
+          onCloseOthers={handleCloseOthers}
+          onCloseAll={handleCloseAll}
+        />
       </div>
     </PreviewToolbarExtrasProvider>
   );

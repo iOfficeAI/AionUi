@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Progress, Switch, Message } from '@arco-design/web-react';
+import { Button, Progress, Message } from '@arco-design/web-react';
 import { CheckOne, Download, FolderOpen, Refresh, CloseOne, Install } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import AionModal from '@/renderer/components/base/AionModal';
@@ -28,7 +28,8 @@ const UpdateModal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadPath, setDownloadPath] = useState('');
   const [releasePageUrl, setReleasePageUrl] = useState('');
-  const [useAutoUpdate, setUseAutoUpdate] = useState(true); // 默认使用自动更新
+  // Whether electron-updater auto-update is available (determined automatically, not user-controllable)
+  const [autoUpdateAvailable, setAutoUpdateAvailable] = useState(false);
   const [autoUpdateInfo, setAutoUpdateInfo] = useState<{ version: string; releaseNotes?: string } | null>(null);
 
   const resetState = () => {
@@ -40,6 +41,7 @@ const UpdateModal: React.FC = () => {
     setErrorMsg('');
     setDownloadPath('');
     setReleasePageUrl('');
+    setAutoUpdateAvailable(false);
     setAutoUpdateInfo(null);
   };
 
@@ -56,42 +58,42 @@ const UpdateModal: React.FC = () => {
   const checkForUpdates = async () => {
     setStatus('checking');
     try {
-      // 优先使用自动更新模式
-      if (useAutoUpdate) {
+      // Try auto-update (electron-updater) first
+      let autoUpdateOk = false;
+      try {
         const res = await ipcBridge.autoUpdate.check.invoke({ includePrerelease });
         if (res?.success && res.data?.updateInfo) {
+          autoUpdateOk = true;
           setAutoUpdateInfo({
             version: res.data.updateInfo.version,
             releaseNotes: res.data.updateInfo.releaseNotes,
           });
-          // 获取当前版本和 markdown 格式的 release notes
-          const manualRes = await ipcBridge.update.check.invoke({ includePrerelease });
-          if (manualRes?.success) {
-            setCurrentVersion(manualRes.data?.currentVersion || '');
-            if (manualRes.data?.latest) {
-              setUpdateInfo(manualRes.data.latest);
-              setReleasePageUrl(manualRes.data.latest.htmlUrl || '');
-              if (!manualRes.data.latest.recommendedAsset) {
-                setUseAutoUpdate(false);
-                setErrorMsg(t('update.noCompatibleAssetManual'));
-              }
-            }
-          }
-          setStatus('available');
-          return;
         } else if (res?.msg) {
-          // 自动更新失败，尝试手动更新
-          console.warn('Auto-update check failed, falling back to manual mode:', res.msg);
+          console.warn('Auto-update check failed, using manual mode:', res.msg);
         }
+      } catch (err) {
+        console.warn('Auto-update check error, using manual mode:', err);
       }
+      setAutoUpdateAvailable(autoUpdateOk);
 
-      // 手动更新模式
+      // Always run manual check for version info and release notes
       const res = await ipcBridge.update.check.invoke({ includePrerelease });
       if (!res?.success) {
         throw new Error(res?.msg || t('update.checkFailed'));
       }
       setCurrentVersion(res.data?.currentVersion || '');
 
+      if (autoUpdateOk) {
+        // Auto-update available — use manual check data for display only
+        if (res.data?.latest) {
+          setUpdateInfo(res.data.latest);
+          setReleasePageUrl(res.data.latest.htmlUrl || '');
+        }
+        setStatus('available');
+        return;
+      }
+
+      // Manual mode
       if (res.data?.updateAvailable && res.data.latest) {
         setUpdateInfo(res.data.latest);
         setReleasePageUrl(res.data.latest.htmlUrl || '');
@@ -117,12 +119,7 @@ const UpdateModal: React.FC = () => {
     if (!updateInfo && !autoUpdateInfo) return;
     setStatus('downloading');
     try {
-      // 使用自动更新模式
-      if (useAutoUpdate) {
-        if (updateInfo && !updateInfo.recommendedAsset) {
-          setUseAutoUpdate(false);
-          throw new Error(t('update.noCompatibleAssetManual'));
-        }
+      if (autoUpdateAvailable) {
         const res = await ipcBridge.autoUpdate.download.invoke();
         if (!res?.success) {
           throw new Error(res?.msg || t('update.downloadStartFailed'));
@@ -130,7 +127,7 @@ const UpdateModal: React.FC = () => {
         return;
       }
 
-      // 手动更新模式
+      // Manual download
       if (!updateInfo) return;
       const asset = updateInfo.recommendedAsset;
       if (!asset) {
@@ -195,7 +192,7 @@ const UpdateModal: React.FC = () => {
     };
   }, []);
 
-  // 监听自动更新状态
+  // Listen for auto-update status events (e.g. from startup check)
   useEffect(() => {
     const removeListener = ipcBridge.autoUpdate.status.on((evt: AutoUpdateStatus) => {
       if (!evt) return;
@@ -204,6 +201,7 @@ const UpdateModal: React.FC = () => {
         case 'checking':
           break;
         case 'available':
+          setAutoUpdateAvailable(true);
           setAutoUpdateInfo({
             version: evt.version || '',
             releaseNotes: evt.releaseNotes,
@@ -305,14 +303,16 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.upToDateTitle')}</div>
-            <div className='text-13px text-t-tertiary'>{t('update.currentVersion', { version: currentVersion || '-' })}</div>
+            <div className='text-13px text-t-tertiary'>
+              {t('update.currentVersion', { version: currentVersion || '-' })}
+            </div>
           </div>
         );
 
       case 'available':
         return (
           <div className='flex flex-col h-full'>
-            {/* 版本信息头部 / Version info header */}
+            {/* Version info header */}
             <div className='flex items-center justify-between px-24px py-16px border-b border-border-2 bg-fill-1'>
               <div className='flex items-center gap-12px'>
                 <div className='w-40px h-40px bg-[rgb(var(--primary-6))]/12 rounded-10px flex items-center justify-center'>
@@ -321,36 +321,37 @@ const UpdateModal: React.FC = () => {
                 <div>
                   <div className='text-15px font-600 text-t-primary'>{t('update.availableTitle')}</div>
                   <div className='text-12px text-t-tertiary mt-2px'>
-                    {currentVersion} → <span className='text-[rgb(var(--primary-6))] font-500'>{updateInfo?.version || autoUpdateInfo?.version}</span>
+                    {currentVersion} →{' '}
+                    <span className='text-[rgb(var(--primary-6))] font-500'>
+                      {updateInfo?.version || autoUpdateInfo?.version}
+                    </span>
                   </div>
                 </div>
               </div>
               <div className='flex items-center gap-12px'>
-                {!hasCompatibleManualAsset && releasePageUrl ? (
+                {!hasCompatibleManualAsset && !autoUpdateAvailable && releasePageUrl ? (
                   <Button type='primary' size='small' onClick={openReleasePage} className='!px-16px'>
                     {t('update.goToRelease')}
                   </Button>
-                ) : !useAutoUpdate ? (
+                ) : autoUpdateAvailable ? (
                   <Button type='primary' size='small' onClick={startDownload} className='!px-16px'>
-                    {t('update.downloadButton')}
+                    {t('update.downloadAndInstall')}
                   </Button>
                 ) : (
                   <Button type='primary' size='small' onClick={startDownload} className='!px-16px'>
-                    {t('update.downloadAndInstall')}
+                    {t('update.downloadButton')}
                   </Button>
                 )}
               </div>
             </div>
 
-            {/* 自动更新开关 / Auto update toggle */}
-            <div className='flex items-center justify-between px-24px py-12px bg-fill-1 border-b border-border-2'>
-              <div className='text-13px text-t-secondary'>{t('update.autoUpdateMode')}</div>
-              <Switch checked={useAutoUpdate} onChange={setUseAutoUpdate} size='small' disabled={!hasCompatibleManualAsset} />
-            </div>
+            {!hasCompatibleManualAsset && !autoUpdateAvailable && (
+              <div className='mx-24px mt-12px px-12px py-10px text-12px rounded-8px bg-[rgb(var(--warning-6))]/10 text-[rgb(var(--warning-6))]'>
+                {t('update.noCompatibleAssetManual')}
+              </div>
+            )}
 
-            {!hasCompatibleManualAsset && <div className='mx-24px mt-12px px-12px py-10px text-12px rounded-8px bg-[rgb(var(--warning-6))]/10 text-[rgb(var(--warning-6))]'>{t('update.noCompatibleAssetManual')}</div>}
-
-            {/* 更新日志内容 / Release notes content */}
+            {/* Release notes content */}
             <div className='flex-1 min-h-0 overflow-y-auto px-24px py-16px custom-scrollbar'>
               {updateInfo?.name && <div className='text-14px font-500 text-t-primary mb-12px'>{updateInfo.name}</div>}
               {updateInfo?.body || autoUpdateInfo?.releaseNotes ? (
@@ -372,7 +373,13 @@ const UpdateModal: React.FC = () => {
             </div>
             <div className='text-16px text-t-primary font-600 mb-20px'>{t('update.downloadingTitle')}</div>
             <div className='w-full max-w-320px'>
-              <Progress percent={progress.percent} status='normal' showText={false} strokeWidth={6} className='!mb-12px' />
+              <Progress
+                percent={progress.percent}
+                status='normal'
+                showText={false}
+                strokeWidth={6}
+                className='!mb-12px'
+              />
               <div className='flex justify-between text-12px text-t-tertiary'>
                 <span>
                   {formatSize(progress.transferred)} / {formatSize(progress.total)}
@@ -390,8 +397,16 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.readyToInstall')}</div>
-            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>{t('update.readyToInstallDesc')}</div>
-            <Button type='primary' size='small' onClick={quitAndInstall} icon={<Install size='14' />} className='!px-16px'>
+            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>
+              {t('update.readyToInstallDesc')}
+            </div>
+            <Button
+              type='primary'
+              size='small'
+              onClick={quitAndInstall}
+              icon={<Install size='14' />}
+              className='!px-16px'
+            >
               {t('update.installNow')}
             </Button>
           </div>
@@ -404,7 +419,9 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
             <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.downloadCompleteTitle')}</div>
-            <div className='text-12px text-t-tertiary mb-24px text-center max-w-360px break-all line-clamp-2'>{downloadPath}</div>
+            <div className='text-12px text-t-tertiary mb-24px text-center max-w-360px break-all line-clamp-2'>
+              {downloadPath}
+            </div>
             <div className='flex gap-12px'>
               <Button size='small' onClick={showInFolder} icon={<FolderOpen size='14' />} className='!px-16px'>
                 {t('update.showInFolder')}

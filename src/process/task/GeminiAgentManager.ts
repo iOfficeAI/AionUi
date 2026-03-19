@@ -24,6 +24,7 @@ import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../messag
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
+import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
@@ -119,7 +120,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     },
     model: TProviderWithModel
   ) {
-    super('gemini', { ...data, model });
+    super('gemini', { ...data, model }, new IpcAgentEventEmitter());
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
@@ -218,7 +219,12 @@ export class GeminiAgentManager extends BaseAgentManager<
     const entries = mcpServers
       .map((s: IMcpServer) => {
         // Include transport identity so config changes (e.g. different command/url) are detected
-        const transportKey = s.transport.type === 'stdio' ? `${s.transport.command}|${(s.transport.args || []).join(',')}` : 'url' in s.transport ? s.transport.url : '';
+        const transportKey =
+          s.transport.type === 'stdio'
+            ? `${s.transport.command}|${(s.transport.args || []).join(',')}`
+            : 'url' in s.transport
+              ? s.transport.url
+              : '';
         return { n: s.name, e: s.enabled, st: s.status, t: transportKey };
       })
       .sort((a, b) => a.n.localeCompare(b.n));
@@ -278,7 +284,11 @@ export class GeminiAgentManager extends BaseAgentManager<
               env: server.transport.env || {},
               description: server.description,
             };
-          } else if (server.transport.type === 'sse' || server.transport.type === 'http' || server.transport.type === 'streamable_http') {
+          } else if (
+            server.transport.type === 'sse' ||
+            server.transport.type === 'http' ||
+            server.transport.type === 'streamable_http'
+          ) {
             // aioncli-core MCPServerConfig.type only accepts "sse" | "http"
             const type = server.transport.type === 'streamable_http' ? 'http' : server.transport.type;
             mcpConfig[server.name] = {
@@ -369,7 +379,10 @@ export class GeminiAgentManager extends BaseAgentManager<
       const currentFingerprint = GeminiAgentManager.computeMcpFingerprint(mcpServers);
 
       if (currentFingerprint !== this.mcpFingerprint) {
-        mainLog('[GeminiAgentManager]', `MCP config changed (${this.mcpFingerprint} -> ${currentFingerprint}), re-bootstrapping worker...`);
+        mainLog(
+          '[GeminiAgentManager]',
+          `MCP config changed (${this.mcpFingerprint} -> ${currentFingerprint}), re-bootstrapping worker...`
+        );
         // Kill old worker process and its child processes (MCP server connections)
         this.kill();
         // Re-bootstrap with fresh config (getMcpServers will update the fingerprint)
@@ -383,7 +396,10 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  private getConfirmationButtons = (confirmationDetails: IMessageToolGroup['content'][number]['confirmationDetails'], t: (key: string, options?: any) => string) => {
+  private getConfirmationButtons = (
+    confirmationDetails: IMessageToolGroup['content'][number]['confirmationDetails'],
+    t: (key: string, options?: any) => string
+  ) => {
     if (!confirmationDetails) return {};
     let question: string;
     let description: string;
@@ -483,7 +499,9 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
     const type = content.confirmationDetails?.type;
-    console.log(`[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`);
+    console.log(
+      `[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`
+    );
     if (this.currentMode === 'yolo') {
       // yolo: auto-approve ALL operations
       console.log(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
@@ -530,7 +548,10 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
         if (!question || !hasOptions) return;
         // Extract commandType from exec confirmations for "always allow" memory
-        const commandType = content.confirmationDetails?.type === 'exec' ? (content.confirmationDetails as { rootCommand?: string }).rootCommand : undefined;
+        const commandType =
+          content.confirmationDetails?.type === 'exec'
+            ? (content.confirmationDetails as { rootCommand?: string }).rootCommand
+            : undefined;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
           id: content.callId,

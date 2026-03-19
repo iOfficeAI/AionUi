@@ -6,8 +6,16 @@
 
 import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
-import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay, MessageBus } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import type {
+  Config,
+  ToolResult,
+  ToolInvocation,
+  ToolLocation,
+  ToolCallConfirmationDetails,
+  ToolResultDisplay,
+  MessageBus,
+} from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, Kind, ToolErrorType } from '@office-ai/aioncli-core';
 import * as path from 'path';
 import { executeImageGeneration, safeJsonParse, isImageFile, isHttpUrl } from '@/process/builtinMcp/imageGenCore';
 
@@ -73,11 +81,13 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
         properties: {
           prompt: {
             type: Type.STRING,
-            description: 'The text prompt in English that must clearly specify the operation type: "Generate image: [English description]" for creating new images, "Analyze image: [what to analyze in English]" for image recognition/analysis, or "Edit image: [modifications in English]" for image editing. Always start with the operation type and use English for the entire prompt.',
+            description:
+              'The text prompt in English that must clearly specify the operation type: "Generate image: [English description]" for creating new images, "Analyze image: [what to analyze in English]" for image recognition/analysis, or "Edit image: [modifications in English]" for image editing. Always start with the operation type and use English for the entire prompt.',
           },
           image_uris: {
             type: Type.ARRAY,
-            description: 'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. When user uses @filename.ext format, always pass the filename (without @) to this array. For single image, use array format: ["test.jpg"]. Local files must actually exist on disk.',
+            description:
+              'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. When user uses @filename.ext format, always pass the filename (without @) to this array. For single image, use array format: ["test.jpg"]. Local files must actually exist on disk.',
             items: {
               type: Type.STRING,
             },
@@ -150,8 +160,21 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
     return null;
   }
 
-  protected createInvocation(params: ImageGenerationToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<ImageGenerationToolParams, ToolResult> {
-    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy, messageBus, _toolName, _toolDisplayName);
+  protected createInvocation(
+    params: ImageGenerationToolParams,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
+  ): ToolInvocation<ImageGenerationToolParams, ToolResult> {
+    return new ImageGenerationInvocation(
+      this.config,
+      this.imageGenerationModel,
+      params,
+      this.proxy,
+      messageBus,
+      _toolName,
+      _toolDisplayName
+    );
   }
 }
 
@@ -181,7 +204,8 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
   }
 
   getDescription(): string {
-    const displayPrompt = this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
+    const displayPrompt =
+      this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
     const imageUris = this.getImageUris();
 
     if (imageUris.length > 0) {

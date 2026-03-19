@@ -30,7 +30,13 @@ import type { ExtPermissions } from './permissions';
 
 // ============ Message Protocol ============
 
-export type SandboxMessage = { type: 'api-call'; id: string; method: string; args: unknown[] } | { type: 'api-response'; id: string; result?: unknown; error?: string } | { type: 'event'; name: string; payload: unknown } | { type: 'log'; level: 'log' | 'warn' | 'error'; args: unknown[] } | { type: 'ready' } | { type: 'shutdown' };
+export type SandboxMessage =
+  | { type: 'api-call'; id: string; method: string; args: unknown[] }
+  | { type: 'api-response'; id: string; result?: unknown; error?: string }
+  | { type: 'event'; name: string; payload: unknown }
+  | { type: 'log'; level: 'log' | 'warn' | 'error'; args: unknown[] }
+  | { type: 'ready' }
+  | { type: 'shutdown' };
 
 // ============ Sandbox Host (Main Thread) ============
 
@@ -63,7 +69,10 @@ export interface SandboxHostOptions {
  */
 export class SandboxHost {
   private worker: Worker | null = null;
-  private pendingCalls = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
+  private pendingCalls = new Map<
+    string,
+    { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
+  >();
   private callCounter = 0;
   private readonly options: Required<SandboxHostOptions>;
   private _running = false;

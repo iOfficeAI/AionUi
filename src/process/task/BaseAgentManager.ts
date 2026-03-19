@@ -6,34 +6,41 @@
 
 import { ForkTask } from '@/worker/fork/ForkTask';
 import path from 'path';
-import { ipcBridge } from '../../common';
 import type { IConfirmation } from '../../common/chatLib';
-
-type AgentType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
+import type { AgentType, AgentStatus } from './agentTypes';
+import type { IAgentEventEmitter } from './IAgentEventEmitter';
+import type { IAgentManager } from './IAgentManager';
 
 /**
  * @description agent任务基础类
  * */
-class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkTask<{
+class BaseAgentManager<Data, ConfirmationOption extends any = any>
+  extends ForkTask<{
+    type: AgentType;
+    data: Data;
+  }>
+  implements IAgentManager
+{
   type: AgentType;
-  data: Data;
-}> {
-  type: AgentType;
-  protected conversation_id: string;
+  workspace: string = '';
+  conversation_id: string = '';
   protected confirmations: Array<IConfirmation<ConfirmationOption>> = [];
-  status: 'pending' | 'running' | 'finished' | undefined;
+  status: AgentStatus | undefined;
 
   /**
    * Whether this agent is in yolo mode (auto-approve)
    */
   protected yoloMode: boolean = false;
 
-  constructor(type: AgentType, data: Data) {
+  protected readonly emitter: IAgentEventEmitter;
+
+  constructor(type: AgentType, data: Data, emitter: IAgentEventEmitter) {
     super(path.resolve(__dirname, type + '.js'), {
       type: type,
       data: data,
     });
     this.type = type;
+    this.emitter = emitter;
 
     // Set yoloMode from data if present
     if (data && typeof data === 'object' && 'yoloMode' in data) {
@@ -60,11 +67,11 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
     const originIndex = this.confirmations.findIndex((p) => p.id === data.id);
     if (originIndex !== -1) {
       this.confirmations = this.confirmations.map((item, i) => (i === originIndex ? { ...item, ...data } : item));
-      ipcBridge.conversation.confirmation.update.emit({ ...data, conversation_id: this.conversation_id });
+      this.emitter.emitConfirmationUpdate(this.conversation_id, data);
       return;
     }
     this.confirmations = [...this.confirmations, data];
-    ipcBridge.conversation.confirmation.add.emit({ ...data, conversation_id: this.conversation_id });
+    this.emitter.emitConfirmationAdd(this.conversation_id, data);
   }
   confirm(_msg_id: string, callId: string, _data: ConfirmationOption) {
     // 查找要移除的确认项（根据 callId 匹配）
@@ -78,10 +85,7 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
     // 通知前端移除确认项
     // Notify frontend to remove the confirmation
     if (confirmationToRemove) {
-      ipcBridge.conversation.confirmation.remove.emit({
-        conversation_id: this.conversation_id,
-        id: confirmationToRemove.id,
-      });
+      this.emitter.emitConfirmationRemove(this.conversation_id, confirmationToRemove.id);
     }
   }
   getConfirmations() {

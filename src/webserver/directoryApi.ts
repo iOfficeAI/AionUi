@@ -11,8 +11,8 @@ import os from 'os';
 import { fileOperationLimiter } from './middleware/security';
 
 // Allow browsing within the running workspace, current user's home directory,
-// WSL mount points (/mnt/*) on Linux, and all drive letters on Windows
-// 允许在工作目录、用户主目录、WSL 挂载点（/mnt/*），以及 Windows 所有盘符中浏览
+// the filesystem root (/) on Unix-like systems, and all drive letters on Windows
+// 允许在工作目录、用户主目录、Unix-like 系统根目录（/），以及 Windows 所有盘符中浏览
 // @exported for testing
 export const DEFAULT_ALLOWED_DIRECTORIES = (() => {
   const baseDirs = [process.cwd(), os.homedir()];
@@ -34,24 +34,10 @@ export const DEFAULT_ALLOWED_DIRECTORIES = (() => {
     }
   }
 
-  // On Linux (WSL), add /mnt to allow browsing Windows drives
-  // 在 Linux（WSL）环境中，添加 /mnt 以允许浏览 Windows 驱动器
-  if (process.platform === 'linux' && fs.existsSync('/mnt')) {
-    try {
-      const mntEntries = fs.readdirSync('/mnt');
-      for (const entry of mntEntries) {
-        const mountPath = path.join('/mnt', entry);
-        try {
-          if (fs.statSync(mountPath).isDirectory()) {
-            baseDirs.push(mountPath);
-          }
-        } catch {
-          // Skip inaccessible mount points
-        }
-      }
-    } catch {
-      // /mnt exists but not readable
-    }
+  // On Unix-like systems (macOS, Linux, WSL), add root to allow browsing the entire filesystem
+  // 在类 Unix 系统（macOS、Linux、WSL）上，添加根目录以允许浏览整个文件系统
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    baseDirs.push('/');
   }
 
   return baseDirs
@@ -75,22 +61,27 @@ function isWindowsStylePath(value: string): boolean {
 }
 
 function shouldUseWin32PathOps(targetPath: string, basePaths: string[]): boolean {
-  return process.platform === 'win32' || isWindowsStylePath(targetPath) || basePaths.some((basePath) => isWindowsStylePath(basePath));
+  return (
+    process.platform === 'win32' ||
+    isWindowsStylePath(targetPath) ||
+    basePaths.some((basePath) => isWindowsStylePath(basePath))
+  );
 }
 
 function resolveForComparison(inputPath: string, useWin32PathOps: boolean): string {
   const pathApi = useWin32PathOps ? path.win32 : path;
-  const resolvedPath = pathApi.resolve(inputPath);
 
-  if (useWin32PathOps) {
-    return resolvedPath.toLowerCase();
-  }
-
+  // Resolve symlinks on the raw input path first, so Windows paths are also
+  // checked for out-of-bounds symlink targets before win32 path normalisation.
+  let realInput = inputPath;
   try {
-    return fs.realpathSync(resolvedPath);
+    realInput = fs.realpathSync(inputPath);
   } catch {
-    return resolvedPath;
+    // Path may not exist on disk; fall back to the original input.
   }
+
+  const resolvedPath = pathApi.resolve(realInput);
+  return useWin32PathOps ? resolvedPath.toLowerCase() : resolvedPath;
 }
 
 function isSubPath(targetPath: string, basePath: string, useWin32PathOps: boolean): boolean {
@@ -262,11 +253,11 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
       .readdirSync(safeDir)
       .filter((name) => !name.startsWith('.')) // 过滤隐藏文件/目录
       .map((name) => {
-        const itemPath = validatePath(path.join(safeDir, name), [safeDir]);
-        // Apply String() conversion to break taint flow for CodeQL
-        // 使用 String() 转换打断 CodeQL 的污点流
-        const safeItemPath = String(itemPath);
         try {
+          const itemPath = validatePath(path.join(safeDir, name), [safeDir]);
+          // Apply String() conversion to break taint flow for CodeQL
+          // 使用 String() 转换打断 CodeQL 的污点流
+          const safeItemPath = String(itemPath);
           const itemStats = fs.statSync(safeItemPath);
           const isDirectory = itemStats.isDirectory();
           const isFile = itemStats.isFile();
@@ -285,7 +276,7 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
             modified: itemStats.mtime,
           };
         } catch (error) {
-          // 跳过无法访问的文件/目录
+          // Skip inaccessible or unresolvable items (e.g. symlinks outside allowed paths)
           return null;
         }
       })
@@ -382,7 +373,9 @@ router.post('/validate', fileOperationLimiter, (req, res) => {
   } catch (error) {
     console.error('Path validation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to validate path';
-    res.status(error instanceof Error && error.message.includes('access denied') ? 403 : 500).json({ error: errorMessage });
+    res
+      .status(error instanceof Error && error.message.includes('access denied') ? 403 : 500)
+      .json({ error: errorMessage });
   }
 });
 

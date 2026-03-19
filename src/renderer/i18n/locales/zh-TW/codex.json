@@ -18,10 +18,31 @@
     "quick_switch_title": "💡 **快速切換選項：**",
     "quick_switch_content": "當前服務遇到網路限制時，你可以：\n\n1. **立即切換 AI 助手**：從左側面板選擇其他可用助手\n2. **檢查服務狀態**：不同地區的服務可用性可能不同\n3. **網路優化**：使用穩定的網路環境以提升連線成功率\n4. **稍後重試**：網路限制通常是暫時的\n\n**提示**：建議配置多個備用的 AI 服務以確保工作不中斷。",
     "recovery_actions": {
-      "cloudflare_blocked": ["• Use VPN or proxy service", "• Switch network environment (like mobile hotspot)", "• Wait 10-30 minutes and retry", "• Clear browser cache and cookies", "• Switch to other available services: ChatGPT, Claude, Qwen, Gemini"],
-      "network_timeout": ["• Check if network connection is stable", "• Retry connection operation", "• Switch to more stable network environment", "• Check firewall settings"],
-      "connection_refused": ["• Check if Codex CLI is properly installed", "• Verify service configuration and API keys", "• Restart application", "• Check if local ports are occupied"],
-      "unknown": ["• Check network connection status", "• Retry current operation", "• Switch network environment", "• Contact technical support"]
+      "cloudflare_blocked": [
+        "• Use VPN or proxy service",
+        "• Switch network environment (like mobile hotspot)",
+        "• Wait 10-30 minutes and retry",
+        "• Clear browser cache and cookies",
+        "• Switch to other available services: ChatGPT, Claude, Qwen, Gemini"
+      ],
+      "network_timeout": [
+        "• Check if network connection is stable",
+        "• Retry connection operation",
+        "• Switch to more stable network environment",
+        "• Check firewall settings"
+      ],
+      "connection_refused": [
+        "• Check if Codex CLI is properly installed",
+        "• Verify service configuration and API keys",
+        "• Restart application",
+        "• Check if local ports are occupied"
+      ],
+      "unknown": [
+        "• Check network connection status",
+        "• Retry current operation",
+        "• Switch network environment",
+        "• Contact technical support"
+      ]
     }
   },
   "thinking": {

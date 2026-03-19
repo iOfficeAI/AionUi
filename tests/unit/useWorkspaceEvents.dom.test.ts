@@ -53,7 +53,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       const selectedNodeRef = { current: { relativePath: 'folder2', fullPath: '/path/folder2' } };
 
       // Simulate the event handler logic from useWorkspaceEvents
-      const handleSelectedFile = (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      const handleSelectedFile = (
+        items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>
+      ) => {
         const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
         setSelected(newKeys);
         selectedKeysRef.current = newKeys;
@@ -61,7 +63,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
+          selectedNodeRef.current = lastFolder.relativePath
+            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
+            : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -91,7 +95,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       const selectedKeysRef = { current: ['folder1'] };
       const selectedNodeRef = { current: { relativePath: 'folder1', fullPath: '/path/folder1' } };
 
-      const handleSelectedFile = (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      const handleSelectedFile = (
+        items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>
+      ) => {
         const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
         setSelected(newKeys);
         selectedKeysRef.current = newKeys;
@@ -99,7 +105,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
+          selectedNodeRef.current = lastFolder.relativePath
+            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
+            : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -122,7 +130,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       const selectedKeysRef = { current: [] as string[] };
       const selectedNodeRef = { current: null as { relativePath: string; fullPath: string } | null };
 
-      const handleSelectedFile = (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      const handleSelectedFile = (
+        items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>
+      ) => {
         const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
         setSelected(newKeys);
         selectedKeysRef.current = newKeys;
@@ -130,7 +140,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
+          selectedNodeRef.current = lastFolder.relativePath
+            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
+            : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -157,7 +169,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       const selectedKeysRef = { current: [] as string[] };
       const selectedNodeRef = { current: null as { relativePath: string; fullPath: string } | null };
 
-      const handleSelectedFile = (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      const handleSelectedFile = (
+        items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>
+      ) => {
         const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
         setSelected(newKeys);
         selectedKeysRef.current = newKeys;
@@ -165,7 +179,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
         const folders = items.filter((item) => !item.isFile);
         if (folders.length > 0) {
           const lastFolder = folders[folders.length - 1];
-          selectedNodeRef.current = lastFolder.relativePath ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path } : null;
+          selectedNodeRef.current = lastFolder.relativePath
+            ? { relativePath: lastFolder.relativePath, fullPath: lastFolder.path }
+            : null;
         } else {
           selectedNodeRef.current = null;
         }
@@ -192,7 +208,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       const setSelected = vi.fn();
       const selectedKeysRef = { current: [] as string[] };
 
-      const handleSelectedFile = (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      const handleSelectedFile = (
+        items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>
+      ) => {
         const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
         setSelected(newKeys);
         selectedKeysRef.current = newKeys;
@@ -201,7 +219,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       emitter.on('acp.selected.file', handleSelectedFile);
 
       act(() => {
-        emitter.emit('acp.selected.file', [{ path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' }]);
+        emitter.emit('acp.selected.file', [
+          { path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' },
+        ]);
       });
 
       expect(setSelected).toHaveBeenCalledWith(['folder1']);
@@ -213,7 +233,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       const setSelected = vi.fn();
       const selectedKeysRef = { current: [] as string[] };
 
-      const handleSelectedFile = (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+      const handleSelectedFile = (
+        items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>
+      ) => {
         const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);
         setSelected(newKeys);
         selectedKeysRef.current = newKeys;
@@ -222,7 +244,9 @@ describe('useWorkspaceEvents - folder tag sync (#1083)', () => {
       emitter.on('codex.selected.file', handleSelectedFile);
 
       act(() => {
-        emitter.emit('codex.selected.file', [{ path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' }]);
+        emitter.emit('codex.selected.file', [
+          { path: '/path/folder1', name: 'folder1', isFile: false, relativePath: 'folder1' },
+        ]);
       });
 
       expect(setSelected).toHaveBeenCalledWith(['folder1']);

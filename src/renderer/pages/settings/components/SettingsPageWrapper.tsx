@@ -4,10 +4,22 @@ import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/SettingsModal/settingsViewContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
-import { Communication, Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Robot, System, Toolkit } from '@icon-park/react';
+import {
+  Communication,
+  Computer,
+  Earth,
+  Gemini,
+  Info,
+  LinkCloud,
+  Puzzle,
+  Robot,
+  System,
+  Toolkit,
+} from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/useExtI18n';
+import '../settings.css';
 
 interface SettingsPageWrapperProps {
   children: React.ReactNode;
@@ -40,10 +52,20 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     const builtins: NavItem[] = [
       { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
       { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
-      { id: 'agent', label: t('settings.assistants', { defaultValue: 'Assistants' }), icon: <Robot theme='outline' size='16' />, path: 'agent' },
+      {
+        id: 'agent',
+        label: t('settings.assistants', { defaultValue: 'Assistants' }),
+        icon: <Robot theme='outline' size='16' />,
+        path: 'agent',
+      },
       { id: 'tools', label: t('settings.tools'), icon: <Toolkit theme='outline' size='16' />, path: 'tools' },
       { id: 'display', label: t('settings.display'), icon: <Computer theme='outline' size='16' />, path: 'display' },
-      { id: 'webui', label: t('settings.webui'), icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />, path: 'webui' },
+      {
+        id: 'webui',
+        label: t('settings.webui'),
+        icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />,
+        path: 'webui',
+      },
       { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
       { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
     ];
@@ -73,7 +95,11 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
       return {
         id: tab.id,
         label: resolveExtTabName(tab),
-        icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-16px h-16px object-contain' /> : <Puzzle theme='outline' size='16' />,
+        icon: resolvedIcon ? (
+          <img src={resolvedIcon} alt='' className='w-16px h-16px object-contain' />
+        ) : (
+          <Puzzle theme='outline' size='16' />
+        ),
         path: `ext/${tab.id}`,
       };
     };
@@ -95,7 +121,11 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     return result;
   }, [isDesktop, t, extensionTabs, resolveExtTabName]);
 
-  const containerClass = classNames('settings-page-wrapper w-full min-h-full box-border overflow-y-auto', isMobile ? 'px-16px py-14px' : 'px-12px md:px-40px py-32px', className);
+  const containerClass = classNames(
+    'settings-page-wrapper w-full min-h-full box-border overflow-y-auto',
+    isMobile ? 'px-16px py-14px' : 'px-12px md:px-40px py-32px',
+    className
+  );
 
   const contentClass = classNames('settings-page-content mx-auto w-full md:max-w-1024px', contentClassName);
 

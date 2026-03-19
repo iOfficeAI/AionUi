@@ -79,11 +79,16 @@ export class ApiKeyManager {
     const availableIndex = this.findNextAvailableKey();
 
     if (availableIndex !== -1) {
+      const previousIndex = this.currentIndex;
       this.currentIndex = availableIndex;
       this.updateEnvironment();
+      console.log(
+        `[MultiKey] Rotated ${this.authType}: #${previousIndex + 1} → #${this.currentIndex + 1}/${this.keys.length}`
+      );
       return true;
     }
 
+    console.log(`[MultiKey] All keys blacklisted for ${this.authType}, falling back`);
     return false;
   }
 
@@ -93,6 +98,11 @@ export class ApiKeyManager {
   private blacklistCurrentKey(): void {
     const recoveryTime = Date.now() + this.BLACKLIST_DURATION;
     this.blacklistedUntil.set(this.currentIndex, recoveryTime);
+
+    const recoveryDate = new Date(recoveryTime);
+    console.log(
+      `[MultiKey] Blacklisted ${this.authType} key #${this.currentIndex + 1} until ${recoveryDate.toLocaleTimeString()}`
+    );
   }
 
   /**
@@ -105,6 +115,7 @@ export class ApiKeyManager {
     if (Date.now() >= blacklistedUntil) {
       // Blacklist period expired, remove from blacklist
       this.blacklistedUntil.delete(index);
+      console.log(`[MultiKey] ${this.authType} key #${index + 1} recovered from blacklist`);
       return true;
     }
 

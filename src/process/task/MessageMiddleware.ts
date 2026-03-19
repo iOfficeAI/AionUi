@@ -37,7 +37,11 @@ export interface ProcessResult {
  * @param message - The message to process
  * @returns ProcessResult with original message, display message, and system responses
  */
-export async function processAgentResponse(conversationId: string, agentType: AcpBackendAll, message: TMessage): Promise<ProcessResult> {
+export async function processAgentResponse(
+  conversationId: string,
+  agentType: AcpBackendAll,
+  message: TMessage
+): Promise<ProcessResult> {
   const systemResponses: string[] = [];
 
   // Only process completed messages
@@ -163,7 +167,12 @@ function createDisplayMessage(original: TMessage, newContent: string): TMessage 
  * @param message - The completed message to check for cron commands
  * @param emitSystemResponse - Callback to emit system response messages
  */
-export async function processCronInMessage(conversationId: string, agentType: AcpBackendAll, message: TMessage, emitSystemResponse: (response: string) => void): Promise<void> {
+export async function processCronInMessage(
+  conversationId: string,
+  agentType: AcpBackendAll,
+  message: TMessage,
+  emitSystemResponse: (response: string) => void
+): Promise<void> {
   try {
     const result = await processAgentResponse(conversationId, agentType, message);
 
@@ -179,7 +188,11 @@ export async function processCronInMessage(conversationId: string, agentType: Ac
 /**
  * Handle detected cron commands
  */
-async function handleCronCommands(conversationId: string, agentType: AcpBackendAll, commands: CronCommand[]): Promise<string[]> {
+async function handleCronCommands(
+  conversationId: string,
+  agentType: AcpBackendAll,
+  commands: CronCommand[]
+): Promise<string[]> {
   const responses: string[] = [];
 
   for (const cmd of commands) {

@@ -14,9 +14,30 @@
  *   zsh: suspended (tty output)  npm start
  */
 
-import { spawn } from 'child_process';
+import type { ChildProcess } from 'child_process';
+import { spawn, execFile } from 'child_process';
 
 type ExecResult = { stdout: string; stderr: string };
+
+/**
+ * Kill a child process and its descendants.
+ * On Windows, `detached` is false so negative-PID process group kill is not
+ * available; use `taskkill /T /F` to terminate the entire tree instead.
+ * On POSIX, kill the process group via negative PID (requires detached: true).
+ */
+function killChild(child: ChildProcess, isWindows: boolean): void {
+  try {
+    if (isWindows && child.pid) {
+      execFile('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+    } else if (child.pid) {
+      process.kill(-child.pid, 'SIGTERM');
+    } else {
+      child.kill('SIGTERM');
+    }
+  } catch {
+    /* already exited */
+  }
+}
 
 interface SafeExecOptions {
   timeout?: number;
@@ -25,14 +46,20 @@ interface SafeExecOptions {
 
 /**
  * Shell-based command execution (replacement for `child_process.exec`).
- * Runs the command in `/bin/sh -c` with `detached: true`.
+ * Runs the command in `/bin/sh -c` (POSIX) or `cmd.exe /c` (Windows)
+ * with `detached: true`.
  */
 export function safeExec(command: string, options: SafeExecOptions = {}): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn('sh', ['-c', command], {
-      detached: true,
+    const isWindows = process.platform === 'win32';
+    const shellCmd = isWindows ? process.env.COMSPEC || 'cmd.exe' : 'sh';
+    const shellArgs = isWindows ? ['/c', command] : ['-c', command];
+
+    const child = spawn(shellCmd, shellArgs, {
+      detached: !isWindows,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: options.env,
+      windowsHide: true,
     });
 
     let stdout = '';
@@ -50,13 +77,10 @@ export function safeExec(command: string, options: SafeExecOptions = {}): Promis
       ? setTimeout(() => {
           if (!settled) {
             settled = true;
-            // Kill the entire process group (negative PID)
-            try {
-              process.kill(-child.pid!, 'SIGTERM');
-            } catch {
-              /* already exited */
-            }
-            reject(Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true }));
+            killChild(child, isWindows);
+            reject(
+              Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true })
+            );
           }
         }, options.timeout)
       : null;
@@ -81,8 +105,8 @@ export function safeExec(command: string, options: SafeExecOptions = {}): Promis
       }
     });
 
-    // Don't let the detached child prevent Node from exiting
-    child.unref();
+    // Don't let the detached child prevent Node from exiting (POSIX only)
+    if (!isWindows) child.unref();
   });
 }
 
@@ -91,11 +115,14 @@ export function safeExec(command: string, options: SafeExecOptions = {}): Promis
  * Does NOT use a shell — safer against injection.
  */
 export function safeExecFile(file: string, args: string[], options: SafeExecOptions = {}): Promise<ExecResult> {
+  const isWindows = process.platform === 'win32';
+
   return new Promise((resolve, reject) => {
     const child = spawn(file, args, {
-      detached: true,
+      detached: !isWindows,
       stdio: ['ignore', 'pipe', 'pipe'],
       env: options.env,
+      windowsHide: true,
     });
 
     let stdout = '';
@@ -113,12 +140,10 @@ export function safeExecFile(file: string, args: string[], options: SafeExecOpti
       ? setTimeout(() => {
           if (!settled) {
             settled = true;
-            try {
-              process.kill(-child.pid!, 'SIGTERM');
-            } catch {
-              /* already exited */
-            }
-            reject(Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true }));
+            killChild(child, isWindows);
+            reject(
+              Object.assign(new Error(`Command timed out after ${options.timeout}ms`), { stdout, stderr, killed: true })
+            );
           }
         }, options.timeout)
       : null;
@@ -143,6 +168,6 @@ export function safeExecFile(file: string, args: string[], options: SafeExecOpti
       }
     });
 
-    child.unref();
+    if (!isWindows) child.unref();
   });
 }

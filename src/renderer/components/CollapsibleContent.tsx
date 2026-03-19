@@ -13,12 +13,15 @@ import { useTranslation } from 'react-i18next';
 // 渐变遮罩常量 Gradient mask constants
 // mask-image 模式：让内容本身淡出，适用于有背景色的场景（如 Alert）
 // mask-image mode: fade out content itself, suitable for scenarios with background color (like Alert)
-const MASK_GRADIENT = 'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 60%, rgba(0, 0, 0, 0.4) 90%, rgba(0, 0, 0, 0) 100%)';
+const MASK_GRADIENT =
+  'linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 1) 60%, rgba(0, 0, 0, 0.4) 90%, rgba(0, 0, 0, 0) 100%)';
 
 // 背景渐变模式：使用固定颜色遮罩，适用于普通场景
 // Background gradient mode: use fixed color mask, suitable for normal scenarios
-const BG_GRADIENT_DARK = 'linear-gradient(to bottom, rgba(30, 30, 30, 0) 0%, rgba(30, 30, 30, 0.6) 40%, rgba(30, 30, 30, 0.95) 80%, rgba(30, 30, 30, 1) 100%)';
-const BG_GRADIENT_LIGHT = 'linear-gradient(to bottom, rgba(247, 248, 250, 0) 0%, rgba(247, 248, 250, 0.6) 40%, rgba(247, 248, 250, 0.95) 80%, rgba(247, 248, 250, 1) 100%)';
+const BG_GRADIENT_DARK =
+  'linear-gradient(to bottom, rgba(30, 30, 30, 0) 0%, rgba(30, 30, 30, 0.6) 40%, rgba(30, 30, 30, 0.95) 80%, rgba(30, 30, 30, 1) 100%)';
+const BG_GRADIENT_LIGHT =
+  'linear-gradient(to bottom, rgba(247, 248, 250, 0) 0%, rgba(247, 248, 250, 0.6) 40%, rgba(247, 248, 250, 0.95) 80%, rgba(247, 248, 250, 1) 100%)';
 
 interface CollapsibleContentProps {
   children: React.ReactNode;
@@ -73,7 +76,15 @@ interface CollapsibleContentProps {
  * </CollapsibleContent>
  * ```
  */
-export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children, maxHeight = 240, defaultCollapsed = true, className, contentClassName, useMask = false, allowHorizontalScroll = false }) => {
+export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({
+  children,
+  maxHeight = 240,
+  defaultCollapsed = true,
+  className,
+  contentClassName,
+  useMask = false,
+  allowHorizontalScroll = false,
+}) => {
   const { t } = useTranslation(); // 国际化 i18n
   const { theme } = useThemeContext(); // 主题上下文（亮色/暗色）Theme context (light/dark)
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed); // 折叠状态 Collapse state
@@ -170,7 +181,11 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
   return (
     <div className={classNames('relative', className)}>
       {/* 内容区域 Content area */}
-      <div ref={contentRef} className={classNames('transition-all duration-300', contentClassName)} style={contentStyle}>
+      <div
+        ref={contentRef}
+        className={classNames('transition-all duration-300', contentClassName)}
+        style={contentStyle}
+      >
         {children}
       </div>
 
@@ -195,7 +210,11 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
       {/* 展开/折叠按钮 Expand/Collapse button */}
       {needsCollapse && (
         <div className='flex justify-center relative z-10'>
-          <button onClick={toggleCollapse} className='flex items-center gap-1 px-3 py-1.5 text-sm text-t-primary hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-medium [&_svg]:transition-colors [&_svg]:inline-block [&_svg]:align-middle' type='button'>
+          <button
+            onClick={toggleCollapse}
+            className='flex items-center gap-1 px-3 py-1.5 text-sm text-t-primary hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-medium [&_svg]:transition-colors [&_svg]:inline-block [&_svg]:align-middle'
+            type='button'
+          >
             {isCollapsed ? (
               <>
                 {/* 展开更多 Expand more */}

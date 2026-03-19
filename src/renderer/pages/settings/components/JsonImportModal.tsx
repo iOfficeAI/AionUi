@@ -175,7 +175,13 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       okButtonProps={{ disabled: !validation.isValid }}
       header={{ title: server ? t('settings.mcpEditServer') : t('settings.mcpImportFromJSON'), showClose: true }}
       style={{ width: 600, height: 450 }}
-      contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'auto', height: 420 - 80 }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal
+      contentStyle={{
+        borderRadius: 16,
+        padding: '24px',
+        background: 'var(--bg-1)',
+        overflow: 'auto',
+        height: 420 - 80,
+      }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal
     >
       <div className='space-y-12px'>
         <div>
@@ -249,13 +255,19 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
                   backdropFilter: 'blur(4px)',
                 }}
               >
-                {copyStatus === 'success' ? t('common.copySuccess') : copyStatus === 'error' ? t('common.copyFailed') : t('common.copy')}
+                {copyStatus === 'success'
+                  ? t('common.copySuccess')
+                  : copyStatus === 'error'
+                    ? t('common.copyFailed')
+                    : t('common.copy')}
               </Button>
             )}
           </div>
 
           {/* JSON 格式错误提示 */}
-          {!validation.isValid && jsonInput.trim() && <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>}
+          {!validation.isValid && jsonInput.trim() && (
+            <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>
+          )}
         </div>
 
         <Alert

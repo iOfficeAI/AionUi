@@ -22,7 +22,9 @@ async function waitForPidFile(pidFile: string, timeoutMs: number, shellProcess?:
 
   while (Date.now() - start < timeoutMs) {
     if (shellProcess && (shellProcess.exitCode !== null || shellProcess.signalCode !== null)) {
-      throw new Error(`Shell process exited early before PID file was created: code=${shellProcess.exitCode}, signal=${shellProcess.signalCode}`);
+      throw new Error(
+        `Shell process exited early before PID file was created: code=${shellProcess.exitCode}, signal=${shellProcess.signalCode}`
+      );
     }
 
     try {

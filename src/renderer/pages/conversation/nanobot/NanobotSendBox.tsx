@@ -15,9 +15,7 @@ import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
-import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
@@ -27,6 +25,7 @@ import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
+import FileAttachButton from '@/renderer/components/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
@@ -162,10 +161,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
           break;
-        case 'finish':
+        case 'finish': {
           setThought({ subject: '', description: '' });
           setAiProcessing(false);
           break;
+        }
         case 'content':
         case 'error':
         case 'user_content':
@@ -217,7 +217,10 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     setAtPath([]);
     setUploadFile([]);
 
-    const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+    const filePaths = [
+      ...currentUploadFile,
+      ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+    ];
     const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
 
     // Frontend adds user message directly — no reliance on backend user_content emission
@@ -230,6 +233,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       content: { content: displayMessage },
       createdAt: Date.now(),
     };
+    // Reset AI reply for new turn
+    // 重置 AI 回复用于新一轮
     addOrUpdateMessage(userMessage, true);
     setAiProcessing(true);
     try {
@@ -289,9 +294,16 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
+        // Reset AI reply for new turn
+        // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
-        await ipcBridge.conversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files });
+        await ipcBridge.conversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          msg_id,
+          conversation_id,
+          files,
+        });
         void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
@@ -333,13 +345,17 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onStop={handleStop}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
-        tools={<Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} onClick={openFileSelector} />}
+        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         prefix={
           <>
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                  <FilePreview
+                    key={path}
+                    path={path}
+                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
+                  />
                 ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
@@ -350,7 +366,9 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
                         key={path}
                         path={path}
                         onRemove={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          const newAtPath = atPath.filter((v) =>
+                            typeof v === 'string' ? v !== path : v.path !== path
+                          );
                           emitter.emit('nanobot.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}

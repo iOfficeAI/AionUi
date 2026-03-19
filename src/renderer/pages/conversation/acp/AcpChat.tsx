@@ -30,7 +30,12 @@ const AcpChat: React.FC<{
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <AcpSendBox conversation_id={conversation_id} backend={backend} sessionMode={sessionMode} agentName={agentName}></AcpSendBox>
+          <AcpSendBox
+            conversation_id={conversation_id}
+            backend={backend}
+            sessionMode={sessionMode}
+            agentName={agentName}
+          ></AcpSendBox>
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>

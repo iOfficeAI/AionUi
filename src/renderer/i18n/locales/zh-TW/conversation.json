@@ -4,7 +4,7 @@
     "placeholder": "發送訊息、上傳檔案、開啟資料夾或建立定時任務...",
     "uploadFile": "上傳檔案",
     "linkFolder": "開啟資料夾",
-    "newConversation": "新對話",
+    "newConversation": "新會話",
     "multiAgentModeEnabled": "已進入多智能體模式",
     "selectModel": "選擇模型",
     "useCliModel": "選擇模型",
@@ -16,7 +16,10 @@
     "none": "None",
     "quickActionsTitle": "AionUi 能做什麼？",
     "quickActionFeedback": "想吐槽或提建議?",
-    "quickActionStar": "喜歡我們？點個星吧"
+    "quickActionStar": "喜歡我們？點個星吧",
+    "skillsMarket": "AionUi Skills Market",
+    "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
+    "skillsMarketDetails": "詳情 >>"
   },
   "history": {
     "today": "今天",
@@ -65,6 +68,23 @@
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗"
   },
+  "historySearch": {
+    "tooltip": "搜尋訊息",
+    "title": "搜尋對話內容",
+    "description": "透過關鍵字搜尋歷史訊息，滾動載入更多，點擊跳轉到匹配的訊息。",
+    "placeholder": "搜尋訊息內容...",
+    "idle": "輸入關鍵字搜尋訊息",
+    "empty": "沒有找到匹配的訊息",
+    "loadingMore": "載入更多...",
+    "untitled": "未命名對話"
+  },
+  "dropdown": {
+    "cliAgents": "CLI Agents",
+    "presetAssistants": "預設助手"
+  },
+  "noAgentsAvailable": "沒有可用的 Agent",
+  "noModelConfigured": "未設定模型，請前往設定頁面設定。",
+  "createFailed": "建立對話失敗",
   "tabs": {
     "closeAll": "全部關閉",
     "closeLeft": "關閉左側",
@@ -84,7 +104,7 @@
     "empty": "空的",
     "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
     "searchPlaceholder": "搜尋檔案...",
-    "createNewConversation": "當前空間創建新對話",
+    "createNewConversation": "當前空間創建新會話",
     "search.empty": "搜索結果為空",
     "addFile": "新增檔案",
     "refresh": "重新整理",
@@ -104,7 +124,11 @@
       "selectFolderError": "選擇資料夾失敗",
       "success": "工作空間遷移成功",
       "error": "工作空間遷移失敗",
-      "migrating": "遷移中..."
+      "migrating": "遷移中...",
+      "cronMigrationTitle": "發現定時任務",
+      "cronMigrationHint": "當前對話包含定時任務，是否將其遷移到新工作空間？",
+      "cronMigrationConfirm": "遷移並更新",
+      "cronMigrationSkip": "不遷移 (將刪除)"
     },
     "dragOverlayTitle": "拖曳匯入",
     "dragOverlayDesc": "將檔案或資料夾拖曳到此處即可複製到目前工作空間。",
@@ -130,8 +154,18 @@
       "addToChat": "加入聊天",
       "addedToChat": "已加入聊天",
       "openFailed": "開啟失敗",
-      "revealFailed": "無法開啟所在資料夾"
+      "revealFailed": "無法開啟所在資料夾",
+      "download": "下載",
+      "downloadSuccess": "下載成功",
+      "downloadFailed": "下載失敗"
     }
+  },
+  "minimap": {
+    "searchAria": "搜尋對話",
+    "searchHint": "點擊這裡搜尋關鍵詞",
+    "empty": "暫無問答內容",
+    "noMatch": "未找到相符內容",
+    "count": "{{count}} 條"
   },
   "chat": {
     "noModelSelected": "當前會話未選擇模型，無法發送訊息",

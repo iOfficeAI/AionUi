@@ -208,7 +208,9 @@ class ConversionService {
   /**
    * 提取 Excel 中的图片资源，并且定位到对应单元格
    */
-  private async extractExcelImages(buffer: Buffer): Promise<Record<string, { row: number; col: number; src: string; width?: number; height?: number }[]>> {
+  private async extractExcelImages(
+    buffer: Buffer
+  ): Promise<Record<string, { row: number; col: number; src: string; width?: number; height?: number }[]>> {
     try {
       const fileMap = await this.loadExcelZipEntries(buffer);
       const workbookXml = fileMap.get('xl/workbook.xml');
@@ -246,7 +248,9 @@ class ConversionService {
         const sheetRelXml = sheetRelPath ? fileMap.get(sheetRelPath) : null;
         if (!sheetRelXml) continue;
         const sheetRelMap = this.parseRelationships(sheetRelXml);
-        const drawingRels = Array.from(sheetRelMap.values()).filter((rel) => rel.type === ConversionService.DRAWING_REL_TYPE);
+        const drawingRels = Array.from(sheetRelMap.values()).filter(
+          (rel) => rel.type === ConversionService.DRAWING_REL_TYPE
+        );
         if (drawingRels.length === 0) continue;
 
         for (const drawingRel of drawingRels) {
@@ -268,7 +272,13 @@ class ConversionService {
             if (!imageBuffer) return;
             const mime = this.getMimeTypeFromName(imagePath);
             const src = `data:${mime};base64,${imageBuffer.toString('base64')}`;
-            (result[sheetInfo.name] ||= []).push({ row: anchor.row, col: anchor.col, src, width: anchor.width, height: anchor.height });
+            (result[sheetInfo.name] ||= []).push({
+              row: anchor.row,
+              col: anchor.col,
+              src,
+              width: anchor.width,
+              height: anchor.height,
+            });
           });
         }
       }
@@ -283,9 +293,18 @@ class ConversionService {
   /**
    * 解析 Drawing XML 中的图片锚点信息
    */
-  private parseDrawingAnchors(doc: Document): Array<{ row: number; col: number; embedId: string; width?: number; height?: number }> {
+  private parseDrawingAnchors(
+    doc: Document
+  ): Array<{ row: number; col: number; embedId: string; width?: number; height?: number }> {
     const anchors: Element[] = [];
-    const anchorTags = ['xdr:twoCellAnchor', 'xdr:oneCellAnchor', 'xdr:absoluteAnchor', 'twoCellAnchor', 'oneCellAnchor', 'absoluteAnchor'];
+    const anchorTags = [
+      'xdr:twoCellAnchor',
+      'xdr:oneCellAnchor',
+      'xdr:absoluteAnchor',
+      'twoCellAnchor',
+      'oneCellAnchor',
+      'absoluteAnchor',
+    ];
     anchorTags.forEach((tag) => {
       const nodes = doc.getElementsByTagName(tag);
       for (let i = 0; i < nodes.length; i++) {
@@ -397,7 +416,15 @@ class ConversionService {
 
   private shouldKeepZipEntry(path: string): boolean {
     if (!path.startsWith('xl/')) return false;
-    return path === 'xl/workbook.xml' || path === 'xl/_rels/workbook.xml.rels' || path.startsWith('xl/worksheets/') || path.startsWith('xl/worksheets/_rels/') || path.startsWith('xl/drawings/') || path.startsWith('xl/drawings/_rels/') || path.startsWith('xl/media/');
+    return (
+      path === 'xl/workbook.xml' ||
+      path === 'xl/_rels/workbook.xml.rels' ||
+      path.startsWith('xl/worksheets/') ||
+      path.startsWith('xl/worksheets/_rels/') ||
+      path.startsWith('xl/drawings/') ||
+      path.startsWith('xl/drawings/_rels/') ||
+      path.startsWith('xl/media/')
+    );
   }
 
   private normalizeZipPath(filePath: string): string {
@@ -471,7 +498,8 @@ class ConversionService {
     return 'application/octet-stream';
   }
 
-  private static readonly DRAWING_REL_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing';
+  private static readonly DRAWING_REL_TYPE =
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing';
 
   /**
    * HTML -> PDF

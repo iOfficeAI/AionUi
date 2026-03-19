@@ -132,7 +132,11 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
             <span className='text-14px'>{t('cron.drawer.taskStatus')}</span>
             <div className='flex items-center gap-8px'>
               <Form.Item shouldUpdate noStyle>
-                {(values) => <span className='text-14px text-text-3'>{values.enabled ? t('cron.drawer.enabled') : t('cron.drawer.disabled')}</span>}
+                {(values) => (
+                  <span className='text-14px text-text-3'>
+                    {values.enabled ? t('cron.drawer.enabled') : t('cron.drawer.disabled')}
+                  </span>
+                )}
               </Form.Item>
               <FormItem field='enabled' triggerPropName='checked' noStyle>
                 <Switch />
@@ -144,7 +148,11 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
         {/* Command Section */}
         <div className='bg-2 rd-16px px-16px py-16px'>
           <FormItem label={t('cron.drawer.command')} field='command' rules={[{ required: true }]} className='!mb-0'>
-            <TextArea placeholder={t('cron.drawer.commandPlaceholder')} autoSize={{ minRows: 2, maxRows: 10 }} className='!bg-bg-1' />
+            <TextArea
+              placeholder={t('cron.drawer.commandPlaceholder')}
+              autoSize={{ minRows: 2, maxRows: 10 }}
+              className='!bg-bg-1'
+            />
           </FormItem>
         </div>
 

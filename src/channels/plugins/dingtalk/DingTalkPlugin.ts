@@ -10,7 +10,15 @@ import https from 'https';
 
 import type { BotInfo, IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
 import { BasePlugin } from '../BasePlugin';
-import { DINGTALK_MESSAGE_LIMIT, encodeChatId, extractCardAction, parseChatId, toDingTalkSendParams, toUnifiedIncomingMessage, convertHtmlToDingTalkMarkdown } from './DingTalkAdapter';
+import {
+  DINGTALK_MESSAGE_LIMIT,
+  encodeChatId,
+  extractCardAction,
+  parseChatId,
+  toDingTalkSendParams,
+  toUnifiedIncomingMessage,
+  convertHtmlToDingTalkMarkdown,
+} from './DingTalkAdapter';
 import type { DingTalkStreamMessage } from './DingTalkAdapter';
 
 /**
@@ -271,7 +279,8 @@ export class DingTalkPlugin extends BasePlugin {
     const text = rawText || message.text || '';
 
     // Truncate if too long
-    const truncatedText = text.length > DINGTALK_MESSAGE_LIMIT ? text.slice(0, DINGTALK_MESSAGE_LIMIT - 3) + '...' : text;
+    const truncatedText =
+      text.length > DINGTALK_MESSAGE_LIMIT ? text.slice(0, DINGTALK_MESSAGE_LIMIT - 3) + '...' : text;
 
     try {
       await this.streamAICard(cardSession.outTrackId, truncatedText, isFinal);
@@ -346,13 +355,17 @@ export class DingTalkPlugin extends BasePlugin {
                 name: buttonAction.action,
               },
             };
-            void this.emitMessage(actionMessage).catch((error) => console.error('[DingTalkPlugin] Error handling message:', error));
+            void this.emitMessage(actionMessage).catch((error) =>
+              console.error('[DingTalkPlugin] Error handling message:', error)
+            );
             return;
           }
         }
 
         // Process in background to avoid blocking
-        void this.emitMessage(unifiedMessage).catch((error) => console.error('[DingTalkPlugin] Error handling message:', error));
+        void this.emitMessage(unifiedMessage).catch((error) =>
+          console.error('[DingTalkPlugin] Error handling message:', error)
+        );
       }
     } catch (error) {
       console.error('[DingTalkPlugin] Error processing robot message:', error);
@@ -385,9 +398,11 @@ export class DingTalkPlugin extends BasePlugin {
       // Handle tool confirmation specially
       if (actionInfo.name === 'system.confirm' && actionInfo.params?.callId && actionInfo.params?.value) {
         if (this.confirmHandler) {
-          void this.confirmHandler(userId, 'dingtalk', actionInfo.params.callId, actionInfo.params.value).catch((error) => {
-            console.error('[DingTalkPlugin] Confirm handler error:', error);
-          });
+          void this.confirmHandler(userId, 'dingtalk', actionInfo.params.callId, actionInfo.params.value).catch(
+            (error) => {
+              console.error('[DingTalkPlugin] Confirm handler error:', error);
+            }
+          );
         }
         return;
       }
@@ -403,7 +418,9 @@ export class DingTalkPlugin extends BasePlugin {
 
       const unifiedMessage = toUnifiedIncomingMessage(mockData, actionInfo);
       if (unifiedMessage && this.messageHandler) {
-        void this.emitMessage(unifiedMessage).catch((error) => console.error('[DingTalkPlugin] Error handling card action:', error));
+        void this.emitMessage(unifiedMessage).catch((error) =>
+          console.error('[DingTalkPlugin] Error handling card action:', error)
+        );
       }
     } catch (error) {
       console.error('[DingTalkPlugin] Error processing card callback:', error);
@@ -564,7 +581,12 @@ export class DingTalkPlugin extends BasePlugin {
   /**
    * Send message via sessionWebhook (simple markdown)
    */
-  private async sendViaWebhook(webhook: string, contentType: string, content: Record<string, unknown>, rawText?: string): Promise<string> {
+  private async sendViaWebhook(
+    webhook: string,
+    contentType: string,
+    content: Record<string, unknown>,
+    rawText?: string
+  ): Promise<string> {
     let body: Record<string, unknown>;
 
     if (contentType === 'actionCard') {
@@ -589,7 +611,13 @@ export class DingTalkPlugin extends BasePlugin {
   /**
    * Send message via DingTalk Open API
    */
-  private async sendViaAPI(chatType: 'user' | 'group', id: string, contentType: string, content: Record<string, unknown>, rawText?: string): Promise<string> {
+  private async sendViaAPI(
+    chatType: 'user' | 'group',
+    id: string,
+    contentType: string,
+    content: Record<string, unknown>,
+    rawText?: string
+  ): Promise<string> {
     const token = await this.getAccessToken();
 
     if (chatType === 'user') {
@@ -598,7 +626,10 @@ export class DingTalkPlugin extends BasePlugin {
         robotCode: this.clientId,
         userIds: [id],
         msgKey: contentType === 'actionCard' ? 'sampleActionCard6' : 'sampleMarkdown',
-        msgParam: contentType === 'actionCard' ? JSON.stringify(content) : JSON.stringify({ title: 'Message', text: rawText || '' }),
+        msgParam:
+          contentType === 'actionCard'
+            ? JSON.stringify(content)
+            : JSON.stringify({ title: 'Message', text: rawText || '' }),
       };
 
       const response = await this.apiRequest('POST', '/v1.0/robot/oToMessages/batchSend', token, body);
@@ -610,7 +641,10 @@ export class DingTalkPlugin extends BasePlugin {
       robotCode: this.clientId,
       openConversationId: id,
       msgKey: contentType === 'actionCard' ? 'sampleActionCard6' : 'sampleMarkdown',
-      msgParam: contentType === 'actionCard' ? JSON.stringify(content) : JSON.stringify({ title: 'Message', text: rawText || '' }),
+      msgParam:
+        contentType === 'actionCard'
+          ? JSON.stringify(content)
+          : JSON.stringify({ title: 'Message', text: rawText || '' }),
     };
 
     const response = await this.apiRequest('POST', '/v1.0/robot/groupMessages/send', token, body);
@@ -687,7 +721,12 @@ export class DingTalkPlugin extends BasePlugin {
   /**
    * Generic HTTP request helper using Node.js https module
    */
-  private httpRequest(method: string, url: string, body?: Record<string, unknown>, headers?: Record<string, string>): Promise<any> {
+  private httpRequest(
+    method: string,
+    url: string,
+    body?: Record<string, unknown>,
+    headers?: Record<string, string>
+  ): Promise<any> {
     return new Promise((resolve, reject) => {
       const urlObj = new URL(url);
       const data = body ? JSON.stringify(body) : undefined;
@@ -774,7 +813,10 @@ export class DingTalkPlugin extends BasePlugin {
   /**
    * Test connection with the given credentials
    */
-  static async testConnection(clientId: string, clientSecret?: string): Promise<{ success: boolean; botInfo?: { name?: string }; error?: string }> {
+  static async testConnection(
+    clientId: string,
+    clientSecret?: string
+  ): Promise<{ success: boolean; botInfo?: { name?: string }; error?: string }> {
     if (!clientSecret) {
       return { success: false, error: 'Client Secret is required for DingTalk' };
     }

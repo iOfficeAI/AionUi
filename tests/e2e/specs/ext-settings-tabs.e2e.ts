@@ -1,6 +1,13 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures';
-import { goToSettings, goToExtensionSettings, waitForSettle, takeScreenshot, SETTINGS_SIDER_ITEM, settingsSiderItemById } from '../helpers';
+import {
+  goToSettings,
+  goToExtensionSettings,
+  waitForSettle,
+  takeScreenshot,
+  SETTINGS_SIDER_ITEM,
+  settingsSiderItemById,
+} from '../helpers';
 
 const EXT_E2E_SETTINGS_ID = 'ext-e2e-full-extension-e2e-settings';
 const EXT_E2E_BEFORE_ABOUT_ID = 'ext-e2e-full-extension-e2e-before-about';
@@ -19,7 +26,9 @@ async function waitForExtensionSettingsTabs(page: Page, timeout = 10_000): Promi
   await expect
     .poll(
       async () => {
-        const counts = await Promise.all(KNOWN_EXTENSION_TAB_IDS.map((id) => page.locator(settingsSiderItemById(id)).count()));
+        const counts = await Promise.all(
+          KNOWN_EXTENSION_TAB_IDS.map((id) => page.locator(settingsSiderItemById(id)).count())
+        );
         return counts.some((count) => count > 0);
       },
       {
@@ -38,7 +47,9 @@ test.describe('Extension: Settings Tabs Discovery', () => {
 
     const siderItemIds = await waitForExtensionSettingsTabs(page);
 
-    expect(siderItemIds.some((id) => KNOWN_EXTENSION_TAB_IDS.includes(id as (typeof KNOWN_EXTENSION_TAB_IDS)[number]))).toBeTruthy();
+    expect(
+      siderItemIds.some((id) => KNOWN_EXTENSION_TAB_IDS.includes(id as (typeof KNOWN_EXTENSION_TAB_IDS)[number]))
+    ).toBeTruthy();
   });
 
   test('multiple extension tabs from different extensions appear', async ({ page }) => {
@@ -160,7 +171,12 @@ test.describe('Extension: Settings Tabs Stability', () => {
     await goToSettings(page, 'gemini');
     await waitForSettle(page);
 
-    const extErrors = errors.filter((e) => e.toLowerCase().includes('extension') || e.toLowerCase().includes('settings-tab') || e.toLowerCase().includes('settingstab'));
+    const extErrors = errors.filter(
+      (e) =>
+        e.toLowerCase().includes('extension') ||
+        e.toLowerCase().includes('settings-tab') ||
+        e.toLowerCase().includes('settingstab')
+    );
 
     expect(extErrors).toHaveLength(0);
   });

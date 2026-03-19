@@ -44,7 +44,9 @@ interface ElectronWebView extends HTMLElement {
 function resolveRelativePath(basePath: string, relativePath: string): string {
   // 去除协议前缀 / Remove protocol prefix
   const cleanBasePath = basePath.replace(/^file:\/\//, '');
-  const baseDir = cleanBasePath.substring(0, cleanBasePath.lastIndexOf('/') + 1) || cleanBasePath.substring(0, cleanBasePath.lastIndexOf('\\') + 1);
+  const baseDir =
+    cleanBasePath.substring(0, cleanBasePath.lastIndexOf('/') + 1) ||
+    cleanBasePath.substring(0, cleanBasePath.lastIndexOf('\\') + 1);
 
   // 如果相对路径已经是绝对路径，直接返回 / If relative path is already absolute, return directly
   if (relativePath.startsWith('/') || /^[a-zA-Z]:/.test(relativePath)) {
@@ -178,7 +180,15 @@ async function inlineRelativeResources(html: string, basePath: string): Promise<
  * 在 iframe/webview 中渲染 HTML 内容（自动检测环境）
  * Renders HTML content in iframe/webview (auto-detect environment)
  */
-const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, onScroll, inspectMode = false, copySuccessMessage, onElementSelected }) => {
+const HTMLRenderer: React.FC<HTMLRendererProps> = ({
+  content,
+  filePath,
+  containerRef,
+  onScroll,
+  inspectMode = false,
+  copySuccessMessage,
+  onElementSelected,
+}) => {
   const divRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<ElectronWebView | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -214,14 +224,21 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   const shouldLoadFromFile = useMemo(() => {
     if (!isElectron || !filePath) return false;
     // 检查 HTML 是否引用了相对资源 / Check if HTML references relative resources
-    const hasRelativeResources = /<link[^>]+href=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) || /<script[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) || /<img[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content);
+    const hasRelativeResources =
+      /<link[^>]+href=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) ||
+      /<script[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) ||
+      /<img[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content);
     return hasRelativeResources;
   }, [content, filePath, isElectron]);
 
   // 检查是否有相对资源（用于 browser inline 处理）
   // Check if has relative resources (for browser inline processing)
   const hasRelativeResources = useMemo(() => {
-    return /<link[^>]+href=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) || /<script[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) || /<img[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content);
+    return (
+      /<link[^>]+href=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) ||
+      /<script[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) ||
+      /<img[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content)
+    );
   }, [content]);
 
   // 流式打字动画：HTML 预览在使用 data URL 渲染时也能获得流式体验
@@ -232,7 +249,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     speed: 40,
   });
 
-  const htmlContent = useMemo(() => (shouldLoadFromFile ? content : displayedContent), [shouldLoadFromFile, content, displayedContent]);
+  const htmlContent = useMemo(
+    () => (shouldLoadFromFile ? content : displayedContent),
+    [shouldLoadFromFile, content, displayedContent]
+  );
 
   // 在 browser 环境下，当有相对资源时进行内联化处理
   // In browser environment, inline relative resources when present
@@ -346,7 +366,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   // 生成检查模式注入脚本 / Generate inspect mode injection script
   // 使用 useMemo 缓存，只在 inspectMode 改变时重新生成 / Use useMemo to cache, only regenerate when inspectMode changes
   const copySuccessText = useMemo(() => copySuccessMessage ?? '✓ Copied HTML snippet', [copySuccessMessage]);
-  const inspectScript = useMemo(() => generateInspectScript(inspectMode, { copySuccess: copySuccessText }), [inspectMode, copySuccessText]);
+  const inspectScript = useMemo(
+    () => generateInspectScript(inspectMode, { copySuccess: copySuccessText }),
+    [inspectMode, copySuccessText]
+  );
 
   // 执行脚本注入的函数 / Function to execute script injection
   // 使用 useCallback 缓存，避免每次渲染都创建新函数 / Use useCallback to cache, avoid creating new function on each render
@@ -558,7 +581,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   const proxyHeight = webviewContentHeight > 0 ? webviewContentHeight : '100%';
 
   return (
-    <div ref={containerRef || divRef} className={`h-full w-full overflow-auto relative ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
+    <div
+      ref={containerRef || divRef}
+      className={`h-full w-full overflow-auto relative ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}
+    >
       {isElectron ? (
         <>
           {/* 代理滚动层：使容器可滚动 / Proxy scroll layer: makes container scrollable */}

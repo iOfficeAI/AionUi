@@ -88,7 +88,7 @@ export function setupBasicMiddleware(app: Express): void {
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      ['/login', '/api/auth/qr-login'], // Excluded: login form and QR login
+      ['/login', '/api/auth/qr-login', '/api/upload'], // Excluded: login form, QR login, and file upload (uses API token auth)
       [] // No service worker URLs
     )
   );

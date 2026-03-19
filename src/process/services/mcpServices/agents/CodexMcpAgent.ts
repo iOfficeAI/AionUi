@@ -7,12 +7,19 @@
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '@/common/storage';
-import { BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME, isBuiltinImageGenName, isBuiltinImageGenTransport } from '@/process/builtinMcp/constants';
+import {
+  BUILTIN_IMAGE_GEN_LEGACY_NAMES,
+  BUILTIN_IMAGE_GEN_NAME,
+  isBuiltinImageGenName,
+  isBuiltinImageGenTransport,
+} from '@/process/builtinMcp/constants';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExecFile } from '@process/utils/safeExec';
 
 /** Env options for exec calls — ensures CLI is found from Finder/launchd launches */
-const getExecEnv = () => ({ env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv });
+const getExecEnv = () => ({
+  env: { ...getEnhancedEnv(), NODE_OPTIONS: '', TERM: 'dumb', NO_COLOR: '1' } as NodeJS.ProcessEnv,
+});
 
 interface CodexMcpListEntry {
   name: string;
@@ -30,12 +37,23 @@ interface CodexMcpListEntry {
 function normalizeCodexEnv(entry: CodexMcpListEntry['transport']): Record<string, string> {
   const envFromObject = entry?.env;
   if (envFromObject && typeof envFromObject === 'object' && !Array.isArray(envFromObject)) {
-    return Object.fromEntries(Object.entries(envFromObject).filter((pair): pair is [string, string] => typeof pair[0] === 'string' && typeof pair[1] === 'string'));
+    return Object.fromEntries(
+      Object.entries(envFromObject).filter(
+        (pair): pair is [string, string] => typeof pair[0] === 'string' && typeof pair[1] === 'string'
+      )
+    );
   }
 
   const envVars = entry?.env_vars;
   if (Array.isArray(envVars)) {
-    return Object.fromEntries(envVars.filter((item): item is { name: string; value: string } => typeof item?.name === 'string' && typeof item?.value === 'string').map((item) => [item.name, item.value]));
+    return Object.fromEntries(
+      envVars
+        .filter(
+          (item): item is { name: string; value: string } =>
+            typeof item?.name === 'string' && typeof item?.value === 'string'
+        )
+        .map((item) => [item.name, item.value])
+    );
   }
 
   return {};
@@ -52,7 +70,10 @@ export function parseCodexMcpListOutput(result: string): IMcpServer[] {
       return [];
     }
 
-    const displayName = isBuiltinImageGenName(entry.name) || isBuiltinImageGenTransport(entry.transport) ? BUILTIN_IMAGE_GEN_NAME : entry.name;
+    const displayName =
+      isBuiltinImageGenName(entry.name) || isBuiltinImageGenTransport(entry.transport)
+        ? BUILTIN_IMAGE_GEN_NAME
+        : entry.name;
     const env = normalizeCodexEnv(entry.transport);
     const transportType = entry.transport.type;
     let transport: IMcpServer['transport'] | null = null;
@@ -139,7 +160,10 @@ export class CodexMcpAgent extends AbstractMcpAgent {
   detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
-        const { stdout: result } = await safeExecFile('codex', ['mcp', 'list', '--json'], { timeout: this.timeout, ...getExecEnv() });
+        const { stdout: result } = await safeExecFile('codex', ['mcp', 'list', '--json'], {
+          timeout: this.timeout,
+          ...getExecEnv(),
+        });
 
         if (!result.trim()) {
           return [];
@@ -183,10 +207,18 @@ export class CodexMcpAgent extends AbstractMcpAgent {
             continue;
           }
 
-          if ((server.transport.type === 'http' || server.transport.type === 'streamable_http') && 'headers' in server.transport && server.transport.headers) {
-            const authHeader = Object.entries(server.transport.headers).find(([key]) => key.toLowerCase() === 'authorization');
+          if (
+            (server.transport.type === 'http' || server.transport.type === 'streamable_http') &&
+            'headers' in server.transport &&
+            server.transport.headers
+          ) {
+            const authHeader = Object.entries(server.transport.headers).find(
+              ([key]) => key.toLowerCase() === 'authorization'
+            );
             if (authHeader) {
-              console.warn(`[CodexMcpAgent] ${server.name}: Codex CLI uses --bearer-token-env-var for auth, manual header not supported`);
+              console.warn(
+                `[CodexMcpAgent] ${server.name}: Codex CLI uses --bearer-token-env-var for auth, manual header not supported`
+              );
             }
           }
 
@@ -213,30 +245,53 @@ export class CodexMcpAgent extends AbstractMcpAgent {
   removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
     const removeOperation = async () => {
       try {
-        const candidateNames = Array.from(new Set(isBuiltinImageGenName(mcpServerName) ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES] : [mcpServerName]));
+        const candidateNames = Array.from(
+          new Set(
+            isBuiltinImageGenName(mcpServerName)
+              ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES]
+              : [mcpServerName]
+          )
+        );
 
         for (const candidateName of candidateNames) {
           try {
-            const result = await safeExecFile('codex', ['mcp', 'remove', candidateName], { timeout: 5000, ...getExecEnv() });
+            const result = await safeExecFile('codex', ['mcp', 'remove', candidateName], {
+              timeout: 5000,
+              ...getExecEnv(),
+            });
 
             // 检查输出确认删除成功
             if (result.stdout && (result.stdout.includes('removed') || result.stdout.includes('Removed'))) {
               console.log(`[CodexMcpAgent] Removed MCP server: ${candidateName}`);
               return { success: true };
-            } else if (result.stdout && (result.stdout.includes('not found') || result.stdout.includes('No such server'))) {
-              continue;
-            } else {
-              return { success: true };
             }
+
+            if (result.stdout && (result.stdout.includes('not found') || result.stdout.includes('No such server'))) {
+              continue;
+            }
+
+            // 其他情况认为成功（向后兼容）
+            return { success: true };
           } catch (cmdError) {
-            const errorText = [cmdError instanceof Error ? cmdError.message : String(cmdError), (cmdError as { stdout?: string }).stdout || '', (cmdError as { stderr?: string }).stderr || ''].join('\n');
-            if (errorText.includes('not found') || errorText.includes('does not exist') || errorText.includes('No MCP server named')) {
+            const errorText = [
+              cmdError instanceof Error ? cmdError.message : String(cmdError),
+              (cmdError as { stdout?: string }).stdout || '',
+              (cmdError as { stderr?: string }).stderr || '',
+            ].join('\n');
+
+            if (
+              errorText.includes('not found') ||
+              errorText.includes('does not exist') ||
+              errorText.includes('No MCP server named')
+            ) {
               continue;
             }
+
             return { success: false, error: cmdError instanceof Error ? cmdError.message : String(cmdError) };
           }
         }
 
+        console.log(`[CodexMcpAgent] MCP server '${mcpServerName}' not found, nothing to remove`);
         return { success: true };
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : String(error) };
