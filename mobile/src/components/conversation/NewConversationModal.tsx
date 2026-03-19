@@ -8,7 +8,7 @@ import { useThemeColor } from '../../hooks/useThemeColor';
 type NewConversationModalProps = {
   visible: boolean;
   onClose: () => void;
-  onCreated: (conversationId: string) => void;
+  onAgentSelected: (agent: AgentInfo) => void;
 };
 
 const agentIcons: Record<string, string> = {
@@ -18,9 +18,9 @@ const agentIcons: Record<string, string> = {
   qwen: 'Q',
 };
 
-export function NewConversationModal({ visible, onClose, onCreated }: NewConversationModalProps) {
+export function NewConversationModal({ visible, onClose, onAgentSelected }: NewConversationModalProps) {
   const { t } = useTranslation();
-  const { availableAgents, fetchAgents, createConversation } = useConversations();
+  const { availableAgents, fetchAgents } = useConversations();
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const tint = useThemeColor({}, 'tint');
   const background = useThemeColor({}, 'background');
@@ -35,15 +35,9 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
     }
   }, [visible, fetchAgents]);
 
-  const handleSelect = async (agent: AgentInfo) => {
-    const result = await createConversation({
-      agentBackend: agent.backend,
-      agentName: agent.name,
-    });
-    if (result?.id) {
-      onClose();
-      onCreated(result.id);
-    }
+  const handleSelect = (agent: AgentInfo) => {
+    onAgentSelected(agent);
+    onClose();
   };
 
   const renderAgent = ({ item }: { item: AgentInfo }) => {

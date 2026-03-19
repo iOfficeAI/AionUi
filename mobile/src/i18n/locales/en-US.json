@@ -56,7 +56,8 @@
     "permissionRequest": "Permission Request",
     "newChat": "New Chat",
     "noConversation": "No conversation selected",
-    "startChatHint": "Create a new conversation to get started"
+    "startChatHint": "Create a new conversation to get started",
+    "pendingHint": "Send a message to start the conversation"
   },
   "workspace": {
     "temporarySpace": "Temporary Session",

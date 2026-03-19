@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { bridge } from '../services/bridge';
+import { setPendingInitialMessage } from '../services/pendingInitialMessages';
 import { useConnection } from './ConnectionContext';
 
 /**
@@ -37,6 +38,7 @@ type CreateConversationParams = {
   workspace?: string;
   customWorkspace?: boolean;
   model?: { id: string; useModel: string };
+  input?: string;
 };
 
 type ConversationContextType = {
@@ -44,7 +46,11 @@ type ConversationContextType = {
   isLoading: boolean;
   availableAgents: AgentInfo[];
   activeConversationId: string | null;
+  pendingAgent: AgentInfo | null;
   setActiveConversationId: (id: string | null) => void;
+  startNewChat: (agent: AgentInfo) => void;
+  commitNewChat: (message: string) => Promise<void>;
+  cancelNewChat: () => void;
   refresh: () => Promise<void>;
   fetchAgents: () => Promise<void>;
   createConversation: (params: CreateConversationParams) => Promise<Conversation | null>;
@@ -56,7 +62,11 @@ const ConversationContext = createContext<ConversationContextType>({
   isLoading: false,
   availableAgents: [],
   activeConversationId: null,
+  pendingAgent: null,
   setActiveConversationId: () => {},
+  startNewChat: () => {},
+  commitNewChat: async () => {},
+  cancelNewChat: () => {},
   refresh: async () => {},
   fetchAgents: async () => {},
   createConversation: async () => null,
@@ -67,8 +77,17 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [availableAgents, setAvailableAgents] = useState<AgentInfo[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationIdRaw] = useState<string | null>(null);
+  const [pendingAgent, setPendingAgent] = useState<AgentInfo | null>(null);
   const { connectionState } = useConnection();
+
+  // When selecting an existing conversation, clear pendingAgent
+  const setActiveConversationId = useCallback((id: string | null) => {
+    setActiveConversationIdRaw(id);
+    if (id !== null) {
+      setPendingAgent(null);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     if (connectionState !== 'connected') return;
@@ -94,16 +113,17 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       void refresh();
     } else {
       setConversations([]);
-      setActiveConversationId(null);
+      setActiveConversationIdRaw(null);
+      setPendingAgent(null);
     }
   }, [connectionState, refresh]);
 
   // Auto-select most recent conversation when loaded and no active selection
   useEffect(() => {
-    if (conversations.length > 0 && !activeConversationId) {
-      setActiveConversationId(conversations[0].id);
+    if (conversations.length > 0 && !activeConversationId && !pendingAgent) {
+      setActiveConversationIdRaw(conversations[0].id);
     }
-  }, [conversations, activeConversationId]);
+  }, [conversations, activeConversationId, pendingAgent]);
 
   const fetchAgents = useCallback(async () => {
     if (connectionState !== 'connected') return;
@@ -134,7 +154,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
 
         const fullParams = {
           type: conversationType,
-          name: params.agentName || params.agentBackend,
+          name: params.input || params.agentName || params.agentBackend,
           model: params.model || { id: '', useModel: '' },
           extra: {
             backend: params.agentBackend,
@@ -155,6 +175,33 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     },
     [refresh, conversations]
   );
+
+  const startNewChat = useCallback((agent: AgentInfo) => {
+    setPendingAgent(agent);
+    setActiveConversationIdRaw(null);
+  }, []);
+
+  const commitNewChat = useCallback(
+    async (message: string) => {
+      if (!pendingAgent) return;
+      const agent = pendingAgent;
+      const result = await createConversation({
+        agentBackend: agent.backend,
+        agentName: agent.name,
+        input: message,
+      });
+      if (result?.id) {
+        setPendingInitialMessage(result.id, message);
+        setPendingAgent(null);
+        setActiveConversationIdRaw(result.id);
+      }
+    },
+    [pendingAgent, createConversation]
+  );
+
+  const cancelNewChat = useCallback(() => {
+    setPendingAgent(null);
+  }, []);
 
   const deleteConversation = useCallback(
     async (id: string) => {
@@ -182,7 +229,11 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         isLoading,
         availableAgents,
         activeConversationId,
+        pendingAgent,
         setActiveConversationId,
+        startNewChat,
+        commitNewChat,
+        cancelNewChat,
         refresh,
         fetchAgents,
         createConversation,

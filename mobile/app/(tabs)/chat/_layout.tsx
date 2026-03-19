@@ -15,11 +15,13 @@ export default function ChatDrawerLayout() {
   const text = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
   const navigation = useNavigation();
-  const { conversations, activeConversationId } = useConversations();
+  const { conversations, activeConversationId, pendingAgent } = useConversations();
   const { currentWorkspace, workspaceDisplayName } = useWorkspace();
 
   const activeConv = conversations.find((c) => c.id === activeConversationId);
-  const conversationName = activeConv?.name || 'Chat';
+  const conversationName = pendingAgent
+    ? (pendingAgent.label || pendingAgent.name)
+    : (activeConv?.name || 'Chat');
 
   return (
     <Drawer

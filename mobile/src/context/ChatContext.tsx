@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { bridge } from '../services/bridge';
+import { consumePendingInitialMessage } from '../services/pendingInitialMessages';
 import { transformMessage, composeMessage, type TMessage, type IResponseMessage } from '../utils/messageAdapter';
 import { uuid } from '../utils/uuid';
 
@@ -85,6 +86,33 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       unsub();
       unsubConfirmAdd();
     };
+  }, [conversationId]);
+
+  // Auto-send initial message when conversation was created via commitNewChat
+  useEffect(() => {
+    if (!conversationId) return;
+    const pending = consumePendingInitialMessage(conversationId);
+    if (!pending) return;
+
+    const msgId = uuid();
+    const userMsg: TMessage = {
+      id: uuid(),
+      msg_id: msgId,
+      conversation_id: conversationId,
+      type: 'text',
+      position: 'right',
+      content: { content: pending },
+      createdAt: Date.now(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+
+    bridge
+      .request('chat.send.message', {
+        input: pending,
+        msg_id: msgId,
+        conversation_id: conversationId,
+      })
+      .catch((e) => console.warn('[Chat] initial send failed:', e));
   }, [conversationId]);
 
   const sendMessage = useCallback(

@@ -4,18 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '../ui/ThemedText';
 import { NewConversationModal } from '../conversation/NewConversationModal';
-import { useConversations } from '../../context/ConversationContext';
+import { useConversations, type AgentInfo } from '../../context/ConversationContext';
 import { useThemeColor } from '../../hooks/useThemeColor';
 
 export function ChatEmptyState() {
   const { t } = useTranslation();
-  const { setActiveConversationId } = useConversations();
+  const { startNewChat } = useConversations();
   const [showNewModal, setShowNewModal] = useState(false);
   const background = useThemeColor({}, 'background');
   const tint = useThemeColor({}, 'tint');
 
-  const handleCreated = (conversationId: string) => {
-    setActiveConversationId(conversationId);
+  const handleAgentSelected = (agent: AgentInfo) => {
+    startNewChat(agent);
   };
 
   return (
@@ -32,7 +32,7 @@ export function ChatEmptyState() {
         <ThemedText style={styles.buttonText}>{t('chat.newChat')}</ThemedText>
       </TouchableOpacity>
 
-      <NewConversationModal visible={showNewModal} onClose={() => setShowNewModal(false)} onCreated={handleCreated} />
+      <NewConversationModal visible={showNewModal} onClose={() => setShowNewModal(false)} onAgentSelected={handleAgentSelected} />
     </View>
   );
 }

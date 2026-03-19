@@ -56,7 +56,8 @@
     "permissionRequest": "权限请求",
     "newChat": "新建聊天",
     "noConversation": "未选择对话",
-    "startChatHint": "创建一个新对话开始使用"
+    "startChatHint": "创建一个新对话开始使用",
+    "pendingHint": "发送消息以开始对话"
   },
   "workspace": {
     "temporarySpace": "临时会话",

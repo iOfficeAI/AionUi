@@ -6,13 +6,13 @@ import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { ThemedText } from '../ui/ThemedText';
 import { NewConversationModal } from '../conversation/NewConversationModal';
 import { WorkspaceGroup } from './WorkspaceGroup';
-import { useConversations, type Conversation } from '../../context/ConversationContext';
+import { useConversations, type Conversation, type AgentInfo } from '../../context/ConversationContext';
 import { useThemeColor } from '../../hooks/useThemeColor';
 import { buildGroupedHistory } from '../../utils/groupingHelpers';
 
 export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
   const { t } = useTranslation();
-  const { conversations, activeConversationId, setActiveConversationId, deleteConversation } = useConversations();
+  const { conversations, activeConversationId, setActiveConversationId, startNewChat, deleteConversation } = useConversations();
   const [showNewModal, setShowNewModal] = useState(false);
   const background = useThemeColor({}, 'background');
   const border = useThemeColor({}, 'border');
@@ -25,8 +25,8 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
     navigation.closeDrawer();
   };
 
-  const handleCreated = (conversationId: string) => {
-    setActiveConversationId(conversationId);
+  const handleAgentSelected = (agent: AgentInfo) => {
+    startNewChat(agent);
     navigation.closeDrawer();
   };
 
@@ -139,7 +139,7 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
         </ScrollView>
       )}
 
-      <NewConversationModal visible={showNewModal} onClose={() => setShowNewModal(false)} onCreated={handleCreated} />
+      <NewConversationModal visible={showNewModal} onClose={() => setShowNewModal(false)} onAgentSelected={handleAgentSelected} />
     </View>
   );
 }
