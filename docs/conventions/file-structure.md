@@ -27,12 +27,15 @@ This project straddles two ecosystems. Each follows its own convention:
 | **Renderer** (`src/renderer/`) | **PascalCase** for component/module dirs | React ecosystem — directory name = component name |
 | **Everything else** | **lowercase** | Node.js ecosystem |
 | **Categorical dirs** (everywhere) | **lowercase** | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
+| **Platform dirs** (renderer pages) | **lowercase** | Mirror `src/agent/<platform>/` naming for cross-process consistency |
 
 ### Quick test
 
 > "Is this directory inside `src/renderer/` AND does it represent a specific component or feature module (not a category)?"
 >
 > **YES** → PascalCase. **NO** → lowercase.
+>
+> **Exception**: Platform directories (`acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) always use lowercase, even inside renderer, to match `src/agent/`.
 
 ### Renderer examples
 
@@ -45,8 +48,11 @@ src/renderer/
 │   ├── settings/            # top-level page → lowercase (route segment)
 │   │   ├── CssThemeSettings/   # feature module → PascalCase
 │   │   └── McpManagement/      # feature module → PascalCase
-│   └── conversation/
-│       └── GroupedHistory/  # feature module → PascalCase
+│   └── conversation/        # top-level page → lowercase
+│       ├── GroupedHistory/  # feature module → PascalCase
+│       ├── Workspace/       # feature module → PascalCase
+│       ├── acp/             # platform dir → lowercase (mirrors src/agent/acp/)
+│       └── components/      # categorical → lowercase
 └── hooks/                   # categorical → lowercase
 ```
 
@@ -112,10 +118,35 @@ A single directory must not contain more than **10** direct children (files + su
 - **Arco style overrides**: Co-locate in the component's CSS Module using `:global(.arco-xxx)`. Do not use a global override file.
 - **Global styles**: Only allowed in `src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `src/renderer/` root.
 
+## Renderer Root Directory — Standard Layout
+
+The renderer root must contain **at most 3 entry files + 7 directories = 10 items**.
+
+```
+src/renderer/
+├── index.html      # Vite HTML entry
+├── main.tsx        # React mount + app bootstrap
+├── types.d.ts      # Ambient type declarations
+├── pages/          # Page-level modules (business code goes here)
+├── components/     # Shared UI components (used across multiple pages)
+├── hooks/          # Shared React hooks (supports business domain subdirs)
+├── context/        # Global React contexts
+├── services/       # Client-side services + i18n
+├── utils/          # Utility functions + types + constants
+├── styles/         # Global styles + theme configuration
+└── assets/         # Static assets — Vite resolves to hashed URLs
+```
+
+**What does NOT belong at the renderer root:**
+- CSS files → move to `styles/`
+- Component files (`.tsx`) → move to `components/` or `pages/`
+- Single-file directories (only 1 file inside) → merge into a related directory
+
 ## Renderer Component Rules
 
 - **Single file** when self-contained; **directory** when it has sub-components/hooks
 - Directory-based components must have `index.tsx` entry point
+- **Single-file directory rule**: A directory containing only 1 file should be merged into its parent or a related directory
 - Page-private code stays under `pages/<PageName>/`; move to shared only when a second consumer appears
 
 ### `src/renderer/components/` Structure
@@ -147,6 +178,38 @@ src/renderer/components/
 
 > The business subdirectory list above is illustrative. New domains are created as needed following the same rules.
 
+### `src/renderer/hooks/` — Grouping by Business Domain
+
+When `hooks/` exceeds 10 direct children, group hooks into business domain subdirectories. Generic hooks with no clear domain stay at the root. The root must stay ≤ 10 direct children.
+
+```
+hooks/
+├── agent/          # Agent/model related
+├── chat/           # Chat/message input
+├── file/           # File/workspace
+├── mcp/            # MCP related
+├── ui/             # Generic UI interaction
+├── system/         # System-level (deep link, notification, theme, etc.)
+└── index.ts        # Public re-exports (optional)
+```
+
+> Domain names are recommendations. Create new domains as needed following the same pattern.
+
+### `src/renderer/utils/` — Grouping by Business Domain
+
+Same principle as `hooks/`. When `utils/` exceeds 10 direct children, group into domain subdirectories. The root must stay ≤ 10 direct children.
+
+```
+utils/
+├── file/           # File handling
+├── workspace/      # Workspace utilities
+├── chat/           # Chat/message utilities
+├── model/          # Model/agent utilities
+├── theme/          # Theme/style utilities
+├── ui/             # Generic UI utilities
+└── ...             # Ungrouped utilities at root
+```
+
 ### Page Module Structure
 
 ```
@@ -159,3 +222,15 @@ PageName/                  # PascalCase
 ├── types.ts
 └── constants.ts
 ```
+
+### Page-Level Directory Naming
+
+Inside a page module (e.g., `pages/conversation/`), three types of subdirectories exist:
+
+| Type | Convention | Examples |
+|------|-----------|----------|
+| **Categorical** (standard role) | lowercase | `components/`, `hooks/`, `context/`, `utils/` |
+| **Feature module** (business feature) | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/` |
+| **Platform directory** (mirrors `src/agent/`) | lowercase | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
+
+Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/agent/<platform>/`.
