@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { emitter } from '@/renderer/utils/emitter';
-import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspaceEvents';
+import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useCallback, useRef, useState } from 'react';
 import type { SelectedNodeRef } from '../types';
 import { getFirstLevelKeys } from '../utils/treeHelpers';

@@ -6,8 +6,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ipcBridge } from '@/common';
 import WindowControls from '../WindowControls';
-import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspaceEvents';
-import type { WorkspaceStateDetail } from '@renderer/utils/workspaceEvents';
+import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
+import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';

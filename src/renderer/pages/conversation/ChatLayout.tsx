@@ -22,7 +22,7 @@ import {
   dispatchWorkspaceStateEvent,
   dispatchWorkspaceToggleEvent,
   type WorkspaceHasFilesDetail,
-} from '@/renderer/utils/workspaceEvents';
+} from '@/renderer/utils/workspace/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 import { isElectronDesktop } from '@/renderer/utils/platform';

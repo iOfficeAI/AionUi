@@ -18,7 +18,7 @@ import {
   getLastDirectoryName,
   isTemporaryWorkspace as checkIsTemporaryWorkspace,
   getWorkspaceDisplayName as getDisplayName,
-} from '@/renderer/utils/workspace';
+} from '@/renderer/utils/workspace/workspace';
 import { Checkbox, Dropdown, Empty, Input, Menu, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Down, FileText, FolderOpen, Plus, Refresh, Search, AlarmClock } from '@icon-park/react';

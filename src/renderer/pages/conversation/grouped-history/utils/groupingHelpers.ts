@@ -6,8 +6,8 @@
 
 import type { TChatConversation } from '@/common/storage';
 import { getActivityTime, getTimelineLabel } from '@/renderer/utils/timeline';
-import { getWorkspaceDisplayName } from '@/renderer/utils/workspace';
-import { getWorkspaceUpdateTime } from '@/renderer/utils/workspaceHistory';
+import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
+import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
 
 import type { GroupedHistoryResult, TimelineItem, TimelineSection, WorkspaceGroup } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';

@@ -9,7 +9,7 @@ import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/siderTooltip';
-import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
+import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Close, Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
