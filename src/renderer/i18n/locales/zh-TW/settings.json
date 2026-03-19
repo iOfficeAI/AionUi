@@ -36,7 +36,11 @@
     "customPathLabel": "技能目錄路徑",
     "customPathPlaceholder": "例如：C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "搜尋技能...",
-    "noSearchResults": "未找到相關技能"
+    "noSearchResults": "未找到相關技能",
+    "skillDetail": "技能詳情",
+    "loadingContent": "載入內容中...",
+    "loadFailed": "無法載入技能內容",
+    "location": "位置"
   },
   "authMethod": "驗證",
   "geminiApiKey": "Gemini API 金鑰",

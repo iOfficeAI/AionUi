@@ -36,7 +36,11 @@
     "customPathLabel": "スキルディレクトリパス",
     "customPathPlaceholder": "例：C:\\Users\\me\\.mytools\\skills",
     "searchPlaceholder": "スキルを検索...",
-    "noSearchResults": "関連するスキルが見つかりません"
+    "noSearchResults": "関連するスキルが見つかりません",
+    "skillDetail": "スキル詳細",
+    "loadingContent": "コンテンツを読み込み中...",
+    "loadFailed": "スキルの内容を読み込めませんでした",
+    "location": "場所"
   },
   "authMethod": "認証",
   "geminiApiKey": "Gemini API キー",

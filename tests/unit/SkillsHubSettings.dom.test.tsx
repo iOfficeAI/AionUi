@@ -7,7 +7,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => options?.defaultValue || key,
+    t: (key: string) => key,
   }),
 }));
 
@@ -42,6 +42,16 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
         confirm: vi.fn(),
       }
     ),
+    Drawer: ({ visible, title, children, footer }: any) => {
+      if (!visible) return null;
+      return (
+        <div data-testid='mock-drawer'>
+          <div data-testid='drawer-title'>{title}</div>
+          <div>{children}</div>
+          <div>{footer}</div>
+        </div>
+      );
+    },
   };
 });
 
@@ -57,9 +67,10 @@ vi.mock('@icon-park/react', () => {
   };
 });
 
-// Mock the getAvatarColorClass inside the component
-// Since we want to test it directly, we actually don't mock it, but we can extract it if needed.
-// For now, we'll test it implicitly.
+// Mock MarkdownView component
+vi.mock('@/renderer/components/Markdown', () => ({
+  default: ({ children }: { children: string }) => <div data-testid='mock-markdown'>{children}</div>,
+}));
 
 // Setup IPC Bridge mock
 const mockListAvailableSkills = vi.fn();
@@ -70,6 +81,7 @@ const mockDeleteSkill = vi.fn();
 const mockExportSkillWithSymlink = vi.fn();
 const mockAddCustomExternalPath = vi.fn();
 const mockShowOpen = vi.fn();
+const mockReadFile = vi.fn();
 
 vi.mock('@/common', () => {
   return {
@@ -82,6 +94,7 @@ vi.mock('@/common', () => {
         deleteSkill: { invoke: (...args: any[]) => mockDeleteSkill(...args) },
         exportSkillWithSymlink: { invoke: (...args: any[]) => mockExportSkillWithSymlink(...args) },
         addCustomExternalPath: { invoke: (...args: any[]) => mockAddCustomExternalPath(...args) },
+        readFile: { invoke: (...args: any[]) => mockReadFile(...args) },
       },
       dialog: {
         showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -128,6 +141,8 @@ describe('SkillsHubSettings Component', () => {
       userSkillsDir: '/user/skills',
       builtinSkillsDir: '/builtin/skills',
     });
+
+    mockReadFile.mockResolvedValue('---\nname: test\n---\n# Test Skill\n\nSome content.');
   });
 
   it('should render main sections and load skills', async () => {
@@ -139,9 +154,9 @@ describe('SkillsHubSettings Component', () => {
       expect(mockDetectAndCountExternalSkills).toHaveBeenCalled();
     });
 
-    // Check headers
-    expect(screen.getByText('发现外部技能')).toBeInTheDocument();
-    expect(screen.getByText('我的技能')).toBeInTheDocument();
+    // Check headers (now using i18n keys since defaultValue was removed)
+    expect(screen.getByText('settings.skillsHub.discoveredTitle')).toBeInTheDocument();
+    expect(screen.getByText('settings.skillsHub.mySkillsTitle')).toBeInTheDocument();
 
     // Check external skills render
     expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
@@ -150,8 +165,8 @@ describe('SkillsHubSettings Component', () => {
     // Check my skills render
     expect(screen.getByText('MySkill1')).toBeInTheDocument();
     expect(screen.getByText('Builtin1')).toBeInTheDocument();
-    expect(screen.getByText('自定义')).toBeInTheDocument();
-    expect(screen.getByText('内置')).toBeInTheDocument();
+    expect(screen.getByText('settings.skillsHub.custom')).toBeInTheDocument();
+    expect(screen.getByText('settings.skillsHub.builtin')).toBeInTheDocument();
 
     // Check paths are rendered
     expect(screen.getByText('/user/skills')).toBeInTheDocument();
@@ -164,9 +179,8 @@ describe('SkillsHubSettings Component', () => {
       expect(screen.getByText('MySkill1')).toBeInTheDocument();
     });
 
-    // Get the My Skills search input
-    // The component has two search inputs, the second one is for My Skills
-    const searchInputs = screen.getAllByPlaceholderText('Search skills...');
+    // Get the My Skills search input (using i18n key as placeholder)
+    const searchInputs = screen.getAllByPlaceholderText('settings.skillsHub.searchPlaceholder');
     const mySkillsSearch = searchInputs[1];
 
     // Search for non-existent skill
@@ -186,24 +200,18 @@ describe('SkillsHubSettings Component', () => {
     });
   });
 
-  it('should import external skill successfully', async () => {
-    mockImportSkillWithSymlink.mockResolvedValue({ success: true });
-
+  it('should open skill detail drawer when clicking external skill', async () => {
     render(<SkillsHubSettings />);
 
     await waitFor(() => {
       expect(screen.getByText('ExtSkill1')).toBeInTheDocument();
     });
 
-    // Find import button for the external skill
-    // ExtSkill1 and ExtSkill2 - first 导入 button
-    const importButtons = screen.getAllByText('导入');
-    expect(importButtons.length).toBeGreaterThan(0);
-
-    fireEvent.click(importButtons[0]);
+    // Click the external skill card to open detail drawer
+    fireEvent.click(screen.getByText('ExtSkill1'));
 
     await waitFor(() => {
-      expect(mockImportSkillWithSymlink).toHaveBeenCalledWith({ skillPath: '/home/gemini/ext1' });
+      expect(screen.getByTestId('mock-drawer')).toBeInTheDocument();
     });
   });
 
@@ -243,11 +251,10 @@ describe('SkillsHubSettings Component', () => {
     render(<SkillsHubSettings />);
 
     await waitFor(() => {
-      expect(screen.getByText('发现外部技能')).toBeInTheDocument();
+      expect(screen.getByText('settings.skillsHub.discoveredTitle')).toBeInTheDocument();
     });
 
-    // Click Add button (has title "Add" mocked effectively)
-    // Instead of targeting testid, let's grab the add button. In UI it's a Plus icon.
+    // Click Add button
     const plusIcon = screen.getByTestId('icon-plus');
     fireEvent.click(plusIcon.parentElement!);
 
@@ -255,9 +262,9 @@ describe('SkillsHubSettings Component', () => {
       expect(screen.getByTestId('mock-modal')).toBeInTheDocument();
     });
 
-    // Add name and path
-    const nameInput = screen.getByPlaceholderText('例：我的自定义技能');
-    const pathInput = screen.getByPlaceholderText('例：C:\\Users\\me\\.mytools\\skills');
+    // Add name and path (placeholders now use i18n keys)
+    const nameInput = screen.getByPlaceholderText('settings.skillsHub.customPathNamePlaceholder');
+    const pathInput = screen.getByPlaceholderText('settings.skillsHub.customPathPlaceholder');
 
     fireEvent.change(nameInput, { target: { value: 'NewPath' } });
     fireEvent.change(pathInput, { target: { value: '/foo/bar' } });
@@ -275,6 +282,6 @@ describe('SkillsHubSettings Component', () => {
 
   it('should render usage tips correctly', () => {
     render(<SkillsHubSettings />);
-    expect(screen.getByText('使用贴士：')).toBeInTheDocument();
+    expect(screen.getByText('settings.skillsHub.tipTitle')).toBeInTheDocument();
   });
 });

@@ -71,7 +71,7 @@ const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties =>
 
 function CodeBlock(props: any) {
   const { t } = useTranslation();
-  const [fold, setFlow] = useState(true);
+  const [fold, setFlow] = useState(!props.codeDefaultExpanded);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
@@ -98,6 +98,7 @@ function CodeBlock(props: any) {
       node: _node,
       hiddenCodeCopyButton: _hiddenCodeCopyButton,
       codeStyle: _codeStyle,
+      codeDefaultExpanded: _codeDefaultExpanded,
       ...rest
     } = props;
     const match = /language-(\w+)/.exec(className || '');
@@ -574,6 +575,8 @@ interface MarkdownViewProps {
   onRef?: (el?: HTMLDivElement | null) => void;
   /** Enable raw HTML rendering in markdown content. Use with caution — only for trusted sources. */
   allowHtml?: boolean;
+  /** If true, code blocks start expanded instead of collapsed. */
+  codeDefaultExpanded?: boolean;
 }
 
 const MarkdownView: React.FC<MarkdownViewProps> = ({
@@ -582,6 +585,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
   className,
   onRef,
   allowHtml,
+  codeDefaultExpanded,
   children: childrenProp,
 }) => {
   const { t } = useTranslation();
@@ -620,7 +624,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({
                   </span>
                 );
               },
-              code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
+              code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton, codeDefaultExpanded }),
               a: ({ node: _node, ...props }) => (
                 <a
                   {...props}

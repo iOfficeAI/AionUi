@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
-import { Button, Message, Modal, Typography, Input, Dropdown, Menu } from '@arco-design/web-react';
+import MarkdownView from '@/renderer/components/Markdown';
+import { Button, Drawer, Message, Modal, Typography, Input, Dropdown, Menu } from '@arco-design/web-react';
 import { Delete, FolderOpen, Info, Search, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +53,17 @@ const SkillsHubSettings: React.FC = () => {
   const [customPathValue, setCustomPathValue] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Skill detail drawer state
+  const [selectedSkill, setSelectedSkill] = useState<{
+    name: string;
+    description: string;
+    path: string;
+    isImported?: boolean;
+    isCustom?: boolean;
+  } | null>(null);
+  const [skillContent, setSkillContent] = useState<string>('');
+  const [loadingContent, setLoadingContent] = useState(false);
+
   const filteredSkills = useMemo(() => {
     if (!searchQuery.trim()) return availableSkills;
     const lowerQuery = searchQuery.toLowerCase();
@@ -60,6 +72,35 @@ const SkillsHubSettings: React.FC = () => {
         s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
     );
   }, [availableSkills, searchQuery]);
+
+  const loadSkillContent = useCallback(
+    async (skillPath: string) => {
+      setLoadingContent(true);
+      setSkillContent('');
+      try {
+        // skillPath may be the SKILL.md path (for installed skills) or directory path (for external)
+        const mdPath = skillPath.endsWith('SKILL.md') ? skillPath : `${skillPath}/SKILL.md`;
+        const content = await ipcBridge.fs.readFile.invoke({ path: mdPath });
+        // Strip YAML frontmatter for cleaner display
+        const stripped = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '');
+        setSkillContent(stripped.trim());
+      } catch (error) {
+        console.error('Failed to load skill content:', error);
+        setSkillContent(t('settings.skillsHub.loadFailed'));
+      } finally {
+        setLoadingContent(false);
+      }
+    },
+    [t]
+  );
+
+  const openSkillDetail = useCallback(
+    (skill: { name: string; description: string; path: string; isImported?: boolean; isCustom?: boolean }) => {
+      setSelectedSkill(skill);
+      void loadSkillContent(skill.path);
+    },
+    [loadSkillContent]
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -79,7 +120,7 @@ const SkillsHubSettings: React.FC = () => {
       setSkillPaths(paths);
     } catch (error) {
       console.error('Failed to fetch skills:', error);
-      Message.error(t('settings.skillsHub.fetchError', { defaultValue: 'Failed to fetch skills' }));
+      Message.error(t('settings.skillsHub.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -93,16 +134,14 @@ const SkillsHubSettings: React.FC = () => {
     try {
       const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath });
       if (result.success) {
-        Message.success(
-          result.msg || t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' })
-        );
+        Message.success(result.msg || t('settings.skillsHub.importSuccess'));
         void fetchData();
       } else {
-        Message.error(result.msg || t('settings.skillsHub.importFailed', { defaultValue: 'Failed to import skill' }));
+        Message.error(result.msg || t('settings.skillsHub.importFailed'));
       }
     } catch (error) {
       console.error('Failed to import skill:', error);
-      Message.error(t('settings.skillsHub.importError', { defaultValue: 'Error importing skill' }));
+      Message.error(t('settings.skillsHub.importError'));
     }
   };
 
@@ -120,7 +159,6 @@ const SkillsHubSettings: React.FC = () => {
       Message.success(
         t('settings.skillsHub.importAllSuccess', {
           count: successCount,
-          defaultValue: `${successCount} skills imported`,
         })
       );
       void fetchData();
@@ -131,14 +169,14 @@ const SkillsHubSettings: React.FC = () => {
     try {
       const result = await ipcBridge.fs.deleteSkill.invoke({ skillName });
       if (result.success) {
-        Message.success(result.msg || t('settings.skillsHub.deleteSuccess', { defaultValue: 'Skill deleted' }));
+        Message.success(result.msg || t('settings.skillsHub.deleteSuccess'));
         void fetchData();
       } else {
-        Message.error(result.msg || t('settings.skillsHub.deleteFailed', { defaultValue: 'Failed to delete skill' }));
+        Message.error(result.msg || t('settings.skillsHub.deleteFailed'));
       }
     } catch (error) {
       console.error('Failed to delete skill:', error);
-      Message.error(t('settings.skillsHub.deleteError', { defaultValue: 'Error deleting skill' }));
+      Message.error(t('settings.skillsHub.deleteError'));
     }
   };
 
@@ -165,7 +203,7 @@ const SkillsHubSettings: React.FC = () => {
           setActiveSourceTab(external.data[0].source);
         }
       }
-      Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
+      Message.success(t('common.refreshSuccess'));
     } catch (error) {
       console.error('Failed to refresh external skills:', error);
     } finally {
@@ -213,13 +251,13 @@ const SkillsHubSettings: React.FC = () => {
           <div className='space-y-16px pb-24px'>
             {/* ======== 发现外部技能 / Discovered External Skills ======== */}
             {totalExternal > 0 && (
-              <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px mb-16px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+              <div className='px-[16px] md:px-[32px] py-32px bg-fill-1 rd-16px md:rd-24px mb-16px shadow-sm border border-line relative overflow-hidden transition-all'>
                 {/* Section Header with Search Bar */}
                 <div className='flex flex-col lg:flex-row lg:items-start justify-between gap-16px mb-24px relative z-10 w-full'>
                   <div className='flex flex-col'>
                     <div className='flex items-center gap-10px mb-8px'>
                       <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
-                        {t('settings.skillsHub.discoveredTitle', { defaultValue: '发现外部技能' })}
+                        {t('settings.skillsHub.discoveredTitle')}
                       </span>
                       <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
                         {totalExternal}
@@ -227,15 +265,13 @@ const SkillsHubSettings: React.FC = () => {
                       <button
                         className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
                         onClick={() => void handleRefreshExternal()}
-                        title={t('common.refresh', { defaultValue: 'Refresh' })}
+                        title={t('common.refresh')}
                       >
                         <Refresh theme='outline' size={16} className={refreshing ? 'animate-spin' : ''} />
                       </button>
                     </div>
                     <Typography.Text className='text-13px text-t-secondary block max-w-xl leading-relaxed'>
-                      {t('settings.skillsHub.discoveryAlert', {
-                        defaultValue: '检测到来自 CLI 工具的技能。导入后即可在 AionUi 中使用。',
-                      })}
+                      {t('settings.skillsHub.discoveryAlert')}
                     </Typography.Text>
                   </div>
 
@@ -247,7 +283,7 @@ const SkillsHubSettings: React.FC = () => {
                     <input
                       type='text'
                       className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
-                      placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
+                      placeholder={t('settings.skillsHub.searchPlaceholder')}
                       value={searchExternalQuery}
                       onChange={(e) => setSearchExternalQuery(e.target.value)}
                     />
@@ -262,7 +298,7 @@ const SkillsHubSettings: React.FC = () => {
                       <button
                         key={source.source}
                         type='button'
-                        className={`outline-none cursor-pointer px-16px py-6px text-13px rd-[100px] transition-all duration-300 flex items-center gap-6px border ${isActive ? 'bg-primary-6 border-primary-6 text-white shadow-md font-medium' : 'bg-base border-border-1 text-t-secondary hover:bg-fill-1 hover:text-t-primary'}`}
+                        className={`outline-none cursor-pointer px-16px py-6px text-13px rd-[100px] transition-all duration-300 flex items-center gap-6px border ${isActive ? 'bg-primary-6 border-primary-6 text-white shadow-md font-medium' : 'bg-transparent border-border-1 text-t-secondary hover:bg-fill-2 hover:text-t-primary'}`}
                         onClick={() => setActiveSourceTab(source.source)}
                       >
                         {source.name}
@@ -278,7 +314,7 @@ const SkillsHubSettings: React.FC = () => {
                     type='button'
                     className='outline-none border border-dashed border-border-1 hover:border-primary-4 cursor-pointer w-28px h-28px ml-4px text-t-tertiary hover:text-primary-6 hover:bg-primary-1 rd-full transition-all duration-300 flex items-center justify-center bg-transparent shrink-0'
                     onClick={() => setShowAddPathModal(true)}
-                    title={t('common.add', { defaultValue: 'Add' })}
+                    title={t('common.add')}
                   >
                     <Plus size={16} />
                   </button>
@@ -297,7 +333,7 @@ const SkillsHubSettings: React.FC = () => {
                         className='flex items-center gap-6px text-13px font-medium text-primary-6 hover:text-primary-5 transition-colors bg-transparent border-none outline-none cursor-pointer whitespace-nowrap'
                         onClick={() => void handleImportAll(activeSource.skills)}
                       >
-                        {t('settings.skillsHub.importAll', { defaultValue: '全部导入' })}
+                        {t('settings.skillsHub.importAll')}
                       </button>
                     </div>
 
@@ -305,11 +341,13 @@ const SkillsHubSettings: React.FC = () => {
                       {filteredExternalSkills.map((skill) => (
                         <div
                           key={skill.path}
-                          className='group flex flex-col sm:flex-row gap-16px p-16px bg-base border border-transparent hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 cursor-pointer'
-                          onClick={() => void handleImport(skill.path)}
+                          className='group flex flex-col sm:flex-row gap-16px p-16px bg-transparent border border-transparent hover:border-border-1 hover:bg-fill-2 hover:shadow-sm rd-12px transition-all duration-200 cursor-pointer'
+                          onClick={() =>
+                            openSkillDetail({ name: skill.name, description: skill.description, path: skill.path })
+                          }
                         >
                           <div className='shrink-0 flex items-start sm:mt-2px'>
-                            <div className='w-40px h-40px rd-full bg-base border border-border-1 flex items-center justify-center font-bold text-16px text-t-primary shadow-sm transition-all text-transform-uppercase'>
+                            <div className='w-40px h-40px rd-full bg-fill-2 border border-border-1 flex items-center justify-center font-bold text-16px text-t-primary shadow-sm transition-all text-transform-uppercase'>
                               {skill.name.charAt(0)}
                             </div>
                           </div>
@@ -337,14 +375,14 @@ const SkillsHubSettings: React.FC = () => {
                               }}
                               className='rd-[100px] shadow-sm px-16px'
                             >
-                              {t('common.import', { defaultValue: '导入' })}
+                              {t('common.import')}
                             </Button>
                           </div>
                         </div>
                       ))}
                       {filteredExternalSkills.length === 0 && (
-                        <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed'>
-                          {t('settings.skillsHub.noSearchResults', { defaultValue: '未找到相关技能' })}
+                        <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-line border-dashed'>
+                          {t('settings.skillsHub.noSearchResults')}
                         </div>
                       )}
                     </div>
@@ -354,12 +392,12 @@ const SkillsHubSettings: React.FC = () => {
             )}
 
             {/* ======== 我的技能 / My Skills ======== */}
-            <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+            <div className='px-[16px] md:px-[32px] py-32px bg-fill-1 rd-16px md:rd-24px shadow-sm border border-line relative overflow-hidden transition-all'>
               {/* Toolbar for My Skills */}
               <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-16px mb-24px relative z-10'>
                 <div className='flex items-center gap-10px shrink-0'>
                   <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
-                    {t('settings.skillsHub.mySkillsTitle', { defaultValue: '我的技能' })}
+                    {t('settings.skillsHub.mySkillsTitle')}
                   </span>
                   <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
                     {availableSkills.length}
@@ -368,9 +406,9 @@ const SkillsHubSettings: React.FC = () => {
                     className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
                     onClick={async () => {
                       await fetchData();
-                      Message.success(t('common.refreshSuccess', { defaultValue: '已刷新' }));
+                      Message.success(t('common.refreshSuccess'));
                     }}
-                    title={t('common.refresh', { defaultValue: 'Refresh' })}
+                    title={t('common.refresh')}
                   >
                     <Refresh theme='outline' size={16} className={loading ? 'animate-spin' : ''} />
                   </button>
@@ -384,20 +422,18 @@ const SkillsHubSettings: React.FC = () => {
                     <input
                       type='text'
                       className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
-                      placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
+                      placeholder={t('settings.skillsHub.searchPlaceholder')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
 
                   <button
-                    className='flex items-center justify-center gap-6px px-16px py-6px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
+                    className='flex items-center justify-center gap-6px px-16px py-6px bg-transparent border border-border-1 hover:border-border-2 hover:bg-fill-2 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
                     onClick={handleManualImport}
                   >
                     <FolderOpen size={15} className='text-t-secondary' />
-                    <span className='text-13px font-medium'>
-                      {t('settings.skillsHub.manualImport', { defaultValue: '从文件夹导入' })}
-                    </span>
+                    <span className='text-13px font-medium'>{t('settings.skillsHub.manualImport')}</span>
                   </button>
                 </div>
               </div>
@@ -417,7 +453,16 @@ const SkillsHubSettings: React.FC = () => {
                   {filteredSkills.map((skill) => (
                     <div
                       key={skill.name}
-                      className='group flex flex-col sm:flex-row gap-16px p-16px bg-base border border-transparent hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200'
+                      className='group flex flex-col sm:flex-row gap-16px p-16px bg-transparent border border-transparent hover:border-border-1 hover:bg-fill-2 hover:shadow-sm rd-12px transition-all duration-200 cursor-pointer'
+                      onClick={() =>
+                        openSkillDetail({
+                          name: skill.name,
+                          description: skill.description,
+                          path: skill.location,
+                          isImported: true,
+                          isCustom: skill.isCustom,
+                        })
+                      }
                     >
                       <div className='shrink-0 flex items-start sm:mt-2px'>
                         <div
@@ -432,11 +477,11 @@ const SkillsHubSettings: React.FC = () => {
                           <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
                           {skill.isCustom ? (
                             <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
-                              {t('settings.skillsHub.custom', { defaultValue: '自定义' })}
+                              {t('settings.skillsHub.custom')}
                             </span>
                           ) : (
                             <span className='bg-[rgba(var(--blue-6),0.08)] text-blue-6 border border-[rgba(var(--blue-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
-                              {t('settings.skillsHub.builtin', { defaultValue: '内置' })}
+                              {t('settings.skillsHub.builtin')}
                             </span>
                           )}
                         </div>
@@ -464,7 +509,7 @@ const SkillsHubSettings: React.FC = () => {
                                       e.stopPropagation();
 
                                       const hide = Message.loading({
-                                        content: t('common.processing', { defaultValue: 'Processing...' }),
+                                        content: t('common.processing'),
                                         duration: 0,
                                       });
                                       try {
@@ -482,14 +527,9 @@ const SkillsHubSettings: React.FC = () => {
 
                                         hide();
                                         if (result.success) {
-                                          Message.success(
-                                            t('settings.skillsHub.exportSuccess', { defaultValue: '导出成功' })
-                                          );
+                                          Message.success(t('settings.skillsHub.exportSuccess'));
                                         } else {
-                                          Message.error(
-                                            result.msg ||
-                                              t('settings.skillsHub.exportFailed', { defaultValue: '导出失败' })
-                                          );
+                                          Message.error(result.msg || t('settings.skillsHub.exportFailed'));
                                         }
                                       } catch (error) {
                                         hide();
@@ -506,30 +546,27 @@ const SkillsHubSettings: React.FC = () => {
                             }
                           >
                             <button
-                              className='p-8px hover:bg-fill-2 text-t-tertiary hover:text-t-secondary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
-                              title={t('settings.skillsHub.exportTo', { defaultValue: '导出到...' })}
+                              className='p-8px hover:bg-fill-2 text-t-tertiary hover:text-t-secondary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-fill-2 sm:bg-transparent sm:shadow-none'
+                              title={t('settings.skillsHub.exportTo')}
                             >
-                              <span className='text-12px font-medium'>
-                                {t('settings.skillsHub.exportTo', { defaultValue: '导出' })}
-                              </span>
+                              <span className='text-12px font-medium'>{t('settings.skillsHub.exportTo')}</span>
                             </button>
                           </Dropdown>
                         )}
                         {skill.isCustom && (
                           <button
-                            className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
+                            className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-fill-2 sm:bg-transparent sm:shadow-none'
                             onClick={() => {
                               Modal.confirm({
-                                title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: '确认删除技能' }),
+                                title: t('settings.skillsHub.deleteConfirmTitle'),
                                 content: t('settings.skillsHub.deleteConfirmContent', {
                                   name: skill.name,
-                                  defaultValue: `确定要删除 "${skill.name}" 吗？`,
                                 }),
                                 okButtonProps: { status: 'danger' },
                                 onOk: () => void handleDelete(skill.name),
                               });
                             }}
-                            title={t('common.delete', { defaultValue: '删除' })}
+                            title={t('common.delete')}
                           >
                             <Delete size={16} />
                           </button>
@@ -539,21 +576,17 @@ const SkillsHubSettings: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed relative z-10'>
-                  {loading
-                    ? t('common.loading', { defaultValue: '加载中...' })
-                    : t('settings.skillsHub.noSkills', { defaultValue: '未找到技能。导入一些来开始使用吧。' })}
+                <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-line border-dashed relative z-10'>
+                  {loading ? t('common.loading') : t('settings.skillsHub.noSkills')}
                 </div>
               )}
             </div>
 
             {/* ======== Usage Tip ======== */}
-            <div className='px-16px md:px-[24px] py-20px bg-base border border-b-base shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
+            <div className='px-16px md:px-[24px] py-20px bg-fill-1 border border-line shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
               <Info size={18} className='text-primary-6 mt-2px shrink-0' />
               <div className='flex flex-col gap-4px'>
-                <span className='font-bold text-t-primary text-14px'>
-                  {t('settings.skillsHub.tipTitle', { defaultValue: '使用贴士：' })}
-                </span>
+                <span className='font-bold text-t-primary text-14px'>{t('settings.skillsHub.tipTitle')}</span>
                 <span className='text-13px leading-relaxed'>{t('settings.skillsHub.tipContent')}</span>
               </div>
             </div>
@@ -563,7 +596,7 @@ const SkillsHubSettings: React.FC = () => {
 
       {/* Add Custom External Path Modal */}
       <Modal
-        title={t('settings.skillsHub.addCustomPath', { defaultValue: '添加自定义技能路径' })}
+        title={t('settings.skillsHub.addCustomPath')}
         visible={showAddPathModal}
         onCancel={() => {
           setShowAddPathModal(false);
@@ -571,33 +604,27 @@ const SkillsHubSettings: React.FC = () => {
           setCustomPathValue('');
         }}
         onOk={() => void handleAddCustomPath()}
-        okText={t('common.confirm', { defaultValue: '确认' })}
-        cancelText={t('common.cancel', { defaultValue: '取消' })}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
         okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
         autoFocus={false}
         focusLock
       >
         <div className='flex flex-col gap-16px'>
           <div>
-            <div className='text-13px font-medium text-t-primary mb-8px'>
-              {t('common.name', { defaultValue: '名称' })}
-            </div>
+            <div className='text-13px font-medium text-t-primary mb-8px'>{t('common.name')}</div>
             <Input
-              placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: '例：我的自定义技能' })}
+              placeholder={t('settings.skillsHub.customPathNamePlaceholder')}
               value={customPathName}
               onChange={(v) => setCustomPathName(v)}
               className='rd-6px'
             />
           </div>
           <div>
-            <div className='text-13px font-medium text-t-primary mb-8px'>
-              {t('settings.skillsHub.customPathLabel', { defaultValue: '技能目录路径' })}
-            </div>
+            <div className='text-13px font-medium text-t-primary mb-8px'>{t('settings.skillsHub.customPathLabel')}</div>
             <div className='flex gap-8px'>
               <Input
-                placeholder={t('settings.skillsHub.customPathPlaceholder', {
-                  defaultValue: '例：C:\\Users\\me\\.mytools\\skills',
-                })}
+                placeholder={t('settings.skillsHub.customPathPlaceholder')}
                 value={customPathValue}
                 onChange={(v) => setCustomPathValue(v)}
                 className='flex-1 rd-6px'
@@ -621,6 +648,70 @@ const SkillsHubSettings: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Skill Detail Drawer */}
+      <Drawer
+        title={
+          <div className='flex items-center gap-10px'>
+            <span className='text-16px font-bold'>{selectedSkill?.name || t('settings.skillsHub.skillDetail')}</span>
+            {selectedSkill?.isImported && (
+              <span
+                className={`text-11px px-6px py-1px rd-4px font-medium ${
+                  selectedSkill.isCustom
+                    ? 'bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)]'
+                    : 'bg-[rgba(var(--blue-6),0.08)] text-blue-6 border border-[rgba(var(--blue-6),0.2)]'
+                }`}
+              >
+                {selectedSkill.isCustom ? t('settings.skillsHub.custom') : t('settings.skillsHub.builtin')}
+              </span>
+            )}
+          </div>
+        }
+        width={560}
+        visible={!!selectedSkill}
+        placement='right'
+        onCancel={() => setSelectedSkill(null)}
+        footer={
+          <div className='flex items-center justify-between w-full'>
+            <div className='flex items-center gap-6px text-12px text-t-tertiary truncate max-w-[60%]'>
+              <FolderOpen size={14} className='shrink-0' />
+              <span className='truncate' title={selectedSkill?.path}>
+                {selectedSkill?.path}
+              </span>
+            </div>
+            <div className='flex gap-8px'>
+              <Button onClick={() => setSelectedSkill(null)}>{t('common.close')}</Button>
+              {selectedSkill && !selectedSkill.isImported && (
+                <Button
+                  type='primary'
+                  onClick={() => {
+                    void handleImport(selectedSkill.path);
+                    setSelectedSkill(null);
+                  }}
+                >
+                  {t('common.import')}
+                </Button>
+              )}
+            </div>
+          </div>
+        }
+        autoFocus={false}
+      >
+        <div className='flex flex-col gap-16px'>
+          {selectedSkill?.description && (
+            <Typography.Text className='text-13px text-t-secondary leading-relaxed'>
+              {selectedSkill.description}
+            </Typography.Text>
+          )}
+          {loadingContent ? (
+            <div className='flex items-center justify-center py-40px text-t-secondary text-13px'>
+              {t('settings.skillsHub.loadingContent')}
+            </div>
+          ) : (
+            skillContent && <MarkdownView codeDefaultExpanded>{skillContent}</MarkdownView>
+          )}
+        </div>
+      </Drawer>
     </>
   );
 };
