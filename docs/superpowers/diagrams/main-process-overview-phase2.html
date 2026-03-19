@@ -283,7 +283,7 @@
       <tr>
         <td>ConversationServiceImpl</td>
         <td>IConversationRepository</td>
-        <td>SqliteConversationRepository (via FallbackConversationRepository)</td>
+        <td>SqliteConversationRepository</td>
       </tr>
       <tr>
         <td>WorkerTaskManager</td>
@@ -394,7 +394,6 @@
       <div class="layer-title" style="color:#fb7185">存储库层 / Repository (src/process/database/)</div>
       <div class="module-grid">
         <div class="mod impl">SqliteConversationRepository <span class="badge impl">implements IConversationRepository</span></div>
-        <div class="mod impl">FallbackConversationRepository <span class="badge impl">decorator</span></div>
         <div class="mod impl">SqliteChannelRepository <span class="badge impl">implements IChannelRepository</span></div>
         <div class="mod impl">SqliteCronRepository <span class="badge impl">implements ICronRepository</span></div>
         <div class="mod">schema.ts</div>
@@ -432,7 +431,7 @@
     </tr>
     <tr>
       <td style="padding:4px 12px 4px 0; color:#4ade80; white-space:nowrap; vertical-align:top;">新增实现数</td>
-      <td style="padding:4px 0;">8 个具体实现 (ConversationServiceImpl, SqliteConversationRepository, FallbackConversationRepository, SqliteChannelRepository, WorkerTaskManager, AgentFactory, IpcAgentEventEmitter, SqliteCronRepository, IpcCronEventEmitter, WorkerTaskManagerJobExecutor)</td>
+      <td style="padding:4px 0;">9 个具体实现 (ConversationServiceImpl, SqliteConversationRepository, SqliteChannelRepository, WorkerTaskManager, AgentFactory, IpcAgentEventEmitter, SqliteCronRepository, IpcCronEventEmitter, WorkerTaskManagerJobExecutor)</td>
     </tr>
     <tr>
       <td style="padding:4px 12px 4px 0; color:#d8b4fe; white-space:nowrap; vertical-align:top;">单例装配点</td>
