@@ -91,6 +91,5 @@ export const useAcpInitialMessage = ({
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, backend]);
 };
