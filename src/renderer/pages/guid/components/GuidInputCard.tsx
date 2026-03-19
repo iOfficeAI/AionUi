@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import FilePreview from '@/renderer/components/FilePreview';
+import FilePreview from '@/renderer/components/media/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';

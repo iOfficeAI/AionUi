@@ -17,7 +17,7 @@ import './Diff2Html.css';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { usePreviewLauncher } from '../hooks/usePreviewLauncher';
+import { usePreviewLauncher } from '@renderer/hooks/usePreviewLauncher';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 
 const Diff2Html = ({

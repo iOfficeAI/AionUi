@@ -30,7 +30,7 @@ import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { addImportantToAll } from '../utils/customCssProcessor';
 import { convertLatexDelimiters } from '../utils/latexDelimiters';
-import LocalImageView from './LocalImageView';
+import LocalImageView from '@renderer/components/media/LocalImageView';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');

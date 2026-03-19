@@ -16,7 +16,7 @@ import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers'
 import { parseDiff } from '@/renderer/utils/diffUtils';
 import MessageFileChanges from './codex/MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
-import LocalImageView from '@renderer/components/LocalImageView';
+import LocalImageView from '@renderer/components/media/LocalImageView';
 import MarkdownView from '@renderer/components/Markdown';
 import { ToolConfirmationOutcome } from '@renderer/utils/toolConfirmation';
 import { ImagePreviewContext } from './MessageList';

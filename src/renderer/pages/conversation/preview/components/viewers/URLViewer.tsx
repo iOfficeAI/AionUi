@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import WebviewHost from '@/renderer/components/WebviewHost';
+import WebviewHost from '@/renderer/components/media/WebviewHost';
 
 interface URLViewerProps {
   /** URL to display */

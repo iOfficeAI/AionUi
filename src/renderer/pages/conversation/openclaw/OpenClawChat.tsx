@@ -10,7 +10,7 @@ import MessageList from '@renderer/pages/conversation/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/messages/hooks';
 import HOC from '@renderer/utils/HOC';
 import React, { useEffect } from 'react';
-import LocalImageView from '../../../components/LocalImageView';
+import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import OpenClawSendBox from './OpenClawSendBox';
 
