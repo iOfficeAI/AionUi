@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/electron/renderer';
 
 Sentry.init();
 
-import './bootstrap/runtimePatches';
+import './utils/runtimePatches';
 import type { PropsWithChildren } from 'react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
