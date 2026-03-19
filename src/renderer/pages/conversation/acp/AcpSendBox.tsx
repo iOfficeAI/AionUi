@@ -15,7 +15,7 @@ import { Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import FileAttachButton from '@/renderer/components/FileAttachButton';
-import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FilePreview from '@/renderer/components/FilePreview';
@@ -24,9 +24,9 @@ import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import type { TokenUsageData } from '@/common/storage';
-import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
-import AgentModeSelector from '@/renderer/components/AgentModeSelector';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {

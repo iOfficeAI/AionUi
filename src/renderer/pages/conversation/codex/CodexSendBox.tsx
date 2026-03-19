@@ -23,8 +23,8 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
-import AgentModeSelector from '@/renderer/components/AgentModeSelector';
-import AcpConfigSelector from '@/renderer/components/AcpConfigSelector';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
 
 interface CodexDraftData {

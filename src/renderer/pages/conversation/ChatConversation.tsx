@@ -25,7 +25,7 @@ import CodexChat from './codex/CodexChat';
 import NanobotChat from './nanobot/NanobotChat';
 import OpenClawChat from './openclaw/OpenClawChat';
 import GeminiChat from './gemini/GeminiChat';
-import AcpModelSelector from '@/renderer/components/AcpModelSelector';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
 import { usePreviewContext } from './preview';
