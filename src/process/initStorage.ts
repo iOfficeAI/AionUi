@@ -389,9 +389,14 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       // asarUnpack extracts files to app.asar.unpacked directory
       // asarUnpack 会将文件解压到 app.asar.unpacked 目录
       const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
+      // In production, viteStaticCopy places resources without src/ prefix,
+      // but direct file inclusion keeps the src/ prefix
+      const legacyPath = dirPath.startsWith('src/') ? dirPath.slice(4) : dirPath;
       candidates = [
-        path.join(unpackedPath, dirPath), // Unpacked location (preferred)
-        path.join(appPath, dirPath), // Fallback to asar path
+        path.join(unpackedPath, legacyPath), // viteStaticCopy output (preferred)
+        path.join(unpackedPath, dirPath), // Direct inclusion from src/
+        path.join(appPath, legacyPath), // Fallback to asar path (viteStaticCopy)
+        path.join(appPath, dirPath), // Fallback to asar path (direct)
       ];
     } else {
       candidates = [
@@ -417,7 +422,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     (preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0
   );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
-  const builtinSkillsDir = resolveBuiltinDir('skills');
+  const builtinSkillsDir = resolveBuiltinDir('src/skills');
   const userSkillsDir = getSkillsDir();
 
   // 复制技能脚本目录到用户配置目录

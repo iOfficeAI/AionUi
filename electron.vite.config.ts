@@ -72,9 +72,9 @@ export default defineConfig(({ mode }) => {
               viteStaticCopy({
                 structured: false,
                 targets: [
-                  { src: 'skills/**', dest: 'skills' },
+                  { src: 'src/skills/**', dest: 'skills' },
                   { src: 'rules/**', dest: 'rules' },
-                  { src: 'assistant/**', dest: 'assistant' },
+                  { src: 'src/assistant/**', dest: 'assistant' },
                   { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
                 ],
               }),
