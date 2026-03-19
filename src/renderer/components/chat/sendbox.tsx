@@ -7,8 +7,8 @@
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';

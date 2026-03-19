@@ -7,7 +7,7 @@
 import React, { useMemo } from 'react';
 import { Button, Slider } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { useThemeContext } from '@renderer/context/ThemeContext';
+import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { FONT_SCALE_DEFAULT, FONT_SCALE_MAX, FONT_SCALE_MIN, FONT_SCALE_STEP } from '@renderer/hooks/ui/useFontScale';
 
 // 浮点数比较容差 / Floating point comparison tolerance

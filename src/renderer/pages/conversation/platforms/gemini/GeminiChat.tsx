@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ConversationContextValue } from '@/renderer/context/ConversationContext';
-import { ConversationProvider } from '@/renderer/context/ConversationContext';
+import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
+import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
-import ConversationChatConfirm from '../components/ConversationChatConfirm';
+import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import GeminiSendBox from './GeminiSendBox';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
 

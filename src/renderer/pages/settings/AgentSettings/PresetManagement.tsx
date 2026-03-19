@@ -9,7 +9,7 @@ import type { AcpBackendConfig } from '@/types/acpTypes';
 import { acpConversation } from '@/common/ipcBridge';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 
 interface PresetManagementProps {
   message: ReturnType<typeof Message.useMessage>[0];

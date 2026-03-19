@@ -21,8 +21,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Context providers
-import { AuthProvider } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './hooks/context/AuthContext';
+import { ThemeProvider } from './hooks/context/ThemeContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 import { ConversationTabsProvider } from './pages/conversation/hooks/ConversationTabsContext';
 
@@ -50,7 +50,7 @@ import './services/i18n';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './hooks/context/AuthContext';
 import HOC from './utils/ui/HOC';
 
 // Patch Korean locale with missing properties from English locale

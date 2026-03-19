@@ -11,19 +11,19 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
 import { uuid } from '@/common/utils';
 import { acpConversation } from '@/common/ipcBridge';
 import { CheckSmall } from '@icon-park/react';
 
 // CLI Logo 导入 / CLI Logo imports
-import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import OpencodeLogo from '@/renderer/assets/logos/opencode.svg';
-import QoderLogo from '@/renderer/assets/logos/qoder.png';
+import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
+import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
+import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
+import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
+import OpencodeLogo from '@/renderer/assets/logos/tools/coding/opencode.svg';
+import QoderLogo from '@/renderer/assets/logos/tools/coding/qoder.png';
 
 /**
  * 后端 Logo 映射表，用于在 CLI 卡片中显示对应的图标

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import ModelModalContent from '@/renderer/components/settings/SettingsModal/contents/ModelModalContent';
-import SettingsPageWrapper from '../components/SettingsPageWrapper';
+import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 const ModeSettings: React.FC = () => {
   return (

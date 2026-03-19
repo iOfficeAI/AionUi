@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import coworkSvg from '@/renderer/assets/cowork.svg';
+import coworkSvg from '@/renderer/assets/icons/cowork.svg';
 
 /**
  * Map custom avatar identifiers to their resolved image URLs.

@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { joinPath } from '@/common/chatLib';
 import type { PreviewContentType } from '@/common/types/preview';
-import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,

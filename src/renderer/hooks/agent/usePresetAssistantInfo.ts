@@ -10,7 +10,7 @@ import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { TChatConversation } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { ipcBridge } from '@/common';
-import CoworkLogo from '@/renderer/assets/cowork.svg';
+import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {

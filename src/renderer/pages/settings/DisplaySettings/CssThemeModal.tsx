@@ -6,7 +6,7 @@
 
 import type { ICssTheme } from '@/common/storage.ts';
 import { ipcBridge } from '@/common';
-import { useThemeContext } from '@renderer/context/ThemeContext.tsx';
+import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { iconColors } from '@renderer/styles/colors';
 import { Button, Input } from '@arco-design/web-react';
 import AionModal from '@renderer/components/base/AionModal.tsx';

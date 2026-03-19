@@ -19,7 +19,7 @@ import { useConversationTabs } from '../hooks/ConversationTabsContext';
 import { useConversationAgents } from '../hooks/useConversationAgents';
 import { applyDefaultConversationName } from '../utils/newConversationName';
 import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 
 const TAB_OVERFLOW_THRESHOLD = 10;

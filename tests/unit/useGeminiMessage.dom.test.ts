@@ -141,7 +141,7 @@ vi.mock('@/common/utils', () => ({
 }));
 
 // Import after all vi.mock calls so hoisting takes effect
-import { useGeminiMessage } from '../../src/renderer/pages/conversation/gemini/useGeminiMessage';
+import { useGeminiMessage } from '../../src/renderer/pages/conversation/platforms/gemini/useGeminiMessage';
 
 const CONVERSATION_ID = 'test-conv-1';
 

@@ -1,4 +1,4 @@
-import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 
 export const useInputFocusRing = () => {
   const { theme } = useThemeContext();

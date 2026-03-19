@@ -10,24 +10,24 @@
  * All places that need to display agent icons should use this utility instead of maintaining separate lists
  */
 
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CursorLogo from '@/renderer/assets/logos/cursor.png';
-import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import DroidLogo from '@/renderer/assets/logos/droid.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import GitHubLogo from '@/renderer/assets/logos/github.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import MistralLogo from '@/renderer/assets/logos/mistral.svg';
-import NanobotLogo from '@/renderer/assets/logos/nanobot.svg';
-import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
-import OpenCodeLogoDark from '@/renderer/assets/logos/opencode-dark.svg';
-import OpenCodeLogoLight from '@/renderer/assets/logos/opencode-light.svg';
-import QoderLogo from '@/renderer/assets/logos/qoder.png';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
+import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
+import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';
+import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
+import CodexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
+import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
+import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
+import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
+import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
+import IflowLogo from '@/renderer/assets/logos/tools/iflow.svg';
+import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
+import MistralLogo from '@/renderer/assets/logos/ai-major/mistral.svg';
+import NanobotLogo from '@/renderer/assets/logos/tools/nanobot.svg';
+import OpenClawLogo from '@/renderer/assets/logos/tools/openclaw.svg';
+import OpenCodeLogoDark from '@/renderer/assets/logos/tools/coding/opencode-dark.svg';
+import OpenCodeLogoLight from '@/renderer/assets/logos/tools/coding/opencode-light.svg';
+import QoderLogo from '@/renderer/assets/logos/tools/coding/qoder.png';
+import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
 
 /**
  * Agent Logo 映射表

@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
 import { Image } from '@arco-design/web-react';
-import fileIcon from '@/renderer/assets/file-icon.svg';
+import fileIcon from '@/renderer/assets/icons/file-icon.svg';
 
 const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
 

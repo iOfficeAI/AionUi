@@ -9,7 +9,7 @@ import { PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useRef, useState } from 'react';
 

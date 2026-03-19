@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/file/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';

@@ -20,17 +20,17 @@ import type { AcpBackendAll } from '@/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 
 // Agent logos
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import CodeBuddyLogo from '@/renderer/assets/logos/codebuddy.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import DroidLogo from '@/renderer/assets/logos/droid.svg';
-import GooseLogo from '@/renderer/assets/logos/goose.svg';
-import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
+import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
+import CodexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
+import OpenCodeLogo from '@/renderer/assets/logos/tools/coding/opencode.svg';
+import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
+import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
+import IflowLogo from '@/renderer/assets/logos/tools/iflow.svg';
+import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
+import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
+import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
+import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
 
 const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {

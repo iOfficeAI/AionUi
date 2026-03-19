@@ -5,8 +5,12 @@ import type { AcpBackendConfig } from '@/types/acpTypes';
 import {
   hasBuiltinSkills,
   isExtensionAssistant as isExtensionAssistantUtil,
-} from '@/renderer/pages/settings/AssistantManagement/assistantUtils';
-import type { AssistantListItem, PendingSkill, SkillInfo } from '@/renderer/pages/settings/AssistantManagement/types';
+} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
+import type {
+  AssistantListItem,
+  PendingSkill,
+  SkillInfo,
+} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

@@ -6,7 +6,7 @@
 
 import { Collapse, Message } from '@arco-design/web-react';
 import React from 'react';
-import AssistantManagement from '@/renderer/pages/settings/AssistantManagement';
+import AssistantManagement from '@/renderer/pages/settings/AgentSettings/AssistantManagement';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 

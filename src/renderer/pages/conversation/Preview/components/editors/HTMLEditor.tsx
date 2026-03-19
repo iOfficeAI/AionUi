@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { html } from '@codemirror/lang-html';
 import { history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';

@@ -18,7 +18,7 @@
  * prompt content are read-only.
  * Extension assistants are fully read-only.
  */
-import coworkSvg from '@/renderer/assets/cowork.svg';
+import coworkSvg from '@/renderer/assets/icons/cowork.svg';
 import {
   useAssistantBackends,
   useAssistantEditor,

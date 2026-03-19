@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConversationProvider } from '@/renderer/context/ConversationContext';
+import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import type { AcpBackend } from '@/types/acpTypes';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';

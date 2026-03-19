@@ -14,8 +14,8 @@ import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelLi
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
-import McpAgentStatusDisplay from '@/renderer/pages/settings/McpManagement/McpAgentStatusDisplay';
-import McpServerItem from '@/renderer/pages/settings/McpManagement/McpServerItem';
+import McpAgentStatusDisplay from '@/renderer/pages/settings/ToolsSettings/McpAgentStatusDisplay';
+import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
 import {
   useMcpServers,
   useMcpAgentStatus,

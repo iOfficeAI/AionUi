@@ -39,7 +39,7 @@ vi.mock('react-i18next', () => ({
   })),
 }));
 
-import { useGeminiQuotaFallback } from '@/renderer/pages/conversation/gemini/useGeminiQuotaFallback';
+import { useGeminiQuotaFallback } from '@/renderer/pages/conversation/platforms/gemini/useGeminiQuotaFallback';
 
 // --- Helpers ---
 

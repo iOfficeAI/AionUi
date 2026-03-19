@@ -1,18 +1,18 @@
 import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
-import { useAuth } from '@renderer/context/AuthContext';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
-const AgentSettings = React.lazy(() => import('@renderer/pages/settings/sections/AgentSettings'));
-const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/sections/SkillsHubSettings'));
-const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/sections/DisplaySettings'));
-const GeminiSettings = React.lazy(() => import('@renderer/pages/settings/sections/GeminiSettings'));
-const ModeSettings = React.lazy(() => import('@renderer/pages/settings/sections/ModeSettings'));
-const SystemSettings = React.lazy(() => import('@renderer/pages/settings/sections/SystemSettings'));
-const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/sections/ToolsSettings'));
-const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/sections/WebuiSettings'));
-const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/sections/ExtensionSettingsPage'));
+const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
+const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
+const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
+const GeminiSettings = React.lazy(() => import('@renderer/pages/settings/GeminiSettings'));
+const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
+const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
+const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
+const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
+const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 

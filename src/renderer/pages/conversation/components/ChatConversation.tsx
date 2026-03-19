@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
-import addChatIcon from '@/renderer/assets/add-chat.svg';
+import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -24,10 +24,10 @@ import ChatSider from './ChatSider';
 import CodexChat from '../platforms/codex/CodexChat';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
-import GeminiChat from '../gemini/GeminiChat';
+import GeminiChat from '../platforms/gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import GeminiModelSelector from '../gemini/GeminiModelSelector';
-import { useGeminiModelSelection } from '../gemini/useGeminiModelSelection';
+import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
+import { useGeminiModelSelection } from '../platforms/gemini/useGeminiModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden

@@ -6,7 +6,7 @@
 
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';

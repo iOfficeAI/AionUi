@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const PRESETS_DIR = path.resolve(__dirname, '../../src/renderer/pages/settings/CssThemeSettings/presets');
+const PRESETS_DIR = path.resolve(__dirname, '../../src/renderer/pages/settings/DisplaySettings/presets');
 
 const BACKGROUND_BLOCK_START = '/* AionUi Theme Background Start */';
 const BACKGROUND_BLOCK_END = '/* AionUi Theme Background End */';
