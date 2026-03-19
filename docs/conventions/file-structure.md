@@ -127,6 +127,49 @@ Cross-process communication MUST go through:
 | Interface | `I<Name>Service.ts` | `IConversationService.ts` |
 | Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
 
+## Service Testability Rules
+
+### Pure Logic vs IO Separation
+
+Services must separate **pure logic** from **IO operations**:
+
+- **Pure logic** (data transformation, validation, formatting) → standalone functions, no `fs`/`db`/`net` imports
+- **IO operations** (file read, DB query, HTTP call) → thin wrappers in service class or repository
+- Service methods should receive IO results as parameters rather than calling IO internally
+
+### Dependency Injection
+
+Services and bridges that depend on external resources (DB, file system, other services) should accept dependencies as constructor/function parameters:
+
+```typescript
+// ❌ Hard to test — must mock the entire module
+import { db } from '@process/database';
+function getConversation(id: string) {
+  return db.query('SELECT * FROM conversations WHERE id = ?', id);
+}
+
+// ✅ Easy to test — inject the dependency
+function getConversation(repo: IConversationRepository, id: string) {
+  return repo.findById(id);
+}
+```
+
+For existing code using direct imports, `vi.mock()` is acceptable. For new code, prefer parameter injection.
+
+## Test File Mapping
+
+Test files must mirror the source file they test:
+
+| Source | Test |
+|--------|------|
+| `src/process/services/CronService.ts` | `tests/unit/cronService.test.ts` |
+| `src/process/bridge/fsBridge.ts` | `tests/unit/fsBridge.test.ts` |
+| `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts` |
+| `src/renderer/hooks/ui/useAutoScroll.ts` | `tests/unit/useAutoScroll.dom.test.ts` |
+| `src/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
+
+When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/extensions/`). New source files with logic should be added to `vitest.config.ts` → `coverage.include`.
+
 ## Directory Size Limit
 
 A single directory must not contain more than **10** direct children (files + subdirectories). When a directory approaches this limit, split its contents into subdirectories grouped by responsibility.
