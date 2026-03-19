@@ -53,9 +53,11 @@ gh pr view <PR_NUMBER> --json statusCheckRollup \
 
 （`build-test` 为可选 job，不纳入必检范围。）
 
-**特殊情形：** 如果 `statusCheckRollup` 为空（CI 从未触发，如文档类 PR 被 path-ignore 跳过），跳过此步骤，直接继续。
+**特殊情形：** 满足以下任一条件时，跳过此步骤，直接继续：
+- `statusCheckRollup` 为空（CI 从未触发）
+- `statusCheckRollup` 非空，但所有必检 job 均不在列表中（说明 pr-checks.yml 工作流整体未触发，如仅改动 docs/md 文件的 PR）
 
-**解析逻辑：** 对上述 5 个 check name 逐一检查，分三种情形处理：
+**解析逻辑：** 对上述必检 job 逐一检查，跳过列表中不存在的 job，对存在的分三种情形处理：
 
 **情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`）
 
