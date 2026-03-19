@@ -129,14 +129,12 @@ export function useWorkspaceMigration({
           name: currentConversation.name,
           createTime: Date.now(),
           modifyTime: Date.now(),
-        };
-
-        // Update the workspace in extra field
-        newConversation.extra = {
-          ...(currentConversation.extra ?? {}),
-          workspace: targetWorkspace,
-          customWorkspace: true,
-        };
+          extra: {
+            ...(currentConversation.extra ?? {}),
+            workspace: targetWorkspace,
+            customWorkspace: true,
+          },
+        } as typeof currentConversation;
 
         await ipcBridge.conversation.createWithConversation.invoke({
           conversation: newConversation,
@@ -182,12 +180,9 @@ export function useWorkspaceMigration({
 
     // Check if jobs are still loading
     if (cronLoading) {
-      console.log('[Workspace] Waiting for cron jobs to load before migration...');
       messageApi.info(t('common.loading'));
       return;
     }
-
-    console.log('[Workspace] handleMigrationConfirm triggered. Current jobs count:', jobs.length);
 
     // Check for cron jobs before migrating
     if (jobs.length > 0) {
