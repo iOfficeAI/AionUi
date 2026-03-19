@@ -6,9 +6,9 @@
 
 import { networkInterfaces } from 'os';
 import type { IWebUIStatus } from '@/common/ipcBridge';
-import { AuthService } from '@/webserver/auth/service/AuthService';
-import { UserRepository } from '@/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
+import { AuthService } from '@process/webserver/auth/service/AuthService';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
+import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
 
 /**
  * WebUI 服务层 - 封装所有 WebUI 相关的业务逻辑

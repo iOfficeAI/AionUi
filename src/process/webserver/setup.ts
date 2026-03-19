@@ -11,7 +11,7 @@ import cookieParser from 'cookie-parser';
 import csrf from 'tiny-csrf';
 import crypto from 'crypto';
 import { networkInterfaces } from 'os';
-import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
+import { AuthMiddleware } from '@process/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 import { attachCsrfToken } from './middleware/security';
 

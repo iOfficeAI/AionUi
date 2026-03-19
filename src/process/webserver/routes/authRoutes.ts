@@ -5,11 +5,11 @@
  */
 
 import type { Express, Request, Response } from 'express';
-import { AuthService } from '@/webserver/auth/service/AuthService';
-import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
-import { UserRepository } from '@/webserver/auth/repository/UserRepository';
+import { AuthService } from '@process/webserver/auth/service/AuthService';
+import { AuthMiddleware } from '@process/webserver/auth/middleware/AuthMiddleware';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
-import { TokenUtils } from '@/webserver/auth/middleware/TokenMiddleware';
+import { TokenUtils } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
 import { verifyQRTokenDirect } from '@/process/bridge/platform/webuiBridge';

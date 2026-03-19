@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { withCsrfToken } from '@/webserver/middleware/csrfClient';
+import { withCsrfToken } from '@process/webserver/middleware/csrfClient';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 

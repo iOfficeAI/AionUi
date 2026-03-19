@@ -10,7 +10,7 @@ import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
-import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
+import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { AUTH_CONFIG } from '../config/constants';
 import { createRateLimiter } from '../middleware/security';
 

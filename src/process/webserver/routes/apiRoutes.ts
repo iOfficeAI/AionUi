@@ -11,7 +11,7 @@ import path from 'path';
 import multer from 'multer';
 import { getDatabase } from '@process/database';
 import { getSystemDir } from '@process/initStorage';
-import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
+import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@/extensions';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import directoryApi from '../directoryApi';
