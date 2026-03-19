@@ -8,7 +8,7 @@ import { ConfigStorage, type IConfigStorageRefer, type IMcpServer, BUILTIN_IMAGE
 import { acpConversation } from '@/common/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -337,6 +337,7 @@ const ToolsModalContent: React.FC = () => {
     useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, mcpMessage);
   const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
+  const skipNextImageGenerationAutoCheckRef = useRef(false);
   const imageGenerationInstalledAgents = builtinImageGenServer?.name
     ? (agentInstallStatus[builtinImageGenServer.name] ?? [])
     : [];
@@ -376,6 +377,10 @@ const ToolsModalContent: React.FC = () => {
 
   useEffect(() => {
     if (!builtinImageGenServer?.name || !builtinImageGenServer.enabled) return;
+    if (skipNextImageGenerationAutoCheckRef.current) {
+      skipNextImageGenerationAutoCheckRef.current = false;
+      return;
+    }
     void checkSingleServerInstallStatus(builtinImageGenServer.name);
   }, [builtinImageGenServer?.enabled, builtinImageGenServer?.name, checkSingleServerInstallStatus]);
 
@@ -488,6 +493,7 @@ const ToolsModalContent: React.FC = () => {
       };
 
       setIsUpdatingImageGeneration(true);
+      skipNextImageGenerationAutoCheckRef.current = checked;
       try {
         await saveMcpServers((prevServers) =>
           prevServers.map((server) => (isBuiltinImageGenServer(server) ? updatedServer : server))
@@ -511,8 +517,12 @@ const ToolsModalContent: React.FC = () => {
           clearImageGenerationAgentStatus(updatedServer.name);
         }
       } catch (error) {
+        skipNextImageGenerationAutoCheckRef.current = false;
         console.error('Failed to toggle image generation MCP server:', error);
       } finally {
+        if (!checked) {
+          skipNextImageGenerationAutoCheckRef.current = false;
+        }
         setIsUpdatingImageGeneration(false);
       }
     },
