@@ -54,7 +54,7 @@ const useDebug = () => {
   return { onClick };
 };
 
-const UpdateModal = React.lazy(() => import('@/renderer/components/UpdateModal'));
+const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 250;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;

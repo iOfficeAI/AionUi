@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
-import packageJson from '../../../../../package.json';
+import packageJson from '../../../../../../package.json';
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();

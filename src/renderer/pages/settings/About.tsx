@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import AboutModalContent from '@/renderer/components/SettingsModal/contents/AboutModalContent';
+import AboutModalContent from '@/renderer/components/settings/SettingsModal/contents/AboutModalContent';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 const About: React.FC = () => {

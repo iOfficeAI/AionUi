@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import SystemModalContent from '@/renderer/components/SettingsModal/contents/SystemModalContent';
+import SystemModalContent from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 const SystemSettings: React.FC = () => {

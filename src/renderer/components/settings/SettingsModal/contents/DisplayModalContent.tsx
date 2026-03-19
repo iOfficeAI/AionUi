@@ -6,8 +6,8 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import FontSizeControl from '@/renderer/components/FontSizeControl';
-import { ThemeSwitcher } from '@/renderer/components/ThemeSwitcher';
+import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
+import { ThemeSwitcher } from '@/renderer/components/settings/ThemeSwitcher';
 import CssThemeSettings from '@renderer/pages/settings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionCollapse from '@/renderer/components/base/AionCollapse';

@@ -26,7 +26,7 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useCronJobs } from '@/renderer/pages/cron/hooks/useCronJobs';
-import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
+import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
 import { uuid } from '@/common/utils';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
 import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';

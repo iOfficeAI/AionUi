@@ -7,8 +7,8 @@
 import React, { useMemo } from 'react';
 import { Button, Slider } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { useThemeContext } from '../context/ThemeContext';
-import { FONT_SCALE_DEFAULT, FONT_SCALE_MAX, FONT_SCALE_MIN, FONT_SCALE_STEP } from '../hooks/useFontScale';
+import { useThemeContext } from '@renderer/context/ThemeContext';
+import { FONT_SCALE_DEFAULT, FONT_SCALE_MAX, FONT_SCALE_MIN, FONT_SCALE_STEP } from '@renderer/hooks/useFontScale';
 
 // 浮点数比较容差 / Floating point comparison tolerance
 const EPSILON = 0.001;
