@@ -9,8 +9,8 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
-import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
-import { createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
+import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -26,8 +26,8 @@ import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
-import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
+import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 
 interface OpenClawDraftData {
   _type: 'openclaw-gateway';

@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
+import { useAutoScroll } from '@/renderer/hooks/chat/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
-import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
+import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import { iconColors } from '@/renderer/styles/colors';
 import { LARGE_TEXT_VIEWER_RENDER_LIMIT, LARGE_TEXT_VIEWER_THRESHOLD } from '../../constants';
 import { Close } from '@icon-park/react';

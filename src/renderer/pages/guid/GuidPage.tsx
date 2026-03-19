@@ -5,7 +5,7 @@
  */
 
 import { resolveLocaleKey } from '@/common/utils';
-import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import AgentPillBar from './components/AgentPillBar';

@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
-import { useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
+import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
@@ -16,7 +16,7 @@ import { ArrowUp, CloseSmall } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCompositionInput } from '@renderer/hooks/useCompositionInput';
+import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
 import { useDragUpload } from '@renderer/hooks/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/useLatestRef';
 import { usePasteService } from '@renderer/hooks/usePasteService';

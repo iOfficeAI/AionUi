@@ -6,7 +6,7 @@
 
 import FilePreview from '@/renderer/components/media/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
+import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { FolderOpen } from '@icon-park/react';

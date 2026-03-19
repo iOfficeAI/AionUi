@@ -6,9 +6,9 @@
 
 import { joinPath } from '@/common/chatLib';
 import { ipcBridge } from '@/common';
-import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
+import { useAutoScroll } from '@/renderer/hooks/chat/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
-import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
+import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import { iconColors } from '@/renderer/styles/colors';
 import { Close } from '@icon-park/react';
 import katex from 'katex';
