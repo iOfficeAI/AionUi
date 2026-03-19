@@ -16,7 +16,7 @@ git config user.name
 
 **If on `main` or `master`:**
 - Run `git diff HEAD --stat` and `git status` to inspect the staged/unstaged changes
-- Based on the actual changes, generate **3 recommended branch names** following `<type>/<short-description>` convention (e.g. `feat/dark-mode`, `fix/login-crash`, `refactor/auth-module`)
+- Based on the actual changes, generate **1–2 recommended branch names** following `<type>/<short-description>` convention (e.g. `feat/dark-mode`, `fix/login-crash`)
 - Present them as a numbered list and ask the user to pick one or provide their own
 - Create and switch: `git checkout -b {prefix}/{branch-name}` (e.g. `john-doe/feat/dark-mode`)
 
@@ -28,4 +28,4 @@ Follow the `commit` skill in full (quality checks, grouping, format, approval).
 
 ### Step 3 — Open PR
 
-Follow the `pr` skill in full (issue association, push, PR creation).
+Follow the `pr` skill — **skip** the issue association step (do NOT create or link an issue), proceed directly to push and PR creation.
