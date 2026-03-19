@@ -67,7 +67,6 @@ export default defineConfig({
         'src/process/bridge/conversationBridge.ts',
         // Decoupling layer (interfaces + implementations)
         'src/process/database/SqliteConversationRepository.ts',
-        'src/process/database/FallbackConversationRepository.ts',
         'src/process/database/SqliteChannelRepository.ts',
         'src/process/services/ConversationServiceImpl.ts',
         'src/process/services/cron/SqliteCronRepository.ts',
