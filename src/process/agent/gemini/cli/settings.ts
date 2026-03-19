@@ -175,14 +175,14 @@ export class LoadedSettings {
       ...workspace,
       ...system,
       customThemes: {
-        ...(user.customThemes || {}),
-        ...(workspace.customThemes || {}),
-        ...(system.customThemes || {}),
+        ...user.customThemes,
+        ...workspace.customThemes,
+        ...system.customThemes,
       },
       mcpServers: {
-        ...(user.mcpServers || {}),
-        ...(workspace.mcpServers || {}),
-        ...(system.mcpServers || {}),
+        ...user.mcpServers,
+        ...workspace.mcpServers,
+        ...system.mcpServers,
       },
     };
   }

@@ -194,7 +194,7 @@ export function validateDependencies(extensions: ExtensionMeta[]): {
 
 export function sortByDependencyOrder(extensions: ExtensionMeta[], loadOrder: string[]): ExtensionMeta[] {
   const orderMap = new Map(loadOrder.map((name, idx) => [name, idx]));
-  return [...extensions].sort((a, b) => {
+  return [...extensions].toSorted((a, b) => {
     const orderA = orderMap.get(a.name) ?? Infinity;
     const orderB = orderMap.get(b.name) ?? Infinity;
     return orderA - orderB;

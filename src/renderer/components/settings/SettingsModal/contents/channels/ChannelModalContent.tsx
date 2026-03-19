@@ -628,7 +628,7 @@ const ChannelModalContent: React.FC = () => {
     };
 
     const extensionChannels: ChannelConfig[] = Object.values(extensionStatuses)
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .toSorted((a, b) => a.name.localeCompare(b.name))
       .map((status) => ({
         id: status.type,
         title: status.name,

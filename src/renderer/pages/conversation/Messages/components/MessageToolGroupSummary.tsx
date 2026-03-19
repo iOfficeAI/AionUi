@@ -166,11 +166,10 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
   });
   const tools = useMemo(() => {
     return messages
-      .map((m) => {
+      .flatMap((m) => {
         if (m.type === 'tool_group') return ToolGroupMapper(m);
         return ToolAcpMapper(m);
-      })
-      .flat();
+      });
   }, [messages]);
 
   return (

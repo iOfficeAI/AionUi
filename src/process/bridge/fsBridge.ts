@@ -533,7 +533,7 @@ export function initFsBridge(): void {
           const isTypedArrayLike = keys.length > 0 && keys.every((key) => /^\d+$/.test(key));
           if (isTypedArrayLike) {
             const values = keys
-              .sort((a, b) => Number(a) - Number(b))
+              .toSorted((a, b) => Number(a) - Number(b))
               .map((key) => {
                 const value = objectLike[key];
                 return typeof value === 'number' ? value : Number(value ?? 0);

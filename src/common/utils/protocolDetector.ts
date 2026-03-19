@@ -370,7 +370,7 @@ export function removeApiPathSuffix(baseUrl: string): string | null {
   const url = baseUrl.replace(/\/+$/, '');
 
   // 按长度降序排列，先匹配更长的路径
-  const sortedSuffixes = [...API_PATH_SUFFIXES].sort((a, b) => b.length - a.length);
+  const sortedSuffixes = [...API_PATH_SUFFIXES].toSorted((a, b) => b.length - a.length);
   for (const suffix of sortedSuffixes) {
     if (url.toLowerCase().endsWith(suffix.toLowerCase())) {
       return url.slice(0, -suffix.length).replace(/\/+$/, '');

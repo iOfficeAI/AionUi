@@ -72,7 +72,7 @@ export async function readTextFile(filePath: string): Promise<{ content: string 
     const content = await fsAsync.readFile(filePath, 'utf-8');
     return { content };
   } catch (error) {
-    throw new Error(`Failed to read file: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to read file: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 
@@ -102,7 +102,7 @@ export async function writeTextFile(filePath: string, content: string): Promise<
 
     return null;
   } catch (error) {
-    throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 

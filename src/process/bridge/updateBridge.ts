@@ -46,7 +46,7 @@ interface AutoUpdateCheckParams {
 
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
-const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm'];
+const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   'github.com',
   'objects.githubusercontent.com',
@@ -57,7 +57,7 @@ const MAX_REDIRECTS = 8;
 
 const isAllowedAssetName = (name: string) => {
   const ext = path.extname(name);
-  return ALLOWED_ASSET_EXTS.includes(ext);
+  return ALLOWED_ASSET_EXTS.has(ext);
 };
 
 const normalizeTagToSemver = (tag: string): string | null => {
@@ -164,7 +164,7 @@ export const pickRecommendedAsset = (
   const scored = assets
     .map((asset) => ({ asset, score: scoreAsset(asset, runtime) }))
     .filter((item) => item.score >= 0)
-    .sort((a, b) => b.score - a.score);
+    .toSorted((a, b) => b.score - a.score);
 
   return scored[0]?.asset;
 };
@@ -248,7 +248,7 @@ const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> =>
     return json as GitHubReleaseApi[];
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('GitHub API request timed out (30s)');
+      throw new Error('GitHub API request timed out (30s)', { cause: err });
     }
     throw err;
   } finally {
@@ -473,7 +473,7 @@ export function initUpdateBridge(): void {
 
         const latest = candidates
           .filter((r) => semver.valid(r.version))
-          .sort((a, b) => semver.rcompare(a.version, b.version))[0];
+          .toSorted((a, b) => semver.rcompare(a.version, b.version))[0];
 
         if (!latest) {
           return { success: true, data: { currentVersion, updateAvailable: false } };

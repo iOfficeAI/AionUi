@@ -54,7 +54,7 @@ export const groupConversationsByTimelineAndWorkspace = (
   const workspaceGroupsByTimeline = new Map<string, WorkspaceGroup[]>();
 
   allWorkspaceGroups.forEach((convList, workspace) => {
-    const sortedConvs = [...convList].sort((a, b) => getActivityTime(b) - getActivityTime(a));
+    const sortedConvs = [...convList].toSorted((a, b) => getActivityTime(b) - getActivityTime(a));
     const latestConv = sortedConvs[0];
     const timeline = getConversationTimelineLabel(latestConv, t);
 
@@ -131,7 +131,7 @@ export const buildGroupedHistory = (
 ): GroupedHistoryResult => {
   const pinnedConversations = conversations
     .filter((conversation) => isConversationPinned(conversation))
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const orderA = getConversationSortOrder(a);
       const orderB = getConversationSortOrder(b);
       if (orderA !== undefined && orderB !== undefined) return orderA - orderB;

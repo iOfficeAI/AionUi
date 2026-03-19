@@ -276,7 +276,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
               <div className='overflow-x-auto pb-4px -mx-4px px-4px'>
                 <div className='flex gap-10px' style={{ width: 'max-content' }}>
                   {availableAgents
-                    .sort((a, b) => {
+                    .toSorted((a, b) => {
                       // Best match first, then available ones, then by checking status
                       const aIsBest = bestAgent?.backend === a.backend;
                       const bIsBest = bestAgent?.backend === b.backend;

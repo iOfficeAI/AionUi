@@ -160,8 +160,8 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
 
             // Check if any tools are executing or awaiting confirmation
             const tools = message.data as Array<{ status: string; name?: string }>;
-            const activeStatuses = ['Executing', 'Confirming', 'Pending'];
-            const hasActive = tools.some((tool) => activeStatuses.includes(tool.status));
+            const activeStatuses = new Set(['Executing', 'Confirming', 'Pending']);
+            const hasActive = tools.some((tool) => activeStatuses.has(tool.status));
             const wasActive = hasActiveToolsRef.current;
 
             setHasActiveTools(hasActive);

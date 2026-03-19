@@ -124,7 +124,7 @@ export class CodexFileOperationHandler {
       return content;
     } catch (error) {
       if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-        throw new Error(`File not found: ${operation.path}`);
+        throw new Error(`File not found: ${operation.path}`, { cause: error });
       }
       throw error;
     }

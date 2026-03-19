@@ -7,7 +7,7 @@
 // CodexAgentManager requires CodexAgentManagerData parameter
 
 // Export for use in the worker
-export {};
+
 
 // If this is the main module, you can add any initialization logic here
 if (require.main === module) {

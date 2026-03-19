@@ -48,7 +48,7 @@ function serializeKey(key: ApprovalKey): string {
     return JSON.stringify({ type: 'exec', command: commandArray, cwd: key.cwd || '' });
   } else {
     // Sort files for consistent hashing
-    const sortedFiles = [...key.files].sort();
+    const sortedFiles = [...key.files].toSorted();
     return JSON.stringify({ type: 'patch', files: sortedFiles });
   }
 }

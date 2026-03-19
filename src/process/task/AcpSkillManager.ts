@@ -116,7 +116,7 @@ export class AcpSkillManager {
    * @returns AcpSkillManager 实例 / AcpSkillManager instance
    */
   static getInstance(enabledSkills?: string[]): AcpSkillManager {
-    const cacheKey = enabledSkills?.sort().join(',') || 'all';
+    const cacheKey = enabledSkills?.toSorted().join(',') || 'all';
 
     // 如果缓存键变化，需要重新创建实例
     // If cache key changed, need to recreate instance

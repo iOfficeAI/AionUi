@@ -1026,7 +1026,7 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
 
   // 使用排序后的 skill 名称作为缓存 key，确保相同组合命中缓存
   // Use sorted skill names as cache key to ensure same combinations hit cache
-  const cacheKey = [...enabledSkills].sort().join(',');
+  const cacheKey = [...enabledSkills].toSorted().join(',');
   const cached = skillsContentCache.get(cacheKey);
   if (cached !== undefined) {
     return cached;

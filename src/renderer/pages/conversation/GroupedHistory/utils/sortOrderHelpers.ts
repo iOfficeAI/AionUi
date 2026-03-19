@@ -41,7 +41,7 @@ export function computeSortOrder(before: number | undefined, after: number | und
  * Check if a list of items needs reindexing (when adjacent sortOrder values are too close)
  */
 export function needsReindex(items: Array<{ sortOrder?: number }>): boolean {
-  const sorted = items.filter((item) => item.sortOrder !== undefined).sort((a, b) => a.sortOrder! - b.sortOrder!);
+  const sorted = items.filter((item) => item.sortOrder !== undefined).toSorted((a, b) => a.sortOrder! - b.sortOrder!);
 
   for (let i = 1; i < sorted.length; i++) {
     if (Math.abs(sorted[i].sortOrder! - sorted[i - 1].sortOrder!) < MIN_GAP_THRESHOLD) {

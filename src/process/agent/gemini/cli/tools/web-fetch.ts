@@ -38,7 +38,7 @@ async function fetchWithTimeout(url: string, timeout: number): Promise<Response>
     return response;
   } catch (error) {
     if (controller.signal.aborted) {
-      throw new Error(`Request timeout after ${timeout}ms`);
+      throw new Error(`Request timeout after ${timeout}ms`, { cause: error });
     }
     throw error;
   } finally {

@@ -135,7 +135,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       <div className='flex flex-wrap gap-8px justify-center'>
         {customAgents
           .filter((a) => a.isPreset && a.enabled !== false)
-          .sort((a, b) => {
+          .toSorted((a, b) => {
             if (a.id === 'cowork') return -1;
             if (b.id === 'cowork') return 1;
             return 0;

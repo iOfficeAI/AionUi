@@ -29,7 +29,7 @@ import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/system
 import { setInitialLanguage } from '@process/i18n';
 import { workerTaskManager } from './process/task/worker/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './utils/appMenu';
-import { startWebServer } from './webserver';
+import { startWebServer } from './process/webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
 import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/deepLink';
 import {
@@ -617,7 +617,7 @@ app.on('before-quit', async () => {
 
   // Shutdown Channel subsystem
   try {
-    const { getChannelManager } = await import('@/channels');
+    const { getChannelManager } = await import('@process/channels');
     await getChannelManager().shutdown();
   } catch (error) {
     console.error('[App] Failed to shutdown ChannelManager:', error);

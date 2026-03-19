@@ -30,7 +30,7 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
     try {
       const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
-      let dbPlugins: import('@/channels/types').IChannelPluginConfig[] = [];
+      let dbPlugins: import('@process/channels/types').IChannelPluginConfig[] = [];
       try {
         dbPlugins = channelRepo.getChannelPlugins();
       } catch (dbError) {

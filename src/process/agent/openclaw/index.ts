@@ -136,7 +136,7 @@ export class OpenClawAgent {
             await this.gatewayManager.start();
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to start OpenClaw Gateway: ${errorMsg}`);
+            throw new Error(`Failed to start OpenClaw Gateway: ${errorMsg}`, { cause: error });
           }
         }
       }
@@ -683,7 +683,7 @@ export class OpenClawAgent {
         const messages: unknown[] = Array.isArray(raw) ? raw : ((raw as { messages?: unknown[] })?.messages ?? []);
 
         // Find the last assistant message for this run (fall back to any last assistant message)
-        const last = [...messages].reverse().find((m: unknown) => {
+        const last = [...messages].toReversed().find((m: unknown) => {
           const msg = m as { role?: string; runId?: string };
           return msg?.role === 'assistant' && (!runId || !msg.runId || msg.runId === runId);
         }) as { content?: unknown } | undefined;

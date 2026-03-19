@@ -47,7 +47,7 @@ class ConversationManageWithDB {
         const stack = this.stack.slice();
         this.stack = [];
         const messages = this.db.getConversationMessages(this.conversation_id, 0, 50, 'DESC'); //
-        let messageList = messages.data.reverse();
+        let messageList = messages.data.toReversed();
         let updateMessage = stack.shift();
         while (updateMessage) {
           if (updateMessage[0] === 'insert') {

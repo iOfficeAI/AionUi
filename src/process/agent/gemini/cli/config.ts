@@ -385,7 +385,7 @@ export async function loadCliConfig({
 }
 
 function mergeMcpServers(settings: Settings, extensions: GeminiCLIExtension[], uiMcpServers?: Record<string, unknown>) {
-  const mcpServers = { ...(settings.mcpServers || {}) };
+  const mcpServers = { ...settings.mcpServers };
 
   // 添加来自 extensions 的 MCP 服务器
   // Add MCP servers from extensions

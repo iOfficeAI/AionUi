@@ -51,7 +51,7 @@ export const sortAssistants = (agents: AssistantListItem[]): AssistantListItem[]
   const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
   return agents
     .filter((agent) => agent.isPreset)
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       const indexA = presetOrder.indexOf(a.id);
       const indexB = presetOrder.indexOf(b.id);
       if (indexA !== -1 || indexB !== -1) {

@@ -226,7 +226,7 @@ export class GeminiAgentManager extends BaseAgentManager<
               : '';
         return { n: s.name, e: s.enabled, st: s.status, t: transportKey };
       })
-      .sort((a, b) => a.n.localeCompare(b.n));
+      .toSorted((a, b) => a.n.localeCompare(b.n));
     return JSON.stringify(entries);
   }
 

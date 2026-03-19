@@ -290,7 +290,7 @@ export class ToolRegistry {
       .map((id) => this.tools.get(id) || this.mcpTools.get(id))
       .filter(Boolean)
       .filter((tool) => this.isToolAvailable(tool!))
-      .sort((a, b) => a!.priority - b!.priority);
+      .toSorted((a, b) => a!.priority - b!.priority);
 
     return availableTools[0] || this.getDefaultTool(eventType);
   }

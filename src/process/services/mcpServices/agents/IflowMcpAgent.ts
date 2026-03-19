@@ -249,7 +249,7 @@ export class IflowMcpAgent extends AbstractMcpAgent {
 
             // 检查输出是否包含"not found"，如果是则继续尝试user作用域
             if (stdout && stdout.includes('not found')) {
-              throw new Error('Server not found in project settings');
+              throw new Error('Server not found in project settings', { cause: userError });
             }
 
             return { success: true };

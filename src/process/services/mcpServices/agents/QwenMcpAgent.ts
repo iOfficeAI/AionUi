@@ -243,7 +243,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
               return { success: true };
             } else if (result.stdout && result.stdout.includes('not found in project')) {
               // 服务器不在project作用域中，尝试配置文件
-              throw new Error('Server not found in project settings');
+              throw new Error('Server not found in project settings', { cause: userError });
             } else {
               // 其他情况认为成功（向后兼容）
               return { success: true };

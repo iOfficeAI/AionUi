@@ -913,7 +913,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
  * Get migrations needed to upgrade from one version to another
  */
 export function getMigrationsToRun(fromVersion: number, toVersion: number): IMigration[] {
-  return ALL_MIGRATIONS.filter((m) => m.version > fromVersion && m.version <= toVersion).sort(
+  return ALL_MIGRATIONS.filter((m) => m.version > fromVersion && m.version <= toVersion).toSorted(
     (a, b) => a.version - b.version
   );
 }
@@ -922,7 +922,7 @@ export function getMigrationsToRun(fromVersion: number, toVersion: number): IMig
  * Get migrations needed to downgrade from one version to another
  */
 export function getMigrationsToRollback(fromVersion: number, toVersion: number): IMigration[] {
-  return ALL_MIGRATIONS.filter((m) => m.version > toVersion && m.version <= fromVersion).sort(
+  return ALL_MIGRATIONS.filter((m) => m.version > toVersion && m.version <= fromVersion).toSorted(
     (a, b) => b.version - a.version
   );
 }

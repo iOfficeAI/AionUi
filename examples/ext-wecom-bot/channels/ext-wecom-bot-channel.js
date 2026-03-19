@@ -8,7 +8,7 @@ const {
 } = require('./state');
 
 function sha1Sign(token, timestamp, nonce, encrypted) {
-  const sorted = [token, String(timestamp), String(nonce), encrypted].sort();
+  const sorted = [token, String(timestamp), String(nonce), encrypted].toSorted();
   return crypto.createHash('sha1').update(sorted.join('')).digest('hex');
 }
 

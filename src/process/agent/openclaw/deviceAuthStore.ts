@@ -55,7 +55,7 @@ function normalizeScopes(scopes: string[] | undefined): string[] {
       out.add(trimmed);
     }
   }
-  return [...out].sort();
+  return [...out].toSorted();
 }
 
 function readStore(filePath: string): DeviceAuthStore | null {

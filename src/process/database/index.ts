@@ -125,7 +125,7 @@ export class AionUIDatabase {
             console.log(`[Database] Deleted corrupted database file`);
           } catch (e2) {
             console.error('[Database] Failed to delete corrupted database:', e2);
-            throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + finalPath);
+            throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + finalPath, { cause: e2 });
           }
         }
       }

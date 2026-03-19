@@ -198,7 +198,7 @@ export function initConversationBridge(
       if (source && source !== 'aionui') {
         try {
           // Dynamic import to avoid circular dependency
-          const { getChannelManager } = await import('@/channels/core/ChannelManager');
+          const { getChannelManager } = await import('@process/channels/core/ChannelManager');
           const channelManager = getChannelManager();
           if (channelManager.isInitialized()) {
             await channelManager.cleanupConversation(id);
