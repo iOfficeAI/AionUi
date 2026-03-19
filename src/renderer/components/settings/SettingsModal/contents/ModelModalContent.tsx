@@ -19,7 +19,7 @@ import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/mod
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { consumePendingDeepLink } from '@/renderer/hooks/useDeepLink';
+import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import '../model-provider.css';
 
 /**

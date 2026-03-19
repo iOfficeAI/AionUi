@@ -1,7 +1,7 @@
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
-import { useExtI18n } from '@/renderer/hooks/useExtI18n';
+import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import {
   Communication,
   Computer,

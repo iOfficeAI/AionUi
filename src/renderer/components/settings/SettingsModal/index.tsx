@@ -9,7 +9,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
-import { useExtI18n } from '@/renderer/hooks/useExtI18n';
+import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { Tabs } from '@arco-design/web-react';
 import { Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';

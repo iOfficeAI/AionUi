@@ -7,8 +7,8 @@
 // context/ThemeContext.tsx - Unified Theme Management Context 统一主题管理上下文
 import type { PropsWithChildren } from 'react';
 import React, { createContext, useContext } from 'react';
-import type { Theme } from '../hooks/useTheme';
-import useTheme from '../hooks/useTheme';
+import type { Theme } from '@renderer/hooks/system/useTheme';
+import useTheme from '@renderer/hooks/system/useTheme';
 import type { ColorScheme } from '@renderer/hooks/ui/useColorScheme';
 import useColorScheme from '@renderer/hooks/ui/useColorScheme';
 import useFontScale from '@renderer/hooks/ui/useFontScale';

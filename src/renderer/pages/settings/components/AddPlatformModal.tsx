@@ -8,7 +8,7 @@ import { LinkCloud, Edit, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
-import useProtocolDetection from '../../../hooks/useProtocolDetection';
+import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
@@ -22,7 +22,7 @@ import {
   isNewApiPlatform,
   type PlatformConfig,
 } from '@/renderer/utils/model/modelPlatforms';
-import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
+import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
 
 /**
  * 供应商 Logo 组件

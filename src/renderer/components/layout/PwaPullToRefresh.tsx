@@ -6,7 +6,7 @@
 
 import type React from 'react';
 import { useEffect } from 'react';
-import usePwaMode from '@/renderer/hooks/usePwaMode';
+import usePwaMode from '@/renderer/hooks/system/usePwaMode';
 
 /**
  * Lightweight pull-to-refresh for iOS PWA standalone mode.
