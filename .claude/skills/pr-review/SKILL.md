@@ -35,7 +35,88 @@ gh pr view --json number -q .number
 If this also fails (not on a PR branch), abort with:
 > No PR number provided and cannot detect one from the current branch. Usage: `/pr-review <pr_number>`
 
-### Step 2 — Check Working Tree
+### Step 2 — Check CI Status
+
+```bash
+gh pr view <PR_NUMBER> --json statusCheckRollup \
+  --jq '.statusCheckRollup[] | {name: .name, status: .status, conclusion: .conclusion}'
+```
+
+**必检 job 列表：**
+
+- `Code Quality`
+- `Unit Tests (ubuntu-latest)`
+- `Unit Tests (macos-14)`
+- `Unit Tests (windows-2022)`
+- `Coverage Test`
+- `i18n-check`
+
+（`build-test` 为可选 job，不纳入必检范围。）
+
+**特殊情形：** 如果 `statusCheckRollup` 为空（CI 从未触发，如文档类 PR 被 path-ignore 跳过），跳过此步骤，直接继续。
+
+**解析逻辑：** 对上述 5 个 check name 逐一检查，分三种情形处理：
+
+**情形 1 — 全部通过**（所有必检 job 均满足 `status == COMPLETED && conclusion == SUCCESS`）
+
+直接继续后续步骤，无需提示。
+
+**情形 2 — 部分仍在运行**（存在 `status` 为 `QUEUED` 或 `IN_PROGRESS` 的必检 job）
+
+显示警告并询问：
+
+> ⏳ 以下 CI job 尚未完成：[job 列表]
+> PR CI 未全部完成，建议等待后再 review。是否仍要继续？(yes/no)
+
+- 用户选 **no** → 终止
+- 用户选 **yes** → 继续后续步骤
+
+**情形 3 — 存在失败**（存在 `conclusion` 为 `FAILURE` 或 `CANCELLED` 的必检 job）
+
+显示警告并询问：
+
+> ❌ 以下 CI job 未通过：[job 列表及结论]
+> PR CI 存在失败，review 结论可能不准确。是否仍要继续？(yes/no)
+
+- 用户选 **yes** → 继续，并在最终报告"变更概述"段落末尾追加 CI 状态警告（格式见"报告增强"节）
+- 用户选 **no** → 终止 review，随即询问：
+
+  > 是否在 PR #\<PR_NUMBER\> 发表评论，提醒作者修复失败的 CI job？(yes/no)
+
+  - 用户选 **yes** → 发布 CI 失败提醒评论（格式见下方"CI 失败提醒评论"节），然后退出
+  - 用户选 **no** → 直接退出
+
+#### CI 失败提醒评论
+
+当 CI 失败且用户选择不继续 review 但选择发布提醒时，评论格式：
+
+```bash
+gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
+
+## CI 检查未通过
+
+以下 job 在本次 review 时未通过，请修复：
+
+| Job | 结论 |
+|-----|------|
+| <失败的 job 名称> | ❌ <FAILURE 或 CANCELLED> |
+
+本次 code review 暂缓，待 CI 全部通过后将重新执行。"
+```
+
+（仅列出实际失败的 job，跳过已通过的。）
+
+#### 报告增强
+
+当 CI 存在失败但用户选择继续时，在最终报告"变更概述"段落末尾追加：
+
+```
+> ⚠️ **CI 状态警告**：以下 job 在 review 时未通过：`<job 名称>`（<结论>）。本报告结论仅供参考，建议修复 CI 后重新 review。
+```
+
+---
+
+### Step 3 — Check Working Tree
 
 ```bash
 git status --porcelain
@@ -44,15 +125,15 @@ git status --porcelain
 If the output is non-empty, abort with:
 > Working tree has uncommitted changes. Please commit or stash them before running pr-review.
 
-### Step 3 — Record Current Branch
+### Step 4 — Record Current Branch
 
 ```bash
 git branch --show-current
 ```
 
-Save this as `<original_branch>` for Step 9.
+Save this as `<original_branch>` for Step 10.
 
-### Step 4 — Checkout PR Branch
+### Step 5 — Checkout PR Branch
 
 ```bash
 gh pr checkout <PR_NUMBER>
@@ -63,7 +144,7 @@ Save the checked-out branch name:
 git branch --show-current
 ```
 
-### Step 5 — Collect Context (Parallel)
+### Step 6 — Collect Context (Parallel)
 
 Run the following in parallel:
 
@@ -89,7 +170,7 @@ gh pr view <PR_NUMBER> --json comments --jq '.comments[] | select(.body | starts
 
 If a pr-assess comment exists, use it as supplementary context (risk signals, change overview) when forming your review. Do not re-verify its conclusions — treat it as background information only.
 
-### Step 6 — Read Changed File Contents
+### Step 7 — Read Changed File Contents
 
 Use the Read tool to read each changed file locally.
 
@@ -108,7 +189,7 @@ Use the Read tool to read each changed file locally.
 
 Also read key interface/type definition files imported by the changed files when they provide important context.
 
-### Step 7 — Perform Code Review
+### Step 8 — Perform Code Review
 
 Write the code review report in **Chinese**.
 
@@ -225,7 +306,7 @@ If no issues are found across all dimensions, output:
 
 > ✅ 未发现明显问题，代码质量良好，建议批准合并。
 
-### Step 8 — Ask to Post Comment
+### Step 9 — Ask to Post Comment
 
 Print the complete review report to the terminal, then ask the user:
 
@@ -252,7 +333,7 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 <review_report>"
 ```
 
-### Step 9 — Cleanup
+### Step 10 — Cleanup
 
 Switch back to the original branch:
 ```bash
