@@ -14,7 +14,7 @@ const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/sections
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/sections/WebuiSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/sections/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
-const ComponentsShowcase = React.lazy(() => import('@renderer/pages/test/ComponentsShowcase'));
+const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
