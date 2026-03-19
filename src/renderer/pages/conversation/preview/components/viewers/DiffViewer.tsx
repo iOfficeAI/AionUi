@@ -5,7 +5,7 @@
  */
 
 import type { PreviewMetadata } from '../../context/PreviewContext';
-import { useTextSelection } from '@/renderer/hooks/useTextSelection';
+import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import { Checkbox } from '@arco-design/web-react';
 import classNames from 'classnames';
 import { html } from 'diff2html';

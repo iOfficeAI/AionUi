@@ -5,7 +5,7 @@
  */
 
 import { useAutoScroll } from '@/renderer/hooks/chat/useAutoScroll';
-import { useTextSelection } from '@/renderer/hooks/useTextSelection';
+import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import { iconColors } from '@/renderer/styles/colors';
 import { LARGE_TEXT_VIEWER_RENDER_LIMIT, LARGE_TEXT_VIEWER_THRESHOLD } from '../../constants';

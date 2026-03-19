@@ -9,7 +9,7 @@ import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/down
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
-import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
+import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import CodePreview from '../viewers/CodeViewer';
 import DiffPreview from '../viewers/DiffViewer';

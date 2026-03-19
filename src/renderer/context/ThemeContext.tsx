@@ -9,9 +9,9 @@ import type { PropsWithChildren } from 'react';
 import React, { createContext, useContext } from 'react';
 import type { Theme } from '../hooks/useTheme';
 import useTheme from '../hooks/useTheme';
-import type { ColorScheme } from '../hooks/useColorScheme';
-import useColorScheme from '../hooks/useColorScheme';
-import useFontScale from '../hooks/useFontScale';
+import type { ColorScheme } from '@renderer/hooks/ui/useColorScheme';
+import useColorScheme from '@renderer/hooks/ui/useColorScheme';
+import useFontScale from '@renderer/hooks/ui/useFontScale';
 
 /**
  * Theme context value interface 主题上下文值接口

@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import type { TokenUsageData } from '@/common/storage';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';

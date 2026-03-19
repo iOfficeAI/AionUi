@@ -18,7 +18,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
-import { useLatestRef } from '@renderer/hooks/useLatestRef';
+import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
 import { usePasteService } from '@renderer/hooks/file/usePasteService';
 import type { FileMetadata } from '@renderer/services/FileService';
 import { allSupportedExts } from '@renderer/services/FileService';

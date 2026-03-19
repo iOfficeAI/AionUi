@@ -4,7 +4,7 @@ import { STORAGE_KEYS } from '@/common/storageKeys';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
+import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';

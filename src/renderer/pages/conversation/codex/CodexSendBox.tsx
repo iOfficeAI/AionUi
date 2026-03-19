@@ -19,7 +19,7 @@ import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/Tho
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
