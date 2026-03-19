@@ -36,7 +36,7 @@ vi.mock('../../src/renderer/hooks/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({ info: null }),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/context/ConversationTabsContext', () => ({
+vi.mock('../../src/renderer/pages/conversation/hooks/ConversationTabsContext', () => ({
   useOptionalConversationTabs: () => ({
     closeAllTabs: closeAllTabsMock,
     openTab: openTabMock,
@@ -54,7 +54,7 @@ vi.mock('../../src/renderer/utils/agentLogo', () => ({
   getAgentLogo: () => null,
 }));
 
-vi.mock('../../src/renderer/utils/focus', () => ({
+vi.mock('../../src/renderer/utils/ui/focus', () => ({
   blockMobileInputFocus: () => blockMobileInputFocusMock(),
   blurActiveElement: () => blurActiveElementMock(),
 }));
@@ -62,6 +62,7 @@ vi.mock('../../src/renderer/utils/focus', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'en-US' },
   }),
 }));
 
@@ -73,7 +74,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import ConversationSearchPopover from '../../src/renderer/pages/conversation/grouped-history/ConversationSearchPopover';
+import ConversationSearchPopover from '../../src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 
 describe('ConversationSearchPopover', () => {
   beforeEach(() => {

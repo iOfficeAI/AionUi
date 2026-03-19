@@ -93,17 +93,20 @@ export default defineConfig({
         'src/common/update/models/VersionInfo.ts',
         'src/common/appEnv.ts',
         // Renderer utils
-        'src/renderer/messages/useAutoScroll.ts',
+        'src/renderer/hooks/chat/useAutoScroll.ts',
+        'src/renderer/pages/conversation/Messages/useAutoScroll.ts',
         'src/renderer/utils/emitter.ts',
-        'src/renderer/utils/base64.ts',
-        'src/renderer/utils/download.ts',
+        'src/renderer/utils/file/base64.ts',
+        'src/renderer/utils/file/download.ts',
         // Extension system (only files with existing tests)
         'src/extensions/ExtensionLoader.ts',
         'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
         'src/extensions/resolvers/WebuiResolver.ts',
         // Renderer components
-        'src/renderer/pages/conversation/components/ConversationTitleMinimap.tsx',
-        'src/renderer/pages/conversation/gemini/GeminiSendBox.tsx',
+        'src/renderer/pages/conversation/platforms/gemini/GeminiSendBox.tsx',
+        'src/renderer/pages/conversation/platforms/gemini/useGeminiMessage.ts',
+        'src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils.ts',
+        'src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel.ts',
       ],
       thresholds: {
         statements: 30,

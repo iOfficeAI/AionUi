@@ -8,7 +8,7 @@
  * Extension i18n resolver.
  *
  * Loads translation files from extension `i18n/` directories following the same
- * structure as `src/renderer/i18n/locales/`:
+ * structure as `src/renderer/services/i18n/locales/`:
  *
  *   i18n/{locale}/{module}.json
  *

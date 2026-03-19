@@ -16,12 +16,12 @@ import {
 
 // Static imports – Vite bundles these into the main-process output so they
 // work correctly in both development and production (no fs.readFile needed).
-import enUS from '@renderer/i18n/locales/en-US/index';
-import zhCN from '@renderer/i18n/locales/zh-CN/index';
-import jaJP from '@renderer/i18n/locales/ja-JP/index';
-import zhTW from '@renderer/i18n/locales/zh-TW/index';
-import koKR from '@renderer/i18n/locales/ko-KR/index';
-import trTR from '@renderer/i18n/locales/tr-TR/index';
+import enUS from '@renderer/services/i18n/locales/en-US/index';
+import zhCN from '@renderer/services/i18n/locales/zh-CN/index';
+import jaJP from '@renderer/services/i18n/locales/ja-JP/index';
+import zhTW from '@renderer/services/i18n/locales/zh-TW/index';
+import koKR from '@renderer/services/i18n/locales/ko-KR/index';
+import trTR from '@renderer/services/i18n/locales/tr-TR/index';
 
 // All locale data keyed by language code.
 // NOTE: When adding a new language, add a static import above and an entry here.

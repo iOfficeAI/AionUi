@@ -58,7 +58,7 @@ export const ExtensionMetaSchema = z
       .optional(),
     /**
      * i18n configuration for the extension.
-     * Follows the same structure as src/renderer/i18n/locales:
+     * Follows the same structure as src/renderer/services/i18n/locales:
      *   i18n/{locale}/{module}.json
      * e.g. i18n/en-US/extension.json, i18n/zh-CN/assistants.json
      *

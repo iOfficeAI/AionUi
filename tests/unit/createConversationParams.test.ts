@@ -24,7 +24,7 @@ vi.mock('@/common/storage', async () => {
   };
 });
 
-vi.mock('@/renderer/shared/agents/presetAssistantResources', () => ({
+vi.mock('@/renderer/utils/model/presetAssistantResources', () => ({
   loadPresetAssistantResources,
 }));
 

@@ -1,10 +1,10 @@
-import loginLogo from '@renderer/assets/logos/app.png';
+import loginLogo from '@renderer/assets/logos/brand/app.png';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from '@/renderer/i18n';
+import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
-import AppLoader from '../../components/AppLoader';
-import { useAuth } from '../../context/AuthContext';
+import AppLoader from '@renderer/components/layout/AppLoader';
+import { useAuth } from '../../hooks/context/AuthContext';
 import './LoginPage.css';
 
 type MessageState = {
