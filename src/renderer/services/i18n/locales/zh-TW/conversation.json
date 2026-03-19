@@ -282,5 +282,20 @@
     "request_sent": "Request sent to agent",
     "failed": "Failed to generate",
     "preset_registered": "Agent preset registered successfully!"
+  },
+  "externalHistory": {
+    "title": "匯入 CLI 歷史",
+    "drawerTitle": "外部 CLI 對話",
+    "import": "匯入",
+    "importing": "匯入中...",
+    "noSessions": "未發現外部 CLI 對話",
+    "importSuccess": "成功匯入 {{count}} 則訊息",
+    "importError": "匯入失敗: {{error}}",
+    "loading": "載入外部對話中...",
+    "importButton": "匯入 CLI 歷史",
+    "sessionCount": "{{count}} 個對話",
+    "refresh": "重新整理",
+    "loadError": "載入外部對話失敗",
+    "timeAgo": "{{time}} 前"
   }
 }

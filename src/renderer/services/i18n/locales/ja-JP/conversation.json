@@ -282,5 +282,20 @@
     "request_sent": "Request sent to agent",
     "failed": "Failed to generate",
     "preset_registered": "Agent preset registered successfully!"
+  },
+  "externalHistory": {
+    "title": "CLI 履歴のインポート",
+    "drawerTitle": "外部 CLI セッション",
+    "import": "インポート",
+    "importing": "インポート中...",
+    "noSessions": "外部 CLI セッションが見つかりません",
+    "importSuccess": "{{count}} 件のメッセージをインポートしました",
+    "importError": "インポート失敗: {{error}}",
+    "loading": "外部セッションを読み込み中...",
+    "importButton": "CLI 履歴のインポート",
+    "sessionCount": "{{count}} セッション",
+    "refresh": "更新",
+    "loadError": "外部セッションの読み込みに失敗しました",
+    "timeAgo": "{{time}} 前"
   }
 }

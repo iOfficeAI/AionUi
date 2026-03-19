@@ -282,5 +282,20 @@
     "request_sent": "에이전트에게 요청이 전송되었습니다",
     "failed": "생성 실패",
     "preset_registered": "에이전트 프리셋이 성공적으로 등록되었습니다!"
+  },
+  "externalHistory": {
+    "title": "CLI 기록 가져오기",
+    "drawerTitle": "외부 CLI 세션",
+    "import": "가져오기",
+    "importing": "가져오는 중...",
+    "noSessions": "외부 CLI 세션이 없습니다",
+    "importSuccess": "{{count}}개의 메시지를 가져왔습니다",
+    "importError": "가져오기 실패: {{error}}",
+    "loading": "외부 세션 로딩 중...",
+    "importButton": "CLI 기록 가져오기",
+    "sessionCount": "{{count}}개 세션",
+    "refresh": "새로고침",
+    "loadError": "외부 세션 불러오기 실패",
+    "timeAgo": "{{time}} 전"
   }
 }

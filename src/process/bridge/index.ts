@@ -38,6 +38,7 @@ import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initOfficeWatchBridge } from './officeWatchBridge';
 import { initExtensionsBridge } from './extensionsBridge';
+import { initExternalHistoryBridge } from './externalHistoryBridge';
 import { initWeixinLoginBridge } from './weixinLoginBridge';
 import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 import { initRemoteAgentBridge } from './remoteAgentBridge';
@@ -76,6 +77,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initWebuiBridge();
   initChannelBridge(deps.channelRepo);
   initDatabaseBridge(deps.conversationRepo);
+  initExternalHistoryBridge(deps.conversationRepo);
   initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
   initSystemSettingsBridge();
@@ -114,6 +116,7 @@ export {
   initDocumentBridge,
   initExtensionsBridge,
   initFsBridge,
+  initExternalHistoryBridge,
   initGeminiBridge,
   initGeminiConversationBridge,
   initMcpBridge,

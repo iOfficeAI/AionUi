@@ -9,6 +9,7 @@ import type { IConversationRepository, PaginatedResult } from './IConversationRe
 import type { TChatConversation } from '@/common/config/storage';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IMessageSearchResponse } from '@/common/types/database';
+import type { AionUIDatabase } from '@process/services/database';
 
 /**
  * SQLite-backed implementation of IConversationRepository.
@@ -16,8 +17,13 @@ import type { IMessageSearchResponse } from '@/common/types/database';
  * Methods are async because getDatabase() returns a Promise.
  */
 export class SqliteConversationRepository implements IConversationRepository {
-  private getDb() {
-    return getDatabase();
+  private _cachedDb: AionUIDatabase | null = null;
+
+  private async getDb(): Promise<AionUIDatabase> {
+    if (!this._cachedDb) {
+      this._cachedDb = await getDatabase();
+    }
+    return this._cachedDb;
   }
 
   async getConversation(id: string): Promise<TChatConversation | undefined> {
@@ -91,5 +97,12 @@ export class SqliteConversationRepository implements IConversationRepository {
   async searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse> {
     const db = await this.getDb();
     return db.searchConversationMessages(keyword, undefined, page, pageSize);
+  }
+
+  runInTransaction(fn: () => void): void {
+    if (!this._cachedDb) {
+      throw new Error('Database not initialized. Call any async method first to ensure DB is ready.');
+    }
+    this._cachedDb.runInTransaction(fn);
   }
 }

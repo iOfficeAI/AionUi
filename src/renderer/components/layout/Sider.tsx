@@ -13,6 +13,7 @@ import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 import styles from './Sider.module.css';
+import { ExternalHistoryButton } from '@renderer/pages/conversation/GroupedHistory/ExternalHistorySection';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
@@ -181,6 +182,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                   />
                 </div>
               </Tooltip>
+
             </div>
             <Suspense fallback={<div className='flex-1 min-h-0' />}>
               <WorkspaceGroupedHistory {...workspaceHistoryProps}></WorkspaceGroupedHistory>
@@ -191,6 +193,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       {/* Footer - settings button */}
       <div className='shrink-0 sider-footer mt-auto pt-8px'>
         <div className='flex flex-col gap-8px'>
+          {!isSettings && <ExternalHistoryButton collapsed={collapsed} />}
           {isSettings && (
             <Tooltip
               {...siderTooltipProps}

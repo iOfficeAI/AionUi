@@ -284,5 +284,20 @@
   },
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
-  "createFailed": "Failed to create conversation"
+  "createFailed": "Failed to create conversation",
+  "externalHistory": {
+    "title": "CLI Geçmişini İçe Aktar",
+    "drawerTitle": "Harici CLI Oturumları",
+    "import": "İçe Aktar",
+    "importing": "İçe aktarılıyor...",
+    "noSessions": "Harici CLI oturumu bulunamadı",
+    "importSuccess": "{{count}} mesaj başarıyla içe aktarıldı",
+    "importError": "İçe aktarma başarısız: {{error}}",
+    "loading": "Harici oturumlar yükleniyor...",
+    "importButton": "CLI Geçmişini İçe Aktar",
+    "sessionCount": "{{count}} oturum",
+    "refresh": "Yenile",
+    "loadError": "Harici oturumlar yüklenemedi",
+    "timeAgo": "{{time}} önce"
+  }
 }

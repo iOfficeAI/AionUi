@@ -227,6 +227,14 @@ export class AionUIDatabase {
   }
 
   /**
+   * Run multiple operations atomically in a single transaction.
+   * If the function throws, the entire transaction is rolled back.
+   */
+  runInTransaction(fn: () => void): void {
+    this.db.transaction(fn)();
+  }
+
+  /**
    * ==================
    * User operations
    * 用户操作

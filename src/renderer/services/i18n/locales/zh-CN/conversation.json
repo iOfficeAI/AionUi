@@ -282,5 +282,20 @@
     "request_sent": "生成请求已发送",
     "failed": "生成失败",
     "preset_registered": "已保存为全局预设"
+  },
+  "externalHistory": {
+    "title": "导入 CLI 历史",
+    "drawerTitle": "外部 CLI 会话",
+    "import": "导入",
+    "importing": "导入中...",
+    "noSessions": "未发现外部 CLI 会话",
+    "importSuccess": "成功导入 {{count}} 条消息",
+    "importError": "导入失败: {{error}}",
+    "loading": "加载外部会话中...",
+    "importButton": "导入 CLI 历史",
+    "sessionCount": "{{count}} 个会话",
+    "refresh": "刷新",
+    "loadError": "加载外部会话失败",
+    "timeAgo": "{{time}} 前"
   }
 }

@@ -34,4 +34,6 @@ export interface IConversationRepository {
   listAllConversations(): Promise<TChatConversation[]>;
   /** Full-text search across conversation messages. */
   searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse>;
+  /** Run multiple operations atomically within a single SQLite transaction. */
+  runInTransaction(fn: () => void): void;
 }

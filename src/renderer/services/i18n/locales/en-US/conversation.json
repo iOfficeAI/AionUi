@@ -282,5 +282,20 @@
     "request_sent": "Request sent to agent",
     "failed": "Failed to generate",
     "preset_registered": "Agent preset registered successfully!"
+  },
+  "externalHistory": {
+    "title": "Import CLI History",
+    "drawerTitle": "External CLI Sessions",
+    "import": "Import",
+    "importing": "Importing...",
+    "noSessions": "No external CLI sessions found",
+    "importSuccess": "Successfully imported {{count}} messages",
+    "importError": "Import failed: {{error}}",
+    "loading": "Loading external sessions...",
+    "importButton": "Import CLI History",
+    "sessionCount": "{{count}} sessions",
+    "refresh": "Refresh",
+    "loadError": "Failed to load external sessions",
+    "timeAgo": "{{time}} ago"
   }
 }
