@@ -76,7 +76,7 @@ repos:
         name: i18n Check
         entry: node scripts/check-i18n.js
         language: system
-        files: ^src/renderer/i18n/locales/
+        files: ^src/renderer/services/i18n/locales/
         pass_filenames: false
 
   # Commit message format (Conventional Commits)

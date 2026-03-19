@@ -86,6 +86,9 @@ vi.mock('@/renderer/pages/conversation/preview', () => ({
 
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
+  MAX_UPLOAD_SIZE_MB: 50,
+  FileService: { uploadFile: vi.fn(), isSupportedFile: vi.fn(() => true) },
+  isSupportedFile: vi.fn(() => true),
 }));
 
 vi.mock('@/renderer/styles/colors', () => ({
@@ -138,7 +141,7 @@ vi.mock('@/common/utils', () => ({
 }));
 
 // Import after all vi.mock calls so hoisting takes effect
-import { useGeminiMessage } from '../../src/renderer/pages/conversation/gemini/GeminiSendBox';
+import { useGeminiMessage } from '../../src/renderer/pages/conversation/gemini/useGeminiMessage';
 
 const CONVERSATION_ID = 'test-conv-1';
 
