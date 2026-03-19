@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Button, Collapse, Form, Modal, Switch, Tooltip, Message } from '@arco-design/web-react';
 import { FolderOpen, FolderSearch, Link } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';

@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { emitter, useAddEventListener } from '@renderer/utils/emitter.ts';
-import { iconColors } from '@renderer/theme/colors.ts';
+import { iconColors } from '@renderer/styles/colors';
 
 const MONITOR_URL_STORAGE_KEY = 'aionui.openclaw.monitorUrl';
 const STAR_OFFICE_URL_KEY = 'aionui.starOffice.url';

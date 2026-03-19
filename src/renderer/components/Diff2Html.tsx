@@ -5,7 +5,7 @@
  */
 
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import { Button, Checkbox, Tooltip } from '@arco-design/web-react';

@@ -5,7 +5,7 @@
  */
 
 import type { CronMessageMeta } from '@/common/chatLib';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { AlarmClock } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

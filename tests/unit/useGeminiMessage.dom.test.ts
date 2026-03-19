@@ -88,7 +88,7 @@ vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
 }));
 
-vi.mock('@/renderer/theme/colors', () => ({
+vi.mock('@/renderer/styles/colors', () => ({
   iconColors: { primary: '#000', secondary: '#666' },
 }));
 

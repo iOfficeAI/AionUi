@@ -10,7 +10,7 @@ import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { FolderOpen } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';

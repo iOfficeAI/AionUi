@@ -10,7 +10,7 @@ import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
 import React, { useCallback, useMemo } from 'react';

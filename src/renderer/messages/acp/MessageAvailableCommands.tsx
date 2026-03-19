@@ -7,7 +7,7 @@
 import type { IMessageAvailableCommands } from '@/common/chatLib';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
 import CollapsibleContent from '@/renderer/components/CollapsibleContent';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { HammerAndAnvil } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

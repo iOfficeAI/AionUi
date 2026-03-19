@@ -26,7 +26,7 @@ import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/mess
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

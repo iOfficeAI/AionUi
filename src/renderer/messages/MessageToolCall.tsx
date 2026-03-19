@@ -13,7 +13,7 @@ import { MessageSearch } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import React, { useMemo } from 'react';
 import MarkdownView from '../components/Markdown';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 
 const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
   const filePath = message.content.args.file_path;

@@ -5,7 +5,7 @@
  */
 
 import type { PreviewHistoryTarget } from '@/common/types/preview';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';

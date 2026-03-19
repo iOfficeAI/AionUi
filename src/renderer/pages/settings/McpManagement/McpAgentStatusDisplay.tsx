@@ -1,5 +1,5 @@
 import { getAgentLogo } from '@/renderer/utils/agentLogo';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
 import React from 'react';

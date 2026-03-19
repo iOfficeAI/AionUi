@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { iconColors } from './theme/colors';
+import { iconColors } from '@renderer/styles/colors';
 import { Tooltip } from '@arco-design/web-react';
 import { usePreviewContext } from './pages/conversation/preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip';

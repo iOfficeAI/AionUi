@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { Close } from '@icon-park/react';
 import { IconShrink } from '@arco-design/web-react/icon';
 import React from 'react';

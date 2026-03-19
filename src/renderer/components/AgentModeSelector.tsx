@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import { getAgentLogo } from '@/renderer/utils/agentLogo';
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Robot } from '@icon-park/react';

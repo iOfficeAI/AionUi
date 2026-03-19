@@ -18,7 +18,7 @@ import katex from 'katex';
 // Import KaTeX CSS to make it available in the document
 import 'katex/dist/katex.min.css';
 
-import { diffColors } from '@/renderer/theme/colors';
+import { diffColors } from '@/renderer/styles/colors';
 import { copyText } from '@/renderer/utils/clipboard';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
