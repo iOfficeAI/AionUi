@@ -2,7 +2,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface McpAgentStatusDisplayProps {
   serverName: string;
@@ -19,6 +19,26 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
   alwaysVisible = false,
 }) => {
   const agents = agentInstallStatus[serverName] || [];
+  const agentsKey = useMemo(() => agents.join('|'), [agents]);
+  const [isAlwaysVisibleAnimatedIn, setIsAlwaysVisibleAnimatedIn] = useState(!alwaysVisible);
+
+  useEffect(() => {
+    if (!alwaysVisible) return;
+
+    if (isLoadingAgentStatus || agents.length === 0) {
+      setIsAlwaysVisibleAnimatedIn(false);
+      return;
+    }
+
+    setIsAlwaysVisibleAnimatedIn(false);
+    const frameId = window.requestAnimationFrame(() => {
+      setIsAlwaysVisibleAnimatedIn(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [agentsKey, alwaysVisible, isLoadingAgentStatus, agents.length]);
 
   if (!agents.length && !isLoadingAgentStatus) {
     return null;
@@ -39,7 +59,13 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
               return (
                 <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
                   <div
-                    className={`w-6 h-6 flex items-center relative cursor-pointer transition-all duration-200 ease-out ${alwaysVisible ? 'scale-100 opacity-100' : 'group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'}`}
+                    className={`w-6 h-6 flex items-center relative cursor-pointer transition-all duration-200 ease-out ${
+                      alwaysVisible
+                        ? isAlwaysVisibleAnimatedIn
+                          ? 'scale-100 opacity-100'
+                          : 'scale-0 opacity-0'
+                        : 'group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
+                    }`}
                     style={{
                       zIndex: index + 1,
                       marginLeft: index === 0 ? 0 : '-4px',
