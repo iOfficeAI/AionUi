@@ -8,7 +8,7 @@ import { ConfigStorage, type ICssTheme } from '@/common/storage.ts';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils.ts';
 import { useThemeContext } from '@renderer/context/ThemeContext.tsx';
-import { resolveCssByActiveTheme, setExtensionThemesCache } from '@renderer/utils/themeCssSync.ts';
+import { resolveCssByActiveTheme, setExtensionThemesCache } from '@renderer/utils/theme/themeCssSync';
 import { Button, Message, Modal } from '@arco-design/web-react';
 import { EditTwo, Plus, CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';

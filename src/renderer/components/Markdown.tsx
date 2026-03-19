@@ -28,7 +28,7 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { addImportantToAll } from '../utils/customCssProcessor';
+import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
 import { convertLatexDelimiters } from '../utils/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 
