@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { LoadedExtension } from './types';
+import type { LoadedExtension } from '../../types';
 import fs from 'fs';
 import path from 'path';
 

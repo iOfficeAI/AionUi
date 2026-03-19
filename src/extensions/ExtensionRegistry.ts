@@ -17,13 +17,13 @@ import { resolveWebuiContributions, type WebuiContribution } from './resolvers/W
 import { resolveSettingsTabs, type ResolvedSettingsTab } from './resolvers/SettingsTabResolver';
 import { resolveExtensionI18n, getExtI18nForLocale, type AggregatedExtI18n } from './resolvers/I18nResolver';
 import { resolveModelProviders, type ResolvedModelProvider } from './resolvers/ModelProviderResolver';
-import { loadPersistedStates, savePersistedStates, needsInstallHook } from './statePersistence';
-import { filterByEngineCompatibility } from './engineValidator';
-import { validateDependencies, sortByDependencyOrder } from './dependencyResolver';
-import { activateExtension, deactivateExtension } from './lifecycle';
-import { extensionEventBus, ExtensionSystemEvents } from './ExtensionEventBus';
-import { analyzePermissions, getOverallRiskLevel } from './permissions';
-import type { PermissionSummary, PermissionLevel } from './permissions';
+import { loadPersistedStates, savePersistedStates, needsInstallHook } from './lifecycle/statePersistence';
+import { filterByEngineCompatibility } from './resolvers/utils/engineValidator';
+import { validateDependencies, sortByDependencyOrder } from './resolvers/utils/dependencyResolver';
+import { activateExtension, deactivateExtension } from './lifecycle/lifecycle';
+import { extensionEventBus, ExtensionSystemEvents } from './lifecycle/ExtensionEventBus';
+import { analyzePermissions, getOverallRiskLevel } from './sandbox/permissions';
+import type { PermissionSummary, PermissionLevel } from './sandbox/permissions';
 
 export class ExtensionRegistry {
   private static instance: ExtensionRegistry | undefined;

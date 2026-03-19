@@ -8,8 +8,8 @@ import * as path from 'path';
 import { existsSync, readFileSync } from 'fs';
 import type { ICssTheme } from '@/common/storage';
 import type { LoadedExtension, ExtTheme } from '../types';
-import { toAssetUrl } from '../assetProtocol';
-import { isPathWithinDirectory } from '../pathSafety';
+import { toAssetUrl } from '../protocol/assetProtocol';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
 
 export function resolveThemes(extensions: LoadedExtension[]): ICssTheme[] {
   const themes: ICssTheme[] = [];

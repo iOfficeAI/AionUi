@@ -6,8 +6,8 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
-import type { LoadedExtension } from './types';
-import { isPathWithinDirectory } from './pathSafety';
+import type { LoadedExtension } from '../types';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
 import { extensionEventBus, ExtensionSystemEvents, type ExtensionLifecyclePayload } from './ExtensionEventBus';
 
 /**

@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
-import { isPathWithinDirectory } from './pathSafety';
+import { isPathWithinDirectory } from '../../sandbox/pathSafety';
 
 const FILE_REF_PREFIX = '$file:';
 const JSON_EXTENSIONS = new Set(['.json', '.jsonc', '.json5']);

@@ -8,9 +8,9 @@ import * as path from 'path';
 import fs from 'fs';
 import { BasePlugin, type PluginConfirmHandler, type PluginMessageHandler } from '@/channels/plugins/BasePlugin';
 import type { LoadedExtension, ExtChannelPlugin } from '../types';
-import { isPathWithinDirectory } from '../pathSafety';
-import { resolveRuntimeEntryPath } from '../entryPointResolver';
-import { toAssetUrl } from '../assetProtocol';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
+import { resolveRuntimeEntryPath } from './utils/entryPointResolver';
+import { toAssetUrl } from '../protocol/assetProtocol';
 
 const DEBUG_ENABLED = process.env.AIONUI_EXTENSION_DEBUG === '1' || process.env.AIONUI_EXTENSION_DEBUG === 'true';
 

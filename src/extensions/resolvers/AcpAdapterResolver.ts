@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 import type { LoadedExtension, ExtAcpAdapter } from '../types';
-import { toAssetUrl } from '../assetProtocol';
+import { toAssetUrl } from '../protocol/assetProtocol';
 
 export function resolveAcpAdapters(extensions: LoadedExtension[]): Record<string, unknown>[] {
   const adapters: Record<string, unknown>[] = [];

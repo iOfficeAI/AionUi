@@ -11,8 +11,8 @@ import {
   getAppDataExtensionsDir,
   getEnvExtensionsDirs,
   EXTENSION_MANIFEST_FILE,
-} from './constants';
-import { ExtensionRegistry } from './ExtensionRegistry';
+} from '../constants';
+import { ExtensionRegistry } from '../ExtensionRegistry';
 
 const DEBOUNCE_MS = 1000;
 

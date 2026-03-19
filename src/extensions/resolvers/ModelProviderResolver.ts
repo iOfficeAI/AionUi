@@ -7,8 +7,8 @@
 import * as path from 'path';
 import { existsSync } from 'fs';
 import type { LoadedExtension, ExtModelProvider } from '../types';
-import { isPathWithinDirectory } from '../pathSafety';
-import { toAssetUrl } from '../assetProtocol';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
+import { toAssetUrl } from '../protocol/assetProtocol';
 
 export interface ResolvedModelProvider {
   /** Unique provider ID (prefixed with extension name) */

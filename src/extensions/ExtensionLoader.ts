@@ -15,8 +15,8 @@ import {
   EXTENSION_MANIFEST_FILE,
 } from './constants';
 import { ExtensionManifestSchema, type LoadedExtension, type ExtensionSource } from './types';
-import { resolveEnvInObject, UndefinedEnvVariableError } from './envResolver';
-import { resolveFileRefs } from './fileResolver';
+import { resolveEnvInObject, UndefinedEnvVariableError } from './resolvers/utils/envResolver';
+import { resolveFileRefs } from './resolvers/utils/fileResolver';
 
 type ExtensionLoaderOptions = {
   continueOnError?: boolean;

@@ -7,7 +7,7 @@
 import * as path from 'path';
 import { existsSync } from 'fs';
 import type { LoadedExtension, ExtSkill } from '../types';
-import { isPathWithinDirectory } from '../pathSafety';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
 
 type ResolvedSkill = {
   name: string;

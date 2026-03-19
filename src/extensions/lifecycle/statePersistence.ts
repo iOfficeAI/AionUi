@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import type { ExtensionState } from './types';
+import type { ExtensionState } from '../types';
 import { extensionEventBus, ExtensionSystemEvents } from './ExtensionEventBus';
 import { getEnvAwareName } from '@/common/appEnv';
 

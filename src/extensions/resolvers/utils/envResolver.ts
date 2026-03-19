@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_STRICT_ENV_ENV } from './constants';
+import { AIONUI_STRICT_ENV_ENV } from '../../constants';
 
 const ENV_TEMPLATE_REGEX = /\$\{env:([^}]+)\}/g;
 

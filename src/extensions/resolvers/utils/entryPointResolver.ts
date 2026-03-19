@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 import { existsSync } from 'fs';
-import { isPathWithinDirectory } from './pathSafety';
+import { isPathWithinDirectory } from '../../sandbox/pathSafety';
 
 function normalizeRelativePath(input: string): string {
   return input.replace(/\\/g, '/').replace(/^\.?\//, '');

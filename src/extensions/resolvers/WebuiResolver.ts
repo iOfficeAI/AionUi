@@ -7,8 +7,8 @@
 import * as path from 'path';
 import { existsSync } from 'fs';
 import type { LoadedExtension, ExtWebui } from '../types';
-import { isPathWithinDirectory } from '../pathSafety';
-import { resolveRuntimeEntryPath } from '../entryPointResolver';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
+import { resolveRuntimeEntryPath } from './utils/entryPointResolver';
 
 export type WebuiContribution = {
   config: ExtWebui;

@@ -8,8 +8,8 @@ import fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
 import type { LoadedExtension, ExtAssistant } from '../types';
-import { isPathWithinDirectory } from '../pathSafety';
-import { toAssetUrl } from '../assetProtocol';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
+import { toAssetUrl } from '../protocol/assetProtocol';
 
 export async function resolveAssistants(extensions: LoadedExtension[]): Promise<Record<string, unknown>[]> {
   const assistants: Record<string, unknown>[] = [];

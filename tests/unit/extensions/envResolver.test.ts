@@ -12,7 +12,7 @@ import {
   isGlobalStrictMode,
   resolveEnvInObject,
   resolveEnvTemplates,
-} from '../../../src/extensions/envResolver';
+} from '../../../src/extensions/resolvers/utils/envResolver';
 
 describe('extensions/envResolver', () => {
   let envSnapshot: NodeJS.ProcessEnv;

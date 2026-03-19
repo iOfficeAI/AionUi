@@ -24,7 +24,7 @@ import * as path from 'path';
 import { existsSync } from 'fs';
 import stripJsonComments from 'strip-json-comments';
 import type { LoadedExtension } from '../types';
-import { isPathWithinDirectory } from '../pathSafety';
+import { isPathWithinDirectory } from '../sandbox/pathSafety';
 
 /**
  * Resolved i18n data for a single extension.
