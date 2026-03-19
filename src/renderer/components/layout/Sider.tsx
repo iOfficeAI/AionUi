@@ -7,9 +7,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { iconColors } from '@renderer/styles/colors';
 import { Tooltip } from '@arco-design/web-react';
 import { usePreviewContext } from '@renderer/pages/conversation/preview/context/PreviewContext';
-import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/siderTooltip';
+import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@renderer/context/LayoutContext';
-import { blurActiveElement } from '@renderer/utils/focus';
+import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/grouped-history/ConversationSearchPopover';
 

@@ -34,7 +34,7 @@ import 'uno.css';
 import './styles/arco-override.css';
 import './services/i18n';
 import './styles/themes/index.css';
-import HOC from './utils/HOC';
+import HOC from './utils/ui/HOC';
 const root = createRoot(document.getElementById('root'));
 
 // Patch Korean locale with missing properties from English locale

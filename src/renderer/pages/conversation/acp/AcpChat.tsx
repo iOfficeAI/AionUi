@@ -9,7 +9,7 @@ import type { AcpBackend } from '@/types/acpTypes';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/messages/hooks';
-import HOC from '@renderer/utils/HOC';
+import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';

@@ -10,7 +10,7 @@ import { useConversationTabs } from '@/renderer/pages/conversation/context/Conve
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import { emitter } from '@/renderer/utils/emitter';
-import { blurActiveElement } from '@/renderer/utils/focus';
+import { blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Input, Layout as ArcoLayout, Message } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';

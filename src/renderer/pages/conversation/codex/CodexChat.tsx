@@ -8,7 +8,7 @@ import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/messages/hooks';
-import HOC from '@renderer/utils/HOC';
+import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';

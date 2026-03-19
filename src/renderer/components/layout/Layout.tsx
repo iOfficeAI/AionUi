@@ -19,7 +19,7 @@ import { useNotificationClick } from '@renderer/hooks/system/useNotificationClic
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetection';
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
-import { cleanupSiderTooltips } from '@renderer/utils/siderTooltip';
+import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';

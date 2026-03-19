@@ -2,7 +2,7 @@ import type { IProvider } from '@/common/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
-import ModalHOC from '@/renderer/utils/ModalHOC';
+import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select } from '@arco-design/web-react';
 import { LinkCloud, Edit, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';

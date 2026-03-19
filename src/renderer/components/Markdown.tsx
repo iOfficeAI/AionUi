@@ -19,7 +19,7 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
 import { diffColors } from '@/renderer/styles/colors';
-import { copyText } from '@/renderer/utils/clipboard';
+import { copyText } from '@/renderer/utils/ui/clipboard';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
