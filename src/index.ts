@@ -538,7 +538,7 @@ const handleAppReady = async (): Promise<void> => {
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
   powerMonitor.on('resume', () => {
     console.log('[App] System resumed from sleep, triggering cron recovery');
-    import('@process/services/cron/CronService')
+    import('@process/services/cron/cronServiceSingleton')
       .then(({ cronService }) => {
         void cronService.handleSystemResume();
       })

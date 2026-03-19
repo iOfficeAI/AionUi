@@ -8,7 +8,7 @@ import { logger } from '@office-ai/platform';
 import { initAllBridges } from './bridge';
 import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
 import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
-import { cronService } from '@process/services/cron/CronService';
+import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 
 logger.config({ print: true });
