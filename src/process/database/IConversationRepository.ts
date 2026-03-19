@@ -10,6 +10,7 @@
 
 import type { TChatConversation } from '@/common/storage';
 import type { TMessage } from '@/common/chatLib';
+import type { IMessageSearchResponse } from '@/common/types/database';
 
 export type PaginatedResult<T> = {
   data: T[];
@@ -22,7 +23,7 @@ export interface IConversationRepository {
   createConversation(conversation: TChatConversation): void;
   updateConversation(id: string, updates: Partial<TChatConversation>): void;
   deleteConversation(id: string): void;
-  getMessages(id: string, page: number, pageSize: number): PaginatedResult<TMessage>;
+  getMessages(id: string, page: number, pageSize: number, order?: 'ASC' | 'DESC'): PaginatedResult<TMessage>;
   insertMessage(message: TMessage): void;
   /**
    * If cursor is provided, offset is ignored.
@@ -31,4 +32,6 @@ export interface IConversationRepository {
   getUserConversations(cursor?: string, offset?: number, limit?: number): PaginatedResult<TChatConversation>;
   /** Returns all conversations without pagination. */
   listAllConversations(): TChatConversation[];
+  /** Full-text search across conversation messages. */
+  searchMessages(keyword: string, page: number, pageSize: number): IMessageSearchResponse;
 }

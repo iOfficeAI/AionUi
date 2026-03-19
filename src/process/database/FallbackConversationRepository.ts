@@ -7,6 +7,7 @@
 import type { IConversationRepository, PaginatedResult } from './IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 import type { TMessage } from '@/common/chatLib';
+import type { IMessageSearchResponse } from '@/common/types/database';
 
 /**
  * Decorator that delegates all IConversationRepository methods to an inner repository.
@@ -32,8 +33,8 @@ export class FallbackConversationRepository implements IConversationRepository {
     this.db.deleteConversation(id);
   }
 
-  getMessages(id: string, page: number, pageSize: number): PaginatedResult<TMessage> {
-    return this.db.getMessages(id, page, pageSize);
+  getMessages(id: string, page: number, pageSize: number, order?: 'ASC' | 'DESC'): PaginatedResult<TMessage> {
+    return this.db.getMessages(id, page, pageSize, order);
   }
 
   insertMessage(message: TMessage): void {
@@ -46,5 +47,9 @@ export class FallbackConversationRepository implements IConversationRepository {
 
   listAllConversations(): TChatConversation[] {
     return this.db.listAllConversations();
+  }
+
+  searchMessages(keyword: string, page: number, pageSize: number): IMessageSearchResponse {
+    return this.db.searchMessages(keyword, page, pageSize);
   }
 }

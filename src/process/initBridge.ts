@@ -21,6 +21,7 @@ const channelRepo = new SqliteChannelRepository();
 // 初始化所有IPC桥接
 initAllBridges({
   conversationService: conversationServiceImpl,
+  conversationRepo: repo,
   workerTaskManager,
   channelRepo,
 });
