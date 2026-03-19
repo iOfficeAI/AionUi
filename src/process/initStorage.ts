@@ -687,30 +687,41 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       const needsNameMigration =
         existing.name !== BUILTIN_IMAGE_GEN_NAME &&
         BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(existing.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
-      if (needsNameMigration) {
-        existing.name = BUILTIN_IMAGE_GEN_NAME;
-        changed = true;
-      }
-      if (existing.transport.type === 'stdio' && existing.transport.command === 'node') {
-        const currentArgs = existing.transport.args || [];
-        if (currentArgs[0] !== scriptPath || needsNameMigration) {
-          existing.transport.args = [scriptPath];
-          existing.originalJson = buildOriginalJson(scriptPath, existing.transport.env || {});
-          existing.updatedAt = now;
-          changed = true;
+
+      const needsPathUpdate =
+        existing.transport.type === 'stdio' &&
+        existing.transport.command === 'node' &&
+        ((existing.transport.args || [])[0] !== scriptPath || needsNameMigration);
+
+      const needsMigration = shouldEnable && !existing.enabled;
+
+      if (needsNameMigration || needsPathUpdate || needsMigration) {
+        let updatedTransport: IMcpServer['transport'] = existing.transport;
+
+        if (existing.transport.type === 'stdio') {
+          const mergedEnv = needsMigration
+            ? { ...(existing.transport.env ?? {}), ...buildEnvFromConfig(oldConfig) }
+            : existing.transport.env;
+          updatedTransport = {
+            ...existing.transport,
+            ...(needsPathUpdate && { args: [scriptPath] }),
+            ...(needsMigration && { env: mergedEnv }),
+          };
         }
-      }
-      // If migrating from old switch, enable the server
-      if (shouldEnable && !existing.enabled) {
-        existing.enabled = true;
-        existing.transport = {
-          ...existing.transport,
-          env: {
-            ...(existing.transport as IMcpServer['transport'] & { env?: Record<string, string> }).env,
-            ...buildEnvFromConfig(oldConfig),
-          },
-        } as IMcpServer['transport'];
-        existing.updatedAt = now;
+
+        const newOriginalJson =
+          needsPathUpdate && updatedTransport.type === 'stdio'
+            ? buildOriginalJson(scriptPath, updatedTransport.env ?? {})
+            : existing.originalJson;
+
+        mcpServers[existingIdx] = {
+          ...existing,
+          name: needsNameMigration ? BUILTIN_IMAGE_GEN_NAME : existing.name,
+          transport: updatedTransport,
+          originalJson: newOriginalJson,
+          enabled: needsMigration ? true : existing.enabled,
+          updatedAt: now,
+        };
         changed = true;
       }
     } else {

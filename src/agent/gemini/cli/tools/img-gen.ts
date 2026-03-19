@@ -16,8 +16,9 @@ import type {
   MessageBus,
 } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, ToolErrorType } from '@office-ai/aioncli-core';
+import * as fs from 'fs';
 import * as path from 'path';
-import { executeImageGeneration, safeJsonParse, isImageFile, isHttpUrl } from '@/process/builtinMcp/imageGenCore';
+import { executeImageGeneration, safeJsonParse, isImageFile, isHttpUrl } from '@/common/imageGenCore';
 
 export interface ImageGenerationToolParams {
   /**
@@ -124,7 +125,6 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
         return null;
       }
 
-      const fs = require('fs');
       for (let i = 0; i < imageUris.length; i++) {
         const imageUri = imageUris[i].trim();
 

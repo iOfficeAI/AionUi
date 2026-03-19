@@ -2,7 +2,7 @@ import { Button, Collapse, Modal, Dropdown, Menu } from '@arco-design/web-react'
 import { Plus, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { IMcpServer } from '@/common/storage';
+import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/storage';
 import { acpConversation } from '@/common/ipcBridge';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
@@ -19,8 +19,6 @@ import {
 interface McpManagementProps {
   message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0];
 }
-
-const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 
 const isVisibleMcpServer = (server: IMcpServer) => !(server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID);
 
