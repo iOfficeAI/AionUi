@@ -5,7 +5,7 @@ import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
-import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';

@@ -13,11 +13,11 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/clipboard';
-import CollapsibleContent from '../components/CollapsibleContent';
-import FilePreview from '../components/FilePreview';
-import HorizontalFileList from '../components/HorizontalFileList';
-import MarkdownView from '../components/Markdown';
-import { stripThinkTags, hasThinkTags } from '../utils/thinkTagFilter';
+import CollapsibleContent from '@renderer/components/CollapsibleContent';
+import FilePreview from '@renderer/components/FilePreview';
+import HorizontalFileList from '@renderer/components/HorizontalFileList';
+import MarkdownView from '@renderer/components/Markdown';
+import { stripThinkTags, hasThinkTags } from '@renderer/utils/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
 
 const parseFileMarker = (content: string) => {

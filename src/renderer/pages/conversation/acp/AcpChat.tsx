@@ -7,8 +7,8 @@
 import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import type { AcpBackend } from '@/types/acpTypes';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
-import MessageList from '@renderer/messages/MessageList';
-import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
+import MessageList from '@renderer/pages/conversation/messages/MessageList';
+import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/messages/hooks';
 import HOC from '@renderer/utils/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../components/ConversationChatConfirm';

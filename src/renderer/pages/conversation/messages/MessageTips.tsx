@@ -9,8 +9,8 @@ import { Attention, CheckOne } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
-import MarkdownView from '../components/Markdown';
-import CollapsibleContent from '../components/CollapsibleContent';
+import MarkdownView from '@renderer/components/Markdown';
+import CollapsibleContent from '@renderer/components/CollapsibleContent';
 
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,

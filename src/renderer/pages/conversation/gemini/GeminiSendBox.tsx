@@ -17,7 +17,7 @@ import FileAttachButton from '@/renderer/components/FileAttachButton';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/useSlashCommands';
-import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';

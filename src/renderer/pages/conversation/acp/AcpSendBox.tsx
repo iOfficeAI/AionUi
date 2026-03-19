@@ -7,7 +7,7 @@ import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
-import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';

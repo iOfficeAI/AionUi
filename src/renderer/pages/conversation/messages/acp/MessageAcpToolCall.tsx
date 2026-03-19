@@ -11,7 +11,7 @@ import { parseDiff } from '@/renderer/utils/diffUtils';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';
 import React, { useMemo } from 'react';
-import MarkdownView from '../../components/Markdown';
+import MarkdownView from '@renderer/components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
   const getTagProps = () => {

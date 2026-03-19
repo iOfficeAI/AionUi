@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
-import { createContext } from '../utils/createContext';
+import { createContext } from '@renderer/utils/createContext';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 

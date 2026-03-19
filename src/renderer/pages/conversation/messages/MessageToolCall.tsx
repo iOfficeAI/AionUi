@@ -12,7 +12,7 @@ import { Alert } from '@arco-design/web-react';
 import { MessageSearch } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import React, { useMemo } from 'react';
-import MarkdownView from '../components/Markdown';
+import MarkdownView from '@renderer/components/Markdown';
 import { iconColors } from '@/renderer/styles/colors';
 
 const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
