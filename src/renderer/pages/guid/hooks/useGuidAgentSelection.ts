@@ -17,7 +17,7 @@ import type {
   EffectiveAgentInfo,
   PresetAgentType,
 } from '../types';
-import { getAgentModes } from '@/renderer/constants/agentModes';
+import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate } from 'swr';
 

@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/AgentModeSelector';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/constants/agentModes';
+import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { getCleanFileNames, FileService, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
