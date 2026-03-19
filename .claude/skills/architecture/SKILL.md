@@ -26,6 +26,20 @@ Guide for file placement and structure decisions across the entire Electron proj
 
 Rules that apply across **all** process layers.
 
+## Test File Mapping
+
+Test files must mirror the source file they test. Place tests in the matching `tests/` subdirectory:
+
+| Source | Test |
+|--------|------|
+| `src/process/services/CronService.ts` | `tests/unit/cronService.test.ts` |
+| `src/process/bridge/fsBridge.ts` | `tests/unit/fsBridge.test.ts` |
+| `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts` |
+| `src/renderer/hooks/ui/useAutoScroll.ts` | `tests/unit/useAutoScroll.dom.test.ts` |
+| `src/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
+
+When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/extensions/`).
+
 ## Repository Root
 
 The project root directory contains source code, configuration, documentation, and application assets. Keep it organized by category.
@@ -462,6 +476,37 @@ src/agent/
 - Simple service → single file in `src/process/services/`
 - Complex service (multiple files) → subdirectory: `src/process/services/<name>/`
 
+## Service Testability Rules
+
+### Pure Logic vs IO Separation
+
+Services must separate **pure logic** from **IO operations**:
+
+- **Pure logic** (data transformation, validation, formatting) → standalone functions, no `fs`/`db`/`net` imports
+- **IO operations** (file read, DB query, HTTP call) → thin wrappers in service class or repository
+- Service methods should receive IO results as parameters rather than calling IO internally
+
+This enables unit testing pure logic without mocking.
+
+### Dependency Injection
+
+Services and bridges that depend on external resources (DB, file system, other services) should accept dependencies as constructor/function parameters:
+
+```typescript
+// ❌ Hard to test — must mock the entire module
+import { db } from '@process/database';
+function getConversation(id: string) {
+  return db.query('SELECT * FROM conversations WHERE id = ?', id);
+}
+
+// ✅ Easy to test — inject the dependency
+function getConversation(repo: IConversationRepository, id: string) {
+  return repo.findById(id);
+}
+```
+
+For existing code using direct imports, `vi.mock()` is acceptable. For new code, prefer parameter injection.
+
 ---
 
 # Part 4 — Middle / Shared Layer
@@ -523,3 +568,5 @@ Before submitting code with new files:
 - [ ] `renderer/` root has at most 3 files + 7 directories
 - [ ] `hooks/` and `utils/` are grouped by business domain when exceeding 10 children
 - [ ] No CSS files at `renderer/` root — global styles go in `styles/`
+- [ ] New source files with logic added to `vitest.config.ts` → `coverage.include`
+- [ ] New services separate pure logic from IO (see Service Testability Rules)
