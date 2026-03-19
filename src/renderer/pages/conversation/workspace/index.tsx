@@ -36,7 +36,16 @@ import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import './workspace.css';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
-import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';
+import {
+  collectFilePaths,
+  computeContextMenuPosition,
+  extractNodeData,
+  extractNodeKey,
+  findNodeByKey,
+  flattenSingleRoot,
+  getTargetFolderPath,
+} from './utils/treeHelpers';
+import { isPreviewSupportedExt } from './utils/filePreview';
 
 const ChangeWorkspaceIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...rest }) => {
   const clipPathId = useId();
@@ -230,10 +239,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // 当只有一个根目录且有子文件时，隐藏根目录直接展示子文件，因为 Toolbar 已经作为一级目录
   // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
-  const treeData =
-    treeHook.files.length === 1 && (treeHook.files[0]?.children?.length ?? 0) > 0
-      ? (treeHook.files[0]?.children ?? [])
-      : treeHook.files;
+  const treeData = flattenSingleRoot(treeHook.files);
 
   // Check if this is a temporary workspace (check both path and root folder name)
   const isTemporaryWorkspace = checkIsTemporaryWorkspace(workspace) || checkIsTemporaryWorkspace(rootName);
@@ -308,19 +314,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         });
 
         // Recursively collect all file paths
-        const collectFilePaths = (items: IDirOrFile[]): string[] => {
-          const paths: string[] = [];
-          for (const item of items) {
-            if (item.isFile && item.fullPath) {
-              paths.push(item.fullPath);
-            }
-            if (item.children && item.children.length > 0) {
-              paths.push(...collectFilePaths(item.children));
-            }
-          }
-          return paths;
-        };
-
         const filePaths = collectFilePaths(workspaceFiles);
 
         // Copy all files to the target workspace / 复制所有文件到目标工作区
@@ -422,13 +415,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
-    let x = modalsHook.contextMenu.x;
-    let y = modalsHook.contextMenu.y;
-    if (typeof window !== 'undefined') {
-      x = Math.min(x, window.innerWidth - 220);
-      y = Math.min(y, window.innerHeight - 220);
-    }
-    contextMenuStyle = { top: y, left: x };
+    contextMenuStyle = computeContextMenuPosition(modalsHook.contextMenu.x, modalsHook.contextMenu.y);
   }
 
   const contextMenuNode = modalsHook.contextMenu.node;
@@ -466,68 +453,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   );
 
   // Check if file supports preview
-  const isPreviewSupported = (() => {
-    if (!contextMenuNode?.isFile || !contextMenuNode.name) return false;
-    const ext = contextMenuNode.name.toLowerCase().split('.').pop() || '';
-    const supportedExts = [
-      // Markdown formats
-      'md',
-      'markdown',
-      // Diff formats
-      'diff',
-      'patch',
-      // PDF format
-      'pdf',
-      // PPT formats
-      'ppt',
-      'pptx',
-      'odp',
-      // Word formats
-      'doc',
-      'docx',
-      'odt',
-      // Excel formats
-      'xls',
-      'xlsx',
-      'ods',
-      'csv',
-      // HTML formats
-      'html',
-      'htm',
-      // Code formats
-      'js',
-      'ts',
-      'tsx',
-      'jsx',
-      'py',
-      'java',
-      'go',
-      'rs',
-      'c',
-      'cpp',
-      'h',
-      'hpp',
-      'css',
-      'scss',
-      'json',
-      'xml',
-      'yaml',
-      'yml',
-      // Image formats
-      'png',
-      'jpg',
-      'jpeg',
-      'gif',
-      'bmp',
-      'webp',
-      'svg',
-      'ico',
-      'tif',
-      'tiff',
-      'avif',
-    ];
-    return supportedExts.includes(ext);
-  })();
+  const isPreviewSupported =
+    !!contextMenuNode?.isFile && !!contextMenuNode.name && isPreviewSupportedExt(contextMenuNode.name);
 
   const menuButtonBase =
     'w-full flex items-center gap-8px px-14px py-6px text-13px text-left text-t-primary rounded-md transition-colors duration-150 hover:bg-2 border-none bg-transparent appearance-none focus:outline-none focus-visible:outline-none';

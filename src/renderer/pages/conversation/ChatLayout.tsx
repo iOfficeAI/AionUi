@@ -25,39 +25,20 @@ import {
 } from '@/renderer/utils/workspace/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import {
+  detectMobileViewportOrTouch,
+  isMacEnvironment,
+  isWindowsEnvironment,
+} from '@/renderer/pages/conversation/utils/detectPlatform';
+import {
+  MIN_CHAT_PANEL_PX,
+  MIN_PREVIEW_PANEL_PX,
+  MIN_WORKSPACE_PANEL_PX,
+  MIN_WORKSPACE_RATIO,
+  WORKSPACE_HEADER_HEIGHT,
+  calcLayoutMetrics,
+} from '@/renderer/pages/conversation/utils/layoutCalc';
 import './chat-layout.css';
-
-const MIN_CHAT_RATIO = 25;
-const MIN_WORKSPACE_RATIO = 12;
-const MIN_PREVIEW_RATIO = 20;
-const WORKSPACE_HEADER_HEIGHT = 32;
-const MIN_CHAT_PANEL_PX = 360;
-const MIN_PREVIEW_PANEL_PX = 340;
-const MIN_WORKSPACE_PANEL_PX = 220;
-
-const detectMobileViewportOrTouch = () => {
-  if (typeof window === 'undefined') return false;
-  if (isElectronDesktop()) {
-    return window.innerWidth < 768;
-  }
-  const width = window.innerWidth;
-  const byWidth = width < 768;
-  const smallScreen = width < 1024;
-  const byMedia = window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches;
-  const byTouchPoints = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
-  return byWidth || (smallScreen && (byMedia || byTouchPoints));
-};
-
-const isMacEnvironment = () => {
-  if (typeof navigator === 'undefined') return false;
-  return /mac/i.test(navigator.userAgent);
-};
-
-const isWindowsEnvironment = () => {
-  if (typeof navigator === 'undefined') return false;
-  return /win/i.test(navigator.userAgent);
-};
 
 interface WorkspaceHeaderProps {
   children?: React.ReactNode;
@@ -388,19 +369,19 @@ const ChatLayout: React.FC<{
   });
 
   const isDesktop = !layout?.isMobile;
-  const safeContainerWidth = Math.max(containerWidth || 0, 1);
-  const activeWorkspaceRatio = workspaceEnabled && isDesktop && !rightSiderCollapsed ? workspaceSplitRatio : 0;
-  const availableRatioForChatPreview = Math.max(1, 100 - activeWorkspaceRatio);
-  const availableWidthForChatPreview = (safeContainerWidth * availableRatioForChatPreview) / 100;
-  const minChatRatioByPx = (MIN_CHAT_PANEL_PX / Math.max(availableWidthForChatPreview, 1)) * 100;
-  const minPreviewRatioByPx = (MIN_PREVIEW_PANEL_PX / Math.max(availableWidthForChatPreview, 1)) * 100;
-  const dynamicChatMinRatio =
-    workspaceEnabled && isDesktop && isPreviewOpen ? Math.max(MIN_CHAT_RATIO, minChatRatioByPx) : MIN_CHAT_RATIO;
-  const dynamicChatMaxCandidate =
-    workspaceEnabled && isDesktop && isPreviewOpen
-      ? Math.min(80, 100 - Math.max(MIN_PREVIEW_RATIO, minPreviewRatioByPx))
-      : 80;
-  const dynamicChatMaxRatio = Math.max(dynamicChatMinRatio, dynamicChatMaxCandidate);
+  const isMobile = Boolean(layout?.isMobile);
+
+  // Pre-hook metrics: compute dynamic min/max for the chat-preview split hook
+  const { dynamicChatMinRatio, dynamicChatMaxRatio } = calcLayoutMetrics({
+    containerWidth,
+    workspaceSplitRatio,
+    chatSplitRatio: 60, // placeholder; only dynamicChatMinRatio/dynamicChatMaxRatio are used here
+    workspaceEnabled,
+    isDesktop,
+    isPreviewOpen,
+    rightSiderCollapsed,
+    isMobile,
+  });
 
   const {
     splitRatio: chatSplitRatio,
@@ -413,22 +394,25 @@ const ChatLayout: React.FC<{
     storageKey: 'chat-preview-split-ratio',
   });
 
-  const effectiveWorkspaceRatio = workspaceEnabled && isDesktop && !rightSiderCollapsed ? workspaceSplitRatio : 0;
-  const availableChatPreviewRatio = Math.max(0, 100 - effectiveWorkspaceRatio);
-  const chatFlex = isDesktop
-    ? isPreviewOpen
-      ? (availableChatPreviewRatio * chatSplitRatio) / 100
-      : 100 - effectiveWorkspaceRatio
-    : 100;
-  const workspaceFlex = effectiveWorkspaceRatio;
-  const viewportWidth = containerWidth || (typeof window === 'undefined' ? 0 : window.innerWidth);
-  const mobileViewportWidth = viewportWidth || window.innerWidth;
-  const mobileWorkspaceWidthPx = Math.min(
-    Math.max(300, Math.round(mobileViewportWidth * 0.84)),
-    Math.max(300, Math.min(420, mobileViewportWidth - 20))
-  );
-  const desktopWorkspaceWidthPx = Math.min(500, Math.max(200, (workspaceSplitRatio / 100) * (viewportWidth || 0)));
-  const workspaceWidthPx = workspaceEnabled ? (layout?.isMobile ? mobileWorkspaceWidthPx : desktopWorkspaceWidthPx) : 0;
+  // Full metrics with real chatSplitRatio
+  const {
+    chatFlex,
+    workspaceFlex,
+    workspaceWidthPx,
+    titleAreaMaxWidth,
+    mobileWorkspaceHandleRight,
+    showDesktopWorkspaceSidebar,
+    desktopWorkspaceSidebarWidth,
+  } = calcLayoutMetrics({
+    containerWidth,
+    workspaceSplitRatio,
+    chatSplitRatio,
+    workspaceEnabled,
+    isDesktop,
+    isPreviewOpen,
+    rightSiderCollapsed,
+    isMobile,
+  });
 
   useEffect(() => {
     if (!workspaceEnabled || !isPreviewOpen || !isDesktop || rightSiderCollapsed) {
@@ -503,11 +487,6 @@ const ChatLayout: React.FC<{
 
     previousPreviewOpenRef.current = isPreviewOpen;
   }, [isPreviewOpen, isDesktop, layout, rightSiderCollapsed, workspaceEnabled]);
-
-  const mobileWorkspaceHandleRight = rightSiderCollapsed ? 0 : Math.max(0, Math.round(workspaceWidthPx) - 14);
-  const showDesktopWorkspaceSidebar = workspaceEnabled && isDesktop && !rightSiderCollapsed;
-  const desktopWorkspaceSidebarWidth = Math.max(220, Math.round(workspaceWidthPx));
-  const titleAreaMaxWidth = Math.max(320, Math.min(820, containerWidth - 520));
 
   const headerBlock = (
     <>

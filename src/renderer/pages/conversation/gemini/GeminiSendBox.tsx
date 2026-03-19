@@ -23,6 +23,8 @@ import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
+import { isApiErrorMessage, isQuotaErrorMessage } from '@/renderer/utils/model/errorDetection';
+import { resolveFallbackTarget } from '@/renderer/utils/model/modelFallback';
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
@@ -484,124 +486,6 @@ const GeminiSendBox: React.FC<{
 
   const performFullCheckRef = useLatestRef(performFullCheck);
 
-  const resolveFallbackTarget = useCallback(
-    (exhaustedModels: Set<string>) => {
-      if (!currentModel) return null;
-      const provider =
-        providers.find((item) => item.id === currentModel.id) ||
-        providers.find((item) => item.platform?.toLowerCase().includes('gemini-with-google-auth'));
-      if (!provider) return null;
-
-      const isGoogleAuthProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-      const manualOption = isGoogleAuthProvider ? geminiModeLookup.get('manual') : undefined;
-      const manualModels = manualOption?.subModels?.map((model) => model.value) || [];
-      const availableModels = isGoogleAuthProvider ? manualModels : getAvailableModels(provider);
-      const candidates = availableModels.filter(
-        (model) => model && model !== currentModel.useModel && !exhaustedModels.has(model) && model !== 'manual'
-      );
-
-      if (!candidates.length) return null;
-      const scoreModel = (modelName: string) => {
-        const lower = modelName.toLowerCase();
-        let score = 0;
-        if (lower.includes('lite')) score -= 2;
-        if (lower.includes('flash')) score -= 1;
-        if (lower.includes('pro')) score += 2;
-        return score;
-      };
-      const sortedCandidates = [...candidates].sort((a, b) => {
-        const scoreA = scoreModel(a);
-        const scoreB = scoreModel(b);
-        if (scoreA !== scoreB) return scoreA - scoreB;
-        return a.localeCompare(b);
-      });
-      return { provider, model: sortedCandidates[0] };
-    },
-    [currentModel, providers, geminiModeLookup, getAvailableModels]
-  );
-
-  const isQuotaErrorMessage = useCallback((data: unknown) => {
-    if (typeof data !== 'string') return false;
-    const text = data.toLowerCase();
-    const hasQuota =
-      text.includes('quota') ||
-      text.includes('resource_exhausted') ||
-      text.includes('model_capacity_exhausted') ||
-      text.includes('no capacity available');
-    const hasLimit =
-      text.includes('limit') ||
-      text.includes('exceed') ||
-      text.includes('exhaust') ||
-      text.includes('status: 429') ||
-      text.includes('code 429') ||
-      text.includes('429') ||
-      text.includes('ratelimitexceeded');
-    return hasQuota && hasLimit;
-  }, []);
-
-  // 检测 API Key 错误（用户配置问题，不应该自动切换）
-  // Detect API Key errors (user configuration issue, should not auto-switch)
-  const isApiKeyError = useCallback((data: unknown) => {
-    let text = '';
-    if (typeof data === 'string') {
-      text = data.toLowerCase();
-    } else if (data && typeof data === 'object') {
-      try {
-        text = JSON.stringify(data).toLowerCase();
-      } catch {
-        return false;
-      }
-    } else {
-      return false;
-    }
-
-    // 检测 API key 相关错误 - 这些是用户配置问题，应该显示错误而非自动切换
-    // Detect API key related errors - these are user config issues, show error instead of auto-switch
-    const hasInvalidApiKey =
-      text.includes('api key not valid') ||
-      text.includes('api_key_invalid') ||
-      text.includes('invalid api key') ||
-      text.includes('google_api_key');
-    return hasInvalidApiKey;
-  }, []);
-
-  // 检测 API 错误（400, 401, 403, 404, 5xx 等，但排除 API key 错误）
-  // Detect API errors (400, 401, 403, 404, 5xx, etc., excluding API key errors)
-  const isApiErrorMessage = useCallback(
-    (data: unknown) => {
-      // 如果是 API key 错误，不视为需要自动切换的 API 错误
-      // If it's an API key error, don't treat it as an auto-switch API error
-      if (isApiKeyError(data)) {
-        return false;
-      }
-
-      // 将 data 转换为字符串进行检查
-      let text = '';
-      if (typeof data === 'string') {
-        text = data.toLowerCase();
-      } else if (data && typeof data === 'object') {
-        // 如果是对象，序列化为 JSON 字符串
-        try {
-          text = JSON.stringify(data).toLowerCase();
-        } catch {
-          return false;
-        }
-      } else {
-        return false;
-      }
-
-      // 检测常见的 API 错误（排除 API key 错误，因为那是用户配置问题）
-      const hasStatusError = /(?:status|code|error)[:\s]*(?:400|401|403|404|500|502|503|504)/i.test(text);
-      const hasInvalidUrl = text.includes('invalid url');
-      const hasNotFound = text.includes('not found') || text.includes('notfound');
-      const hasUnauthorized = text.includes('unauthorized') || text.includes('authentication');
-      const hasForbidden = text.includes('forbidden') || text.includes('access denied');
-      const hasInvalidArgument = text.includes('invalid_argument');
-      return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidArgument;
-    },
-    [isApiKeyError]
-  );
-
   const handleGeminiError = useCallback(
     (message: IResponseMessage) => {
       // API 错误不触发 agent 检测，只处理配额错误
@@ -622,7 +506,13 @@ const GeminiSendBox: React.FC<{
       if (currentModel?.useModel) {
         exhaustedModelsRef.current.add(currentModel.useModel);
       }
-      const fallbackTarget = resolveFallbackTarget(exhaustedModelsRef.current);
+      const fallbackTarget = resolveFallbackTarget({
+        currentModel,
+        providers,
+        geminiModeLookup,
+        getAvailableModels,
+        exhaustedModels: exhaustedModelsRef.current,
+      });
       if (!fallbackTarget || !currentModel || fallbackTarget.model === currentModel.useModel) {
         Message.warning(
           t('conversation.chat.quotaExceededNoFallback', {
@@ -641,7 +531,7 @@ const GeminiSendBox: React.FC<{
         );
       });
     },
-    [currentModel, handleSelectModel, isApiErrorMessage, isQuotaErrorMessage, resolveFallbackTarget, t]
+    [currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel, t]
   );
 
   const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(

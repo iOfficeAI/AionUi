@@ -179,6 +179,51 @@ export function updateTreeForRename(
 }
 
 /**
+ * Recursively collect all file paths from tree items
+ */
+export function collectFilePaths(items: IDirOrFile[]): string[] {
+  const paths: string[] = [];
+  for (const item of items) {
+    if (item.isFile && item.fullPath) {
+      paths.push(item.fullPath);
+    }
+    if (item.children && item.children.length > 0) {
+      paths.push(...collectFilePaths(item.children));
+    }
+  }
+  return paths;
+}
+
+/**
+ * If there's only one root directory with children, return its children directly.
+ * Used to hide root directory when Toolbar serves as first-level directory.
+ */
+export function flattenSingleRoot(files: IDirOrFile[]): IDirOrFile[] {
+  if (files.length === 1 && (files[0]?.children?.length ?? 0) > 0) {
+    return files[0]?.children ?? [];
+  }
+  return files;
+}
+
+/**
+ * Clip context menu position to viewport boundaries
+ */
+export function computeContextMenuPosition(
+  x: number,
+  y: number,
+  menuWidth = 220,
+  menuHeight = 220
+): { top: number; left: number } {
+  let clippedX = x;
+  let clippedY = y;
+  if (typeof window !== 'undefined') {
+    clippedX = Math.min(clippedX, window.innerWidth - menuWidth);
+    clippedY = Math.min(clippedY, window.innerHeight - menuHeight);
+  }
+  return { top: clippedY, left: clippedX };
+}
+
+/**
  * 获取目标文件夹路径（从 selectedNodeRef 或 selected keys）
  * Get target folder path from selectedNodeRef or selected keys
  */

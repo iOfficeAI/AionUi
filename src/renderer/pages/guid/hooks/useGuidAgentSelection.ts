@@ -20,33 +20,7 @@ import type {
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate } from 'swr';
-
-/** Save preferred mode to the agent's own config key */
-async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
-  try {
-    if (agentKey === 'gemini') {
-      const config = await ConfigStorage.get('gemini.config');
-      await ConfigStorage.set('gemini.config', { ...config, preferredMode: mode });
-    } else if (agentKey !== 'custom') {
-      const config = await ConfigStorage.get('acp.config');
-      const backendConfig = config?.[agentKey as AcpBackend] || {};
-      await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
-    }
-  } catch {
-    /* silent */
-  }
-}
-
-/** Save preferred model ID to the agent's acp.config key */
-async function savePreferredModelId(agentKey: string, modelId: string): Promise<void> {
-  try {
-    const config = await ConfigStorage.get('acp.config');
-    const backendConfig = config?.[agentKey as AcpBackend] || {};
-    await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: modelId } });
-  } catch {
-    /* silent */
-  }
-}
+import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil } from './agentSelectionUtils';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -148,13 +122,7 @@ export const useGuidAgentSelection = ({
     return ids;
   }, [availableAgents]);
 
-  /**
-   * Get agent key for selection.
-   * Returns "custom:uuid" for custom agents, backend type for others.
-   */
-  const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string }) => {
-    return agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
-  };
+  const getAgentKey = getAgentKeyUtil;
 
   /**
    * Find agent by key.

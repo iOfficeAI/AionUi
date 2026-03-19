@@ -19,15 +19,28 @@
  * Extension assistants are fully read-only.
  */
 import { ipcBridge } from '@/common';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import { ConfigStorage } from '@/common/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import coworkSvg from '@/renderer/assets/cowork.svg';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
-import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AcpBackendConfig } from '@/types/acpTypes';
-import type { Message } from '@arco-design/web-react';
+
+import {
+  hasBuiltinSkills,
+  isEmoji as isEmojiUtil,
+  isExtensionAssistant as isExtensionAssistantUtil,
+  normalizeExtensionAssistants,
+  resolveAvatarImageSrc as resolveAvatarImageSrcUtil,
+  sortAssistants as sortAssistantsUtil,
+} from './AssistantManagement/assistantUtils';
+import type {
+  AssistantListItem,
+  AssistantManagementProps,
+  ExternalSource,
+  PendingSkill,
+  SkillInfo,
+} from './AssistantManagement/types';
 import {
   Avatar,
   Button,
@@ -45,52 +58,6 @@ import { Close, Delete, FolderOpen, Plus, Refresh, Robot, Search, SettingOne } f
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { mutate } from 'swr';
-
-// Skill 信息类型 / Skill info type
-interface SkillInfo {
-  name: string;
-  description: string;
-  location: string;
-  isCustom: boolean;
-}
-
-// 外部来源类型 / External source type
-interface ExternalSource {
-  name: string;
-  path: string;
-  source: string;
-  skills: Array<{ name: string; description: string; path: string }>;
-}
-
-// 检查内置助手是否有 skills 配置（defaultEnabledSkills 或 skillFiles）
-// Check if builtin assistant has skills config (defaultEnabledSkills or skillFiles)
-const hasBuiltinSkills = (assistantId: string): boolean => {
-  if (!assistantId.startsWith('builtin-')) return false;
-  const presetId = assistantId.replace('builtin-', '');
-  const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-  if (!preset) return false;
-  // 有 defaultEnabledSkills 或 skillFiles 配置即可
-  const hasDefaultSkills = preset.defaultEnabledSkills && preset.defaultEnabledSkills.length > 0;
-  const hasSkillFiles = preset.skillFiles && Object.keys(preset.skillFiles).length > 0;
-  return hasDefaultSkills || hasSkillFiles;
-};
-
-// 待导入的 Skill / Pending skill to import
-interface PendingSkill {
-  path: string; // 原始路径
-  name: string;
-  description: string;
-}
-
-interface AssistantManagementProps {
-  message: ReturnType<typeof Message.useMessage>[0];
-}
-
-type AssistantListItem = AcpBackendConfig & {
-  _source?: string;
-  _extensionName?: string;
-  _kind?: string;
-};
 
 const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) => {
   const { t, i18n } = useTranslation();
@@ -144,44 +111,15 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])
   );
 
-  const normalizedExtensionAssistants = React.useMemo<AssistantListItem[]>(() => {
-    if (!Array.isArray(extensionAssistants) || extensionAssistants.length === 0) return [];
+  const normalizedExtAssistants = React.useMemo<AssistantListItem[]>(
+    () => normalizeExtensionAssistants(extensionAssistants || []),
+    [extensionAssistants]
+  );
 
-    return extensionAssistants
-      .map((ext) => {
-        const id = typeof ext.id === 'string' ? ext.id : '';
-        const name = typeof ext.name === 'string' ? ext.name : '';
-        if (!id || !name) return null;
-
-        return {
-          id,
-          name,
-          nameI18n: ext.nameI18n as Record<string, string> | undefined,
-          description: typeof ext.description === 'string' ? ext.description : undefined,
-          descriptionI18n: ext.descriptionI18n as Record<string, string> | undefined,
-          avatar: typeof ext.avatar === 'string' ? ext.avatar : undefined,
-          presetAgentType: typeof ext.presetAgentType === 'string' ? ext.presetAgentType : undefined,
-          context: typeof ext.context === 'string' ? ext.context : undefined,
-          contextI18n: ext.contextI18n as Record<string, string> | undefined,
-          models: Array.isArray(ext.models) ? (ext.models as string[]) : undefined,
-          enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
-          prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
-          promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
-          isPreset: true,
-          isBuiltin: false,
-          enabled: true,
-          _source: 'extension',
-          _extensionName: typeof ext._extensionName === 'string' ? ext._extensionName : undefined,
-          _kind: typeof ext._kind === 'string' ? ext._kind : undefined,
-        } as AssistantListItem;
-      })
-      .filter((item): item is AssistantListItem => item !== null);
-  }, [extensionAssistants]);
-
-  const isExtensionAssistant = useCallback((assistant: AssistantListItem | null | undefined) => {
-    if (!assistant) return false;
-    return assistant._source === 'extension' || assistant.id.startsWith('ext-');
-  }, []);
+  const isExtensionAssistant = useCallback(
+    (assistant: AssistantListItem | null | undefined) => isExtensionAssistantUtil(assistant),
+    []
+  );
 
   // Auto focus textarea when drawer opens
   useEffect(() => {
@@ -307,23 +245,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     [localeKey]
   );
 
-  // Helper function to sort assistants according to ASSISTANT_PRESETS order
-  // 根据 ASSISTANT_PRESETS 顺序排序助手的辅助函数
-  const sortAssistants = useCallback((agents: AssistantListItem[]) => {
-    const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
-    return agents
-      .filter((agent) => agent.isPreset)
-      .sort((a, b) => {
-        const indexA = presetOrder.indexOf(a.id);
-        const indexB = presetOrder.indexOf(b.id);
-        if (indexA !== -1 || indexB !== -1) {
-          if (indexA === -1) return 1;
-          if (indexB === -1) return -1;
-          return indexA - indexB;
-        }
-        return 0;
-      });
-  }, []);
+  const sortAssistants = useCallback((agents: AssistantListItem[]) => sortAssistantsUtil(agents), []);
 
   const loadAssistants = useCallback(async () => {
     try {
@@ -332,7 +254,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       const localAgents: AssistantListItem[] = (await ConfigStorage.get('acp.customAgents')) || [];
 
       const mergedAgents = [...localAgents];
-      for (const extAssistant of normalizedExtensionAssistants) {
+      for (const extAssistant of normalizedExtAssistants) {
         if (!mergedAgents.some((agent) => agent.id === extAssistant.id)) {
           mergedAgents.push(extAssistant);
         }
@@ -348,7 +270,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     } catch (error) {
       console.error('Failed to load assistant presets:', error);
     }
-  }, [normalizedExtensionAssistants, sortAssistants]);
+  }, [normalizedExtAssistants, sortAssistants]);
 
   useEffect(() => {
     void loadAssistants();
@@ -357,28 +279,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
   const isReadonlyAssistant = Boolean(activeAssistant && isExtensionAssistant(activeAssistant));
 
-  // Check if string is an emoji (simple check for common emoji patterns)
-  const isEmoji = useCallback((str: string) => {
-    if (!str) return false;
-    // Check if it's a single emoji or emoji sequence
-    const emojiRegex =
-      /^(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F)(?:\u200D(?:\p{Emoji_Presentation}|\p{Emoji}\uFE0F))*$/u;
-    return emojiRegex.test(str);
-  }, []);
+  const isEmoji = useCallback((str: string) => isEmojiUtil(str), []);
 
   const resolveAvatarImageSrc = useCallback(
-    (avatar: string | undefined): string | undefined => {
-      const value = avatar?.trim();
-      if (!value) return undefined;
-
-      const mapped = avatarImageMap[value];
-      if (mapped) return mapped;
-
-      const resolved = resolveExtensionAssetUrl(value) || value;
-      const isImage =
-        /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(resolved);
-      return isImage ? resolved : undefined;
-    },
+    (avatar: string | undefined): string | undefined => resolveAvatarImageSrcUtil(avatar, avatarImageMap),
     [avatarImageMap]
   );
 

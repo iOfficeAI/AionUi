@@ -18,7 +18,6 @@ import katex from 'katex';
 // Import KaTeX CSS to make it available in the document
 import 'katex/dist/katex.min.css';
 
-import { diffColors } from '@/renderer/styles/colors';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
@@ -31,43 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
 import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
-
-const formatCode = (code: string) => {
-  const content = String(code).replace(/\n$/, '');
-  try {
-    //@todo 可以再美化
-    return JSON.stringify(
-      JSON.parse(content),
-      (_key, value) => {
-        return value;
-      },
-      2
-    );
-  } catch (error) {
-    return content;
-  }
-};
-
-const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?: F): T | F => {
-  return condition ? trueComponent : falseComponent;
-};
-
-/**
- * Get line background style for diff rendering
- * Highlights additions (green), deletions (red), and hunk headers (blue)
- */
-const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties => {
-  if (line.startsWith('+') && !line.startsWith('+++')) {
-    return { backgroundColor: isDark ? diffColors.additionBgDark : diffColors.additionBgLight };
-  }
-  if (line.startsWith('-') && !line.startsWith('---')) {
-    return { backgroundColor: isDark ? diffColors.deletionBgDark : diffColors.deletionBgLight };
-  }
-  if (line.startsWith('@@')) {
-    return { backgroundColor: isDark ? diffColors.hunkBgDark : diffColors.hunkBgLight };
-  }
-  return {};
-};
+import { formatCode, getDiffLineStyle, logicRender } from './markdownUtils';
 
 function CodeBlock(props: any) {
   const { t } = useTranslation();
