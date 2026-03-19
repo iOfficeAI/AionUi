@@ -22,7 +22,7 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import type { TokenUsageData } from '@/common/storage';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';

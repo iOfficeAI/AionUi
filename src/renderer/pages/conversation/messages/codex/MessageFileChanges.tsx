@@ -6,7 +6,7 @@
 
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
+import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
 import { extractContentFromDiff, parseDiff, type FileChangeInfo } from '@/renderer/utils/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import React, { useCallback, useMemo } from 'react';

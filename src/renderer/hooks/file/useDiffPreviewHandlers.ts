@@ -5,7 +5,7 @@
  */
 
 import type { FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
+import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
 import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import { useCallback } from 'react';

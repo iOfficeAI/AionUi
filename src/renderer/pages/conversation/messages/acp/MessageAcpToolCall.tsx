@@ -6,7 +6,7 @@
 
 import type { IMessageAcpToolCall } from '@/common/chatLib';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
-import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/diffUtils';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';

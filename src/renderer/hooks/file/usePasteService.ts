@@ -4,7 +4,7 @@ import { PasteService } from '@/renderer/services/PasteService';
 import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
-import { uuid } from '../utils/common';
+import { uuid } from '@renderer/utils/common';
 
 interface UsePasteServiceProps {
   supportedExts: string[];

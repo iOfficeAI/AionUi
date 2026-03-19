@@ -6,7 +6,7 @@
 
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
-import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/diffUtils';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';

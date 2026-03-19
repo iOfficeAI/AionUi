@@ -12,7 +12,7 @@ import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/Tho
 import { useAgentReadinessCheck } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/useOpenFileSelector';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';

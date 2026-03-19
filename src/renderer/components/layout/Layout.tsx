@@ -16,7 +16,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/context/LayoutContext';
 import { useDeepLink } from '@renderer/hooks/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/useNotificationClick';
-import { useDirectorySelection } from '@renderer/hooks/useDirectorySelection';
+import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetection';
 import { processCustomCss } from '@renderer/utils/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/siderTooltip';

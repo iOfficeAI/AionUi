@@ -7,8 +7,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
-import type { FileMetadata } from '../services/FileService';
-import { isSupportedFile, FileService, MAX_UPLOAD_SIZE_MB } from '../services/FileService';
+import type { FileMetadata } from '@renderer/services/FileService';
+import { isSupportedFile, FileService, MAX_UPLOAD_SIZE_MB } from '@renderer/services/FileService';
 
 export interface UseDragUploadOptions {
   supportedExts?: string[];
