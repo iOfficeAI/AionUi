@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IAgentFactory } from './IAgentFactory';
-import type { IAgentManager } from './IAgentManager';
+import type { IAgentFactory } from '../IAgentFactory';
+import type { IAgentManager } from '../managers/IAgentManager';
 import type { IWorkerTaskManager } from './IWorkerTaskManager';
-import type { BuildConversationOptions, AgentType } from './agentTypes';
+import type { BuildConversationOptions, AgentType } from '../agentTypes';
 import type { IConversationRepository } from '@process/database/IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 

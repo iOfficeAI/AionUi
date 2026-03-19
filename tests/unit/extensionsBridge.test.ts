@@ -10,7 +10,7 @@ vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tm
 
 import { ActivitySnapshotBuilder } from '../../src/process/bridge/services/ActivitySnapshotBuilder';
 import type { IConversationRepository } from '../../src/process/database/IConversationRepository';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '../../src/process/task/worker/IWorkerTaskManager';
 import type { TChatConversation } from '../../src/common/storage';
 import type { TMessage } from '../../src/common/chatLib';
 

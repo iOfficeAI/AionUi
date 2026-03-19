@@ -12,8 +12,8 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import BaseAgentManager from '@process/task/BaseAgentManager';
-import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import BaseAgentManager from '@process/task/managers/BaseAgentManager';
+import { IpcAgentEventEmitter } from '@process/task/managers/IpcAgentEventEmitter';
 
 export interface NanoBotAgentManagerData {
   conversation_id: string;

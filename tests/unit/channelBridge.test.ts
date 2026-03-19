@@ -67,7 +67,7 @@ vi.mock('@/extensions', () => ({
 
 vi.mock('@/extensions/assetProtocol', () => ({ toAssetUrl: vi.fn((p: string) => `asset://${p}`) }));
 
-import { initChannelBridge } from '../../src/process/bridge/channelBridge';
+import { initChannelBridge } from '../../src/process/bridge/platform/channelBridge';
 import type { IChannelRepository } from '../../src/process/database/IChannelRepository';
 import type {
   IChannelPluginConfig,

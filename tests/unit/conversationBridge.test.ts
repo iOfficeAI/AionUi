@@ -72,9 +72,9 @@ vi.mock('../../src/process/task/agentUtils', () => ({
   prepareFirstMessage: vi.fn(async (msg: string) => msg),
 }));
 
-import { initConversationBridge } from '../../src/process/bridge/conversationBridge';
+import { initConversationBridge } from '../../src/process/bridge/conversation/conversationBridge';
 import type { IConversationService } from '../../src/process/services/IConversationService';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '../../src/process/task/worker/IWorkerTaskManager';
 import type { TChatConversation } from '../../src/common/storage';
 
 function makeService(overrides?: Partial<IConversationService>): IConversationService {

@@ -10,7 +10,7 @@ import { SqliteChannelRepository } from '@process/database/SqliteChannelReposito
 import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
 import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
 import { cronService } from '@process/services/cron/cronServiceSingleton';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { workerTaskManager } from '@process/task/worker/workerTaskManagerSingleton';
 
 logger.config({ print: true });
 

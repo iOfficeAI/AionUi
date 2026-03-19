@@ -6,12 +6,12 @@
 
 import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
-import { ipcBridge } from '../../common';
-import { getSystemDir, ProcessEnv } from '../initStorage';
-import { copyDirectoryRecursively } from '../utils';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import { getZoomFactor, setZoomFactor } from '../utils/zoom';
-import { getCdpStatus, updateCdpConfig } from '../../utils/configureChromium';
+import { ipcBridge } from '../../../common';
+import { getSystemDir, ProcessEnv } from '../../initStorage';
+import { copyDirectoryRecursively } from '../../utils';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
+import { getZoomFactor, setZoomFactor } from '../../utils/zoom';
+import { getCdpStatus, updateCdpConfig } from '../../../utils/configureChromium';
 
 let mainWindowRef: BrowserWindow | null = null;
 

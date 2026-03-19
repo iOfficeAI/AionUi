@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '../../src/process/task/worker/IWorkerTaskManager';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
   return {
@@ -103,7 +103,7 @@ describe('applicationBridge CDP functionality', () => {
 
   describe('initApplicationBridge', () => {
     it('should initialize without errors', async () => {
-      const { initApplicationBridge } = await import('@/process/bridge/applicationBridge');
+      const { initApplicationBridge } = await import('@/process/bridge/system/applicationBridge');
 
       const taskMgr = makeTaskManager();
       expect(() => initApplicationBridge(taskMgr)).not.toThrow();
@@ -112,7 +112,7 @@ describe('applicationBridge CDP functionality', () => {
 
   describe('CDP IPC handlers', () => {
     it('should register getCdpStatus handler', async () => {
-      const mod = await import('@/process/bridge/applicationBridge');
+      const mod = await import('@/process/bridge/system/applicationBridge');
       expect(mod.initApplicationBridge).toBeTypeOf('function');
     });
   });
@@ -258,7 +258,7 @@ describe('CDP configuration functions', () => {
     }));
 
     vi.resetModules();
-    const { initApplicationBridge } = await import('../../src/process/bridge/applicationBridge');
+    const { initApplicationBridge } = await import('../../src/process/bridge/system/applicationBridge');
     const taskMgr = makeTaskManager();
     initApplicationBridge(taskMgr);
 

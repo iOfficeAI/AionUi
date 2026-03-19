@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '../../common';
-import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { ipcBridge } from '../../../common';
+import type { GeminiAgentManager } from '../../task/managers/GeminiAgentManager';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
 
 // Gemini confirmMessage provider (for 'input.confirm.message' channel)
 // Handles MCP tool confirmation including "always allow" options

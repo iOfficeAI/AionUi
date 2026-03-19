@@ -25,7 +25,7 @@ describe('webuiConfig module', () => {
       readFileSync: vi.fn(() => '{}'),
     }));
 
-    vi.doMock('@/process/bridge/webuiBridge', () => ({
+    vi.doMock('@/process/bridge/platform/webuiBridge', () => ({
       setWebServerInstance: vi.fn(),
     }));
 

@@ -12,9 +12,9 @@ import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
 import JSZip from 'jszip';
-import { ipcBridge } from '../../common';
-import { getSystemDir, getAssistantsDir } from '../initStorage';
-import { readDirectoryRecursive } from '../utils';
+import { ipcBridge } from '../../../common';
+import { getSystemDir, getAssistantsDir } from '../../initStorage';
+import { readDirectoryRecursive } from '../../utils';
 
 // ============================================================================
 // Helper functions for builtin resource directory resolution
@@ -37,8 +37,10 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
     // asarUnpack 会将文件解压到 app.asar.unpacked 目录
     const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
     const candidates = [
-      path.join(unpackedPath, resourceType), // Unpacked location (preferred)
+      path.join(unpackedPath, resourceType), // Unpacked location (preferred, from viteStaticCopy)
+      path.join(unpackedPath, 'src', resourceType), // Unpacked from src/ (direct inclusion)
       path.join(appPath, resourceType), // Fallback to asar path
+      path.join(appPath, 'src', resourceType), // Fallback to asar src/ path
     ];
     for (const candidate of candidates) {
       try {
@@ -53,11 +55,16 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
   }
   // Development: try multiple paths
   const appPath = app.getAppPath();
+  // skills/ moved into src/skills/ — check src/ prefix first in dev mode
+  const devDir = resourceType === 'skills' ? `src/${resourceType}` : resourceType;
   const candidates = [
+    path.join(appPath, devDir),
+    path.join(appPath, '..', devDir),
+    path.join(appPath, '..', '..', devDir),
+    path.join(appPath, '..', '..', '..', devDir),
+    // Fallback to legacy location (for production builds via viteStaticCopy)
     path.join(appPath, resourceType),
     path.join(appPath, '..', resourceType),
-    path.join(appPath, '..', '..', resourceType),
-    path.join(appPath, '..', '..', '..', resourceType),
   ];
   for (const candidate of candidates) {
     try {
@@ -1392,7 +1399,7 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../initStorage');
+      const { getBuiltinSkillsDir } = await import('../../initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
@@ -1402,7 +1409,7 @@ export function initFsBridge(): void {
       await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8');
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../task/AcpSkillManager');
+      const { AcpSkillManager } = await import('../../task/managers/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill enabled' };
@@ -1418,12 +1425,12 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../initStorage');
+      const { getBuiltinSkillsDir } = await import('../../initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../task/AcpSkillManager');
+      const { AcpSkillManager } = await import('../../task/managers/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill disabled' };

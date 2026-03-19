@@ -6,7 +6,7 @@
 
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
-import { ProcessChatMessage } from '../initStorage';
+import { ProcessChatMessage } from '../../initStorage';
 
 /**
  * Migrate a conversation from file storage to database

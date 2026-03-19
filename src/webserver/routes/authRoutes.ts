@@ -12,7 +12,7 @@ import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
 import { TokenUtils } from '@/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
-import { verifyQRTokenDirect } from '@/process/bridge/webuiBridge';
+import { verifyQRTokenDirect } from '@/process/bridge/platform/webuiBridge';
 
 /**
  * QR 登录页面 HTML（静态，不包含用户输入）

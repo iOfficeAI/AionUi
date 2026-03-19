@@ -18,7 +18,7 @@
 import { ipcBridge } from '@/common';
 import type { DocumentConversionTarget } from '@/common/types/conversion';
 import path from 'path';
-import { conversionService } from '../services/conversionService';
+import { conversionService } from '../../services/conversionService';
 
 // 支持的文件扩展名集合 / Supported file extension sets
 const WORD_EXTENSIONS = new Set(['.doc', '.docx']); // Word 文档扩展名 / Word document extensions

@@ -8,33 +8,33 @@ import { acpDetector } from '@/agent/acp/AcpDetector';
 import type { IChannelRepository } from '@process/database/IChannelRepository';
 import type { IConversationRepository } from '@process/database/IConversationRepository';
 import type { IConversationService } from '@process/services/IConversationService';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import { initAcpConversationBridge } from './acpConversationBridge';
-import { initApplicationBridge } from './applicationBridge';
-import { initAuthBridge } from './authBridge';
-import { initBedrockBridge } from './bedrockBridge';
-import { initChannelBridge } from './channelBridge';
-import { initConversationBridge } from './conversationBridge';
-import { initCronBridge } from './cronBridge';
-import { initDatabaseBridge } from './databaseBridge';
-import { initDialogBridge } from './dialogBridge';
-import { initDocumentBridge } from './documentBridge';
-import { initFileWatchBridge } from './fileWatchBridge';
-import { initFsBridge } from './fsBridge';
-import { initGeminiBridge } from './geminiBridge';
-import { initGeminiConversationBridge } from './geminiConversationBridge';
-import { initMcpBridge } from './mcpBridge';
-import { initModelBridge } from './modelBridge';
-import { initPreviewHistoryBridge } from './previewHistoryBridge';
-import { initShellBridge } from './shellBridge';
-import { initStarOfficeBridge } from './starOfficeBridge';
-import { initTaskBridge } from './taskBridge';
-import { initUpdateBridge } from './updateBridge';
-import { initWebuiBridge } from './webuiBridge';
-import { initSystemSettingsBridge } from './systemSettingsBridge';
-import { initWindowControlsBridge } from './windowControlsBridge';
-import { initNotificationBridge } from './notificationBridge';
-import { initExtensionsBridge } from './extensionsBridge';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
+import { initAcpConversationBridge } from './conversation/acpConversationBridge';
+import { initApplicationBridge } from './system/applicationBridge';
+import { initAuthBridge } from './platform/authBridge';
+import { initBedrockBridge } from './agent/bedrockBridge';
+import { initChannelBridge } from './platform/channelBridge';
+import { initConversationBridge } from './conversation/conversationBridge';
+import { initCronBridge } from './agent/cronBridge';
+import { initDatabaseBridge } from './data/databaseBridge';
+import { initDialogBridge } from './system/dialogBridge';
+import { initDocumentBridge } from './data/documentBridge';
+import { initFileWatchBridge } from './data/fileWatchBridge';
+import { initFsBridge } from './data/fsBridge';
+import { initGeminiBridge } from './platform/geminiBridge';
+import { initGeminiConversationBridge } from './conversation/geminiConversationBridge';
+import { initMcpBridge } from './agent/mcpBridge';
+import { initModelBridge } from './agent/modelBridge';
+import { initPreviewHistoryBridge } from './conversation/previewHistoryBridge';
+import { initShellBridge } from './system/shellBridge';
+import { initStarOfficeBridge } from './data/starOfficeBridge';
+import { initTaskBridge } from './agent/taskBridge';
+import { initUpdateBridge } from './system/updateBridge';
+import { initWebuiBridge } from './platform/webuiBridge';
+import { initSystemSettingsBridge } from './system/systemSettingsBridge';
+import { initWindowControlsBridge } from './system/windowControlsBridge';
+import { initNotificationBridge } from './system/notificationBridge';
+import { initExtensionsBridge } from './agent/extensionsBridge';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
@@ -116,7 +116,7 @@ export {
   initWebuiBridge,
   initWindowControlsBridge,
 };
-export { setMainWindow } from './notificationBridge';
+export { setMainWindow } from './system/notificationBridge';
 
 // 导出窗口控制相关工具函数
-export { registerWindowMaximizeListeners } from './windowControlsBridge';
+export { registerWindowMaximizeListeners } from './system/windowControlsBridge';

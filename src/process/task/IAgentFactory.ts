@@ -7,7 +7,7 @@
 // src/process/task/IAgentFactory.ts
 
 import type { TChatConversation } from '@/common/storage';
-import type { IAgentManager } from './IAgentManager';
+import type { IAgentManager } from './managers/IAgentManager';
 import type { BuildConversationOptions, AgentType } from './agentTypes';
 
 export type AgentCreator = (conversation: TChatConversation, options?: BuildConversationOptions) => IAgentManager;

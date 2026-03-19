@@ -22,8 +22,8 @@ import {
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
-import { ipcBridge } from '../../common';
-import { ProcessConfig } from '../initStorage';
+import { ipcBridge } from '../../../common';
+import { ProcessConfig } from '../../initStorage';
 import { ExtensionRegistry } from '@/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
 

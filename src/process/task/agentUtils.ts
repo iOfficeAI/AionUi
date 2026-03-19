@@ -5,7 +5,7 @@
  */
 
 import { getSkillsDir, loadSkillsContent } from '@process/initStorage';
-import { AcpSkillManager, buildSkillsIndexText } from './AcpSkillManager';
+import { AcpSkillManager, buildSkillsIndexText } from './managers/AcpSkillManager';
 
 /**
  * 首次消息处理配置

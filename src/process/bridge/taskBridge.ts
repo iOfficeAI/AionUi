@@ -13,7 +13,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
 
 export function initTaskBridge(workerTaskManager: IWorkerTaskManager): void {
   // 暂停所有运行中的任务 / Stop all running tasks

@@ -19,7 +19,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
  */
 
 // Path to the bundled SKILL.md in the project
-const BUNDLED_SKILL_PATH = path.resolve(__dirname, '../../skills/_builtin/aionui-skills/SKILL.md');
+const BUNDLED_SKILL_PATH = path.resolve(__dirname, '../../src/skills/_builtin/aionui-skills/SKILL.md');
 
 describe('Skills Market - Bundled SKILL.md', () => {
   it('bundled SKILL.md file exists', async () => {
@@ -133,7 +133,7 @@ describe('Skills Market - AcpSkillManager integration', () => {
   }));
 
   it('resetInstance clears the singleton so new discoveries happen', async () => {
-    const { AcpSkillManager } = await import('../../src/process/task/AcpSkillManager');
+    const { AcpSkillManager } = await import('../../src/process/task/managers/AcpSkillManager');
 
     // Get an instance (creates singleton)
     const instance1 = AcpSkillManager.getInstance();

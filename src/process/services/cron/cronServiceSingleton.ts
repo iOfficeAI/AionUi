@@ -5,7 +5,7 @@
  */
 
 import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { workerTaskManager } from '@process/task/worker/workerTaskManagerSingleton';
 import { cronBusyGuard } from './CronBusyGuard';
 import { CronService } from './CronService';
 import { IpcCronEventEmitter } from './IpcCronEventEmitter';

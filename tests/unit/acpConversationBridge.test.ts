@@ -75,8 +75,8 @@ vi.mock('../../src/process/utils/mainLogger', () => ({
   mainWarn: vi.fn(),
 }));
 
-import { initAcpConversationBridge } from '../../src/process/bridge/acpConversationBridge';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import { initAcpConversationBridge } from '../../src/process/bridge/conversation/acpConversationBridge';
+import type { IWorkerTaskManager } from '../../src/process/task/worker/IWorkerTaskManager';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
   return {

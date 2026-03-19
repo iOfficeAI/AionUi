@@ -6,8 +6,8 @@
 
 // src/process/task/IWorkerTaskManager.ts
 
-import type { IAgentManager } from './IAgentManager';
-import type { BuildConversationOptions, AgentType } from './agentTypes';
+import type { IAgentManager } from '../managers/IAgentManager';
+import type { BuildConversationOptions, AgentType } from '../agentTypes';
 
 export interface IWorkerTaskManager {
   getTask(id: string): IAgentManager | undefined;

@@ -5,8 +5,8 @@
  */
 
 import type { BrowserWindow } from 'electron';
-import { setApplicationMainWindow } from './bridge/applicationBridge';
-import { setMainWindow as setNotificationMainWindow } from './bridge/notificationBridge';
+import { setApplicationMainWindow } from './bridge/system/applicationBridge';
+import { setMainWindow as setNotificationMainWindow } from './bridge/system/notificationBridge';
 import { setDeepLinkMainWindow } from './deepLink';
 import { setTrayMainWindow } from './tray';
 

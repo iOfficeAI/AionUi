@@ -8,7 +8,7 @@ import { acpDetector } from '@/agent/acp/AcpDetector';
 import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { workerTaskManager } from '@process/task/worker/workerTaskManagerSingleton';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';

@@ -8,8 +8,8 @@ import { ipcBridge } from '@/common';
 import type { IExtensionAgentActivitySnapshot } from '@/common/ipcBridge';
 import { ExtensionRegistry } from '@/extensions';
 import type { IConversationRepository } from '@process/database/IConversationRepository';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import { ActivitySnapshotBuilder } from './services/ActivitySnapshotBuilder';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
+import { ActivitySnapshotBuilder } from '../services/ActivitySnapshotBuilder';
 
 const ACTIVITY_SNAPSHOT_TTL_MS = 3000;
 

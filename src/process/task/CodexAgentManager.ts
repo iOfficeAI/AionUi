@@ -26,8 +26,8 @@ import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { getDatabase } from '@process/database';
 import { ProcessConfig } from '@process/initStorage';
-import BaseAgentManager from '@process/task/BaseAgentManager';
-import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import BaseAgentManager from '@process/task/managers/BaseAgentManager';
+import { IpcAgentEventEmitter } from '@process/task/managers/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import i18n from '@process/i18n';
@@ -36,7 +36,7 @@ import {
   getConfiguredAppClientVersion,
   getConfiguredCodexMcpProtocolVersion,
   setAppConfig,
-} from '../../common/utils/appConfig';
+} from '../../../common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import { workerTaskManager } from '@process/task/worker/workerTaskManagerSingleton';
 import { getDatabase } from '@/process/database';
-import type BaseAgentManager from '@/process/task/BaseAgentManager';
-import type { IAgentManager } from '@process/task/IAgentManager';
+import type BaseAgentManager from '@/process/task/managers/BaseAgentManager';
+import type { IAgentManager } from '@process/task/managers/IAgentManager';
 import { composeMessage, transformMessage, type TMessage } from '../../common/chatLib';
 import { uuid } from '../../common/utils';
 import { channelEventBus, type IAgentMessageEvent } from './ChannelEventBus';

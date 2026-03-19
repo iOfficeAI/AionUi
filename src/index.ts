@@ -25,9 +25,9 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
-import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/system/systemSettingsBridge';
 import { setInitialLanguage } from '@process/i18n';
-import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
+import { workerTaskManager } from './process/task/worker/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
@@ -267,7 +267,7 @@ const createWindow = (): void => {
   const disableAutoUpdater =
     process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
   if (!disableAutoUpdater) {
-    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
+    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/system/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
         // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
         const statusBroadcast = createAutoUpdateStatusBroadcast();

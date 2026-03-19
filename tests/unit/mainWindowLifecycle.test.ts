@@ -11,11 +11,11 @@ describe('mainWindowLifecycle', () => {
     vi.resetModules();
     vi.clearAllMocks();
 
-    vi.doMock('@/process/bridge/applicationBridge', () => ({
+    vi.doMock('@/process/bridge/system/applicationBridge', () => ({
       setApplicationMainWindow: vi.fn(),
     }));
 
-    vi.doMock('@/process/bridge/notificationBridge', () => ({
+    vi.doMock('@/process/bridge/system/notificationBridge', () => ({
       setMainWindow: vi.fn(),
     }));
 
@@ -30,8 +30,8 @@ describe('mainWindowLifecycle', () => {
 
   it('should bind the same window to all main-window consumers', async () => {
     const window = {} as Electron.BrowserWindow;
-    const { setApplicationMainWindow } = await import('@/process/bridge/applicationBridge');
-    const { setMainWindow } = await import('@/process/bridge/notificationBridge');
+    const { setApplicationMainWindow } = await import('@/process/bridge/system/applicationBridge');
+    const { setMainWindow } = await import('@/process/bridge/system/notificationBridge');
     const { setDeepLinkMainWindow } = await import('@/process/deepLink');
     const { setTrayMainWindow } = await import('@/process/tray');
     const { bindMainWindowReferences } = await import('@/process/mainWindowLifecycle');

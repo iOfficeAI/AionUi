@@ -5,7 +5,7 @@
  */
 
 // Core Management Layer
-export { default as CodexAgentManager } from '@process/task/CodexAgentManager';
+export { default as CodexAgentManager } from '@process/task/managers/CodexAgentManager';
 export { CodexAgent, type CodexAgentConfig } from './core/CodexAgent';
 // Export the app configuration function for use in main process
 export { setAppConfig as setCodexAgentAppConfig } from '../../common/utils/appConfig';

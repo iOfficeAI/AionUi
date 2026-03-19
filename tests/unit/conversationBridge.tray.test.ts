@@ -103,13 +103,13 @@ const registerMocks = () => {
     computeOpenClawIdentityHash: vi.fn(async () => 'identity-hash'),
   }));
 
-  vi.doMock('@/process/bridge/migrationUtils', () => ({
+  vi.doMock('@/process/bridge/data/migrationUtils', () => ({
     migrateConversationToDatabase: vi.fn(),
   }));
 };
 
 const getProvider = async (key: string): Promise<Provider> => {
-  const mod = await import('@/process/bridge/conversationBridge');
+  const mod = await import('@/process/bridge/conversation/conversationBridge');
   mod.initConversationBridge(mockConversationService as any, mockWorkerTaskManager as any);
 
   const provider = handlers[key];

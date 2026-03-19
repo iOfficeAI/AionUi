@@ -83,7 +83,7 @@ const mockModules = () => {
     default: { t: vi.fn((key: string) => key) },
   }));
 
-  vi.doMock('@process/task/workerTaskManagerSingleton', () => ({
+  vi.doMock('@process/task/worker/workerTaskManagerSingleton', () => ({
     workerTaskManager: { listTasks: mockListTasks },
   }));
 

@@ -6,8 +6,8 @@
 
 import type { CronMessageMeta } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type BaseAgentManager from '@process/task/BaseAgentManager';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import type BaseAgentManager from '@process/task/managers/BaseAgentManager';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
 import { copyFilesToDirectory } from '@process/utils';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';

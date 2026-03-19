@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '../../common';
-import { ProcessChat } from '../initStorage';
+import { ipcBridge } from '../../../common';
+import { ProcessChat } from '../../initStorage';
 import type { TChatConversation } from '@/common/storage';
 import { migrateConversationToDatabase } from './migrationUtils';
 import type { IConversationRepository } from '@process/database/IConversationRepository';

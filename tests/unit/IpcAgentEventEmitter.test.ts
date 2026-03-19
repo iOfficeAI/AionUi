@@ -21,7 +21,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { IpcAgentEventEmitter } from '../../src/process/task/IpcAgentEventEmitter';
+import { IpcAgentEventEmitter } from '../../src/process/task/managers/IpcAgentEventEmitter';
 
 describe('IpcAgentEventEmitter', () => {
   beforeEach(() => vi.clearAllMocks());

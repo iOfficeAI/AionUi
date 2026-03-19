@@ -17,19 +17,19 @@ import type {
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import { ExtensionRegistry } from '@/extensions';
 import { getDatabase } from '@process/database';
-import { ProcessConfig } from '../initStorage';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
-import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { ProcessConfig } from '../../initStorage';
+import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../../message';
+import { handlePreviewOpenEvent } from '../../utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
+import { mainLog, mainWarn, mainError } from '../../utils/mainLogger';
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { hasCronCommands } from './CronCommandDetector';
-import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
-import { stripThinkTags } from './ThinkTagDetector';
+import { hasCronCommands } from '../middleware/CronCommandDetector';
+import { extractTextFromMessage, processCronInMessage } from '../middleware/MessageMiddleware';
+import { stripThinkTags } from '../middleware/ThinkTagDetector';
 
 interface AcpAgentManagerData {
   workspace?: string;

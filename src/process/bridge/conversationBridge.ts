@@ -7,19 +7,19 @@
 import type { CodexAgentManager } from '@/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
-import type { IAgentManager } from '@process/task/IAgentManager';
+import type { IAgentManager } from '@process/task/managers/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import { ipcBridge } from '../../common';
-import { getSkillsDir, ProcessChat } from '../initStorage';
-import type AcpAgentManager from '../task/AcpAgentManager';
-import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import type OpenClawAgentManager from '../task/OpenClawAgentManager';
-import { prepareFirstMessage } from '../task/agentUtils';
-import { refreshTrayMenu } from '../tray';
-import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
-import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
-import { migrateConversationToDatabase } from './migrationUtils';
+import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
+import { ipcBridge } from '../../../common';
+import { getSkillsDir, ProcessChat } from '../../initStorage';
+import type AcpAgentManager from '../../task/managers/AcpAgentManager';
+import type { GeminiAgentManager } from '../../task/managers/GeminiAgentManager';
+import type OpenClawAgentManager from '../../task/managers/OpenClawAgentManager';
+import { prepareFirstMessage } from '../../task/agentUtils';
+import { refreshTrayMenu } from '../../tray';
+import { copyFilesToDirectory, readDirectoryRecursive } from '../../utils';
+import { computeOpenClawIdentityHash } from '../../utils/openclawUtils';
+import { migrateConversationToDatabase } from '../data/migrationUtils';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {

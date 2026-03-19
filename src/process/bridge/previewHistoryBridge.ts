@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewHistoryTarget } from '@/common/types/preview';
-import { previewHistoryService } from '../services/previewHistoryService';
+import { previewHistoryService } from '../../services/previewHistoryService';
 
 export function initPreviewHistoryBridge(): void {
   // 预览历史：列出指定目标的所有快照 / List history snapshots for the provided target

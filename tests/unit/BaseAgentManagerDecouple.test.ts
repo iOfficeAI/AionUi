@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { IAgentEventEmitter } from '../../src/process/task/IAgentEventEmitter';
-import type { IAgentManager } from '../../src/process/task/IAgentManager';
+import type { IAgentEventEmitter } from '../../src/process/task/managers/IAgentEventEmitter';
+import type { IAgentManager } from '../../src/process/task/managers/IAgentManager';
 
 vi.mock('electron', () => ({
   app: { isPackaged: false, getPath: vi.fn(() => '/tmp') },
@@ -17,7 +17,7 @@ function makeMockEmitter(): IAgentEventEmitter {
   };
 }
 
-import BaseAgentManager from '../../src/process/task/BaseAgentManager';
+import BaseAgentManager from '../../src/process/task/managers/BaseAgentManager';
 
 /** Minimal concrete subclass exposing protected helpers for testing */
 function makeAgent(type: any = 'gemini', data: any = {}, emitter?: IAgentEventEmitter) {

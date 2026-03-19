@@ -10,7 +10,7 @@ import { webui } from '@/common/ipcBridge';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { SERVER_CONFIG } from '@/webserver/config/constants';
-import { WebuiService } from './services/WebuiService';
+import { WebuiService } from '../services/WebuiService';
 // 预加载 webserver 模块避免启动时延迟 / Preload webserver module to avoid startup delay
 import { startWebServerWithInstance } from '@/webserver/index';
 import { cleanupWebAdapter } from '@/webserver/adapter';

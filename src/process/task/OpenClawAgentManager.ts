@@ -15,8 +15,8 @@ import type { AcpBackendAll } from '@/types/acpTypes';
 import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import BaseAgentManager from '@process/task/BaseAgentManager';
-import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import BaseAgentManager from '@process/task/managers/BaseAgentManager';
+import { IpcAgentEventEmitter } from '@process/task/managers/IpcAgentEventEmitter';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
