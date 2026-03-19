@@ -210,7 +210,6 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
