@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          { "type": "command", "command": "npx --yes block-no-verify@1.1.2" }
+        ]
+      }
+    ]
+  }
+}
