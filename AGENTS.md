@@ -88,6 +88,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **testing** | Testing workflow and quality standards | Writing tests, adding features, before claiming completion |
 | **commit** | Structured git commit workflow with quality checks | Committing code, `/commit`, `/oss-pr` |
 | **pr** | Pull request workflow: ensure issue exists, push branch, open PR | Creating pull requests, after committing, `/oss-pr` |
+| **pr-review** | Local PR code review with full project context, no truncation limits | Reviewing a PR, user says "review PR", `/pr-review` |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 

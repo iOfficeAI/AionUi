@@ -1,6 +1,15 @@
+---
+name: pr-review
+description: |
+  PR Code Review (Local): perform a thorough local code review with full project context.
+  Use when: (1) User asks to review a PR, (2) User says "/pr-review", (3) User wants to review code changes before merging.
+---
+
 # PR Code Review (Local)
 
 Perform a thorough local code review with full project context — reads source files directly, no API truncation limits.
+
+**Announce at start:** "I'm using pr-review skill to review the pull request."
 
 ## Usage
 
@@ -117,6 +126,11 @@ Review dimensions:
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试
   - 新增的源文件未加入 `vitest.config.ts` 的 `coverage.include`
+- **可测试性** — 变更后的代码是否仍可独立测试；依赖是否可 mock；
+  是否与已有模块保持解耦；能否在不依赖完整运行环境的情况下运行单元测试。
+  发现耦合时区分来源：
+  - **本次改动新引入的耦合** — 按影响程度定级（新功能从设计阶段就应解耦，列为 HIGH；导致测试无法运行则列为 CRITICAL）
+  - **已存在的历史耦合** — 不作为本 PR 阻塞点，建议单独开 issue 跟踪
 
 **只报告真实存在的问题。** 如果某个维度代码没有问题，跳过即可，不要为了显示"有在认真 review"而凑问题。以实际代码为准，有则报告，无则如实说代码干净。方案合理性维度同理——如果方案本身没有问题，如实写"方案合理"即可，不要为了体现"有深度"而刻意挑剔。
 
@@ -201,7 +215,7 @@ Use the following report template:
 [一句话说明理由]
 
 ---
-*本报告由本地 `/pr-review` 命令生成，包含完整项目上下文，无截断限制。*
+*本报告由本地 `pr-review` skill 生成，包含完整项目上下文，无截断限制。*
 ```
 
 ---
