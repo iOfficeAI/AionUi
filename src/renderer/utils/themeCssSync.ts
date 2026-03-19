@@ -2,8 +2,8 @@ import { type ICssTheme } from '@/common/storage';
 import {
   BACKGROUND_BLOCK_START,
   injectBackgroundCssBlock,
-} from '@/renderer/components/CssThemeSettings/backgroundUtils';
-import { DEFAULT_THEME_ID, PRESET_THEMES } from '@/renderer/components/CssThemeSettings/presets';
+} from '@renderer/pages/settings/CssThemeSettings/backgroundUtils';
+import { DEFAULT_THEME_ID, PRESET_THEMES } from '@renderer/pages/settings/CssThemeSettings/presets';
 
 export const CSS_SYNC_RECENT_UPDATE_WINDOW_MS = 2000;
 

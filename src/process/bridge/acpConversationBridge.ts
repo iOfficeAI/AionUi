@@ -8,7 +8,7 @@ import { acpDetector } from '@/agent/acp/AcpDetector';
 import { AcpConnection } from '@/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@/agent/acp/modelInfo';
 import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
-import WorkerManage from '@/process/WorkerManage';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import AcpAgentManager from '@/process/task/AcpAgentManager';
 import CodexAgentManager from '@/process/task/CodexAgentManager';
 import { GeminiAgentManager } from '@/process/task/GeminiAgentManager';
@@ -212,7 +212,7 @@ export function initAcpConversationBridge(): void {
   // 获取 ACP/Gemini 代理的当前会话模式
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getMode.provider(({ conversationId }) => {
-    const task = WorkerManage.getTaskById(conversationId);
+    const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
       !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof CodexAgentManager)
@@ -226,7 +226,7 @@ export function initAcpConversationBridge(): void {
   // 获取 ACP/Codex 代理的模型信息
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
-    const task = WorkerManage.getTaskById(conversationId);
+    const task = workerTaskManager.getTask(conversationId);
     if (!task || !(task instanceof AcpAgentManager || task instanceof CodexAgentManager)) {
       return Promise.resolve({ success: true, data: { modelInfo: null } });
     }
@@ -280,7 +280,7 @@ export function initAcpConversationBridge(): void {
   // 设置 ACP 代理的模型
   ipcBridge.acpConversation.setModel.provider(async ({ conversationId, modelId }) => {
     try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task || !(task instanceof AcpAgentManager)) {
         return { success: false, msg: 'Conversation not found or not an ACP agent' };
       }
@@ -295,7 +295,7 @@ export function initAcpConversationBridge(): void {
   // 设置 ACP/Gemini 代理的会话模式（claude、qwen、gemini 等）
   ipcBridge.acpConversation.setMode.provider(async ({ conversationId, mode }) => {
     try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task) {
         return { success: false, msg: 'Conversation not found' };
       }
@@ -315,7 +315,7 @@ export function initAcpConversationBridge(): void {
   // 获取 ACP 代理的非模型配置选项（如推理级别）
   // Use getTaskById (cache-only) to avoid spawning a worker process on read-only queries
   ipcBridge.acpConversation.getConfigOptions.provider(({ conversationId }) => {
-    const task = WorkerManage.getTaskById(conversationId);
+    const task = workerTaskManager.getTask(conversationId);
     if (!task || !(task instanceof AcpAgentManager)) {
       return Promise.resolve({ success: true, data: { configOptions: [] } });
     }
@@ -326,7 +326,7 @@ export function initAcpConversationBridge(): void {
   // 设置 ACP 代理的配置选项值（如推理级别）
   ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
     try {
-      const task = await WorkerManage.getTaskByIdRollbackBuild(conversationId);
+      const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task || !(task instanceof AcpAgentManager)) {
         return { success: false, msg: 'Conversation not found or not an ACP agent' };
       }

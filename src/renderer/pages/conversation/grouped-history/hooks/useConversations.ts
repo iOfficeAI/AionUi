@@ -4,20 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import type { TChatConversation } from '@/common/storage';
-import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
 import type { GroupedHistoryResult } from '../types';
+import { useConversationListSync } from './useConversationListSync';
 import { buildGroupedHistory } from '../utils/groupingHelpers';
 
 const EXPANSION_STORAGE_KEY = 'aionui_workspace_expansion';
 
 export const useConversations = () => {
-  const [conversations, setConversations] = useState<TChatConversation[]>([]);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem(EXPANSION_STORAGE_KEY);
@@ -32,39 +29,22 @@ export const useConversations = () => {
   });
   const { id } = useParams();
   const { t } = useTranslation();
+  const { conversations, isConversationGenerating, hasCompletionUnread, clearCompletionUnread, setActiveConversation } =
+    useConversationListSync();
 
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
   const hasAutoExpandedRef = useRef(false);
 
-  useEffect(() => {
-    const refresh = () => {
-      ipcBridge.database.getUserConversations
-        .invoke({ page: 0, pageSize: 10000 })
-        .then((data) => {
-          if (data && Array.isArray(data)) {
-            // 只过滤显式标记的健康检测临时会话，避免误伤用户自定义同名前缀会话
-            const filteredData = data.filter(
-              (conv) => (conv.extra as { isHealthCheck?: boolean } | undefined)?.isHealthCheck !== true
-            );
-            setConversations(filteredData);
-          } else {
-            setConversations([]);
-          }
-        })
-        .catch((error) => {
-          console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
-          setConversations([]);
-        });
-    };
-
-    refresh();
-    return addEventListener('chat.history.refresh', refresh);
-  }, []);
-
   // Scroll active conversation into view
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setActiveConversation(null);
+      return;
+    }
+
+    setActiveConversation(id);
+    clearCompletionUnread(id);
     const rafId = requestAnimationFrame(() => {
       const element = document.getElementById('c-' + id);
       if (element) {
@@ -72,7 +52,7 @@ export const useConversations = () => {
       }
     });
     return () => cancelAnimationFrame(rafId);
-  }, [id]);
+  }, [clearCompletionUnread, id, setActiveConversation]);
 
   // Persist expansion state
   useEffect(() => {
@@ -138,6 +118,8 @@ export const useConversations = () => {
 
   return {
     conversations,
+    isConversationGenerating,
+    hasCompletionUnread,
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,

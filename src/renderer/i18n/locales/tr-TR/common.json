@@ -57,7 +57,7 @@
   "refresh": "Yenile",
   "tray.showWindow": "AionUi'yi Göster",
   "tray.newChat": "Yeni Sohbet",
-  "tray.closeToTray": "Sistem Tepsisine Kapat",
+  "tray.closeToTray": "Tepsiye Gizle",
   "tray.about": "AionUi Hakkında",
   "tray.restart": "Uygulamayı Yeniden Başlat",
   "tray.quit": "Çıkış",
@@ -65,5 +65,11 @@
   "tray.pauseAll": "Tüm Görevleri Duraklat",
   "tray.checkUpdate": "Güncelleştirme Kontrolü",
   "tray.recentChats": "Son Sohbetler",
-  "tray.untitled": "Adsız"
+  "tray.untitled": "Adsız",
+  "fileAttach.hostFiles": "Ana Makine Dosyaları",
+  "fileAttach.myDevice": "Cihazım",
+  "fileAttach.tooLarge": "Dosya {{max}}MB sınırını aşıyor",
+  "fileAttach.failed": "Yükleme başarısız",
+  "fileAttach.uploading": "Yükleniyor...",
+  "fileAttach.uploadSuccess": "Yükleme başarılı"
 }

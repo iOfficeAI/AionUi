@@ -16,7 +16,7 @@ import {
   createNanobotAgent,
   createOpenClawAgent,
 } from '../initAgent';
-import WorkerManage from '../WorkerManage';
+import { workerTaskManager } from '../task/workerTaskManagerSingleton';
 
 /**
  * 创建 Gemini 会话的参数
@@ -124,7 +124,7 @@ export class ConversationService {
       }
 
       // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
-      WorkerManage.buildConversation(conversation);
+      void workerTaskManager.getOrBuildTask(conversation.id);
 
       console.log(
         `[ConversationService] Created conversation ${conversation.id} with source=${params.source || 'aionui'}, chatId=${params.channelChatId || 'none'}`
@@ -212,7 +212,7 @@ export class ConversationService {
 
       // Register with WorkerManage after DB save so early emitted messages can be persisted reliably.
       // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called.
-      WorkerManage.buildConversation(conversation);
+      void workerTaskManager.getOrBuildTask(conversation.id);
 
       console.log(
         `[ConversationService] Created ${type} conversation ${conversation.id} with source=${source || 'aionui'}`

@@ -15,7 +15,7 @@ import type { TMessage } from '@/common/chatLib';
 import type { TChatConversation } from '@/common/storage';
 import { ExtensionRegistry } from '@/extensions';
 import { getDatabase } from '@process/database';
-import WorkerManage from '../WorkerManage';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 
 const STATUS_TO_SYNCING = new Set(['connecting', 'connected', 'authenticated']);
 const ACTIVITY_SNAPSHOT_TTL_MS = 3000;
@@ -111,7 +111,7 @@ const buildActivitySnapshot = (): IExtensionAgentActivitySnapshot => {
 
   for (const conversation of conversations) {
     const { backend, agentName } = resolveAgentIdentity(conversation);
-    const task = WorkerManage.getTaskById(conversation.id);
+    const task = workerTaskManager.getTask(conversation.id);
     const runtimeStatus = normalizeRuntimeStatus(task?.status || conversation.status);
     if (runtimeStatus === 'running' || runtimeStatus === 'pending') {
       runningConversations += 1;

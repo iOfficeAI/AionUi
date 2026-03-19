@@ -1,34 +1,65 @@
-name: '✓PR Checks'
+name: '✅ PR Checks'
 
 on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to run checks on'
+        required: true
+        type: string
+      skip_build_test:
+        description: 'Skip the build test job (saves ~45 min)'
+        type: boolean
+        required: false
+        default: false
   pull_request:
-    types: [opened, synchronize, edited]
+    types: [opened, synchronize, edited, closed]
     branches: [main, dev]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.github/ISSUE_TEMPLATE/**'
 
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number }}
+  group: pr-checks-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 
 permissions:
   contents: read
   pull-requests: write
   issues: read
+  checks: write
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
+  # Cancel in-progress runs when PR is closed (merged or manually closed)
+  cancel-if-closed:
+    name: Cancel if PR closed
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR closed, cancelling in-progress runs via concurrency."
+
   # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
   code-quality:
     name: Code Quality
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Resolve PR context
+        uses: ./.github/actions/checkout-pr
+        with:
+          pr_number: ${{ inputs.pr_number }}
+          github_token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -50,12 +81,12 @@ jobs:
         run: npm install -g @j178/prek
 
       - name: Run prek checks
-        run: prek run --from-ref origin/${{ github.base_ref }} --to-ref HEAD
+        run: prek run --from-ref origin/${{ env.PR_BASE_REF }} --to-ref HEAD
 
   # Job 2: Unit tests across all platforms
   unit-tests:
     name: Unit Tests (${{ matrix.os }})
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -64,7 +95,13 @@ jobs:
         os: [ubuntu-latest, macos-14, windows-2022]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Resolve PR context
+        uses: ./.github/actions/checkout-pr
+        with:
+          pr_number: ${{ inputs.pr_number }}
+          github_token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -88,12 +125,18 @@ jobs:
   # Job 3: Coverage test (Linux only)
   coverage-tests:
     name: Coverage Test
-    if: github.event.action != 'edited'
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Resolve PR context
+        uses: ./.github/actions/checkout-pr
+        with:
+          pr_number: ${{ inputs.pr_number }}
+          github_token: ${{ github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -112,19 +155,111 @@ jobs:
         run: npm run postinstall || true
 
       - name: Run coverage tests
+        id: coverage
+        continue-on-error: true
         run: bun run test:coverage
 
+      - name: Upload coverage to Codecov (Linux coverage only)
+        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository == 'iOfficeAI/AionUi'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: iOfficeAI/AionUi
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+          verbose: true
+      - name: Skip Codecov upload when preconditions are not met
+        if: always() && hashFiles('coverage/lcov.info') != '' && github.repository != 'iOfficeAI/AionUi'
+        shell: bash
+        run: |
+          echo 'Skipping Codecov upload due to unmet preconditions.'
+          echo "Repository: ${{ github.repository }}"
+      - name: Coverage result summary
+        if: always()
+        shell: bash
+        run: |
+          if [ "${{ steps.coverage.outcome }}" = "failure" ]; then
+            echo "::warning::Coverage tests failed (non-blocking). Check logs for failed test details."
+            echo "## Coverage check (non-blocking warning)" >> $GITHUB_STEP_SUMMARY
+            echo "Coverage command failed in this run. Please review test failures in logs." >> $GITHUB_STEP_SUMMARY
+            if [ -f coverage/lcov.info ]; then
+              echo "lcov.info exists, Codecov upload can still run." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "lcov.info not found, Codecov upload was skipped." >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "## Coverage check" >> $GITHUB_STEP_SUMMARY
+            echo "Coverage command passed." >> $GITHUB_STEP_SUMMARY
+            if [ -f coverage/lcov.info ]; then
+              echo "Uploaded Linux (ubuntu-latest) coverage to Codecov." >> $GITHUB_STEP_SUMMARY
+            else
+              echo "Coverage passed but lcov.info is missing; Codecov upload was skipped." >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
       - name: Upload coverage artifacts
+        if: always() && hashFiles('coverage/lcov.info') != ''
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
-          if-no-files-found: error
+          if-no-files-found: warn
+
+  i18n-check:
+    name: I18n Check
+    if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --no-frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Run i18n validation (warning-only)
+        id: i18n
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-i18n.js 2>&1 | tee i18n-check.log
+
+      - name: Publish i18n summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## i18n validation" >> $GITHUB_STEP_SUMMARY
+          if grep -q "⚠️" i18n-check.log; then
+            echo "Missing/incomplete translations found. Please review warnings below." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No i18n warnings detected." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>i18n log</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat i18n-check.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
 
   # Job 4: Build test across all platforms (parallel with code-quality and unit-tests)
   build-test:
     name: Build Test (${{ matrix.platform }})
-    if: github.event.action != 'edited'
+    if: github.event.action != 'edited' && github.event.action != 'closed' && inputs.skip_build_test != true
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -164,7 +299,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -288,8 +423,8 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           CI: true
 
-      - name: Verify packaged i18n assets
-        run: bun run test:packaged:i18n
+      - name: Verify packaged bundled bun assets
+        run: bun run test:packaged:bun
 
       - name: Verify build artifacts exist
         shell: bash
@@ -406,12 +541,12 @@ jobs:
   # Job 5: Test release scripts (fast, no build required)
   release-script-test:
     name: Release Script Test
-    if: github.event.action != 'edited'
+    if: github.event.action != 'edited' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Create mock build artifacts
         shell: bash

@@ -1,0 +1,795 @@
+/* ========================================
+   Hello Kitty 主题 - 优化版
+   粉色系可爱风格，支持明暗双模式
+   ======================================== */
+
+/* ==================== 明亮模式 (Light Mode) ==================== */
+:root {
+  /* ===== 主色调 - Primary ===== */
+  --hk-primary: #ff85a2;
+  --hk-primary-light: #ffb7c5;
+  --hk-primary-lighter: #ffe4e8;
+  --hk-primary-lightest: #fff0f3;
+  --hk-primary-dark: #e06b88;
+  --hk-primary-darker: #c95a75;
+  --hk-primary-rgb: 255, 133, 162;
+
+  /* ===== 品牌色板渐变 ===== */
+  --hk-shade-1: #fff0f3;
+  --hk-shade-2: #ffe4e8;
+  --hk-shade-3: #ffcad4;
+  --hk-shade-4: #ffb7c5;
+  --hk-shade-5: #ff9db6;
+  --hk-shade-6: #ff85a2;
+  --hk-shade-7: #e06b88;
+  --hk-shade-8: #c95a75;
+  --hk-shade-9: #a84a62;
+  --hk-shade-10: #8c3d4f;
+
+  /* ===== 背景色 ===== */
+  --hk-bg-base: #ffffff;
+  --hk-bg-1: #fff0f3;
+  --hk-bg-2: #ffffff;
+  --hk-bg-3: #ffe4e8;
+  --hk-bg-4: #ffb7c5;
+  --hk-bg-hover: #ffe4e8;
+  --hk-bg-active: #ffcad4;
+
+  /* ===== 文字色 ===== */
+  --hk-text-primary: #5a3e45;
+  --hk-text-secondary: #8c6b74;
+  --hk-text-tertiary: #bfa5ac;
+  --hk-text-disabled: #d4c0c6;
+  --hk-text-inverse: #ffffff;
+
+  /* ===== 边框色 ===== */
+  --hk-border-base: #ffcad4;
+  --hk-border-light: #ffe4e8;
+  --hk-border-strong: #ffb7c5;
+
+  /* ===== 语义色 ===== */
+  --hk-success: #52c41a;
+  --hk-warning: #faad14;
+  --hk-error: #f5222d;
+  --hk-info: #ff85a2;
+
+  /* ===== 阴影 ===== */
+  --hk-shadow-sm: 0 2px 8px rgba(255, 133, 162, 0.15);
+  --hk-shadow-md: 0 4px 16px rgba(255, 133, 162, 0.2);
+  --hk-shadow-lg: 0 8px 24px rgba(255, 133, 162, 0.25);
+  --hk-shadow-glow: 0 0 20px rgba(255, 133, 162, 0.3);
+
+  /* ===== 渐变 ===== */
+  --hk-gradient-primary: linear-gradient(135deg, #ff85a2 0%, #ff9db6 100%);
+  --hk-gradient-light: linear-gradient(135deg, #fff0f3 0%, #ffe4e8 100%);
+  --hk-gradient-button: linear-gradient(135deg, #ff85a2 0%, #ffb7c5 100%);
+
+  /* ===== 映射到系统变量 ===== */
+  --color-primary: var(--hk-primary);
+  --primary: var(--hk-primary);
+  --brand: var(--hk-primary);
+  --color-bg-1: var(--hk-bg-1);
+  --bg-1: var(--hk-bg-1);
+  --color-bg-2: var(--hk-bg-2);
+  --bg-2: var(--hk-bg-2);
+  --color-text-1: var(--hk-text-primary);
+  --text-primary: var(--hk-text-primary);
+  --color-text-2: var(--hk-text-secondary);
+  --text-secondary: var(--hk-text-secondary);
+  --color-border: var(--hk-border-base);
+  --border-base: var(--hk-border-base);
+  --success: var(--hk-success);
+  --warning: var(--hk-warning);
+  --danger: var(--hk-error);
+  --info: var(--hk-info);
+}
+
+/* ===== 字体设置 ===== */
+body {
+  font-family: 'Varela Round', 'Nunito', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== 全局背景 ===== */
+body,
+html {
+  background-color: var(--hk-bg-1);
+  color: var(--hk-text-primary);
+}
+
+.arco-layout,
+[class*='layout'] {
+  background-color: var(--hk-bg-1);
+}
+
+.arco-layout-content {
+  background-color: var(--hk-bg-1);
+}
+
+/* ===== 背景图设置 ===== */
+.layout-content.bg-1 {
+  position: relative;
+  background-color: var(--hk-bg-1);
+}
+
+/* 半透明遮罩层 */
+.layout-content.bg-1::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 249, 255, 0.75) 0%,
+    rgba(224, 242, 254, 0.8) 50%,
+    rgba(240, 249, 255, 0.75) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+
+.layout-content.bg-1 > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 聊天页面背景 */
+[class*='chat-layout'] .arco-layout-content,
+[class*='conversation'] .arco-layout-content {
+  position: relative;
+}
+
+[class*='chat-layout'] .arco-layout-content::before,
+[class*='conversation'] .arco-layout-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+[class*='chat-layout'] .arco-layout-content > *,
+[class*='conversation'] .arco-layout-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==================== 侧边栏 Sidebar ==================== */
+.layout-sider {
+  background-color: var(--hk-bg-1);
+  border-right: 2px solid var(--hk-border-strong);
+}
+
+.layout-sider-header {
+  background: var(--hk-gradient-primary);
+  color: var(--hk-text-inverse);
+  box-shadow: var(--hk-shadow-sm);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 侧边栏图标 */
+.layout-sider-header svg {
+  color: rgba(255, 255, 255, 0.9);
+  transition:
+    color 0.3s ease,
+    transform 0.2s ease;
+}
+
+.layout-sider-header svg:hover {
+  color: var(--hk-text-inverse);
+  transform: scale(1.1);
+}
+
+/* ==================== 输入框 Input ==================== */
+/* 首页输入框 */
+.guidInputCard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 2px solid var(--hk-border-strong);
+  border-radius: 20px;
+  box-shadow: var(--hk-shadow-md);
+  transition: all 0.3s ease;
+}
+
+.guidInputCard:hover {
+  border-color: var(--hk-primary);
+  box-shadow: var(--hk-shadow-lg);
+}
+
+.guidInputCard textarea {
+  background-color: transparent;
+  color: var(--hk-text-primary);
+  border: none;
+}
+
+/* 发送框 */
+.sendbox-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 2px solid var(--hk-border-strong);
+  border-radius: 24px;
+  box-shadow: var(--hk-shadow-md);
+  transition: all 0.3s ease;
+}
+
+.sendbox-container:focus-within {
+  border-color: var(--hk-primary);
+  box-shadow: var(--hk-shadow-lg), var(--hk-shadow-glow);
+  transform: translateY(-1px);
+}
+
+.sendbox-container textarea {
+  background: transparent;
+  border: none;
+  color: var(--hk-text-primary);
+}
+
+/* ==================== 消息气泡 Message ==================== */
+/* 用户消息 */
+.message-item.user .message-bubble,
+[class*='message-user'] .message-content {
+  background: var(--hk-gradient-primary);
+  color: var(--hk-text-inverse);
+  border-radius: 20px 20px 4px 20px;
+  box-shadow: var(--hk-shadow-md);
+  padding: 12px 18px;
+  border: none;
+}
+
+/* AI 消息 */
+.message-item.ai .message-bubble,
+.message-item.assistant .message-bubble,
+[class*='message-ai'] .message-content,
+[class*='message-assistant'] .message-content {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--hk-border-light);
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: var(--hk-shadow-sm);
+  padding: 12px 18px;
+  color: var(--hk-text-primary);
+}
+
+/* 工具调用提示 - 保持简洁 */
+.message-item.ai .arco-alert,
+.message-item.assistant .arco-alert {
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--hk-border-light);
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.message-item.ai .arco-card,
+.message-item.assistant .arco-card {
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--hk-border-light);
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+/* ==================== 按钮 Button ==================== */
+.arco-btn-primary,
+button[type='primary'] {
+  background: var(--hk-gradient-button);
+  border: none;
+  border-radius: 20px;
+  color: var(--hk-text-inverse);
+  font-weight: 600;
+  box-shadow: var(--hk-shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.arco-btn-primary:hover,
+button[type='primary']:hover {
+  background: linear-gradient(135deg, #ff9db6 0%, #ffcad4 100%);
+  box-shadow: var(--hk-shadow-md), var(--hk-shadow-glow);
+  transform: translateY(-2px);
+}
+
+.arco-btn-primary:active,
+button[type='primary']:active {
+  transform: translateY(0);
+  box-shadow: var(--hk-shadow-sm);
+}
+
+.arco-btn-secondary,
+button[type='secondary'] {
+  background: transparent;
+  border: 2px solid var(--hk-primary);
+  border-radius: 20px;
+  color: var(--hk-primary);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.arco-btn-secondary:hover,
+button[type='secondary']:hover {
+  background: var(--hk-bg-hover);
+  border-color: var(--hk-primary-light);
+  color: var(--hk-primary-light);
+  transform: translateY(-1px);
+}
+
+/* 按钮禁用状态 */
+.arco-btn:disabled,
+button:disabled {
+  background: var(--hk-bg-3);
+  color: var(--hk-text-disabled);
+  border-color: var(--hk-border-light);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ==================== 图标 Icon ==================== */
+/* 基础图标颜色 - 仅针对需要的图标 */
+.arco-icon {
+  color: var(--hk-primary);
+  transition:
+    color 0.3s ease,
+    transform 0.2s ease;
+}
+
+.arco-icon:hover {
+  color: var(--hk-primary-light);
+  transform: scale(1.1);
+}
+
+/* 按钮内图标 */
+.arco-btn-primary .arco-icon,
+button[type='primary'] .arco-icon {
+  color: var(--hk-text-inverse);
+}
+
+/* ==================== 滚动条 Scrollbar ==================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 133, 162, 0.3);
+}
+
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--hk-gradient-primary);
+}
+
+/* ==================== 其他元素 ==================== */
+/* 链接 */
+a {
+  color: var(--hk-primary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--hk-primary-light);
+  text-decoration: underline;
+}
+
+/* 选中文本 */
+::selection {
+  background-color: var(--hk-primary);
+  color: var(--hk-text-inverse);
+}
+
+/* Tooltip */
+.arco-tooltip-inner,
+.arco-popover-inner {
+  background-color: var(--hk-primary-dark);
+  color: var(--hk-text-inverse);
+  border: 1px solid var(--hk-primary-darker);
+  border-radius: 8px;
+  box-shadow: var(--hk-shadow-md);
+  font-weight: 500;
+}
+
+.arco-tooltip-arrow,
+.arco-popover-arrow {
+  border-color: var(--hk-primary-dark);
+}
+
+/* Modal 对话框 */
+.arco-modal-header {
+  background: var(--hk-gradient-light);
+  border-bottom: 1px solid var(--hk-border-light);
+  color: var(--hk-text-primary);
+}
+
+.arco-modal-body {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  color: var(--hk-text-primary);
+}
+
+.arco-modal-footer {
+  background: rgba(255, 255, 255, 0.95);
+  border-top: 1px solid var(--hk-border-light);
+}
+
+/* ==================== 深色模式 (Dark Mode) ==================== */
+[data-theme='dark'] {
+  /* ===== 主色调 - 调亮以提高可见度 ===== */
+  --hk-primary: #ffb7c5;
+  --hk-primary-light: #ffcad4;
+  --hk-primary-lighter: #ffe4e8;
+  --hk-primary-lightest: #fff0f3;
+  --hk-primary-dark: #ff9db6;
+  --hk-primary-darker: #ff85a2;
+  --hk-primary-rgb: 255, 183, 197;
+
+  /* ===== 品牌色板 - 深色模式反转 ===== */
+  --hk-shade-1: #2d1a24;
+  --hk-shade-2: #3d2431;
+  --hk-shade-3: #4a2f3a;
+  --hk-shade-4: #5d3b4a;
+  --hk-shade-5: #7a4d5f;
+  --hk-shade-6: #ffb7c5;
+  --hk-shade-7: #ffcad4;
+  --hk-shade-8: #ffe4e8;
+  --hk-shade-9: #fff0f3;
+  --hk-shade-10: #fff5f7;
+
+  /* ===== 背景色 - 温暖的深粉紫色 ===== */
+  --hk-bg-base: #1f1119;
+  --hk-bg-1: #2d1a24;
+  --hk-bg-2: #3d2431;
+  --hk-bg-3: #4a2f3a;
+  --hk-bg-4: #5d3b4a;
+  --hk-bg-hover: #3d2431;
+  --hk-bg-active: #4a2f3a;
+
+  /* ===== 文字色 - 高对比度粉白色 ===== */
+  --hk-text-primary: #fff0f3;
+  --hk-text-secondary: #ffcad4;
+  --hk-text-tertiary: #ff9db6;
+  --hk-text-disabled: #8c6b74;
+  --hk-text-inverse: #ffffff;
+
+  /* ===== 边框色 ===== */
+  --hk-border-base: #7a4d5f;
+  --hk-border-light: #5d3b4a;
+  --hk-border-strong: #ff9db6;
+
+  /* ===== 语义色 - 深色模式调整 ===== */
+  --hk-success: #95de64;
+  --hk-warning: #ffc53d;
+  --hk-error: #ff7875;
+  --hk-info: #ffb7c5;
+
+  /* ===== 阴影 - 增强发光效果 ===== */
+  --hk-shadow-sm: 0 2px 12px rgba(255, 183, 197, 0.2);
+  --hk-shadow-md: 0 4px 20px rgba(255, 183, 197, 0.3);
+  --hk-shadow-lg: 0 8px 32px rgba(255, 183, 197, 0.4);
+  --hk-shadow-glow: 0 0 24px rgba(255, 183, 197, 0.4);
+
+  /* ===== 渐变 - 深色模式保持鲜艳 ===== */
+  --hk-gradient-primary: linear-gradient(135deg, #ff85a2 0%, #ffb7c5 100%);
+  --hk-gradient-light: linear-gradient(135deg, #4a2f3a 0%, #5d3b4a 100%);
+  --hk-gradient-button: linear-gradient(135deg, #ff85a2 0%, #ffb7c5 100%);
+
+  /* ===== 重新映射系统变量 ===== */
+  --color-primary: var(--hk-primary);
+  --primary: var(--hk-primary);
+  --brand: var(--hk-primary);
+  --color-bg-1: var(--hk-bg-1);
+  --bg-1: var(--hk-bg-1);
+  --color-bg-2: var(--hk-bg-2);
+  --bg-2: var(--hk-bg-2);
+  --bg-hover: var(--hk-bg-hover);
+  --bg-active: var(--hk-bg-active);
+  --color-text-1: var(--hk-text-primary);
+  --text-primary: var(--hk-text-primary);
+  --color-text-2: var(--hk-text-secondary);
+  --text-secondary: var(--hk-text-secondary);
+  --color-border: var(--hk-border-base);
+  --border-base: var(--hk-border-base);
+}
+
+/* ===== 深色模式全局样式 ===== */
+[data-theme='dark'] body,
+[data-theme='dark'] html {
+  background-color: var(--hk-bg-1);
+  color: var(--hk-text-primary);
+}
+
+/* ===== 深色模式标题栏 ===== */
+[data-theme='dark'] .app-titlebar {
+  background-color: var(--hk-bg-2);
+  border-color: var(--hk-border-base);
+}
+
+[data-theme='dark'] .app-titlebar__button {
+  color: var(--hk-text-primary);
+}
+
+[data-theme='dark'] .app-titlebar__button:hover {
+  background-color: var(--hk-bg-hover);
+  color: var(--hk-primary);
+}
+
+[data-theme='dark'] .app-titlebar__brand {
+  color: var(--hk-text-primary);
+}
+
+[data-theme='dark'] .arco-layout,
+[data-theme='dark'] [class*='layout'] {
+  background-color: var(--hk-bg-1);
+}
+
+[data-theme='dark'] .arco-layout-content {
+  background-color: var(--hk-bg-1);
+}
+
+/* ===== 深色模式背景图 ===== */
+[data-theme='dark'] .layout-content.bg-1::before {
+  background: linear-gradient(
+    135deg,
+    rgba(45, 26, 36, 0.85) 0%,
+    rgba(61, 36, 49, 0.9) 50%,
+    rgba(45, 26, 36, 0.85) 100%
+  );
+}
+
+[data-theme='dark'] [class*='chat-layout'] .arco-layout-content::before,
+[data-theme='dark'] [class*='conversation'] .arco-layout-content::before {
+  opacity: 0.2;
+  filter: brightness(0.9) saturate(1.2);
+}
+
+/* ===== 深色模式侧边栏 ===== */
+[data-theme='dark'] .layout-sider {
+  background: linear-gradient(180deg, #4a2f3a 0%, #3d2431 100%);
+  border-right: 2px solid var(--hk-border-strong);
+  box-shadow: 4px 0 20px rgba(255, 183, 197, 0.15);
+}
+
+[data-theme='dark'] .layout-sider-header {
+  background: var(--hk-gradient-primary);
+  box-shadow: 0 4px 16px rgba(255, 183, 197, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ===== 深色模式输入框 ===== */
+[data-theme='dark'] .guidInputCard {
+  background: linear-gradient(135deg, rgba(74, 47, 58, 0.95) 0%, rgba(93, 59, 74, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  border: 2px solid var(--hk-border-strong);
+  box-shadow:
+    var(--hk-shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .guidInputCard:hover {
+  border-color: var(--hk-primary);
+  box-shadow: var(--hk-shadow-lg), var(--hk-shadow-glow);
+}
+
+[data-theme='dark'] .guidInputCard textarea {
+  color: var(--hk-text-primary);
+}
+
+[data-theme='dark'] .sendbox-container {
+  background: linear-gradient(135deg, rgba(74, 47, 58, 0.95) 0%, rgba(93, 59, 74, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  border: 2px solid var(--hk-border-strong);
+  box-shadow:
+    var(--hk-shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .sendbox-container:focus-within {
+  border-color: var(--hk-primary);
+  box-shadow: var(--hk-shadow-lg), var(--hk-shadow-glow);
+}
+
+[data-theme='dark'] .sendbox-container textarea {
+  color: var(--hk-text-primary);
+}
+
+/* ===== 深色模式消息气泡 ===== */
+[data-theme='dark'] .message-item.user .message-bubble,
+[data-theme='dark'] [class*='message-user'] .message-content {
+  background: var(--hk-gradient-primary);
+  color: var(--hk-text-inverse);
+  box-shadow:
+    var(--hk-shadow-md),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .message-item.ai .message-bubble,
+[data-theme='dark'] .message-item.assistant .message-bubble,
+[data-theme='dark'] [class*='message-ai'] .message-content,
+[data-theme='dark'] [class*='message-assistant'] .message-content {
+  background: linear-gradient(135deg, rgba(74, 47, 58, 0.95) 0%, rgba(93, 59, 74, 0.95) 100%);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--hk-border-base);
+  box-shadow:
+    var(--hk-shadow-sm),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--hk-text-primary);
+}
+
+[data-theme='dark'] .message-item.ai .arco-alert,
+[data-theme='dark'] .message-item.assistant .arco-alert {
+  background-color: rgba(61, 36, 49, 0.8);
+  border-color: var(--hk-border-light);
+}
+
+[data-theme='dark'] .message-item.ai .arco-card,
+[data-theme='dark'] .message-item.assistant .arco-card {
+  background-color: rgba(61, 36, 49, 0.8);
+  border-color: var(--hk-border-light);
+}
+
+/* ===== 深色模式按钮 ===== */
+[data-theme='dark'] .arco-btn-primary,
+[data-theme='dark'] button[type='primary'] {
+  background: var(--hk-gradient-primary);
+  box-shadow: var(--hk-shadow-md);
+}
+
+[data-theme='dark'] .arco-btn-primary:hover,
+[data-theme='dark'] button[type='primary']:hover {
+  background: linear-gradient(135deg, #ffb7c5 0%, #ffcad4 100%);
+  box-shadow: var(--hk-shadow-lg), var(--hk-shadow-glow);
+}
+
+[data-theme='dark'] .arco-btn-secondary,
+[data-theme='dark'] button[type='secondary'] {
+  border-color: var(--hk-primary);
+  color: var(--hk-primary);
+}
+
+[data-theme='dark'] .arco-btn-secondary:hover,
+[data-theme='dark'] button[type='secondary']:hover {
+  background: var(--hk-bg-hover);
+  border-color: var(--hk-primary-light);
+  color: var(--hk-primary-light);
+  box-shadow: 0 0 12px rgba(255, 183, 197, 0.3);
+}
+
+/* ===== 深色模式图标 ===== */
+[data-theme='dark'] .arco-icon {
+  color: var(--hk-primary);
+}
+
+[data-theme='dark'] .arco-icon:hover {
+  color: var(--hk-primary-light);
+  filter: drop-shadow(0 0 8px rgba(255, 183, 197, 0.5));
+}
+
+/* ===== 深色模式滚动条 ===== */
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 183, 197, 0.4);
+}
+
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--hk-gradient-primary);
+  box-shadow: 0 0 8px rgba(255, 183, 197, 0.5);
+}
+
+/* ===== 深色模式其他元素 ===== */
+[data-theme='dark'] a {
+  color: var(--hk-primary);
+}
+
+[data-theme='dark'] a:hover {
+  color: var(--hk-primary-light);
+  text-shadow: 0 0 8px rgba(255, 183, 197, 0.4);
+}
+
+[data-theme='dark'] ::selection {
+  background-color: var(--hk-primary);
+  color: var(--hk-text-inverse);
+}
+
+[data-theme='dark'] .arco-tooltip-inner,
+[data-theme='dark'] .arco-popover-inner {
+  background: linear-gradient(135deg, #7a4d5f 0%, #5d3b4a 100%);
+  color: var(--hk-text-primary);
+  border: 2px solid var(--hk-primary);
+  box-shadow:
+    var(--hk-shadow-md),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .arco-tooltip-arrow,
+[data-theme='dark'] .arco-popover-arrow {
+  border-color: var(--hk-primary);
+}
+
+[data-theme='dark'] .arco-modal-header {
+  background: var(--hk-gradient-primary);
+  color: var(--hk-text-inverse);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='dark'] .arco-modal-body {
+  background: linear-gradient(135deg, rgba(61, 36, 49, 0.98) 0%, rgba(74, 47, 58, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  color: var(--hk-text-primary);
+}
+
+[data-theme='dark'] .arco-modal-footer {
+  background: linear-gradient(135deg, rgba(61, 36, 49, 0.98) 0%, rgba(74, 47, 58, 0.98) 100%);
+  border-top: 1px solid var(--hk-border-base);
+}
+
+/* ==================== 动画效果 ==================== */
+@keyframes hk-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes hk-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* 可选：给某些元素添加悬浮动画 */
+.arco-btn-primary:hover {
+  animation: hk-float 2s ease-in-out infinite;
+}
+
+/* ==================== 响应式调整 ==================== */
+@media (max-width: 768px) {
+  /* 移动端优化 */
+  .guidInputCard,
+  .sendbox-container {
+    border-radius: 16px;
+  }
+
+  .message-item.user .message-bubble,
+  .message-item.ai .message-bubble,
+  .message-item.assistant .message-bubble {
+    border-radius: 16px;
+    padding: 10px 14px;
+  }
+
+  .arco-btn-primary,
+  .arco-btn-secondary {
+    border-radius: 16px;
+    padding: 8px 16px;
+  }
+}
+
+/* ==================== 打印样式 ==================== */
+@media print {
+  /* 打印时移除背景图和阴影 */
+  .layout-content.bg-1::before,
+  [class*='chat-layout'] .arco-layout-content::before {
+    display: none;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}

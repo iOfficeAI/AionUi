@@ -6,6 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const originalPlatform = process.platform;
+
 // Shared mock instances that survive across dynamic imports
 const mockTrayInstance = {
   setToolTip: vi.fn(),
@@ -16,11 +18,33 @@ const mockTrayInstance = {
 
 const mockMenuInstance = { items: [] };
 const mockBuildFromTemplate = vi.fn(() => mockMenuInstance);
+const mockListTasks = vi.fn(() => []);
+const mockGetUserConversations = vi.fn(() => ({ data: [] }));
+const mockGetDatabase = vi.fn(() => ({
+  getUserConversations: mockGetUserConversations,
+}));
 
 const mockNativeImage = {
   resize: vi.fn().mockReturnThis(),
   isEmpty: vi.fn(() => false),
 };
+const mockDock = {
+  show: vi.fn(),
+  hide: vi.fn(),
+};
+
+const createMockWindow = () =>
+  ({
+    isDestroyed: vi.fn(() => false),
+    isMinimized: vi.fn(() => false),
+    restore: vi.fn(),
+    show: vi.fn(),
+    focus: vi.fn(),
+    hide: vi.fn(),
+    webContents: {
+      send: vi.fn(),
+    },
+  }) as any;
 
 // Tray must be a proper constructor for `new Tray(icon)` to work
 class MockTray {
@@ -36,6 +60,7 @@ const mockModules = () => {
       relaunch: vi.fn(),
       exit: vi.fn(),
       quit: vi.fn(),
+      dock: mockDock,
     },
     Tray: MockTray,
     Menu: {
@@ -58,14 +83,12 @@ const mockModules = () => {
     default: { t: vi.fn((key: string) => key) },
   }));
 
-  vi.doMock('@/process/WorkerManage', () => ({
-    default: { listTasks: vi.fn(() => []) },
+  vi.doMock('@process/task/workerTaskManagerSingleton', () => ({
+    workerTaskManager: { listTasks: mockListTasks },
   }));
 
-  vi.doMock('@/process/database', () => ({
-    getDatabase: vi.fn(() => ({
-      getUserConversations: vi.fn(() => ({ data: [] })),
-    })),
+  vi.doMock('@process/database', () => ({
+    getDatabase: mockGetDatabase,
   }));
 };
 
@@ -73,15 +96,17 @@ describe('tray module', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
     mockModules();
   });
 
   afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
     vi.doUnmock('electron');
     vi.doUnmock('@/common');
     vi.doUnmock('@process/i18n');
-    vi.doUnmock('@/process/WorkerManage');
-    vi.doUnmock('@/process/database');
+    vi.doUnmock('@process/task/workerTaskManagerSingleton');
+    vi.doUnmock('@process/database');
   });
 
   describe('state accessors', () => {
@@ -105,7 +130,7 @@ describe('tray module', () => {
 
     it('should set main window reference', async () => {
       const { setTrayMainWindow } = await import('@/process/tray');
-      const mockWindow = { show: vi.fn(), focus: vi.fn() } as any;
+      const mockWindow = createMockWindow();
 
       expect(() => setTrayMainWindow(mockWindow)).not.toThrow();
     });
@@ -120,7 +145,7 @@ describe('tray module', () => {
       expect(mockTrayInstance.setToolTip).toHaveBeenCalledWith('AionUi');
     });
 
-    it('should be idempotent — second call does not create another tray', async () => {
+    it('should be idempotent - second call does not create another tray', async () => {
       const { createOrUpdateTray } = await import('@/process/tray');
 
       createOrUpdateTray();
@@ -191,117 +216,132 @@ describe('tray module', () => {
 
   describe('refreshTrayMenu', () => {
     it('should rebuild context menu when tray exists', async () => {
-      const { Menu } = await import('electron');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
 
       createOrUpdateTray();
       // Wait for initial async menu build to complete
       await new Promise((r) => setTimeout(r, 50));
       mockTrayInstance.setContextMenu.mockClear();
-      (Menu.buildFromTemplate as ReturnType<typeof vi.fn>).mockClear();
+      mockBuildFromTemplate.mockClear();
 
       await refreshTrayMenu();
 
-      expect(Menu.buildFromTemplate).toHaveBeenCalledOnce();
+      expect(mockBuildFromTemplate).toHaveBeenCalledOnce();
       expect(mockTrayInstance.setContextMenu).toHaveBeenCalledWith(mockMenuInstance);
     });
 
     it('should be a no-op when no tray exists', async () => {
-      const { Menu } = await import('electron');
       const { refreshTrayMenu } = await import('@/process/tray');
 
       await refreshTrayMenu();
 
-      expect(Menu.buildFromTemplate).not.toHaveBeenCalled();
+      expect(mockBuildFromTemplate).not.toHaveBeenCalled();
     });
   });
 
   describe('context menu content', () => {
-    const setupWithOverrides = (overrides: () => void) => {
+    const setupWithOverrides = () => {
       vi.resetModules();
       vi.clearAllMocks();
       mockModules();
-      overrides();
+      mockListTasks.mockReturnValue([]);
+      mockGetUserConversations.mockReturnValue({ data: [] });
+      mockGetDatabase.mockImplementation(() => ({
+        getUserConversations: mockGetUserConversations,
+      }));
+    };
+
+    const getTemplateFromRefresh = async () => {
+      const { createOrUpdateTray, refreshTrayMenu } = await import('@/process/tray');
+      createOrUpdateTray();
+      const previousCalls = mockBuildFromTemplate.mock.calls.length;
+      await refreshTrayMenu();
+      expect(mockBuildFromTemplate.mock.calls.length).toBeGreaterThan(previousCalls);
+      return mockBuildFromTemplate.mock.calls[previousCalls][0] as any[];
     };
 
     it('should include recent conversations when available', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@/process/database', () => ({
-          getDatabase: vi.fn(() => ({
-            getUserConversations: vi.fn(() => ({
-              data: [
-                { id: '1', name: 'Test Chat' },
-                { id: '2', name: 'Another Chat' },
-              ],
-            })),
-          })),
-        }));
+      setupWithOverrides();
+      mockGetUserConversations.mockReturnValue({
+        data: [
+          { id: '1', name: 'Test Chat' },
+          { id: '2', name: 'Another Chat' },
+        ],
       });
-      const { createOrUpdateTray } = await import('@/process/tray');
 
-      createOrUpdateTray();
-      await new Promise((r) => setTimeout(r, 50));
-
-      const templateArg = mockBuildFromTemplate.mock.calls[0][0];
+      const templateArg = await getTemplateFromRefresh();
       const labels = templateArg.map((item: any) => item.label).filter(Boolean);
       expect(labels).toContain('Test Chat');
       expect(labels).toContain('Another Chat');
     });
 
     it('should truncate long conversation titles to 20 chars', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@/process/database', () => ({
-          getDatabase: vi.fn(() => ({
-            getUserConversations: vi.fn(() => ({
-              data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
-            })),
-          })),
-        }));
+      setupWithOverrides();
+      mockGetUserConversations.mockReturnValue({
+        data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
       });
-      const { createOrUpdateTray } = await import('@/process/tray');
 
-      createOrUpdateTray();
-      await new Promise((r) => setTimeout(r, 50));
-
-      const templateArg = mockBuildFromTemplate.mock.calls[0][0];
-      const convItem = templateArg.find((item: any) => item.label && item.label.endsWith('...') && item.click);
-      expect(convItem).toBeDefined();
-      // 20 chars + '...'
-      expect(convItem.label.length).toBe(23);
+      const expectedTitle = 'A very long conversation title that exceeds twenty characters'.slice(0, 20) + '...';
+      const templateArg = await getTemplateFromRefresh();
+      const labels = templateArg.map((item: any) => item.label).filter(Boolean);
+      expect(labels).toContain(expectedTitle);
     });
 
     it('should show running tasks count', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@/process/WorkerManage', () => ({
-          default: { listTasks: vi.fn(() => [{ id: '1' }, { id: '2' }, { id: '3' }]) },
-        }));
-      });
-      const { createOrUpdateTray } = await import('@/process/tray');
+      setupWithOverrides();
+      mockListTasks.mockReturnValue([{ id: '1' }, { id: '2' }, { id: '3' }] as never[]);
 
-      createOrUpdateTray();
-      await new Promise((r) => setTimeout(r, 50));
-
-      const templateArg = mockBuildFromTemplate.mock.calls[0][0];
+      const templateArg = await getTemplateFromRefresh();
       const taskItem = templateArg.find((item: any) => item.label?.includes('3'));
       expect(taskItem).toBeDefined();
       expect(taskItem.enabled).toBe(false);
     });
 
     it('should gracefully handle database errors for recent conversations', async () => {
-      setupWithOverrides(() => {
-        vi.doMock('@/process/database', () => ({
-          getDatabase: vi.fn(() => {
-            throw new Error('DB unavailable');
-          }),
-        }));
+      setupWithOverrides();
+      mockGetDatabase.mockImplementation(() => {
+        throw new Error('DB unavailable');
       });
-      const { createOrUpdateTray } = await import('@/process/tray');
 
-      createOrUpdateTray();
-      await new Promise((r) => setTimeout(r, 50));
+      await getTemplateFromRefresh();
 
       // Should still build menu without crashing
       expect(mockBuildFromTemplate).toHaveBeenCalled();
+    });
+
+    it('should hide window and dock when hide-to-tray is clicked on macOS', async () => {
+      setupWithOverrides();
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      const { setTrayMainWindow } = await import('@/process/tray');
+      const mockWindow = createMockWindow();
+      setTrayMainWindow(mockWindow);
+
+      const templateArg = await getTemplateFromRefresh();
+      const hideToTrayItem = templateArg.find((item: any) => item.label === 'common.tray.closeToTray');
+
+      hideToTrayItem.click();
+
+      expect(mockWindow.hide).toHaveBeenCalledOnce();
+      expect(mockDock.hide).toHaveBeenCalledOnce();
+    });
+
+    it('should restore window and show dock when show-window is clicked on macOS', async () => {
+      setupWithOverrides();
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      const { setTrayMainWindow } = await import('@/process/tray');
+      const mockWindow = createMockWindow();
+      mockWindow.isMinimized.mockReturnValue(true);
+      setTrayMainWindow(mockWindow);
+
+      const templateArg = await getTemplateFromRefresh();
+      const showWindowItem = templateArg.find((item: any) => item.label === 'common.tray.showWindow');
+
+      showWindowItem.click();
+
+      expect(mockDock.show).toHaveBeenCalledOnce();
+      expect(mockWindow.restore).toHaveBeenCalledOnce();
+      expect(mockWindow.show).toHaveBeenCalledOnce();
+      expect(mockWindow.focus).toHaveBeenCalledOnce();
     });
   });
 });

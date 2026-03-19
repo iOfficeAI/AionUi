@@ -57,7 +57,7 @@
   "refresh": "Refresh",
   "tray.showWindow": "Show AionUi",
   "tray.newChat": "New Chat",
-  "tray.closeToTray": "Close to Tray",
+  "tray.closeToTray": "Hide to Tray",
   "tray.about": "About AionUi",
   "tray.restart": "Restart App",
   "tray.quit": "Quit",
@@ -65,5 +65,11 @@
   "tray.pauseAll": "Pause All Tasks",
   "tray.checkUpdate": "Check Update",
   "tray.recentChats": "Recent Chats",
-  "tray.untitled": "Untitled"
+  "tray.untitled": "Untitled",
+  "fileAttach.hostFiles": "Host Machine Files",
+  "fileAttach.myDevice": "My Device",
+  "fileAttach.tooLarge": "File exceeds {{max}}MB limit",
+  "fileAttach.failed": "Upload failed",
+  "fileAttach.uploading": "Uploading...",
+  "fileAttach.uploadSuccess": "Upload successful"
 }

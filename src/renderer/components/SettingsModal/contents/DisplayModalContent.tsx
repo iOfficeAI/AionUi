@@ -8,7 +8,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FontSizeControl from '@/renderer/components/FontSizeControl';
 import { ThemeSwitcher } from '@/renderer/components/ThemeSwitcher';
-import CssThemeSettings from '@/renderer/components/CssThemeSettings';
+import CssThemeSettings from '@renderer/pages/settings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
 import { Down, Up } from '@icon-park/react';

@@ -57,7 +57,7 @@
   "refresh": "새로고침",
   "tray.showWindow": "AionUi 표시",
   "tray.newChat": "새 채팅",
-  "tray.closeToTray": "트레이로 닫기",
+  "tray.closeToTray": "트레이에 숨기기",
   "tray.about": "AionUi 소개",
   "tray.restart": "앱 재시작",
   "tray.quit": "종료",
@@ -65,5 +65,11 @@
   "tray.pauseAll": "모든 작업 일시 중지",
   "tray.checkUpdate": "업데이트 확인",
   "tray.recentChats": "최근 채팅",
-  "tray.untitled": "제목 없음"
+  "tray.untitled": "제목 없음",
+  "fileAttach.hostFiles": "호스트 머신 파일",
+  "fileAttach.myDevice": "내 기기",
+  "fileAttach.tooLarge": "파일이 {{max}}MB 제한을 초과합니다",
+  "fileAttach.failed": "업로드 실패",
+  "fileAttach.uploading": "업로드 중...",
+  "fileAttach.uploadSuccess": "업로드 성공"
 }

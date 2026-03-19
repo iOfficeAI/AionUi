@@ -406,6 +406,10 @@ function parseEnvOutput(output: string): Record<string, string> {
   return result;
 }
 
+export function getWindowsShellExecutionOptions(): { shell?: boolean; windowsHide?: boolean } {
+  return process.platform === 'win32' ? { shell: true, windowsHide: true } : {};
+}
+
 /**
  * Resolve a modern npx binary (npm >= 7) from the same directory as the
  * active node binary.  Old standalone npx packages (npm v5/v6 era) don't
@@ -425,6 +429,7 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
+      ...getWindowsShellExecutionOptions(),
     })
       .trim()
       .split('\n')[0]; // `where` on Windows may return multiple lines
@@ -435,6 +440,7 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
+      ...getWindowsShellExecutionOptions(),
     }).trim();
     const majorVersion = parseInt(versionOutput.split('.')[0], 10);
     if (majorVersion >= 7) {

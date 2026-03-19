@@ -47,8 +47,15 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     }
   }, [id, setActiveConversation]);
 
-  const { conversations, expandedWorkspaces, pinnedConversations, timelineSections, handleToggleWorkspace } =
-    useConversations();
+  const {
+    conversations,
+    isConversationGenerating,
+    hasCompletionUnread,
+    expandedWorkspaces,
+    pinnedConversations,
+    timelineSections,
+    handleToggleWorkspace,
+  } = useConversations();
 
   const {
     selectedConversationIds,
@@ -114,6 +121,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const getConversationRowProps = useCallback(
     (conversation: TChatConversation): ConversationRowProps => ({
       conversation,
+      isGenerating: isConversationGenerating(conversation.id),
+      hasCompletionUnread: hasCompletionUnread(conversation.id),
       collapsed,
       tooltipEnabled,
       batchMode,
@@ -134,6 +143,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       collapsed,
       tooltipEnabled,
       batchMode,
+      isConversationGenerating,
+      hasCompletionUnread,
       selectedConversationIds,
       id,
       dropdownVisibleId,

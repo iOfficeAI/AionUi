@@ -6,11 +6,48 @@
 
 import { type Express, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
+import multer from 'multer';
+import { getDatabase } from '@process/database';
+import { getSystemDir } from '@process/initStorage';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@/extensions';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
+
+/** Max upload size in bytes (30MB per Issue #1233) */
+const MAX_UPLOAD_SIZE = 30 * 1024 * 1024;
+
+/** Multer instance with memory storage and size limit */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_UPLOAD_SIZE },
+});
+
+/**
+ * Decode filename from multer.
+ * Multer v2 decodes Content-Disposition filename as Latin-1 (per HTTP spec),
+ * but browsers encode non-ASCII filenames (CJK, etc.) as UTF-8 bytes.
+ * Re-encode the Latin-1 string back to raw bytes and decode as UTF-8.
+ */
+function decodeMulterFileName(raw: string): string {
+  try {
+    const bytes = Buffer.from(raw, 'latin1');
+    return bytes.toString('utf8');
+  } catch {
+    return raw;
+  }
+}
+
+function sanitizeFileName(fileName: string): string {
+  const decoded = decodeMulterFileName(fileName);
+  const basename = path.basename(decoded);
+  const safe = basename.replace(/[<>:"/\\|?*]/g, '_');
+  if (!safe || safe === '.' || safe === '..') return `file_${Date.now()}`;
+  return safe;
+}
 
 function normalizeMountPath(input: string): string {
   if (!input || input.trim() === '') return '/';
@@ -21,6 +58,33 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   const normalizedTarget = path.resolve(targetPath);
   const normalizedRoot = path.resolve(rootPath);
   return normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`);
+}
+
+export function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): string {
+  if (!conversationId) {
+    throw new Error('Missing conversation id');
+  }
+
+  const db = getDatabase();
+  const result = db.getConversation(conversationId);
+  const conversationWorkspace = result.data?.extra?.workspace;
+  if (!result.success || !conversationWorkspace) {
+    throw new Error('Conversation workspace not found');
+  }
+
+  const resolvedConversationWorkspace = path.resolve(conversationWorkspace);
+  if (requestedWorkspace && path.resolve(requestedWorkspace) !== resolvedConversationWorkspace) {
+    throw new Error('Workspace mismatch');
+  }
+
+  return resolvedConversationWorkspace;
+}
+
+async function getTempUploadDir(): Promise<string> {
+  const { cacheDir } = getSystemDir();
+  const tempDir = path.join(cacheDir, 'temp');
+  await fsPromises.mkdir(tempDir, { recursive: true });
+  return tempDir;
 }
 
 function resolveRouteHandler(moduleExports: unknown): RequestHandler | null {
@@ -198,6 +262,108 @@ export function registerApiRoutes(app: Express): void {
    * /api/directory/*
    */
   app.use('/api/directory', apiRateLimiter, validateApiAccess, directoryApi);
+
+  /**
+   * 上传文件 - Upload file
+   * POST /api/upload
+   * WebUI 模式下粘贴/拖拽/选择文件时，通过 HTTP multipart 上传到 workspace
+   * Used in WebUI mode for paste/drag/pick files via HTTP multipart upload
+   *
+   * Must be registered BEFORE extension webui routes and catch-all /api route
+   *
+   * NOTE: multer v2 passes file-size errors to Express's next() rather than
+   * throwing inside the route handler. We wrap upload.single() manually so
+   * LIMIT_FILE_SIZE is intercepted and returns 413 before entering the handler.
+   */
+  app.post(
+    '/api/upload',
+    apiRateLimiter,
+    validateApiAccess,
+    (req: Request, res: Response, next: NextFunction) => {
+      upload.single('file')(req, res, (err: unknown) => {
+        if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
+          res.status(413).json({ success: false, msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)` });
+          return;
+        }
+        if (err) {
+          next(err);
+          return;
+        }
+        next();
+      });
+    },
+    async (req: Request, res: Response) => {
+      try {
+        const file = req.file;
+        const conversationId = typeof req.body.conversationId === 'string' ? req.body.conversationId : '';
+        const requestedWorkspace = typeof req.body.workspace === 'string' ? req.body.workspace : '';
+
+        if (!file) {
+          res.status(400).json({ success: false, msg: 'Missing file' });
+          return;
+        }
+
+        let uploadDir: string;
+        if (conversationId) {
+          let workspace: string;
+          try {
+            workspace = resolveUploadWorkspace(conversationId, requestedWorkspace);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Invalid upload workspace';
+            const statusCode =
+              message === 'Conversation workspace not found' || message === 'Missing conversation id' ? 400 : 403;
+            res.status(statusCode).json({ success: false, msg: message });
+            return;
+          }
+          uploadDir = path.join(workspace, 'uploads');
+          await fsPromises.mkdir(uploadDir, { recursive: true });
+        } else {
+          if (requestedWorkspace) {
+            res.status(403).json({ success: false, msg: 'Workspace uploads require conversation id' });
+            return;
+          }
+          uploadDir = await getTempUploadDir();
+        }
+
+        const safeFileName = sanitizeFileName(file.originalname);
+        let targetPath = path.join(uploadDir, safeFileName);
+
+        // Check for duplicate and append timestamp if needed
+        try {
+          await fsPromises.access(targetPath);
+          // File exists, append timestamp
+          const ext = path.extname(safeFileName);
+          const name = path.basename(safeFileName, ext);
+          targetPath = path.join(uploadDir, `${name}${AIONUI_TIMESTAMP_SEPARATOR}${Date.now()}${ext}`);
+        } catch {
+          // File doesn't exist, proceed with original name
+        }
+
+        // Verify path is still within uploadDir (defense in depth)
+        const resolvedTarget = path.resolve(targetPath);
+        const resolvedUploadDir = path.resolve(uploadDir);
+        if (!resolvedTarget.startsWith(resolvedUploadDir + path.sep) && resolvedTarget !== resolvedUploadDir) {
+          res.status(400).json({ success: false, msg: 'Invalid file name' });
+          return;
+        }
+
+        await fsPromises.writeFile(targetPath, file.buffer);
+
+        res.json({
+          success: true,
+          data: {
+            path: targetPath,
+            name: path.basename(targetPath),
+            size: file.size,
+            type: file.mimetype || 'application/octet-stream',
+          },
+        });
+      } catch (error) {
+        console.error('[API] Upload file error:', error);
+        res.status(500).json({ success: false, msg: error instanceof Error ? error.message : 'Failed to upload file' });
+      }
+    }
+  );
 
   registerExtensionWebuiRoutes(app, validateApiAccess);
 

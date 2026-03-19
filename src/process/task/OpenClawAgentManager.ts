@@ -16,6 +16,7 @@ import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
@@ -38,16 +39,15 @@ export interface OpenClawAgentManagerData {
 }
 
 class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
-  workspace?: string;
   agent!: OpenClawAgent;
   bootstrap: Promise<OpenClawAgent>;
   private isFirstMessage: boolean = true;
   private options: OpenClawAgentManagerData;
 
   constructor(data: OpenClawAgentManagerData) {
-    super('openclaw-gateway', data);
+    super('openclaw-gateway', data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
-    this.workspace = data.workspace;
+    this.workspace = data.workspace ?? '';
     this.options = data;
     this.status = 'pending';
 

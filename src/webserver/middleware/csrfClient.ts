@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import cookie from 'cookie';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/webserver/config/constants';
 
 // Read cookie by name in browser environment
@@ -18,15 +19,8 @@ function readCookie(name: string): string | null {
     return null;
   }
 
-  const cookies = cookieString.split(';');
-  for (const cookie of cookies) {
-    const [rawName, ...rawValueParts] = cookie.trim().split('=');
-    if (rawName === name) {
-      return decodeURIComponent(rawValueParts.join('='));
-    }
-  }
-
-  return null;
+  const cookies = cookie.parse(cookieString);
+  return cookies[name] ?? null;
 }
 
 // Retrieve current CSRF token from cookie (if present)
