@@ -41,7 +41,7 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
       }
 
       // 更新会话 extra 中的 workspace 字段 / Update conversation.extra.workspace
-      const nextExtra = { ...(conversation.extra || {}), workspace: workspacePath };
+      const nextExtra = { ...conversation.extra, workspace: workspacePath };
       const success = await ipcBridge.conversation.update.invoke({ id: conversationId, updates: { extra: nextExtra } });
       if (!success) {
         Message.error(t('common.saveFailed'));

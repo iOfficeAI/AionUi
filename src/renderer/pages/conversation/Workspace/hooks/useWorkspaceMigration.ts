@@ -130,7 +130,7 @@ export function useWorkspaceMigration({
           createTime: Date.now(),
           modifyTime: Date.now(),
           extra: {
-            ...(currentConversation.extra ?? {}),
+            ...currentConversation.extra,
             workspace: targetWorkspace,
             customWorkspace: true,
           },

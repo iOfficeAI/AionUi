@@ -34,7 +34,7 @@ const ModalHOC = <Props extends Record<string, any> = {}>(
         onCancel() {
           modalCtrl.close();
         },
-        ...(defaultModalProps || {}),
+        ...defaultModalProps,
         ...modalProps,
       };
     }, [defaultModalProps, modalProps]);

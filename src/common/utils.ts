@@ -24,6 +24,7 @@ export const uuid = (length = 8) => {
     if (typeof process !== 'undefined' && process.versions && process.versions.node) {
       try {
         // Dynamic require to avoid webpack bundling issues
+        // oxlint-disable-next-line eslint/no-eval -- intentional dynamic require to bypass webpack
         const cryptoModule = eval('require')('crypto');
         if (typeof cryptoModule.randomUUID === 'function' && length >= 36) {
           return cryptoModule.randomUUID();

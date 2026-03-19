@@ -18,6 +18,7 @@ const uuid = (len = 4) => {
 
 const callbackKey = (key: string) => key + '.callback';
 
+/* eslint-disable unicorn/no-thenable -- Deferred intentionally implements thenable interface */
 class Deferred {
   resolve: (data: any) => void;
   reject: (data: any) => void;

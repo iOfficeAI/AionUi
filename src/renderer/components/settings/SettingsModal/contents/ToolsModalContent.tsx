@@ -428,7 +428,7 @@ const ToolsModalContent: React.FC = () => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
-      const env: Record<string, string> = { ...(builtinServer.transport.env || {}) };
+      const env: Record<string, string> = { ...builtinServer.transport.env };
       if (model.platform) {
         env.AIONUI_IMG_PLATFORM = model.platform;
       } else {

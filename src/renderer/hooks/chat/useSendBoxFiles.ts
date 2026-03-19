@@ -17,7 +17,7 @@ export const createSetUploadFile = (
         // 取出最新的上传文件列表，保证函数式更新正确 / Derive latest upload list to keep functional updates accurate
         const previousUploadFile = Array.isArray(prev?.uploadFile) ? (prev?.uploadFile as string[]) : [];
         const newUploadFile = typeof uploadFile === 'function' ? uploadFile(previousUploadFile) : uploadFile;
-        return { ...(prev ?? {}), uploadFile: newUploadFile };
+        return { ...prev, uploadFile: newUploadFile };
       });
     },
     [data, mutate]

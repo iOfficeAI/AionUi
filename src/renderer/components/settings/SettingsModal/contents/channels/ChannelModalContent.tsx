@@ -253,7 +253,7 @@ const ChannelModalContent: React.FC = () => {
         setExtensionStatuses((prev) => ({
           ...prev,
           [status.type]: {
-            ...(prev[status.type] || {}),
+            ...prev[status.type],
             ...status,
             extensionMeta: status.extensionMeta || prev[status.type]?.extensionMeta,
           },
@@ -395,7 +395,7 @@ const ChannelModalContent: React.FC = () => {
     setExtensionFieldValues((prev) => ({
       ...prev,
       [pluginType]: {
-        ...(prev[pluginType] || {}),
+        ...prev[pluginType],
         [key]: value,
       },
     }));

@@ -148,7 +148,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         onOk={async () => {
           const values = await form.validate();
           const updatedProvider: IProvider = {
-            ...(data || {}),
+            ...data,
             ...values,
             // Ensure model is always an array
             model: Array.isArray(values.model) ? values.model : [values.model],
