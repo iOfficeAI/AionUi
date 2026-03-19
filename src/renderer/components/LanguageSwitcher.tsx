@@ -2,7 +2,7 @@ import AionSelect from '@/renderer/components/base/AionSelect';
 import type { SelectHandle } from '@arco-design/web-react/es/Select/interface';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from '@/renderer/i18n';
+import { changeLanguage } from '@/renderer/services/i18n';
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n } = useTranslation();
