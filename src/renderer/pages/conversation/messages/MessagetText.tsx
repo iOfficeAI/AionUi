@@ -13,7 +13,7 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/clipboard';
-import CollapsibleContent from '@renderer/components/CollapsibleContent';
+import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/FilePreview';
 import HorizontalFileList from '@renderer/components/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';

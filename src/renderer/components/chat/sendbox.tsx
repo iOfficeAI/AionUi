@@ -5,7 +5,7 @@
  */
 
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
-import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/SlashCommandMenu';
+import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useSlashCommandController } from '@/renderer/hooks/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
@@ -16,12 +16,12 @@ import { ArrowUp, CloseSmall } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCompositionInput } from '../hooks/useCompositionInput';
-import { useDragUpload } from '../hooks/useDragUpload';
-import { useLatestRef } from '../hooks/useLatestRef';
-import { usePasteService } from '../hooks/usePasteService';
-import type { FileMetadata } from '../services/FileService';
-import { allSupportedExts } from '../services/FileService';
+import { useCompositionInput } from '@renderer/hooks/useCompositionInput';
+import { useDragUpload } from '@renderer/hooks/useDragUpload';
+import { useLatestRef } from '@renderer/hooks/useLatestRef';
+import { usePasteService } from '@renderer/hooks/usePasteService';
+import type { FileMetadata } from '@renderer/services/FileService';
+import { allSupportedExts } from '@renderer/services/FileService';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;

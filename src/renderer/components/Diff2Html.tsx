@@ -18,7 +18,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { usePreviewLauncher } from '../hooks/usePreviewLauncher';
-import CollapsibleContent from './CollapsibleContent';
+import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 
 const Diff2Html = ({
   diff,

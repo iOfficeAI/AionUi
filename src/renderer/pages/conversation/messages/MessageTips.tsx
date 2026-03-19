@@ -10,7 +10,7 @@ import { theme } from '@office-ai/platform';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import MarkdownView from '@renderer/components/Markdown';
-import CollapsibleContent from '@renderer/components/CollapsibleContent';
+import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,

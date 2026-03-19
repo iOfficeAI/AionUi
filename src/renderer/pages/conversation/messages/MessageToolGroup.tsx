@@ -15,7 +15,7 @@ import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/diffUtils';
 import MessageFileChanges from './codex/MessageFileChanges';
-import CollapsibleContent from '@renderer/components/CollapsibleContent';
+import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import LocalImageView from '@renderer/components/LocalImageView';
 import MarkdownView from '@renderer/components/Markdown';
 import { ToolConfirmationOutcome } from '@renderer/utils/toolConfirmation';
