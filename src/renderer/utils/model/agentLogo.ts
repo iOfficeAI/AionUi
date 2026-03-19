@@ -94,3 +94,41 @@ export function getAgentLogo(agent: string | undefined | null): string | null {
 export function hasAgentLogo(agent: string | undefined | null): boolean {
   return getAgentLogo(agent) !== null;
 }
+
+/**
+ * Check if a model value/label indicates it's a default/recommended model
+ * 检查模型值/标签是否表示默认/推荐模型
+ *
+ * @param value - Model value
+ * @param label - Model label
+ * @returns true if the model is marked as default/recommended
+ */
+export const isDefaultModel = (value?: string | null, label?: string | null): boolean => {
+  const text = `${value || ''} ${label || ''}`.toLowerCase();
+  return text.includes('default') || text.includes('recommended') || text.includes('默认');
+};
+
+/**
+ * Get display label for a model, with fallback handling
+ * 获取模型的显示标签，带回退处理
+ *
+ * @param selectedValue - Selected model value
+ * @param selectedLabel - Selected model label
+ * @param defaultModelLabel - Label to use for default models
+ * @param fallbackLabel - Label to use when no label is available
+ * @returns The computed display label
+ */
+export const getModelDisplayLabel = ({
+  selectedValue,
+  selectedLabel,
+  defaultModelLabel,
+  fallbackLabel,
+}: {
+  selectedValue?: string | null;
+  selectedLabel?: string | null;
+  defaultModelLabel: string;
+  fallbackLabel: string;
+}): string => {
+  if (!selectedLabel) return fallbackLabel;
+  return isDefaultModel(selectedValue, selectedLabel) ? defaultModelLabel : selectedLabel;
+};

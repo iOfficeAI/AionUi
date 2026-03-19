@@ -20,9 +20,8 @@ import ImagePreview from '../viewers/ImageViewer';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import MarkdownPreview from '../viewers/MarkdownViewer';
 import PDFPreview from '../viewers/PDFViewer';
-import PPTPreview from '../viewers/PPTViewer';
+import OfficeDocPreview from '../viewers/OfficeDocViewer';
 import TextEditor from '../editors/TextEditor';
-import WordPreview from '../viewers/WordViewer';
 import URLViewer from '../viewers/URLViewer';
 import {
   PreviewTabs,
@@ -615,9 +614,9 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'pdf') {
       return <PDFPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'ppt') {
-      return <PPTPreview filePath={metadata?.filePath} content={content} />;
+      return <OfficeDocPreview filePath={metadata?.filePath} content={content} docType='ppt' />;
     } else if (contentType === 'word') {
-      return <WordPreview filePath={metadata?.filePath} content={content} />;
+      return <OfficeDocPreview filePath={metadata?.filePath} content={content} docType='word' />;
     } else if (contentType === 'excel') {
       return <ExcelPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'image') {

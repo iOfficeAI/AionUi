@@ -93,7 +93,11 @@ vi.mock('../../src/renderer/utils/platform', () => ({
 import { useAssistantList } from '../../src/renderer/hooks/assistant/useAssistantList';
 import { useAssistantBackends } from '../../src/renderer/hooks/assistant/useAssistantBackends';
 import { useAssistantSkills } from '../../src/renderer/hooks/assistant/useAssistantSkills';
-import type { ExternalSource, PendingSkill, SkillInfo } from '../../src/renderer/pages/settings/AssistantManagement/types';
+import type {
+  ExternalSource,
+  PendingSkill,
+  SkillInfo,
+} from '../../src/renderer/pages/settings/AssistantManagement/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useAssistantList
@@ -476,7 +480,9 @@ describe('useAssistantSkills', () => {
     });
 
     // Only the new skill should be added; existing-skill should be skipped
-    expect(setPendingSkills).toHaveBeenCalledWith([{ name: 'new-skill', description: 'A new skill', path: '/skills/new-skill' }]);
+    expect(setPendingSkills).toHaveBeenCalledWith([
+      { name: 'new-skill', description: 'A new skill', path: '/skills/new-skill' },
+    ]);
     expect(setCustomSkills).toHaveBeenCalledWith(['existing-skill', 'new-skill']);
     expect(setSelectedSkills).toHaveBeenCalledWith(['existing-skill', 'new-skill']);
     expect(mockMessage.success).toHaveBeenCalled();

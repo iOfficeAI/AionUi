@@ -22,11 +22,7 @@ const AssistantAvatar: React.FC<AssistantAvatarProps> = ({ assistant, size = 32,
 
   return (
     <Avatar.Group size={size}>
-      <Avatar
-        className='border-none'
-        shape='square'
-        style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}
-      >
+      <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
         {avatarImage ? (
           <img src={avatarImage} alt='' width={emojiSize} height={emojiSize} style={{ objectFit: 'contain' }} />
         ) : hasEmojiAvatar ? (

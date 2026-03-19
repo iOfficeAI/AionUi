@@ -18,6 +18,6 @@ export { default as MarkdownViewer } from './MarkdownViewer';
 export { default as HTMLViewer } from './HTMLViewer';
 export { default as PDFViewer } from './PDFViewer';
 export { default as ExcelViewer } from './ExcelViewer';
-export { default as WordViewer } from './WordViewer';
-export { default as PPTViewer } from './PPTViewer';
+export { default as OfficeDocViewer } from './OfficeDocViewer';
 export { default as ImageViewer } from './ImageViewer';
+export { default as URLViewer } from './URLViewer';

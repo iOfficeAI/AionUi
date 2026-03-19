@@ -6,17 +6,7 @@ import type { AssistantListItem, SkillInfo } from './types';
 import { hasBuiltinSkills } from './assistantUtils';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
-import {
-  Avatar,
-  Button,
-  Checkbox,
-  Collapse,
-  Drawer,
-  Input,
-  Select,
-  Tag,
-  Typography,
-} from '@arco-design/web-react';
+import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
 import { Close, Delete, Plus, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -178,9 +168,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               disabled={!isCreating && isReadonlyAssistant}
               className='w-[100px] rounded-[100px]'
             >
-              {isCreating
-                ? t('common.create', { defaultValue: 'Create' })
-                : t('common.save', { defaultValue: 'Save' })}
+              {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
             </Button>
             <Button
               onClick={() => {
@@ -226,11 +214,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               ) : (
                 <EmojiPicker value={editAvatar} onChange={(emoji) => setEditAvatar(emoji)} placement='br'>
                   <div className='cursor-pointer'>
-                    <Avatar
-                      shape='square'
-                      size={40}
-                      className='bg-bg-1 rounded-4px hover:bg-fill-2 transition-colors'
-                    >
+                    <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px hover:bg-fill-2 transition-colors'>
                       {editAvatarImage ? (
                         <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} />
                       ) : editAvatar ? (
@@ -465,9 +449,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                               </span>
                             </div>
                             {skill.description && (
-                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>
-                                {skill.description}
-                              </div>
+                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
                             )}
                           </div>
                           <button
@@ -509,10 +491,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                       {availableSkills
                         .filter((skill) => !skill.isCustom)
                         .map((skill) => (
-                          <div
-                            key={skill.name}
-                            className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'
-                          >
+                          <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
                             <Checkbox
                               checked={selectedSkills.includes(skill.name)}
                               className='mt-2px cursor-pointer'

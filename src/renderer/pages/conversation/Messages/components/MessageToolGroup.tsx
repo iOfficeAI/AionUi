@@ -14,14 +14,14 @@ import { useTranslation } from 'react-i18next';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
-import MessageFileChanges from './codex/MessageFileChanges';
+import MessageFileChanges from '../codex/MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import MarkdownView from '@renderer/components/Markdown';
-import { ToolConfirmationOutcome } from '@renderer/utils/toolConfirmation';
-import { ImagePreviewContext } from './MessageList';
-import { COLLAPSE_CONFIG, TEXT_CONFIG } from './constants';
-import type { ImageGenerationResult, WriteFileResult } from './types';
+import { ToolConfirmationOutcome } from '@renderer/utils/common';
+import { ImagePreviewContext } from '../MessageList';
+import { COLLAPSE_CONFIG, TEXT_CONFIG } from '../constants';
+import type { ImageGenerationResult, WriteFileResult } from '../types';
 
 // Alert 组件样式常量 Alert component style constant
 // 顶部对齐图标与内容，避免多行文本时图标垂直居中

@@ -64,10 +64,10 @@ preview/
 │   │   ├── ImageViewer.tsx            # Image viewer
 │   │   ├── DiffViewer.tsx             # Diff comparison
 │   │   ├── PDFViewer.tsx              # PDF viewer
-│   │   ├── WordViewer.tsx             # Word viewer
+│   │   ├── OfficeDocViewer.tsx        # Office document viewer (Word, PPT)
 │   │   ├── ExcelViewer.tsx            # Excel viewer
-│   │   ├── PPTViewer.tsx              # PPT viewer
-│   │   └── HTMLViewer.tsx             # HTML rendering
+│   │   ├── HTMLViewer.tsx             # HTML rendering
+│   │   └── URLViewer.tsx              # URL web page viewer
 │   ├── editors/                       # Editor components
 │   │   ├── MarkdownEditor.tsx         # Markdown editor
 │   │   ├── TextEditor.tsx             # Code editor (Monaco)

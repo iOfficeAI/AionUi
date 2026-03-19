@@ -171,9 +171,7 @@ describe('useMinimapPanel', () => {
   });
 
   it('filteredItems should be case-insensitive', async () => {
-    const messages = makeFakeMessages([
-      { question: 'React Hooks Guide', answer: 'Use useState' },
-    ]);
+    const messages = makeFakeMessages([{ question: 'React Hooks Guide', answer: 'Use useState' }]);
     mocks.getConversationMessages.mockResolvedValue(messages);
 
     const { result } = renderHook(() => useMinimapPanel('conv-1'));
@@ -193,9 +191,7 @@ describe('useMinimapPanel', () => {
   });
 
   it('filteredItems should return empty when keyword matches nothing', async () => {
-    const messages = makeFakeMessages([
-      { question: 'Hello world', answer: 'Hi there' },
-    ]);
+    const messages = makeFakeMessages([{ question: 'Hello world', answer: 'Hi there' }]);
     mocks.getConversationMessages.mockResolvedValue(messages);
 
     const { result } = renderHook(() => useMinimapPanel('conv-1'));
@@ -252,15 +248,12 @@ describe('useMinimapPanel', () => {
   // -- Conversation switch resets state -----------------------------------------
 
   it('should reset state when conversationId changes', async () => {
-    const messages = makeFakeMessages([
-      { question: 'Hello', answer: 'World' },
-    ]);
+    const messages = makeFakeMessages([{ question: 'Hello', answer: 'World' }]);
     mocks.getConversationMessages.mockResolvedValue(messages);
 
-    const { result, rerender } = renderHook(
-      ({ convId }) => useMinimapPanel(convId),
-      { initialProps: { convId: 'conv-1' } },
-    );
+    const { result, rerender } = renderHook(({ convId }) => useMinimapPanel(convId), {
+      initialProps: { convId: 'conv-1' },
+    });
 
     // Open and load items
     await act(async () => {

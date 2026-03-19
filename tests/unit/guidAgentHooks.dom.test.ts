@@ -78,7 +78,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: defaultAvailableAgents,
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.isMainAgentAvailable('claude')).toBe(true);
@@ -92,7 +92,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: defaultAvailableAgents,
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.isMainAgentAvailable('codex')).toBe(false);
@@ -105,7 +105,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: true,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.isMainAgentAvailable('gemini')).toBe(true);
@@ -118,7 +118,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.isMainAgentAvailable('gemini')).toBe(true);
@@ -131,7 +131,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.isMainAgentAvailable('gemini')).toBe(false);
@@ -147,7 +147,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: [{ backend: 'claude', name: 'Claude' }],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.getAvailableFallbackAgent()).toBe('claude');
@@ -160,7 +160,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: true,
         availableAgents: [{ backend: 'claude', name: 'Claude' }],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     // gemini comes first in fallback order
@@ -174,7 +174,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     expect(result.current.getAvailableFallbackAgent()).toBeNull();
@@ -189,7 +189,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: defaultAvailableAgents,
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     const info = result.current.getEffectiveAgentType({ backend: 'claude' });
@@ -206,7 +206,7 @@ describe('useAgentAvailability', () => {
         isGoogleAuth: false,
         availableAgents: [],
         resolvePresetAgentType: stubResolvePresetAgentType,
-      }),
+      })
     );
 
     const info = result.current.getEffectiveAgentType({ backend: 'codex' });
@@ -248,42 +248,28 @@ describe('usePresetAssistantResolver', () => {
   // -- resolvePresetAgentType -------------------------------------------------
 
   it('resolvePresetAgentType returns backend directly for non-custom agents', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     expect(result.current.resolvePresetAgentType({ backend: 'claude' })).toBe('claude');
     expect(result.current.resolvePresetAgentType({ backend: 'gemini' })).toBe('gemini');
   });
 
   it('resolvePresetAgentType resolves custom agent to its presetAgentType', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(
-      result.current.resolvePresetAgentType({ backend: 'custom', customAgentId: 'agent-alpha' }),
-    ).toBe('claude');
+    expect(result.current.resolvePresetAgentType({ backend: 'custom', customAgentId: 'agent-alpha' })).toBe('claude');
 
-    expect(
-      result.current.resolvePresetAgentType({ backend: 'custom', customAgentId: 'agent-beta' }),
-    ).toBe('qwen');
+    expect(result.current.resolvePresetAgentType({ backend: 'custom', customAgentId: 'agent-beta' })).toBe('qwen');
   });
 
   it('resolvePresetAgentType defaults to gemini for unknown custom agent', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(
-      result.current.resolvePresetAgentType({ backend: 'custom', customAgentId: 'unknown-id' }),
-    ).toBe('gemini');
+    expect(result.current.resolvePresetAgentType({ backend: 'custom', customAgentId: 'unknown-id' })).toBe('gemini');
   });
 
   it('resolvePresetAgentType returns gemini when agentInfo is undefined', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     expect(result.current.resolvePresetAgentType(undefined)).toBe('gemini');
   });
@@ -291,48 +277,37 @@ describe('usePresetAssistantResolver', () => {
   // -- resolveEnabledSkills ---------------------------------------------------
 
   it('resolveEnabledSkills returns skills list for custom agent', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(
-      result.current.resolveEnabledSkills({ backend: 'custom', customAgentId: 'agent-alpha' }),
-    ).toEqual(['code-review', 'testing']);
+    expect(result.current.resolveEnabledSkills({ backend: 'custom', customAgentId: 'agent-alpha' })).toEqual([
+      'code-review',
+      'testing',
+    ]);
   });
 
   it('resolveEnabledSkills returns undefined for non-custom backend', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     expect(result.current.resolveEnabledSkills({ backend: 'claude' })).toBeUndefined();
   });
 
   it('resolveEnabledSkills returns undefined when agentInfo is undefined', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     expect(result.current.resolveEnabledSkills(undefined)).toBeUndefined();
   });
 
   it('resolveEnabledSkills returns undefined for custom agent without skills', () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     // agent-beta has no enabledSkills defined
-    expect(
-      result.current.resolveEnabledSkills({ backend: 'custom', customAgentId: 'agent-beta' }),
-    ).toBeUndefined();
+    expect(result.current.resolveEnabledSkills({ backend: 'custom', customAgentId: 'agent-beta' })).toBeUndefined();
   });
 
   // -- resolvePresetRulesAndSkills --------------------------------------------
 
   it('resolvePresetRulesAndSkills returns context as rules for non-custom backend', async () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     const resolved = await result.current.resolvePresetRulesAndSkills({
       backend: 'claude',
@@ -347,9 +322,7 @@ describe('usePresetAssistantResolver', () => {
     bridgeMocks.readAssistantRule.mockResolvedValue('Custom rule content');
     bridgeMocks.readAssistantSkill.mockResolvedValue('Custom skill content');
 
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     const resolved = await result.current.resolvePresetRulesAndSkills({
       backend: 'custom',
@@ -362,9 +335,7 @@ describe('usePresetAssistantResolver', () => {
   });
 
   it('resolvePresetRulesAndSkills returns empty object when agentInfo is undefined', async () => {
-    const { result } = renderHook(() =>
-      usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }),
-    );
+    const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
     const resolved = await result.current.resolvePresetRulesAndSkills(undefined);
     expect(resolved).toEqual({});

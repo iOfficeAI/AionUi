@@ -14,8 +14,7 @@ import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkele
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
-import MentionDropdown from './components/MentionDropdown';
-import MentionSelectorBadge from './components/MentionSelectorBadge';
+import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
 import QuickActionButtons from './components/QuickActionButtons';
 import SkillsMarketBanner from './components/SkillsMarketBanner';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';

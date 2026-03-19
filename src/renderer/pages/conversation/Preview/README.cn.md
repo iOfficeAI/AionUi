@@ -64,10 +64,10 @@ preview/
 │   │   ├── ImageViewer.tsx            # 图片查看
 │   │   ├── DiffViewer.tsx             # Diff 对比
 │   │   ├── PDFViewer.tsx              # PDF 查看
-│   │   ├── WordViewer.tsx             # Word 查看
+│   │   ├── OfficeDocViewer.tsx        # Office 文档查看（Word、PPT）
 │   │   ├── ExcelViewer.tsx            # Excel 查看
-│   │   ├── PPTViewer.tsx              # PPT 查看
-│   │   └── HTMLViewer.tsx             # HTML 渲染
+│   │   ├── HTMLViewer.tsx             # HTML 渲染
+│   │   └── URLViewer.tsx              # URL 网页查看
 │   ├── editors/                       # 编辑器组件
 │   │   ├── MarkdownEditor.tsx         # Markdown 编辑器
 │   │   ├── TextEditor.tsx             # 代码编辑器（Monaco）

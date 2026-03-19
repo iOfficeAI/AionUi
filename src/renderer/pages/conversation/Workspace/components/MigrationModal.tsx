@@ -32,7 +32,7 @@ type MigrationModalProps = {
   showHostFileSelector: boolean;
   handleHostFileSelected: (
     paths: string[] | undefined,
-    handler: (files: Array<{ name: string; path: string }>) => Promise<void>,
+    handler: (files: Array<{ name: string; path: string }>) => Promise<void>
   ) => void;
   setShowHostFileSelector: (v: boolean) => void;
   handleFilesToAdd: (files: Array<{ name: string; path: string }>) => Promise<void>;

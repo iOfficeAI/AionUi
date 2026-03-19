@@ -90,7 +90,7 @@ describe('useTitleRename', () => {
 
   it('initial state: editingTitle is false, titleDraft syncs with title param', () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Hello', conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Hello', conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     expect(result.current.editingTitle).toBe(false);
@@ -101,7 +101,7 @@ describe('useTitleRename', () => {
   it('titleDraft updates when title prop changes', () => {
     let title = 'Original';
     const { result, rerender } = renderHook(() =>
-      useTitleRename({ title, conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title, conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     expect(result.current.titleDraft).toBe('Original');
@@ -114,7 +114,7 @@ describe('useTitleRename', () => {
 
   it('canRenameTitle is false when conversationId is missing', () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Hello', conversationId: undefined, updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Hello', conversationId: undefined, updateTabName: mockUpdateTabName })
     );
 
     expect(result.current.canRenameTitle).toBe(false);
@@ -122,7 +122,7 @@ describe('useTitleRename', () => {
 
   it('canRenameTitle is false when title is not a string', () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: undefined, conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: undefined, conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     expect(result.current.canRenameTitle).toBe(false);
@@ -130,7 +130,7 @@ describe('useTitleRename', () => {
 
   it('canRenameTitle is true when both title and conversationId are provided', () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Hello', conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Hello', conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     expect(result.current.canRenameTitle).toBe(true);
@@ -138,7 +138,7 @@ describe('useTitleRename', () => {
 
   it('submitTitleRename calls ipcBridge and updateTabName on success', async () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Old Title', conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Old Title', conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     // Set a new title draft
@@ -161,7 +161,7 @@ describe('useTitleRename', () => {
 
   it('submitTitleRename handles empty draft (resets to current title)', async () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Current', conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Current', conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     // Set empty draft
@@ -183,7 +183,7 @@ describe('useTitleRename', () => {
 
   it('submitTitleRename is a no-op when canRenameTitle is false', async () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Hello', conversationId: undefined, updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Hello', conversationId: undefined, updateTabName: mockUpdateTabName })
     );
 
     act(() => {
@@ -199,7 +199,7 @@ describe('useTitleRename', () => {
 
   it('submitTitleRename skips API call when draft equals current title', async () => {
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Same Title', conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Same Title', conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     await act(async () => {
@@ -214,7 +214,7 @@ describe('useTitleRename', () => {
     mockConversationUpdateInvoke.mockResolvedValue(false);
 
     const { result } = renderHook(() =>
-      useTitleRename({ title: 'Old', conversationId: 'conv-1', updateTabName: mockUpdateTabName }),
+      useTitleRename({ title: 'Old', conversationId: 'conv-1', updateTabName: mockUpdateTabName })
     );
 
     act(() => {
@@ -271,7 +271,7 @@ describe('useWorkspaceCollapse', () => {
 
   it('initial collapsed state defaults to true when localStorage is empty', () => {
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' })
     );
 
     expect(result.current.rightSiderCollapsed).toBe(true);
@@ -281,7 +281,7 @@ describe('useWorkspaceCollapse', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, 'false');
 
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' })
     );
 
     expect(result.current.rightSiderCollapsed).toBe(false);
@@ -291,7 +291,7 @@ describe('useWorkspaceCollapse', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, 'true');
 
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' })
     );
 
     expect(result.current.rightSiderCollapsed).toBe(true);
@@ -301,7 +301,7 @@ describe('useWorkspaceCollapse', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, 'true');
 
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' })
     );
 
     expect(result.current.rightSiderCollapsed).toBe(true);
@@ -315,7 +315,7 @@ describe('useWorkspaceCollapse', () => {
 
   it('persists collapse state to localStorage on change', () => {
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: false, conversationId: 'conv-1' })
     );
 
     act(() => {
@@ -329,7 +329,7 @@ describe('useWorkspaceCollapse', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, 'false');
 
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: false, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: false, isMobile: false, conversationId: 'conv-1' })
     );
 
     // Even though localStorage says false, workspace disabled forces collapse
@@ -341,7 +341,7 @@ describe('useWorkspaceCollapse', () => {
     globalThis.localStorage.setItem(STORAGE_KEY, 'false');
 
     const { result } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: true, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile: true, conversationId: 'conv-1' })
     );
 
     // Mobile forces collapse regardless of localStorage
@@ -353,7 +353,7 @@ describe('useWorkspaceCollapse', () => {
 
     let isMobile = false;
     const { result, rerender } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled: true, isMobile, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled: true, isMobile, conversationId: 'conv-1' })
     );
 
     // Start expanded on desktop
@@ -371,7 +371,7 @@ describe('useWorkspaceCollapse', () => {
 
     let workspaceEnabled = true;
     const { result, rerender } = renderHook(() =>
-      useWorkspaceCollapse({ workspaceEnabled, isMobile: false, conversationId: 'conv-1' }),
+      useWorkspaceCollapse({ workspaceEnabled, isMobile: false, conversationId: 'conv-1' })
     );
 
     expect(result.current.rightSiderCollapsed).toBe(false);
