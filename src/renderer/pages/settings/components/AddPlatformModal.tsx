@@ -21,7 +21,7 @@ import {
   isGeminiPlatform,
   isNewApiPlatform,
   type PlatformConfig,
-} from '@/renderer/config/modelPlatforms';
+} from '@/renderer/utils/model/modelPlatforms';
 import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
 
 /**

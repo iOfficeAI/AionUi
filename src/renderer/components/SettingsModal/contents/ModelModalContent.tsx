@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
-import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/modelPlatforms';
+import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
