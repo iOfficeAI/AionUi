@@ -404,13 +404,21 @@ describe('resolveNpxPath', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
   });
 
-  it('uses shell execution when probing npx.cmd on Windows', async () => {
+  it('verifies Windows npx via the bundled npm entrypoint JS', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
 
     const execFileSync = vi
       .fn()
       .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
       .mockReturnValueOnce('10.9.0\n');
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn(() => true),
+      };
+    });
 
     vi.doMock('child_process', () => ({
       execFileSync,
@@ -420,29 +428,32 @@ describe('resolveNpxPath', () => {
     const { resolveNpxPath } = await import('@process/utils/shellEnv');
     const result = resolveNpxPath({ PATH: '/tooling' });
     const npxCandidate = path.join('/tooling', 'npx.cmd');
+    const npxCliJs = path.join('/tooling', 'node_modules', 'npm', 'bin', 'npx-cli.js');
 
     expect(result).toBe(npxCandidate);
     expect(execFileSync).toHaveBeenNthCalledWith(
       2,
-      npxCandidate,
-      ['--version'],
+      path.join('/tooling', 'node.exe'),
+      [npxCliJs, '--version'],
       expect.objectContaining({
         env: { PATH: '/tooling' },
-        shell: true,
         windowsHide: true,
       })
     );
   });
 
-  it('falls back to PATH lookup when npx probing fails on Windows', async () => {
+  it('falls back to PATH lookup when bundled npm scripts are missing on Windows', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
 
-    const execFileSync = vi
-      .fn()
-      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
-      .mockImplementationOnce(() => {
-        throw new Error('spawnSync /tooling/npx.cmd EINVAL');
-      });
+    const execFileSync = vi.fn().mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`);
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => target === path.join('/tooling', 'npx.cmd')),
+      };
+    });
 
     vi.doMock('child_process', () => ({
       execFileSync,
