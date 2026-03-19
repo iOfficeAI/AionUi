@@ -5,7 +5,7 @@
  */
 
 import { getDatabase } from '@/process/database';
-import { ExtensionRegistry } from '@/extensions';
+import { ExtensionRegistry } from '@process/extensions';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelDefaultModel } from '../actions/SystemActions';
 import { ActionExecutor } from '../gateway/ActionExecutor';

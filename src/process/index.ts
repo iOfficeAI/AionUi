@@ -16,7 +16,7 @@ import initStorage from './initStorage';
 import './initBridge';
 import './i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@/channels';
-import { ExtensionRegistry } from '@/extensions';
+import { ExtensionRegistry } from '@process/extensions';
 
 export const initializeProcess = async () => {
   await initStorage();

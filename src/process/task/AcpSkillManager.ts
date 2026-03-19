@@ -16,7 +16,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 import { getSkillsDir, getBuiltinSkillsDir } from '../../initStorage';
-import { ExtensionRegistry } from '@/extensions';
+import { ExtensionRegistry } from '@process/extensions';
 
 /**
  * Skill 定义（与 aioncli-core 兼容）

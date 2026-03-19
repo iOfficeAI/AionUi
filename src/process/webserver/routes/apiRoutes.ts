@@ -12,7 +12,7 @@ import multer from 'multer';
 import { getDatabase } from '@process/database';
 import { getSystemDir } from '@process/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
-import { ExtensionRegistry } from '@/extensions';
+import { ExtensionRegistry } from '@process/extensions';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';

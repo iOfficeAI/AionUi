@@ -24,7 +24,7 @@ import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
 import { ipcBridge } from '../../../common';
 import { ProcessConfig } from '../../initStorage';
-import { ExtensionRegistry } from '@/extensions';
+import { ExtensionRegistry } from '@process/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
 
 /**

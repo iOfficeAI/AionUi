@@ -7,8 +7,8 @@
 import { channel } from '@/common/ipcBridge';
 import { getChannelManager } from '@process/channels/core/ChannelManager';
 import { getPairingService } from '@process/channels/pairing/PairingService';
-import { ExtensionRegistry } from '@/extensions';
-import { toAssetUrl } from '@/extensions/protocol/assetProtocol';
+import { ExtensionRegistry } from '@process/extensions';
+import { toAssetUrl } from '@process/extensions/protocol/assetProtocol';
 import * as path from 'path';
 import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@process/channels/types';
 import { hasPluginCredentials } from '@process/channels/types';

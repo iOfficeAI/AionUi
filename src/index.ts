@@ -20,7 +20,7 @@ import * as path from 'path';
 import { pathToFileURL } from 'url';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
-import { AION_ASSET_PROTOCOL } from '@/extensions';
+import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';

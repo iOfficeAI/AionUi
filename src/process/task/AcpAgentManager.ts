@@ -15,7 +15,7 @@ import type {
   AcpSessionConfigOption,
 } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
-import { ExtensionRegistry } from '@/extensions';
+import { ExtensionRegistry } from '@process/extensions';
 import { getDatabase } from '@process/database';
 import { ProcessConfig } from '../../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../../message';

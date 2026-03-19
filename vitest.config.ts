@@ -99,9 +99,9 @@ export default defineConfig({
         'src/renderer/utils/file/base64.ts',
         'src/renderer/utils/file/download.ts',
         // Extension system (only files with existing tests)
-        'src/extensions/ExtensionLoader.ts',
-        'src/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
-        'src/extensions/resolvers/WebuiResolver.ts',
+        'src/process/extensions/ExtensionLoader.ts',
+        'src/process/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
+        'src/process/extensions/resolvers/WebuiResolver.ts',
         // Renderer components
         'src/renderer/pages/conversation/platforms/gemini/GeminiSendBox.tsx',
         'src/renderer/pages/conversation/platforms/gemini/useGeminiMessage.ts',
