@@ -41,7 +41,12 @@ Identify:
 - What features/purposes each change serves
 - Whether changes should be split into multiple commits
 
-### Step 2: Quality Checks (Required)
+### Step 2: Test Coverage & Quality Checks (Required)
+
+**Before running checks, verify test coverage:**
+- If logic was added or changed, ensure corresponding unit tests exist
+- If no tests cover the change, **write them first** (see [testing skill](../testing/SKILL.md))
+- Tests are part of "done" — do NOT defer them to a follow-up commit
 
 Run before ANY commit:
 
@@ -145,8 +150,9 @@ NEVER force-push without explicit user approval. Warn if pushing to main/master.
 ```
 0. git branch --show-current     — if main/master, create new branch first
 1. git status / git diff         — understand changes
-2. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test  — quality gate
-3. Group changes by feature      — one commit = one logical change
-4. git add <files> && git commit — with user approval
-5. Check if AGENTS.md / skills need update
+2. Verify test coverage          — write tests for new/changed logic FIRST
+3. bun run lint:fix && bun run format && bunx tsc --noEmit && bun run test  — quality gate
+4. Group changes by feature      — one commit = one logical change
+5. git add <files> && git commit — with user approval
+6. Check if AGENTS.md / skills need update
 ```
