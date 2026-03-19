@@ -467,9 +467,10 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
       break;
     default: {
-      throw new Error(
-        `Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`
+      console.warn(
+        `[transformMessage] Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`
       );
+      break;
     }
   }
 };

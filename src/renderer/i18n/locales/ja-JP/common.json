@@ -57,7 +57,7 @@
   "refresh": "更新",
   "tray.showWindow": "AionUi を表示",
   "tray.newChat": "新しいチャット",
-  "tray.closeToTray": "トレイに閉じる",
+  "tray.closeToTray": "トレイに隠す",
   "tray.about": "AionUi について",
   "tray.restart": "アプリを再起動",
   "tray.quit": "終了",

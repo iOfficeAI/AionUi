@@ -170,7 +170,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
 
     await (agent as any).createOrResumeSession();
 
-    expect(newSession).toHaveBeenCalledWith(expect.any(String));
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
   it('creates a fresh session when no acpSessionId is stored', async () => {
@@ -183,7 +183,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
     await (agent as any).createOrResumeSession();
 
     expect(loadSession).not.toHaveBeenCalled();
-    expect(newSession).toHaveBeenCalledWith(expect.any(String));
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
   it('updates acpSessionId when resume returns a new session ID', async () => {

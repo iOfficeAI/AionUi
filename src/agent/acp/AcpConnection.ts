@@ -21,11 +21,12 @@ import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
+import type { AcpSessionMcpServer } from './mcpSessionConfig';
+import { mainLog } from '@process/utils/mainLogger';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from './modelInfo';
-import { mainLog } from '@process/utils/mainLogger';
 import { getNpxCacheDir, getWindowsShellExecutionOptions, resolveNpxPath } from '@process/utils/shellEnv';
 import {
   ACP_PERF_LOG,
@@ -770,7 +771,7 @@ export class AcpConnection {
    */
   async newSession(
     cwd: string = process.cwd(),
-    options?: { resumeSessionId?: string; forkSession?: boolean }
+    options?: { resumeSessionId?: string; forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
   ): Promise<AcpResponse & { sessionId?: string }> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
@@ -792,7 +793,7 @@ export class AcpConnection {
 
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd: normalizedCwd,
-      mcpServers: [] as unknown[],
+      mcpServers: options?.mcpServers ?? [],
       // Claude/CodeBuddy ACP uses _meta for resume
       ...(meta && { _meta: meta }),
       // Generic resume parameters for other ACP backends

@@ -35,6 +35,7 @@ import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
 import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
 import MiniMaxLogo from '@/renderer/assets/logos/minimax.png';
 import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
+import NovitaLogo from '@/renderer/assets/logos/novita.svg';
 import PPIOLogo from '@/renderer/assets/logos/ppio.svg';
 
 /**
@@ -113,6 +114,13 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     baseUrl: 'https://api.deepseek.com/v1',
   },
   { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
+  {
+    name: 'Novita',
+    value: 'Novita',
+    logo: NovitaLogo,
+    platform: 'custom',
+    baseUrl: 'https://api.novita.ai/openai/v1',
+  },
   {
     name: 'OpenRouter',
     value: 'OpenRouter',

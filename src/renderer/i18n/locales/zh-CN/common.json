@@ -57,7 +57,7 @@
   "refresh": "刷新",
   "tray.showWindow": "显示 AionUi",
   "tray.newChat": "新建对话",
-  "tray.closeToTray": "关闭到托盘",
+  "tray.closeToTray": "隐藏到托盘",
   "tray.about": "关于 AionUi",
   "tray.restart": "重启应用",
   "tray.quit": "退出",

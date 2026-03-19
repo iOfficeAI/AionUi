@@ -48,12 +48,12 @@ export const useExport = ({
 
   const fileExists = useCallback(async (filePath: string): Promise<boolean> => {
     try {
-      await withTimeout(
+      const metadata = await withTimeout(
         ipcBridge.fs.getFileMetadata.invoke({ path: filePath }),
         EXPORT_IO_TIMEOUT_MS,
         `getFileMetadata:${filePath}`
       );
-      return true;
+      return metadata.size >= 0;
     } catch {
       return false;
     }

@@ -204,8 +204,13 @@ export function initFsBridge(): void {
   const canceledZipRequests = new Set<string>();
 
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
-    const tree = await readDirectoryRecursive(dir);
-    return tree ? [tree] : [];
+    try {
+      const tree = await readDirectoryRecursive(dir);
+      return tree ? [tree] : [];
+    } catch (error) {
+      console.error('[fsBridge] Failed to read directory:', dir, error);
+      return [];
+    }
   });
 
   ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
@@ -576,8 +581,16 @@ export function initFsBridge(): void {
         lastModified: stats.mtime.getTime(),
       };
     } catch (error) {
-      console.error('Failed to get file metadata:', error);
-      throw error;
+      // Return empty metadata instead of throwing to avoid unhandled rejection
+      // (bridge provider callbacks have no .catch handler)
+      console.error('[fsBridge] Failed to get file metadata:', filePath, error);
+      return {
+        name: path.basename(filePath),
+        path: filePath,
+        size: -1,
+        type: '',
+        lastModified: 0,
+      };
     }
   });
 

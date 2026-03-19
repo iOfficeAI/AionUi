@@ -53,6 +53,11 @@ export default defineConfig(({ mode }) => {
     authToken: process.env.SENTRY_AUTH_TOKEN,
     sourcemaps: {
       filesToDeleteAfterUpload: ['./out/**/*.map'],
+      rewriteSources: (source: string) => {
+        // Normalize Windows backslashes and strip leading relative prefixes
+        // so Sentry paths match the GitHub repo structure (e.g. src/process/...)
+        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
+      },
     },
   };
 
@@ -92,6 +97,8 @@ export default defineConfig(({ mode }) => {
             codex: resolve('src/worker/codex.ts'),
             'openclaw-gateway': resolve('src/worker/openclaw-gateway.ts'),
             nanobot: resolve('src/worker/nanobot.ts'),
+            // Built-in MCP server entry points
+            'builtin-mcp-image-gen': resolve('src/process/builtinMcp/imageGenServer.ts'),
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
