@@ -48,12 +48,12 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initFsBridge();
   initFileWatchBridge();
   initConversationBridge(deps.conversationService, deps.workerTaskManager);
-  initApplicationBridge();
-  initGeminiConversationBridge();
+  initApplicationBridge(deps.workerTaskManager);
+  initGeminiConversationBridge(deps.workerTaskManager);
   // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
   initGeminiBridge();
   initBedrockBridge();
-  initAcpConversationBridge();
+  initAcpConversationBridge(deps.workerTaskManager);
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
@@ -67,7 +67,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initCronBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
-  initTaskBridge();
+  initTaskBridge(deps.workerTaskManager);
   initExtensionsBridge();
   initStarOfficeBridge();
 }

@@ -6,11 +6,11 @@
 
 import { ipcBridge } from '../../common';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 // Gemini confirmMessage provider (for 'input.confirm.message' channel)
 // Handles MCP tool confirmation including "always allow" options
-export function initGeminiConversationBridge(): void {
+export function initGeminiConversationBridge(workerTaskManager: IWorkerTaskManager): void {
   ipcBridge.geminiConversation.confirmMessage.provider(async ({ conversation_id, msg_id, confirmKey, callId }) => {
     const task = workerTaskManager.getTask(conversation_id);
     if (!task) {
