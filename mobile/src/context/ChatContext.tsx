@@ -106,11 +106,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setMessages((prev) => [...prev, userMsg]);
 
       // Send via bridge
-      bridge.emit('chat.send.message', {
+      bridge.request('chat.send.message', {
         input: text,
         msg_id: msgId,
         conversation_id: conversationId,
-      });
+      }).catch((e) => console.warn('[Chat] send failed:', e));
     },
     [conversationId]
   );

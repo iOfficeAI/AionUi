@@ -72,7 +72,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     setIsLoading(true);
     try {
       const data = await bridge.request<Conversation[]>('database.get-user-conversations', {
-        page: 1,
+        page: 0,
         pageSize: 100,
       });
       if (Array.isArray(data)) {
@@ -117,8 +117,14 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const createConversation = useCallback(
     async (params: CreateConversationParams) => {
       try {
+        // Most agents are ACP type; only a few special types map directly
+        const SPECIAL_TYPES = new Set(['gemini', 'codex', 'openclaw-gateway', 'nanobot']);
+        const conversationType = SPECIAL_TYPES.has(params.agentBackend)
+          ? params.agentBackend
+          : 'acp';
+
         const fullParams = {
-          type: params.agentBackend,
+          type: conversationType,
           name: params.agentName || params.agentBackend,
           model: { id: '', useModel: '' },
           extra: {
