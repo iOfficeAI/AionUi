@@ -53,6 +53,11 @@ export default defineConfig(({ mode }) => {
     authToken: process.env.SENTRY_AUTH_TOKEN,
     sourcemaps: {
       filesToDeleteAfterUpload: ['./out/**/*.map'],
+      rewriteSources: (source: string) => {
+        // Normalize Windows backslashes and strip leading relative prefixes
+        // so Sentry paths match the GitHub repo structure (e.g. src/process/...)
+        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
+      },
     },
   };
 
