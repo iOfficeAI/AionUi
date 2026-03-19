@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexConnection';
-import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
+import type { NetworkError, CodexEventEnvelope } from '@process/agent/codex/connection/CodexConnection';
+import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
 import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/codex/types';
-import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
-import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
-import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
+import type { CodexEventHandler } from '@process/agent/codex/handlers/CodexEventHandler';
+import type { CodexSessionManager } from '@process/agent/codex/handlers/CodexSessionManager';
+import type { CodexFileOperationHandler } from '@process/agent/codex/handlers/CodexFileOperationHandler';
 import { ApprovalStore, createExecApprovalKey, createPatchApprovalKey } from './ApprovalStore';
 import type { ReviewDecision } from './ApprovalStore';
 import {

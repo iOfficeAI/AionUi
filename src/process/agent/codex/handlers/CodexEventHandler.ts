@@ -5,10 +5,10 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
 import type { CodexEventMsg, CodexJsonRpcEvent } from '@/common/codex/types';
-import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
-import { CodexToolHandlers } from '@/agent/codex/handlers/CodexToolHandlers';
+import { CodexMessageProcessor } from '@process/agent/codex/messaging/CodexMessageProcessor';
+import { CodexToolHandlers } from '@process/agent/codex/handlers/CodexToolHandlers';
 import { PermissionType } from '@/common/codex/types/permissionTypes';
 import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
 

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
 import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';

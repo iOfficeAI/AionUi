@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { NanobotAgent, type NanobotAgentConfig } from '@/agent/nanobot';
+import { NanobotAgent, type NanobotAgentConfig } from '@process/agent/nanobot';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';

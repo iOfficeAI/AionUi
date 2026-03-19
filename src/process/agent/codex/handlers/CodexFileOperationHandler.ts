@@ -5,7 +5,7 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
 import type { FileChange } from '@/common/codex/types';
 import { ipcBridge } from '@/common';
 import fs from 'fs/promises';

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
-import { AcpConnection } from '@/agent/acp/AcpConnection';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from '@/agent/acp/modelInfo';
-import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
 import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
 import AcpAgentManager from '@/process/task/managers/AcpAgentManager';
 import CodexAgentManager from '@/process/task/managers/CodexAgentManager';

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AcpAdapter } from '@/agent/acp/AcpAdapter';
+import { AcpAdapter } from '@process/agent/acp/AcpAdapter';
 import type { IMcpServer } from '@/common/storage';
 import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/atCommandParser';
 import type { TMessage } from '@/common/chatLib';

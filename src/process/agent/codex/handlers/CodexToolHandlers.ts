@@ -8,7 +8,7 @@ import type { CodexToolCallUpdate } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import type { FileChange, McpInvocation, CodexEventMsg } from '@/common/codex/types';
 import { ToolRegistry } from '@/common/codex/utils';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 

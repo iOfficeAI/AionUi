@@ -7,7 +7,7 @@
 /// 多线程管理模型
 // 1. 主进程管理子进程 -》 进程管理器，需要维护当前所有子进程，并负责子进程的通信操作
 // 2. 子进程管理，需要根据不同的agent处理不同的agent任务，同时所有子进程具备相同的通信机制
-import { GeminiAgent } from '@/agent/gemini';
+import { GeminiAgent } from '@process/agent/gemini';
 import { forkTask } from './utils';
 export default forkTask(({ data }, pipe) => {
   pipe.log('gemini.init', data);

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
 import type { IChannelRepository } from '@process/database/IChannelRepository';
 import type { IConversationRepository } from '@process/database/IConversationRepository';
 import type { IConversationService } from '@process/services/IConversationService';

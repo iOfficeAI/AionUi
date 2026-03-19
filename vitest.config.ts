@@ -82,11 +82,11 @@ export default defineConfig({
         'src/process/bridge/applicationBridge.ts',
         'src/utils/configureChromium.ts',
         // ACP
-        'src/agent/acp/AcpAdapter.ts',
-        'src/agent/acp/AcpConnection.ts',
-        'src/agent/acp/acpConnectors.ts',
-        'src/agent/acp/modelInfo.ts',
-        'src/agent/acp/mcpSessionConfig.ts',
+        'src/process/agent/acp/AcpAdapter.ts',
+        'src/process/agent/acp/AcpConnection.ts',
+        'src/process/agent/acp/acpConnectors.ts',
+        'src/process/agent/acp/modelInfo.ts',
+        'src/process/agent/acp/mcpSessionConfig.ts',
         // Common
         'src/common/imageGenCore.ts',
         'src/common/chatLib.ts',

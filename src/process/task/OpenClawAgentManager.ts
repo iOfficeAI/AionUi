@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
+import { OpenClawAgent, type OpenClawAgentConfig } from '@process/agent/openclaw';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chatLib';

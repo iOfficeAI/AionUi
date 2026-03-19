@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
-import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
-import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
-import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import { CodexAgent } from '@process/agent/codex';
+import type { NetworkError } from '@process/agent/codex/connection/CodexConnection';
+import { CodexEventHandler } from '@process/agent/codex/handlers/CodexEventHandler';
+import { CodexFileOperationHandler } from '@process/agent/codex/handlers/CodexFileOperationHandler';
+import { CodexSessionManager } from '@process/agent/codex/handlers/CodexSessionManager';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib';

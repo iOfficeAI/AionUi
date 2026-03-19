@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AcpAdapter } from '@/agent/acp/AcpAdapter';
-import { AcpApprovalStore } from '@/agent/acp/ApprovalStore';
+import { AcpAdapter } from '@process/agent/acp/AcpAdapter';
+import { AcpApprovalStore } from '@process/agent/acp/ApprovalStore';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';

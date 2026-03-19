@@ -7,8 +7,8 @@
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chatLib';
 import type { CodexEventMsg } from '@/common/codex/types';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { ERROR_CODES, globalErrorService } from '@/agent/codex/core/ErrorService';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
+import { ERROR_CODES, globalErrorService } from '@process/agent/codex/core/ErrorService';
 import { hasCronCommands } from '@process/task/middleware/CronCommandDetector';
 import { processCronInMessage } from '@process/task/middleware/MessageMiddleware';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';

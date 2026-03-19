@@ -1,4 +1,4 @@
-import { AcpAgent } from '@/agent/acp';
+import { AcpAgent } from '@process/agent/acp';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chatLib';

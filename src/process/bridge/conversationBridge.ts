@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexAgentManager } from '@/agent/codex';
-import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
+import type { CodexAgentManager } from '@process/agent/codex';
+import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import type { IAgentManager } from '@process/task/managers/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
