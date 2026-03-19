@@ -7,19 +7,16 @@
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { getDatabase } from '@process/database';
 import { addMessage } from '@process/message';
 import { powerSaveBlocker } from 'electron';
 import { Cron } from 'croner';
 import i18n, { i18nReady } from '@process/i18n';
-import { workerTaskManager } from '../../task/workerTaskManagerSingleton';
-import type BaseAgentManager from '../../task/BaseAgentManager';
-import { copyFilesToDirectory } from '../../utils';
-import { cronBusyGuard } from './CronBusyGuard';
-import type { AcpBackendAll } from '@/types/acpTypes';
-import { cronStore, type CronJob, type CronSchedule } from './CronStore';
+import type { IConversationRepository } from '@process/database/IConversationRepository';
 import { ProcessConfig } from '@/process/initStorage';
-import { showNotification } from '@process/bridge/notificationBridge';
+import type { CronJob, CronSchedule } from './CronStore';
+import type { ICronRepository } from './ICronRepository';
+import type { ICronEventEmitter } from './ICronEventEmitter';
+import type { ICronJobExecutor } from './ICronJobExecutor';
 
 /**
  * Parameters for creating a new cron job
@@ -30,7 +27,7 @@ export type CreateCronJobParams = {
   message: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: AcpBackendAll;
+  agentType: import('@/types/acpTypes').AcpBackendAll;
   createdBy: 'user' | 'agent';
 };
 
@@ -40,12 +37,19 @@ export type CreateCronJobParams = {
  * Manages scheduled tasks that send messages to conversations at specified times.
  * Handles conflicts when conversation is busy.
  */
-class CronService {
+export class CronService {
   private timers: Map<string, Cron | NodeJS.Timeout> = new Map();
   private retryTimers: Map<string, NodeJS.Timeout> = new Map();
   private retryCounts: Map<string, number> = new Map();
   private initialized = false;
   private powerSaveBlockerId: number | null = null;
+
+  constructor(
+    private readonly repo: ICronRepository,
+    private readonly emitter: ICronEventEmitter,
+    private readonly executor: ICronJobExecutor,
+    private readonly conversationRepo: IConversationRepository
+  ) {}
 
   /**
    * Initialize the cron service
@@ -59,7 +63,7 @@ class CronService {
     try {
       this.cleanupOrphanJobs();
 
-      const jobs = cronStore.listEnabled();
+      const jobs = this.repo.listEnabled();
 
       for (const job of jobs) {
         this.startTimer(job);
@@ -79,17 +83,16 @@ class CronService {
    */
   private cleanupOrphanJobs(): void {
     try {
-      const db = getDatabase();
-      const allJobs = cronStore.listAll();
+      const allJobs = this.repo.listAll();
       for (const job of allJobs) {
-        const result = db.getConversation(job.metadata.conversationId);
-        if (!result.success || !result.data) {
+        const conversation = this.conversationRepo.getConversation(job.metadata.conversationId);
+        if (!conversation) {
           console.log(
             `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`
           );
           this.stopTimer(job.id);
-          cronStore.delete(job.id);
-          ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
+          this.repo.delete(job.id);
+          this.emitter.emitJobRemoved(job.id);
         }
       }
     } catch (error) {
@@ -103,7 +106,7 @@ class CronService {
    */
   async addJob(params: CreateCronJobParams): Promise<CronJob> {
     // Check if conversation already has a cron job (one job per conversation limit)
-    const existingJobs = cronStore.listByConversation(params.conversationId);
+    const existingJobs = this.repo.listByConversation(params.conversationId);
     if (existingJobs.length > 0) {
       const existingJob = existingJobs[0];
       throw new Error(i18n.t('cron:error.alreadyExists', { name: existingJob.name, id: existingJob.id }));
@@ -139,12 +142,11 @@ class CronService {
     this.updateNextRunTime(job);
 
     // Save to database
-    cronStore.insert(job);
+    this.repo.insert(job);
 
     // Update conversation modifyTime so it appears at the top of the list
     try {
-      const db = getDatabase();
-      db.updateConversation(params.conversationId, { modifyTime: now });
+      this.conversationRepo.updateConversation(params.conversationId, { modifyTime: now });
     } catch (err) {
       console.warn('[CronService] Failed to update conversation modifyTime:', err);
     }
@@ -154,7 +156,7 @@ class CronService {
     this.updatePowerBlocker();
 
     // Emit event to notify frontend (especially when created by agent)
-    ipcBridge.cron.onJobCreated.emit(job);
+    this.emitter.emitJobCreated(job);
 
     return job;
   }
@@ -163,7 +165,7 @@ class CronService {
    * Update an existing cron job
    */
   async updateJob(jobId: string, updates: Partial<CronJob>): Promise<CronJob> {
-    const existing = cronStore.getById(jobId);
+    const existing = this.repo.getById(jobId);
     if (!existing) {
       throw new Error(`Job not found: ${jobId}`);
     }
@@ -172,15 +174,15 @@ class CronService {
     this.stopTimer(jobId);
 
     // Update in database
-    cronStore.update(jobId, updates);
+    this.repo.update(jobId, updates);
 
     // Get updated job
-    const updated = cronStore.getById(jobId)!;
+    const updated = this.repo.getById(jobId)!;
 
     // Recalculate next run time if schedule changed or job is being enabled
     if (updates.schedule || (updates.enabled === true && !existing.enabled)) {
       this.updateNextRunTime(updated);
-      cronStore.update(jobId, { state: updated.state });
+      this.repo.update(jobId, { state: updated.state });
     }
 
     // Restart timer if enabled
@@ -191,7 +193,7 @@ class CronService {
     this.updatePowerBlocker();
 
     // Emit event to notify frontend
-    ipcBridge.cron.onJobUpdated.emit(updated);
+    this.emitter.emitJobUpdated(updated);
 
     return updated;
   }
@@ -204,32 +206,32 @@ class CronService {
     this.stopTimer(jobId);
 
     // Delete from database
-    cronStore.delete(jobId);
+    this.repo.delete(jobId);
     this.updatePowerBlocker();
 
     // Emit event to notify frontend
-    ipcBridge.cron.onJobRemoved.emit({ jobId });
+    this.emitter.emitJobRemoved(jobId);
   }
 
   /**
    * List all cron jobs
    */
   async listJobs(): Promise<CronJob[]> {
-    return cronStore.listAll();
+    return this.repo.listAll();
   }
 
   /**
    * List cron jobs by conversation
    */
   async listJobsByConversation(conversationId: string): Promise<CronJob[]> {
-    return cronStore.listByConversation(conversationId);
+    return this.repo.listByConversation(conversationId);
   }
 
   /**
    * Get a specific job
    */
   async getJob(jobId: string): Promise<CronJob | null> {
-    return cronStore.getById(jobId);
+    return this.repo.getById(jobId);
   }
 
   /**
@@ -259,8 +261,8 @@ class CronService {
         // Sync nextRunAtMs with actual next run time and notify frontend
         const nextRun = timer.nextRun();
         job.state.nextRunAtMs = nextRun ? nextRun.getTime() : undefined;
-        cronStore.update(job.id, { state: job.state });
-        ipcBridge.cron.onJobUpdated.emit(job);
+        this.repo.update(job.id, { state: job.state });
+        this.emitter.emitJobUpdated(job);
         break;
       }
 
@@ -272,8 +274,8 @@ class CronService {
 
         // Sync nextRunAtMs with actual timer start time and notify frontend
         job.state.nextRunAtMs = Date.now() + schedule.everyMs;
-        cronStore.update(job.id, { state: job.state });
-        ipcBridge.cron.onJobUpdated.emit(job);
+        this.repo.update(job.id, { state: job.state });
+        this.emitter.emitJobUpdated(job);
         break;
       }
 
@@ -289,16 +291,16 @@ class CronService {
 
           // Sync nextRunAtMs and notify frontend
           job.state.nextRunAtMs = schedule.atMs;
-          cronStore.update(job.id, { state: job.state });
-          ipcBridge.cron.onJobUpdated.emit(job);
+          this.repo.update(job.id, { state: job.state });
+          this.emitter.emitJobUpdated(job);
         } else {
           // Past one-time job, mark as expired and disable
           job.state.nextRunAtMs = undefined;
           job.state.lastStatus = 'skipped';
           job.state.lastError = i18n.t('cron:error.scheduledTimePassed');
           job.enabled = false;
-          cronStore.update(job.id, { enabled: false, state: job.state });
-          ipcBridge.cron.onJobUpdated.emit(job);
+          this.repo.update(job.id, { enabled: false, state: job.state });
+          this.emitter.emitJobUpdated(job);
         }
         break;
       }
@@ -340,7 +342,7 @@ class CronService {
     const { conversationId } = job.metadata;
 
     // Check if conversation is busy
-    const isBusy = cronBusyGuard.isProcessing(conversationId);
+    const isBusy = this.executor.isConversationBusy(conversationId);
     if (isBusy) {
       const currentRetry = (this.retryCounts.get(job.id) ?? 0) + 1;
       this.retryCounts.set(job.id, currentRetry);
@@ -349,16 +351,16 @@ class CronService {
         // Max retries exceeded, skip this run
         this.retryCounts.delete(job.id);
         this.updateNextRunTime(job);
-        cronStore.update(job.id, {
+        this.repo.update(job.id, {
           state: {
             ...job.state,
             lastStatus: 'skipped',
             lastError: i18n.t('cron:error.conversationBusy', { count: job.state.maxRetries || 3 }),
           },
         });
-        const skippedJob = cronStore.getById(job.id);
+        const skippedJob = this.repo.getById(job.id);
         if (skippedJob) {
-          ipcBridge.cron.onJobUpdated.emit(skippedJob);
+          this.emitter.emitJobUpdated(skippedJob);
         }
         return;
       }
@@ -378,91 +380,12 @@ class CronService {
     let lastError: string | undefined;
 
     try {
-      // Send message to conversation directly via WorkerManage (not IPC)
-      // IPC invoke doesn't work in main process - it's for renderer->main communication
-      const messageText = job.target.payload.text;
-      const msgId = uuid();
-
-      // Get or build task from WorkerManage
-      // For cron jobs, we need yoloMode=true (auto-approve)
-      // Reuse existing task if possible to avoid unnecessary reconnection
-      // 对于定时任务，需要 yoloMode=true（自动批准）
-      // 尽量复用已有任务实例，避免不必要的重连
-      let task;
-      try {
-        const existingTask = workerTaskManager.getTask(conversationId);
-        if (existingTask) {
-          // Try to enable yoloMode on existing task without killing it
-          const yoloEnabled = await (existingTask as BaseAgentManager<unknown>).ensureYoloMode();
-          if (yoloEnabled) {
-            task = existingTask;
-          } else {
-            // Cannot enable yoloMode dynamically, fall back to kill and recreate
-            workerTaskManager.kill(conversationId);
-            task = await workerTaskManager.getOrBuildTask(conversationId, {
-              yoloMode: true,
-            });
-          }
-        } else {
-          // No existing task, create new one with yoloMode=true
-          task = await workerTaskManager.getOrBuildTask(conversationId, {
-            yoloMode: true,
-          });
-        }
-      } catch (err) {
-        lastStatus = 'error';
-        lastError = err instanceof Error ? err.message : i18n.t('cron:error.conversationNotFound');
-        this.updateNextRunTime(job);
-        cronStore.update(job.id, {
-          state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError },
-        });
-        const notFoundJob = cronStore.getById(job.id);
-        if (notFoundJob) {
-          ipcBridge.cron.onJobUpdated.emit(notFoundJob);
-        }
-        return;
-      }
-
-      if (!task) {
-        lastStatus = 'error';
-        lastError = i18n.t('cron:error.conversationNotFound');
-        this.updateNextRunTime(job);
-        cronStore.update(job.id, {
-          state: { ...job.state, lastRunAtMs, runCount: currentRunCount, lastStatus, lastError },
-        });
-        const notFoundJob = cronStore.getById(job.id);
-        if (notFoundJob) {
-          ipcBridge.cron.onJobUpdated.emit(notFoundJob);
-        }
-        return;
-      }
-
-      // Get workspace from task (all agent managers have this property)
-      const workspace = (task as { workspace?: string }).workspace;
-
-      // Copy files to workspace if needed (empty array for cron jobs)
-      const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
-
-      // Build cronMeta for message origin tracking
-      const cronMeta: CronMessageMeta = {
-        source: 'cron',
-        cronJobId: job.id,
-        cronJobName: job.name,
-        triggeredAt: Date.now(),
-      };
-
-      // Mark conversation as busy BEFORE registering the idle callback,
-      // so onceIdle registers a deferred callback instead of firing immediately.
-      cronBusyGuard.setProcessing(conversationId, true);
-      this.registerCompletionNotification(job);
-
-      // Call sendMessage directly on the task
-      // Different agents use different parameter names: Gemini uses 'input', ACP/Codex use 'content'
-      if (task.type === 'codex' || task.type === 'acp') {
-        await task.sendMessage({ content: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
-      } else {
-        await task.sendMessage({ input: messageText, msg_id: msgId, files: workspaceFiles, cronMeta });
-      }
+      // executeJob marks the conversation busy only after task acquisition succeeds.
+      // The onAcquired callback registers the completion notification while the
+      // conversation is already busy, preventing premature onceIdle fires.
+      await this.executor.executeJob(job, () => {
+        this.registerCompletionNotification(job);
+      });
 
       // Success
       this.retryCounts.delete(job.id);
@@ -471,8 +394,7 @@ class CronService {
 
       // Update conversation modifyTime so it appears at the top of the list
       try {
-        const db = getDatabase();
-        db.updateConversation(conversationId, { modifyTime: Date.now() });
+        this.conversationRepo.updateConversation(conversationId, { modifyTime: Date.now() });
       } catch (err) {
         console.warn('[CronService] Failed to update conversation modifyTime after execution:', err);
       }
@@ -487,7 +409,7 @@ class CronService {
     this.updateNextRunTime(job);
 
     // Persist state as new object and notify frontend
-    cronStore.update(job.id, {
+    this.repo.update(job.id, {
       state: {
         ...job.state,
         lastRunAtMs,
@@ -496,20 +418,20 @@ class CronService {
         lastError,
       },
     });
-    const updatedJob = cronStore.getById(job.id);
+    const updatedJob = this.repo.getById(job.id);
     if (updatedJob) {
-      ipcBridge.cron.onJobUpdated.emit(updatedJob);
+      this.emitter.emitJobUpdated(updatedJob);
     }
   }
 
   /**
-   * Register a callback on cronBusyGuard to send notification when the agent finishes.
+   * Register a callback on executor to send notification when the agent finishes.
    * Must be called BEFORE sendMessage to avoid race conditions.
    */
   private registerCompletionNotification(job: CronJob): void {
     const { conversationId } = job.metadata;
 
-    cronBusyGuard.onceIdle(conversationId, async () => {
+    this.executor.onceIdle(conversationId, async () => {
       // Check if cron notification is enabled
       const cronNotificationEnabled = await ProcessConfig.get('system.cronNotificationEnabled');
       if (!cronNotificationEnabled) return;
@@ -521,7 +443,7 @@ class CronService {
       });
       const body = i18n.t('cron.notification.taskDone');
 
-      showNotification({ title, body, conversationId }).catch((err) => {
+      this.emitter.showNotification({ title, body, conversationId }).catch((err) => {
         console.warn('[CronService] Failed to show notification:', err);
       });
     });
@@ -567,7 +489,7 @@ class CronService {
 
     console.log('[CronService] System resumed, checking for missed jobs...');
     const now = Date.now();
-    const jobs = cronStore.listEnabled();
+    const jobs = this.repo.listEnabled();
 
     for (const job of jobs) {
       // Stop stale timer (it was paused during sleep and may be in invalid state)
@@ -585,15 +507,15 @@ class CronService {
           time: new Date(nextRunAt).toLocaleString(),
         });
         this.updateNextRunTime(job);
-        cronStore.update(job.id, { state: job.state });
-        ipcBridge.cron.onJobUpdated.emit(job);
+        this.repo.update(job.id, { state: job.state });
+        this.emitter.emitJobUpdated(job);
 
         // Insert a notification message into the conversation
         this.insertMissedJobMessage(job, nextRunAt);
       }
 
       // Restart timer with fresh schedule
-      const latestJob = cronStore.getById(job.id);
+      const latestJob = this.repo.getById(job.id);
       if (latestJob && latestJob.enabled) {
         this.startTimer(latestJob);
       }
@@ -638,7 +560,7 @@ class CronService {
    * but does not prevent the display from sleeping.
    */
   private updatePowerBlocker(): void {
-    const hasEnabledJobs = cronStore.listEnabled().length > 0;
+    const hasEnabledJobs = this.repo.listEnabled().length > 0;
 
     if (hasEnabledJobs && this.powerSaveBlockerId === null) {
       try {
@@ -681,9 +603,6 @@ class CronService {
     }
   }
 }
-
-// Singleton instance
-export const cronService = new CronService();
 
 // Re-export types
 export type { CronJob, CronSchedule } from './CronStore';

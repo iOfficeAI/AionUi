@@ -8,6 +8,7 @@ import { getDatabase } from '@process/database';
 import type { IConversationRepository, PaginatedResult } from './IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 import type { TMessage } from '@/common/chatLib';
+import type { IMessageSearchResponse } from '@/common/types/database';
 
 /**
  * SQLite-backed implementation of IConversationRepository.
@@ -36,8 +37,8 @@ export class SqliteConversationRepository implements IConversationRepository {
     this.db.deleteConversation(id);
   }
 
-  getMessages(id: string, page: number, pageSize: number): PaginatedResult<TMessage> {
-    const result = this.db.getConversationMessages(id, page, pageSize);
+  getMessages(id: string, page: number, pageSize: number, order?: 'ASC' | 'DESC'): PaginatedResult<TMessage> {
+    const result = this.db.getConversationMessages(id, page, pageSize, order);
     return {
       data: result.data ?? [],
       total: result.total ?? 0,
@@ -63,5 +64,14 @@ export class SqliteConversationRepository implements IConversationRepository {
       total: result.total ?? 0,
       hasMore: result.hasMore ?? false,
     };
+  }
+
+  listAllConversations(): TChatConversation[] {
+    const result = this.db.getUserConversations(undefined, 0, 10000);
+    return result.data ?? [];
+  }
+
+  searchMessages(keyword: string, page: number, pageSize: number): IMessageSearchResponse {
+    return this.db.searchConversationMessages(keyword, undefined, page, pageSize);
   }
 }

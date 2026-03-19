@@ -7,7 +7,7 @@
 import type { TMessage } from '@/common/chatLib';
 import { ipcBridge } from '@/common';
 import type { AcpBackendAll } from '@/types/acpTypes';
-import { cronService } from '@process/services/cron/CronService';
+import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { detectCronCommands, stripCronCommands, type CronCommand } from './CronCommandDetector';
 import { hasThinkTags, stripThinkTags } from './ThinkTagDetector';
 

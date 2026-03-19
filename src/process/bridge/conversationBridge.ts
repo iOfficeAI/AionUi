@@ -7,7 +7,6 @@
 import type { CodexAgentManager } from '@/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
-import { getDatabase } from '@process/database';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
@@ -142,12 +141,7 @@ export function initConversationBridge(
         return [];
       }
 
-      // Get all conversations from database (get first page with large limit to get all)
-      // NOTE: IConversationService does not expose a listAllConversations method; using getDatabase() directly here.
-      // This will be fully migrated when IConversationService gains a list/query method in a future PR.
-      const db = getDatabase();
-      const allResult = db.getUserConversations(undefined, 0, 10000);
-      let allConversations: TChatConversation[] = allResult.data || [];
+      let allConversations: TChatConversation[] = await conversationService.listAllConversations();
 
       // If database is empty or doesn't have enough conversations, merge with file storage
       const history = await ProcessChat.get('chat.history');
@@ -327,12 +321,13 @@ export function initConversationBridge(
         },
       }).then((res) => (res ? [res] : []));
     } catch (error) {
-      // 捕获 abort 错误，避免 unhandled rejection
-      // Catch abort errors to avoid unhandled rejection
-      if (error instanceof Error && error.message.includes('aborted')) {
+      // Catch abort / ENOENT errors to avoid unhandled rejection
+      // (bridge provider callbacks have no .catch handler)
+      if (error instanceof Error && (error.message.includes('aborted') || error.message.includes('ENOENT'))) {
         return [];
       }
-      throw error;
+      console.error('[conversationBridge] getWorkspace error:', error);
+      return [];
     }
   });
 

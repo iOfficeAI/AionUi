@@ -13,9 +13,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
-export function initTaskBridge(): void {
+export function initTaskBridge(workerTaskManager: IWorkerTaskManager): void {
   // 暂停所有运行中的任务 / Stop all running tasks
   ipcBridge.task.stopAll.provider(async () => {
     try {

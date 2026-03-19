@@ -5,18 +5,17 @@
  */
 
 import { ipcBridge } from '../../common';
-import { getDatabase } from '@process/database';
 import { ProcessChat } from '../initStorage';
 import type { TChatConversation } from '@/common/storage';
 import { migrateConversationToDatabase } from './migrationUtils';
+import type { IConversationRepository } from '@process/database/IConversationRepository';
 
-export function initDatabaseBridge(): void {
+export function initDatabaseBridge(repo: IConversationRepository): void {
   // Get conversation messages from database
   ipcBridge.database.getConversationMessages.provider(({ conversation_id, page = 0, pageSize = 10000 }) => {
     try {
-      const db = getDatabase();
-      const result = db.getConversationMessages(conversation_id, page, pageSize);
-      return Promise.resolve(result.data || []);
+      const result = repo.getMessages(conversation_id, page, pageSize);
+      return Promise.resolve(result.data);
     } catch (error) {
       console.error('[DatabaseBridge] Error getting conversation messages:', error);
       return Promise.resolve([]);
@@ -26,9 +25,8 @@ export function initDatabaseBridge(): void {
   // Get user conversations from database with lazy migration from file storage
   ipcBridge.database.getUserConversations.provider(async ({ page = 0, pageSize = 10000 }) => {
     try {
-      const db = getDatabase();
-      const result = db.getUserConversations(undefined, page, pageSize);
-      const dbConversations = result.data || [];
+      const result = repo.getUserConversations(undefined, page * pageSize, pageSize);
+      const dbConversations = result.data;
 
       // Try to get conversations from file storage
       let fileConversations: TChatConversation[] = [];
@@ -39,7 +37,7 @@ export function initDatabaseBridge(): void {
       }
 
       // Use database conversations as the primary source while backfilling missing ones from file storage
-      // 以数据库结果为主，只补充文件中尚未迁移的会话，避免删除后出现“只剩更早记录”的问题
+      // 以数据库结果为主，只补充文件中尚未迁移的会话，避免删除后出现"只剩更早记录"的问题
       // Build a map for fast lookup to avoid duplicates when merging
       const dbConversationMap = new Map(dbConversations.map((conv) => [conv.id, conv] as const));
 
@@ -67,8 +65,7 @@ export function initDatabaseBridge(): void {
 
   ipcBridge.database.searchConversationMessages.provider(({ keyword, page = 0, pageSize = 20 }) => {
     try {
-      const db = getDatabase();
-      const result = db.searchConversationMessages(keyword, undefined, page, pageSize);
+      const result = repo.searchMessages(keyword, page, pageSize);
       return Promise.resolve(result);
     } catch (error) {
       console.error('[DatabaseBridge] Error searching conversation messages:', error);

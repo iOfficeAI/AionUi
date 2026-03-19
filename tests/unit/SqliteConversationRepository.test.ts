@@ -67,7 +67,7 @@ describe('SqliteConversationRepository', () => {
     expect(result.total).toBe(1);
     expect(result.data).toHaveLength(1);
     expect(result.hasMore).toBe(false);
-    expect(mockDb.getConversationMessages).toHaveBeenCalledWith('c1', 0, 100);
+    expect(mockDb.getConversationMessages).toHaveBeenCalledWith('c1', 0, 100, undefined);
   });
 
   it('insertMessage calls db.insertMessage', () => {

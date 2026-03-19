@@ -47,4 +47,6 @@ export interface IConversationService {
   updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void>;
   getConversation(id: string): Promise<TChatConversation | undefined>;
   createWithMigration(params: MigrateConversationParams): Promise<TChatConversation>;
+  /** Returns all conversations without pagination. */
+  listAllConversations(): Promise<TChatConversation[]>;
 }
