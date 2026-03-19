@@ -5,9 +5,9 @@
  */
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
-import type { TProviderWithModel } from '@/common/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
-import { ConversationService } from '@/process/services/conversationService';
+import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
@@ -200,54 +200,59 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const channelChatId = context.chatId;
   const { convType, convBackend } = resolveChannelConvType(backend);
   const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
-  const result =
-    backend === 'codex'
-      ? await ConversationService.createConversation({
-          type: 'codex',
-          model,
-          source,
-          name,
-          channelChatId,
-          extra: {},
-        })
-      : backend === 'gemini'
-        ? await ConversationService.createGeminiConversation({
-            model,
-            source,
-            name,
-            channelChatId,
-          })
-        : backend === 'openclaw-gateway'
-          ? await ConversationService.createConversation({
-              type: 'openclaw-gateway',
-              model,
-              source,
-              name,
-              channelChatId,
-              extra: {},
-            })
-          : await ConversationService.createConversation({
-              type: 'acp',
-              model,
-              source,
-              name,
-              channelChatId,
-              extra: {
-                backend: backend as AcpBackend,
-                customAgentId,
-                agentName,
-              },
-            });
 
-  if (!result.success || !result.conversation) {
-    return createErrorResponse(`Failed to create session: ${result.error || 'Unknown error'}`);
+  let newConversation: TChatConversation;
+  try {
+    if (backend === 'gemini') {
+      newConversation = await conversationServiceSingleton.createConversation({
+        type: 'gemini',
+        model,
+        source,
+        name,
+        channelChatId,
+        extra: {},
+      });
+    } else if (backend === 'codex') {
+      newConversation = await conversationServiceSingleton.createConversation({
+        type: 'codex',
+        model,
+        source,
+        name,
+        channelChatId,
+        extra: {},
+      });
+    } else if (backend === 'openclaw-gateway') {
+      newConversation = await conversationServiceSingleton.createConversation({
+        type: 'openclaw-gateway',
+        model,
+        source,
+        name,
+        channelChatId,
+        extra: {},
+      });
+    } else {
+      newConversation = await conversationServiceSingleton.createConversation({
+        type: 'acp',
+        model,
+        source,
+        name,
+        channelChatId,
+        extra: {
+          backend: backend as AcpBackend,
+          customAgentId,
+          agentName,
+        },
+      });
+    }
+  } catch (error) {
+    return createErrorResponse(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
   // Create session with the new conversation ID (scoped by chatId)
   const agentType = convType as ChannelAgentType;
   const session = sessionManager.createSessionWithConversation(
     context.channelUser,
-    result.conversation.id,
+    newConversation.id,
     agentType,
     undefined,
     channelChatId

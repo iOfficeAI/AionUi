@@ -5,9 +5,10 @@
  */
 
 import type { TMessage } from '@/common/chatLib';
+import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@/process/database';
 import { ProcessConfig } from '@/process/initStorage';
-import { ConversationService } from '@/process/services/conversationService';
+import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
 import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
@@ -416,63 +417,70 @@ export class ActionExecutor {
         const latest = db2.findChannelConversation(source, chatId, convType, convBackend);
         const existing = latest.success ? latest.data : null;
 
-        const result = existing
-          ? { success: true as const, conversation: existing }
-          : backend === 'codex'
-            ? await ConversationService.createConversation({
+        let sessionConversation: TChatConversation | null = existing ?? null;
+        if (!sessionConversation) {
+          try {
+            if (backend === 'gemini') {
+              sessionConversation = await conversationServiceSingleton.createConversation({
+                type: 'gemini',
+                model,
+                name: conversationName,
+                source,
+                channelChatId: chatId,
+                extra: {},
+              });
+            } else if (backend === 'codex') {
+              sessionConversation = await conversationServiceSingleton.createConversation({
                 type: 'codex',
                 model,
                 name: conversationName,
                 source,
                 channelChatId: chatId,
                 extra: {},
-              })
-            : backend === 'gemini'
-              ? await ConversationService.createGeminiConversation({
-                  model,
-                  name: conversationName,
-                  source,
-                  channelChatId: chatId,
-                })
-              : backend === 'openclaw-gateway'
-                ? await ConversationService.createConversation({
-                    type: 'openclaw-gateway',
-                    model,
-                    name: conversationName,
-                    source,
-                    channelChatId: chatId,
-                    extra: {},
-                  })
-                : await ConversationService.createConversation({
-                    type: 'acp',
-                    model,
-                    name: conversationName,
-                    source,
-                    channelChatId: chatId,
-                    extra: {
-                      backend: backend as AcpBackend,
-                      customAgentId,
-                      agentName,
-                    },
-                  });
+              });
+            } else if (backend === 'openclaw-gateway') {
+              sessionConversation = await conversationServiceSingleton.createConversation({
+                type: 'openclaw-gateway',
+                model,
+                name: conversationName,
+                source,
+                channelChatId: chatId,
+                extra: {},
+              });
+            } else {
+              sessionConversation = await conversationServiceSingleton.createConversation({
+                type: 'acp',
+                model,
+                name: conversationName,
+                source,
+                channelChatId: chatId,
+                extra: {
+                  backend: backend as AcpBackend,
+                  customAgentId,
+                  agentName,
+                },
+              });
+            }
+          } catch (error) {
+            console.error(`[ActionExecutor] Failed to create conversation:`, error);
+            await context.sendMessage({
+              type: 'text',
+              text: `❌ Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              parseMode: 'HTML',
+            });
+            return;
+          }
+        }
 
-        if (result.success && result.conversation) {
+        if (sessionConversation) {
           const { convType: agentType } = resolveChannelConvType(backend);
           session = this.sessionManager.createSessionWithConversation(
             channelUser,
-            result.conversation.id,
+            sessionConversation.id,
             agentType as ChannelAgentType,
             undefined,
             chatId
           );
-        } else {
-          console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
-          await context.sendMessage({
-            type: 'text',
-            text: `❌ Failed to create session: ${result.error || 'Unknown error'}`,
-            parseMode: 'HTML',
-          });
-          return;
         }
       }
       context.sessionId = session.id;
