@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ForkTask } from '@/worker/fork/ForkTask';
+import { ForkTask } from '@process/worker/fork/ForkTask';
 import path from 'path';
 import type { IConfirmation } from '../../../common/chatLib';
 import type { AgentType, AgentStatus } from '../agentTypes';
