@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { cronService } from '@process/services/cron/CronService';
+import { cronService } from '@process/services/cron/cronServiceSingleton';
 
 /**
  * Initialize cron IPC bridge handlers

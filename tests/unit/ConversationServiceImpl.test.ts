@@ -9,7 +9,7 @@ import type { IConversationRepository } from '../../src/process/database/IConver
 
 vi.mock('electron', () => ({ app: { getPath: vi.fn(() => '/tmp'), isPackaged: false } }));
 vi.mock('../../src/process/initStorage', () => ({ ProcessChat: { get: vi.fn(async () => []) } }));
-vi.mock('../../src/process/services/cron/CronService', () => ({
+vi.mock('../../src/process/services/cron/cronServiceSingleton', () => ({
   cronService: {
     listJobsByConversation: vi.fn(async () => []),
     removeJob: vi.fn(async () => {}),
