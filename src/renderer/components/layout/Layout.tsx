@@ -13,15 +13,15 @@ import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutContext } from './context/LayoutContext';
-import { useDeepLink } from './hooks/useDeepLink';
-import { useNotificationClick } from './hooks/useNotificationClick';
-import { useDirectorySelection } from './hooks/useDirectorySelection';
-import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
-import { processCustomCss } from './utils/customCssProcessor';
-import { cleanupSiderTooltips } from './utils/siderTooltip';
-import { isElectronDesktop } from './utils/platform';
-import { computeCssSyncDecision, resolveCssByActiveTheme } from './utils/themeCssSync';
+import { LayoutContext } from '@renderer/context/LayoutContext';
+import { useDeepLink } from '@renderer/hooks/useDeepLink';
+import { useNotificationClick } from '@renderer/hooks/useNotificationClick';
+import { useDirectorySelection } from '@renderer/hooks/useDirectorySelection';
+import { useMultiAgentDetection } from '@renderer/hooks/useMultiAgentDetection';
+import { processCustomCss } from '@renderer/utils/customCssProcessor';
+import { cleanupSiderTooltips } from '@renderer/utils/siderTooltip';
+import { isElectronDesktop } from '@renderer/utils/platform';
+import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/themeCssSync';
 import '@renderer/styles/layout.css';
 
 const useDebug = () => {

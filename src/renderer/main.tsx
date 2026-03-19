@@ -5,9 +5,9 @@
  */
 
 import React from 'react';
-import Layout from './layout';
-import Router from './router';
-import Sider from './sider';
+import Layout from './components/layout/Layout';
+import Router from './components/layout/Router';
+import Sider from './components/layout/Sider';
 import { useAuth } from './context/AuthContext';
 
 const Main = () => {

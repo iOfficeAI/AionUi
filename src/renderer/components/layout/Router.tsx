@@ -1,21 +1,21 @@
 import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
-import AppLoader from './components/AppLoader';
-import { useAuth } from './context/AuthContext';
-const Conversation = React.lazy(() => import('./pages/conversation'));
-const Guid = React.lazy(() => import('./pages/guid'));
-const About = React.lazy(() => import('./pages/settings/About'));
-const AgentSettings = React.lazy(() => import('./pages/settings/AgentSettings'));
-const SkillsHubSettings = React.lazy(() => import('./pages/settings/SkillsHubSettings'));
-const DisplaySettings = React.lazy(() => import('./pages/settings/DisplaySettings'));
-const GeminiSettings = React.lazy(() => import('./pages/settings/GeminiSettings'));
-const ModeSettings = React.lazy(() => import('./pages/settings/ModeSettings'));
-const SystemSettings = React.lazy(() => import('./pages/settings/SystemSettings'));
-const ToolsSettings = React.lazy(() => import('./pages/settings/ToolsSettings'));
-const WebuiSettings = React.lazy(() => import('./pages/settings/WebuiSettings'));
-const ExtensionSettingsPage = React.lazy(() => import('./pages/settings/ExtensionSettingsPage'));
-const LoginPage = React.lazy(() => import('./pages/login'));
-const ComponentsShowcase = React.lazy(() => import('./pages/test/ComponentsShowcase'));
+import AppLoader from '@renderer/components/AppLoader';
+import { useAuth } from '@renderer/context/AuthContext';
+const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
+const Guid = React.lazy(() => import('@renderer/pages/guid'));
+const About = React.lazy(() => import('@renderer/pages/settings/About'));
+const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
+const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
+const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
+const GeminiSettings = React.lazy(() => import('@renderer/pages/settings/GeminiSettings'));
+const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
+const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
+const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
+const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
+const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
+const LoginPage = React.lazy(() => import('@renderer/pages/login'));
+const ComponentsShowcase = React.lazy(() => import('@renderer/pages/test/ComponentsShowcase'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>

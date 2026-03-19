@@ -6,15 +6,15 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { iconColors } from '@renderer/styles/colors';
 import { Tooltip } from '@arco-design/web-react';
-import { usePreviewContext } from './pages/conversation/preview/context/PreviewContext';
-import { cleanupSiderTooltips, getSiderTooltipProps } from './utils/siderTooltip';
-import { useLayoutContext } from './context/LayoutContext';
-import { blurActiveElement } from './utils/focus';
-import { useThemeContext } from './context/ThemeContext';
-import ConversationSearchPopover from './pages/conversation/grouped-history/ConversationSearchPopover';
+import { usePreviewContext } from '@renderer/pages/conversation/preview/context/PreviewContext';
+import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/siderTooltip';
+import { useLayoutContext } from '@renderer/context/LayoutContext';
+import { blurActiveElement } from '@renderer/utils/focus';
+import { useThemeContext } from '@renderer/context/ThemeContext';
+import ConversationSearchPopover from '@renderer/pages/conversation/grouped-history/ConversationSearchPopover';
 
-const WorkspaceGroupedHistory = React.lazy(() => import('./pages/conversation/WorkspaceGroupedHistory'));
-const SettingsSider = React.lazy(() => import('./pages/settings/SettingsSider'));
+const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/WorkspaceGroupedHistory'));
+const SettingsSider = React.lazy(() => import('@renderer/pages/settings/SettingsSider'));
 
 interface SiderProps {
   onSessionClick?: () => void;
