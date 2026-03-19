@@ -380,13 +380,12 @@ export class CronService {
     let lastError: string | undefined;
 
     try {
-      // Mark conversation as busy BEFORE registering the idle callback,
-      // so onceIdle registers a deferred callback instead of firing immediately.
-      this.executor.setProcessing(conversationId, true);
-      this.registerCompletionNotification(job);
-
-      // Delegate task-get + sendMessage to the executor.
-      await this.executor.executeJob(job);
+      // executeJob marks the conversation busy only after task acquisition succeeds.
+      // The onAcquired callback registers the completion notification while the
+      // conversation is already busy, preventing premature onceIdle fires.
+      await this.executor.executeJob(job, () => {
+        this.registerCompletionNotification(job);
+      });
 
       // Success
       this.retryCounts.delete(job.id);

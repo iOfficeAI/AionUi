@@ -16,6 +16,7 @@ function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRe
     insertMessage: vi.fn(),
     getUserConversations: vi.fn(),
     listAllConversations: vi.fn(() => []),
+    searchMessages: vi.fn(() => ({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false })),
     ...overrides,
   };
 }

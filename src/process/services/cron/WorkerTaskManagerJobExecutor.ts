@@ -24,7 +24,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return this.busyGuard.isProcessing(conversationId);
   }
 
-  async executeJob(job: CronJob): Promise<void> {
+  async executeJob(job: CronJob, onAcquired?: () => void): Promise<void> {
     const { conversationId } = job.metadata;
     const messageText = job.target.payload.text;
     const msgId = uuid();
@@ -44,6 +44,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     } else {
       task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
     }
+
+    // Mark busy only after task acquisition succeeds. This ensures that if
+    // getOrBuildTask throws (conversation deleted), setProcessing(true) is never
+    // called and no "busy" state leaks into subsequent runs.
+    this.busyGuard.setProcessing(conversationId, true);
+    // Notify caller so it can register onceIdle callbacks while the conversation
+    // is already marked busy (prevents premature idle fires).
+    onAcquired?.();
 
     const workspace = (task as { workspace?: string }).workspace;
     const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
