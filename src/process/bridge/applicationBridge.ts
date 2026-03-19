@@ -9,7 +9,7 @@ import { app } from 'electron';
 import { ipcBridge } from '../../common';
 import { getSystemDir, ProcessEnv } from '../initStorage';
 import { copyDirectoryRecursively } from '../utils';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { getZoomFactor, setZoomFactor } from '../utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '../../utils/configureChromium';
 
@@ -19,7 +19,7 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
   mainWindowRef = win;
 }
 
-export function initApplicationBridge(): void {
+export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): void {
   ipcBridge.application.restart.provider(() => {
     // 清理所有工作进程
     workerTaskManager.clear();
