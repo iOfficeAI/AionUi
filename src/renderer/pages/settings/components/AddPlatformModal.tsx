@@ -7,7 +7,7 @@ import { Form, Input, Message, Select } from '@arco-design/web-react';
 import { LinkCloud, Edit, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useModeModeList from '../../../hooks/useModeModeList';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import useProtocolDetection from '../../../hooks/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';

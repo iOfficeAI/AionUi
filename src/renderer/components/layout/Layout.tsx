@@ -17,7 +17,7 @@ import { LayoutContext } from '@renderer/context/LayoutContext';
 import { useDeepLink } from '@renderer/hooks/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/useNotificationClick';
 import { useDirectorySelection } from '@renderer/hooks/useDirectorySelection';
-import { useMultiAgentDetection } from '@renderer/hooks/useMultiAgentDetection';
+import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetection';
 import { processCustomCss } from '@renderer/utils/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/siderTooltip';
 import { isElectronDesktop } from '@renderer/utils/platform';

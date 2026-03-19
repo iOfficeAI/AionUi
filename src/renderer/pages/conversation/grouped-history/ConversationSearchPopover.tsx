@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/database';
 import AionModal from '@/renderer/components/base/AionModal';
-import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
+import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useOptionalConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { getAgentLogo } from '@/renderer/utils/agentLogo';

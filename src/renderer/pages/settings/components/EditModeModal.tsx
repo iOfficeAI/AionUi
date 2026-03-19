@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
 import { LinkCloud } from '@icon-park/react';
 import { ipcBridge } from '@/common';
-import useModeModeList from '../../../hooks/useModeModeList';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 
 // Provider Logo imports
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';

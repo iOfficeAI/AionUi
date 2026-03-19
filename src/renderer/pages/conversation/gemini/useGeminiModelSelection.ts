@@ -1,6 +1,6 @@
 import type { IProvider, TProviderWithModel } from '@/common/storage';
-import type { GeminiModeOption } from '@/renderer/hooks/useModeModeList';
-import { useModelProviderList } from '@/renderer/hooks/useModelProviderList';
+import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
+import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface GeminiModelSelection {

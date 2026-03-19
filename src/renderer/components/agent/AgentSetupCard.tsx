@@ -17,7 +17,7 @@ import classNames from 'classnames';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { AcpBackendAll } from '@/types/acpTypes';
-import type { AgentCheckResult } from '@/renderer/hooks/useAgentReadinessCheck';
+import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 
 // Agent logos
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';

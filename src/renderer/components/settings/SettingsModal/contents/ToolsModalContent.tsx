@@ -10,7 +10,7 @@ import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch 
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useConfigModelListWithImage from '@/renderer/hooks/useConfigModelListWithImage';
+import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
