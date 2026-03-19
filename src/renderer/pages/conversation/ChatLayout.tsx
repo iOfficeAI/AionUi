@@ -4,6 +4,11 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
+import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
+import MobileWorkspaceOverlay from '@/renderer/pages/conversation/components/MobileWorkspaceOverlay';
+import WorkspacePanelHeader, {
+  DesktopWorkspaceToggle,
+} from '@/renderer/pages/conversation/components/WorkspacePanelHeader';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
@@ -11,7 +16,6 @@ import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/useP
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
-import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
@@ -21,50 +25,11 @@ import {
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
-import { Input, Layout as ArcoLayout } from '@arco-design/web-react';
+import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import './chat-layout.css';
-
-type WorkspaceHeaderProps = {
-  children?: React.ReactNode;
-  showToggle?: boolean;
-  collapsed: boolean;
-  onToggle: () => void;
-  togglePlacement?: 'left' | 'right';
-};
-
-const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
-  children,
-  showToggle = false,
-  collapsed,
-  onToggle,
-  togglePlacement = 'right',
-}) => (
-  <div
-    className='workspace-panel-header flex items-center justify-start px-12px py-4px gap-12px border-b border-[var(--bg-3)]'
-    style={{ height: WORKSPACE_HEADER_HEIGHT, minHeight: WORKSPACE_HEADER_HEIGHT }}
-  >
-    {showToggle && togglePlacement === 'left' && (
-      <button
-        type='button'
-        className='workspace-header__toggle mr-4px'
-        aria-label='Toggle workspace'
-        onClick={onToggle}
-      >
-        {collapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
-      </button>
-    )}
-    <div className='flex-1 truncate'>{children}</div>
-    {showToggle && togglePlacement === 'right' && (
-      <button type='button' className='workspace-header__toggle' aria-label='Toggle workspace' onClick={onToggle}>
-        {collapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
-      </button>
-    )}
-  </div>
-);
 
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
 const ChatLayout: React.FC<{
@@ -84,7 +49,6 @@ const ChatLayout: React.FC<{
   /** Conversation ID for mode switching */
   conversationId?: string;
 }> = (props) => {
-  const { t } = useTranslation();
   const { conversationId } = props;
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
@@ -222,80 +186,18 @@ const ChatLayout: React.FC<{
         <div className='shrink-0'>{props.headerLeft}</div>
         <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
           {!layout?.isMobile && !hasTabs && (
-            <div
-              className={classNames(
-                'group flex min-w-0 max-w-full items-center rounded-12px border border-solid border-transparent transition-all duration-180',
-                editingTitle
-                  ? 'bg-fill-2 border-[var(--color-fill-3)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
-                  : 'hover:bg-fill-2 hover:border-[var(--color-fill-3)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] focus-within:bg-fill-2 focus-within:border-[var(--color-fill-3)] focus-within:shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
-              )}
-              style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
-            >
-              <div className='min-w-0 flex-1 px-10px py-5px'>
-                {editingTitle && canRenameTitle ? (
-                  <Input
-                    autoFocus
-                    value={titleDraft}
-                    disabled={renameLoading}
-                    className='w-full min-w-0 max-w-full border-none bg-transparent shadow-none [&_.arco-input-inner-wrapper]:border-none [&_.arco-input-inner-wrapper]:bg-transparent [&_.arco-input-inner-wrapper]:shadow-none [&_.arco-input]:bg-transparent [&_.arco-input]:px-0 [&_.arco-input]:text-16px [&_.arco-input]:font-700 [&_.arco-input]:leading-24px [&_.arco-input]:text-[var(--color-text-1)]'
-                    style={{
-                      width: '100%',
-                      maxWidth: '100%',
-                    }}
-                    maxLength={120}
-                    onChange={setTitleDraft}
-                    onFocus={(event) => {
-                      event.target.select();
-                    }}
-                    onPressEnter={() => {
-                      void submitTitleRename();
-                    }}
-                    onBlur={() => {
-                      void submitTitleRename();
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Escape') {
-                        setTitleDraft(typeof props.title === 'string' ? props.title : '');
-                        setEditingTitle(false);
-                      }
-                    }}
-                    placeholder={t('conversation.history.renamePlaceholder')}
-                    size='default'
-                  />
-                ) : (
-                  <span
-                    role={canRenameTitle ? 'button' : undefined}
-                    tabIndex={canRenameTitle ? 0 : undefined}
-                    className={classNames(
-                      'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-16px font-bold text-t-primary transition-colors duration-150',
-                      canRenameTitle &&
-                        'cursor-text group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))] focus:outline-none'
-                    )}
-                    onClick={() => {
-                      if (!canRenameTitle) return;
-                      setEditingTitle(true);
-                    }}
-                    onKeyDown={(event) => {
-                      if (!canRenameTitle) return;
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setEditingTitle(true);
-                      }
-                    }}
-                  >
-                    {props.title}
-                  </span>
-                )}
-              </div>
-              {!editingTitle && (
-                <div className='w-0 flex items-center overflow-hidden opacity-0 transition-all duration-180 group-hover:w-40px group-hover:opacity-100 group-focus-within:w-40px group-focus-within:opacity-100'>
-                  <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_44%,transparent)]' />
-                  <div className='ml-4px mr-4px flex items-center justify-center'>
-                    <ConversationTitleMinimap conversationId={conversationId} />
-                  </div>
-                </div>
-              )}
-            </div>
+            <ChatTitleEditor
+              editingTitle={editingTitle}
+              titleDraft={titleDraft}
+              setTitleDraft={setTitleDraft}
+              setEditingTitle={setEditingTitle}
+              renameLoading={renameLoading}
+              canRenameTitle={canRenameTitle}
+              submitTitleRename={submitTitleRename}
+              titleAreaMaxWidth={titleAreaMaxWidth}
+              title={props.title}
+              conversationId={conversationId}
+            />
           )}
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
@@ -540,84 +442,21 @@ const ChatLayout: React.FC<{
           </>
         )}
 
-        {/* Mobile workspace backdrop */}
-        {workspaceEnabled && layout?.isMobile && !rightSiderCollapsed && (
-          <div
-            className='fixed inset-0 bg-black/30 z-90'
-            onClick={() => setRightSiderCollapsed(true)}
-            aria-hidden='true'
+        {/* Mobile workspace overlay: backdrop + fixed panel + floating collapse handle */}
+        {workspaceEnabled && layout?.isMobile && (
+          <MobileWorkspaceOverlay
+            rightSiderCollapsed={rightSiderCollapsed}
+            setRightSiderCollapsed={setRightSiderCollapsed}
+            workspaceWidthPx={workspaceWidthPx}
+            mobileWorkspaceHandleRight={mobileWorkspaceHandleRight}
+            siderTitle={props.siderTitle}
+            sider={props.sider}
           />
         )}
 
-        {/* Mobile workspace (keep original fixed positioning) */}
-        {workspaceEnabled && layout?.isMobile && (
-          <div
-            className='!bg-1 relative chat-layout-right-sider'
-            style={{
-              position: 'fixed',
-              right: 0,
-              top: 0,
-              height: '100vh',
-              width: `${Math.round(workspaceWidthPx)}px`,
-              zIndex: 100,
-              transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)',
-              transition: 'none',
-              pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
-            }}
-          >
-            <WorkspacePanelHeader
-              showToggle
-              collapsed={rightSiderCollapsed}
-              onToggle={() => dispatchWorkspaceToggleEvent()}
-              togglePlacement='left'
-            >
-              {props.siderTitle}
-            </WorkspacePanelHeader>
-            <ArcoLayout.Content className='bg-1' style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
-              {props.sider}
-            </ArcoLayout.Content>
-          </div>
-        )}
-
-        {workspaceEnabled && layout?.isMobile && !rightSiderCollapsed && (
-          <button
-            type='button'
-            className='fixed z-101 flex items-center justify-center transition-colors workspace-toggle-floating'
-            style={{
-              top: '50%',
-              right: `${mobileWorkspaceHandleRight}px`,
-              transform: 'translateY(-50%)',
-              width: '20px',
-              height: '64px',
-              borderTopLeftRadius: '10px',
-              borderBottomLeftRadius: '10px',
-              borderTopRightRadius: '0',
-              borderBottomRightRadius: '0',
-              borderRight: 'none',
-              backgroundColor: 'var(--bg-2)',
-              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.12)',
-            }}
-            onClick={() => dispatchWorkspaceToggleEvent()}
-            aria-label='Collapse workspace'
-          >
-            <span className='flex flex-col items-center justify-center gap-5px text-t-secondary'>
-              <span className='block w-8px h-2px rd-999px bg-current opacity-85'></span>
-              <span className='block w-8px h-2px rd-999px bg-current opacity-65'></span>
-              <span className='block w-8px h-2px rd-999px bg-current opacity-45'></span>
-            </span>
-          </button>
-        )}
-
+        {/* Desktop expand button when workspace is collapsed */}
         {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && (
-          <button
-            type='button'
-            className='workspace-toggle-floating workspace-header__toggle absolute top-1/2 right-2 z-10'
-            style={{ transform: 'translateY(-50%)' }}
-            onClick={() => dispatchWorkspaceToggleEvent()}
-            aria-label='Expand workspace'
-          >
-            <ExpandLeft size={16} />
-          </button>
+          <DesktopWorkspaceToggle />
         )}
       </div>
     </ArcoLayout>
