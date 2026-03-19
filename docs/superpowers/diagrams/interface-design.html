@@ -2,8 +2,17 @@
 <p class="subtitle">每层只依赖接口，不依赖具体实现 — 箭头表示"依赖方向"</p>
 
 <style>
-  .design-wrap { display: flex; flex-direction: column; gap: 10px; font-family: -apple-system, sans-serif; }
-  .layer-row { display: flex; align-items: stretch; gap: 10px; }
+  .design-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: -apple-system, sans-serif;
+  }
+  .layer-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+  }
   .box {
     border-radius: 8px;
     padding: 12px 16px;
@@ -11,34 +20,101 @@
     border: 2px solid #334155;
     background: #0f172a;
   }
-  .box.concrete { border-style: solid; }
-  .box.iface { border-style: dashed; border-color: #6366f1; background: #1e1b4b; }
-  .box-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
-  .box-name { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
-  .box-name.iface-name { color: #a5b4fc; }
-  .box-methods { font-size: 11px; color: #64748b; line-height: 1.7; font-family: monospace; }
-  .box-methods span { color: #94a3b8; }
-  .sep { width: 2px; background: #1e293b; border-radius: 2px; flex: 0 0 2px; }
-  .arrow { text-align: center; font-size: 13px; color: #475569; margin: -2px 0; }
-  .arrow b { color: #6366f1; }
-  .legend { display: flex; gap: 20px; margin-top: 8px; font-size: 11px; color: #64748b; }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
-  .legend-box { width: 28px; height: 14px; border-radius: 3px; }
-  .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
-  .tag.new { background: #166534; color: #4ade80; }
-  .tag.keep { background: #1e3a5f; color: #60a5fa; }
-  .tag.thin { background: #451a03; color: #fb923c; }
+  .box.concrete {
+    border-style: solid;
+  }
+  .box.iface {
+    border-style: dashed;
+    border-color: #6366f1;
+    background: #1e1b4b;
+  }
+  .box-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .box-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 4px;
+  }
+  .box-name.iface-name {
+    color: #a5b4fc;
+  }
+  .box-methods {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.7;
+    font-family: monospace;
+  }
+  .box-methods span {
+    color: #94a3b8;
+  }
+  .sep {
+    width: 2px;
+    background: #1e293b;
+    border-radius: 2px;
+    flex: 0 0 2px;
+  }
+  .arrow {
+    text-align: center;
+    font-size: 13px;
+    color: #475569;
+    margin: -2px 0;
+  }
+  .arrow b {
+    color: #6366f1;
+  }
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #64748b;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-box {
+    width: 28px;
+    height: 14px;
+    border-radius: 3px;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .tag.new {
+    background: #166534;
+    color: #4ade80;
+  }
+  .tag.keep {
+    background: #1e3a5f;
+    color: #60a5fa;
+  }
+  .tag.thin {
+    background: #451a03;
+    color: #fb923c;
+  }
 </style>
 
 <div class="design-wrap">
-
   <!-- Bridge Layer -->
   <div class="layer-row">
     <div class="box concrete">
-      <div class="box-title" style="color:#fb923c">Bridge 层（瘦身后）</div>
+      <div class="box-title" style="color: #fb923c">Bridge 层（瘦身后）</div>
       <div class="box-name">conversationBridge <span class="tag thin">瘦身</span></div>
       <div class="box-methods">
-        接收 IPC → 调接口 → 返回结果<br>
+        接收 IPC → 调接口 → 返回结果<br />
         <span>不再包含业务逻辑</span>
       </div>
     </div>
@@ -49,24 +125,24 @@
   <!-- Service Interfaces -->
   <div class="layer-row">
     <div class="box iface">
-      <div class="box-title" style="color:#a5b4fc">接口 <span class="tag new">新增</span></div>
+      <div class="box-title" style="color: #a5b4fc">接口 <span class="tag new">新增</span></div>
       <div class="box-name iface-name">IConversationService</div>
       <div class="box-methods">
-        createConversation(params)<br>
-        deleteConversation(id)<br>
-        updateConversation(id, updates)<br>
-        getConversation(id)<br>
+        createConversation(params)<br />
+        deleteConversation(id)<br />
+        updateConversation(id, updates)<br />
+        getConversation(id)<br />
         migrateConversation(params)
       </div>
     </div>
     <div class="sep"></div>
     <div class="box iface">
-      <div class="box-title" style="color:#a5b4fc">接口 <span class="tag new">新增</span></div>
+      <div class="box-title" style="color: #a5b4fc">接口 <span class="tag new">新增</span></div>
       <div class="box-name iface-name">IWorkerTaskManager</div>
       <div class="box-methods">
-        getTask(id): IAgentManager<br>
-        getOrBuildTask(id): Promise&lt;IAgentManager&gt;<br>
-        kill(id)<br>
+        getTask(id): IAgentManager<br />
+        getOrBuildTask(id): Promise&lt;IAgentManager&gt;<br />
+        kill(id)<br />
         clear()
       </div>
     </div>
@@ -77,21 +153,21 @@
   <!-- Service Implementations -->
   <div class="layer-row">
     <div class="box concrete">
-      <div class="box-title" style="color:#4ade80">Service 实现</div>
+      <div class="box-title" style="color: #4ade80">Service 实现</div>
       <div class="box-name">ConversationService <span class="tag keep">重构</span></div>
       <div class="box-methods">
-        <span>依赖 IConversationRepository</span><br>
-        包含迁移、完整性校验等业务逻辑<br>
+        <span>依赖 IConversationRepository</span><br />
+        包含迁移、完整性校验等业务逻辑<br />
         <span>（从 Bridge 下沉过来）</span>
       </div>
     </div>
     <div class="sep"></div>
     <div class="box concrete">
-      <div class="box-title" style="color:#4ade80">Manager 实现</div>
+      <div class="box-title" style="color: #4ade80">Manager 实现</div>
       <div class="box-name">WorkerTaskManager <span class="tag keep">重构</span></div>
       <div class="box-methods">
-        <span>依赖 IAgentFactory</span><br>
-        不再有 switch/case<br>
+        <span>依赖 IAgentFactory</span><br />
+        不再有 switch/case<br />
         <span>（WorkerManage 重构）</span>
       </div>
     </div>
@@ -101,37 +177,37 @@
 
   <!-- Agent Interface -->
   <div class="layer-row">
-    <div class="box iface" style="border-color:#f59e0b; background:#1c1003;">
-      <div class="box-title" style="color:#fbbf24">接口 <span class="tag new">新增</span></div>
-      <div class="box-name" style="color:#fde68a">IAgentManager</div>
+    <div class="box iface" style="border-color: #f59e0b; background: #1c1003">
+      <div class="box-title" style="color: #fbbf24">接口 <span class="tag new">新增</span></div>
+      <div class="box-name" style="color: #fde68a">IAgentManager</div>
       <div class="box-methods">
-        type: AgentType<br>
-        status: AgentStatus<br>
-        workspace: string<br>
-        sendMessage(data)<br>
-        stop()<br>
-        confirm(msgId, callId, data)<br>
-        getConfirmations()<br>
+        type: AgentType<br />
+        status: AgentStatus<br />
+        workspace: string<br />
+        sendMessage(data)<br />
+        stop()<br />
+        confirm(msgId, callId, data)<br />
+        getConfirmations()<br />
         kill()
       </div>
     </div>
     <div class="sep"></div>
-    <div class="box iface" style="border-color:#f59e0b; background:#1c1003;">
-      <div class="box-title" style="color:#fbbf24">接口 <span class="tag new">新增</span></div>
-      <div class="box-name" style="color:#fde68a">IAgentFactory</div>
+    <div class="box iface" style="border-color: #f59e0b; background: #1c1003">
+      <div class="box-title" style="color: #fbbf24">接口 <span class="tag new">新增</span></div>
+      <div class="box-name" style="color: #fde68a">IAgentFactory</div>
       <div class="box-methods">
-        register(type, factory)<br>
+        register(type, factory)<br />
         create(conversation, options): IAgentManager
       </div>
     </div>
     <div class="sep"></div>
-    <div class="box iface" style="border-color:#f59e0b; background:#1c1003;">
-      <div class="box-title" style="color:#fbbf24">接口 <span class="tag new">新增</span></div>
-      <div class="box-name" style="color:#fde68a">IAgentEventEmitter</div>
+    <div class="box iface" style="border-color: #f59e0b; background: #1c1003">
+      <div class="box-title" style="color: #fbbf24">接口 <span class="tag new">新增</span></div>
+      <div class="box-name" style="color: #fde68a">IAgentEventEmitter</div>
       <div class="box-methods">
-        emitConfirmAdd(data)<br>
-        emitConfirmUpdate(data)<br>
-        emitConfirmRemove(data)<br>
+        emitConfirmAdd(data)<br />
+        emitConfirmUpdate(data)<br />
+        emitConfirmRemove(data)<br />
         emitMessage(event)
       </div>
     </div>
@@ -142,31 +218,31 @@
   <!-- Agent Implementations -->
   <div class="layer-row">
     <div class="box concrete">
-      <div class="box-title" style="color:#67e8f9">Agent 实现层</div>
+      <div class="box-title" style="color: #67e8f9">Agent 实现层</div>
       <div class="box-name">BaseAgentManager <span class="tag keep">重构</span></div>
       <div class="box-methods">
-        <span>实现 IAgentManager</span><br>
-        构造注入 IAgentEventEmitter<br>
+        <span>实现 IAgentManager</span><br />
+        构造注入 IAgentEventEmitter<br />
         <span>不再直接调 ipcBridge</span>
       </div>
     </div>
     <div class="sep"></div>
     <div class="box concrete">
-      <div class="box-title" style="color:#67e8f9">Factory 实现</div>
+      <div class="box-title" style="color: #67e8f9">Factory 实现</div>
       <div class="box-name">AgentFactory <span class="tag new">新增</span></div>
       <div class="box-methods">
-        <span>实现 IAgentFactory</span><br>
-        注册各 Agent 类型<br>
+        <span>实现 IAgentFactory</span><br />
+        注册各 Agent 类型<br />
         <span>替代 WorkerManage 里的 switch</span>
       </div>
     </div>
     <div class="sep"></div>
     <div class="box concrete">
-      <div class="box-title" style="color:#67e8f9">IPC 事件实现</div>
+      <div class="box-title" style="color: #67e8f9">IPC 事件实现</div>
       <div class="box-name">IpcAgentEventEmitter <span class="tag new">新增</span></div>
       <div class="box-methods">
-        <span>实现 IAgentEventEmitter</span><br>
-        内部调用 ipcBridge<br>
+        <span>实现 IAgentEventEmitter</span><br />
+        内部调用 ipcBridge<br />
         <span>测试时换成 MockEmitter</span>
       </div>
     </div>
@@ -176,25 +252,25 @@
 
   <!-- Repository + Worker -->
   <div class="layer-row">
-    <div class="box iface" style="border-color:#f43f5e; background:#1f0010;">
-      <div class="box-title" style="color:#fb7185">接口 <span class="tag new">新增</span></div>
-      <div class="box-name" style="color:#fda4af">IConversationRepository</div>
+    <div class="box iface" style="border-color: #f43f5e; background: #1f0010">
+      <div class="box-title" style="color: #fb7185">接口 <span class="tag new">新增</span></div>
+      <div class="box-name" style="color: #fda4af">IConversationRepository</div>
       <div class="box-methods">
-        getConversation(id)<br>
-        createConversation(conv)<br>
-        updateConversation(id, updates)<br>
-        deleteConversation(id)<br>
-        getMessages(id, page, size)<br>
+        getConversation(id)<br />
+        createConversation(conv)<br />
+        updateConversation(id, updates)<br />
+        deleteConversation(id)<br />
+        getMessages(id, page, size)<br />
         insertMessage(msg)
       </div>
     </div>
     <div class="sep"></div>
-    <div class="box concrete" style="border-color:#334155;">
-      <div class="box-title" style="color:#94a3b8">Worker 协议类型 <span class="tag new">新增</span></div>
+    <div class="box concrete" style="border-color: #334155">
+      <div class="box-title" style="color: #94a3b8">Worker 协议类型 <span class="tag new">新增</span></div>
       <div class="box-name">WorkerProtocol.ts</div>
       <div class="box-methods">
-        MainToWorker 消息类型联合<br>
-        WorkerToMain 事件类型联合<br>
+        MainToWorker 消息类型联合<br />
+        WorkerToMain 事件类型联合<br />
         <span>替代字符串约定</span>
       </div>
     </div>
@@ -204,22 +280,21 @@
 
   <!-- DB -->
   <div class="layer-row">
-    <div class="box concrete" style="border-color:#334155; flex: 0.5;">
-      <div class="box-title" style="color:#94a3b8">数据层（不变）</div>
+    <div class="box concrete" style="border-color: #334155; flex: 0.5">
+      <div class="box-title" style="color: #94a3b8">数据层（不变）</div>
       <div class="box-name">SQLiteConversationRepository <span class="tag keep">新增包装</span></div>
       <div class="box-methods"><span>包装现有 getDatabase() 调用</span></div>
     </div>
   </div>
-
 </div>
 
 <div class="legend">
   <div class="legend-item">
-    <div class="legend-box" style="border: 2px dashed #6366f1; background: #1e1b4b;"></div>
+    <div class="legend-box" style="border: 2px dashed #6366f1; background: #1e1b4b"></div>
     <span>新增接口（Interface）</span>
   </div>
   <div class="legend-item">
-    <div class="legend-box" style="border: 2px solid #334155; background: #0f172a;"></div>
+    <div class="legend-box" style="border: 2px solid #334155; background: #0f172a"></div>
     <span>具体实现（Concrete）</span>
   </div>
 </div>

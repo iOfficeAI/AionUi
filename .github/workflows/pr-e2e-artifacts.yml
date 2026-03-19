@@ -3,7 +3,6 @@ name: '✓PR E2E Artifacts'
 on:
   workflow_dispatch:
 
-
 concurrency:
   group: pr-e2e-artifacts-${{ github.run_id }}
   cancel-in-progress: true

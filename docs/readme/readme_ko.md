@@ -199,7 +199,6 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
 
 <p align="center"><em>에이전트 원격 감시 및 제어 — Claude, Gemini, Codex. 브라우저나 휴대폰에서 Claude Code remote처럼 사용하세요.</em></p>
 
-
 > [원격 인터넷 접근 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork 실연
@@ -553,7 +552,6 @@ brew install aionui
 - [릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) — 최신 버전 받기
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
 - [WeChat 그룹](./resources/wechat_group_5.png) — 중국어 커뮤니티
-
 
 ### 기여하기
 

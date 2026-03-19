@@ -67,5 +67,3 @@ declare global {
     electronAPI?: ElectronBridgeAPI;
   }
 }
-
-export {};

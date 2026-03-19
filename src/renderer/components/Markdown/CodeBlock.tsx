@@ -97,7 +97,7 @@ function CodeBlock(props: CodeBlockProps) {
     const diffLines = isDiff ? formattedContent.split('\n') : [];
 
     return (
-      <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...(props.codeStyle || {}) }}>
+      <div style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...props.codeStyle }}>
         <div
           style={{
             border: '1px solid var(--bg-3)',

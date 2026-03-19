@@ -278,10 +278,10 @@ export class ChannelManager {
         | undefined;
 
       const nextCredentials: Record<string, string | number | boolean | undefined> = {
-        ...(credentials || {}),
+        ...credentials,
       };
       const nextRuntimeConfig: Record<string, string | number | boolean | undefined> = {
-        ...(pluginRuntimeConfig || {}),
+        ...pluginRuntimeConfig,
       };
 
       const primitiveEntries = Object.entries(config).filter(([, value]) => {

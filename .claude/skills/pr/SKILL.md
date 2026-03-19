@@ -23,6 +23,7 @@ git diff main...HEAD --stat
 ```
 
 **Rules:**
+
 - If on `main` or `master`: **STOP** — create a new branch first (see commit skill Step 0)
 - If no commits ahead of main: **STOP** — nothing to submit
 - If branch has uncommitted changes: ask user whether to commit first
@@ -37,6 +38,7 @@ git diff main...HEAD
 ```
 
 Summarize:
+
 - What the PR accomplishes (feature, fix, refactor, etc.)
 - Which modules/areas are affected
 - Any breaking changes or migration notes
@@ -46,9 +48,11 @@ Summarize:
 **Check if the user mentioned an issue** during the conversation (e.g., "fixes #123", "关联 issue #45", or a GitHub issue URL).
 
 #### Case A: Issue was mentioned
+
 - Note the issue number for PR body (e.g., `Closes #123`)
 
 #### Case B: No issue mentioned
+
 - **Create a new issue** using `gh issue create`:
 
 ```bash
@@ -100,12 +104,14 @@ EOF
 ```
 
 **PR Title rules:**
+
 - Under 70 characters
 - Format: `<type>(<scope>): <description>` (same as commit convention)
 - If single commit, reuse commit message as title
 - If multiple commits, write a summary title
 
 **PR Body rules:**
+
 - `Closes #<number>` to auto-close the linked issue on merge
 - Include test plan with actionable checklist
 - If there are breaking changes, add a `## Breaking Changes` section
@@ -122,18 +128,19 @@ After creating the PR:
 
 When creating issues automatically:
 
-| Change Type | Issue Title Example | Labels |
-|-------------|-------------------|--------|
-| New feature | `feat(webui): add file upload support` | `enhancement` |
-| Bug fix | `fix(cron): timezone offset causes missed jobs` | `bug` |
-| Refactor | `refactor(settings): decompose SkillsHubSettings` | `refactor` |
-| Docs | `docs: add architecture conventions` | `documentation` |
+| Change Type | Issue Title Example                               | Labels          |
+| ----------- | ------------------------------------------------- | --------------- |
+| New feature | `feat(webui): add file upload support`            | `enhancement`   |
+| Bug fix     | `fix(cron): timezone offset causes missed jobs`   | `bug`           |
+| Refactor    | `refactor(settings): decompose SkillsHubSettings` | `refactor`      |
+| Docs        | `docs: add architecture conventions`              | `documentation` |
 
 ## Mandatory Rules
 
 ### No AI Signature
 
 **NEVER add any AI-related signatures.** This includes:
+
 - `Generated with <AI tool>` in PR descriptions
 - `Co-Authored-By: <any AI tool>` in commits
 - Any AI-generated footer, byline, or emoji attribution

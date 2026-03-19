@@ -1,0 +1,74 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "warn",
+    "style": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-explicit-any": "warn",
+    "no-empty-pattern": "warn",
+    "no-constant-condition": "warn",
+    "consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "disallowTypeAnnotations": false
+      }
+    ],
+    "no-floating-promises": "error",
+    "no-await-thenable": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.js"],
+      "rules": {
+        "no-floating-promises": "off",
+        "no-await-thenable": "off"
+      }
+    },
+    {
+      "files": ["forge.config.ts", "vitest.config.ts", "tests/**/*.ts", "tests/**/*.tsx"],
+      "rules": {
+        "no-floating-promises": "off",
+        "no-await-thenable": "off"
+      }
+    },
+    {
+      "files": ["**/gemini/cli/**/*.ts"],
+      "rules": {
+        "no-floating-promises": "off",
+        "no-await-thenable": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    ".webpack/",
+    "out/",
+    "*.min.js",
+    "*.min.css",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "*.log",
+    "public/",
+    "resources/",
+    "docs/",
+    "config/webpack/",
+    "scripts/",
+    "src/agent/gemini/cli/"
+  ]
+}

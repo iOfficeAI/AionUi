@@ -13,10 +13,10 @@ Rules for organizing files and directories across the entire Electron project.
 
 ### Current Root Cleanup Targets
 
-| Action | Files |
-|--------|-------|
-| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md` |
-| Move guides to `docs/` | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` |
+| Action                                     | Files                                                       |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md`                          |
+| Move guides to `docs/`                     | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` |
 
 ## Project Layout (`src/`)
 
@@ -51,12 +51,12 @@ Some main-process modules still live at `src/` root and will be migrated increme
 
 This project straddles two ecosystems. Each follows its own convention:
 
-| Scope | Directory naming | Reason |
-|-------|-----------------|--------|
-| **Renderer** (`src/renderer/`) | **PascalCase** for component/module dirs | React ecosystem — directory name = component name |
-| **Everything else** | **lowercase** | Node.js ecosystem |
-| **Categorical dirs** (everywhere) | **lowercase** | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
-| **Platform dirs** (renderer pages) | **lowercase** | Mirror `src/agent/<platform>/` naming for cross-process consistency |
+| Scope                              | Directory naming                         | Reason                                                                      |
+| ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| **Renderer** (`src/renderer/`)     | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
+| **Everything else**                | **lowercase**                            | Node.js ecosystem                                                           |
+| **Categorical dirs** (everywhere)  | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
+| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `src/agent/<platform>/` naming for cross-process consistency         |
 
 ### Quick test
 
@@ -95,36 +95,37 @@ src/channels/plugins/dingtalk/   # lowercase
 
 ## File Naming — Same Everywhere
 
-| Content | Convention | Examples |
-|---------|-----------|----------|
-| React components, classes | PascalCase | `SettingsModal.tsx`, `CronService.ts` |
-| Hooks | camelCase with `use` prefix | `useTheme.ts`, `useCronJobs.ts` |
-| Utilities, helpers | camelCase | `formatDate.ts`, `cronUtils.ts` |
-| Entry points | `index.ts` / `index.tsx` | Required for directory-based modules |
-| Config, types, constants | camelCase | `types.ts`, `constants.ts` |
-| Styles | kebab-case or `Name.module.css` | `chat-layout.css` |
+| Content                   | Convention                      | Examples                              |
+| ------------------------- | ------------------------------- | ------------------------------------- |
+| React components, classes | PascalCase                      | `SettingsModal.tsx`, `CronService.ts` |
+| Hooks                     | camelCase with `use` prefix     | `useTheme.ts`, `useCronJobs.ts`       |
+| Utilities, helpers        | camelCase                       | `formatDate.ts`, `cronUtils.ts`       |
+| Entry points              | `index.ts` / `index.tsx`        | Required for directory-based modules  |
+| Config, types, constants  | camelCase                       | `types.ts`, `constants.ts`            |
+| Styles                    | kebab-case or `Name.module.css` | `chat-layout.css`                     |
 
 ## Process Boundary Rules
 
 **Violating these causes runtime crashes.**
 
-| Process | Can use | Cannot use |
-|---------|---------|------------|
-| **Main** (`src/process/`) | Node.js, Electron main APIs | DOM APIs, React |
+| Process                        | Can use                       | Cannot use                       |
+| ------------------------------ | ----------------------------- | -------------------------------- |
+| **Main** (`src/process/`)      | Node.js, Electron main APIs   | DOM APIs, React                  |
 | **Renderer** (`src/renderer/`) | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
-| **Worker** (`src/worker/`) | Node.js APIs | DOM APIs, Electron APIs |
+| **Worker** (`src/worker/`)     | Node.js APIs                  | DOM APIs, Electron APIs          |
 
 Cross-process communication MUST go through:
+
 - Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
 - Main ↔ Worker: fork protocol via `src/worker/WorkerProtocol.ts`
 
 ## Main Process Naming
 
-| Type | Pattern | Examples |
-|------|---------|----------|
-| Bridge | `<domain>Bridge.ts` | `cronBridge.ts`, `webuiBridge.ts` |
-| Service | `<Name>Service.ts` | `CronService.ts`, `McpService.ts` |
-| Interface | `I<Name>Service.ts` | `IConversationService.ts` |
+| Type       | Pattern               | Examples                          |
+| ---------- | --------------------- | --------------------------------- |
+| Bridge     | `<domain>Bridge.ts`   | `cronBridge.ts`, `webuiBridge.ts` |
+| Service    | `<Name>Service.ts`    | `CronService.ts`, `McpService.ts` |
+| Interface  | `I<Name>Service.ts`   | `IConversationService.ts`         |
 | Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
 
 ## Service Testability Rules
@@ -160,13 +161,13 @@ For existing code using direct imports, `vi.mock()` is acceptable. For new code,
 
 Test files must mirror the source file they test:
 
-| Source | Test |
-|--------|------|
-| `src/process/services/CronService.ts` | `tests/unit/cronService.test.ts` |
-| `src/process/bridge/fsBridge.ts` | `tests/unit/fsBridge.test.ts` |
-| `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts` |
-| `src/renderer/hooks/ui/useAutoScroll.ts` | `tests/unit/useAutoScroll.dom.test.ts` |
-| `src/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
+| Source                                       | Test                                            |
+| -------------------------------------------- | ----------------------------------------------- |
+| `src/process/services/CronService.ts`        | `tests/unit/cronService.test.ts`                |
+| `src/process/bridge/fsBridge.ts`             | `tests/unit/fsBridge.test.ts`                   |
+| `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts`            |
+| `src/renderer/hooks/ui/useAutoScroll.ts`     | `tests/unit/useAutoScroll.dom.test.ts`          |
+| `src/extensions/ExtensionLoader.ts`          | `tests/unit/extensions/extensionLoader.test.ts` |
 
 When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/extensions/`). New source files with logic should be added to `vitest.config.ts` → `coverage.include`.
 
@@ -210,6 +211,7 @@ src/renderer/
 ```
 
 **What does NOT belong at the renderer root:**
+
 - CSS files → move to `styles/`
 - Component files (`.tsx`) → move to `components/` or `pages/`
 - Single-file directories (only 1 file inside) → merge into a related directory
@@ -226,14 +228,17 @@ src/renderer/
 `components/` is for shared components used across multiple pages. It has two layers:
 
 **Fixed layer:**
+
 - `base/` — Generic UI primitives with no business logic. The only fixed subdirectory. Components here must not depend on app-specific context or domain logic.
 
 **Business layer:**
+
 - Create subdirectories by **business domain**, using lowercase naming (categorical directory rule)
 - Create a domain subdirectory when **≥ 2** shared components belong to the same domain
 - A single component may stay at the `components/` root temporarily until a second component in the same domain appears
 
 **Constraints:**
+
 - The `components/` root must not exceed **10** direct children (files + directories)
 - Components used by only **one** page must live in `pages/<PageName>/components/`, not here
 
@@ -299,10 +304,10 @@ PageName/                  # PascalCase
 
 Inside a page module (e.g., `pages/conversation/`), three types of subdirectories exist:
 
-| Type | Convention | Examples |
-|------|-----------|----------|
-| **Categorical** (standard role) | lowercase | `components/`, `hooks/`, `context/`, `utils/` |
-| **Feature module** (business feature) | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/` |
-| **Platform directory** (mirrors `src/agent/`) | lowercase | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
+| Type                                          | Convention | Examples                                             |
+| --------------------------------------------- | ---------- | ---------------------------------------------------- |
+| **Categorical** (standard role)               | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
+| **Feature module** (business feature)         | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
+| **Platform directory** (mirrors `src/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
 
 Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/agent/<platform>/`.

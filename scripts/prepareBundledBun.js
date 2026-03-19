@@ -86,7 +86,11 @@ function getDownloadUrl(assetName, version) {
     return `https://github.com/oven-sh/bun/releases/latest/download/${assetName}`;
   }
 
-  const normalized = version.startsWith('bun-v') ? version : version.startsWith('v') ? `bun-${version}` : `bun-v${version}`;
+  const normalized = version.startsWith('bun-v')
+    ? version
+    : version.startsWith('v')
+      ? `bun-${version}`
+      : `bun-v${version}`;
   return `https://github.com/oven-sh/bun/releases/download/${normalized}/${assetName}`;
 }
 
@@ -162,8 +166,7 @@ function ensureExecutableMode(filePath) {
   if (process.platform === 'win32') return;
   try {
     fs.chmodSync(filePath, 0o755);
-  } catch {
-  }
+  } catch {}
 }
 
 function getCacheMetaPath(cacheRuntimeDir) {
@@ -186,12 +189,7 @@ function isCachedRuntimeValid(cacheRuntimeDir, platform, arch, version) {
   const meta = readCacheMeta(cacheRuntimeDir);
   if (!meta) return false;
 
-  return (
-    meta.platform === platform &&
-    meta.arch === arch &&
-    meta.version === version &&
-    meta.sourceType === 'download'
-  );
+  return meta.platform === platform && meta.arch === arch && meta.version === version && meta.sourceType === 'download';
 }
 
 function writeManifest(outputDir, manifest) {

@@ -10,7 +10,38 @@ Assumes docx is already installed globally
 If not installed: `npm install -g docx`
 
 ```javascript
-const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun, Media, Header, Footer, AlignmentType, PageOrientation, LevelFormat, ExternalHyperlink, InternalHyperlink, TableOfContents, HeadingLevel, BorderStyle, WidthType, TabStopType, TabStopPosition, UnderlineType, ShadingType, VerticalAlign, SymbolRun, PageNumber, FootnoteReferenceRun, Footnote, PageBreak } = require('docx');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  ImageRun,
+  Media,
+  Header,
+  Footer,
+  AlignmentType,
+  PageOrientation,
+  LevelFormat,
+  ExternalHyperlink,
+  InternalHyperlink,
+  TableOfContents,
+  HeadingLevel,
+  BorderStyle,
+  WidthType,
+  TabStopType,
+  TabStopPosition,
+  UnderlineType,
+  ShadingType,
+  VerticalAlign,
+  SymbolRun,
+  PageNumber,
+  FootnoteReferenceRun,
+  Footnote,
+  PageBreak,
+} = require('docx');
 
 // Create & Save
 const doc = new Document({
@@ -64,7 +95,13 @@ const doc = new Document({
     default: { document: { run: { font: 'Arial', size: 24 } } }, // 12pt default
     paragraphStyles: [
       // Document title style - override built-in Title style
-      { id: 'Title', name: 'Title', basedOn: 'Normal', run: { size: 56, bold: true, color: '000000', font: 'Arial' }, paragraph: { spacing: { before: 240, after: 120 }, alignment: AlignmentType.CENTER } },
+      {
+        id: 'Title',
+        name: 'Title',
+        basedOn: 'Normal',
+        run: { size: 56, bold: true, color: '000000', font: 'Arial' },
+        paragraph: { spacing: { before: 240, after: 120 }, alignment: AlignmentType.CENTER },
+      },
       // IMPORTANT: Override built-in heading styles by using their exact IDs
       {
         id: 'Heading1',
@@ -85,9 +122,21 @@ const doc = new Document({
         paragraph: { spacing: { before: 180, after: 180 }, outlineLevel: 1 },
       },
       // Custom styles use your own IDs
-      { id: 'myStyle', name: 'My Style', basedOn: 'Normal', run: { size: 28, bold: true, color: '000000' }, paragraph: { spacing: { after: 120 }, alignment: AlignmentType.CENTER } },
+      {
+        id: 'myStyle',
+        name: 'My Style',
+        basedOn: 'Normal',
+        run: { size: 28, bold: true, color: '000000' },
+        paragraph: { spacing: { after: 120 }, alignment: AlignmentType.CENTER },
+      },
     ],
-    characterStyles: [{ id: 'myCharStyle', name: 'My Char Style', run: { color: 'FF0000', bold: true, underline: { type: UnderlineType.SINGLE } } }],
+    characterStyles: [
+      {
+        id: 'myCharStyle',
+        name: 'My Char Style',
+        run: { color: 'FF0000', bold: true, underline: { type: UnderlineType.SINGLE } },
+      },
+    ],
   },
   sections: [
     {
@@ -96,7 +145,9 @@ const doc = new Document({
         new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun('Document Title')] }), // Uses overridden Title style
         new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun('Heading 1')] }), // Uses overridden Heading1 style
         new Paragraph({ style: 'myStyle', children: [new TextRun('Custom paragraph style')] }),
-        new Paragraph({ children: [new TextRun('Normal with '), new TextRun({ text: 'custom char style', style: 'myCharStyle' })] }),
+        new Paragraph({
+          children: [new TextRun('Normal with '), new TextRun({ text: 'custom char style', style: 'myCharStyle' })],
+        }),
       ],
     },
   ],
@@ -129,11 +180,41 @@ const doc = new Document({
 const doc = new Document({
   numbering: {
     config: [
-      { reference: 'bullet-list', levels: [{ level: 0, format: LevelFormat.BULLET, text: '•', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
-      { reference: 'first-numbered-list', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] },
+      {
+        reference: 'bullet-list',
+        levels: [
+          {
+            level: 0,
+            format: LevelFormat.BULLET,
+            text: '•',
+            alignment: AlignmentType.LEFT,
+            style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+          },
+        ],
+      },
+      {
+        reference: 'first-numbered-list',
+        levels: [
+          {
+            level: 0,
+            format: LevelFormat.DECIMAL,
+            text: '%1.',
+            alignment: AlignmentType.LEFT,
+            style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+          },
+        ],
+      },
       {
         reference: 'second-numbered-list', // Different reference = restarts at 1
-        levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }],
+        levels: [
+          {
+            level: 0,
+            format: LevelFormat.DECIMAL,
+            text: '%1.',
+            alignment: AlignmentType.LEFT,
+            style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+          },
+        ],
       },
     ],
   },
@@ -141,14 +222,29 @@ const doc = new Document({
     {
       children: [
         // Bullet list items
-        new Paragraph({ numbering: { reference: 'bullet-list', level: 0 }, children: [new TextRun('First bullet point')] }),
-        new Paragraph({ numbering: { reference: 'bullet-list', level: 0 }, children: [new TextRun('Second bullet point')] }),
+        new Paragraph({
+          numbering: { reference: 'bullet-list', level: 0 },
+          children: [new TextRun('First bullet point')],
+        }),
+        new Paragraph({
+          numbering: { reference: 'bullet-list', level: 0 },
+          children: [new TextRun('Second bullet point')],
+        }),
         // Numbered list items
-        new Paragraph({ numbering: { reference: 'first-numbered-list', level: 0 }, children: [new TextRun('First numbered item')] }),
-        new Paragraph({ numbering: { reference: 'first-numbered-list', level: 0 }, children: [new TextRun('Second numbered item')] }),
+        new Paragraph({
+          numbering: { reference: 'first-numbered-list', level: 0 },
+          children: [new TextRun('First numbered item')],
+        }),
+        new Paragraph({
+          numbering: { reference: 'first-numbered-list', level: 0 },
+          children: [new TextRun('Second numbered item')],
+        }),
         // ⚠️ CRITICAL: Different reference = INDEPENDENT list that restarts at 1
         // Same reference = CONTINUES previous numbering
-        new Paragraph({ numbering: { reference: 'second-numbered-list', level: 0 }, children: [new TextRun('Starts at 1 again (because different reference)')] }),
+        new Paragraph({
+          numbering: { reference: 'second-numbered-list', level: 0 },
+          children: [new TextRun('Starts at 1 again (because different reference)')],
+        }),
       ],
     },
   ],
@@ -334,7 +430,12 @@ const doc = new Document({
           children: [
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              children: [new TextRun('Page '), new TextRun({ children: [PageNumber.CURRENT] }), new TextRun(' of '), new TextRun({ children: [PageNumber.TOTAL_PAGES] })],
+              children: [
+                new TextRun('Page '),
+                new TextRun({ children: [PageNumber.CURRENT] }),
+                new TextRun(' of '),
+                new TextRun({ children: [PageNumber.TOTAL_PAGES] }),
+              ],
             }),
           ],
         }),

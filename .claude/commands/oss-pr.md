@@ -15,6 +15,7 @@ git config user.name
 - If `user.name` is unavailable, ask the user to provide a prefix
 
 **If on `main` or `master`:**
+
 - Run `git diff HEAD --stat` and `git status` to inspect the staged/unstaged changes
 - Based on the actual changes, generate **1–2 recommended branch names** following `<type>/<short-description>` convention (e.g. `feat/dark-mode`, `fix/login-crash`)
 - Present them as a numbered list and ask the user to pick one or provide their own

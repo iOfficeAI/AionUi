@@ -43,7 +43,7 @@ jobs:
     steps:
       - run: echo "PR closed, cancelling in-progress runs via concurrency."
 
-  # Job 1: Code quality checks (TypeScript, ESLint, Prettier)
+  # Job 1: Code quality checks (TypeScript, Oxlint, Oxfmt)
   code-quality:
     name: Code Quality
     if: github.event_name == 'workflow_dispatch' || (github.event.action != 'edited' && github.event.action != 'closed')

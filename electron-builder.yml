@@ -108,9 +108,9 @@ extraResources:
 win:
   target:
     - nsis
-#    - msi
+    #    - msi
     - zip
-  icon: resources/app.ico  # Use the checked-in Windows icon resource for executable metadata/icon patching
+  icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
 nsis:
@@ -181,28 +181,28 @@ buildDependenciesFromSource: false
 nodeGypRebuild: false
 
 asarUnpack:
-  - "**/node_modules/better-sqlite3/**/*"
-  - "**/node_modules/bcrypt/**/*"
-  - "**/node_modules/node-pty/**/*"
-  - "**/node_modules/@mapbox/**/*"
-  - "**/node_modules/detect-libc/**/*"
-  - "**/node_modules/prebuild-install/**/*"
-  - "**/node_modules/node-gyp-build/**/*"
-  - "**/node_modules/bindings/**/*"
+  - '**/node_modules/better-sqlite3/**/*'
+  - '**/node_modules/bcrypt/**/*'
+  - '**/node_modules/node-pty/**/*'
+  - '**/node_modules/@mapbox/**/*'
+  - '**/node_modules/detect-libc/**/*'
+  - '**/node_modules/prebuild-install/**/*'
+  - '**/node_modules/node-gyp-build/**/*'
+  - '**/node_modules/bindings/**/*'
   # open library and dependencies - needed for Windows asar compatibility
-  - "**/node_modules/open/**/*"
-  - "**/node_modules/default-browser/**/*"
-  - "**/node_modules/default-browser-id/**/*"
-  - "**/node_modules/run-applescript/**/*"
-  - "**/node_modules/bundle-name/**/*"
+  - '**/node_modules/open/**/*'
+  - '**/node_modules/default-browser/**/*'
+  - '**/node_modules/default-browser-id/**/*'
+  - '**/node_modules/run-applescript/**/*'
+  - '**/node_modules/bundle-name/**/*'
   # tree-sitter WASM files need to be unpacked for fs.readFile access
-  - "**/node_modules/web-tree-sitter/**/*"
-  - "**/node_modules/tree-sitter-bash/**/*"
+  - '**/node_modules/web-tree-sitter/**/*'
+  - '**/node_modules/tree-sitter-bash/**/*'
   # Builtin resources need to be unpacked for fs.readdir with withFileTypes
   # Required for Homebrew installations where asar paths may have issues
-  - "rules/**/*"
-  - "skills/**/*"
-  - "src/skills/**/*"
+  - 'rules/**/*'
+  - 'skills/**/*'
+  - 'src/skills/**/*'
 
 # Compression level: normal for faster builds, maximum for smallest size
 # Note: electron-builder doesn't support YAML template syntax for env vars

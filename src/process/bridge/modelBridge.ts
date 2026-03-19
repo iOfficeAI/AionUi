@@ -528,7 +528,7 @@ export function initModelBridge(): void {
           const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
             const existing = normalizedProviders.find((item) => item.id === provider.id);
             return {
-              ...(existing || {}),
+              ...existing,
               id: provider.id,
               platform: provider.platform,
               name: provider.name,

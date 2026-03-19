@@ -195,17 +195,19 @@ Create `/opt/AionUi/proxy.pac`:
 
 ```javascript
 function FindProxyForURL(url, host) {
-    // Localhost and private networks: always direct
-    if (isPlainHostName(host) ||
-        host === "127.0.0.1" ||
-        host === "localhost" ||
-        shExpMatch(host, "10.*") ||
-        shExpMatch(host, "192.168.*") ||
-        shExpMatch(host, "172.16.*")) {
-        return "DIRECT";
-    }
-    // All other requests: try proxy first, fallback to direct
-    return "PROXY 127.0.0.1:7897; DIRECT";
+  // Localhost and private networks: always direct
+  if (
+    isPlainHostName(host) ||
+    host === '127.0.0.1' ||
+    host === 'localhost' ||
+    shExpMatch(host, '10.*') ||
+    shExpMatch(host, '192.168.*') ||
+    shExpMatch(host, '172.16.*')
+  ) {
+    return 'DIRECT';
+  }
+  // All other requests: try proxy first, fallback to direct
+  return 'PROXY 127.0.0.1:7897; DIRECT';
 }
 ```
 
@@ -219,6 +221,7 @@ Then update the `nohup xvfb-run ...` line in your startup script:
 ```
 
 **How it works**:
+
 - Chromium natively supports PAC proxy rules
 - `"PROXY 127.0.0.1:7897; DIRECT"` means: try the proxy, and if it fails (connection refused / timeout), automatically fall back to a direct connection
 - Failover is per-request and real-time — no restart needed when the SSH tunnel connects or disconnects
@@ -244,6 +247,7 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 ```
 
 **How it works**:
+
 - `PROMPT_COMMAND` runs before every shell prompt, re-checking proxy availability
 - SSH tunnel connected → proxy env vars set automatically
 - SSH tunnel disconnected → proxy env vars cleared, commands use direct connection
@@ -261,15 +265,15 @@ For Gemini API calls, configure the proxy inside AionUi WebUI:
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| `dpkg` dependency errors in containers | `dpkg --force-all -i AionUi-linux-amd64.deb` |
-| AionUi can only access `/tmp` | Set `WORKDIR` in the startup script to your workspace path |
-| WebUI not accessible remotely | Check firewall rules, or use ngrok / SSH tunnel |
-| All requests fail when proxy is down | Use PAC file (`--proxy-pac-url`) instead of `--proxy-server` |
+| Issue                                     | Solution                                                     |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `dpkg` dependency errors in containers    | `dpkg --force-all -i AionUi-linux-amd64.deb`                 |
+| AionUi can only access `/tmp`             | Set `WORKDIR` in the startup script to your workspace path   |
+| WebUI not accessible remotely             | Check firewall rules, or use ngrok / SSH tunnel              |
+| All requests fail when proxy is down      | Use PAC file (`--proxy-pac-url`) instead of `--proxy-server` |
 | `curl` fails after SSH tunnel disconnects | Add `PROMPT_COMMAND` auto-detect to `~/.bashrc` (see Step 3) |
-| Port 25808 already in use | `kill $(lsof -t -i:25808)` then restart |
-| Xvfb errors | `apt-get install -y xvfb libxkbcommon-x11-0` |
+| Port 25808 already in use                 | `kill $(lsof -t -i:25808)` then restart                      |
+| Xvfb errors                               | `apt-get install -y xvfb libxkbcommon-x11-0`                 |
 
 ---
 
@@ -418,11 +422,11 @@ esac
 
 AionUi WebUI 监听端口 **25808**，根据网络环境选择访问方式：
 
-| 方式 | 适用场景 | 命令 |
-|------|---------|------|
-| 直接访问 | 有公网 IP | 安全组开放 25808 端口 |
-| ngrok 穿透 | NAT / K8s / 无公网 IP | `ngrok http 25808` |
-| SSH 隧道 | 仅个人使用 | `ssh -L 25808:127.0.0.1:25808 user@server` |
+| 方式       | 适用场景              | 命令                                       |
+| ---------- | --------------------- | ------------------------------------------ |
+| 直接访问   | 有公网 IP             | 安全组开放 25808 端口                      |
+| ngrok 穿透 | NAT / K8s / 无公网 IP | `ngrok http 25808`                         |
+| SSH 隧道   | 仅个人使用            | `ssh -L 25808:127.0.0.1:25808 user@server` |
 
 ## 代理自动回退
 
@@ -442,15 +446,17 @@ ssh -R 7897:127.0.0.1:7897 user@YOUR_SERVER
 
 ```javascript
 function FindProxyForURL(url, host) {
-    if (isPlainHostName(host) ||
-        host === "127.0.0.1" ||
-        host === "localhost" ||
-        shExpMatch(host, "10.*") ||
-        shExpMatch(host, "192.168.*") ||
-        shExpMatch(host, "172.16.*")) {
-        return "DIRECT";
-    }
-    return "PROXY 127.0.0.1:7897; DIRECT";
+  if (
+    isPlainHostName(host) ||
+    host === '127.0.0.1' ||
+    host === 'localhost' ||
+    shExpMatch(host, '10.*') ||
+    shExpMatch(host, '192.168.*') ||
+    shExpMatch(host, '172.16.*')
+  ) {
+    return 'DIRECT';
+  }
+  return 'PROXY 127.0.0.1:7897; DIRECT';
 }
 ```
 
@@ -488,11 +494,11 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 
 ## 常见问题
 
-| 问题 | 解决方案 |
-|------|---------|
-| 容器内 dpkg 依赖报错 | `dpkg --force-all -i` 强制安装 |
-| AionUi 只能访问 /tmp | 修改启动脚本中的 `WORKDIR` |
-| 远程无法访问 WebUI | 检查防火墙/安全组，或使用 ngrok |
-| 代理断开后所有请求失败 | 用 PAC 文件替代 `--proxy-server` |
-| SSH 断开后 curl 失败 | bashrc 添加 `PROMPT_COMMAND` 自动检测 |
-| 端口 25808 被占用 | `kill $(lsof -t -i:25808)` 后重启 |
+| 问题                   | 解决方案                              |
+| ---------------------- | ------------------------------------- |
+| 容器内 dpkg 依赖报错   | `dpkg --force-all -i` 强制安装        |
+| AionUi 只能访问 /tmp   | 修改启动脚本中的 `WORKDIR`            |
+| 远程无法访问 WebUI     | 检查防火墙/安全组，或使用 ngrok       |
+| 代理断开后所有请求失败 | 用 PAC 文件替代 `--proxy-server`      |
+| SSH 断开后 curl 失败   | bashrc 添加 `PROMPT_COMMAND` 自动检测 |
+| 端口 25808 被占用      | `kill $(lsof -t -i:25808)` 后重启     |

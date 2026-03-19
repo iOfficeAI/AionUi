@@ -168,7 +168,7 @@ const ModelModalContent: React.FC = () => {
 
   // 切换模型启用状态
   const toggleModelEnabled = (platform: IProvider, model: string, enabled: boolean) => {
-    const modelEnabled = { ...(platform.modelEnabled || {}) };
+    const modelEnabled = { ...platform.modelEnabled };
     modelEnabled[model] = enabled;
 
     const updated = {
@@ -319,7 +319,7 @@ const ModelModalContent: React.FC = () => {
         const latestData = await ipcBridge.mode.getModelConfig.invoke();
         const newData = (latestData || []).map((item) => {
           if (item.id === platform.id) {
-            const modelHealth = { ...(item.modelHealth || {}) };
+            const modelHealth = { ...item.modelHealth };
             modelHealth[modelName] = {
               status: result.success ? 'healthy' : 'unhealthy',
               lastCheck: Date.now(),
@@ -373,7 +373,7 @@ const ModelModalContent: React.FC = () => {
         const latestData = await ipcBridge.mode.getModelConfig.invoke();
         const newData = (latestData || []).map((item) => {
           if (item.id === platform.id) {
-            const modelHealth = { ...(item.modelHealth || {}) };
+            const modelHealth = { ...item.modelHealth };
             modelHealth[modelName] = {
               status: 'unhealthy',
               lastCheck: Date.now(),
@@ -644,7 +644,7 @@ const ModelModalContent: React.FC = () => {
                                   className='cursor-pointer select-none'
                                   onClick={() => {
                                     const nextProtocol = getNextProtocol(modelProtocol);
-                                    const newProtocols = { ...(platform.modelProtocols || {}) };
+                                    const newProtocols = { ...platform.modelProtocols };
                                     newProtocols[model] = nextProtocol;
                                     updatePlatform({ ...platform, modelProtocols: newProtocols }, () => {});
                                   }}
@@ -679,9 +679,9 @@ const ModelModalContent: React.FC = () => {
                                   const newModels = platform.model.filter((item: string) => item !== model);
                                   // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
                                   // Clean all per-model state to avoid stale state on re-add.
-                                  const newProtocols = { ...(platform.modelProtocols || {}) };
-                                  const newModelEnabled = { ...(platform.modelEnabled || {}) };
-                                  const newModelHealth = { ...(platform.modelHealth || {}) };
+                                  const newProtocols = { ...platform.modelProtocols };
+                                  const newModelEnabled = { ...platform.modelEnabled };
+                                  const newModelHealth = { ...platform.modelHealth };
                                   delete newProtocols[model];
                                   delete newModelEnabled[model];
                                   delete newModelHealth[model];

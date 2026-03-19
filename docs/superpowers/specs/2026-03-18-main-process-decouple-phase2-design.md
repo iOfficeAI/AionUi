@@ -11,19 +11,19 @@
 
 Phase 1 (5 PRs, PR #1402) established the foundation:
 
-| Artifact | Location |
-|----------|----------|
-| `IAgentManager` | `src/process/task/IAgentManager.ts` |
-| `IWorkerTaskManager` | `src/process/task/IWorkerTaskManager.ts` |
-| `IAgentFactory` | `src/process/task/IAgentFactory.ts` |
-| `IAgentEventEmitter` | `src/process/task/IAgentEventEmitter.ts` |
-| `IConversationRepository` | `src/process/database/IConversationRepository.ts` |
-| `IConversationService` | `src/process/services/IConversationService.ts` |
+| Artifact                       | Location                                               |
+| ------------------------------ | ------------------------------------------------------ |
+| `IAgentManager`                | `src/process/task/IAgentManager.ts`                    |
+| `IWorkerTaskManager`           | `src/process/task/IWorkerTaskManager.ts`               |
+| `IAgentFactory`                | `src/process/task/IAgentFactory.ts`                    |
+| `IAgentEventEmitter`           | `src/process/task/IAgentEventEmitter.ts`               |
+| `IConversationRepository`      | `src/process/database/IConversationRepository.ts`      |
+| `IConversationService`         | `src/process/services/IConversationService.ts`         |
 | `SqliteConversationRepository` | `src/process/database/SqliteConversationRepository.ts` |
-| `ConversationServiceImpl` | `src/process/services/ConversationServiceImpl.ts` |
-| `WorkerTaskManager` | `src/process/task/WorkerTaskManager.ts` |
-| `AgentFactory` | `src/process/task/AgentFactory.ts` |
-| `IpcAgentEventEmitter` | `src/process/task/IpcAgentEventEmitter.ts` |
+| `ConversationServiceImpl`      | `src/process/services/ConversationServiceImpl.ts`      |
+| `WorkerTaskManager`            | `src/process/task/WorkerTaskManager.ts`                |
+| `AgentFactory`                 | `src/process/task/AgentFactory.ts`                     |
+| `IpcAgentEventEmitter`         | `src/process/task/IpcAgentEventEmitter.ts`             |
 
 `conversationBridge.ts` was refactored to depend on `IConversationService` + `IWorkerTaskManager` via constructor injection.
 
@@ -33,20 +33,20 @@ Phase 1 (5 PRs, PR #1402) established the foundation:
 
 The following modules still contain direct singleton or `getDatabase()` calls that prevent unit testing:
 
-| Module | Coupling problem |
-|--------|-----------------|
-| `WorkerTaskManager` | Calls `getDatabase()` and `ProcessChat` directly in `getOrBuildTask` |
-| `taskBridge.ts` | Imports `workerTaskManager` singleton |
-| `geminiConversationBridge.ts` | Imports `workerTaskManager` singleton |
-| `acpConversationBridge.ts` | Imports `workerTaskManager` singleton |
-| `CronService.ts` | Depends on 6 singletons: `ipcBridge`, `getDatabase()`, `workerTaskManager`, `cronStore`, `cronBusyGuard`, `showNotification` |
-| `cronBridge.ts` | Imports `cronService` singleton |
-| `channelBridge.ts` | Calls `getDatabase()` directly for channel/user/session data |
-| `databaseBridge.ts` | Calls `getDatabase()` and `ProcessChat` directly |
-| `extensionsBridge.ts` | Calls `getDatabase()` and imports `workerTaskManager` singleton |
-| `applicationBridge.ts` | Imports `workerTaskManager` singleton directly |
-| `conversationBridge.ts` | Line 125 still calls `getDatabase()` in `listAllConversations` path |
-| `conversationService.ts` (old) | Still referenced by some modules; should be removed |
+| Module                         | Coupling problem                                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `WorkerTaskManager`            | Calls `getDatabase()` and `ProcessChat` directly in `getOrBuildTask`                                                         |
+| `taskBridge.ts`                | Imports `workerTaskManager` singleton                                                                                        |
+| `geminiConversationBridge.ts`  | Imports `workerTaskManager` singleton                                                                                        |
+| `acpConversationBridge.ts`     | Imports `workerTaskManager` singleton                                                                                        |
+| `CronService.ts`               | Depends on 6 singletons: `ipcBridge`, `getDatabase()`, `workerTaskManager`, `cronStore`, `cronBusyGuard`, `showNotification` |
+| `cronBridge.ts`                | Imports `cronService` singleton                                                                                              |
+| `channelBridge.ts`             | Calls `getDatabase()` directly for channel/user/session data                                                                 |
+| `databaseBridge.ts`            | Calls `getDatabase()` and `ProcessChat` directly                                                                             |
+| `extensionsBridge.ts`          | Calls `getDatabase()` and imports `workerTaskManager` singleton                                                              |
+| `applicationBridge.ts`         | Imports `workerTaskManager` singleton directly                                                                               |
+| `conversationBridge.ts`        | Line 125 still calls `getDatabase()` in `listAllConversations` path                                                          |
+| `conversationService.ts` (old) | Still referenced by some modules; should be removed                                                                          |
 
 ---
 
@@ -297,8 +297,12 @@ export interface ICronJobExecutor {
 
 ```typescript
 export class SqliteCronRepository implements ICronRepository {
-  insert(job: CronJob): void { cronStore.insert(job); }
-  update(jobId: string, updates: Partial<CronJob>): void { cronStore.update(jobId, updates); }
+  insert(job: CronJob): void {
+    cronStore.insert(job);
+  }
+  update(jobId: string, updates: Partial<CronJob>): void {
+    cronStore.update(jobId, updates);
+  }
   // ...delegates all methods
 }
 ```
@@ -307,10 +311,18 @@ export class SqliteCronRepository implements ICronRepository {
 
 ```typescript
 export class IpcCronEventEmitter implements ICronEventEmitter {
-  emitJobCreated(job: CronJob): void { ipcBridge.cron.onJobCreated.emit(job); }
-  emitJobUpdated(job: CronJob): void { ipcBridge.cron.onJobUpdated.emit(job); }
-  emitJobRemoved(jobId: string): void { ipcBridge.cron.onJobRemoved.emit({ jobId }); }
-  async showNotification(params): Promise<void> { return showNotification(params); }
+  emitJobCreated(job: CronJob): void {
+    ipcBridge.cron.onJobCreated.emit(job);
+  }
+  emitJobUpdated(job: CronJob): void {
+    ipcBridge.cron.onJobUpdated.emit(job);
+  }
+  emitJobRemoved(jobId: string): void {
+    ipcBridge.cron.onJobRemoved.emit({ jobId });
+  }
+  async showNotification(params): Promise<void> {
+    return showNotification(params);
+  }
 }
 ```
 
@@ -320,7 +332,7 @@ export class IpcCronEventEmitter implements ICronEventEmitter {
 export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   constructor(
     private readonly taskManager: IWorkerTaskManager,
-    private readonly busyGuard: CronBusyGuard,
+    private readonly busyGuard: CronBusyGuard
   ) {}
 
   isConversationBusy(conversationId: string): boolean {
@@ -349,7 +361,7 @@ class CronService {
     private readonly repo: ICronRepository,
     private readonly emitter: ICronEventEmitter,
     private readonly executor: ICronJobExecutor,
-    private readonly conversationRepo: IConversationRepository,
+    private readonly conversationRepo: IConversationRepository
   ) {}
 }
 ```
@@ -371,7 +383,7 @@ export const cronService = new CronService(
   new SqliteCronRepository(),
   new IpcCronEventEmitter(),
   new WorkerTaskManagerJobExecutor(workerTaskManager, cronBusyGuard),
-  new SqliteConversationRepository(),
+  new SqliteConversationRepository()
 );
 ```
 
@@ -446,6 +458,7 @@ The `getChannelManager()` and `getPairingService()` calls remain as-is since tho
 ### PR-E: databaseBridge + extensionsBridge decoupling
 
 **Problem:**
+
 - `databaseBridge.ts` calls `getDatabase()` and `ProcessChat` directly
 - `extensionsBridge.ts` calls `getDatabase()` and imports `workerTaskManager` singleton (used in the activity snapshot builder)
 
@@ -471,6 +484,7 @@ export function initDatabaseBridge(repo: IConversationRepository): void {
 ```
 
 Note: The `searchConversationMessages` call uses a method not in `IConversationRepository`. Two options:
+
 1. Add `searchMessages` to `IConversationRepository`
 2. Keep the direct `getDatabase()` call only for search (acceptable; search is read-only)
 
@@ -504,10 +518,12 @@ export function initExtensionsBridge(
 #### New tests
 
 **`tests/unit/databaseBridge.test.ts`**
+
 - `getConversationMessages` returns data from mocked repo
 - `getUserConversations` returns merged and sorted conversation list
 
 **`tests/unit/extensionsBridge.test.ts`** (ActivitySnapshotBuilder)
+
 - `build()` returns correct `totalConversations` count
 - `build()` correctly maps running task status to activity state
 - `build()` groups conversations by agent backend
@@ -528,6 +544,7 @@ export function initExtensionsBridge(
    - `src/channels/gateway/ActionExecutor.ts`
 
    Both files must be updated to depend on `IConversationService` injected at startup via `initBridge.ts`.
+
 3. Delete `src/process/services/conversationService.ts`
 4. Update `vitest.config.ts` `coverage.include` to add all Phase 2 new files:
    - `src/process/database/FallbackConversationRepository.ts`
@@ -608,18 +625,18 @@ WorkerTaskManager
 
 ## Interface Inventory After Phase 2
 
-| Interface | Location | Implementation(s) |
-|-----------|----------|--------------------|
-| `IConversationRepository` | `src/process/database/` | `SqliteConversationRepository`, `FallbackConversationRepository` |
-| `IConversationService` | `src/process/services/` | `ConversationServiceImpl` |
-| `IWorkerTaskManager` | `src/process/task/` | `WorkerTaskManager` |
-| `IAgentManager` | `src/process/task/` | `BaseAgentManager` subclasses |
-| `IAgentFactory` | `src/process/task/` | `AgentFactory` |
-| `IAgentEventEmitter` | `src/process/task/` | `IpcAgentEventEmitter` |
-| `ICronRepository` | `src/process/services/cron/` | `SqliteCronRepository` |
-| `ICronEventEmitter` | `src/process/services/cron/` | `IpcCronEventEmitter` |
-| `ICronJobExecutor` | `src/process/services/cron/` | `WorkerTaskManagerJobExecutor` |
-| `IChannelRepository` | `src/process/database/` | `SqliteChannelRepository` |
+| Interface                 | Location                     | Implementation(s)                                                |
+| ------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| `IConversationRepository` | `src/process/database/`      | `SqliteConversationRepository`, `FallbackConversationRepository` |
+| `IConversationService`    | `src/process/services/`      | `ConversationServiceImpl`                                        |
+| `IWorkerTaskManager`      | `src/process/task/`          | `WorkerTaskManager`                                              |
+| `IAgentManager`           | `src/process/task/`          | `BaseAgentManager` subclasses                                    |
+| `IAgentFactory`           | `src/process/task/`          | `AgentFactory`                                                   |
+| `IAgentEventEmitter`      | `src/process/task/`          | `IpcAgentEventEmitter`                                           |
+| `ICronRepository`         | `src/process/services/cron/` | `SqliteCronRepository`                                           |
+| `ICronEventEmitter`       | `src/process/services/cron/` | `IpcCronEventEmitter`                                            |
+| `ICronJobExecutor`        | `src/process/services/cron/` | `WorkerTaskManagerJobExecutor`                                   |
+| `IChannelRepository`      | `src/process/database/`      | `SqliteChannelRepository`                                        |
 
 ---
 
@@ -654,17 +671,17 @@ const mockRepo: IConversationRepository = {
 
 ### Coverage targets
 
-| File | Target |
-|------|--------|
-| `WorkerTaskManager.ts` | ≥ 80% |
-| `conversationBridge.ts` | ≥ 80% |
-| `CronService.ts` | ≥ 80% |
-| `taskBridge.ts` | ≥ 80% |
-| `geminiConversationBridge.ts` | ≥ 80% |
-| `applicationBridge.ts` | ≥ 80% |
-| `databaseBridge.ts` | ≥ 80% |
-| `ActivitySnapshotBuilder.ts` | ≥ 80% |
-| All new `I*.ts` interface files | 100% (interfaces have no runtime code) |
+| File                                        | Target                                                 |
+| ------------------------------------------- | ------------------------------------------------------ |
+| `WorkerTaskManager.ts`                      | ≥ 80%                                                  |
+| `conversationBridge.ts`                     | ≥ 80%                                                  |
+| `CronService.ts`                            | ≥ 80%                                                  |
+| `taskBridge.ts`                             | ≥ 80%                                                  |
+| `geminiConversationBridge.ts`               | ≥ 80%                                                  |
+| `applicationBridge.ts`                      | ≥ 80%                                                  |
+| `databaseBridge.ts`                         | ≥ 80%                                                  |
+| `ActivitySnapshotBuilder.ts`                | ≥ 80%                                                  |
+| All new `I*.ts` interface files             | 100% (interfaces have no runtime code)                 |
 | All new `Sqlite*.ts` / `Ipc*.ts` impl files | ≥ 70% (thin delegation, mostly tested via integration) |
 
 ### Regression gate
@@ -696,6 +713,7 @@ bun run test:integration  # integration tests pass
 ## Rollback Strategy
 
 Each PR is independently revertable:
+
 - No schema changes
 - No user-visible behavior changes
 - Old singletons continue to be created at the leaf nodes; only the wiring changes

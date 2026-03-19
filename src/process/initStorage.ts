@@ -705,7 +705,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 
         if (existing.transport.type === 'stdio') {
           const mergedEnv = needsMigration
-            ? { ...(existing.transport.env ?? {}), ...buildEnvFromConfig(oldConfig) }
+            ? { ...existing.transport.env, ...buildEnvFromConfig(oldConfig) }
             : existing.transport.env;
           updatedTransport = {
             ...existing.transport,

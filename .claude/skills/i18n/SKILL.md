@@ -71,8 +71,8 @@ Inside each module JSON file, keys can be **flat or nested**:
 In code:
 
 ```typescript
-t('common.send')           // flat key in common.json
-t('cron.status.active')    // nested key in cron.json
+t('common.send'); // flat key in common.json
+t('cron.status.active'); // nested key in cron.json
 ```
 
 ### Key Naming Rules
@@ -84,15 +84,15 @@ t('cron.status.active')    // nested key in cron.json
 
 ### Common Suffixes
 
-| Suffix | Usage |
-|--------|-------|
-| `title` | Section/page titles |
-| `placeholder` | Input placeholders |
-| `label` | Form labels |
-| `success` / `error` | Status messages |
-| `confirm` | Confirmation dialogs |
-| `empty` | Empty state messages |
-| `tooltip` | Tooltip text |
+| Suffix              | Usage                |
+| ------------------- | -------------------- |
+| `title`             | Section/page titles  |
+| `placeholder`       | Input placeholders   |
+| `label`             | Form labels          |
+| `success` / `error` | Status messages      |
+| `confirm`           | Confirmation dialogs |
+| `empty`             | Empty state messages |
+| `tooltip`           | Tooltip text         |
 
 ## Adding New Text — Workflow
 
@@ -192,7 +192,7 @@ Use Trans component for complex markup:
 ```tsx
 import { Trans } from 'react-i18next';
 
-<Trans i18nKey="cron.countdown">
+<Trans i18nKey='cron.countdown'>
   Task <strong>{{ taskName }}</strong> in <span>{{ countdown }}</span>
 </Trans>;
 ```
@@ -201,12 +201,12 @@ import { Trans } from 'react-i18next';
 
 Most terms can be auto-converted from zh-CN, but some need manual review:
 
-| zh-CN | zh-TW | Notes |
-|-------|-------|-------|
-| 视频 | 影片 | Different term |
-| 软件 | 軟體 | Different term |
-| 信息 | 訊息 | Different term |
-| 默认 | 預設 | Different term |
+| zh-CN | zh-TW | Notes          |
+| ----- | ----- | -------------- |
+| 视频  | 影片  | Different term |
+| 软件  | 軟體  | Different term |
+| 信息  | 訊息  | Different term |
+| 默认  | 預設  | Different term |
 
 ## Quick Checklist
 
@@ -222,11 +222,11 @@ Before submitting code with new text:
 
 ## Common Mistakes
 
-| Mistake | Correct |
-|---------|---------|
-| Assuming a fixed number of languages | Always read `i18n-config.json` first |
-| Adding key to only some locales | Add to **every** locale in `supportedLanguages` |
-| Editing `i18n-keys.d.ts` manually | Run `bun run i18n:types` to generate |
-| Using `t("New Chat")` | Define key: `t("conversation.newChat")` |
-| Not updating `i18n-config.json` for new module | Update config first, then create files |
+| Mistake                                        | Correct                                              |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| Assuming a fixed number of languages           | Always read `i18n-config.json` first                 |
+| Adding key to only some locales                | Add to **every** locale in `supportedLanguages`      |
+| Editing `i18n-keys.d.ts` manually              | Run `bun run i18n:types` to generate                 |
+| Using `t("New Chat")`                          | Define key: `t("conversation.newChat")`              |
+| Not updating `i18n-config.json` for new module | Update config first, then create files               |
 | Adding module JSON but not updating `index.ts` | Must add import + export in each locale's `index.ts` |

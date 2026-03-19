@@ -14,12 +14,30 @@
     padding: 14px 18px;
     background: #0f172a;
   }
-  .arch-layer.highlight { border-color: #6366f1; background: #1e1b4b; }
-  .arch-layer.green { border-color: #22c55e; background: #052e16; }
-  .arch-layer.amber { border-color: #f59e0b; background: #1c1003; }
-  .arch-layer.cyan { border-color: #06b6d4; background: #083344; }
-  .arch-layer.rose { border-color: #f43f5e; background: #1f0010; }
-  .arch-layer.purple { border-color: #a855f7; background: #1a0533; }
+  .arch-layer.highlight {
+    border-color: #6366f1;
+    background: #1e1b4b;
+  }
+  .arch-layer.green {
+    border-color: #22c55e;
+    background: #052e16;
+  }
+  .arch-layer.amber {
+    border-color: #f59e0b;
+    background: #1c1003;
+  }
+  .arch-layer.cyan {
+    border-color: #06b6d4;
+    background: #083344;
+  }
+  .arch-layer.rose {
+    border-color: #f43f5e;
+    background: #1f0010;
+  }
+  .arch-layer.purple {
+    border-color: #a855f7;
+    background: #1a0533;
+  }
   .layer-title {
     font-size: 11px;
     font-weight: 700;
@@ -43,9 +61,18 @@
     transition: all 0.15s;
     color: #e2e8f0;
   }
-  .mod:hover { background: #334155; border-color: #6366f1; transform: translateY(-1px); }
-  .mod.primary { background: #312e81; border-color: #6366f1; }
-  .mod.key { border-color: #f59e0b; }
+  .mod:hover {
+    background: #334155;
+    border-color: #6366f1;
+    transform: translateY(-1px);
+  }
+  .mod.primary {
+    background: #312e81;
+    border-color: #6366f1;
+  }
+  .mod.key {
+    border-color: #f59e0b;
+  }
   .mod .badge {
     display: inline-block;
     font-size: 10px;
@@ -56,7 +83,10 @@
     color: #9ca3af;
     vertical-align: middle;
   }
-  .mod .badge.new { background: #166534; color: #4ade80; }
+  .mod .badge.new {
+    background: #166534;
+    color: #4ade80;
+  }
   .arrow-row {
     text-align: center;
     font-size: 22px;
@@ -94,10 +124,9 @@
 </style>
 
 <div class="arch-container">
-
   <!-- Entry Point -->
   <div class="arch-layer highlight">
-    <div class="layer-title" style="color:#a5b4fc">入口 / Entry</div>
+    <div class="layer-title" style="color: #a5b4fc">入口 / Entry</div>
     <div class="module-grid">
       <div class="mod primary">src/index.ts <span class="badge">Electron app</span></div>
       <div class="mod primary">src/process/index.ts <span class="badge">initializeProcess</span></div>
@@ -110,8 +139,10 @@
   <div class="arrow-row">↕</div>
 
   <!-- IPC Bridge -->
-  <div class="arch-layer" style="border-color:#6366f1; background:#13111c;">
-    <div class="layer-title" style="color:#a5b4fc">IPC 桥接层 / Bridge Layer (src/process/bridge/) — 25+ 个 handler</div>
+  <div class="arch-layer" style="border-color: #6366f1; background: #13111c">
+    <div class="layer-title" style="color: #a5b4fc">
+      IPC 桥接层 / Bridge Layer (src/process/bridge/) — 25+ 个 handler
+    </div>
     <div class="module-grid">
       <div class="mod key">conversationBridge</div>
       <div class="mod key">geminiConversationBridge</div>
@@ -145,7 +176,7 @@
 
   <!-- Services -->
   <div class="arch-layer green">
-    <div class="layer-title" style="color:#4ade80">业务服务层 / Services (src/process/services/)</div>
+    <div class="layer-title" style="color: #4ade80">业务服务层 / Services (src/process/services/)</div>
     <div class="module-grid">
       <div class="mod key">conversationService <span class="badge">核心</span></div>
       <div class="mod key">CronService <span class="badge">调度</span></div>
@@ -165,7 +196,7 @@
 
   <!-- Task / Agent Managers -->
   <div class="arch-layer amber">
-    <div class="layer-title" style="color:#fbbf24">任务/Agent 管理层 / Task Managers (src/process/task/)</div>
+    <div class="layer-title" style="color: #fbbf24">任务/Agent 管理层 / Task Managers (src/process/task/)</div>
     <div class="module-grid">
       <div class="mod key">BaseAgentManager <span class="badge">抽象基类</span></div>
       <div class="mod">GeminiAgentManager</div>
@@ -183,9 +214,9 @@
   <div class="arrow-row">↕</div>
 
   <!-- Agent Implementations + Workers -->
-  <div style="display:flex; gap:12px;">
-    <div class="arch-layer cyan" style="flex:1">
-      <div class="layer-title" style="color:#67e8f9">Agent 实现层 (src/agent/)</div>
+  <div style="display: flex; gap: 12px">
+    <div class="arch-layer cyan" style="flex: 1">
+      <div class="layer-title" style="color: #67e8f9">Agent 实现层 (src/agent/)</div>
       <div class="module-grid">
         <div class="mod">acp/ <span class="badge">AcpAdapter, Connection</span></div>
         <div class="mod">codex/ <span class="badge">CodexAgent</span></div>
@@ -194,8 +225,8 @@
         <div class="mod">openclaw/ <span class="badge">Gateway</span></div>
       </div>
     </div>
-    <div class="arch-layer" style="flex:1; border-color:#64748b;">
-      <div class="layer-title" style="color:#94a3b8">Worker 进程 (src/worker/)</div>
+    <div class="arch-layer" style="flex: 1; border-color: #64748b">
+      <div class="layer-title" style="color: #94a3b8">Worker 进程 (src/worker/)</div>
       <div class="module-grid">
         <div class="mod">gemini.ts</div>
         <div class="mod">codex.ts</div>
@@ -210,9 +241,9 @@
   <div class="arrow-row">↕</div>
 
   <!-- Infrastructure -->
-  <div style="display:flex; gap:12px;">
-    <div class="arch-layer rose" style="flex:1">
-      <div class="layer-title" style="color:#fb7185">数据层 (src/process/database/)</div>
+  <div style="display: flex; gap: 12px">
+    <div class="arch-layer rose" style="flex: 1">
+      <div class="layer-title" style="color: #fb7185">数据层 (src/process/database/)</div>
       <div class="module-grid">
         <div class="mod key">schema.ts</div>
         <div class="mod">migrations.ts</div>
@@ -220,8 +251,8 @@
         <div class="mod">export.ts</div>
       </div>
     </div>
-    <div class="arch-layer purple" style="flex:1">
-      <div class="layer-title" style="color:#d8b4fe">其他系统模块</div>
+    <div class="arch-layer purple" style="flex: 1">
+      <div class="layer-title" style="color: #d8b4fe">其他系统模块</div>
       <div class="module-grid">
         <div class="mod">Channels <span class="badge new">DingTalk/Lark/TG</span></div>
         <div class="mod">Extensions <span class="badge new">插件系统</span></div>
@@ -230,15 +261,14 @@
       </div>
     </div>
   </div>
-
 </div>
 
-<div style="margin-top:20px; padding:12px 16px; background:#1e293b; border-radius:8px; border:1px solid #334155;">
-  <p style="margin:0; font-size:12px; color:#94a3b8;">
-    <strong style="color:#e2e8f0;">初步发现的耦合问题:</strong><br>
-    1. Bridge 层直接 import Service，无接口隔离<br>
-    2. 多个 AgentManager 继承但无接口约束<br>
-    3. Service 直接访问 Database，无 Repository 层<br>
+<div style="margin-top: 20px; padding: 12px 16px; background: #1e293b; border-radius: 8px; border: 1px solid #334155">
+  <p style="margin: 0; font-size: 12px; color: #94a3b8">
+    <strong style="color: #e2e8f0">初步发现的耦合问题:</strong><br />
+    1. Bridge 层直接 import Service，无接口隔离<br />
+    2. 多个 AgentManager 继承但无接口约束<br />
+    3. Service 直接访问 Database，无 Repository 层<br />
     4. Worker 进程与 Agent 实现耦合不清晰
   </p>
 </div>

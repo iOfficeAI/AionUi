@@ -31,6 +31,7 @@ npm root -g && npm bin -g
 ```
 
 **诊断结果解读：**
+
 - ✅ `openclaw` 找到了 → 环境正常，继续正常操作
 - ❌ `openclaw NOT found in PATH` → 环境问题，按以下步骤排查：
   1. 先确认 `openclaw` 已安装：`npm list -g openclaw`

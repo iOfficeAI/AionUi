@@ -1,6 +1,6 @@
 ---
 name: aionui-skills
-description: "Access the AionUI Skills registry — discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the AionUI Skills platform."
+description: 'Access the AionUI Skills registry — discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the AionUI Skills platform.'
 ---
 
 # AionUI Skills Market

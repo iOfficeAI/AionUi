@@ -37,7 +37,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
 
       // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
       if (isNewApi) {
-        updatedData.modelProtocols = { ...(data?.modelProtocols || {}), [model]: modelProtocol };
+        updatedData.modelProtocols = { ...data?.modelProtocols, [model]: modelProtocol };
       }
 
       onSubmit(updatedData);

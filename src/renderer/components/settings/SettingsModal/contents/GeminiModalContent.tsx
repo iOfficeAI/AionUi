@@ -126,8 +126,8 @@ const GeminiModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    Promise.all([ConfigStorage.get('gemini.config')])
-      .then(([geminiConfig]) => {
+    ConfigStorage.get('gemini.config')
+      .then((geminiConfig) => {
         const formData = {
           ...geminiConfig,
           // 先不设置 GOOGLE_CLOUD_PROJECT，等账号加载完再设置

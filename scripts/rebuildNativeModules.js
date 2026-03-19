@@ -57,10 +57,10 @@ function getCommandPrefix(platform, useVx = true) {
  */
 function normalizeArch(arch) {
   const archMap = {
-    'x64': 'x64',
-    'arm64': 'arm64',
-    'ia32': 'ia32',
-    'armv7l': 'arm',
+    x64: 'x64',
+    arm64: 'arm64',
+    ia32: 'ia32',
+    armv7l: 'arm',
   };
   return archMap[arch] || arch;
 }
@@ -245,7 +245,9 @@ function rebuildSingleModule(options) {
         '--force',
       ];
 
-      const fullCmd = cmdPrefix ? `${cmdPrefix} ${bunxCmd} ${prebuildArgs.join(' ')}` : `${bunxCmd} ${prebuildArgs.join(' ')}`;
+      const fullCmd = cmdPrefix
+        ? `${cmdPrefix} ${bunxCmd} ${prebuildArgs.join(' ')}`
+        : `${bunxCmd} ${prebuildArgs.join(' ')}`;
       console.log(`     Running: ${fullCmd}`);
 
       if (useShell) {
@@ -296,7 +298,9 @@ function rebuildSingleModule(options) {
       `--arch=${targetArch}`,
     ];
 
-    const fullCmd = cmdPrefix ? `${cmdPrefix} ${bunxCmd} ${rebuildArgs.join(' ')}` : `${bunxCmd} ${rebuildArgs.join(' ')}`;
+    const fullCmd = cmdPrefix
+      ? `${cmdPrefix} ${bunxCmd} ${rebuildArgs.join(' ')}`
+      : `${bunxCmd} ${rebuildArgs.join(' ')}`;
     console.log(`     Running: ${fullCmd}`);
 
     if (useShell) {
@@ -352,9 +356,7 @@ function findNodeFiles(dir, maxDepth = 3, currentDepth = 0) {
  */
 function verifyModuleBinary(moduleRoot, moduleName) {
   const binaryPathsToCheck = {
-    'better-sqlite3': [
-      path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node'),
-    ],
+    'better-sqlite3': [path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node')],
     'node-pty': [
       path.join(moduleRoot, 'build', 'Release', 'pty.node'),
       path.join(moduleRoot, 'build', 'Release', 'conpty.node'),
@@ -377,7 +379,7 @@ function verifyModuleBinary(moduleRoot, moduleName) {
   const foundFiles = findNodeFiles(moduleRoot);
   if (foundFiles.length > 0) {
     console.log(`     Debug: Found .node files:`);
-    foundFiles.forEach(f => console.log(`       - ${f}`));
+    foundFiles.forEach((f) => console.log(`       - ${f}`));
     return true;
   }
 

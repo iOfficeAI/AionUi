@@ -8,7 +8,11 @@
     gap: 10px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
-  .p2-row { display: flex; align-items: stretch; gap: 10px; }
+  .p2-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+  }
   .p2-box {
     border-radius: 8px;
     padding: 10px 14px;
@@ -17,16 +21,50 @@
     background: #0f172a;
     min-width: 0;
   }
-  .p2-box.iface { border-style: dashed; border-color: #6366f1; background: #1e1b4b; }
-  .p2-box.iface-amber { border-style: dashed; border-color: #f59e0b; background: #1c1003; }
-  .p2-box.iface-rose { border-style: dashed; border-color: #f43f5e; background: #1f0010; }
-  .p2-box.iface-cyan { border-style: dashed; border-color: #06b6d4; background: #083344; }
-  .p2-box.impl-green { border-color: #22c55e; background: #052e16; }
-  .p2-box.impl-amber { border-color: #f59e0b; background: #1c1003; }
-  .p2-box.impl-purple { border-color: #a855f7; background: #1a0533; }
-  .p2-box.impl-cyan { border-color: #06b6d4; background: #083344; }
-  .p2-box.bridge { border-color: #fb923c; background: #1c0a00; }
-  .p2-box.wire { border-color: #475569; background: #0c1322; }
+  .p2-box.iface {
+    border-style: dashed;
+    border-color: #6366f1;
+    background: #1e1b4b;
+  }
+  .p2-box.iface-amber {
+    border-style: dashed;
+    border-color: #f59e0b;
+    background: #1c1003;
+  }
+  .p2-box.iface-rose {
+    border-style: dashed;
+    border-color: #f43f5e;
+    background: #1f0010;
+  }
+  .p2-box.iface-cyan {
+    border-style: dashed;
+    border-color: #06b6d4;
+    background: #083344;
+  }
+  .p2-box.impl-green {
+    border-color: #22c55e;
+    background: #052e16;
+  }
+  .p2-box.impl-amber {
+    border-color: #f59e0b;
+    background: #1c1003;
+  }
+  .p2-box.impl-purple {
+    border-color: #a855f7;
+    background: #1a0533;
+  }
+  .p2-box.impl-cyan {
+    border-color: #06b6d4;
+    background: #083344;
+  }
+  .p2-box.bridge {
+    border-color: #fb923c;
+    background: #1c0a00;
+  }
+  .p2-box.wire {
+    border-color: #475569;
+    background: #0c1322;
+  }
   .p2-box-title {
     font-size: 10px;
     font-weight: 700;
@@ -35,14 +73,39 @@
     margin-bottom: 5px;
     opacity: 0.65;
   }
-  .p2-box-name { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
-  .p2-box-name.iface-name { color: #a5b4fc; }
-  .p2-box-name.amber-name { color: #fde68a; }
-  .p2-box-name.rose-name { color: #fda4af; }
-  .p2-box-name.cyan-name { color: #a5f3fc; }
-  .p2-box-methods { font-size: 11px; color: #64748b; line-height: 1.65; font-family: monospace; }
-  .p2-box-methods span { color: #94a3b8; }
-  .p2-sep { width: 2px; background: #1e293b; border-radius: 2px; flex: 0 0 2px; }
+  .p2-box-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 3px;
+  }
+  .p2-box-name.iface-name {
+    color: #a5b4fc;
+  }
+  .p2-box-name.amber-name {
+    color: #fde68a;
+  }
+  .p2-box-name.rose-name {
+    color: #fda4af;
+  }
+  .p2-box-name.cyan-name {
+    color: #a5f3fc;
+  }
+  .p2-box-methods {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.65;
+    font-family: monospace;
+  }
+  .p2-box-methods span {
+    color: #94a3b8;
+  }
+  .p2-sep {
+    width: 2px;
+    background: #1e293b;
+    border-radius: 2px;
+    flex: 0 0 2px;
+  }
   .p2-arrow {
     text-align: center;
     font-size: 12px;
@@ -53,8 +116,16 @@
     gap: 8px;
     justify-content: center;
   }
-  .p2-arrow b { color: #6366f1; }
-  .p2-arrow hr { flex: 1; border: none; border-top: 1px dashed #334155; margin: 0; max-width: 80px; }
+  .p2-arrow b {
+    color: #6366f1;
+  }
+  .p2-arrow hr {
+    flex: 1;
+    border: none;
+    border-top: 1px dashed #334155;
+    margin: 0;
+    max-width: 80px;
+  }
   .tag2 {
     display: inline-block;
     font-size: 10px;
@@ -63,9 +134,18 @@
     margin-left: 5px;
     vertical-align: middle;
   }
-  .tag2.new { background: #166534; color: #4ade80; }
-  .tag2.p1 { background: #1e3a5f; color: #60a5fa; }
-  .tag2.thin { background: #451a03; color: #fb923c; }
+  .tag2.new {
+    background: #166534;
+    color: #4ade80;
+  }
+  .tag2.p1 {
+    background: #1e3a5f;
+    color: #60a5fa;
+  }
+  .tag2.thin {
+    background: #451a03;
+    color: #fb923c;
+  }
   .section-label {
     font-size: 10px;
     font-weight: 700;
@@ -76,73 +156,87 @@
     border-bottom: 1px solid #1e293b;
     margin-bottom: 6px;
   }
-  .p2-legend { display: flex; gap: 20px; margin-top: 10px; font-size: 11px; color: #64748b; flex-wrap: wrap; }
-  .p2-legend-item { display: flex; align-items: center; gap: 6px; }
-  .p2-legend-box { width: 26px; height: 13px; border-radius: 3px; }
-  .full-width { flex: 1 1 100%; }
+  .p2-legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #64748b;
+    flex-wrap: wrap;
+  }
+  .p2-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .p2-legend-box {
+    width: 26px;
+    height: 13px;
+    border-radius: 3px;
+  }
+  .full-width {
+    flex: 1 1 100%;
+  }
 </style>
 
 <div class="p2-wrap">
-
   <!-- ─── WIRING ENTRY ─── -->
   <div class="p2-row">
-    <div class="p2-box wire" style="text-align:center; padding: 10px 16px;">
-      <div class="p2-box-title" style="color:#94a3b8">装配入口 / Wiring</div>
-      <div class="p2-box-name" style="color:#cbd5e1">initBridge.ts</div>
-      <div class="p2-box-methods" style="color:#475569">
-        构建所有 singleton → 注入各 bridge init 函数
-      </div>
+    <div class="p2-box wire" style="text-align: center; padding: 10px 16px">
+      <div class="p2-box-title" style="color: #94a3b8">装配入口 / Wiring</div>
+      <div class="p2-box-name" style="color: #cbd5e1">initBridge.ts</div>
+      <div class="p2-box-methods" style="color: #475569">构建所有 singleton → 注入各 bridge init 函数</div>
     </div>
   </div>
 
   <div class="p2-arrow">↓ 构造函数注入</div>
 
   <!-- ─── BRIDGE LAYER ─── -->
-  <div class="section-label" style="padding-left:2px;">IPC 桥接层 — 注入后全部为瘦路由</div>
-  <div class="p2-row" style="flex-wrap: wrap; gap: 8px;">
-    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 p1">Phase 1</span></div>
+  <div class="section-label" style="padding-left: 2px">IPC 桥接层 — 注入后全部为瘦路由</div>
+  <div class="p2-row" style="flex-wrap: wrap; gap: 8px">
+    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-name">conversationBridge</div>
       <div class="p2-box-methods">
-        IConversationService<br>
+        IConversationService<br />
         IWorkerTaskManager
       </div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">taskBridge</div>
       <div class="p2-box-methods">IWorkerTaskManager</div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">geminiConvBridge</div>
       <div class="p2-box-methods">IWorkerTaskManager</div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">acpConvBridge</div>
       <div class="p2-box-methods">IWorkerTaskManager</div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">channelBridge</div>
       <div class="p2-box-methods">IChannelRepository</div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(33% - 6px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">databaseBridge</div>
       <div class="p2-box-methods">IConversationRepository</div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(49% - 4px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(49% - 4px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">extensionsBridge</div>
       <div class="p2-box-methods">
-        IConversationRepository<br>
+        IConversationRepository<br />
         IWorkerTaskManager
       </div>
     </div>
-    <div class="p2-box bridge" style="flex: 0 1 calc(49% - 4px);">
-      <div class="p2-box-title" style="color:#fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
+    <div class="p2-box bridge" style="flex: 0 1 calc(49% - 4px)">
+      <div class="p2-box-title" style="color: #fb923c">Bridge <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name">cronBridge</div>
       <div class="p2-box-methods">CronService（已解耦）</div>
     </div>
@@ -151,54 +245,54 @@
   <div class="p2-arrow">↓ 依赖接口</div>
 
   <!-- ─── SERVICE INTERFACES ─── -->
-  <div class="section-label" style="padding-left:2px;">服务接口层 — 所有业务逻辑的契约</div>
+  <div class="section-label" style="padding-left: 2px">服务接口层 — 所有业务逻辑的契约</div>
   <div class="p2-row">
     <div class="p2-box iface">
-      <div class="p2-box-title" style="color:#a5b4fc">接口 <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #a5b4fc">接口 <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-name iface-name">IConversationService</div>
       <div class="p2-box-methods">
-        createConversation<br>
-        deleteConversation<br>
-        updateConversation<br>
-        getConversation<br>
+        createConversation<br />
+        deleteConversation<br />
+        updateConversation<br />
+        getConversation<br />
         createWithMigration
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box iface">
-      <div class="p2-box-title" style="color:#a5b4fc">接口 <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #a5b4fc">接口 <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-name iface-name">IWorkerTaskManager</div>
       <div class="p2-box-methods">
-        getTask(id)<br>
-        getOrBuildTask(id, opts)<br>
-        addTask(id, task)<br>
-        kill(id) / clear()<br>
+        getTask(id)<br />
+        getOrBuildTask(id, opts)<br />
+        addTask(id, task)<br />
+        kill(id) / clear()<br />
         listTasks()
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box iface-rose">
-      <div class="p2-box-title" style="color:#fb7185">接口 <span class="tag2 new">Phase 2</span></div>
+      <div class="p2-box-title" style="color: #fb7185">接口 <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name rose-name">IConversationRepository</div>
       <div class="p2-box-methods">
-        getConversation(id)<br>
-        createConversation<br>
-        updateConversation<br>
-        deleteConversation<br>
-        getMessages / insertMessage<br>
-        getUserConversations<br>
+        getConversation(id)<br />
+        createConversation<br />
+        updateConversation<br />
+        deleteConversation<br />
+        getMessages / insertMessage<br />
+        getUserConversations<br />
         searchMessages
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box iface-cyan">
-      <div class="p2-box-title" style="color:#67e8f9">接口 <span class="tag2 new">Phase 2</span></div>
+      <div class="p2-box-title" style="color: #67e8f9">接口 <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-name cyan-name">IChannelRepository</div>
       <div class="p2-box-methods">
-        getChannelPlugins()<br>
-        getPendingPairings()<br>
-        getChannelUsers()<br>
-        deleteChannelUser<br>
+        getChannelPlugins()<br />
+        getPendingPairings()<br />
+        getChannelUsers()<br />
+        deleteChannelUser<br />
         getChannelSessions()
       </div>
     </div>
@@ -209,34 +303,38 @@
   <!-- ─── SERVICE IMPLEMENTATIONS ─── -->
   <div class="p2-row">
     <div class="p2-box impl-green">
-      <div class="p2-box-title" style="color:#4ade80">Service 实现</div>
+      <div class="p2-box-title" style="color: #4ade80">Service 实现</div>
       <div class="p2-box-name">ConversationServiceImpl <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-methods">
-        <span>注入 IConversationRepository</span><br>
+        <span>注入 IConversationRepository</span><br />
         包含迁移/完整性校验业务逻辑
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box impl-amber">
-      <div class="p2-box-title" style="color:#fbbf24">Manager 实现</div>
-      <div class="p2-box-name" style="color:#fde68a">WorkerTaskManager <span class="tag2 new">Phase 2</span></div>
+      <div class="p2-box-title" style="color: #fbbf24">Manager 实现</div>
+      <div class="p2-box-name" style="color: #fde68a">WorkerTaskManager <span class="tag2 new">Phase 2</span></div>
       <div class="p2-box-methods">
-        <span>注入 IAgentFactory + IConversationRepository</span><br>
+        <span>注入 IAgentFactory + IConversationRepository</span><br />
         不再调用 getDatabase() / ProcessChat
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box impl-cyan">
-      <div class="p2-box-title" style="color:#67e8f9">Repository 实现</div>
-      <div class="p2-box-name" style="color:#a5f3fc">SqliteConversationRepository <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #67e8f9">Repository 实现</div>
+      <div class="p2-box-name" style="color: #a5f3fc">
+        SqliteConversationRepository <span class="tag2 p1">Phase 1</span>
+      </div>
       <div class="p2-box-methods">
         <span>包装 getDatabase() 调用</span>
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box impl-cyan">
-      <div class="p2-box-title" style="color:#67e8f9">Repository 实现</div>
-      <div class="p2-box-name" style="color:#a5f3fc">SqliteChannelRepository <span class="tag2 new">Phase 2</span></div>
+      <div class="p2-box-title" style="color: #67e8f9">Repository 实现</div>
+      <div class="p2-box-name" style="color: #a5f3fc">
+        SqliteChannelRepository <span class="tag2 new">Phase 2</span>
+      </div>
       <div class="p2-box-methods">
         <span>包装 getDatabase() channel 方法</span>
       </div>
@@ -244,88 +342,86 @@
   </div>
 
   <!-- ─── CRON SERVICE (独立展开) ─── -->
-  <div style="margin-top: 4px; border: 2px solid #22c55e; border-radius: 10px; padding: 14px 16px; background: #021a0b;">
-    <div class="section-label" style="color: #4ade80; border-color:#166534; margin-bottom: 10px;">
+  <div style="margin-top: 4px; border: 2px solid #22c55e; border-radius: 10px; padding: 14px 16px; background: #021a0b">
+    <div class="section-label" style="color: #4ade80; border-color: #166534; margin-bottom: 10px">
       CronService 解耦树 — Phase 2 PR-C <span class="tag2 new">新增</span>
     </div>
 
     <!-- CronService box -->
     <div class="p2-row">
-      <div class="p2-box impl-green" style="text-align:center;">
-        <div class="p2-box-title" style="color:#4ade80">Service 实现（可单测）</div>
+      <div class="p2-box impl-green" style="text-align: center">
+        <div class="p2-box-title" style="color: #4ade80">Service 实现（可单测）</div>
         <div class="p2-box-name">CronService</div>
-        <div class="p2-box-methods" style="color:#4ade80; opacity:0.7;">
-          4 个接口构造注入，零 singleton 依赖
-        </div>
+        <div class="p2-box-methods" style="color: #4ade80; opacity: 0.7">4 个接口构造注入，零 singleton 依赖</div>
       </div>
     </div>
 
-    <div class="p2-arrow" style="margin: 8px 0;">↓ 依赖以下 4 个接口</div>
+    <div class="p2-arrow" style="margin: 8px 0">↓ 依赖以下 4 个接口</div>
 
     <!-- 4 interfaces -->
-    <div class="p2-row" style="gap: 8px;">
-      <div class="p2-box iface" style="border-color:#22c55e; background:#061a0e;">
-        <div class="p2-box-title" style="color:#4ade80">接口</div>
-        <div class="p2-box-name" style="color:#86efac;">ICronRepository</div>
+    <div class="p2-row" style="gap: 8px">
+      <div class="p2-box iface" style="border-color: #22c55e; background: #061a0e">
+        <div class="p2-box-title" style="color: #4ade80">接口</div>
+        <div class="p2-box-name" style="color: #86efac">ICronRepository</div>
         <div class="p2-box-methods">
-          insert / update / delete<br>
-          getById / listAll<br>
-          listEnabled<br>
+          insert / update / delete<br />
+          getById / listAll<br />
+          listEnabled<br />
           listByConversation
         </div>
       </div>
-      <div class="p2-box iface" style="border-color:#22c55e; background:#061a0e;">
-        <div class="p2-box-title" style="color:#4ade80">接口</div>
-        <div class="p2-box-name" style="color:#86efac;">ICronEventEmitter</div>
+      <div class="p2-box iface" style="border-color: #22c55e; background: #061a0e">
+        <div class="p2-box-title" style="color: #4ade80">接口</div>
+        <div class="p2-box-name" style="color: #86efac">ICronEventEmitter</div>
         <div class="p2-box-methods">
-          emitJobCreated(job)<br>
-          emitJobUpdated(job)<br>
-          emitJobRemoved(id)<br>
+          emitJobCreated(job)<br />
+          emitJobUpdated(job)<br />
+          emitJobRemoved(id)<br />
           showNotification(params)
         </div>
       </div>
-      <div class="p2-box iface" style="border-color:#22c55e; background:#061a0e;">
-        <div class="p2-box-title" style="color:#4ade80">接口</div>
-        <div class="p2-box-name" style="color:#86efac;">ICronJobExecutor</div>
+      <div class="p2-box iface" style="border-color: #22c55e; background: #061a0e">
+        <div class="p2-box-title" style="color: #4ade80">接口</div>
+        <div class="p2-box-name" style="color: #86efac">ICronJobExecutor</div>
         <div class="p2-box-methods">
-          isConversationBusy(id)<br>
-          executeJob(job)<br>
-          onceIdle(id, cb)<br>
+          isConversationBusy(id)<br />
+          executeJob(job)<br />
+          onceIdle(id, cb)<br />
           setProcessing(id, busy)
         </div>
       </div>
       <div class="p2-box iface-rose">
-        <div class="p2-box-title" style="color:#fb7185">接口（共用）</div>
+        <div class="p2-box-title" style="color: #fb7185">接口（共用）</div>
         <div class="p2-box-name rose-name">IConversationRepository</div>
         <div class="p2-box-methods">
-          getConversation(id)<br>
+          getConversation(id)<br />
           updateConversation(...)
         </div>
       </div>
     </div>
 
-    <div class="p2-arrow" style="margin: 8px 0;">↓ 生产实现</div>
+    <div class="p2-arrow" style="margin: 8px 0">↓ 生产实现</div>
 
     <!-- 4 implementations -->
-    <div class="p2-row" style="gap: 8px;">
-      <div class="p2-box" style="border-color:#166534; background:#031209;">
-        <div class="p2-box-title" style="color:#4ade80">实现</div>
-        <div class="p2-box-name" style="color:#a7f3d0; font-size:12px;">SqliteCronRepository</div>
+    <div class="p2-row" style="gap: 8px">
+      <div class="p2-box" style="border-color: #166534; background: #031209">
+        <div class="p2-box-title" style="color: #4ade80">实现</div>
+        <div class="p2-box-name" style="color: #a7f3d0; font-size: 12px">SqliteCronRepository</div>
         <div class="p2-box-methods">包装 cronStore singleton</div>
       </div>
-      <div class="p2-box" style="border-color:#166534; background:#031209;">
-        <div class="p2-box-title" style="color:#4ade80">实现</div>
-        <div class="p2-box-name" style="color:#a7f3d0; font-size:12px;">IpcCronEventEmitter</div>
+      <div class="p2-box" style="border-color: #166534; background: #031209">
+        <div class="p2-box-title" style="color: #4ade80">实现</div>
+        <div class="p2-box-name" style="color: #a7f3d0; font-size: 12px">IpcCronEventEmitter</div>
         <div class="p2-box-methods">包装 ipcBridge.cron.* + showNotification</div>
       </div>
-      <div class="p2-box" style="border-color:#166534; background:#031209;">
-        <div class="p2-box-title" style="color:#4ade80">实现</div>
-        <div class="p2-box-name" style="color:#a7f3d0; font-size:12px;">WorkerTaskManagerJobExecutor</div>
+      <div class="p2-box" style="border-color: #166534; background: #031209">
+        <div class="p2-box-title" style="color: #4ade80">实现</div>
+        <div class="p2-box-name" style="color: #a7f3d0; font-size: 12px">WorkerTaskManagerJobExecutor</div>
         <div class="p2-box-methods">包装 workerTaskManager + cronBusyGuard</div>
       </div>
-      <div class="p2-box" style="border-color:#166534; background:#031209;">
-        <div class="p2-box-title" style="color:#4ade80">实现（共用）</div>
-        <div class="p2-box-name" style="color:#a7f3d0; font-size:12px;">SqliteConversationRepository</div>
+      <div class="p2-box" style="border-color: #166534; background: #031209">
+        <div class="p2-box-title" style="color: #4ade80">实现（共用）</div>
+        <div class="p2-box-name" style="color: #a7f3d0; font-size: 12px">SqliteConversationRepository</div>
         <div class="p2-box-methods">同上层共用</div>
       </div>
     </div>
@@ -333,74 +429,73 @@
 
   <!-- ─── AGENT LAYER ─── -->
   <div class="p2-arrow">↓ WorkerTaskManager 依赖</div>
-  <div class="section-label" style="padding-left:2px;">Agent 层（Phase 1 完成）</div>
+  <div class="section-label" style="padding-left: 2px">Agent 层（Phase 1 完成）</div>
   <div class="p2-row">
     <div class="p2-box iface-amber">
-      <div class="p2-box-title" style="color:#fbbf24">接口 <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #fbbf24">接口 <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-name amber-name">IAgentManager</div>
       <div class="p2-box-methods">
-        type / status / workspace<br>
-        sendMessage / stop<br>
+        type / status / workspace<br />
+        sendMessage / stop<br />
         confirm / getConfirmations / kill
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box iface-amber">
-      <div class="p2-box-title" style="color:#fbbf24">接口 <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #fbbf24">接口 <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-name amber-name">IAgentFactory</div>
       <div class="p2-box-methods">
-        register(type, creator)<br>
+        register(type, creator)<br />
         create(conv, opts): IAgentManager
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box iface-amber">
-      <div class="p2-box-title" style="color:#fbbf24">接口 <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #fbbf24">接口 <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-name amber-name">IAgentEventEmitter</div>
       <div class="p2-box-methods">
-        emitConfirmationAdd / Update / Remove<br>
+        emitConfirmationAdd / Update / Remove<br />
         emitMessage(event)
       </div>
     </div>
     <div class="p2-sep"></div>
     <div class="p2-box impl-amber">
-      <div class="p2-box-title" style="color:#fbbf24">实现</div>
-      <div class="p2-box-name" style="color:#fde68a;">BaseAgentManager <span class="tag2 p1">Phase 1</span></div>
+      <div class="p2-box-title" style="color: #fbbf24">实现</div>
+      <div class="p2-box-name" style="color: #fde68a">BaseAgentManager <span class="tag2 p1">Phase 1</span></div>
       <div class="p2-box-methods">
-        <span>注入 IAgentEventEmitter</span><br>
+        <span>注入 IAgentEventEmitter</span><br />
         Gemini / Acp / Codex / … 继承
       </div>
     </div>
   </div>
-
 </div>
 
 <!-- ─── LEGEND ─── -->
 <div class="p2-legend">
   <div class="p2-legend-item">
-    <div class="p2-legend-box" style="border: 2px dashed #6366f1; background: #1e1b4b;"></div>
+    <div class="p2-legend-box" style="border: 2px dashed #6366f1; background: #1e1b4b"></div>
     <span>Phase 1 新增接口</span>
   </div>
   <div class="p2-legend-item">
-    <div class="p2-legend-box" style="border: 2px dashed #f43f5e; background: #1f0010;"></div>
+    <div class="p2-legend-box" style="border: 2px dashed #f43f5e; background: #1f0010"></div>
     <span>Phase 2 新增接口</span>
   </div>
   <div class="p2-legend-item">
-    <div class="p2-legend-box" style="border: 2px solid #fb923c; background: #1c0a00;"></div>
+    <div class="p2-legend-box" style="border: 2px solid #fb923c; background: #1c0a00"></div>
     <span>Bridge 层（瘦路由）</span>
   </div>
   <div class="p2-legend-item">
-    <div class="p2-legend-box" style="border: 2px solid #22c55e; background: #052e16;"></div>
+    <div class="p2-legend-box" style="border: 2px solid #22c55e; background: #052e16"></div>
     <span>Service / Repository 实现</span>
   </div>
   <div class="p2-legend-item">
-    <div class="p2-legend-box" style="border: 2px solid #f59e0b; background: #1c1003;"></div>
+    <div class="p2-legend-box" style="border: 2px solid #f59e0b; background: #1c1003"></div>
     <span>Agent 层</span>
   </div>
   <div class="p2-legend-item">
-    <span style="font-size:11px; color:#60a5fa;">Phase 1</span><span style="margin-left:4px;">= PR #1402 已完成</span>
+    <span style="font-size: 11px; color: #60a5fa">Phase 1</span><span style="margin-left: 4px">= PR #1402 已完成</span>
   </div>
   <div class="p2-legend-item">
-    <span style="font-size:11px; color:#4ade80;">Phase 2</span><span style="margin-left:4px;">= 本次 6 个 PR</span>
+    <span style="font-size: 11px; color: #4ade80">Phase 2</span><span style="margin-left: 4px">= 本次 6 个 PR</span>
   </div>
 </div>

@@ -18,13 +18,13 @@ src/process/
 
 ## Naming Conventions
 
-| Type | Pattern | Examples |
-|------|---------|----------|
-| Bridge | `<domain>Bridge.ts` (camelCase) | `cronBridge.ts`, `webuiBridge.ts` |
-| Service | `<Name>Service.ts` (PascalCase) | `CronService.ts`, `McpService.ts` |
-| Service interface | `I<Name>Service.ts` | `IConversationService.ts` |
-| Repository | `<Name>Repository.ts` | `SqliteConversationRepository.ts` |
-| Agent Manager | `<Platform>AgentManager.ts` | `AcpAgentManager.ts` |
+| Type              | Pattern                         | Examples                          |
+| ----------------- | ------------------------------- | --------------------------------- |
+| Bridge            | `<domain>Bridge.ts` (camelCase) | `cronBridge.ts`, `webuiBridge.ts` |
+| Service           | `<Name>Service.ts` (PascalCase) | `CronService.ts`, `McpService.ts` |
+| Service interface | `I<Name>Service.ts`             | `IConversationService.ts`         |
+| Repository        | `<Name>Repository.ts`           | `SqliteConversationRepository.ts` |
+| Agent Manager     | `<Platform>AgentManager.ts`     | `AcpAgentManager.ts`              |
 
 All directories use lowercase (Node.js convention):
 
@@ -110,9 +110,9 @@ src/worker/
 
 ### Other Modules
 
-| Module | Location | Purpose |
-|--------|----------|---------|
-| Channels | `src/channels/` | Multi-channel messaging (Lark, DingTalk, Telegram) |
-| Extensions | `src/extensions/` | Plugin loading, resolvers, sandbox |
-| WebServer | `src/webserver/` | Express + WebSocket for WebUI |
-| Adapter | `src/adapter/` | Platform adapters (browser vs main environment) |
+| Module     | Location          | Purpose                                            |
+| ---------- | ----------------- | -------------------------------------------------- |
+| Channels   | `src/channels/`   | Multi-channel messaging (Lark, DingTalk, Telegram) |
+| Extensions | `src/extensions/` | Plugin loading, resolvers, sandbox                 |
+| WebServer  | `src/webserver/`  | Express + WebSocket for WebUI                      |
+| Adapter    | `src/adapter/`    | Platform adapters (browser vs main environment)    |
