@@ -454,6 +454,9 @@ export interface IMcpServer {
   builtin?: boolean;
 }
 
+/** Stable ID for the built-in image generation MCP server */
+export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
+
 export interface IMcpTool {
   name: string;
   description?: string;

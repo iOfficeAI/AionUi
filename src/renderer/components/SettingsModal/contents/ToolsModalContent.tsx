@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage, type IConfigStorageRefer, type IMcpServer } from '@/common/storage';
+import { ConfigStorage, type IConfigStorageRefer, type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/storage';
 import { acpConversation } from '@/common/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
@@ -27,9 +27,6 @@ import {
 } from '@/renderer/hooks/mcp';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
-
-/** Stable ID for the built-in image generation MCP server */
-const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 

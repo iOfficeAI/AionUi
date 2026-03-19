@@ -14,7 +14,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from './constants';
-import { executeImageGeneration } from './imageGenCore';
+import { executeImageGeneration } from '@/common/imageGenCore';
 import type { TProviderWithModel } from '@/common/storage';
 
 // Read provider config from environment variables

@@ -80,7 +80,9 @@ export default defineConfig({
         'src/agent/acp/AcpConnection.ts',
         'src/agent/acp/acpConnectors.ts',
         'src/agent/acp/modelInfo.ts',
+        'src/agent/acp/mcpSessionConfig.ts',
         // Common
+        'src/common/imageGenCore.ts',
         'src/common/chatLib.ts',
         'src/common/update/models/VersionInfo.ts',
         'src/common/appEnv.ts',

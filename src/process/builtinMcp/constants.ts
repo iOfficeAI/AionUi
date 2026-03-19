@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
+import { BUILTIN_IMAGE_GEN_ID } from '@/common/storage';
+export { BUILTIN_IMAGE_GEN_ID };
 export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
 export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
