@@ -327,12 +327,13 @@ export function initConversationBridge(
         },
       }).then((res) => (res ? [res] : []));
     } catch (error) {
-      // 捕获 abort 错误，避免 unhandled rejection
-      // Catch abort errors to avoid unhandled rejection
-      if (error instanceof Error && error.message.includes('aborted')) {
+      // Catch abort / ENOENT errors to avoid unhandled rejection
+      // (bridge provider callbacks have no .catch handler)
+      if (error instanceof Error && (error.message.includes('aborted') || error.message.includes('ENOENT'))) {
         return [];
       }
-      throw error;
+      console.error('[conversationBridge] getWorkspace error:', error);
+      return [];
     }
   });
 
