@@ -51,7 +51,7 @@ const CHANNEL_LOGOS = [
   { src: ChannelDiscordLogo, alt: 'Discord' },
 ] as const;
 
-const ChannelModalContentLazy = React.lazy(() => import('./ChannelModalContent'));
+const ChannelModalContentLazy = React.lazy(() => import('./channels/ChannelModalContent'));
 const QRCodeSVGLazy = React.lazy(async () => {
   const mod = await import('qrcode.react');
   return { default: mod.QRCodeSVG };

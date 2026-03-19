@@ -16,9 +16,9 @@ import { Input, InputNumber, Message, Select, Switch } from '@arco-design/web-re
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSettingsViewMode } from '../settingsViewContext';
-import ChannelItem from './channels/ChannelItem';
-import type { ChannelConfig } from './channels/types';
+import { useSettingsViewMode } from '../../settingsViewContext';
+import ChannelItem from './ChannelItem';
+import type { ChannelConfig } from './types';
 import DingTalkConfigForm from './DingTalkConfigForm';
 import LarkConfigForm from './LarkConfigForm';
 import TelegramConfigForm from './TelegramConfigForm';

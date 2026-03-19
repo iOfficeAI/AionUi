@@ -4,7 +4,6 @@ import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/context/AuthContext';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
-const About = React.lazy(() => import('@renderer/pages/settings/sections/About'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/sections/AgentSettings'));
 const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/sections/SkillsHubSettings'));
 const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/sections/DisplaySettings'));
@@ -58,7 +57,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
-          <Route path='/settings/about' element={withRouteFallback(About)} />
+          <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/tools' element={withRouteFallback(ToolsSettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings' element={<Navigate to='/settings/gemini' replace />} />
