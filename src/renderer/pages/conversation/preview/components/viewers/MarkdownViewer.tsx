@@ -26,7 +26,7 @@ import { Streamdown } from 'streamdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
-import { convertLatexDelimiters } from '@/renderer/utils/latexDelimiters';
+import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content

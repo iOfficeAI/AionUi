@@ -29,7 +29,7 @@ import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
-import { convertLatexDelimiters } from '../utils/latexDelimiters';
+import { convertLatexDelimiters } from '@renderer/utils/chat/latexDelimiters';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 
 const formatCode = (code: string) => {

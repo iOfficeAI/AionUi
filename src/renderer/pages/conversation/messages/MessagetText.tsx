@@ -17,7 +17,7 @@ import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
-import { stripThinkTags, hasThinkTags } from '@renderer/utils/thinkTagFilter';
+import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import MessageCronBadge from './MessageCronBadge';
 
 const parseFileMarker = (content: string) => {

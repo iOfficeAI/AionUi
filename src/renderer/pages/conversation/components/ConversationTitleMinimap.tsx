@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IMessageText, TMessage } from '@/common/chatLib';
-import { dispatchChatMessageJump } from '@/renderer/utils/chatMinimapEvents';
+import { dispatchChatMessageJump } from '@/renderer/utils/chat/chatMinimapEvents';
 import { Empty, Input, Spin } from '@arco-design/web-react';
 import { IconSearch } from '@arco-design/web-react/icon';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
