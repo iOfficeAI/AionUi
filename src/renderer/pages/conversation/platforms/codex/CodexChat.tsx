@@ -11,10 +11,14 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
-import ConversationChatConfirm from '../components/ConversationChatConfirm';
-import OpenClawSendBox from './OpenClawSendBox';
+import ConversationChatConfirm from '../../components/ConversationChatConfirm';
+import CodexSendBox from './CodexSendBox';
 
-const OpenClawChat: React.FC<{
+/**
+ * @deprecated Legacy Codex chat component. New Codex conversations use ACP
+ * protocol and render via AcpChat. Kept for existing sessions only.
+ */
+const CodexChat: React.FC<{
   conversation_id: string;
   workspace: string;
 }> = ({ conversation_id, workspace }) => {
@@ -24,17 +28,17 @@ const OpenClawChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'openclaw-gateway' }}>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'codex' }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
-          <OpenClawSendBox conversation_id={conversation_id} />
+          <CodexSendBox conversation_id={conversation_id} />
         </ConversationChatConfirm>
       </div>
     </ConversationProvider>
   );
 };
 
-export default HOC(MessageListProvider)(OpenClawChat);
+export default HOC(MessageListProvider)(CodexChat);

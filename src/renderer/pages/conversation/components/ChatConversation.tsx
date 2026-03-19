@@ -18,18 +18,18 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import { emitter } from '../../../utils/emitter';
-import AcpChat from '../acp/AcpChat';
+import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import CodexChat from '../codex/CodexChat';
-import NanobotChat from '../nanobot/NanobotChat';
-import OpenClawChat from '../openclaw/OpenClawChat';
+import CodexChat from '../platforms/codex/CodexChat';
+import NanobotChat from '../platforms/nanobot/NanobotChat';
+import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import GeminiChat from '../gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '../gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '../gemini/useGeminiModelSelection';
 import { usePreviewContext } from '../Preview';
-import StarOfficeMonitorCard from '../openclaw/StarOfficeMonitorCard.tsx';
+import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
