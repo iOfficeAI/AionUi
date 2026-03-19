@@ -11,19 +11,6 @@ type Provider = (payload?: unknown) => Promise<unknown>;
 let handlers: Record<string, Provider> = {};
 
 const mockRefreshTrayMenu = vi.fn(async () => {});
-const mockCreateConversation = vi.fn(async () => ({
-  success: true,
-  conversation: { id: 'conv-created', name: 'Created Conversation' },
-}));
-const mockGetConversation = vi.fn(() => ({
-  success: true,
-  data: { id: 'conv-1', source: 'aionui', name: 'Original Name', type: 'gemini' },
-}));
-const mockDeleteConversation = vi.fn(() => ({ success: true }));
-const mockUpdateConversation = vi.fn(() => ({ success: true }));
-const mockListJobsByConversation = vi.fn(async () => []);
-const mockRemoveJob = vi.fn(async () => {});
-const mockKill = vi.fn();
 
 const createCommand = (key: string) => ({
   provider: vi.fn((fn: Provider) => {
@@ -33,6 +20,23 @@ const createCommand = (key: string) => ({
   emit: vi.fn(),
 });
 
+const mockConversationService = {
+  createConversation: vi.fn(async () => ({ id: 'conv-created', name: 'Created Conversation', source: 'aionui' })),
+  deleteConversation: vi.fn(async () => {}),
+  updateConversation: vi.fn(async () => {}),
+  getConversation: vi.fn(async () => ({ id: 'conv-1', source: 'aionui', name: 'Original Name', type: 'gemini' })),
+  createWithMigration: vi.fn(async () => ({ id: 'conv-migrated', source: 'aionui' })),
+};
+
+const mockWorkerTaskManager = {
+  getTask: vi.fn(),
+  getOrBuildTask: vi.fn(async () => ({})),
+  addTask: vi.fn(),
+  kill: vi.fn(),
+  clear: vi.fn(),
+  listTasks: vi.fn(() => []),
+};
+
 const registerMocks = () => {
   vi.doMock('@/agent/gemini', () => ({
     GeminiAgent: class {},
@@ -41,22 +45,8 @@ const registerMocks = () => {
 
   vi.doMock('@process/database', () => ({
     getDatabase: vi.fn(() => ({
-      getConversation: mockGetConversation,
-      deleteConversation: mockDeleteConversation,
-      updateConversation: mockUpdateConversation,
       getUserConversations: vi.fn(() => ({ data: [] })),
-      getConversationMessages: vi.fn(() => ({ data: [], hasMore: false, total: 0 })),
-      createConversation: vi.fn(() => ({ success: true })),
-      insertMessage: vi.fn(),
     })),
-  }));
-
-  vi.doMock('@process/services/cron/CronService', () => ({
-    cronService: {
-      listJobsByConversation: mockListJobsByConversation,
-      removeJob: mockRemoveJob,
-      updateJob: vi.fn(async () => {}),
-    },
   }));
 
   vi.doMock('@/common', () => ({
@@ -74,15 +64,12 @@ const registerMocks = () => {
         reset: createCommand('conversation.reset'),
         get: createCommand('conversation.get'),
         getWorkspace: createCommand('conversation.getWorkspace'),
-        responseSearchWorkSpace: {
-          invoke: vi.fn(),
-        },
+        responseSearchWorkSpace: { invoke: vi.fn() },
         stop: createCommand('conversation.stop'),
         getSlashCommands: createCommand('conversation.getSlashCommands'),
         sendMessage: createCommand('conversation.sendMessage'),
-        responseStream: {
-          emit: vi.fn(),
-        },
+        responseStream: { emit: vi.fn() },
+        listChanged: { emit: vi.fn() },
         confirmation: {
           confirm: createCommand('conversation.confirmation.confirm'),
           list: createCommand('conversation.confirmation.list'),
@@ -94,21 +81,9 @@ const registerMocks = () => {
     },
   }));
 
-  vi.doMock('@/common/utils', () => ({
-    uuid: vi.fn(() => 'uuid-1'),
-  }));
-
   vi.doMock('@/process/initStorage', () => ({
     getSkillsDir: vi.fn(() => '/mock/skills'),
-    ProcessChat: {
-      get: vi.fn(async () => []),
-    },
-  }));
-
-  vi.doMock('@/process/services/conversationService', () => ({
-    ConversationService: {
-      createConversation: mockCreateConversation,
-    },
+    ProcessChat: { get: vi.fn(async () => []) },
   }));
 
   vi.doMock('@/process/task/agentUtils', () => ({
@@ -128,16 +103,6 @@ const registerMocks = () => {
     computeOpenClawIdentityHash: vi.fn(async () => 'identity-hash'),
   }));
 
-  vi.doMock('@/process/WorkerManage', () => ({
-    default: {
-      kill: mockKill,
-      clear: vi.fn(),
-      getTaskById: vi.fn(),
-      getTaskByIdRollbackBuild: vi.fn(),
-      buildConversation: vi.fn(),
-    },
-  }));
-
   vi.doMock('@/process/bridge/migrationUtils', () => ({
     migrateConversationToDatabase: vi.fn(),
   }));
@@ -145,7 +110,7 @@ const registerMocks = () => {
 
 const getProvider = async (key: string): Promise<Provider> => {
   const mod = await import('@/process/bridge/conversationBridge');
-  mod.initConversationBridge();
+  mod.initConversationBridge(mockConversationService as any, mockWorkerTaskManager as any);
 
   const provider = handlers[key];
   if (!provider) {
@@ -173,8 +138,8 @@ describe('conversationBridge tray sync', () => {
     const result = await removeProvider({ id: 'conv-1' });
 
     expect(result).toBe(true);
-    expect(mockKill).toHaveBeenCalledWith('conv-1');
-    expect(mockDeleteConversation).toHaveBeenCalledWith('conv-1');
+    expect(mockWorkerTaskManager.kill).toHaveBeenCalledWith('conv-1');
+    expect(mockConversationService.deleteConversation).toHaveBeenCalledWith('conv-1');
     expect(mockRefreshTrayMenu).toHaveBeenCalledOnce();
   });
 
@@ -183,8 +148,8 @@ describe('conversationBridge tray sync', () => {
 
     const result = await createProvider({ type: 'gemini' });
 
-    expect(result).toEqual({ id: 'conv-created', name: 'Created Conversation' });
-    expect(mockCreateConversation).toHaveBeenCalledOnce();
+    expect(result).toEqual({ id: 'conv-created', name: 'Created Conversation', source: 'aionui' });
+    expect(mockConversationService.createConversation).toHaveBeenCalledOnce();
     expect(mockRefreshTrayMenu).toHaveBeenCalledOnce();
   });
 
@@ -197,7 +162,11 @@ describe('conversationBridge tray sync', () => {
     });
 
     expect(result).toBe(true);
-    expect(mockUpdateConversation).toHaveBeenCalledWith('conv-1', { name: 'Renamed Conversation' });
+    expect(mockConversationService.updateConversation).toHaveBeenCalledWith(
+      'conv-1',
+      { name: 'Renamed Conversation' },
+      undefined
+    );
     expect(mockRefreshTrayMenu).toHaveBeenCalledOnce();
   });
 });
