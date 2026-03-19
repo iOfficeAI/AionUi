@@ -156,8 +156,13 @@ export async function readDirectoryRecursive(
     if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
   };
 
-  const stats = await fs.stat(dirPath);
-  if (!stats.isDirectory()) {
+  try {
+    const stats = await fs.stat(dirPath);
+    if (!stats.isDirectory()) {
+      return null;
+    }
+  } catch {
+    // Directory may have been deleted (e.g. cleaned-up temp workspace)
     return null;
   }
   const result: IDirOrFile = {
@@ -184,7 +189,13 @@ export async function readDirectoryRecursive(
     const itemPath = path.join(dirPath, item);
     if (fileService && fileService.shouldIgnoreFile(itemPath)) continue;
 
-    const itemStats = await fs.stat(itemPath);
+    let itemStats: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      itemStats = await fs.stat(itemPath);
+    } catch {
+      // File may have been deleted between readdir and stat (race condition)
+      continue;
+    }
     if (itemStats.isDirectory()) {
       process.dir += 1;
       const child = await readDirectoryRecursive(itemPath, {
