@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { STORAGE_KEYS } from '@/common/storageKeys';
-import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import useDebounce from '@/renderer/hooks/useDebounce';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';

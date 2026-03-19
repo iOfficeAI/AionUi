@@ -6,7 +6,7 @@
 
 import type { TChatConversation } from '@/common/storage';
 import { getAgentLogo } from '@/renderer/utils/agentLogo';
-import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/siderTooltip';

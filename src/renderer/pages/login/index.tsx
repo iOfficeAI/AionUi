@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
-import AppLoader from '../../components/AppLoader';
+import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '../../context/AuthContext';
 import './LoginPage.css';
 

@@ -6,7 +6,7 @@
 
 import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import type { AcpBackend } from '@/types/acpTypes';
-import FlexFullContainer from '@renderer/components/FlexFullContainer';
+import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/messages/hooks';
 import HOC from '@renderer/utils/HOC';

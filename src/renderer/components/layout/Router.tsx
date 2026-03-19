@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
-import AppLoader from '@renderer/components/AppLoader';
+import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/context/AuthContext';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));

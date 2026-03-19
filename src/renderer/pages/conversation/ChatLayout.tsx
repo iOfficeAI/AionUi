@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import { STORAGE_KEYS } from '@/common/storageKeys';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';

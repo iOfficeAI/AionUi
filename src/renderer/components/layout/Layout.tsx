@@ -6,8 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage, type ICssTheme } from '@/common/storage';
-import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
-import Titlebar from '@/renderer/components/Titlebar';
+import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
+import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
