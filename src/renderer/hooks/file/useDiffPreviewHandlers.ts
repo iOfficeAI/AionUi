@@ -6,8 +6,8 @@
 
 import type { FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
 import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
-import { getFileTypeInfo } from '@/renderer/utils/fileType';
+import { extractContentFromDiff } from '@/renderer/utils/file/diffUtils';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback } from 'react';
 
 interface DiffPreviewHandlersOptions {

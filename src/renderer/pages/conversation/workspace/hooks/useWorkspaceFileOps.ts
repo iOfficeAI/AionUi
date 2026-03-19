@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { downloadFileFromPath } from '@/renderer/utils/download';
+import { downloadFileFromPath } from '@/renderer/utils/file/download';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
@@ -13,7 +13,7 @@ import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
   LARGE_TEXT_PREVIEW_THRESHOLD,
 } from '@/renderer/pages/conversation/preview/constants';
-import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
+import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/file/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';

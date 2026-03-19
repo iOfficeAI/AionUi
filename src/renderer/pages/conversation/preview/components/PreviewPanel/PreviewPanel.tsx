@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/download';
+import { downloadFileFromPath, downloadTextContent } from '@/renderer/utils/file/download';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';

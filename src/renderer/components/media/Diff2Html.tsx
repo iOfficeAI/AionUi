@@ -6,8 +6,8 @@
 
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import { iconColors } from '@/renderer/styles/colors';
-import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
-import { getFileTypeInfo } from '@/renderer/utils/fileType';
+import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/file/diffUtils';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { Button, Checkbox, Tooltip } from '@arco-design/web-react';
 import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
 import classNames from 'classnames';

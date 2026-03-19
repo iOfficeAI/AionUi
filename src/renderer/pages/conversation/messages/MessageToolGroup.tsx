@@ -13,7 +13,7 @@ import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
-import { parseDiff } from '@/renderer/utils/diffUtils';
+import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import MessageFileChanges from './codex/MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import LocalImageView from '@renderer/components/media/LocalImageView';

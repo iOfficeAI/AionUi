@@ -21,8 +21,8 @@ import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/ho
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
-import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
+import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
+import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';

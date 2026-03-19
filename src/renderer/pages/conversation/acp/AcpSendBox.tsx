@@ -10,7 +10,7 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
+import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
