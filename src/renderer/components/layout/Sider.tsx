@@ -6,14 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { iconColors } from '@renderer/styles/colors';
 import { Tooltip } from '@arco-design/web-react';
-import { usePreviewContext } from '@renderer/pages/conversation/preview/context/PreviewContext';
+import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@renderer/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/context/ThemeContext';
-import ConversationSearchPopover from '@renderer/pages/conversation/grouped-history/ConversationSearchPopover';
+import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 
-const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/WorkspaceGroupedHistory'));
+const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/SettingsSider'));
 
 interface SiderProps {

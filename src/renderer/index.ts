@@ -16,8 +16,8 @@ import '../adapter/browser';
 import Main from './main';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { PreviewProvider } from './pages/conversation/preview/context/PreviewContext';
-import { ConversationTabsProvider } from './pages/conversation/context/ConversationTabsContext';
+import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
+import { ConversationTabsProvider } from './pages/conversation/hooks/ConversationTabsContext';
 
 import { ConfigProvider } from '@arco-design/web-react';
 // 配置 Arco Design 使用 React 18 的 createRoot，修复 Message 组件的 CopyReactDOM.render 错误

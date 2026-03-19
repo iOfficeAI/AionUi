@@ -15,10 +15,10 @@ import { Close, Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useConversationTabs } from './context/ConversationTabsContext';
-import { useConversationAgents } from './hooks/useConversationAgents';
-import { applyDefaultConversationName } from './utils/newConversationName';
-import { buildCliAgentParams, buildPresetAssistantParams } from './utils/createConversationParams';
+import { useConversationTabs } from '../hooks/ConversationTabsContext';
+import { useConversationAgents } from '../hooks/useConversationAgents';
+import { applyDefaultConversationName } from '../utils/newConversationName';
+import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 

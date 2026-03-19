@@ -80,7 +80,7 @@ vi.mock('@/renderer/hooks/useSlashCommands', () => ({
   useSlashCommands: vi.fn(() => []),
 }));
 
-vi.mock('@/renderer/pages/conversation/preview', () => ({
+vi.mock('@/renderer/pages/conversation/Preview', () => ({
   usePreviewContext: vi.fn(() => ({ setSendBoxHandler: vi.fn() })),
 }));
 

@@ -4,7 +4,7 @@ import type { IDirOrFile } from '@/common/ipcBridge';
 import {
   collectFilePaths,
   computeContextMenuPosition,
-} from '@/renderer/pages/conversation/workspace/utils/treeHelpers';
+} from '@/renderer/pages/conversation/Workspace/utils/treeHelpers';
 
 // Helper to create a file node
 function file(name: string, fullPath: string): IDirOrFile {

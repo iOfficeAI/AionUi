@@ -3,19 +3,19 @@ import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
-import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
+import ConversationTabs from '@/renderer/pages/conversation/components/ConversationTabs';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
-import MobileWorkspaceOverlay from '@/renderer/pages/conversation/components/MobileWorkspaceOverlay';
+import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, {
   DesktopWorkspaceToggle,
-} from '@/renderer/pages/conversation/components/WorkspacePanelHeader';
-import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+} from './WorkspacePanelHeader';
+import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
 import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/usePreviewAutoCollapse';
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
-import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';

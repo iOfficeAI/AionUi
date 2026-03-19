@@ -3,7 +3,7 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export const useGeminiMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {

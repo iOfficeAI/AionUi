@@ -14,16 +14,16 @@
  * @example
  * ```typescript
  * // 使用Context
- * import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/preview';
+ * import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview';
  *
  * // 使用组件
- * import { PreviewPanel, MarkdownViewer } from '@/renderer/pages/conversation/preview';
+ * import { PreviewPanel, MarkdownViewer } from '@/renderer/pages/conversation/Preview';
  *
  * // 使用Hooks
- * import { usePreviewHistory } from '@/renderer/pages/conversation/preview';
+ * import { usePreviewHistory } from '@/renderer/pages/conversation/Preview';
  *
  * // 使用类型
- * import type { PreviewContentType } from '@/renderer/pages/conversation/preview';
+ * import type { PreviewContentType } from '@/renderer/pages/conversation/Preview';
  * ```
  */
 
@@ -43,4 +43,4 @@ export * from './components';
 export * from './constants';
 
 // Utils
-export * from './utils/fileUtils';
+export * from './fileUtils';

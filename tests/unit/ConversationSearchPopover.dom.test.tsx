@@ -36,7 +36,7 @@ vi.mock('../../src/renderer/hooks/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({ info: null }),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/context/ConversationTabsContext', () => ({
+vi.mock('../../src/renderer/pages/conversation/hooks/ConversationTabsContext', () => ({
   useOptionalConversationTabs: () => ({
     closeAllTabs: closeAllTabsMock,
     openTab: openTabMock,
@@ -73,7 +73,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import ConversationSearchPopover from '../../src/renderer/pages/conversation/grouped-history/ConversationSearchPopover';
+import ConversationSearchPopover from '../../src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 
 describe('ConversationSearchPopover', () => {
   beforeEach(() => {

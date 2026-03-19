@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { emitter } from '@/renderer/utils/emitter';
 import {
   isTemporaryWorkspace as checkIsTemporaryWorkspace,

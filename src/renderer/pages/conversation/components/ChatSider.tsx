@@ -7,7 +7,7 @@
 import type { TChatConversation } from '@/common/storage';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
-import ChatWorkspace from './workspace';
+import ChatWorkspace from '../Workspace';
 
 const ChatSider: React.FC<{
   conversation?: TChatConversation;

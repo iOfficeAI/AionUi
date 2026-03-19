@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { emitter } from '@/renderer/utils/emitter';
-import { useCronJobs } from '@/renderer/pages/cron/hooks/useCronJobs';
+import { useCronJobs } from '@/renderer/pages/cron/useCronJobs';
 import type { TFunction } from 'i18next';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

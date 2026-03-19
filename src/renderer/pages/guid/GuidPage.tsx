@@ -7,7 +7,7 @@
 import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkeleton';

@@ -9,7 +9,7 @@ import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/componen
 import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';

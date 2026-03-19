@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { emitter } from '@/renderer/utils/emitter';
 import { useEffect } from 'react';
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { TMessage } from '@/common/chatLib';
-import { MAX_LINE_LEN } from '@/renderer/pages/conversation/components/minimapTypes';
-import { buildSearchSnippet, buildTurnPreview } from '@/renderer/pages/conversation/components/minimapUtils';
+import { MAX_LINE_LEN } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes';
+import { buildSearchSnippet, buildTurnPreview } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils';
 
 // Helper to create a text message with sensible defaults
 function textMsg(

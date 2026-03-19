@@ -10,8 +10,8 @@ import { Button, Popover, Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCronJobs } from '../hooks/useCronJobs';
-import { getJobStatusFlags } from '../utils/cronUtils';
+import { useCronJobs } from '../useCronJobs';
+import { getJobStatusFlags } from '../cronUtils';
 import CronJobDrawer from './CronJobDrawer';
 
 interface CronJobManagerProps {

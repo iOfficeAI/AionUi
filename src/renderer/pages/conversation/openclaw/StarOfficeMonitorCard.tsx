@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewMetadata } from '@renderer/pages/conversation/preview/context/PreviewContext.tsx';
+import type { PreviewMetadata } from '@renderer/pages/conversation/Preview/context/PreviewContext.tsx';
 import { Button, Input, Modal, Tooltip } from '@arco-design/web-react';
 import { Tv } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';

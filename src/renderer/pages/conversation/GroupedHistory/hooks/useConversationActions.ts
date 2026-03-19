@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useConversationTabs } from '../../context/ConversationTabsContext';
+import { useConversationTabs } from '../../hooks/ConversationTabsContext';
 import { isConversationPinned } from '../utils/groupingHelpers';
 
 type UseConversationActionsParams = {

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { stripThinkTags, hasThinkTags } from '@/renderer/utils/chat/thinkTagFilter';
 

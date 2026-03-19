@@ -228,8 +228,8 @@ describe('i18n Build Safety Tests', () => {
     // Check known files that previously had hardcoded strings
     const filesToCheck = [
       path.resolve(__dirname, '../../src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'),
-      path.resolve(__dirname, '../../src/renderer/pages/conversation/preview/components/viewers/URLViewer.tsx'),
-      path.resolve(__dirname, '../../src/renderer/pages/conversation/workspace/index.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/Preview/components/viewers/URLViewer.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/Workspace/index.tsx'),
     ];
 
     const hardcodedPatterns = [

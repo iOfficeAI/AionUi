@@ -10,7 +10,7 @@ import { ConfigStorage } from '@/common/storage';
 import type { IProvider } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';

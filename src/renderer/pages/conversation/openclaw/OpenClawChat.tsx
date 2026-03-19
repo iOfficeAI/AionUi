@@ -6,8 +6,8 @@
 
 import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
-import MessageList from '@renderer/pages/conversation/messages/MessageList';
-import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/messages/hooks';
+import MessageList from '@renderer/pages/conversation/Messages/MessageList';
+import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';

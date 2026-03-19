@@ -1,4 +1,4 @@
-import WorkspacePanelHeader from '@/renderer/pages/conversation/components/WorkspacePanelHeader';
+import WorkspacePanelHeader from './WorkspacePanelHeader';
 import { WORKSPACE_HEADER_HEIGHT } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { Layout as ArcoLayout } from '@arco-design/web-react';

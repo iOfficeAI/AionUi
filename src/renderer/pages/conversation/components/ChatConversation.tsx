@@ -17,19 +17,19 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
-import { emitter } from '../../utils/emitter';
-import AcpChat from './acp/AcpChat';
+import { emitter } from '../../../utils/emitter';
+import AcpChat from '../acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import CodexChat from './codex/CodexChat';
-import NanobotChat from './nanobot/NanobotChat';
-import OpenClawChat from './openclaw/OpenClawChat';
-import GeminiChat from './gemini/GeminiChat';
+import CodexChat from '../codex/CodexChat';
+import NanobotChat from '../nanobot/NanobotChat';
+import OpenClawChat from '../openclaw/OpenClawChat';
+import GeminiChat from '../gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import GeminiModelSelector from './gemini/GeminiModelSelector';
-import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
-import { usePreviewContext } from './preview';
-import StarOfficeMonitorCard from './openclaw/StarOfficeMonitorCard.tsx';
+import GeminiModelSelector from '../gemini/GeminiModelSelector';
+import { useGeminiModelSelection } from '../gemini/useGeminiModelSelection';
+import { usePreviewContext } from '../Preview';
+import StarOfficeMonitorCard from '../openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
