@@ -1,7 +1,7 @@
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/gemini/useGeminiModelSelection';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
+import { getModelDisplayLabel } from '@/renderer/utils/model/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React from 'react';

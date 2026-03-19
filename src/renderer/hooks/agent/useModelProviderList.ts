@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useGeminiGoogleAuthModels } from './useGeminiGoogleAuthModels';
 import type { GeminiModeOption } from './useModeModeList';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
 export interface ModelProviderListResult {
   providers: IProvider[];

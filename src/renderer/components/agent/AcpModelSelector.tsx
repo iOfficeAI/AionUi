@@ -11,7 +11,7 @@ import type { IProvider } from '@/common/storage';
 import type { AcpModelInfo } from '@/types/acpTypes';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { getModelDisplayLabel } from '@/renderer/utils/agentUiDisplay';
+import { getModelDisplayLabel } from '@/renderer/utils/model/agentUiDisplay';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';

@@ -5,7 +5,7 @@
  */
 
 import type { IProvider } from '@/common/storage';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
 /**
  * Cache for provider available models to avoid repeated computation.

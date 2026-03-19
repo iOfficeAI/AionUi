@@ -5,7 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/storage';
-import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { MessageOne } from '@icon-park/react';
 import React from 'react';
 

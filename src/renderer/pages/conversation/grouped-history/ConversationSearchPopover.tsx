@@ -10,7 +10,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useOptionalConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
-import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';

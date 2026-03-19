@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
-import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/siderTooltip';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';

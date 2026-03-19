@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/agentLogo';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import type { AcpBackend, AvailableAgent } from '../types';
