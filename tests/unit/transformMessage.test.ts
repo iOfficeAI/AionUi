@@ -47,9 +47,7 @@ describe('transformMessage', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const result = transformMessage(makeMessage('some_unknown_type'));
     expect(result).toBeUndefined();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Unsupported message type 'some_unknown_type'"),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Unsupported message type 'some_unknown_type'"));
     warnSpy.mockRestore();
   });
 });
