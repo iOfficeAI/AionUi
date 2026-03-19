@@ -455,7 +455,19 @@ triggers: Word, document, .docx, report, letter, memo, manuscript, essay, paper,
 
 ```javascript
 // Use docx package for Node.js
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, Header, Footer, PageNumber } = require('docx');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  Table,
+  TableRow,
+  TableCell,
+  Header,
+  Footer,
+  PageNumber,
+} = require('docx');
 
 const doc = new Document({
   sections: [
@@ -490,7 +502,13 @@ const doc = new Document({
 
         // Body text
         new Paragraph({
-          children: [new TextRun({ text: 'This is ', bold: false }), new TextRun({ text: 'bold', bold: true }), new TextRun({ text: ' and ' }), new TextRun({ text: 'italic', italics: true }), new TextRun({ text: ' text.' })],
+          children: [
+            new TextRun({ text: 'This is ', bold: false }),
+            new TextRun({ text: 'bold', bold: true }),
+            new TextRun({ text: ' and ' }),
+            new TextRun({ text: 'italic', italics: true }),
+            new TextRun({ text: ' text.' }),
+          ],
         }),
 
         // Bullet list
@@ -503,10 +521,16 @@ const doc = new Document({
         new Table({
           rows: [
             new TableRow({
-              children: [new TableCell({ children: [new Paragraph('Header 1')] }), new TableCell({ children: [new Paragraph('Header 2')] })],
+              children: [
+                new TableCell({ children: [new Paragraph('Header 1')] }),
+                new TableCell({ children: [new Paragraph('Header 2')] }),
+              ],
             }),
             new TableRow({
-              children: [new TableCell({ children: [new Paragraph('Cell 1')] }), new TableCell({ children: [new Paragraph('Cell 2')] })],
+              children: [
+                new TableCell({ children: [new Paragraph('Cell 1')] }),
+                new TableCell({ children: [new Paragraph('Cell 2')] }),
+              ],
             }),
           ],
         }),

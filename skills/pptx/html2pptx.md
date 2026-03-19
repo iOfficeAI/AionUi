@@ -98,7 +98,9 @@ const sharp = require('sharp');
 const { FaHome } = require('react-icons/fa');
 
 async function rasterizeIconPng(IconComponent, color, size = '256', filename) {
-  const svgString = ReactDOMServer.renderToStaticMarkup(React.createElement(IconComponent, { color: `#${color}`, size: size }));
+  const svgString = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(IconComponent, { color: `#${color}`, size: size })
+  );
 
   // Convert SVG to PNG using Sharp
   await sharp(Buffer.from(svgString)).png().toFile(filename);
@@ -351,12 +353,15 @@ slide.addImage({ path: 'chart.png', x, y: 1.5, w, h });
 
 ```javascript
 // Rich text with formatting
-slide.addText([{ text: 'Bold ', options: { bold: true } }, { text: 'Italic ', options: { italic: true } }, { text: 'Normal' }], {
-  x: 1,
-  y: 2,
-  w: 8,
-  h: 1,
-});
+slide.addText(
+  [{ text: 'Bold ', options: { bold: true } }, { text: 'Italic ', options: { italic: true } }, { text: 'Normal' }],
+  {
+    x: 1,
+    y: 2,
+    w: 8,
+    h: 1,
+  }
+);
 ```
 
 ### Adding Shapes
@@ -682,7 +687,12 @@ slide.addTable(tableData, {
 #### Table with Merged Cells
 
 ```javascript
-const mergedTableData = [[{ text: 'Q1 Results', options: { colspan: 3, fill: { color: '4472C4' }, color: 'FFFFFF', bold: true } }], ['Product', 'Sales', 'Market Share'], ['Product A', '$25M', '35%'], ['Product B', '$18M', '25%']];
+const mergedTableData = [
+  [{ text: 'Q1 Results', options: { colspan: 3, fill: { color: '4472C4' }, color: 'FFFFFF', bold: true } }],
+  ['Product', 'Sales', 'Market Share'],
+  ['Product A', '$25M', '35%'],
+  ['Product B', '$18M', '25%'],
+];
 
 slide.addTable(mergedTableData, {
   x: 1,

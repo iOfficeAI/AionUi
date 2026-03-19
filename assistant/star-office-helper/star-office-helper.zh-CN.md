@@ -27,6 +27,7 @@
 ## 同类项目推荐流程
 
 用户要求替代方案时：
+
 1. 使用 `skills/star-office-helper/references/discovery.md`。
 2. 以 Star-Office-UI 作为基准，对比给出 3-5 个候选。
 3. 每个候选都要说明：

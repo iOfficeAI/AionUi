@@ -20,6 +20,7 @@ src/renderer/
 ```
 
 **Does NOT belong at renderer root:**
+
 - CSS files → `styles/`
 - Component files (`.tsx`) → `components/` or `pages/`
 - Single-file directories → merge into a related directory
@@ -45,13 +46,16 @@ src/renderer/
 Two layers:
 
 **Fixed layer:**
+
 - `base/` — Generic UI primitives (Modal, Select, ScrollArea). No business logic, no app-specific context
 
 **Business layer:**
+
 - Subdirectories by business domain (lowercase). Create when ≥ 2 shared components belong to the same domain
 - Single component may stay at `components/` root until a second same-domain component appears
 
 **Constraints:**
+
 - Root ≤ 10 direct children
 - `base/` must not depend on business logic
 - Single-page components → `pages/<PageName>/components/`
@@ -119,11 +123,11 @@ Only create sub-directories you need. Use these exact names.
 
 ## Page-Level Directory Naming
 
-| Type | Convention | Examples |
-|------|-----------|----------|
-| **Categorical** (standard role) | lowercase | `components/`, `hooks/`, `context/`, `utils/` |
-| **Feature module** (business) | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/` |
-| **Platform directory** | lowercase | `acp/`, `codex/`, `gemini/` (mirrors `src/agent/`) |
+| Type                            | Convention | Examples                                           |
+| ------------------------------- | ---------- | -------------------------------------------------- |
+| **Categorical** (standard role) | lowercase  | `components/`, `hooks/`, `context/`, `utils/`      |
+| **Feature module** (business)   | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`        |
+| **Platform directory**          | lowercase  | `acp/`, `codex/`, `gemini/` (mirrors `src/agent/`) |
 
 ### Example
 
@@ -146,9 +150,9 @@ src/renderer/
 
 ## Shared vs Page-Private Code
 
-| Scope | Location |
-|-------|----------|
-| Used by **one** page | `pages/<PageName>/components/`, `hooks/`, etc. |
+| Scope                      | Location                                          |
+| -------------------------- | ------------------------------------------------- |
+| Used by **one** page       | `pages/<PageName>/components/`, `hooks/`, etc.    |
 | Used by **multiple** pages | `src/renderer/components/`, `src/renderer/hooks/` |
 
 **Promotion rule**: Start page-private. Move to shared only when a second consumer appears.

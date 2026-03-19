@@ -36,16 +36,17 @@ tests/
 
 ## Two Test Environments
 
-| Environment | When | File naming |
-|-------------|------|-------------|
-| `node` (default) | Main process, utilities, services | `*.test.ts` |
-| `jsdom` | DOM/browser-dependent code | `*.dom.test.ts` |
+| Environment      | When                              | File naming     |
+| ---------------- | --------------------------------- | --------------- |
+| `node` (default) | Main process, utilities, services | `*.test.ts`     |
+| `jsdom`          | DOM/browser-dependent code        | `*.dom.test.ts` |
 
 ## Workflow
 
 ### Step 1: Identify What to Test
 
 Before writing tests, list the **riskiest scenarios** first:
+
 - What happens when the dependency returns `undefined` / throws?
 - What happens at boundaries (empty list, max retries, past timestamp)?
 - What is most likely to break in production?
@@ -128,10 +129,10 @@ Before submitting code:
 
 ## Common Mistakes
 
-| Mistake | Correct |
-|---------|---------|
-| Testing implementation details | Test observable behavior |
-| Only testing happy path | Must include at least one failure path |
-| 5+ expects in one `it()` | Split into separate tests |
-| Skipping tests for "simple" code | Simple code breaks too — test the risky parts |
+| Mistake                           | Correct                                       |
+| --------------------------------- | --------------------------------------------- |
+| Testing implementation details    | Test observable behavior                      |
+| Only testing happy path           | Must include at least one failure path        |
+| 5+ expects in one `it()`          | Split into separate tests                     |
+| Skipping tests for "simple" code  | Simple code breaks too — test the risky parts |
 | Writing tests after saying "done" | Tests are part of "done", not an afterthought |

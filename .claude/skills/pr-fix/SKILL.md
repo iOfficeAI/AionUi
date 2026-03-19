@@ -50,6 +50,7 @@ gh pr view <PR_NUMBER> --json comments \
 ```
 
 If no review comment is found, abort with:
+
 > No pr-review report found. Please run `/pr-review <pr_number>` first.
 
 ---
@@ -59,24 +60,26 @@ If no review comment is found, abort with:
 Locate the **汇总** section in the review report:
 
 ```markdown
-| # | 严重级别 | 文件 | 问题 |
-|---|---------|------|------|
-| 1 | 🔴 CRITICAL | `file.ts:N` | ... |
+| #   | 严重级别    | 文件        | 问题 |
+| --- | ----------- | ----------- | ---- |
+| 1   | 🔴 CRITICAL | `file.ts:N` | ...  |
 ```
 
 Build an ordered issue list, grouped by severity:
 
 | Priority | Severity | Emoji |
-|----------|----------|-------|
+| -------- | -------- | ----- |
 | 1        | CRITICAL | 🔴    |
 | 2        | HIGH     | 🟠    |
 | 3        | MEDIUM   | 🟡    |
 | 4        | LOW      | 🔵    |
 
 If the 汇总 table is empty, abort with:
+
 > No issues found in the review summary. Nothing to fix.
 
 **LOW issues — ask user once:**
+
 > 检测到 N 个 LOW 级别问题。是否一并修复？(yes/no)
 
 If **no**, exclude LOW issues from this run.
@@ -109,19 +112,21 @@ gh pr view <PR_NUMBER> --json isCrossRepository -q '.isCrossRepository'
 ```
 
 If working tree is dirty, abort with:
+
 > Working tree has uncommitted changes. Please commit or stash them before running pr-fix.
 
 Save `<head_branch>`, `<base_branch>`, `<state>`, and `<isCrossRepository>` for Step 3.
 
 **Determine path based on results:**
 
-| state    | isCrossRepository | Path   |
-|----------|-------------------|--------|
-| `MERGED` | any               | Path A — create follow-up PR |
+| state    | isCrossRepository | Path                             |
+| -------- | ----------------- | -------------------------------- |
+| `MERGED` | any               | Path A — create follow-up PR     |
 | `OPEN`   | `false`           | Path B — push to original branch |
-| `OPEN`   | `true`            | **ABORT** |
+| `OPEN`   | `true`            | **ABORT**                        |
 
 If state is `OPEN` and isCrossRepository is `true`, abort with:
+
 > PR #<PR_NUMBER> is still open and was submitted from an external fork. Direct push is not possible.
 > Please wait for the PR to be merged, then run `/pr-fix` again.
 
@@ -133,11 +138,11 @@ If state is `OPEN` and isCrossRepository is `true`, abort with:
 
 Derive the fix branch name from `<head_branch>`:
 
-| Original branch             | Scope                   | Fix branch                                   |
-|-----------------------------|-------------------------|----------------------------------------------|
-| `feat/webui-file-upload`    | `webui`                 | `fix/webui-review-followup`                  |
-| `fix/cron-timezone`         | `cron`                  | `fix/cron-review-followup`                   |
-| `feat/image-generation-mcp` | `image-generation-mcp`  | `fix/image-generation-mcp-review-followup`   |
+| Original branch             | Scope                  | Fix branch                                 |
+| --------------------------- | ---------------------- | ------------------------------------------ |
+| `feat/webui-file-upload`    | `webui`                | `fix/webui-review-followup`                |
+| `fix/cron-timezone`         | `cron`                 | `fix/cron-review-followup`                 |
+| `feat/image-generation-mcp` | `image-generation-mcp` | `fix/image-generation-mcp-review-followup` |
 
 **Rule:** Split on `/`, take segment after the first `/`, use that as scope.
 
@@ -254,6 +259,7 @@ git push origin <head_branch>
 ```
 
 Output to user:
+
 > 已推送到 `<head_branch>`，PR #<PR_NUMBER> 已自动更新。无需创建新 PR。
 
 ---

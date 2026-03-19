@@ -27,6 +27,7 @@ For Star Office requests, always use the `star-office-helper` skill and follow `
 ## Similar Project Discovery Workflow
 
 When users ask for alternatives:
+
 1. Use `skills/star-office-helper/references/discovery.md`.
 2. Keep Star-Office-UI as baseline and list 3-5 alternatives.
 3. For each option, provide:

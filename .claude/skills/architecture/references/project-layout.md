@@ -33,10 +33,10 @@ project-root/
 
 ### Cleanup Targets
 
-| Action | Files | Effect |
-|--------|-------|--------|
-| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md` | -7 files from root |
-| Move guides to `docs/` | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` | -3 files from root |
+| Action                                     | Files                                                       | Effect             |
+| ------------------------------------------ | ----------------------------------------------------------- | ------------------ |
+| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md`                          | -7 files from root |
+| Move guides to `docs/`                     | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` | -3 files from root |
 
 > **Migration rule**: New documentation files → `docs/`, not project root.
 

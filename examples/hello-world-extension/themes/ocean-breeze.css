@@ -163,7 +163,7 @@
 
 /* ==================== Global Styles ==================== */
 body {
-  font-family: "Inter", "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: 'Inter', 'SF Pro Display', 'Segoe UI', 'Microsoft YaHei', sans-serif;
   background-color: var(--bg-1);
 }
 
@@ -172,7 +172,7 @@ html {
 }
 
 .arco-layout,
-[class*="layout"] {
+[class*='layout'] {
   background-color: var(--bg-1);
 }
 
@@ -218,7 +218,7 @@ html {
 }
 
 .layout-content.bg-1::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
@@ -240,23 +240,18 @@ html {
 }
 
 [data-theme='dark'] .layout-content.bg-1::before {
-  background: linear-gradient(
-    135deg,
-    rgba(12, 26, 26, 0.8) 0%,
-    rgba(26, 51, 51, 0.85) 50%,
-    rgba(12, 26, 26, 0.8) 100%
-  );
+  background: linear-gradient(135deg, rgba(12, 26, 26, 0.8) 0%, rgba(26, 51, 51, 0.85) 50%, rgba(12, 26, 26, 0.8) 100%);
 }
 
 /* Chat page background */
-[class*="chat-layout"] .arco-layout-content,
-[class*="conversation"] .arco-layout-content {
+[class*='chat-layout'] .arco-layout-content,
+[class*='conversation'] .arco-layout-content {
   position: relative;
 }
 
-[class*="chat-layout"] .arco-layout-content::before,
-[class*="conversation"] .arco-layout-content::before {
-  content: "";
+[class*='chat-layout'] .arco-layout-content::before,
+[class*='conversation'] .arco-layout-content::before {
+  content: '';
   position: absolute;
   inset: 0;
   background: transparent;
@@ -265,15 +260,15 @@ html {
   pointer-events: none;
 }
 
-[class*="chat-layout"] .arco-layout-content > *,
-[class*="conversation"] .arco-layout-content > * {
+[class*='chat-layout'] .arco-layout-content > *,
+[class*='conversation'] .arco-layout-content > * {
   position: relative;
   z-index: 1;
 }
 
 /* ==================== Input ==================== */
 .guidLayout,
-[class*="guid"] {
+[class*='guid'] {
   position: relative;
   z-index: 10;
 }
@@ -293,7 +288,7 @@ html {
 }
 
 .guidInputCard textarea,
-[class*="guidInputCard"] textarea {
+[class*='guidInputCard'] textarea {
   background-color: rgba(255, 255, 255, 0.98);
   color: var(--color-text-1);
 }
@@ -304,8 +299,10 @@ html {
 }
 
 /* Send box */
-.sendbox-container:not([class*="model"]):not([class*="Model"]),
-[class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
+.sendbox-container:not([class*='model']):not([class*='Model']),
+[class*='sendbox']:not([class*='input']):not([class*='textarea']):not([class*='model']):not([class*='Model']):not(
+    [class*='tools']
+  ) {
   border-radius: 16px;
   border: 2px solid var(--border-base);
   background-color: rgba(255, 255, 255, 0.9);
@@ -314,27 +311,30 @@ html {
   transition: all 0.3s ease;
 }
 
-[data-theme='dark'] .sendbox-container:not([class*="model"]):not([class*="Model"]),
-[data-theme='dark'] [class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
+[data-theme='dark'] .sendbox-container:not([class*='model']):not([class*='Model']),
+[data-theme='dark']
+  [class*='sendbox']:not([class*='input']):not([class*='textarea']):not([class*='model']):not([class*='Model']):not(
+    [class*='tools']
+  ) {
   background: linear-gradient(135deg, rgba(26, 51, 51, 0.9) 0%, rgba(38, 64, 64, 0.9) 100%);
   border: 2px solid var(--border-base);
   box-shadow: 0 4px 20px rgba(34, 211, 238, 0.2);
 }
 
 .sendbox-container textarea,
-[class*="sendbox"] textarea {
+[class*='sendbox'] textarea {
   border: none;
   background: transparent;
 }
 
 .sendbox-container:focus-within,
-[class*="sendbox"]:focus-within {
+[class*='sendbox']:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 6px 24px rgba(8, 145, 178, 0.2);
 }
 
 [data-theme='dark'] .sendbox-container:focus-within,
-[data-theme='dark'] [class*="sendbox"]:focus-within {
+[data-theme='dark'] [class*='sendbox']:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 6px 28px rgba(34, 211, 238, 0.35);
 }
@@ -342,7 +342,7 @@ html {
 /* ==================== Messages ==================== */
 /* User message */
 .message-item.user .message-bubble,
-[class*="message"][class*="user"] .message-content {
+[class*='message'][class*='user'] .message-content {
   background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
   color: white;
   border-radius: 16px 16px 4px 16px;
@@ -352,15 +352,15 @@ html {
 }
 
 [data-theme='dark'] .message-item.user .message-bubble,
-[data-theme='dark'] [class*="message"][class*="user"] .message-content {
+[data-theme='dark'] [class*='message'][class*='user'] .message-content {
   background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
   box-shadow: 0 4px 16px rgba(34, 211, 238, 0.4);
 }
 
 /* AI message */
 .message-item.ai .message-bubble,
-[class*="message"][class*="ai"] .message-content,
-[class*="message"][class*="assistant"] .message-content {
+[class*='message'][class*='ai'] .message-content,
+[class*='message'][class*='assistant'] .message-content {
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border: 2px solid #a5f3fc;
@@ -370,8 +370,8 @@ html {
 }
 
 [data-theme='dark'] .message-item.ai .message-bubble,
-[data-theme='dark'] [class*="message"][class*="ai"] .message-content,
-[data-theme='dark'] [class*="message"][class*="assistant"] .message-content {
+[data-theme='dark'] [class*='message'][class*='ai'] .message-content,
+[data-theme='dark'] [class*='message'][class*='assistant'] .message-content {
   background: linear-gradient(135deg, rgba(26, 51, 51, 0.95) 0%, rgba(38, 64, 64, 0.95) 100%);
   border: 2px solid var(--border-base);
   box-shadow: 0 4px 16px rgba(34, 211, 238, 0.15);
@@ -379,8 +379,8 @@ html {
 
 /* Tool call alerts and cards */
 .message-item.ai .arco-alert,
-[class*="message"][class*="ai"] .arco-alert,
-[class*="message"][class*="assistant"] .arco-alert {
+[class*='message'][class*='ai'] .arco-alert,
+[class*='message'][class*='assistant'] .arco-alert {
   background-color: rgba(255, 255, 255, 0.7);
   border: 1px solid #ccfbf1;
   border-radius: 8px;
@@ -388,14 +388,14 @@ html {
 }
 
 [data-theme='dark'] .message-item.ai .arco-alert,
-[data-theme='dark'] [class*="message"][class*="ai"] .arco-alert {
+[data-theme='dark'] [class*='message'][class*='ai'] .arco-alert {
   background-color: rgba(19, 38, 38, 0.7);
   border: 1px solid var(--border-base);
 }
 
 .message-item.ai .arco-card,
-[class*="message"][class*="ai"] .arco-card,
-[class*="message"][class*="assistant"] .arco-card {
+[class*='message'][class*='ai'] .arco-card,
+[class*='message'][class*='assistant'] .arco-card {
   background-color: rgba(255, 255, 255, 0.7);
   border: 1px solid #ccfbf1;
   border-radius: 8px;
@@ -403,14 +403,14 @@ html {
 }
 
 [data-theme='dark'] .message-item.ai .arco-card,
-[data-theme='dark'] [class*="message"][class*="ai"] .arco-card {
+[data-theme='dark'] [class*='message'][class*='ai'] .arco-card {
   background-color: rgba(19, 38, 38, 0.7);
   border: 1px solid var(--border-base);
 }
 
 /* ==================== Buttons ==================== */
-.arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+.arco-btn-primary:not([class*='icon']):not([class*='circle']):not([class*='model']),
+button[type='primary']:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
   border-color: #0891b2;
   border-radius: 12px;
@@ -419,21 +419,21 @@ button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="
   transition: all 0.3s ease;
 }
 
-.arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+.arco-btn-primary:hover:not([class*='icon']):not([class*='circle']):not([class*='model']),
+button[type='primary']:hover:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4);
 }
 
-[data-theme='dark'] .arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-[data-theme='dark'] button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+[data-theme='dark'] .arco-btn-primary:not([class*='icon']):not([class*='circle']):not([class*='model']),
+[data-theme='dark'] button[type='primary']:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
   box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
 }
 
-[data-theme='dark'] .arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]),
-[data-theme='dark'] button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]) {
+[data-theme='dark'] .arco-btn-primary:hover:not([class*='icon']):not([class*='circle']):not([class*='model']),
+[data-theme='dark'] button[type='primary']:hover:not([class*='icon']):not([class*='circle']):not([class*='model']) {
   background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
   box-shadow: 0 8px 24px rgba(34, 211, 238, 0.5);
 }
@@ -476,12 +476,12 @@ button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([cl
   color: white;
 }
 
-a:not([class*="button"]):not([class*="btn"]) {
+a:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary);
   transition: color 0.3s ease;
 }
 
-a:hover:not([class*="button"]):not([class*="btn"]) {
+a:hover:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-light-1);
 }
 

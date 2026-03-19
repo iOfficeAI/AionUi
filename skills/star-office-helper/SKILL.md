@@ -17,6 +17,7 @@ Star Office UI is a **third-party open-source** local visualization companion fo
 - OpenClaw works independently without Star Office; Star Office only animates when its own backend+frontend and event bridge are active.
 
 **Capabilities when connected:**
+
 - Real-time visualization of conversation state changes
 - Interactive office scene that reflects agent activity
 - Live monitor accessible via the TV icon in the chat header
@@ -26,41 +27,49 @@ When a user asks "what is Star Office" or triggers the install flow, introduce i
 ## Connection Guidance
 
 When Star Office is **already detected** on the local machine:
+
 1. Confirm the detected URL (e.g. `http://127.0.0.1:19000`).
 2. Guide the user to click the TV icon in the chat header to open the live monitor.
 3. Explain available interactions: real-time status view, office scene animation.
 4. If connection fails despite detection, enter troubleshooting (check port, process, auth, logs).
 
 When Star Office is **not detected**:
+
 1. Follow the Install Workflow below.
 2. After install completes, guide the user to verify via the TV icon.
 
 ## Workflow
 
 1. Confirm objective:
+
 - Install and run a visualization companion locally (default: Star-Office-UI).
 - Connect Aion preview/monitor URL to a running visualizer service.
 - Diagnose why UI does not animate or shows `Unauthorized`.
 
 2. Run environment diagnosis first:
+
 - Execute `skills/star-office-helper/scripts/star_office_doctor.sh`.
 - If `python3 -m pip install` fails with `externally-managed-environment`, switch to venv flow.
 
 3. Install/repair setup:
+
 - Execute `skills/star-office-helper/scripts/star_office_setup.sh`.
 - This creates `.venv`, installs backend dependencies, and ensures `state.json` exists.
 
 4. Start services and verify:
+
 - Start backend and frontend from Star-Office-UI repo.
 - Confirm preview URL (default recommend `http://127.0.0.1:19000`).
 - Re-run doctor to verify port and HTTP response.
 
 5. Connect in Aion:
+
 - Open OpenClaw mode preview panel (TV icon).
 - Input URL and save.
 - If still blank/Unauthorized, inspect backend auth and state config with doctor output.
 
 6. Recommend alternatives when needed:
+
 - If user asks for "similar/open-source alternatives", follow `references/discovery.md`.
 - Keep Star-Office-UI as the baseline option in comparison.
 - Return 3-5 candidate projects with:

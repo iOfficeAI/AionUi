@@ -37,6 +37,7 @@ git diff
 ```
 
 Identify:
+
 - What files changed
 - What features/purposes each change serves
 - Whether changes should be split into multiple commits
@@ -44,6 +45,7 @@ Identify:
 ### Step 2: Test Coverage & Quality Checks (Required)
 
 **Before running checks, verify test coverage:**
+
 - If logic was added or changed, ensure corresponding unit tests exist
 - If no tests cover the change, **write them first** (see [testing skill](../testing/SKILL.md))
 - Tests are part of "done" — do NOT defer them to a follow-up commit
@@ -58,6 +60,7 @@ bun run test           # Run tests
 ```
 
 **Rules:**
+
 - **ALL must pass** before committing
 - If fails due to **current changes**: fix issues first, do NOT skip
 - If errors exist in **unrelated files**: may proceed, but inform user
@@ -66,12 +69,12 @@ bun run test           # Run tests
 
 Group related changes into logical commits:
 
-| Group together | Split apart |
-|----------------|-------------|
-| Type definitions + implementation | Unrelated bug fixes |
-| Component + its hook + styles | Feature A vs Feature B |
-| Refactor of single module | Refactor vs new feature |
-| Test + implementation it covers | Unrelated test additions |
+| Group together                    | Split apart              |
+| --------------------------------- | ------------------------ |
+| Type definitions + implementation | Unrelated bug fixes      |
+| Component + its hook + styles     | Feature A vs Feature B   |
+| Refactor of single module         | Refactor vs new feature  |
+| Test + implementation it covers   | Unrelated test additions |
 
 **Principle:** One commit = one logical change. Ask user if grouping is unclear.
 
@@ -82,6 +85,7 @@ Group related changes into logical commits:
 ```
 
 **Types:**
+
 - `feat` — New feature
 - `fix` — Bug fix
 - `refactor` — Code refactoring (no behavior change)
@@ -117,12 +121,12 @@ For each commit group:
 
 After committing, check if changes require AGENTS.md / skill updates:
 
-| Trigger | Action |
-|---------|--------|
-| New directory structure pattern | Update architecture skill |
-| New i18n module added | Verify i18n skill still accurate |
-| New build command | Update AGENTS.md |
-| New convention introduced | Document in relevant skill or AGENTS.md |
+| Trigger                         | Action                                  |
+| ------------------------------- | --------------------------------------- |
+| New directory structure pattern | Update architecture skill               |
+| New i18n module added           | Verify i18n skill still accurate        |
+| New build command               | Update AGENTS.md                        |
+| New convention introduced       | Document in relevant skill or AGENTS.md |
 
 ## Mandatory Rules
 

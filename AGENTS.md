@@ -36,7 +36,7 @@ See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for
 
 - Strict mode enabled — no `any`, no implicit returns
 - Use path aliases: `@/*`, `@process/*`, `@renderer/*`, `@worker/*`
-- Prefer `type` over `interface` (per ESLint config)
+- Prefer `type` over `interface` (per Oxlint config)
 - English for code comments; JSDoc for public functions
 
 ### Architecture
@@ -61,12 +61,13 @@ See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflo
 Run these after every edit — all three are enforced in CI and block merges:
 
 ```bash
-bun run lint:fix       # after editing .ts / .tsx
-bun run format         # after editing .css / .json / .md
+bun run lint:fix       # after editing .ts / .tsx (oxlint)
+bun run format         # after editing .ts / .tsx / .css / .json / .md (oxfmt)
 bunx tsc --noEmit      # verify no type errors
 ```
 
-Common Prettier rules (avoid a fix pass):
+Common Oxfmt rules (Prettier-compatible, avoid a fix pass):
+
 - Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
 - Trailing commas required in multi-line arrays/objects
 - Single quotes for strings
@@ -81,15 +82,15 @@ See the `commit` skill (`.claude/skills/commit/SKILL.md`) for complete workflow,
 
 Detailed rules and guidelines are organized into Skills for better modularity:
 
-| Skill | Purpose | Triggers |
-|-------|---------|----------|
-| **architecture** | File & directory structure conventions for all process types | Creating files, adding modules, architectural decisions |
-| **i18n** | Internationalization workflow and standards | Adding user-facing text, creating components with user-facing text |
-| **testing** | Testing workflow and quality standards | Writing tests, adding features, before claiming completion |
-| **commit** | Structured git commit workflow with quality checks | Committing code, `/commit`, `/oss-pr` |
-| **pr** | Pull request workflow: ensure issue exists, push branch, open PR | Creating pull requests, after committing, `/oss-pr` |
-| **pr-review** | Local PR code review with full project context, no truncation limits | Reviewing a PR, user says "review PR", `/pr-review` |
-| **pr-fix** | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix` |
+| Skill            | Purpose                                                                            | Triggers                                                           |
+| ---------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **architecture** | File & directory structure conventions for all process types                       | Creating files, adding modules, architectural decisions            |
+| **i18n**         | Internationalization workflow and standards                                        | Adding user-facing text, creating components with user-facing text |
+| **testing**      | Testing workflow and quality standards                                             | Writing tests, adding features, before claiming completion         |
+| **commit**       | Structured git commit workflow with quality checks                                 | Committing code, `/commit`, `/oss-pr`                              |
+| **pr**           | Pull request workflow: ensure issue exists, push branch, open PR                   | Creating pull requests, after committing, `/oss-pr`                |
+| **pr-review**    | Local PR code review with full project context, no truncation limits               | Reviewing a PR, user says "review PR", `/pr-review`                |
+| **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix`             |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 

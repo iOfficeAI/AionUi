@@ -13,6 +13,7 @@
 ### Task 1: 收敛 favicon 资源来源
 
 **Files:**
+
 - Modify: `src/renderer/index.html`
 - Delete: `src/renderer/favicon.png`
 - Reference: `resources/icon.png`
@@ -49,6 +50,7 @@ git commit -m "fix(webui): align favicon asset with shared icon resource"
 ### Task 2: 回退不稳定的 `/favicon.ico` 服务端逻辑
 
 **Files:**
+
 - Modify: `src/webserver/routes/staticRoutes.ts`
 
 **Step 1: 写失败前提的测试或断言用例**
@@ -82,6 +84,7 @@ git commit -m "fix(webui): remove unstable favicon ico fallback"
 ### Task 3: 为打包产物补充回归验证
 
 **Files:**
+
 - Create or Modify: `tests/integration/webui-favicon-build.test.ts`
 - Reference: `tests/integration/i18n-packaged.test.ts`
 - Possible update: `vitest.config.ts`
@@ -118,6 +121,7 @@ git commit -m "test(webui): cover packaged favicon asset delivery"
 ### Task 4: 整体验证、文档与收尾
 
 **Files:**
+
 - Modify: `docs/plans/2026-03-12-webui-favicon-alignment.md`
 - Optional: `readme.md` only if behavior documentation truly changes
 
