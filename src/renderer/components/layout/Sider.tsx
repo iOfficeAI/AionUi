@@ -14,7 +14,7 @@ import { useThemeContext } from '@renderer/context/ThemeContext';
 import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
-const SettingsSider = React.lazy(() => import('@renderer/pages/settings/SettingsSider'));
+const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
 
 interface SiderProps {
   onSessionClick?: () => void;

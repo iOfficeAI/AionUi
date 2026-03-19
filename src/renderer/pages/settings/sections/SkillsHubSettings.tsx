@@ -3,7 +3,7 @@ import { Button, Message, Modal, Typography, Input, Dropdown, Menu } from '@arco
 import { Delete, FolderOpen, Info, Search, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import SettingsPageWrapper from './components/SettingsPageWrapper';
+import SettingsPageWrapper from '../components/SettingsPageWrapper';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {

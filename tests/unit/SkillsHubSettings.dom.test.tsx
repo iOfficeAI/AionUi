@@ -97,7 +97,7 @@ vi.mock('@/renderer/pages/settings/components/SettingsPageWrapper', () => {
 });
 
 // Import the component after mocking dependencies
-import SkillsHubSettings from '@/renderer/pages/settings/SkillsHubSettings';
+import SkillsHubSettings from '@/renderer/pages/settings/sections/SkillsHubSettings';
 
 describe('SkillsHubSettings Component', () => {
   beforeEach(() => {

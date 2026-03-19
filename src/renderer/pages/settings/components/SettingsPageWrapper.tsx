@@ -19,7 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import '../settings.css';
+import './settings.css';
 
 interface SettingsPageWrapperProps {
   children: React.ReactNode;
