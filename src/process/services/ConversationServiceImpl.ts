@@ -28,6 +28,10 @@ export class ConversationServiceImpl implements IConversationService {
     return this.repo.getConversation(id);
   }
 
+  async listAllConversations(): Promise<TChatConversation[]> {
+    return this.repo.listAllConversations();
+  }
+
   async deleteConversation(id: string): Promise<void> {
     try {
       const jobs = await cronService.listJobsByConversation(id);

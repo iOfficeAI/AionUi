@@ -8,14 +8,16 @@ import type { IAgentFactory } from './IAgentFactory';
 import type { IAgentManager } from './IAgentManager';
 import type { IWorkerTaskManager } from './IWorkerTaskManager';
 import type { BuildConversationOptions, AgentType } from './agentTypes';
-import { getDatabase } from '@process/database/export';
-import { ProcessChat } from '@process/initStorage';
+import type { IConversationRepository } from '@process/database/IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 
 export class WorkerTaskManager implements IWorkerTaskManager {
   private taskList: Array<{ id: string; task: IAgentManager }> = [];
 
-  constructor(private readonly factory: IAgentFactory) {}
+  constructor(
+    private readonly factory: IAgentFactory,
+    private readonly repo: IConversationRepository
+  ) {}
 
   getTask(id: string): IAgentManager | undefined {
     return this.taskList.find((item) => item.id === id)?.task;
@@ -27,14 +29,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
       if (existing) return existing;
     }
 
-    const db = getDatabase();
-    const dbResult = db.getConversation(id);
-    if (dbResult.success && dbResult.data) {
-      return this._buildAndCache(dbResult.data, options);
-    }
-
-    const list = (await ProcessChat.get('chat.history')) as TChatConversation[] | undefined;
-    const conversation = list?.find((item) => item.id === id);
+    const conversation = this.repo.getConversation(id);
     if (conversation) return this._buildAndCache(conversation, options);
 
     return Promise.reject(new Error(`Conversation not found: ${id}`));

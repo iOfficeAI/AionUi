@@ -2,16 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
-const { mockProcessChatGet } = vi.hoisted(() => ({ mockProcessChatGet: vi.fn(async () => []) }));
-vi.mock('@process/initStorage', () => ({ ProcessChat: { get: mockProcessChatGet } }));
-
-const mockGetConversation = vi.fn();
-vi.mock('@process/database/export', () => ({
-  getDatabase: vi.fn(() => ({ getConversation: mockGetConversation })),
-}));
-
 import { WorkerTaskManager } from '../../src/process/task/WorkerTaskManager';
+import type { IConversationRepository } from '../../src/process/database/IConversationRepository';
 import type { AgentType } from '../../src/process/task/agentTypes';
+
+function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRepository {
+  return {
+    getConversation: vi.fn(),
+    createConversation: vi.fn(),
+    updateConversation: vi.fn(),
+    deleteConversation: vi.fn(),
+    getMessages: vi.fn(),
+    insertMessage: vi.fn(),
+    getUserConversations: vi.fn(),
+    listAllConversations: vi.fn(() => []),
+    ...overrides,
+  };
+}
 
 function makeFactory(agent?: any) {
   return { register: vi.fn(), create: vi.fn(() => agent ?? makeAgent()) };
@@ -36,28 +43,29 @@ function makeConversation(id: string, type: AgentType = 'gemini') {
 }
 
 describe('WorkerTaskManager', () => {
+  let repo: IConversationRepository;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetConversation.mockReturnValue({ success: false });
-    mockProcessChatGet.mockResolvedValue([]);
+    repo = makeRepo();
   });
 
   // --- getTask / addTask ---
 
   it('getTask returns undefined for unknown id', () => {
-    const mgr = new WorkerTaskManager(makeFactory() as any);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     expect(mgr.getTask('unknown')).toBeUndefined();
   });
 
   it('addTask stores task and getTask returns it', () => {
-    const mgr = new WorkerTaskManager(makeFactory() as any);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     const agent = makeAgent();
     mgr.addTask('c1', agent as any);
     expect(mgr.getTask('c1')).toBe(agent);
   });
 
   it('addTask replaces existing task with same id', () => {
-    const mgr = new WorkerTaskManager(makeFactory() as any);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     const agent1 = makeAgent('c1', 'gemini');
     const agent2 = makeAgent('c1', 'acp');
     mgr.addTask('c1', agent1 as any);
@@ -69,7 +77,7 @@ describe('WorkerTaskManager', () => {
 
   it('kill removes task from list and calls task.kill()', () => {
     const agent = makeAgent();
-    const mgr = new WorkerTaskManager(makeFactory(agent) as any);
+    const mgr = new WorkerTaskManager(makeFactory(agent) as any, repo);
     mgr.addTask('c1', agent as any);
     mgr.kill('c1');
     expect(mgr.getTask('c1')).toBeUndefined();
@@ -77,7 +85,7 @@ describe('WorkerTaskManager', () => {
   });
 
   it('kill is a no-op for unknown id', () => {
-    const mgr = new WorkerTaskManager(makeFactory() as any);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     expect(() => mgr.kill('nonexistent')).not.toThrow();
   });
 
@@ -86,7 +94,7 @@ describe('WorkerTaskManager', () => {
   it('clear kills all tasks and empties the list', () => {
     const agent1 = makeAgent('c1', 'gemini');
     const agent2 = makeAgent('c2', 'acp');
-    const mgr = new WorkerTaskManager(makeFactory() as any);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     mgr.addTask('c1', agent1 as any);
     mgr.addTask('c2', agent2 as any);
     mgr.clear();
@@ -98,7 +106,7 @@ describe('WorkerTaskManager', () => {
   // --- listTasks ---
 
   it('listTasks returns id and type for each task', () => {
-    const mgr = new WorkerTaskManager(makeFactory() as any);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
     mgr.addTask('c1', makeAgent('c1', 'gemini') as any);
     mgr.addTask('c2', makeAgent('c2', 'acp') as any);
     mgr.addTask('c3', makeAgent('c3', 'nanobot') as any);
@@ -111,85 +119,58 @@ describe('WorkerTaskManager', () => {
 
   // --- getOrBuildTask: cache hit ---
 
-  it('getOrBuildTask returns cached task without calling factory', async () => {
+  it('returns cached task without hitting repo on second call', async () => {
     const agent = makeAgent();
     const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
+    const mgr = new WorkerTaskManager(factory as any, repo);
     mgr.addTask('c1', agent as any);
 
     const result = await mgr.getOrBuildTask('c1');
+    expect(repo.getConversation).not.toHaveBeenCalled();
     expect(factory.create).not.toHaveBeenCalled();
     expect(result).toBe(agent);
   });
 
-  // --- getOrBuildTask: DB hit ---
+  // --- getOrBuildTask: repo hit ---
 
-  it('getOrBuildTask builds from DB on cache miss (gemini)', async () => {
+  it('hits repo on cache miss and builds task correctly', async () => {
     const agent = makeAgent('c1', 'gemini');
     const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
-    mockGetConversation.mockReturnValue({ success: true, data: makeConversation('c1', 'gemini') });
+    vi.mocked(repo.getConversation).mockReturnValue(makeConversation('c1', 'gemini') as any);
 
+    const mgr = new WorkerTaskManager(factory as any, repo);
     const result = await mgr.getOrBuildTask('c1');
+
+    expect(repo.getConversation).toHaveBeenCalledWith('c1');
     expect(factory.create).toHaveBeenCalledWith(makeConversation('c1', 'gemini'), undefined);
     expect(result).toBe(agent);
   });
 
-  it('getOrBuildTask builds from DB for acp type', async () => {
-    const agent = makeAgent('c2', 'acp');
-    const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
-    mockGetConversation.mockReturnValue({ success: true, data: makeConversation('c2', 'acp') });
-
-    const result = await mgr.getOrBuildTask('c2');
-    expect(factory.create).toHaveBeenCalled();
-    expect(result).toBe(agent);
-  });
-
-  it('getOrBuildTask caches task built from DB', async () => {
+  it('caches task built from repo', async () => {
     const agent = makeAgent();
     const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
-    mockGetConversation.mockReturnValue({ success: true, data: makeConversation('c1') });
+    vi.mocked(repo.getConversation).mockReturnValue(makeConversation('c1') as any);
 
+    const mgr = new WorkerTaskManager(factory as any, repo);
     await mgr.getOrBuildTask('c1');
     await mgr.getOrBuildTask('c1'); // second call should use cache
     expect(factory.create).toHaveBeenCalledTimes(1);
   });
 
-  // --- getOrBuildTask: file storage fallback ---
+  // --- getOrBuildTask: failure paths ---
 
-  it('getOrBuildTask falls back to file storage when DB misses', async () => {
-    const agent = makeAgent('c1', 'nanobot');
-    const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
-    mockGetConversation.mockReturnValue({ success: false });
-    mockProcessChatGet.mockResolvedValue([makeConversation('c1', 'nanobot')]);
-
-    const result = await mgr.getOrBuildTask('c1');
-    expect(factory.create).toHaveBeenCalled();
-    expect(result).toBe(agent);
-  });
-
-  it('getOrBuildTask falls back to file storage for openclaw-gateway type', async () => {
-    const agent = makeAgent('c3', 'openclaw-gateway');
-    const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
-    mockGetConversation.mockReturnValue({ success: false });
-    mockProcessChatGet.mockResolvedValue([makeConversation('c3', 'openclaw-gateway')]);
-
-    const result = await mgr.getOrBuildTask('c3');
-    expect(result).toBe(agent);
-  });
-
-  // --- getOrBuildTask: not found ---
-
-  it('getOrBuildTask rejects when conversation not found in DB or file', async () => {
-    const mgr = new WorkerTaskManager(makeFactory() as any);
-    mockGetConversation.mockReturnValue({ success: false });
-    mockProcessChatGet.mockResolvedValue([]);
+  it('rejects with error when repo returns undefined', async () => {
+    vi.mocked(repo.getConversation).mockReturnValue(undefined);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
 
     await expect(mgr.getOrBuildTask('missing')).rejects.toThrow('Conversation not found: missing');
+  });
+
+  it('rejects when skipCache is set and repo returns undefined', async () => {
+    vi.mocked(repo.getConversation).mockReturnValue(undefined);
+    const mgr = new WorkerTaskManager(makeFactory() as any, repo);
+
+    await expect(mgr.getOrBuildTask('missing', { skipCache: true })).rejects.toThrow('Conversation not found: missing');
   });
 
   // --- getOrBuildTask: skipCache option ---
@@ -197,11 +178,12 @@ describe('WorkerTaskManager', () => {
   it('getOrBuildTask with skipCache bypasses cache and does not store result', async () => {
     const agent = makeAgent();
     const factory = makeFactory(agent);
-    const mgr = new WorkerTaskManager(factory as any);
-    mgr.addTask('c1', agent as any);
-    mockGetConversation.mockReturnValue({ success: true, data: makeConversation('c1') });
+    vi.mocked(repo.getConversation).mockReturnValue(makeConversation('c1') as any);
 
+    const mgr = new WorkerTaskManager(factory as any, repo);
+    mgr.addTask('c1', agent as any);
     await mgr.getOrBuildTask('c1', { skipCache: true });
+
     expect(factory.create).toHaveBeenCalledTimes(1);
     // Task list should still only have the original (not a duplicate)
     expect(mgr.listTasks()).toHaveLength(1);

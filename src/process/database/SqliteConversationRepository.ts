@@ -64,4 +64,9 @@ export class SqliteConversationRepository implements IConversationRepository {
       hasMore: result.hasMore ?? false,
     };
   }
+
+  listAllConversations(): TChatConversation[] {
+    const result = this.db.getUserConversations(undefined, 0, 10000);
+    return result.data ?? [];
+  }
 }

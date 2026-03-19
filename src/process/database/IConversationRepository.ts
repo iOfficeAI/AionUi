@@ -29,4 +29,6 @@ export interface IConversationRepository {
    * If neither is provided, returns from the beginning.
    */
   getUserConversations(cursor?: string, offset?: number, limit?: number): PaginatedResult<TChatConversation>;
+  /** Returns all conversations without pagination. */
+  listAllConversations(): TChatConversation[];
 }
