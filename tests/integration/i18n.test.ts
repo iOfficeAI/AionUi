@@ -168,7 +168,7 @@ describe('i18n Build Safety Tests', () => {
   it('main process i18n should use static imports for locale data', () => {
     const content = fs.readFileSync(mainI18nFile, 'utf-8');
     // Verify it imports from locale index files (static import)
-    expect(content).toMatch(/import\s+\w+\s+from\s+['"]@renderer\/i18n\/locales\//);
+    expect(content).toMatch(/import\s+\w+\s+from\s+['"]@renderer\/services\/i18n\/locales\//);
   });
 
   it('main process i18n should NOT import node:fs', () => {

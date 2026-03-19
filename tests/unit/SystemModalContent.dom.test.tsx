@@ -22,7 +22,9 @@ Object.defineProperty(window, 'matchMedia', {
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'en-US' },
   }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -44,7 +46,7 @@ vi.mock('@icon-park/react', () => ({
   Link: () => <span data-testid='icon-link' />,
 }));
 
-vi.mock('@/renderer/components/LanguageSwitcher', () => ({
+vi.mock('@/renderer/components/settings/LanguageSwitcher', () => ({
   default: () => <div data-testid='language-switcher' />,
 }));
 
@@ -52,7 +54,7 @@ vi.mock('@/renderer/components/base/AionScrollArea', () => ({
   default: ({ children }: any) => <div data-testid='scroll-area'>{children}</div>,
 }));
 
-vi.mock('@/renderer/components/SettingsModal/settingsViewContext', () => ({
+vi.mock('@/renderer/components/settings/SettingsModal/settingsViewContext', () => ({
   useSettingsViewMode: () => 'modal',
 }));
 
@@ -151,7 +153,7 @@ vi.mock('swr', () => {
   return { default: useSWR, mutate };
 });
 
-import SystemModalContent from '@/renderer/components/SettingsModal/contents/SystemModalContent';
+import SystemModalContent from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent';
 
 describe('SystemModalContent', () => {
   beforeEach(() => {

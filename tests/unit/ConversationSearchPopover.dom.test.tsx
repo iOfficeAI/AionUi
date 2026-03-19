@@ -54,7 +54,7 @@ vi.mock('../../src/renderer/utils/agentLogo', () => ({
   getAgentLogo: () => null,
 }));
 
-vi.mock('../../src/renderer/utils/focus', () => ({
+vi.mock('../../src/renderer/utils/ui/focus', () => ({
   blockMobileInputFocus: () => blockMobileInputFocusMock(),
   blurActiveElement: () => blurActiveElementMock(),
 }));
@@ -62,6 +62,7 @@ vi.mock('../../src/renderer/utils/focus', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: { language: 'en-US' },
   }),
 }));
 
