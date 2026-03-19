@@ -76,9 +76,23 @@ Output:
 
 IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the image_uris parameter as an array.`,
     {
-      prompt: z.string().describe('The text prompt in English that must clearly specify the operation type: "Generate image: [description]" for creating new images, "Analyze image: [what to analyze]" for image recognition/analysis, or "Edit image: [modifications]" for image editing.'),
-      image_uris: z.array(z.string()).optional().describe('Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. For single image, use array format: ["test.jpg"].'),
-      workspace_dir: z.string().optional().describe('Optional: Working directory for resolving relative paths and saving output images. Defaults to current working directory.'),
+      prompt: z
+        .string()
+        .describe(
+          'The text prompt in English that must clearly specify the operation type: "Generate image: [description]" for creating new images, "Analyze image: [what to analyze]" for image recognition/analysis, or "Edit image: [modifications]" for image editing.'
+        ),
+      image_uris: z
+        .array(z.string())
+        .optional()
+        .describe(
+          'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. For single image, use array format: ["test.jpg"].'
+        ),
+      workspace_dir: z
+        .string()
+        .optional()
+        .describe(
+          'Optional: Working directory for resolving relative paths and saving output images. Defaults to current working directory.'
+        ),
     },
     async ({ prompt, image_uris, workspace_dir }) => {
       const provider = getProviderFromEnv();

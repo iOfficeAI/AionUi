@@ -7,7 +7,12 @@
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '@/common/storage';
-import { BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME, isBuiltinImageGenName, isBuiltinImageGenTransport } from '@/process/builtinMcp/constants';
+import {
+  BUILTIN_IMAGE_GEN_LEGACY_NAMES,
+  BUILTIN_IMAGE_GEN_NAME,
+  isBuiltinImageGenName,
+  isBuiltinImageGenTransport,
+} from '@/process/builtinMcp/constants';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec, safeExecFile } from '@process/utils/safeExec';
 
@@ -80,7 +85,10 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             const commandParts = commandStr.trim().split(/\s+/);
             const command = commandParts[0];
             const args = commandParts.slice(1);
-            const displayName = isBuiltinImageGenName(name.trim()) || isBuiltinImageGenTransport({ command, args }) ? BUILTIN_IMAGE_GEN_NAME : name.trim();
+            const displayName =
+              isBuiltinImageGenName(name.trim()) || isBuiltinImageGenTransport({ command, args })
+                ? BUILTIN_IMAGE_GEN_NAME
+                : name.trim();
 
             // 解析状态：Connected, Disconnected, Failed to connect, 等
             const isConnected =
@@ -156,10 +164,14 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         for (const server of mcpServers) {
           if (server.transport.type === 'stdio') {
             try {
-              await safeExecFile('claude', ['mcp', 'add-json', '-s', 'user', server.name, buildClaudeStdioJsonConfig(server)], {
-                timeout: 5000,
-                ...getExecEnv(),
-              });
+              await safeExecFile(
+                'claude',
+                ['mcp', 'add-json', '-s', 'user', server.name, buildClaudeStdioJsonConfig(server)],
+                {
+                  timeout: 5000,
+                  ...getExecEnv(),
+                }
+              );
               console.log(`[ClaudeMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Claude Code:`, error);
@@ -214,7 +226,13 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         // 按顺序尝试: user (AionUi默认) -> local -> project
         // user scope优先，因为AionUi安装时使用user scope
         const scopes = ['user', 'local', 'project'] as const;
-        const candidateNames = Array.from(new Set(isBuiltinImageGenName(mcpServerName) ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES] : [mcpServerName]));
+        const candidateNames = Array.from(
+          new Set(
+            isBuiltinImageGenName(mcpServerName)
+              ? [mcpServerName, BUILTIN_IMAGE_GEN_NAME, ...BUILTIN_IMAGE_GEN_LEGACY_NAMES]
+              : [mcpServerName]
+          )
+        );
 
         for (const scope of scopes) {
           for (const candidateName of candidateNames) {

@@ -617,7 +617,8 @@ const getDefaultMcpServers = (): IMcpServer[] => {
 };
 
 const getBuiltinMcpBaseDir = (): string => {
-  const mainModuleDir = typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
+  const mainModuleDir =
+    typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
   return path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
 };
 
@@ -683,7 +684,9 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
     if (existingIdx >= 0) {
       // Update command path in case app location changed
       const existing = mcpServers[existingIdx];
-      const needsNameMigration = existing.name !== BUILTIN_IMAGE_GEN_NAME && BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(existing.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
+      const needsNameMigration =
+        existing.name !== BUILTIN_IMAGE_GEN_NAME &&
+        BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(existing.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
       if (needsNameMigration) {
         existing.name = BUILTIN_IMAGE_GEN_NAME;
         changed = true;
@@ -702,7 +705,10 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
         existing.enabled = true;
         existing.transport = {
           ...existing.transport,
-          env: { ...(existing.transport as IMcpServer['transport'] & { env?: Record<string, string> }).env, ...buildEnvFromConfig(oldConfig) },
+          env: {
+            ...(existing.transport as IMcpServer['transport'] & { env?: Record<string, string> }).env,
+            ...buildEnvFromConfig(oldConfig),
+          },
         } as IMcpServer['transport'];
         existing.updatedAt = now;
         changed = true;

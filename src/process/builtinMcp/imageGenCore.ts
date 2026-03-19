@@ -146,7 +146,9 @@ export async function processImageUri(imageUri: string, workspaceDir: string): P
       throw error;
     }
 
-    throw new Error(`Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\nPlease ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)`);
+    throw new Error(
+      `Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\nPlease ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)`
+    );
   }
 }
 
@@ -168,7 +170,13 @@ export interface ImageGenResult {
 /**
  * Core image generation function shared between MCP server and Gemini tool.
  */
-export async function executeImageGeneration(params: ImageGenParams, provider: TProviderWithModel, workspaceDir: string, proxy?: string, signal?: AbortSignal): Promise<ImageGenResult> {
+export async function executeImageGeneration(
+  params: ImageGenParams,
+  provider: TProviderWithModel,
+  workspaceDir: string,
+  proxy?: string,
+  signal?: AbortSignal
+): Promise<ImageGenResult> {
   if (signal?.aborted) {
     return { success: false, text: 'Image generation was cancelled.', error: 'cancelled' };
   }
@@ -215,7 +223,11 @@ export async function executeImageGeneration(params: ImageGenParams, provider: T
       successful.forEach((imageContent) => contentParts.push(imageContent));
 
       if (successful.length === 0) {
-        return { success: false, text: `Error: Failed to process any images. Errors:\n${errors.join('\n')}`, error: errors.join('\n') };
+        return {
+          success: false,
+          text: `Error: Failed to process any images. Errors:\n${errors.join('\n')}`,
+          error: errors.join('\n'),
+        };
       }
     }
 
@@ -227,7 +239,10 @@ export async function executeImageGeneration(params: ImageGenParams, provider: T
       rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
     });
 
-    const completion: UnifiedChatCompletionResponse = await rotatingClient.createChatCompletion({ model: provider.useModel, messages: messages as any }, { signal, timeout: API_TIMEOUT_MS });
+    const completion: UnifiedChatCompletionResponse = await rotatingClient.createChatCompletion(
+      { model: provider.useModel, messages: messages as any },
+      { signal, timeout: API_TIMEOUT_MS }
+    );
 
     const choice = completion.choices[0];
     if (!choice) {

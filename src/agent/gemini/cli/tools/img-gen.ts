@@ -235,7 +235,13 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     updateOutput?.('Generating image...');
 
     const workspaceDir = this.config.getWorkingDir();
-    const result = await executeImageGeneration(this.params, this.imageGenerationModel, workspaceDir, this.proxy, signal);
+    const result = await executeImageGeneration(
+      this.params,
+      this.imageGenerationModel,
+      workspaceDir,
+      this.proxy,
+      signal
+    );
 
     if (!result.success) {
       return {

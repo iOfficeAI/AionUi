@@ -10,10 +10,17 @@ export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTI
 
 export function isBuiltinImageGenName(name?: string | null): boolean {
   if (!name) return false;
-  return name === BUILTIN_IMAGE_GEN_NAME || BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
+  return (
+    name === BUILTIN_IMAGE_GEN_NAME ||
+    BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number])
+  );
 }
 
-export function isBuiltinImageGenTransport(transport?: { type?: string; command?: string; args?: string[] | null }): boolean {
+export function isBuiltinImageGenTransport(transport?: {
+  type?: string;
+  command?: string;
+  args?: string[] | null;
+}): boolean {
   if (!transport || transport.type !== 'stdio' || transport.command !== 'node') {
     return false;
   }

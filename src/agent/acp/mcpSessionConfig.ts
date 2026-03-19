@@ -56,7 +56,8 @@ function toNameValueEntries(source?: Record<string, string>): AcpSessionMcpNameV
 export function parseAcpMcpCapabilities(response: AcpResponse | null): AcpMcpCapabilities {
   const result = isRecord(response?.result) ? response.result : null;
   const agentCapabilities = result && isRecord(result.agentCapabilities) ? result.agentCapabilities : null;
-  const mcpCapabilities = agentCapabilities && isRecord(agentCapabilities.mcpCapabilities) ? agentCapabilities.mcpCapabilities : null;
+  const mcpCapabilities =
+    agentCapabilities && isRecord(agentCapabilities.mcpCapabilities) ? agentCapabilities.mcpCapabilities : null;
 
   return {
     stdio: typeof mcpCapabilities?.stdio === 'boolean' ? mcpCapabilities.stdio : DEFAULT_ACP_MCP_CAPABILITIES.stdio,
@@ -73,7 +74,10 @@ function shouldInjectBuiltinServer(server: IMcpServer): boolean {
   return server.status === undefined || server.status === 'connected';
 }
 
-export function buildBuiltinAcpSessionMcpServers(mcpServers: IMcpServer[] | undefined | null, capabilities: Partial<AcpMcpCapabilities> = DEFAULT_ACP_MCP_CAPABILITIES): AcpSessionMcpServer[] {
+export function buildBuiltinAcpSessionMcpServers(
+  mcpServers: IMcpServer[] | undefined | null,
+  capabilities: Partial<AcpMcpCapabilities> = DEFAULT_ACP_MCP_CAPABILITIES
+): AcpSessionMcpServer[] {
   if (!Array.isArray(mcpServers) || mcpServers.length === 0) {
     return [];
   }
