@@ -34,6 +34,9 @@ type CreateConversationParams = {
   agentBackend: string;
   agentName?: string;
   cliPath?: string;
+  workspace?: string;
+  customWorkspace?: boolean;
+  model?: { id: string; useModel: string };
 };
 
 type ConversationContextType = {
@@ -123,13 +126,18 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
           ? params.agentBackend
           : 'acp';
 
+        // Use provided workspace, or infer from most recent conversation that has one
+        const workspace =
+          params.workspace ?? conversations.find((c) => c.extra?.workspace)?.extra?.workspace;
+
         const fullParams = {
           type: conversationType,
           name: params.agentName || params.agentBackend,
-          model: { id: '', useModel: '' },
+          model: params.model || { id: '', useModel: '' },
           extra: {
             backend: params.agentBackend,
             agentName: params.agentName,
+            ...(workspace ? { workspace, customWorkspace: params.customWorkspace ?? true } : {}),
             ...(params.cliPath ? { cliPath: params.cliPath } : {}),
           },
         };
@@ -143,7 +151,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       }
       return null;
     },
-    [refresh]
+    [refresh, conversations]
   );
 
   const deleteConversation = useCallback(

@@ -117,19 +117,23 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const stopGeneration = useCallback(() => {
     if (!conversationId) return;
-    bridge.emit('chat.stop.stream', { conversation_id: conversationId });
     setIsStreaming(false);
+    bridge
+      .request('chat.stop.stream', { conversation_id: conversationId })
+      .catch((e) => console.warn('[Chat] stop stream failed:', e));
   }, [conversationId]);
 
   const confirmAction = useCallback(
     (msgId: string, callId: string, confirmKey: string) => {
       if (!conversationId) return;
-      bridge.emit('confirmation.confirm', {
-        conversation_id: conversationId,
-        msg_id: msgId,
-        callId,
-        data: confirmKey,
-      });
+      bridge
+        .request('confirmation.confirm', {
+          conversation_id: conversationId,
+          msg_id: msgId,
+          callId,
+          data: confirmKey,
+        })
+        .catch((e) => console.warn('[Chat] confirm failed:', e));
     },
     [conversationId]
   );
