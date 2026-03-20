@@ -93,7 +93,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   const [availableAgents, setAvailableAgents] = useState<AgentInfo[]>([]);
   const [activeConversationId, setActiveConversationIdRaw] = useState<string | null>(null);
   const [pendingAgent, setPendingAgent] = useState<AgentInfo | null>(null);
-  const { connectionState } = useConnection();
+  const { connectionState, config } = useConnection();
 
   // When selecting an existing conversation, clear pendingAgent
   const setActiveConversationId = useCallback((id: string | null) => {
@@ -125,12 +125,17 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (connectionState === 'connected') {
       void refresh();
-    } else {
+    }
+  }, [connectionState, refresh]);
+
+  // Clear data only when user actively disconnects (config becomes null)
+  useEffect(() => {
+    if (config === null) {
       setConversations([]);
       setActiveConversationIdRaw(null);
       setPendingAgent(null);
     }
-  }, [connectionState, refresh]);
+  }, [config]);
 
   // Auto-select most recent conversation when loaded and no active selection
   useEffect(() => {

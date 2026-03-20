@@ -28,6 +28,8 @@ export class WebSocketService {
   private token = '';
   private lastPingReceived = 0;
   private deadConnectionTimer: ReturnType<typeof setInterval> | null = null;
+  private authChallengeHandler: (() => Promise<boolean>) | null = null;
+  private isHandlingAuthChallenge = false;
 
   get state(): ConnectionState {
     return this._state;
@@ -50,6 +52,14 @@ export class WebSocketService {
   configure(host: string, port: string, token: string) {
     this.host = host;
     this.port = port;
+    this.token = token;
+  }
+
+  setAuthChallengeHandler(handler: (() => Promise<boolean>) | null) {
+    this.authChallengeHandler = handler;
+  }
+
+  updateToken(token: string) {
     this.token = token;
   }
 
@@ -93,10 +103,7 @@ export class WebSocketService {
         // Handle auth expiration
         if (payload.name === 'auth-expired') {
           console.warn('[WS] Authentication expired');
-          this.shouldReconnect = false;
-          this.clearReconnectTimer();
-          this.socket?.close();
-          this.setState('auth_failed');
+          void this.handleAuthChallenge();
           return;
         }
 
@@ -113,9 +120,7 @@ export class WebSocketService {
       // Close code 1008 = policy violation (token invalid)
       if (event.code === 1008) {
         console.warn('[WS] Connection rejected (policy violation)');
-        this.shouldReconnect = false;
-        this.clearReconnectTimer();
-        this.setState('auth_failed');
+        void this.handleAuthChallenge();
         return;
       }
 
@@ -164,6 +169,28 @@ export class WebSocketService {
     this.shouldReconnect = true;
     this.reconnectDelay = 500;
     this.connect();
+  }
+
+  private async handleAuthChallenge() {
+    if (this.isHandlingAuthChallenge) return;
+    this.isHandlingAuthChallenge = true;
+
+    try {
+      if (this.authChallengeHandler) {
+        const recovered = await this.authChallengeHandler();
+        if (recovered) return;
+      }
+    } catch {
+      // Auth challenge handler failed
+    } finally {
+      this.isHandlingAuthChallenge = false;
+    }
+
+    // Recovery failed — set auth_failed
+    this.shouldReconnect = false;
+    this.clearReconnectTimer();
+    this.socket?.close();
+    this.setState('auth_failed');
   }
 
   private flushQueue() {

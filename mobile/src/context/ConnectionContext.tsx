@@ -16,6 +16,7 @@ type ConnectionContextType = {
   connectionState: ConnectionState;
   connect: (host: string, port: string, token: string) => Promise<void>;
   disconnect: () => void;
+  tryReconnect: () => void;
   isConfigured: boolean;
   isRestoring: boolean;
 };
@@ -25,6 +26,7 @@ const ConnectionContext = createContext<ConnectionContextType>({
   connectionState: 'disconnected',
   connect: async () => {},
   disconnect: () => {},
+  tryReconnect: () => {},
   isConfigured: false,
   isRestoring: true,
 });
@@ -51,6 +53,8 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [isRestoring, setIsRestoring] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const configRef = useRef<ConnectionConfig | null>(null);
+  const isRecoveringRef = useRef(false);
 
   const clearRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current !== null) {
@@ -92,6 +96,66 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
     },
     [clearRefreshTimer],
   );
+
+  // Keep configRef in sync
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
+  // Attempt token refresh and reconnect; returns true on success
+  const attemptTokenRecovery = useCallback(async (): Promise<boolean> => {
+    const currentConfig = configRef.current;
+    if (!currentConfig) return false;
+
+    const newToken = await refreshToken(currentConfig.token);
+    if (!newToken) return false;
+
+    const newConfig = { ...currentConfig, token: newToken };
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(newConfig));
+    setConfig(newConfig);
+
+    configureApi(newConfig.host, newConfig.port, newConfig.token);
+    wsService.updateToken(newToken);
+    wsService.configure(newConfig.host, newConfig.port, newConfig.token);
+    wsService.reconnect();
+    scheduleTokenRefresh(newToken, newConfig);
+    return true;
+  }, [scheduleTokenRefresh]);
+
+  // Register auth challenge handler on mount
+  useEffect(() => {
+    wsService.setAuthChallengeHandler(async () => {
+      if (isRecoveringRef.current) return false;
+      isRecoveringRef.current = true;
+      try {
+        return await attemptTokenRecovery();
+      } finally {
+        isRecoveringRef.current = false;
+      }
+    });
+    return () => wsService.setAuthChallengeHandler(null);
+  }, [attemptTokenRecovery]);
+
+  const tryReconnect = useCallback(() => {
+    if (isRecoveringRef.current) return;
+
+    if (wsService.state === 'auth_failed') {
+      isRecoveringRef.current = true;
+      attemptTokenRecovery()
+        .then((ok) => {
+          if (!ok) {
+            // Token refresh failed — remain in auth_failed
+            console.warn('[Connection] Manual recovery failed');
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          isRecoveringRef.current = false;
+        });
+    } else if (wsService.state === 'disconnected') {
+      wsService.reconnect();
+    }
+  }, [attemptTokenRecovery]);
 
   // Listen to WS state changes
   useEffect(() => {
@@ -152,6 +216,7 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
         connectionState,
         connect,
         disconnect,
+        tryReconnect,
         isConfigured: config !== null,
         isRestoring,
       }}

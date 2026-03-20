@@ -113,6 +113,14 @@
     "unsupportedType": "暂不支持预览此文件类型",
     "retry": "重试"
   },
+  "connection": {
+    "connecting": "连接中...",
+    "reconnecting": "重新连接中...",
+    "connectionLost": "连接已断开",
+    "tapToRetry": "点击重试",
+    "sessionExpired": "会话已过期",
+    "tapToReconnect": "点击重新连接"
+  },
   "settings": {
     "title": "设置",
     "connection": "连接",

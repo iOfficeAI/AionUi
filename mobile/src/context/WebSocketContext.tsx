@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect } from 'react';
 import { AppState } from 'react-native';
 import { bridge } from '../services/bridge';
 import { wsService } from '../services/websocket';
+import { useConnection } from './ConnectionContext';
 
 type WebSocketContextType = {
   bridge: typeof bridge;
@@ -18,15 +19,21 @@ const WebSocketContext = createContext<WebSocketContextType>({
  * Wrap your app with this so components can access the bridge.
  */
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  // Reconnect when app returns to foreground if disconnected
+  const { tryReconnect } = useConnection();
+
+  // Reconnect when app returns to foreground if disconnected or auth_failed
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && wsService.state === 'disconnected') {
-        wsService.reconnect();
+      if (nextState === 'active') {
+        if (wsService.state === 'auth_failed') {
+          tryReconnect();
+        } else if (wsService.state === 'disconnected') {
+          wsService.reconnect();
+        }
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [tryReconnect]);
 
   return <WebSocketContext.Provider value={{ bridge, wsService }}>{children}</WebSocketContext.Provider>;
 }
