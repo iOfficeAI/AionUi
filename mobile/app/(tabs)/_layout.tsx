@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets, SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useThemeColor } from '../../src/hooks/useThemeColor';
 import { useConnection } from '../../src/context/ConnectionContext';
 import { ConnectionBanner } from '../../src/components/ui/ConnectionBanner';
@@ -13,6 +13,7 @@ export default function TabLayout() {
   const tabIconDefault = useThemeColor({}, 'tabIconDefault');
   const { isConfigured } = useConnection();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Redirect to index (which handles routing to connect) when disconnected
   useEffect(() => {
@@ -22,8 +23,9 @@ export default function TabLayout() {
   }, [isConfigured, router]);
 
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
       <ConnectionBanner />
+      <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: tint,
@@ -56,6 +58,7 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-    </View>
+      </SafeAreaInsetsContext.Provider>
+    </SafeAreaView>
   );
 }

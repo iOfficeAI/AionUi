@@ -107,13 +107,31 @@ function ToolStepRow({ message }: { message: TMessage }) {
   return (
     <View style={styles.stepRow}>
       {expanded ? (
-        <TouchableOpacity onPress={() => setExpanded(false)} activeOpacity={0.7}>
+        <View>
+          <StepRowHeader message={message} onCollapse={() => setExpanded(false)} />
           <ToolCallBlock content={message.content} type={message.type as any} />
-        </TouchableOpacity>
+        </View>
       ) : (
         <StepRowCollapsed message={message} onPress={() => setExpanded(true)} />
       )}
     </View>
+  );
+}
+
+function StepRowHeader({ message, onCollapse }: { message: TMessage; onCollapse: () => void }) {
+  const iconColor = useThemeColor({}, 'icon');
+  const tint = useThemeColor({}, 'tint');
+  const items = getStepItems(message);
+  const label = items.map((i) => i.name).join(', ');
+
+  return (
+    <TouchableOpacity style={styles.stepHeader} onPress={onCollapse} activeOpacity={0.7}>
+      <Ionicons name='code-slash' size={14} color={tint} />
+      <ThemedText style={styles.stepHeaderText} numberOfLines={1}>
+        {label}
+      </ThemedText>
+      <Ionicons name='chevron-up' size={14} color={iconColor} />
+    </TouchableOpacity>
   );
 }
 
@@ -253,5 +271,17 @@ const styles = StyleSheet.create({
   stepName: {
     flex: 1,
     fontSize: 13,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  stepHeaderText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

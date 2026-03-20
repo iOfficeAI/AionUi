@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../../../src/components/ui/ThemedText';
@@ -8,11 +8,12 @@ import { useThemeColor } from '../../../src/hooks/useThemeColor';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
-  const { config, connectionState, disconnect } = useConnection();
+  const { config, connectionState, disconnect, tryReconnect } = useConnection();
   const surface = useThemeColor({}, 'surface');
   const border = useThemeColor({}, 'border');
   const success = useThemeColor({}, 'success');
   const error = useThemeColor({}, 'error');
+  const tint = useThemeColor({}, 'tint');
 
   const handleDisconnect = () => {
     Alert.alert(t('common.disconnect'), t('connect.disconnected'), [
@@ -56,6 +57,23 @@ export default function SettingsScreen() {
                 {config.host}:{config.port}
               </ThemedText>
             </View>
+          )}
+          {connectionState !== 'connected' && (
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: border }]}
+              onPress={tryReconnect}
+              disabled={connectionState === 'connecting'}
+              activeOpacity={0.7}
+            >
+              {connectionState === 'connecting' ? (
+                <ActivityIndicator size='small' color={tint} />
+              ) : (
+                <Ionicons name='refresh-outline' size={18} color={tint} />
+              )}
+              <ThemedText style={{ color: tint, flex: 1, marginLeft: 8 }}>
+                {t('settings.reconnect')}
+              </ThemedText>
+            </TouchableOpacity>
           )}
         </View>
       </View>

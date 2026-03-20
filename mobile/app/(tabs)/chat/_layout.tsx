@@ -30,6 +30,7 @@ export default function ChatDrawerLayout() {
         drawerType: 'front',
         drawerStyle: { width: '80%', backgroundColor: background },
         headerShown: true,
+        headerStatusBarHeight: 0,
         headerTitle: () => (
           <View style={{ alignItems: 'center' }}>
             <ThemedText
