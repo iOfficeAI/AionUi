@@ -48,7 +48,9 @@ export class ElectronPlatformServices implements IPlatformServices {
       new ElectronWorkerProcess(
         utilityProcess.fork(modulePath, args, {
           cwd: opts.cwd,
-          env: opts.env,
+          // Propagate DATA_DIR so utility processes can use NodePlatformServices
+          // without needing access to app.getPath (unavailable in utility process).
+          env: { DATA_DIR: app.getPath("userData"), ...opts.env },
         }),
       ),
   };
