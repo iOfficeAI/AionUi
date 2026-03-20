@@ -713,9 +713,16 @@ const getBuiltinMcpBaseDir = (): string => {
     typeof require !== "undefined" && require.main?.filename
       ? path.dirname(require.main.filename)
       : __dirname;
-  return path.basename(mainModuleDir) === "chunks"
-    ? path.dirname(mainModuleDir)
-    : mainModuleDir;
+  const baseDir =
+    path.basename(mainModuleDir) === "chunks"
+      ? path.dirname(mainModuleDir)
+      : mainModuleDir;
+  // In packaged mode the main bundle lives inside app.asar, but external node
+  // processes cannot read files from ASAR archives. Redirect to the unpacked copy.
+  if (getPlatformServices().paths.isPackaged()) {
+    return baseDir.replace("app.asar", "app.asar.unpacked");
+  }
+  return baseDir;
 };
 
 /**

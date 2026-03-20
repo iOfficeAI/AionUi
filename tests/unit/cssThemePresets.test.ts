@@ -180,6 +180,8 @@ describe('CssThemeSettings preset structure', () => {
     'retro-windows',
     'retroma-y2k',
     'retroma-obsidian-book',
+    'discourse-horizon',
+    'glittering-input-field',
   ];
 
   it.each(expectedThemes)('should have CSS file for theme: %s', (theme) => {

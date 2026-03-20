@@ -177,7 +177,12 @@ function dmgExists(outDir) {
 function tryRemoveDir(targetDir) {
   if (!fs.existsSync(targetDir)) return true;
   try {
-    fs.rmSync(targetDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 });
+    fs.rmSync(targetDir, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 300,
+    });
     return true;
   } catch (error) {
     console.log(`❌ Failed to remove ${targetDir}: ${error.message}`);
@@ -188,7 +193,9 @@ function tryRemoveDir(targetDir) {
 function isProcessRunningWindows(imageName) {
   if (process.platform !== 'win32') return false;
   try {
-    const result = execSync(`tasklist /FI "IMAGENAME eq ${imageName}"`, { stdio: ['ignore', 'pipe', 'ignore'] });
+    const result = execSync(`tasklist /FI "IMAGENAME eq ${imageName}"`, {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
     return result.toString().toLowerCase().includes(imageName.toLowerCase());
   } catch {
     return false;
@@ -405,6 +412,18 @@ try {
   } else {
     console.log('📦 Using cached Vite build output');
   }
+
+  // Re-bundle builtin MCP server as a fully self-contained CJS bundle so it can
+  // be executed by an external `node` process (no Electron ASAR support available).
+  // electron-vite's externalizeDepsPlugin leaves npm packages as require() calls
+  // which the standalone node process cannot resolve from inside app.asar.unpacked.
+  // Uses a dedicated script (build-mcp-servers.js) to avoid shell-quoting issues
+  // with special characters in esbuild --define values.
+  console.log('📦 Bundling builtin MCP servers (self-contained)...');
+  execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"`, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
 
   // 3. Verify electron-vite output
   const outDir = path.resolve(__dirname, '../out');
