@@ -80,7 +80,10 @@
     "noRecentWorkspaces": "No recent workspaces",
     "filesSelected": "{{count}} file(s) selected",
     "browseFiles": "Browse Files",
-    "done": "Done"
+    "done": "Done",
+    "toolSummaryExecuting": "Executing...",
+    "toolSummaryCompleted": "Executed {{count}} steps",
+    "toolSummaryWithErrors": "Executed {{count}} steps ({{errorCount}} failed)"
   },
   "workspace": {
     "temporarySpace": "Temporary Session",

@@ -3,10 +3,11 @@ import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'reac
 import { useTranslation } from 'react-i18next';
 import { ThemedText } from '../ui/ThemedText';
 import { MessageBubble } from './MessageBubble';
+import { ToolCallSummary } from './ToolCallSummary';
 import { ChatInputBar } from './ChatInputBar';
 import { useChat } from '../../context/ChatContext';
 import { useThemeColor } from '../../hooks/useThemeColor';
-import type { TMessage } from '../../utils/messageAdapter';
+import { useProcessedMessages, type ProcessedItem } from '../../hooks/useProcessedMessages';
 
 type ChatScreenProps = {
   conversationId: string;
@@ -14,10 +15,11 @@ type ChatScreenProps = {
 
 export function ChatScreen({ conversationId }: ChatScreenProps) {
   const { t } = useTranslation();
-  const { messages, isStreaming, loadConversation, sendMessage, stopGeneration } = useChat();
+  const { messages, isStreaming, thought, loadConversation, sendMessage, stopGeneration } = useChat();
   const flatListRef = useRef<FlatList>(null);
   const background = useThemeColor({}, 'background');
   const surface = useThemeColor({}, 'surface');
+  const processedMessages = useProcessedMessages(messages);
 
   useEffect(() => {
     loadConversation(conversationId);
@@ -33,9 +35,17 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
     }
   }, [messages.length]);
 
-  const renderItem = useCallback(({ item }: { item: TMessage }) => <MessageBubble message={item} />, []);
+  const renderItem = useCallback(
+    ({ item }: { item: ProcessedItem }) => {
+      if (item.type === 'tool_summary') {
+        return <ToolCallSummary messages={item.messages} isStreaming={isStreaming} />;
+      }
+      return <MessageBubble message={item} />;
+    },
+    [isStreaming]
+  );
 
-  const keyExtractor = useCallback((item: TMessage) => item.id, []);
+  const keyExtractor = useCallback((item: ProcessedItem) => item.id, []);
 
   return (
     <KeyboardAvoidingView
@@ -45,7 +55,7 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
     >
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={processedMessages}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.list}
@@ -55,9 +65,11 @@ export function ChatScreen({ conversationId }: ChatScreenProps) {
           </View>
         }
       />
-      {isStreaming && (
+      {isStreaming && thought && (
         <View style={[styles.streamingIndicator, { backgroundColor: surface }]}>
-          <ThemedText type='caption'>{t('chat.thinking')}</ThemedText>
+          <ThemedText type='caption' numberOfLines={1}>
+            {thought.subject || t('chat.thinking')}
+          </ThemedText>
         </View>
       )}
       <ChatInputBar onSend={sendMessage} onStop={stopGeneration} isStreaming={isStreaming} />

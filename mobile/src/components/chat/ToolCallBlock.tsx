@@ -10,7 +10,7 @@ type ToolCallBlockProps = {
   type: 'tool_call' | 'tool_group' | 'acp_tool_call' | 'codex_tool_call';
 };
 
-function useStatusIcons() {
+export function useStatusIcons() {
   const tint = useThemeColor({}, 'tint');
   const success = useThemeColor({}, 'success');
   const error = useThemeColor({}, 'error');
@@ -32,6 +32,21 @@ function useStatusIcons() {
     pending: { icon: 'time' as const, color: warning },
     canceled: { icon: 'remove-circle' as const, color: icon },
   };
+}
+
+// Map ACP status values to mobile icon keys
+export function mapAcpStatus(status: string): string {
+  switch (status) {
+    case 'in_progress':
+      return 'executing';
+    case 'completed':
+      return 'success';
+    case 'failed':
+      return 'error';
+    case 'pending':
+    default:
+      return 'pending';
+  }
 }
 
 export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
@@ -83,7 +98,36 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
     }
   }
 
-  // codex_tool_call or acp_tool_call (generic)
+  // acp_tool_call — extract from nested update structure
+  if (type === 'acp_tool_call' && content.update) {
+    const update = content.update;
+    const acpStatus = mapAcpStatus(update.status || 'pending');
+    const title = update.title || update.kind || t('chat.toolCall');
+    const info = statusIcons[acpStatus] || statusIcons.pending;
+
+    return (
+      <View style={[styles.container, { backgroundColor: surface }]}>
+        <TouchableOpacity
+          style={[styles.item, { borderBottomColor: border }]}
+          onPress={() => setExpanded(!expanded)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name={info.icon} size={18} color={info.color} />
+          <ThemedText style={styles.toolName} numberOfLines={expanded ? undefined : 1}>
+            {title}
+          </ThemedText>
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={iconColor} />
+        </TouchableOpacity>
+        {expanded && update.description && (
+          <View style={[styles.detail, { backgroundColor: surface }]}>
+            <ThemedText type='caption'>{update.description}</ThemedText>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // codex_tool_call or acp_tool_call fallback (generic)
   const status = content.status || 'pending';
   const title = content.title || content.description || content.kind || t('chat.toolCall');
   const info = statusIcons[status as keyof typeof statusIcons] || statusIcons.pending;
@@ -112,7 +156,7 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
 
 // --- Web Search Display ---
 
-function WebSearchBlock({ content }: { content: any }) {
+export function WebSearchBlock({ content }: { content: any }) {
   const { t } = useTranslation();
   const surface = useThemeColor({}, 'surface');
   const border = useThemeColor({}, 'border');
@@ -191,7 +235,7 @@ function parseDiffStats(unifiedDiff: string): { fileName: string; insertions: nu
   return { fileName: fileName || 'file', insertions, deletions };
 }
 
-function DiffBlock({ content }: { content: any }) {
+export function DiffBlock({ content }: { content: any }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const surface = useThemeColor({}, 'surface');
@@ -246,7 +290,7 @@ function DiffBlock({ content }: { content: any }) {
   );
 }
 
-function ToolItem({
+export function ToolItem({
   tool,
   surface,
   border,

@@ -18,8 +18,7 @@ export type TMessageType =
   | 'acp_tool_call'
   | 'codex_permission'
   | 'codex_tool_call'
-  | 'plan'
-  | 'thought';
+  | 'plan';
 
 export type TMessage = {
   id: string;
@@ -147,17 +146,8 @@ export function transformMessage(message: IResponseMessage): TMessage | undefine
         content: message.data,
       };
 
-    case 'thought':
-      return {
-        id: uuid(),
-        type: 'thought',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        content: message.data,
-      };
-
     // Ignored types (same as chatLib.ts)
+    case 'thought':
     case 'start':
     case 'finish':
     case 'system':
@@ -245,19 +235,6 @@ export function composeMessage(message: TMessage | undefined, list: TMessage[]):
       if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
         const updated = [...list];
         updated[i] = { ...msg, content: { ...msg.content, ...message.content } };
-        return updated;
-      }
-    }
-    return [...list, message];
-  }
-
-  // Thought merging by msg_id (replace existing)
-  if (message.type === 'thought') {
-    for (let i = 0; i < list.length; i++) {
-      const msg = list[i];
-      if (msg.type === 'thought' && msg.msg_id === message.msg_id) {
-        const updated = [...list];
-        updated[i] = { ...msg, content: message.content };
         return updated;
       }
     }

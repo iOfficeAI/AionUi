@@ -5,12 +5,15 @@ import { transformMessage, composeMessage, type TMessage, type IResponseMessage 
 import { uuid } from '../utils/uuid';
 import { useConnection } from './ConnectionContext';
 
+export type ThoughtData = { subject: string; description: string } | null;
+
 type ChatContextType = {
   messages: TMessage[];
   isStreaming: boolean;
   conversationId: string | null;
   confirmations: any[];
   contextUsage: { used: number; size: number } | null;
+  thought: ThoughtData;
   loadConversation: (id: string) => void;
   sendMessage: (text: string, files?: string[]) => void;
   stopGeneration: () => void;
@@ -23,6 +26,7 @@ const ChatContext = createContext<ChatContextType>({
   conversationId: null,
   confirmations: [],
   contextUsage: null,
+  thought: null,
   loadConversation: () => {},
   sendMessage: () => {},
   stopGeneration: () => {},
@@ -35,6 +39,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [confirmations, setConfirmations] = useState<any[]>([]);
   const [contextUsage, setContextUsage] = useState<{ used: number; size: number } | null>(null);
+  const [thought, setThought] = useState<ThoughtData>(null);
   const messagesRef = useRef<TMessage[]>([]);
   const { connectionState } = useConnection();
   const prevConnectionStateRef = useRef(connectionState);
@@ -51,6 +56,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setIsStreaming(false);
     setConfirmations([]);
     setContextUsage(null);
+    setThought(null);
 
     try {
       const data = await bridge.request<TMessage[]>('database.get-conversation-messages', {
@@ -79,7 +85,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }
       if (raw.type === 'finish') {
         setIsStreaming(false);
+        setThought(null);
         return;
+      }
+
+      // Ephemeral thought — update state, don't add to message list
+      if (raw.type === 'thought') {
+        const data = raw.data as { subject: string; description: string };
+        setThought({ subject: data.subject, description: data.description });
+        return;
+      }
+
+      // Clear thought when content arrives
+      if (raw.type === 'content') {
+        setThought(null);
       }
 
       // Extract context usage metadata
@@ -236,6 +255,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         conversationId,
         confirmations,
         contextUsage,
+        thought,
         loadConversation,
         sendMessage,
         stopGeneration,
