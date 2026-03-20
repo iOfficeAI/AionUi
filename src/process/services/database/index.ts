@@ -35,7 +35,7 @@ import type {
 } from '@process/channels/types';
 import type { ConversationSource, TProviderWithModel } from '@/common/config/storage';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@process/channels/types';
-import { encryptCredentials, decryptCredentials } from '@process/channels/utils/credentialCrypto';
+import { encryptCredentials, decryptCredentials } from '@aionui/native';
 
 type IConversationMessageSearchRow = IConversationRow & {
   message_id: string;
