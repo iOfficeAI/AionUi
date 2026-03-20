@@ -51,7 +51,9 @@
     "test:e2e": "playwright test --config playwright.config.ts",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
-    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts"
+    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts",
+    "server": "bun run src/server.ts",
+    "build:server": "bun build src/server.ts --outdir dist-server --target node"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
