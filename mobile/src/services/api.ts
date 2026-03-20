@@ -28,3 +28,17 @@ export const resetApi = () => {
   api.defaults.baseURL = '';
   delete api.defaults.headers.common['Authorization'];
 };
+
+/**
+ * Refresh the auth token by calling POST /api/auth/refresh.
+ * Returns the new token string, or null on failure.
+ */
+export async function refreshToken(currentToken: string): Promise<string | null> {
+  try {
+    const response = await api.post('/api/auth/refresh', { token: currentToken });
+    const newToken = response.data?.token;
+    return typeof newToken === 'string' ? newToken : null;
+  } catch {
+    return null;
+  }
+}

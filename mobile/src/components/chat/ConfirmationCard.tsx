@@ -10,7 +10,7 @@ type ConfirmationCardProps = {
   msgId?: string;
 };
 
-export function ConfirmationCard({ content, msgId }: ConfirmationCardProps) {
+export function ConfirmationCard({ content }: ConfirmationCardProps) {
   const { t } = useTranslation();
   const { confirmAction } = useChat();
   const confirmBg = useThemeColor({}, 'confirmBg');
@@ -22,14 +22,15 @@ export function ConfirmationCard({ content, msgId }: ConfirmationCardProps) {
 
   // ACP permission format: { confirmation: { id, action, description, callId, options } }
   const confirmation = content.confirmation || content;
+  const confirmationId = confirmation.id || '';
   const title = confirmation.title || confirmation.action || t('chat.permissionRequest');
   const description = confirmation.description || '';
   const options = confirmation.options || [];
   const callId = confirmation.callId || '';
 
   const handleConfirm = (optionValue: string) => {
-    if (msgId && callId) {
-      confirmAction(msgId, callId, optionValue);
+    if (confirmationId && callId) {
+      confirmAction(confirmationId, callId, optionValue);
     }
   };
 

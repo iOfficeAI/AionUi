@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '../ui/ThemedText';
 import { MarkdownContent } from './MarkdownContent';
 import { ToolCallBlock } from './ToolCallBlock';
@@ -93,6 +94,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         </View>
       );
 
+    case 'thought': {
+      return <ThoughtBlock content={message.content} />;
+    }
+
     case 'plan': {
       const entries = message.content?.entries || [];
       return (
@@ -115,6 +120,35 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     default:
       return null;
   }
+}
+
+function ThoughtBlock({ content }: { content: { subject: string; description: string } }) {
+  const [expanded, setExpanded] = useState(false);
+  const surface = useThemeColor({}, 'surface');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+
+  return (
+    <View style={[styles.row, styles.rowLeft]}>
+      <TouchableOpacity
+        style={[styles.thoughtContainer, { backgroundColor: surface }]}
+        onPress={() => setExpanded((v) => !v)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.thoughtHeader}>
+          <Ionicons name='bulb-outline' size={14} color={textSecondary} />
+          <ThemedText type='caption' style={styles.thoughtSubject} numberOfLines={expanded ? undefined : 1}>
+            {content.subject}
+          </ThemedText>
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={textSecondary} />
+        </View>
+        {expanded && content.description ? (
+          <ThemedText type='caption' style={[styles.thoughtDescription, { color: textSecondary }]}>
+            {content.description}
+          </ThemedText>
+        ) : null}
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -184,5 +218,25 @@ const styles = StyleSheet.create({
   },
   planEntry: {
     paddingVertical: 2,
+  },
+  thoughtContainer: {
+    borderRadius: 12,
+    padding: 10,
+    maxWidth: '90%',
+  },
+  thoughtHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  thoughtSubject: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  thoughtDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
   },
 });

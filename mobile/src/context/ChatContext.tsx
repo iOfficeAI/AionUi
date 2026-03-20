@@ -3,21 +3,26 @@ import { bridge } from '../services/bridge';
 import { consumePendingInitialMessage } from '../services/pendingInitialMessages';
 import { transformMessage, composeMessage, type TMessage, type IResponseMessage } from '../utils/messageAdapter';
 import { uuid } from '../utils/uuid';
+import { useConnection } from './ConnectionContext';
 
 type ChatContextType = {
   messages: TMessage[];
   isStreaming: boolean;
   conversationId: string | null;
+  confirmations: any[];
+  contextUsage: { used: number; size: number } | null;
   loadConversation: (id: string) => void;
-  sendMessage: (text: string) => void;
+  sendMessage: (text: string, files?: string[]) => void;
   stopGeneration: () => void;
-  confirmAction: (msgId: string, callId: string, confirmKey: string) => void;
+  confirmAction: (confirmationId: string, callId: string, confirmKey: string) => void;
 };
 
 const ChatContext = createContext<ChatContextType>({
   messages: [],
   isStreaming: false,
   conversationId: null,
+  confirmations: [],
+  contextUsage: null,
   loadConversation: () => {},
   sendMessage: () => {},
   stopGeneration: () => {},
@@ -28,7 +33,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<TMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [confirmations, setConfirmations] = useState<any[]>([]);
+  const [contextUsage, setContextUsage] = useState<{ used: number; size: number } | null>(null);
   const messagesRef = useRef<TMessage[]>([]);
+  const { connectionState } = useConnection();
+  const prevConnectionStateRef = useRef(connectionState);
 
   // Keep ref in sync
   useEffect(() => {
@@ -40,6 +49,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setConversationId(id);
     setMessages([]);
     setIsStreaming(false);
+    setConfirmations([]);
+    setContextUsage(null);
 
     try {
       const data = await bridge.request<TMessage[]>('database.get-conversation-messages', {
@@ -71,22 +82,70 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Extract context usage metadata
+      if (raw.type === 'acp_context_usage') {
+        setContextUsage(raw.data as { used: number; size: number });
+        return;
+      }
+
       const msg = transformMessage(raw);
       if (msg) {
         setMessages((prev) => composeMessage(msg, prev));
       }
     });
 
-    // Also listen for confirmation events
+    // Confirmation lifecycle events
     const unsubConfirmAdd = bridge.on('confirmation.add', (data: unknown) => {
-      // Confirmation events are rendered inline via acp_permission / codex_permission messages
+      const confirmation = data as any;
+      if (confirmation.conversation_id !== conversationId) return;
+      setConfirmations((prev) => [...prev, confirmation]);
+
+      // Also inject as acp_permission message for inline rendering
+      const permMsg: TMessage = {
+        id: uuid(),
+        msg_id: confirmation.msg_id,
+        conversation_id: conversationId,
+        type: 'acp_permission',
+        position: 'left',
+        content: confirmation,
+      };
+      setMessages((prev) => [...prev, permMsg]);
+    });
+
+    const unsubConfirmUpdate = bridge.on('confirmation.update', (data: unknown) => {
+      const update = data as any;
+      setConfirmations((prev) => prev.map((c) => (c.id === update.id ? { ...c, ...update } : c)));
+    });
+
+    const unsubConfirmRemove = bridge.on('confirmation.remove', (data: unknown) => {
+      const removal = data as any;
+      setConfirmations((prev) => prev.filter((c) => c.id !== removal.id));
     });
 
     return () => {
       unsub();
       unsubConfirmAdd();
+      unsubConfirmUpdate();
+      unsubConfirmRemove();
     };
   }, [conversationId]);
+
+  // Restore pending confirmations on reconnect (Issue 2)
+  useEffect(() => {
+    const wasDisconnected = prevConnectionStateRef.current !== 'connected';
+    prevConnectionStateRef.current = connectionState;
+
+    if (wasDisconnected && connectionState === 'connected' && conversationId) {
+      bridge
+        .request<any[]>('confirmation.list', { conversation_id: conversationId })
+        .then((list) => {
+          if (Array.isArray(list)) {
+            setConfirmations(list);
+          }
+        })
+        .catch((e) => console.warn('[Chat] Failed to restore confirmations:', e));
+    }
+  }, [connectionState, conversationId]);
 
   // Auto-send initial message when conversation was created via commitNewChat
   useEffect(() => {
@@ -116,7 +175,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [conversationId]);
 
   const sendMessage = useCallback(
-    (text: string) => {
+    (text: string, files?: string[]) => {
       if (!conversationId || !text.trim()) return;
 
       const msgId = uuid();
@@ -134,13 +193,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setMessages((prev) => [...prev, userMsg]);
 
       // Send via bridge
-      bridge.request('chat.send.message', {
-        input: text,
-        msg_id: msgId,
-        conversation_id: conversationId,
-      }).catch((e) => console.warn('[Chat] send failed:', e));
+      bridge
+        .request('chat.send.message', {
+          input: text,
+          msg_id: msgId,
+          conversation_id: conversationId,
+          ...(files?.length ? { files } : {}),
+        })
+        .catch((e) => console.warn('[Chat] send failed:', e));
     },
-    [conversationId]
+    [conversationId],
   );
 
   const stopGeneration = useCallback(() => {
@@ -152,18 +214,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [conversationId]);
 
   const confirmAction = useCallback(
-    (msgId: string, callId: string, confirmKey: string) => {
+    (confirmationId: string, callId: string, confirmKey: string) => {
       if (!conversationId) return;
       bridge
         .request('confirmation.confirm', {
           conversation_id: conversationId,
-          msg_id: msgId,
+          id: confirmationId,
           callId,
           data: confirmKey,
         })
         .catch((e) => console.warn('[Chat] confirm failed:', e));
     },
-    [conversationId]
+    [conversationId],
   );
 
   return (
@@ -172,6 +234,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         messages,
         isStreaming,
         conversationId,
+        confirmations,
+        contextUsage,
         loadConversation,
         sendMessage,
         stopGeneration,

@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { bridge } from '../services/bridge';
 import { setPendingInitialMessage } from '../services/pendingInitialMessages';
 import { useConnection } from './ConnectionContext';
@@ -137,6 +138,41 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       setActiveConversationIdRaw(conversations[0].id);
     }
   }, [conversations, activeConversationId, pendingAgent]);
+
+  // Refresh conversation list when app returns to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && connectionState === 'connected') {
+        void refresh();
+      }
+    });
+    return () => sub.remove();
+  }, [connectionState, refresh]);
+
+  // Poll conversation list every 30s while connected
+  useEffect(() => {
+    if (connectionState !== 'connected') return;
+    const timer = setInterval(() => void refresh(), 30_000);
+    return () => clearInterval(timer);
+  }, [connectionState, refresh]);
+
+  // Refresh conversation list on chat finish events (debounced)
+  useEffect(() => {
+    const debounceRef = { timer: null as ReturnType<typeof setTimeout> | null };
+
+    const unsub = bridge.on('chat.response.stream', (data: unknown) => {
+      const raw = data as { type: string };
+      if (raw.type !== 'finish') return;
+
+      if (debounceRef.timer) clearTimeout(debounceRef.timer);
+      debounceRef.timer = setTimeout(() => void refresh(), 1000);
+    });
+
+    return () => {
+      unsub();
+      if (debounceRef.timer) clearTimeout(debounceRef.timer);
+    };
+  }, [refresh]);
 
   const fetchAgents = useCallback(async () => {
     if (connectionState !== 'connected') return;

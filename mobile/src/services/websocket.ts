@@ -26,6 +26,8 @@ export class WebSocketService {
   private host = '';
   private port = '';
   private token = '';
+  private lastPingReceived = 0;
+  private deadConnectionTimer: ReturnType<typeof setInterval> | null = null;
 
   get state(): ConnectionState {
     return this._state;
@@ -71,6 +73,8 @@ export class WebSocketService {
 
     this.socket.onopen = () => {
       this.reconnectDelay = 500;
+      this.lastPingReceived = Date.now();
+      this.startDeadConnectionCheck();
       this.setState('connected');
       this.flushQueue();
     };
@@ -81,6 +85,7 @@ export class WebSocketService {
 
         // Handle server heartbeat
         if (payload.name === 'ping') {
+          this.lastPingReceived = Date.now();
           this.send('pong', { timestamp: Date.now() });
           return;
         }
@@ -103,6 +108,7 @@ export class WebSocketService {
 
     this.socket.onclose = (event: WebSocketCloseEvent) => {
       this.socket = null;
+      this.stopDeadConnectionCheck();
 
       // Close code 1008 = policy violation (token invalid)
       if (event.code === 1008) {
@@ -127,6 +133,7 @@ export class WebSocketService {
   disconnect() {
     this.shouldReconnect = false;
     this.clearReconnectTimer();
+    this.stopDeadConnectionCheck();
     this.messageQueue = [];
     this.socket?.close();
     this.socket = null;
@@ -184,6 +191,23 @@ export class WebSocketService {
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+  }
+
+  private startDeadConnectionCheck() {
+    this.stopDeadConnectionCheck();
+    this.deadConnectionTimer = setInterval(() => {
+      if (this.lastPingReceived > 0 && Date.now() - this.lastPingReceived > 50000) {
+        console.warn('[WS] Dead connection detected (no ping for 50s), reconnecting');
+        this.socket?.close();
+      }
+    }, 15000);
+  }
+
+  private stopDeadConnectionCheck() {
+    if (this.deadConnectionTimer !== null) {
+      clearInterval(this.deadConnectionTimer);
+      this.deadConnectionTimer = null;
     }
   }
 }

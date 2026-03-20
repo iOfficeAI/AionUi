@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useThemeColor } from '../../hooks/useThemeColor';
 
 type ChatInputBarProps = {
-  onSend: (text: string) => void;
+  onSend: (text: string, files?: string[]) => void;
   onStop?: () => void;
   isStreaming?: boolean;
   disabled?: boolean;
