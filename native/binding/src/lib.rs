@@ -1,1 +1,2 @@
 mod cred;
+mod auth;

@@ -11,6 +11,7 @@ napi = { version = "2", default-features = false, features = ["napi8", "serde-js
 napi-derive = "2"
 serde_json = "1"
 aionui-cred = { path = "../crates/aionui-cred" }
+aionui-auth = { path = "../crates/aionui-auth" }
 
 [build-dependencies]
 napi-build = "2"

@@ -7,10 +7,13 @@
  * 打包应用的密码重置命令行工具
  */
 
-import crypto from 'crypto';
 import type Database from 'better-sqlite3';
 import BetterSqlite3 from 'better-sqlite3';
-import bcrypt from 'bcryptjs';
+import {
+  hashPassword as nativeHashPassword,
+  generateRandomPassword as nativeGenerateRandomPassword,
+  generateSecretKey as nativeGenerateSecretKey,
+} from '@aionui/native';
 import { getDataPath, ensureDirectory } from '@process/utils';
 import path from 'path';
 
@@ -32,33 +35,6 @@ const log = {
   warning: (msg: string) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
-
-const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
-  new Promise((resolve, reject) => {
-    bcrypt.hash(password, saltRounds, (error, hash) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(hash);
-    });
-  });
-
-// Hash password using bcrypt
-// 使用 bcrypt 哈希密码
-async function hashPassword(password: string): Promise<string> {
-  return await hashPasswordAsync(password, 10);
-}
-
-// 生成随机密码 / Generate random password
-function generatePassword(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
 
 /**
  * Reset password for a user (CLI mode, works in packaged apps)
@@ -120,17 +96,19 @@ export async function resetPasswordCLI(username: string): Promise<void> {
 
     log.info(`Found user: ${user.username} (ID: ${user.id})`);
 
-    // Generate new password
-    const newPassword = generatePassword();
-    const hashedPassword = await hashPassword(newPassword);
+    // Generate new password using Rust native addon
+    const newPassword = nativeGenerateRandomPassword();
+    const hashedPassword = await nativeHashPassword(newPassword);
 
-    // Update password
+    // Update password and rotate JWT secret in a single query
     const now = Date.now();
-    db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(hashedPassword, now, user.id);
-
-    // Generate and update JWT Secret
-    const newJwtSecret = crypto.randomBytes(64).toString('hex');
-    db.prepare('UPDATE users SET jwt_secret = ?, updated_at = ? WHERE id = ?').run(newJwtSecret, now, user.id);
+    const newJwtSecret = nativeGenerateSecretKey();
+    db.prepare('UPDATE users SET password_hash = ?, jwt_secret = ?, updated_at = ? WHERE id = ?').run(
+      hashedPassword,
+      newJwtSecret,
+      now,
+      user.id,
+    );
 
     // Display result
     console.log('');

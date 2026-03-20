@@ -4,9 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
+import {
+  hashPassword as nativeHashPassword,
+  verifyPassword as nativeVerifyPassword,
+  generateToken as nativeGenerateToken,
+  verifyJwt as nativeVerifyJwt,
+  validateUsername as nativeValidateUsername,
+  validatePasswordStrength as nativeValidatePasswordStrength,
+  generateRandomPassword as nativeGenerateRandomPassword,
+  generateUserCredentials as nativeGenerateUserCredentials,
+  generateSessionId as nativeGenerateSessionId,
+  generateSecretKey as nativeGenerateSecretKey,
+  constantTimeCompare as nativeConstantTimeCompare,
+  sha256Hex as nativeSha256Hex,
+} from '@aionui/native';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
@@ -18,44 +29,20 @@ interface TokenPayload {
   exp?: number;
 }
 
-type RawTokenPayload = Omit<TokenPayload, 'userId'> & {
-  userId: string | number;
-};
-
 interface UserCredentials {
   username: string;
   password: string;
   createdAt: number;
 }
 
-const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
-  new Promise((resolve, reject) => {
-    bcrypt.hash(password, saltRounds, (error, hash) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(hash);
-    });
-  });
-
-const comparePasswordAsync = (password: string, hash: string): Promise<boolean> =>
-  new Promise((resolve, reject) => {
-    bcrypt.compare(password, hash, (error, same) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(same);
-    });
-  });
-
 /**
  * 认证服务 - 提供密码哈希、Token 生成与验证等能力
  * Authentication Service - handles password hashing, token issuance, and validation
+ *
+ * Crypto operations are delegated to the Rust native addon (aionui-auth crate).
+ * Stateful parts (blacklist, JWT secret cache) remain in TypeScript.
  */
 export class AuthService {
-  private static readonly SALT_ROUNDS = 12;
   private static jwtSecret: string | null = null;
   private static readonly TOKEN_EXPIRY = AUTH_CONFIG.TOKEN.SESSION_EXPIRY;
 
@@ -74,20 +61,11 @@ export class AuthService {
    */
   public static blacklistToken(token: string): void {
     // 使用 token 的哈希作为 key，避免存储原始 token
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = nativeSha256Hex(token);
+    this.tokenBlacklist.set(tokenHash, Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE);
 
-    // 解析 token 获取过期时间
-    try {
-      const decoded = jwt.decode(token) as { exp?: number } | null;
-      const expiry = decoded?.exp ? decoded.exp * 1000 : Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE;
-      this.tokenBlacklist.set(tokenHash, expiry);
-
-      // 启动清理定时器（如果还没启动）
-      this.startBlacklistCleanup();
-    } catch {
-      // 即使解析失败，也加入黑名单（使用默认过期时间）
-      this.tokenBlacklist.set(tokenHash, Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE);
-    }
+    // 启动清理定时器（如果还没启动）
+    this.startBlacklistCleanup();
   }
 
   /**
@@ -95,7 +73,7 @@ export class AuthService {
    * Check if token is blacklisted
    */
   public static isTokenBlacklisted(token: string): boolean {
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = nativeSha256Hex(token);
     const expiry = this.tokenBlacklist.get(tokenHash);
 
     if (!expiry) {
@@ -134,15 +112,6 @@ export class AuthService {
   }
 
   /**
-   * 生成高强度的随机密钥
-   * Generate a high-entropy random secret key
-   */
-  private static generateSecretKey(): string {
-    // 始终使用随机数确保密钥不可预测 / Always rely on randomness for unpredictability
-    return crypto.randomBytes(64).toString('hex');
-  }
-
-  /**
    * 获取或创建 JWT Secret，并缓存于内存
    * Load or create the JWT secret and cache it in memory
    *
@@ -172,7 +141,7 @@ export class AuthService {
       // 生成新的 secret 并保存到 admin 用户
       // Generate new secret and save to admin user
       if (systemUser) {
-        const newSecret = this.generateSecretKey();
+        const newSecret = nativeGenerateSecretKey();
         UserRepository.updateJwtSecret(systemUser.id, newSecret);
         this.jwtSecret = newSecret;
         return this.jwtSecret;
@@ -180,11 +149,11 @@ export class AuthService {
 
       // Fallback: 如果 admin 用户不存在(不应该发生)
       console.warn('[AuthService] System WebUI user not found, using temporary secret');
-      this.jwtSecret = this.generateSecretKey();
+      this.jwtSecret = nativeGenerateSecretKey();
       return this.jwtSecret;
     } catch (error) {
       console.error('Failed to get/save JWT secret:', error);
-      this.jwtSecret = this.generateSecretKey();
+      this.jwtSecret = nativeGenerateSecretKey();
       return this.jwtSecret;
     }
   }
@@ -201,7 +170,7 @@ export class AuthService {
         return;
       }
 
-      const newSecret = this.generateSecretKey();
+      const newSecret = nativeGenerateSecretKey();
       UserRepository.updateJwtSecret(systemUser.id, newSecret);
       this.jwtSecret = newSecret;
     } catch (error) {
@@ -210,19 +179,19 @@ export class AuthService {
   }
 
   /**
-   * 使用 bcrypt 进行密码哈希
-   * Hash password using bcrypt
+   * 使用 argon2 进行密码哈希（新密码均使用 argon2，旧 bcrypt 哈希仍可验证）
+   * Hash password using argon2 (new passwords use argon2; legacy bcrypt hashes remain verifiable)
    */
   public static hashPassword(password: string): Promise<string> {
-    return hashPasswordAsync(password, this.SALT_ROUNDS);
+    return nativeHashPassword(password);
   }
 
   /**
-   * 验证密码是否与存储的哈希匹配
-   * Verify whether the password matches the stored hash
+   * 验证密码是否与存储的哈希匹配（自动识别 argon2 / bcrypt 格式）
+   * Verify whether the password matches the stored hash (auto-detects argon2 / bcrypt format)
    */
   public static verifyPassword(password: string, hash: string): Promise<boolean> {
-    return comparePasswordAsync(password, hash);
+    return nativeVerifyPassword(password, hash);
   }
 
   /**
@@ -230,29 +199,7 @@ export class AuthService {
    * Generate standard WebUI session token
    */
   public static generateToken(user: Pick<AuthUser, 'id' | 'username'>): string {
-    const payload: TokenPayload = {
-      userId: user.id,
-      username: user.username,
-    };
-
-    return jwt.sign(payload, this.getJwtSecret(), {
-      expiresIn: this.TOKEN_EXPIRY,
-      issuer: 'aionui',
-      audience: 'aionui-webui',
-    });
-  }
-
-  /**
-   * 将数据库中的用户 ID 统一转换为字符串格式
-   * Normalize database user id into a consistent string
-   *
-   * Note: In new architecture, all user IDs are already strings (e.g., "auth_1234567890_abc")
-   * This function simply ensures the ID is a string type.
-   * 注意：在新架构中，所有用户 ID 已经是字符串格式（如 "auth_1234567890_abc"）
-   * 此函数仅确保 ID 是字符串类型。
-   */
-  private static normalizeUserId(rawId: string | number): string {
-    return String(rawId);
+    return nativeGenerateToken({ userId: user.id, username: user.username }, this.getJwtSecret(), this.TOKEN_EXPIRY);
   }
 
   /**
@@ -260,32 +207,20 @@ export class AuthService {
    * Verify standard WebUI session token validity
    */
   public static verifyToken(token: string): TokenPayload | null {
-    try {
-      // 先检查黑名单 / Check blacklist first
-      if (this.isTokenBlacklisted(token)) {
-        return null;
-      }
-
-      const decoded = jwt.verify(token, this.getJwtSecret(), {
-        issuer: 'aionui',
-        audience: 'aionui-webui',
-      }) as RawTokenPayload;
-
-      return {
-        ...decoded,
-        userId: this.normalizeUserId(decoded.userId),
-      };
-    } catch (error) {
-      if (
-        error instanceof jwt.TokenExpiredError ||
-        error instanceof jwt.JsonWebTokenError ||
-        error instanceof jwt.NotBeforeError
-      ) {
-        return null;
-      }
-      console.error('Token verification failed:', error);
+    // 先检查黑名单 / Check blacklist first
+    if (this.isTokenBlacklisted(token)) {
       return null;
     }
+
+    const decoded = nativeVerifyJwt(token, this.getJwtSecret());
+    if (!decoded) {
+      return null;
+    }
+
+    return {
+      userId: String(decoded.userId),
+      username: decoded.username,
+    };
   }
 
   /**
@@ -298,30 +233,20 @@ export class AuthService {
    * @returns Token payload if valid, null otherwise
    */
   public static verifyWebSocketToken(token: string): TokenPayload | null {
-    try {
-      // 先检查黑名单 / Check blacklist first
-      if (this.isTokenBlacklisted(token)) {
-        return null;
-      }
-
-      const decoded = jwt.verify(token, this.getJwtSecret(), {
-        issuer: 'aionui',
-        audience: 'aionui-webui', // 使用与 Web 登录相同的 audience
-      }) as RawTokenPayload;
-
-      return {
-        ...decoded,
-        userId: this.normalizeUserId(decoded.userId),
-      };
-    } catch (error) {
-      // TokenExpiredError is expected when sessions naturally expire (24h TTL).
-      // Only log unexpected verification failures at error level.
-      if (error instanceof jwt.TokenExpiredError) {
-        return null;
-      }
-      console.error('WebSocket token verification failed:', error);
+    // 先检查黑名单 / Check blacklist first
+    if (this.isTokenBlacklisted(token)) {
       return null;
     }
+
+    const decoded = nativeVerifyJwt(token, this.getJwtSecret());
+    if (!decoded) {
+      return null;
+    }
+
+    return {
+      userId: String(decoded.userId),
+      username: decoded.username,
+    };
   }
 
   /**
@@ -334,9 +259,8 @@ export class AuthService {
       return null;
     }
 
-    // 刷新时不重复检查有效期 / Skip expiry check when refreshing token
     return this.generateToken({
-      id: this.normalizeUserId(decoded.userId),
+      id: String(decoded.userId),
       username: decoded.username,
     });
   }
@@ -346,38 +270,7 @@ export class AuthService {
    * Generate a random password with required complexity
    */
   public static generateRandomPassword(): string {
-    const baseLength = 12;
-    const lengthVariance = 5;
-    const passwordLength = baseLength + crypto.randomInt(0, lengthVariance);
-
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const digits = '0123456789';
-    const special = '!@#$%^&*';
-    const allChars = lowercase + uppercase + digits + special;
-
-    const ensureCategory = (chars: string) => chars[crypto.randomInt(0, chars.length)];
-
-    const passwordChars: string[] = [
-      ensureCategory(lowercase),
-      ensureCategory(uppercase),
-      ensureCategory(digits),
-      ensureCategory(special),
-    ];
-
-    const remainingLength = Math.max(passwordLength - passwordChars.length, 0);
-    for (let i = 0; i < remainingLength; i++) {
-      const index = crypto.randomInt(0, allChars.length);
-      passwordChars.push(allChars[index]);
-    }
-
-    // 打乱字符顺序，避免类型排列固定 / Shuffle to avoid predictable category order
-    for (let i = passwordChars.length - 1; i > 0; i--) {
-      const j = crypto.randomInt(0, i + 1);
-      [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
-    }
-
-    return passwordChars.join('');
+    return nativeGenerateRandomPassword();
   }
 
   /**
@@ -385,19 +278,7 @@ export class AuthService {
    * Generate random credentials for initial bootstrap
    */
   public static generateUserCredentials(): UserCredentials {
-    // 用户名长度控制在 6-8 位，便于记忆 / Username length fixed to 6-8 chars for memorability
-    const usernameLength = crypto.randomInt(6, 9); // 6-8 chars
-    const usernameChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let username = '';
-    for (let i = 0; i < usernameLength; i++) {
-      username += usernameChars[crypto.randomInt(0, usernameChars.length)];
-    }
-
-    return {
-      username,
-      password: this.generateRandomPassword(),
-      createdAt: Date.now(),
-    };
+    return nativeGenerateUserCredentials();
   }
 
   /**
@@ -408,27 +289,7 @@ export class AuthService {
     isValid: boolean;
     errors: string[];
   } {
-    const errors: string[] = [];
-
-    // 仅要求最小长度 / Only require minimum length
-    if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
-    }
-
-    if (password.length > 128) {
-      errors.push('Password must be less than 128 characters long');
-    }
-
-    // 禁止明显的弱密码 / Block obvious weak passwords
-    const weakPasswords = ['password', '12345678', '123456789', 'qwertyui', 'abcdefgh'];
-    if (weakPasswords.includes(password.toLowerCase())) {
-      errors.push('Password is too common, please choose a stronger one');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return nativeValidatePasswordStrength(password);
   }
 
   /**
@@ -439,28 +300,7 @@ export class AuthService {
     isValid: boolean;
     errors: string[];
   } {
-    const errors: string[] = [];
-
-    if (username.length < 3) {
-      errors.push('Username must be at least 3 characters long');
-    }
-
-    if (username.length > 32) {
-      errors.push('Username must be less than 32 characters long');
-    }
-
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      errors.push('Username can only contain letters, numbers, hyphens, and underscores');
-    }
-
-    if (/^[_-]|[_-]$/.test(username)) {
-      errors.push('Username cannot start or end with hyphen or underscore');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return nativeValidateUsername(username);
   }
 
   /**
@@ -468,7 +308,7 @@ export class AuthService {
    * Generate a high-entropy session identifier
    */
   public static generateSessionId(): string {
-    return crypto.randomBytes(32).toString('hex');
+    return nativeGenerateSessionId();
   }
 
   /**
@@ -481,12 +321,9 @@ export class AuthService {
 
     let result: boolean;
     if (hashProvided) {
-      result = await comparePasswordAsync(provided, expected);
+      result = await nativeVerifyPassword(provided, expected);
     } else {
-      result = crypto.timingSafeEqual(
-        Buffer.from(provided.padEnd(expected.length, '0')),
-        Buffer.from(expected.padEnd(provided.length, '0'))
-      );
+      result = nativeConstantTimeCompare(provided, expected);
     }
 
     // Add minimum delay to prevent timing attacks
