@@ -12,6 +12,7 @@ napi-derive = "2"
 serde_json = "1"
 aionui-cred = { path = "../crates/aionui-cred" }
 aionui-auth = { path = "../crates/aionui-auth" }
+aionui-fs = { path = "../crates/aionui-fs" }
 
 [build-dependencies]
 napi-build = "2"

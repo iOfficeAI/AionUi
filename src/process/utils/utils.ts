@@ -11,6 +11,13 @@ import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
+import {
+  readDirectoryTree as nativeReadDirectoryTree,
+  copyDirectory as nativeCopyDirectory,
+  verifyDirectoryStructure as nativeVerifyDirectoryStructure,
+  ensureDir as nativeEnsureDir,
+} from '@aionui/native';
+import type { DirOrFile } from '@aionui/native';
 // Lazy import to break circular dependency (initStorage.ts imports from this file)
 let _getSystemDir: typeof import('./initStorage').getSystemDir;
 const lazyGetSystemDir = () => {
@@ -140,7 +147,8 @@ export const generateHashWithFullName = (fullName: string): string => {
   return Math.abs(hash).toString(16).padStart(8, '0'); //.slice(0, 8);
 };
 
-// 递归读取目录内容，返回树状结构
+// Recursive directory tree builder — delegates to Rust native addon.
+// Stateful options (fileService, search.onProcess) are handled in TS post-processing.
 export async function readDirectoryRecursive(
   dirPath: string,
   options?: {
@@ -155,199 +163,63 @@ export async function readDirectoryRecursive(
     };
   }
 ): Promise<IDirOrFile> {
-  const { root = dirPath, maxDepth = 1, fileService, search, abortController } = options || {};
-  const { text: searchText, onProcess: onSearchProcess = () => {}, process = { file: 0, dir: 1 } } = search || {};
+  const { root = dirPath, maxDepth = 1, fileService, search } = options || {};
 
-  const matchSearch = searchText ? (fullPath: string) => fullPath.includes(searchText) : (_: string) => false;
+  // Delegate core traversal to Rust (node_modules is skipped by default)
+  const tree = await nativeReadDirectoryTree(dirPath, root, maxDepth, undefined, search?.text ?? null);
 
-  const checkStatus = () => {
-    if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
-  };
+  if (!tree) return null;
 
-  try {
-    const stats = await fs.stat(dirPath);
-    if (!stats.isDirectory()) {
-      return null;
-    }
-  } catch {
-    // Directory may have been deleted (e.g. cleaned-up temp workspace)
-    return null;
+  // Post-filter with fileService and collect stats in a single pass
+  const needStats = !!search?.onProcess;
+  const stats = needStats ? { files: 0, dirs: 0 } : undefined;
+
+  if (fileService || needStats) {
+    walkTree(tree, fileService, stats);
   }
-  const result: IDirOrFile = {
-    name: path.basename(dirPath),
-    fullPath: dirPath,
-    relativePath: path.relative(root, dirPath),
-    isDir: true,
-    isFile: false,
-    children: [],
-  };
-  let searchResult = matchSearch(result.name);
-  onSearchProcess({
-    ...process,
-    match: searchResult ? result : undefined,
-  });
-  if (maxDepth === 0 || searchResult) return result;
-  checkStatus();
-  const items = await fs.readdir(dirPath);
-  checkStatus();
 
-  for (const item of items) {
-    checkStatus();
-    if (item === 'node_modules') continue;
-    const itemPath = path.join(dirPath, item);
-    if (fileService && fileService.shouldIgnoreFile(itemPath)) continue;
-
-    let itemStats: Awaited<ReturnType<typeof fs.stat>>;
-    try {
-      itemStats = await fs.stat(itemPath);
-    } catch {
-      // File may have been deleted between readdir and stat (race condition)
-      continue;
-    }
-    if (itemStats.isDirectory()) {
-      process.dir += 1;
-      const child = await readDirectoryRecursive(itemPath, {
-        ...options,
-        maxDepth: searchText ? maxDepth : maxDepth - 1,
-        root,
-        search: {
-          ...search,
-          process,
-          onProcess(searchResult) {
-            if (searchResult.match) {
-              if (!result.children.find((v) => v.fullPath === searchResult.match.fullPath)) {
-                result.children.push(searchResult.match);
-              }
-              onSearchProcess({ ...process, match: result });
-            }
-          },
-        },
-      });
-      if (child && !searchText) {
-        result.children.push(child);
-      }
-    } else {
-      const children = {
-        name: item,
-        relativePath: path.relative(root, itemPath),
-        fullPath: itemPath,
-        isDir: false,
-        isFile: true,
-      };
-      if (!searchText) {
-        result.children.push(children);
-        continue;
-      }
-      searchResult = matchSearch(children.name);
-      if (searchResult) {
-        result.children.push(children);
-      }
-      process.file += 1;
-      onSearchProcess({
-        ...process,
-        match: searchResult ? result : undefined,
-      });
-    }
+  if (search?.onProcess && stats) {
+    search.onProcess({ file: stats.files, dir: stats.dirs, match: tree as IDirOrFile });
   }
-  result.children.sort((a, b) => {
-    if (a.isDir && !b.isDir) return -1;
-    if (!a.isDir && b.isDir) return 1;
-    return a.name.localeCompare(b.name);
-  });
-  return result;
+
+  return tree as IDirOrFile;
 }
 
-/**
- * 递归复制目录
- * 注意：包含路径验证，防止复制到自身或子目录导致无限递归（修复 Windows 下 cache 目录循环创建的 bug）
- */
+// Single-pass tree walk: filters ignored children (in-place) and counts nodes.
+// Both operations are optional — pass null/undefined to skip either.
+function walkTree(
+  node: DirOrFile,
+  fileService: { shouldIgnoreFile(path: string): boolean } | undefined,
+  stats: { files: number; dirs: number } | undefined
+): void {
+  if (stats) {
+    if (node.isFile) stats.files++;
+    if (node.isDir) stats.dirs++;
+  }
+  if (!node.children) return;
+  if (fileService) {
+    node.children = node.children.filter((child) => !fileService.shouldIgnoreFile(child.fullPath));
+  }
+  for (const child of node.children) {
+    walkTree(child, fileService, stats);
+  }
+}
+
+// Recursive directory copy — delegates to Rust native addon.
+// Safety checks (self-copy, subdirectory-copy) are handled in Rust.
 interface CopyOptions {
   overwrite?: boolean;
 }
 
 export async function copyDirectoryRecursively(src: string, dest: string, options: CopyOptions = {}) {
   const { overwrite = true } = options;
-
-  // 标准化路径：Windows 转小写（不区分大小写），Unix/macOS 保持原样（区分大小写）
-  const isWindows = process.platform === 'win32';
-  const normalizedSrc = isWindows ? path.resolve(src).toLowerCase() : path.resolve(src);
-  const normalizedDest = isWindows ? path.resolve(dest).toLowerCase() : path.resolve(dest);
-
-  // 防止复制到自身 (F:\code -> F:\code)
-  if (normalizedSrc === normalizedDest) {
-    throw new Error(`Cannot copy directory into itself: ${src}`);
-  }
-
-  // 防止复制到子目录 (F:\code -> F:\code\cache) - 会导致无限递归
-  if (normalizedDest.startsWith(normalizedSrc + path.sep)) {
-    throw new Error(`Cannot copy directory into its subdirectory: ${src} -> ${dest}`);
-  }
-
-  // 防止复制到父目录 (F:\code\cache -> F:\code)
-  if (normalizedSrc.startsWith(normalizedDest + path.sep)) {
-    throw new Error(`Cannot copy parent directory into child directory: ${src} -> ${dest}`);
-  }
-
-  if (!existsSync(dest)) {
-    await fs.mkdir(dest, { recursive: true });
-  }
-
-  const entries = await fs.readdir(src, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-
-    if (entry.isDirectory()) {
-      if (!existsSync(destPath)) {
-        await fs.mkdir(destPath, { recursive: true });
-      }
-      await copyDirectoryRecursively(srcPath, destPath, options);
-    } else {
-      // 如果不覆盖且目标文件已存在，跳过
-      if (!overwrite && existsSync(destPath)) {
-        continue;
-      }
-      await fs.copyFile(srcPath, destPath);
-    }
-  }
+  await nativeCopyDirectory(src, dest, overwrite);
 }
 
-// 验证两个目录的文件名结构是否相同
+// Verify two directories have identical file name structure — delegates to Rust native addon.
 export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<boolean> {
   try {
-    if (!existsSync(dir1) || !existsSync(dir2)) {
-      return false;
-    }
-
-    const entries1 = await fs.readdir(dir1, { withFileTypes: true });
-    const entries2 = await fs.readdir(dir2, { withFileTypes: true });
-
-    if (entries1.length !== entries2.length) {
-      return false;
-    }
-
-    entries1.sort((a, b) => a.name.localeCompare(b.name));
-    entries2.sort((a, b) => a.name.localeCompare(b.name));
-
-    for (let i = 0; i < entries1.length; i++) {
-      const entry1 = entries1[i];
-      const entry2 = entries2[i];
-
-      if (entry1.name !== entry2.name || entry1.isDirectory() !== entry2.isDirectory()) {
-        return false;
-      }
-
-      if (entry1.isDirectory()) {
-        const path1 = path.join(dir1, entry1.name);
-        const path2 = path.join(dir2, entry2.name);
-        if (!(await verifyDirectoryFiles(path1, path2))) {
-          return false;
-        }
-      }
-    }
-
-    return true;
+    return await nativeVerifyDirectoryStructure(dir1, dir2);
   } catch (error) {
     console.warn('[AionUi] Error verifying directory files:', error);
     return false;
@@ -419,25 +291,8 @@ export const copyFilesToDirectory = async (dir: string, files?: string[], skipCl
   return copiedFiles;
 };
 
+// Ensure directory exists — delegates to Rust native addon.
+// Handles edge cases: removes blocking files/broken symlinks before creating.
 export function ensureDirectory(dirPath: string): void {
-  try {
-    const stats = lstatSync(dirPath);
-    if (stats.isDirectory()) {
-      return;
-    }
-    if (stats.isSymbolicLink()) {
-      // Verify symlink target actually exists (#841 - broken symlink)
-      if (existsSync(dirPath)) {
-        return;
-      }
-      // Broken symlink, remove so mkdirSync can work on the real path
-      unlinkSync(dirPath);
-    } else {
-      // Regular file blocking the directory path (#841), remove it
-      unlinkSync(dirPath);
-    }
-  } catch {
-    // Path doesn't exist, create it
-  }
-  mkdirSync(dirPath, { recursive: true });
+  nativeEnsureDir(dirPath);
 }

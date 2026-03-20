@@ -2,22 +2,22 @@
 
 ## Status
 
-| Stage          | Status      | Date       | Notes                                                                              |
-| -------------- | ----------- | ---------- | ---------------------------------------------------------------------------------- |
-| Design         | complete    | 2026-03-20 | Internal refactoring strategy; 12 functions migrated, 8 remain as TS orchestrators |
-| Implementation | complete    | 2026-03-20 | aionui-auth crate + napi binding; 44 Rust unit tests + 52 contract tests passing   |
-| Benchmark      | complete    | 2026-03-20 | JWT 100-180x faster; hashPassword 12.6x; session/secret gen 6.5x; validation ~same |
-| Migration      | complete    | 2026-03-20 | AuthService + resetPasswordCLI switched to Rust; bcryptjs/jsonwebtoken -> devDeps; 1225 tests green |
+| Stage          | Status   | Date       | Notes                                                                                               |
+| -------------- | -------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| Design         | complete | 2026-03-20 | Internal refactoring strategy; 12 functions migrated, 8 remain as TS orchestrators                  |
+| Implementation | complete | 2026-03-20 | aionui-auth crate + napi binding; 44 Rust unit tests + 52 contract tests passing                    |
+| Benchmark      | complete | 2026-03-20 | JWT 100-180x faster; hashPassword 12.6x; session/secret gen 6.5x; validation ~same                  |
+| Migration      | complete | 2026-03-20 | AuthService + resetPasswordCLI switched to Rust; bcryptjs/jsonwebtoken -> devDeps; 1225 tests green |
 
 ## Milestones
 
-| Milestone           | Target | Actual     | Status  |
-| ------------------- | ------ | ---------- | ------- |
-| design.md complete  | --     | 2026-03-20 | done    |
-| Crate compiles      | --     | 2026-03-20 | done    |
-| Contract tests pass | --     | 2026-03-20 | done    |
-| Benchmark complete  | --     | 2026-03-20 | done    |
-| Callers migrated    | --     | 2026-03-20 | done    |
+| Milestone           | Target | Actual     | Status                                                                             |
+| ------------------- | ------ | ---------- | ---------------------------------------------------------------------------------- |
+| design.md complete  | --     | 2026-03-20 | done                                                                               |
+| Crate compiles      | --     | 2026-03-20 | done                                                                               |
+| Contract tests pass | --     | 2026-03-20 | done                                                                               |
+| Benchmark complete  | --     | 2026-03-20 | done                                                                               |
+| Callers migrated    | --     | 2026-03-20 | done                                                                               |
 | Old TS removed      | --     | 2026-03-20 | done (bcryptjs/jsonwebtoken moved to devDeps; AuthService TS kept as orchestrator) |
 
 ## Decision Log
@@ -34,8 +34,8 @@
 | 2026-03-20 | resetPasswordCLI.ts included in migration scope     | It uses bcryptjs independently (salt 10); must switch to Rust hash_password to allow removing bcryptjs from package.json |
 | 2026-03-20 | napi Task trait for async password ops              | Uses libuv thread pool via Task trait instead of tokio; avoids extra dependency and aligns with napi-rs best practices   |
 | 2026-03-20 | JWT cross-compatibility verified (TS<->Rust)        | 52 contract tests confirm TS jwt.sign tokens are verifiable by Rust and vice versa; same HS256 algorithm, iss/aud claims |
-| 2026-03-20 | bcryptjs/jsonwebtoken moved to devDependencies      | Contract tests and benchmarks still need them for comparison; production code no longer imports them                      |
-| 2026-03-20 | AuthService.ts kept as thin orchestrator             | Stateful logic (blacklist, JWT secret cache, timers) stays in TS; crypto ops delegate to @aionui/native                  |
+| 2026-03-20 | bcryptjs/jsonwebtoken moved to devDependencies      | Contract tests and benchmarks still need them for comparison; production code no longer imports them                     |
+| 2026-03-20 | AuthService.ts kept as thin orchestrator            | Stateful logic (blacklist, JWT secret cache, timers) stays in TS; crypto ops delegate to @aionui/native                  |
 
 ## Blockers
 
@@ -45,8 +45,8 @@
 
 ## Confidence Assessment
 
-| Aspect            | Level | Notes                                                                                                                        |
-| ----------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------- |
-| API compatibility | High           | 1225 tests green; zero caller changes needed; AuthService public API unchanged                                    |
+| Aspect            | Level          | Notes                                                                                                            |
+| ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| API compatibility | High           | 1225 tests green; zero caller changes needed; AuthService public API unchanged                                   |
 | Performance gain  | High           | JWT 100-180x faster (every request); hashPassword 12.6x; memory 193x less                                        |
-| Migration risk    | Realized: Zero | Internal refactoring only; all tests pass; tsc/lint/format clean; bcryptjs/jsonwebtoken removed from prod bundle  |
+| Migration risk    | Realized: Zero | Internal refactoring only; all tests pass; tsc/lint/format clean; bcryptjs/jsonwebtoken removed from prod bundle |

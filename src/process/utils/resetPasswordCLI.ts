@@ -107,7 +107,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
       hashedPassword,
       newJwtSecret,
       now,
-      user.id,
+      user.id
     );
 
     // Display result
