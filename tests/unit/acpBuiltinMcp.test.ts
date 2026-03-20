@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMcpServer } from '../../src/common/config/storage';
 import {
   buildBuiltinAcpSessionMcpServers,
@@ -138,5 +138,168 @@ describe('ACP built-in MCP session config', () => {
       http: true,
       sse: true,
     });
+  });
+});
+
+const makeDetectedServer = (overrides: Partial<IMcpServer> = {}): IMcpServer => ({
+  id: 'server-1',
+  name: 'chrome-devtools',
+  enabled: true,
+  status: 'connected',
+  transport: {
+    type: 'stdio',
+    command: 'npx',
+    args: ['-y', 'chrome-devtools-mcp@latest'],
+  },
+  createdAt: 1,
+  updatedAt: 1,
+  originalJson: '{}',
+  ...overrides,
+});
+
+const makeAgentClass = (detectMcpServers: () => Promise<IMcpServer[]>) =>
+  class {
+    detectMcpServers = detectMcpServers;
+  };
+
+describe('McpService Gemini detection', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+  });
+
+  it('reports built-in Gemini MCP servers under gemini source', async () => {
+    const builtinDetect = vi.fn(async () => [makeDetectedServer()]);
+    const nativeDetect = vi.fn(async () => []);
+    const emptyDetect = vi.fn(async () => []);
+
+    vi.doMock('child_process', () => ({
+      execSync: vi.fn(() => {
+        throw new Error('gemini not installed');
+      }),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/ClaudeMcpAgent', () => ({
+      ClaudeMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/CodebuddyMcpAgent', () => ({
+      CodebuddyMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/QwenMcpAgent', () => ({
+      QwenMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/IflowMcpAgent', () => ({
+      IflowMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/GeminiMcpAgent', () => ({
+      GeminiMcpAgent: makeAgentClass(nativeDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
+      AionuiMcpAgent: makeAgentClass(builtinDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/CodexMcpAgent', () => ({
+      CodexMcpAgent: makeAgentClass(emptyDetect),
+    }));
+
+    const { McpService } = await import('../../src/process/services/mcpServices/McpService');
+    const service = new McpService();
+
+    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cliPath: undefined }]);
+
+    expect(result).toEqual([
+      {
+        source: 'gemini',
+        servers: [makeDetectedServer()],
+      },
+    ]);
+    expect(builtinDetect).toHaveBeenCalledOnce();
+    expect(nativeDetect).not.toHaveBeenCalled();
+  });
+
+  it('merges native and built-in Gemini detections into one gemini entry', async () => {
+    const sharedServer = makeDetectedServer();
+    const builtinDetect = vi.fn(async () => [sharedServer]);
+    const nativeDetect = vi.fn(async () => [sharedServer]);
+    const emptyDetect = vi.fn(async () => []);
+
+    vi.doMock('child_process', () => ({
+      execSync: vi.fn(() => '/usr/local/bin/gemini\n'),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/ClaudeMcpAgent', () => ({
+      ClaudeMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/CodebuddyMcpAgent', () => ({
+      CodebuddyMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/QwenMcpAgent', () => ({
+      QwenMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/IflowMcpAgent', () => ({
+      IflowMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/GeminiMcpAgent', () => ({
+      GeminiMcpAgent: makeAgentClass(nativeDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
+      AionuiMcpAgent: makeAgentClass(builtinDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/CodexMcpAgent', () => ({
+      CodexMcpAgent: makeAgentClass(emptyDetect),
+    }));
+
+    const { McpService } = await import('../../src/process/services/mcpServices/McpService');
+    const service = new McpService();
+
+    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cliPath: undefined }]);
+
+    expect(result).toEqual([
+      {
+        source: 'gemini',
+        servers: [sharedServer],
+      },
+    ]);
+    expect(builtinDetect).toHaveBeenCalledOnce();
+    expect(nativeDetect).toHaveBeenCalledOnce();
+  });
+
+  it('returns no Gemini entry when built-in detection fails', async () => {
+    const builtinDetect = vi.fn(async () => {
+      throw new Error('failed to read mcp config');
+    });
+    const emptyDetect = vi.fn(async () => []);
+
+    vi.doMock('child_process', () => ({
+      execSync: vi.fn(() => {
+        throw new Error('gemini not installed');
+      }),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/ClaudeMcpAgent', () => ({
+      ClaudeMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/CodebuddyMcpAgent', () => ({
+      CodebuddyMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/QwenMcpAgent', () => ({
+      QwenMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/IflowMcpAgent', () => ({
+      IflowMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/GeminiMcpAgent', () => ({
+      GeminiMcpAgent: makeAgentClass(emptyDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
+      AionuiMcpAgent: makeAgentClass(builtinDetect),
+    }));
+    vi.doMock('../../src/process/services/mcpServices/agents/CodexMcpAgent', () => ({
+      CodexMcpAgent: makeAgentClass(emptyDetect),
+    }));
+
+    const { McpService } = await import('../../src/process/services/mcpServices/McpService');
+    const service = new McpService();
+
+    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cliPath: undefined }]);
+
+    expect(result).toEqual([]);
+    expect(builtinDetect).toHaveBeenCalledOnce();
   });
 });

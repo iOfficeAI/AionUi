@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
-export { BUILTIN_IMAGE_GEN_ID };
+// Keep this constant local to avoid pulling in common/config/storage side effects
+// when the built-in MCP server boots in a standalone stdio process.
+export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
 export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
