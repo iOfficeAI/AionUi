@@ -137,5 +137,5 @@ When `tests/unit/` exceeds 10 direct children, group into subdirectories matchin
 - [ ] Page-private code is under `pages/<PageName>/`, not in shared dirs
 - [ ] No single-file directories
 - [ ] No directory exceeds 10 direct children
-- [ ] New source files added to `vitest.config.ts` → `coverage.include`
+- [ ] New source files are auto-included in coverage — verify they are not accidentally excluded in `vitest.config.ts` → `coverage.exclude`
 - [ ] New services separate pure logic from IO
