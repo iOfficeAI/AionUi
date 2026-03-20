@@ -18,15 +18,7 @@ import {
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-// Lazy import to break circular dependency (initStorage.ts imports from this file)
-let _getSystemDir: typeof import("./initStorage").getSystemDir;
-const lazyGetSystemDir = () => {
-  if (!_getSystemDir) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    _getSystemDir = require("./initStorage").getSystemDir;
-  }
-  return _getSystemDir();
-};
+import { getSystemDir } from "./initStorage";
 
 export const hasElectronAppPath = (): boolean => {
   return getPlatformServices().paths.getAppPath() !== null;
@@ -405,7 +397,7 @@ export const copyFilesToDirectory = async (
 ): Promise<string[]> => {
   if (!files) return [];
 
-  const { cacheDir } = lazyGetSystemDir();
+  const { cacheDir } = getSystemDir();
   const tempDir = path.join(cacheDir, "temp");
   const copiedFiles: string[] = [];
   const resolvedDir = path.resolve(dir);
