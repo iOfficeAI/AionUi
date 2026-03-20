@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
  * 目前支援 ACP configOptions 的後端列表。
  * 其他後端（如 Claude Code、OpenCode）待上游支援後再加入。
  */
-const CONFIG_OPTION_SUPPORTED_BACKENDS: AcpBackend[] = new Set(['codex']);
+const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<AcpBackend> = new Set(['codex']);
 
 /**
  * Dynamic config option selector for ACP agents.

@@ -21,7 +21,7 @@ import { readDirectoryRecursive } from '@process/utils';
 // 内置资源目录解析辅助函数
 // ============================================================================
 
-type ResourceType = 'rules' | 'skills';
+type ResourceType = 'rules' | 'skills' | 'assistant';
 
 /**
  * Find the builtin resource directory (rules or skills)
