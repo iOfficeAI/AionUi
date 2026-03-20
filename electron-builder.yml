@@ -202,6 +202,8 @@ asarUnpack:
   # Required for Homebrew installations where asar paths may have issues
   - 'rules/**/*'
   - 'skills/**/*'
+  # Builtin MCP server scripts must be unpacked so external node processes can execute them
+  - 'out/main/builtin-mcp-image-gen.js'
 
 # Compression level: normal for faster builds, maximum for smallest size
 # Note: electron-builder doesn't support YAML template syntax for env vars
