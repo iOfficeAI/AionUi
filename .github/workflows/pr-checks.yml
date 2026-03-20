@@ -30,6 +30,7 @@ permissions:
   pull-requests: write
   issues: read
   checks: write
+  id-token: write
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
@@ -164,7 +165,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: iOfficeAI/AionUi
+          use_oidc: ${{ secrets.CODECOV_TOKEN == '' }}
           files: coverage/lcov.info
           fail_ci_if_error: false
           verbose: true
