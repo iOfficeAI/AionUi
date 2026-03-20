@@ -6,42 +6,47 @@
  * main.ts and standalone.ts in the same process would silently break the bridge.
  */
 
-// Must be first import — calls bridge.adapter() at module load time
-import './common/adapter/standalone'
+// register-node MUST be the first import — registers NodePlatformServices before any module-level code
+import "./common/platform/register-node";
 
-import { initBridgeStandalone } from './process/utils/initBridgeStandalone'
-import { startWebServerWithInstance } from './process/webserver'
-import initStorage from './process/utils/initStorage'
+// Must follow registration — calls bridge.adapter() at module load time
+import "./common/adapter/standalone";
 
-const PORT = parseInt(process.env.PORT ?? '3000', 10)
-const ALLOW_REMOTE = process.env.ALLOW_REMOTE === 'true'
+import { initBridgeStandalone } from "./process/utils/initBridgeStandalone";
+import { startWebServerWithInstance } from "./process/webserver";
+import initStorage from "./process/utils/initStorage";
+
+const PORT = parseInt(process.env.PORT ?? "3000", 10);
+const ALLOW_REMOTE = process.env.ALLOW_REMOTE === "true";
 
 async function main(): Promise<void> {
   // Initialize storage (respects DATA_DIR env var)
-  await initStorage()
+  await initStorage();
 
   // Register all non-Electron bridge handlers
-  initBridgeStandalone()
+  initBridgeStandalone();
 
   // Start the WebServer
-  const instance = await startWebServerWithInstance(PORT, ALLOW_REMOTE)
+  const instance = await startWebServerWithInstance(PORT, ALLOW_REMOTE);
 
   console.log(
-    `[server] WebUI running on http://${ALLOW_REMOTE ? '0.0.0.0' : 'localhost'}:${PORT}`,
-  )
+    `[server] WebUI running on http://${ALLOW_REMOTE ? "0.0.0.0" : "localhost"}:${PORT}`,
+  );
 
   // Graceful shutdown
   const shutdown = () => {
-    console.log('[server] Shutting down...')
-    instance.wss.clients.forEach((ws) => ws.close(1000, 'Server shutting down'))
-    instance.server.close(() => process.exit(0))
-    setTimeout(() => process.exit(1), 5000)
-  }
-  process.on('SIGTERM', shutdown)
-  process.on('SIGINT', shutdown)
+    console.log("[server] Shutting down...");
+    instance.wss.clients.forEach((ws) =>
+      ws.close(1000, "Server shutting down"),
+    );
+    instance.server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 5000);
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 }
 
 main().catch((err: unknown) => {
-  console.error('[server] Fatal error:', err)
-  process.exit(1)
-})
+  console.error("[server] Fatal error:", err);
+  process.exit(1);
+});

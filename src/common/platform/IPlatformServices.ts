@@ -6,35 +6,35 @@
  */
 export interface IPlatformPaths {
   /** Persistent user data directory. Equivalent to app.getPath('userData'). */
-  getDataDir(): string
+  getDataDir(): string;
   /** OS temp directory. */
-  getTempDir(): string
+  getTempDir(): string;
   /** User home directory. */
-  getHomeDir(): string
+  getHomeDir(): string;
   /**
    * Application log directory.
    * In standalone mode respects LOGS_DIR env var, falls back to <tmpdir>/aionui-logs.
    */
-  getLogsDir(): string
+  getLogsDir(): string;
   /**
    * Root path of the application bundle.
    * Returns null in standalone mode (no bundle concept).
    */
-  getAppPath(): string | null
+  getAppPath(): string | null;
   /**
    * True when running from a packaged Electron build.
    * In standalone mode controlled by IS_PACKAGED env var (default false).
    */
-  isPackaged(): boolean
+  isPackaged(): boolean;
   /**
    * Well-known system paths (desktop, home, downloads).
    * Returns null in standalone mode.
    */
-  getSystemPath(name: 'desktop' | 'home' | 'downloads'): string | null
+  getSystemPath(name: "desktop" | "home" | "downloads"): string | null;
   /** Application name used for MCP client identification. */
-  getName(): string
+  getName(): string;
   /** Application version string used for MCP client identification. */
-  getVersion(): string
+  getVersion(): string;
 }
 
 /**
@@ -45,11 +45,9 @@ export interface IPlatformPaths {
  * UtilityProcess to IWorkerProcess.
  */
 export interface IWorkerProcess {
-  postMessage(message: unknown): void
-  on(event: 'message', handler: (data: unknown) => void): this
-  on(event: 'error', handler: (err: Error) => void): this
-  on(event: 'exit', handler: (code: number | null) => void): this
-  kill(): void
+  postMessage(message: unknown): void;
+  on(event: string, handler: (...args: unknown[]) => void): this;
+  kill(): void;
 }
 
 /**
@@ -61,7 +59,7 @@ export interface IWorkerProcessFactory {
     modulePath: string,
     args: string[],
     options: { cwd?: string; env?: Record<string, string> },
-  ): IWorkerProcess
+  ): IWorkerProcess;
 }
 
 /**
@@ -73,9 +71,9 @@ export interface IWorkerProcessFactory {
  */
 export interface IPowerManager {
   /** Returns a handle ID, or null if not supported (standalone mode). */
-  preventSleep(): number | null
+  preventSleep(): number | null;
   /** id may be null (returned by standalone preventSleep); safe no-op in that case. */
-  allowSleep(id: number | null): void
+  allowSleep(id: number | null): void;
 }
 
 /**
@@ -86,13 +84,13 @@ export interface IPowerManager {
  * and are NOT modelled here.
  */
 export interface INotificationService {
-  send(options: { title: string; body: string; icon?: string }): void
+  send(options: { title: string; body: string; icon?: string }): void;
 }
 
 /** Top-level aggregate injected at process startup. */
 export interface IPlatformServices {
-  paths: IPlatformPaths
-  worker: IWorkerProcessFactory
-  power: IPowerManager
-  notification: INotificationService
+  paths: IPlatformPaths;
+  worker: IWorkerProcessFactory;
+  power: IPowerManager;
+  notification: INotificationService;
 }
