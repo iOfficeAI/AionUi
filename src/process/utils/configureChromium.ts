@@ -92,6 +92,8 @@ export interface CdpStatus {
   port: number | null;
   /** Whether CDP was enabled at startup (requires restart to change) */
   startupEnabled: boolean;
+  /** Whether CDP is enabled in the persisted config file (may differ from runtime) */
+  configEnabled: boolean;
   /** All active CDP instances from registry */
   instances: CdpRegistryEntry[];
   /** Whether the app is running in development mode */
@@ -356,10 +358,12 @@ export function getActiveCdpInstances(): CdpRegistryEntry[] {
  * Get current CDP status for display in UI.
  */
 export function getCdpStatus(): CdpStatus {
+  const config = loadCdpConfig();
   return {
     enabled: cdpPort !== null,
     port: cdpPort,
     startupEnabled: cdpStartupEnabled,
+    configEnabled: config.enabled ?? cdpStartupEnabled,
     instances: getActiveCdpInstances(),
     isDevMode: !app.isPackaged,
   };

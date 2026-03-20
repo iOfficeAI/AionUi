@@ -105,6 +105,8 @@ export interface ICdpStatus {
     cwd: string;
     startTime: number;
   }>;
+  /** Whether CDP is enabled in the persisted config file (may differ from runtime) */
+  configEnabled: boolean;
   /** Whether the app is running in development mode */
   isDevMode: boolean;
 }

@@ -202,4 +202,78 @@ describe('configureChromium CDP (lightweight mock + file sandbox)', () => {
     const raw = fs.readFileSync(ctx.configPath, 'utf-8');
     expect(JSON.parse(raw)).toEqual({ enabled: true, port: 9235 });
   });
+
+  describe('getCdpStatus configEnabled field', () => {
+    it('returns configEnabled from config file when config.enabled is explicitly set', async () => {
+      const ctx = await loadConfigureChromium({
+        isPackaged: false,
+        config: { enabled: false },
+      });
+      restores.push(ctx.restore);
+
+      const status = ctx.mod.getCdpStatus();
+      expect(status.configEnabled).toBe(false);
+    });
+
+    it('falls back to startupEnabled when config file has no enabled field', async () => {
+      const ctx = await loadConfigureChromium({
+        isPackaged: false,
+        config: { port: 9300 },
+      });
+      restores.push(ctx.restore);
+
+      const status = ctx.mod.getCdpStatus();
+      expect(status.configEnabled).toBe(status.startupEnabled);
+    });
+
+    it('falls back to startupEnabled when config file does not exist', async () => {
+      const ctx = await loadConfigureChromium({ isPackaged: false });
+      restores.push(ctx.restore);
+
+      const status = ctx.mod.getCdpStatus();
+      expect(status.configEnabled).toBe(status.startupEnabled);
+    });
+
+    it('reflects updated config after updateCdpConfig toggles enabled off', async () => {
+      const ctx = await loadConfigureChromium({
+        isPackaged: false,
+        config: { enabled: true },
+      });
+      restores.push(ctx.restore);
+
+      expect(ctx.mod.getCdpStatus().configEnabled).toBe(true);
+
+      ctx.mod.updateCdpConfig({ enabled: false });
+
+      expect(ctx.mod.getCdpStatus().configEnabled).toBe(false);
+    });
+
+    it('reflects updated config after updateCdpConfig toggles enabled on', async () => {
+      const ctx = await loadConfigureChromium({
+        isPackaged: false,
+        config: { enabled: false },
+      });
+      restores.push(ctx.restore);
+
+      expect(ctx.mod.getCdpStatus().configEnabled).toBe(false);
+
+      ctx.mod.updateCdpConfig({ enabled: true });
+
+      expect(ctx.mod.getCdpStatus().configEnabled).toBe(true);
+    });
+
+    it('returns isDevMode=true in unpackaged builds', async () => {
+      const ctx = await loadConfigureChromium({ isPackaged: false });
+      restores.push(ctx.restore);
+
+      expect(ctx.mod.getCdpStatus().isDevMode).toBe(true);
+    });
+
+    it('returns isDevMode=false in packaged builds', async () => {
+      const ctx = await loadConfigureChromium({ isPackaged: true });
+      restores.push(ctx.restore);
+
+      expect(ctx.mod.getCdpStatus().isDevMode).toBe(false);
+    });
+  });
 });
