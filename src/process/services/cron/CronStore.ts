@@ -5,7 +5,7 @@
  */
 
 import { getDatabase } from '@process/database';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 
 /**
  * Cron schedule types

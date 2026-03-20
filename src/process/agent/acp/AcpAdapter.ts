@@ -14,7 +14,7 @@ import type {
   PlanUpdate,
   ToolCallUpdate,
   ToolCallUpdateStatus,
-} from '@/types/acpTypes';
+} from '@/common/types/acpTypes';
 
 /**
  * Adapter class to convert ACP messages to AionUI message format

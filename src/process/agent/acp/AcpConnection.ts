@@ -16,8 +16,8 @@ import type {
   AcpSessionConfigOption,
   AcpSessionModels,
   AcpSessionUpdate,
-} from '@/types/acpTypes';
-import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
+} from '@/common/types/acpTypes';
+import { ACP_METHODS, JSONRPC_VERSION } from '@/common/types/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { execFile as execFileCb } from 'child_process';
 import { promisify } from 'util';

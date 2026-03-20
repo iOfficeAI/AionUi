@@ -4,8 +4,8 @@
  *
  * Redesigned modal with CLI card selection, logo display, and collapsible advanced JSON config.
  */
-import type { AcpBackendConfig, AcpBackend } from '@/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
+import type { AcpBackendConfig, AcpBackend } from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { Alert, Input, Spin, Collapse } from '@arco-design/web-react';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';

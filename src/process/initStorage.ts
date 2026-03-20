@@ -29,7 +29,7 @@ import {
   verifyDirectoryFiles,
 } from './utils';
 import { getDatabase } from './database/export';
-import type { AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './builtinMcp/constants';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';

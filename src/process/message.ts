@@ -6,7 +6,7 @@
 
 import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend } from '@/common/types/acpTypes';
 import { getDatabase } from './database/export';
 import { ProcessChat } from './initStorage';
 

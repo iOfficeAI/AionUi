@@ -7,7 +7,7 @@
 // src/process/services/IConversationService.ts
 
 import type { TChatConversation, TProviderWithModel, ConversationSource } from '@/common/storage';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AgentType } from '@process/task/agentTypes';
 
 export interface CreateConversationParams {

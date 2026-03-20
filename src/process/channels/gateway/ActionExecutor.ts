@@ -31,7 +31,7 @@ import { createMainMenuKeyboard, createToolConfirmationKeyboard } from '../plugi
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend } from '@/common/types/acpTypes';
 
 // ==================== Platform-specific Helpers ====================
 

@@ -16,7 +16,7 @@ import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib'
 import { transformMessage } from '@/common/chatLib';
 import type { CodexAgentManagerData } from '@/common/codex/types';
 import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
-import type { AcpModelInfo } from '@/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
 import { mapPermissionDecision } from '@/common/codex/utils';
 import { AIONUI_FILES_MARKER } from '@/common/constants';

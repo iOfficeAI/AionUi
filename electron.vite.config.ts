@@ -40,7 +40,7 @@ const mainAliases = {
   '@renderer': resolve('src/renderer'),
   '@process': resolve('src/process'),
   '@worker': resolve('src/process/worker'),
-  '@xterm/headless': resolve('src/shims/xterm-headless.ts'),
+  '@xterm/headless': resolve('src/common/shims/xterm-headless.ts'),
 };
 
 export default defineConfig(({ mode }) => {
@@ -72,9 +72,9 @@ export default defineConfig(({ mode }) => {
               viteStaticCopy({
                 structured: false,
                 targets: [
-                  { src: 'src/skills/**', dest: 'skills' },
+                  { src: 'src/process/skills/**', dest: 'skills' },
                   { src: 'rules/**', dest: 'rules' },
-                  { src: 'src/assistant/**', dest: 'assistant' },
+                  { src: 'src/process/assistant/**', dest: 'assistant' },
                   { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
                 ],
               }),

@@ -19,7 +19,7 @@ import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chatLib';
 import type { IDirOrFile } from '@/common/ipcBridge';
-import type { AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 interface SkillRuleGeneratorProps {
   conversationId: string;

@@ -9,7 +9,7 @@ import type { TProviderWithModel } from '@/common/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
-import { isAcpRoutedPresetType, type PresetAgentType } from '@/types/acpTypes';
+import { isAcpRoutedPresetType, type PresetAgentType } from '@/common/types/acpTypes';
 import { Message } from '@arco-design/web-react';
 import { useCallback } from 'react';
 import { type TFunction } from 'i18next';

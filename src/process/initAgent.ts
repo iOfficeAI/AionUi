@@ -6,7 +6,7 @@
 
 import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/storage';
-import type { PresetAgentType } from '@/types/acpTypes';
+import type { PresetAgentType } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import fs from 'fs/promises';
 import path from 'path';

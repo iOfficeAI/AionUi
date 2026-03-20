@@ -10,7 +10,7 @@ import type { TProviderWithModel } from '@/common/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/renderer/utils/model/presetAssistantResources';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
-import type { AcpBackend, AcpBackendAll } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
 /**
  * Get the default Gemini model configuration from user settings.

@@ -12,7 +12,7 @@ import { join } from 'path';
 import type { CodexEventParams } from '@/common/codex/types';
 import { loadFullShellEnvironment, mergePaths } from '@process/utils/shellEnv';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
-import { JSONRPC_VERSION } from '@/types/acpTypes';
+import { JSONRPC_VERSION } from '@/common/types/acpTypes';
 
 /**
  * Get Codex config file path based on platform

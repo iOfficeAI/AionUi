@@ -13,8 +13,8 @@ import type {
   AcpPermissionOption,
   AcpPermissionRequest,
   AcpSessionConfigOption,
-} from '@/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
+} from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { ExtensionRegistry } from '@process/extensions';
 import { getDatabase } from '@process/database';
 import { ProcessConfig } from '../../initStorage';

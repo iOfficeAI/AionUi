@@ -1,4 +1,4 @@
-import type { AcpModelInfo, AcpSessionConfigOption, AcpSessionModels } from '@/types/acpTypes';
+import type { AcpModelInfo, AcpSessionConfigOption, AcpSessionModels } from '@/common/types/acpTypes';
 
 export function buildAcpModelInfo(
   configOptions: AcpSessionConfigOption[] | null,

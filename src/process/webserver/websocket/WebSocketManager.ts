@@ -9,7 +9,7 @@ import { WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { WEBSOCKET_CONFIG } from '../config/constants';
-import { SHOW_OPEN_REQUEST_EVENT } from '../../adapter/constant';
+import { SHOW_OPEN_REQUEST_EVENT } from '@/common/adapter/constant';
 
 interface ClientInfo {
   token: string;

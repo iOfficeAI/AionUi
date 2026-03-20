@@ -21,7 +21,7 @@ import {
   CODEBUDDY_ACP_NPX_PACKAGE,
   CODEX_ACP_BRIDGE_VERSION,
   CODEX_ACP_NPX_PACKAGE,
-} from '@/types/acpTypes';
+} from '@/common/types/acpTypes';
 import {
   findSuitableNodeBin,
   getEnhancedEnv,

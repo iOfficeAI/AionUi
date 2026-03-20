@@ -7,8 +7,8 @@
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { NanobotConnection } from './NanobotConnection';
-import type { AcpResult } from '@/types/acpTypes';
-import { createAcpError, AcpErrorType } from '@/types/acpTypes';
+import type { AcpResult } from '@/common/types/acpTypes';
+import { createAcpError, AcpErrorType } from '@/common/types/acpTypes';
 
 export interface NanobotAgentConfig {
   /** Conversation ID */

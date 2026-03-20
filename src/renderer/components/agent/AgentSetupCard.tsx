@@ -16,7 +16,7 @@ import { CheckOne, CloseOne, Loading, Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 
 // Agent logos

@@ -43,7 +43,7 @@ import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend } from '@/common/types/acpTypes';
 
 /**
  * Get the default model for Channel assistant (Telegram/Lark)

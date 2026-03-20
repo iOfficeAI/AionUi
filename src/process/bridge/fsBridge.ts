@@ -55,8 +55,8 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
   }
   // Development: try multiple paths
   const appPath = app.getAppPath();
-  // skills/ moved into src/skills/ — check src/ prefix first in dev mode
-  const devDir = resourceType === 'skills' ? `src/${resourceType}` : resourceType;
+  // skills/ and assistant/ live under src/process/ in dev mode
+  const devDir = (resourceType === 'skills' || resourceType === 'assistant') ? `src/process/${resourceType}` : resourceType;
   const candidates = [
     path.join(appPath, devDir),
     path.join(appPath, '..', devDir),

@@ -22,8 +22,8 @@ import type {
   AcpSessionUpdate,
   AvailableCommandsUpdate,
   ToolCallUpdate,
-} from '@/types/acpTypes';
-import { AcpErrorType, createAcpError } from '@/types/acpTypes';
+} from '@/common/types/acpTypes';
+import { AcpErrorType, createAcpError } from '@/common/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';

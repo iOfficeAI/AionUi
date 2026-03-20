@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 import { ConfigStorage } from '@/common/storage';
 import { ipcBridge } from '@/common';
-import i18nConfig from '@/shared/i18n-config.json';
+import i18nConfig from '@/common/i18n-config.json';
 import {
   DEFAULT_LANGUAGE,
   normalizeLanguageCode,

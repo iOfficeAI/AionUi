@@ -17,7 +17,7 @@ import type {
   WebSearchBeginData,
   WebSearchEndData,
 } from '@/common/codex/types/eventData';
-import type { AcpBackend, AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 

@@ -80,7 +80,7 @@ export default defineConfig({
         'src/process/task/BaseAgentManager.ts',
         'src/process/bridge/updateBridge.ts',
         'src/process/bridge/applicationBridge.ts',
-        'src/utils/configureChromium.ts',
+        'src/process/utils/configureChromium.ts',
         // ACP
         'src/process/agent/acp/AcpAdapter.ts',
         'src/process/agent/acp/AcpConnection.ts',

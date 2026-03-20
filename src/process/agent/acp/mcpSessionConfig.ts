@@ -5,7 +5,7 @@
  */
 
 import type { IMcpServer } from '@/common/storage';
-import type { AcpResponse } from '@/types/acpTypes';
+import type { AcpResponse } from '@/common/types/acpTypes';
 
 export interface AcpSessionMcpNameValue {
   name: string;

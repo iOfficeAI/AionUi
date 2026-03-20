@@ -10,15 +10,15 @@ Sentry.init({
   dsn: process.env.SENTRY_DSN,
 });
 
-import './utils/configureConsoleLog';
+import './process/utils/configureConsoleLog';
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
-import './utils/configureChromium';
+import './process/utils/configureChromium';
 import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
-import { initMainAdapterWithWindow } from './adapter/main';
+import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
@@ -28,7 +28,7 @@ import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/system/systemSettingsBridge';
 import { setInitialLanguage } from '@process/i18n';
 import { workerTaskManager } from './process/task/worker/workerTaskManagerSingleton';
-import { setupApplicationMenu } from './utils/appMenu';
+import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
 import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/deepLink';
