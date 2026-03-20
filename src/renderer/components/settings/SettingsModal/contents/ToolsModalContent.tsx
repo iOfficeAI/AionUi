@@ -168,7 +168,12 @@ const ModalMcpManagementSection: React.FC<{
       try {
         const response = await acpConversation.getAvailableAgents.invoke();
         if (response.success && response.data) {
-          setDetectedAgents(response.data.map((agent) => ({ backend: agent.backend, name: agent.name })));
+          setDetectedAgents(
+            response.data.map((agent) => ({
+              backend: agent.backend,
+              name: agent.name,
+            }))
+          );
         }
       } catch (error) {
         console.error('Failed to load agents:', error);
@@ -391,16 +396,14 @@ const ToolsModalContent: React.FC = () => {
 
   const clearImageGenerationAgentStatus = useCallback(
     (serverName: string) => {
-      setAgentInstallStatus((prev) => {
-        const updated = { ...prev };
-        delete updated[serverName];
-        void ConfigStorage.set('mcp.agentInstallStatus', updated).catch((error) => {
-          console.error('Failed to clear image generation agent install status:', error);
-        });
-        return updated;
+      const updated = { ...agentInstallStatus };
+      delete updated[serverName];
+      setAgentInstallStatus(updated);
+      void ConfigStorage.set('mcp.agentInstallStatus', updated).catch((error) => {
+        console.error('Failed to clear image generation agent install status:', error);
       });
     },
-    [setAgentInstallStatus]
+    [setAgentInstallStatus, agentInstallStatus]
   );
 
   // Sync image generation model config to the built-in MCP server's transport.env
@@ -611,7 +614,10 @@ const ToolsModalContent: React.FC = () => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
                       if (platform) {
-                        handleImageGenerationModelChange({ ...platform, useModel: modelName });
+                        handleImageGenerationModelChange({
+                          ...platform,
+                          useModel: modelName,
+                        });
                       }
                     }}
                   >
