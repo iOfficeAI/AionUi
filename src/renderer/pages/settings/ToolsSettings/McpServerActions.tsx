@@ -2,7 +2,7 @@ import { Button, Dropdown, Menu, Switch } from '@arco-design/web-react';
 import { DeleteFour, SettingOne, Write } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { IMcpServer } from '@/common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 
 interface McpServerActionsProps {
   server: IMcpServer;

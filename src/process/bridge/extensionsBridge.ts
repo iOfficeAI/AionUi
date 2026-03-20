@@ -5,9 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IExtensionAgentActivitySnapshot } from '@/common/ipcBridge';
-import { ExtensionRegistry } from '@/extensions';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
+import type { IExtensionAgentActivitySnapshot } from '@/common/adapter/ipcBridge';
+import { ExtensionRegistry } from '@process/extensions';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ActivitySnapshotBuilder } from './services/ActivitySnapshotBuilder';
 

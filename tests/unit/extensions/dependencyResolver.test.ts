@@ -5,7 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { sortByDependencyOrder, validateDependencies } from '../../../src/extensions/dependencyResolver';
+import {
+  sortByDependencyOrder,
+  validateDependencies,
+} from '../../../src/process/extensions/resolvers/utils/dependencyResolver';
 
 describe('extensions/dependencyResolver', () => {
   it('应在依赖满足时返回有效结果，并给出正确加载顺序', () => {

@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';

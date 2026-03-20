@@ -12,7 +12,7 @@ import {
   loginWithOauth,
   Storage,
 } from '@office-ai/aioncli-core';
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 import * as fs from 'node:fs';
 
 export function initAuthBridge(): void {

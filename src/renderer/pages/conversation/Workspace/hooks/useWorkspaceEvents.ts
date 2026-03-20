@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IDirOrFile } from '@/common/ipcBridge';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useEffect } from 'react';
 import type { ContextMenuState } from '../types';

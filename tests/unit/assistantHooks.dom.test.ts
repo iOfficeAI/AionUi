@@ -38,7 +38,7 @@ vi.mock('../../src/common', () => ({
 const configStorageGetMock = vi.fn().mockResolvedValue([]);
 const configStorageSetMock = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../src/common/storage', () => ({
+vi.mock('../../src/common/config/storage', () => ({
   ConfigStorage: {
     get: (...args: unknown[]) => configStorageGetMock(...args),
     set: (...args: unknown[]) => configStorageSetMock(...args),
@@ -77,7 +77,7 @@ vi.mock('../../src/common/utils', () => ({
   resolveLocaleKey: (lang: string) => lang,
 }));
 
-vi.mock('../../src/common/presets/assistantPresets', () => ({
+vi.mock('../../src/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: [
     { id: 'default', defaultEnabledSkills: [], skillFiles: {} },
     { id: 'coder', defaultEnabledSkills: ['code'], skillFiles: {} },

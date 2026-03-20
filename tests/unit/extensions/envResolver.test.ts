@@ -5,14 +5,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AIONUI_STRICT_ENV_ENV } from '../../../src/extensions/constants';
+import { AIONUI_STRICT_ENV_ENV } from '../../../src/process/extensions/constants';
 import {
   UndefinedEnvVariableError,
   clearStrictModeCache,
   isGlobalStrictMode,
   resolveEnvInObject,
   resolveEnvTemplates,
-} from '../../../src/extensions/envResolver';
+} from '../../../src/process/extensions/resolvers/utils/envResolver';
 
 describe('extensions/envResolver', () => {
   let envSnapshot: NodeJS.ProcessEnv;

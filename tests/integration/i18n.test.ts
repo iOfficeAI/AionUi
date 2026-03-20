@@ -4,7 +4,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import i18nConfig from '../../src/shared/i18n-config.json';
+import i18nConfig from '../../src/common/config/i18n-config.json';
 
 // Test constants using __dirname-relative paths
 const LOCALES_DIR = path.resolve(__dirname, '../../src/renderer/services/i18n/locales');
@@ -133,7 +133,7 @@ describe('i18n Configuration Tests', () => {
     const content = fs.readFileSync(indexFile, 'utf-8');
 
     // Config is now consumed via @/common/i18n (single source of truth)
-    expect(content).toContain('@/common/i18n');
+    expect(content).toContain('@/common/config/i18n');
     expect(content).toMatch(/export\s+.*supportedLanguages/);
   });
 
@@ -146,7 +146,7 @@ describe('i18n Configuration Tests', () => {
 });
 
 describe('i18n Build Safety Tests', () => {
-  const mainI18nFile = path.resolve(__dirname, '../../src/process/i18n/index.ts');
+  const mainI18nFile = path.resolve(__dirname, '../../src/process/services/i18n/index.ts');
   const rendererI18nFile = path.resolve(__dirname, '../../src/renderer/services/i18n/index.ts');
 
   it('main process i18n should NOT use fs.readFile for locale loading', () => {
@@ -179,12 +179,12 @@ describe('i18n Build Safety Tests', () => {
 
   it('main process i18n should use shared utility functions', () => {
     const content = fs.readFileSync(mainI18nFile, 'utf-8');
-    expect(content).toContain('@/common/i18n');
+    expect(content).toContain('@/common/config/i18n');
   });
 
   it('renderer i18n should use shared utility functions', () => {
     const content = fs.readFileSync(rendererI18nFile, 'utf-8');
-    expect(content).toContain('@/common/i18n');
+    expect(content).toContain('@/common/config/i18n');
   });
 
   it('renderer i18n should synchronously load fallback locale to prevent FOUC', () => {

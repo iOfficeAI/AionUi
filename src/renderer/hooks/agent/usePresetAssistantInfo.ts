@@ -6,9 +6,9 @@
 
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
-import type { TChatConversation } from '@/common/storage';
-import { ConfigStorage } from '@/common/storage';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
+import type { TChatConversation } from '@/common/config/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';

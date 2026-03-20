@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { AcpBackend, AcpSessionConfigOption } from '@/types/acpTypes';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
  * 目前支援 ACP configOptions 的後端列表。
  * 其他後端（如 Claude Code、OpenCode）待上游支援後再加入。
  */
-const CONFIG_OPTION_SUPPORTED_BACKENDS: AcpBackend[] = ['codex'];
+const CONFIG_OPTION_SUPPORTED_BACKENDS: Set<AcpBackend> = new Set(['codex']);
 
 /**
  * Dynamic config option selector for ACP agents.
@@ -39,7 +39,7 @@ const AcpConfigSelector: React.FC<{
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>([]);
 
   // Skip entirely for unsupported backends
-  const isSupported = backend && CONFIG_OPTION_SUPPORTED_BACKENDS.includes(backend);
+  const isSupported = backend && CONFIG_OPTION_SUPPORTED_BACKENDS.has(backend);
 
   // Fetch config options on mount
   useEffect(() => {

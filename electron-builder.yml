@@ -23,8 +23,8 @@ files:
   # Static resources — use explicit directory inclusion to prevent resource loss
   - public/**/*
   - rules/**/*
-  - skills/**/*
-  - assistant/**/*
+  - src/skills/**/*
+  - src/assistant/**/*
   - package.json
   # Native modules and their runtime dependencies
   - node_modules/better-sqlite3/**/*
@@ -202,6 +202,7 @@ asarUnpack:
   # Required for Homebrew installations where asar paths may have issues
   - 'rules/**/*'
   - 'skills/**/*'
+  - 'src/skills/**/*'
 
 # Compression level: normal for faster builds, maximum for smallest size
 # Note: electron-builder doesn't support YAML template syntax for env vars

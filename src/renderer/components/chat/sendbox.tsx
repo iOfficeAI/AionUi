@@ -13,7 +13,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';
-import type { SlashCommandItem } from '@/common/slash/types';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';

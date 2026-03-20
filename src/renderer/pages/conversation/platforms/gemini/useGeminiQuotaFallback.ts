@@ -1,5 +1,5 @@
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 import { isApiErrorMessage, isQuotaErrorMessage } from '@/renderer/utils/model/errorDetection';
 import { resolveFallbackTarget } from '@/renderer/utils/model/modelFallback';

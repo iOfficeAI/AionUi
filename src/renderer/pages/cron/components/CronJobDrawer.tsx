@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICronJob } from '@/common/ipcBridge';
+import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Drawer, Form, Input, Switch, Message, Button, Popconfirm } from '@arco-design/web-react';
 import { AlarmClock, DeleteOne } from '@icon-park/react';

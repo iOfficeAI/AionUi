@@ -32,22 +32,22 @@ Is it business logic running in the main process?
   └── YES → src/process/services/      → see references/process.md
 
 Is it an AI platform connection (API client, message protocol)?
-  └── YES → src/agent/<platform>/
+  └── YES → src/process/agent/<platform>/
 
 Is it a background task that runs in a worker thread?
-  └── YES → src/worker/
+  └── YES → src/process/worker/
 
 Is it used by BOTH main and renderer processes?
   └── YES → src/common/
 
 Is it an HTTP/WebSocket endpoint?
-  └── YES → src/webserver/
+  └── YES → src/process/webserver/
 
 Is it a plugin/extension resolver or loader?
-  └── YES → src/extensions/
+  └── YES → src/process/extensions/
 
 Is it a messaging channel (Lark, DingTalk, Telegram)?
-  └── YES → src/channels/
+  └── YES → src/process/channels/
 ```
 
 ---
@@ -56,17 +56,17 @@ Is it a messaging channel (Lark, DingTalk, Telegram)?
 
 **Hard rules — violating them causes runtime crashes.**
 
-| Process                        | Can use                                                    | Cannot use                                      |
-| ------------------------------ | ---------------------------------------------------------- | ----------------------------------------------- |
-| **Main** (`src/process/`)      | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React)          |
-| **Renderer** (`src/renderer/`) | DOM APIs, React, browser APIs                              | Node.js APIs (`fs`, `path`), Electron main APIs |
-| **Worker** (`src/worker/`)     | Node.js APIs                                               | DOM APIs, Electron APIs                         |
-| **Preload** (`src/preload.ts`) | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
+| Process                            | Can use                                                    | Cannot use                                      |
+| ---------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- |
+| **Main** (`src/process/`)          | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React)          |
+| **Renderer** (`src/renderer/`)     | DOM APIs, React, browser APIs                              | Node.js APIs (`fs`, `path`), Electron main APIs |
+| **Worker** (`src/process/worker/`) | Node.js APIs                                               | DOM APIs, Electron APIs                         |
+| **Preload** (`src/preload.ts`)     | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
 
 Cross-process communication:
 
 - Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
-- Main ↔ Worker: fork protocol via `src/worker/WorkerProtocol.ts`
+- Main ↔ Worker: fork protocol via `src/process/worker/WorkerProtocol.ts`
 
 ```typescript
 // NEVER in renderer
@@ -115,11 +115,11 @@ const result = await window.api.someMethod(); // goes through preload
 
 Tests mirror source files in `tests/` subdirectories:
 
-| Source                                   | Test                                            |
-| ---------------------------------------- | ----------------------------------------------- |
-| `src/process/services/CronService.ts`    | `tests/unit/cronService.test.ts`                |
-| `src/renderer/hooks/ui/useAutoScroll.ts` | `tests/unit/useAutoScroll.dom.test.ts`          |
-| `src/extensions/ExtensionLoader.ts`      | `tests/unit/extensions/extensionLoader.test.ts` |
+| Source                                      | Test                                            |
+| ------------------------------------------- | ----------------------------------------------- |
+| `src/process/services/CronService.ts`       | `tests/unit/cronService.test.ts`                |
+| `src/renderer/hooks/ui/useAutoScroll.ts`    | `tests/unit/useAutoScroll.dom.test.ts`          |
+| `src/process/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
 
 When `tests/unit/` exceeds 10 direct children, group into subdirectories matching source structure.
 

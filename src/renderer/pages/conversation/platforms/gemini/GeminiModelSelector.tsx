@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 
 // Unified model dropdown for chat header, send box, and channel settings
 const GeminiModelSelector: React.FC<{

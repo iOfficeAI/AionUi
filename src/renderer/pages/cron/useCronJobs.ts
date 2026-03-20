@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ICronJob } from '@/common/ipcBridge';
+import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 

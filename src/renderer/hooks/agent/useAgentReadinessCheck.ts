@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 
 export type AgentCheckResult = {
   backend: AcpBackendAll;

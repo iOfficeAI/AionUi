@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate } from '@/common/chatLib';
+import type { CodexToolCallUpdate } from '@/common/chat/chatLib';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import BaseToolCallDisplay from './BaseToolCallDisplay';

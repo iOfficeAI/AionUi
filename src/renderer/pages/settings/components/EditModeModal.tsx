@@ -1,4 +1,4 @@
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select } from '@arco-design/web-react';
 import React, { useEffect, useMemo } from 'react';

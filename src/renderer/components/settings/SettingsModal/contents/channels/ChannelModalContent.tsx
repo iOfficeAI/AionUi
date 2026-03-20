@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IChannelPluginStatus } from '@/channels/types';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { channel, webui, type IWebUIStatus } from '@/common/ipcBridge';
-import { ConfigStorage } from '@/common/storage';
+import type { IChannelPluginStatus } from '@process/channels/types';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
+import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -628,7 +628,7 @@ const ChannelModalContent: React.FC = () => {
     };
 
     const extensionChannels: ChannelConfig[] = Object.values(extensionStatuses)
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .toSorted((a, b) => a.name.localeCompare(b.name))
       .map((status) => ({
         id: status.type,
         title: status.name,

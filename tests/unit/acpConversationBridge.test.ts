@@ -32,11 +32,11 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/agent/acp/AcpDetector', () => ({
+vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
   acpDetector: { getDetectedAgents: vi.fn(() => []), refreshCustomAgents: vi.fn(async () => {}) },
 }));
 
-vi.mock('../../src/agent/acp/AcpConnection', () => ({
+vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: vi.fn(() => ({
     connect: vi.fn(async () => {}),
     newSession: vi.fn(async () => {}),
@@ -48,7 +48,7 @@ vi.mock('../../src/agent/acp/AcpConnection', () => ({
   })),
 }));
 
-vi.mock('../../src/agent/acp/modelInfo', () => ({
+vi.mock('../../src/process/agent/acp/modelInfo', () => ({
   buildAcpModelInfo: vi.fn(() => ({})),
   summarizeAcpModelInfo: vi.fn(() => ({})),
 }));

@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IMessageToolGroup } from '@/common/chatLib';
+import type { IMessageToolGroup } from '@/common/chat/chatLib';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design/web-react';
 import { Copy, Download, LoadingOne } from '@icon-park/react';

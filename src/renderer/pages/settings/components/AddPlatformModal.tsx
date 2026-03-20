@@ -1,4 +1,4 @@
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import type { ProtocolDetectionResponse, ProtocolType } from '@/common/utils/protocolDetector';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';

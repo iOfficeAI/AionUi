@@ -6,9 +6,9 @@
 
 import path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDatabase } from '@process/database';
+import { getDatabase } from '@process/services/database';
 
-vi.mock('@process/database', () => ({
+vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn(),
 }));
 
@@ -18,7 +18,7 @@ vi.mock('@process/initStorage', () => ({
   })),
 }));
 
-import { resolveUploadWorkspace } from '@/webserver/routes/apiRoutes';
+import { resolveUploadWorkspace } from '@process/webserver/routes/apiRoutes';
 
 describe('resolveUploadWorkspace', () => {
   const getConversation = vi.fn();

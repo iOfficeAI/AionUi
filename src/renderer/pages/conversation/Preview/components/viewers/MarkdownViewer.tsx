@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { joinPath } from '@/common/chatLib';
+import { joinPath } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { useAutoScroll } from '@/renderer/hooks/chat/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';

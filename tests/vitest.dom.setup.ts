@@ -6,7 +6,6 @@
 import '@testing-library/jest-dom/vitest';
 
 // Make this a module
-export {};
 
 // Extend global types for testing
 declare global {

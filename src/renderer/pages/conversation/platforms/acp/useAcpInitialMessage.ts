@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { useEffect } from 'react';

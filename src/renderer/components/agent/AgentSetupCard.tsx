@@ -15,8 +15,8 @@ import { Button, Message, Progress } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Loading, Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
-import type { ICreateConversationParams } from '@/common/ipcBridge';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 
 // Agent logos
@@ -276,7 +276,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
               <div className='overflow-x-auto pb-4px -mx-4px px-4px'>
                 <div className='flex gap-10px' style={{ width: 'max-content' }}>
                   {availableAgents
-                    .sort((a, b) => {
+                    .toSorted((a, b) => {
                       // Best match first, then available ones, then by checking status
                       const aIsBest = bestAgent?.backend === a.backend;
                       const bIsBest = bestAgent?.backend === b.backend;

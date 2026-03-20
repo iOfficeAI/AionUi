@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';

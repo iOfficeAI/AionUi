@@ -5,14 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta, TMessage } from '@/common/chatLib';
+import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
-import { addMessage } from '@process/message';
+import { addMessage } from '@process/utils/message';
 import { powerSaveBlocker } from 'electron';
 import { Cron } from 'croner';
-import i18n, { i18nReady } from '@process/i18n';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
-import { ProcessConfig } from '@/process/initStorage';
+import i18n, { i18nReady } from '@process/services/i18n';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import { ProcessConfig } from '@process/utils/initStorage';
 import type { CronJob, CronSchedule } from './CronStore';
 import type { ICronRepository } from './ICronRepository';
 import type { ICronEventEmitter } from './ICronEventEmitter';
@@ -27,7 +27,7 @@ export type CreateCronJobParams = {
   message: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: import('@/types/acpTypes').AcpBackendAll;
+  agentType: import('@/common/types/acpTypes').AcpBackendAll;
   createdBy: 'user' | 'agent';
 };
 

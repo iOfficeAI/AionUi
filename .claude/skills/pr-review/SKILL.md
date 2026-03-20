@@ -194,9 +194,9 @@ Use the Read tool to read each changed file locally.
 **Priority order (read highest priority first):**
 
 1. `src/process/`
-2. `src/channels/`
+2. `src/process/channels/`
 3. `src/common/`
-4. `src/worker/`
+4. `src/process/worker/`
 5. `src/renderer/`
 
 Also read key interface/type definition files imported by the changed files when they provide important context.

@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';

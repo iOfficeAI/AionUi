@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '@/common/storageKeys';
+import { STORAGE_KEYS } from '@/common/config/storageKeys';
 import { blurActiveElement } from '@/renderer/utils/ui/focus';
 import {
   WORKSPACE_HAS_FILES_EVENT,

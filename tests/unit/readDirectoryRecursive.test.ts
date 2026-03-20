@@ -12,7 +12,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('@/process/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   getSystemDir: vi.fn(() => ({
     workDir: os.tmpdir(),
     dataDir: os.tmpdir(),

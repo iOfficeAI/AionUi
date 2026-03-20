@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { IProvider } from '@/common/storage';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';

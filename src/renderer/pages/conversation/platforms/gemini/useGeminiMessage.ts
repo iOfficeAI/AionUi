@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { TChatConversation, TokenUsageData } from '@/common/storage';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -160,8 +160,8 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
 
             // Check if any tools are executing or awaiting confirmation
             const tools = message.data as Array<{ status: string; name?: string }>;
-            const activeStatuses = ['Executing', 'Confirming', 'Pending'];
-            const hasActive = tools.some((tool) => activeStatuses.includes(tool.status));
+            const activeStatuses = new Set(['Executing', 'Confirming', 'Pending']);
+            const hasActive = tools.some((tool) => activeStatuses.has(tool.status));
             const wasActive = hasActiveToolsRef.current;
 
             setHasActiveTools(hasActive);

@@ -1,4 +1,4 @@
-import { AIONUI_FILES_MARKER, AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import { AIONUI_FILES_MARKER, AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string | FileOrFolderItem>): string[] => {

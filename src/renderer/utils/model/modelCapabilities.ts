@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider, ModelType } from '@/common/storage';
+import type { IProvider, ModelType } from '@/common/config/storage';
 
 // 能力判断缓存
 const modelCapabilitiesCache = new Map<string, boolean | undefined>();

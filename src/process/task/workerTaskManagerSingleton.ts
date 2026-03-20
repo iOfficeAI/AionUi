@@ -11,10 +11,10 @@
 
 import { AgentFactory } from './AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
-import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { GeminiAgentManager } from './GeminiAgentManager';
 import AcpAgentManager from './AcpAgentManager';
-import { CodexAgentManager } from '@/agent/codex';
+import { CodexAgentManager } from '@process/agent/codex';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 

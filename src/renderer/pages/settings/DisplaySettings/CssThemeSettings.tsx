@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage, type ICssTheme } from '@/common/storage.ts';
+import { ConfigStorage, type ICssTheme } from '@/common/config/storage.ts';
 import { ipcBridge } from '@/common';
-import { uuid } from '@/common/utils.ts';
+import { uuid } from '@/common/utils';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { resolveCssByActiveTheme, setExtensionThemesCache } from '@renderer/utils/theme/themeCssSync';
 import { Button, Message, Modal } from '@arco-design/web-react';

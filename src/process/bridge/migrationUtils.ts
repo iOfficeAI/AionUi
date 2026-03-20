@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/storage';
-import { getDatabase } from '@process/database';
-import { ProcessChatMessage } from '../initStorage';
+import type { TChatConversation } from '@/common/config/storage';
+import { getDatabase } from '@process/services/database';
+import { ProcessChatMessage } from '@process/utils/initStorage';
 
 /**
  * Migrate a conversation from file storage to database

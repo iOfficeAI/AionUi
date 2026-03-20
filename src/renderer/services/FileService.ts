@@ -122,7 +122,7 @@ export function getFileExtension(fileName: string): string {
   return lastDotIndex > -1 ? fileName.substring(lastDotIndex).toLowerCase() : '';
 }
 
-import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import { AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
 
 // 清理AionUI时间戳后缀，返回原始文件名
 export function cleanAionUITimestamp(fileName: string): string {

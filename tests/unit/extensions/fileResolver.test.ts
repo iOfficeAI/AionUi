@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveFileRefs } from '../../../src/extensions/fileResolver';
+import { resolveFileRefs } from '../../../src/process/extensions/resolvers/utils/fileResolver';
 
 describe('extensions/fileResolver', () => {
   let extensionDir = '';

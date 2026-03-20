@@ -11,11 +11,11 @@ import { ipcBridge } from '@/common';
 import { Image } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/icons/file-icon.svg';
 
-const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']);
 
 const isImageFile = (path: string): boolean => {
   const ext = path.toLowerCase().slice(path.lastIndexOf('.'));
-  return IMAGE_EXTS.includes(ext);
+  return IMAGE_EXTS.has(ext);
 };
 
 // 格式化文件大小

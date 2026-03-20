@@ -20,7 +20,7 @@ function makeChannel(name: string) {
   };
 }
 
-vi.mock('../../src/common/ipcBridge', () => ({
+vi.mock('../../src/common/adapter/ipcBridge', () => ({
   channel: {
     getPluginStatus: makeChannel('getPluginStatus'),
     enablePlugin: makeChannel('enablePlugin'),
@@ -36,7 +36,7 @@ vi.mock('../../src/common/ipcBridge', () => ({
   },
 }));
 
-vi.mock('@/channels/core/ChannelManager', () => ({
+vi.mock('@process/channels/core/ChannelManager', () => ({
   getChannelManager: vi.fn(() => ({
     enablePlugin: vi.fn(async () => ({ success: true })),
     disablePlugin: vi.fn(async () => ({ success: true })),
@@ -45,7 +45,7 @@ vi.mock('@/channels/core/ChannelManager', () => ({
   })),
 }));
 
-vi.mock('@/channels/pairing/PairingService', () => ({
+vi.mock('@process/channels/pairing/PairingService', () => ({
   getPairingService: vi.fn(() => ({
     approvePairing: vi.fn(async () => ({ success: true })),
     rejectPairing: vi.fn(async () => ({ success: true })),
@@ -68,13 +68,13 @@ vi.mock('@/extensions', () => ({
 vi.mock('@/extensions/assetProtocol', () => ({ toAssetUrl: vi.fn((p: string) => `asset://${p}`) }));
 
 import { initChannelBridge } from '../../src/process/bridge/channelBridge';
-import type { IChannelRepository } from '../../src/process/database/IChannelRepository';
+import type { IChannelRepository } from '../../src/process/services/database/IChannelRepository';
 import type {
   IChannelPluginConfig,
   IChannelUser,
   IChannelPairingRequest,
   IChannelSession,
-} from '../../src/channels/types';
+} from '../../src/process/channels/types';
 
 function makeRepo(overrides?: Partial<IChannelRepository>): IChannelRepository {
   return {
