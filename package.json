@@ -52,8 +52,12 @@
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
     "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts",
-    "server": "bun run src/server.ts",
-    "build:server": "bun build src/server.ts --outdir dist-server --target node"
+    "server":             "node scripts/build-server.mjs && cross-env NODE_ENV=development node dist-server/server.mjs",
+    "server:remote":      "node scripts/build-server.mjs && cross-env NODE_ENV=development ALLOW_REMOTE=true node dist-server/server.mjs",
+    "server:prod":        "node scripts/build-server.mjs && cross-env NODE_ENV=production node dist-server/server.mjs",
+    "server:prod:remote": "node scripts/build-server.mjs && cross-env NODE_ENV=production ALLOW_REMOTE=true node dist-server/server.mjs",
+    "build:server":       "node scripts/build-server.mjs",
+    "build:server:run":   "node scripts/build-server.mjs && node dist-server/server.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -174,6 +178,7 @@
     "oxlint": "^1.56.0",
     "patch-package": "^8.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.1",
     "typescript": "^5.8.3",
     "unocss": "^66.3.3",
     "unocss-preset-extra": "^1.0.0",
