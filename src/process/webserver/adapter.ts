@@ -4,9 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { WebSocketServer } from 'ws';
-import { registerWebSocketBroadcaster, getBridgeEmitter } from '@/common/adapter/main';
-import { WebSocketManager } from './websocket/WebSocketManager';
+import type { WebSocketServer } from "ws";
+import {
+  registerWebSocketBroadcaster,
+  getBridgeEmitter,
+} from "@/common/adapter/registry";
+import { WebSocketManager } from "./websocket/WebSocketManager";
 
 // 存储取消注册函数，用于服务器停止时清理
 // Store unregister function for cleanup when server stops
