@@ -18,7 +18,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 async function main() {
   await esbuild.build({
-    entryPoints: [path.join(ROOT, 'src/process/builtinMcp/imageGenServer.ts')],
+    entryPoints: [path.join(ROOT, 'src/process/resources/builtinMcp/imageGenServer.ts')],
     bundle: true,
     platform: 'node',
     format: 'cjs',
