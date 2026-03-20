@@ -9,10 +9,10 @@ import type {
   IExtensionAgentActivityEvent,
   IExtensionAgentActivityItem,
   IExtensionAgentActivitySnapshot,
-} from '@/common/ipcBridge';
-import type { TMessage } from '@/common/chatLib';
-import type { TChatConversation } from '@/common/storage';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
+} from '@/common/adapter/ipcBridge';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { TChatConversation } from '@/common/config/storage';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 const STATUS_TO_SYNCING = new Set(['connecting', 'connected', 'authenticated']);
@@ -179,14 +179,14 @@ export class ActivitySnapshotBuilder {
         existing.state = state;
       }
 
-      existing.recentEvents = [...existing.recentEvents, ...events].sort((a, b) => b.at - a.at).slice(0, 6);
+      existing.recentEvents = [...existing.recentEvents, ...events].toSorted((a, b) => b.at - a.at).slice(0, 6);
     }
 
     return {
       generatedAt: Date.now(),
       totalConversations: conversations.length,
       runningConversations,
-      agents: Array.from(byAgent.values()).sort((a, b) => b.lastActiveAt - a.lastActiveAt),
+      agents: Array.from(byAgent.values()).toSorted((a, b) => b.lastActiveAt - a.lastActiveAt),
     };
   }
 }

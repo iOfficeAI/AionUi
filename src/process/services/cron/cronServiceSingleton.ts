@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { cronBusyGuard } from './CronBusyGuard';
 import { CronService } from './CronService';

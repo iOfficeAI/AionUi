@@ -15,8 +15,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
-import { getSkillsDir, getBuiltinSkillsDir } from '../initStorage';
-import { ExtensionRegistry } from '@/extensions';
+import { getSkillsDir, getBuiltinSkillsDir } from '@process/utils/initStorage';
+import { ExtensionRegistry } from '@process/extensions';
 
 /**
  * Skill 定义（与 aioncli-core 兼容）
@@ -116,7 +116,7 @@ export class AcpSkillManager {
    * @returns AcpSkillManager 实例 / AcpSkillManager instance
    */
   static getInstance(enabledSkills?: string[]): AcpSkillManager {
-    const cacheKey = enabledSkills?.sort().join(',') || 'all';
+    const cacheKey = enabledSkills?.toSorted().join(',') || 'all';
 
     // 如果缓存键变化，需要重新创建实例
     // If cache key changed, need to recreate instance

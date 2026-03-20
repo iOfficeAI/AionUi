@@ -8,8 +8,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { LoadedExtension } from '../../../src/extensions/types';
-import { resolveWebuiContributions } from '../../../src/extensions/resolvers/WebuiResolver';
+import type { LoadedExtension } from '../../../src/process/extensions/types';
+import { resolveWebuiContributions } from '../../../src/process/extensions/resolvers/WebuiResolver';
 
 const tempRoots: string[] = [];
 

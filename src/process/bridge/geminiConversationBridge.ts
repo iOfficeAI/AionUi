@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 

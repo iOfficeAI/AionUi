@@ -30,7 +30,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/process/initStorage', () => ({
+vi.mock('../../src/process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
 }));
 
@@ -39,9 +39,9 @@ vi.mock('../../src/process/bridge/migrationUtils', () => ({
 }));
 
 import { initDatabaseBridge } from '../../src/process/bridge/databaseBridge';
-import type { IConversationRepository } from '../../src/process/database/IConversationRepository';
-import type { TChatConversation } from '../../src/common/storage';
-import type { TMessage } from '../../src/common/chatLib';
+import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
+import type { TChatConversation } from '../../src/common/config/storage';
+import type { TMessage } from '../../src/common/chat/chatLib';
 
 function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRepository {
   return {
@@ -116,7 +116,7 @@ describe('databaseBridge', () => {
     });
 
     it('merges file-only conversations that are not in DB', async () => {
-      const { ProcessChat } = await import('../../src/process/initStorage');
+      const { ProcessChat } = await import('../../src/process/utils/initStorage');
       const fileConv: Partial<TChatConversation> = { id: 'file-c1', modifyTime: 1000 };
       vi.mocked(ProcessChat.get).mockResolvedValue([fileConv] as any);
       vi.mocked(repo.getUserConversations).mockReturnValue({ data: [], total: 0, hasMore: false });
@@ -127,7 +127,7 @@ describe('databaseBridge', () => {
     });
 
     it('excludes file conversations already present in DB', async () => {
-      const { ProcessChat } = await import('../../src/process/initStorage');
+      const { ProcessChat } = await import('../../src/process/utils/initStorage');
       const conv: Partial<TChatConversation> = { id: 'shared-c1', modifyTime: 2000 };
       vi.mocked(ProcessChat.get).mockResolvedValue([conv] as any);
       vi.mocked(repo.getUserConversations).mockReturnValue({

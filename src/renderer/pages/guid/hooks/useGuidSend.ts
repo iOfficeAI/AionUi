@@ -5,11 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TProviderWithModel } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
-import { isAcpRoutedPresetType, type PresetAgentType } from '@/types/acpTypes';
+import { isAcpRoutedPresetType, type PresetAgentType } from '@/common/types/acpTypes';
 import { Message } from '@arco-design/web-react';
 import { useCallback } from 'react';
 import { type TFunction } from 'i18next';
@@ -326,7 +326,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            backend: acpBackend as import('@/types/acpTypes').AcpBackendAll | undefined,
+            backend: acpBackend as import('@/common/types/acpTypes').AcpBackendAll | undefined,
             cliPath: acpAgentInfo?.cliPath,
             agentName: acpAgentInfo?.name,
             customAgentId: acpAgentInfo?.customAgentId,

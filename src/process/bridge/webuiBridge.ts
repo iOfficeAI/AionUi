@@ -6,14 +6,14 @@
 
 import crypto from 'crypto';
 import { ipcMain } from 'electron';
-import { webui } from '@/common/ipcBridge';
-import { AuthService } from '@/webserver/auth/service/AuthService';
-import { UserRepository } from '@/webserver/auth/repository/UserRepository';
-import { SERVER_CONFIG } from '@/webserver/config/constants';
+import { webui } from '@/common/adapter/ipcBridge';
+import { AuthService } from '@process/webserver/auth/service/AuthService';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
+import { SERVER_CONFIG } from '@process/webserver/config/constants';
 import { WebuiService } from './services/WebuiService';
 // 预加载 webserver 模块避免启动时延迟 / Preload webserver module to avoid startup delay
-import { startWebServerWithInstance } from '@/webserver/index';
-import { cleanupWebAdapter } from '@/webserver/adapter';
+import { startWebServerWithInstance } from '@process/webserver/index';
+import { cleanupWebAdapter } from '@process/webserver/adapter';
 
 // WebUI 服务器实例引用 / WebUI server instance reference
 let webServerInstance: {

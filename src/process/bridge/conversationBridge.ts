@@ -4,21 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexAgentManager } from '@/agent/codex';
-import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
-import type { TChatConversation } from '@/common/storage';
+import type { CodexAgentManager } from '@process/agent/codex';
+import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
+import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import { ipcBridge } from '../../common';
-import { getSkillsDir, ProcessChat } from '../initStorage';
+import { ipcBridge } from '@/common';
+import { getSkillsDir, ProcessChat } from '@process/utils/initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { prepareFirstMessage } from '../task/agentUtils';
-import { refreshTrayMenu } from '../tray';
-import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
-import { computeOpenClawIdentityHash } from '../utils/openclawUtils';
+import { refreshTrayMenu } from '@process/utils/tray';
+import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
+import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
 import { migrateConversationToDatabase } from './migrationUtils';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
@@ -198,7 +198,7 @@ export function initConversationBridge(
       if (source && source !== 'aionui') {
         try {
           // Dynamic import to avoid circular dependency
-          const { getChannelManager } = await import('@/channels/core/ChannelManager');
+          const { getChannelManager } = await import('@process/channels/core/ChannelManager');
           const channelManager = getChannelManager();
           if (channelManager.isInitialized()) {
             await channelManager.cleanupConversation(id);

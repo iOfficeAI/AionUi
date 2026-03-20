@@ -1,4 +1,4 @@
-import { type ICssTheme } from '@/common/storage';
+import { type ICssTheme } from '@/common/config/storage';
 import {
   BACKGROUND_BLOCK_START,
   injectBackgroundCssBlock,

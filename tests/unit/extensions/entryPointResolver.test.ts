@@ -8,7 +8,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { resolveRuntimeEntryPath } from '../../../src/extensions/entryPointResolver';
+import { resolveRuntimeEntryPath } from '../../../src/process/extensions/resolvers/utils/entryPointResolver';
 
 describe('extensions/entryPointResolver', () => {
   let extensionDir = '';

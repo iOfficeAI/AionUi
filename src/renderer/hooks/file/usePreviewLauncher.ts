@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { joinPath } from '@/common/chatLib';
+import { joinPath } from '@/common/chat/chatLib';
 import type { PreviewContentType } from '@/common/types/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';

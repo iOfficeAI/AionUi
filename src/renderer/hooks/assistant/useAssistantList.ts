@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 import {
   isExtensionAssistant as isExtensionAssistantUtil,

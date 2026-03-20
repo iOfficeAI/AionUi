@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { isPathAllowed } from '../../src/webserver/directoryApi';
+import { isPathAllowed } from '../../src/process/webserver/directoryApi';
 
 // Mock fs and os modules
 vi.mock('fs');
@@ -115,7 +115,7 @@ describe('directoryApi - macOS and Linux root directory access', () => {
       return { default: mock, ...mock };
     });
 
-    const { DEFAULT_ALLOWED_DIRECTORIES } = await import('../../src/webserver/directoryApi');
+    const { DEFAULT_ALLOWED_DIRECTORIES } = await import('../../src/process/webserver/directoryApi');
     expect(DEFAULT_ALLOWED_DIRECTORIES).toContain('/');
   });
 
@@ -138,7 +138,7 @@ describe('directoryApi - macOS and Linux root directory access', () => {
       return { default: mock, ...mock };
     });
 
-    const { DEFAULT_ALLOWED_DIRECTORIES } = await import('../../src/webserver/directoryApi');
+    const { DEFAULT_ALLOWED_DIRECTORIES } = await import('../../src/process/webserver/directoryApi');
     expect(DEFAULT_ALLOWED_DIRECTORIES).toContain('/');
   });
 

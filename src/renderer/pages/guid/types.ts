@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendConfig, AcpModelInfo, PresetAgentType } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig, AcpModelInfo, PresetAgentType } from '@/common/types/acpTypes';
 
 /**
  * Available agent entry returned by the backend.

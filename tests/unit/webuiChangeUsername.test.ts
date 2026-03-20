@@ -14,46 +14,46 @@ describe('AuthService.validateUsername', () => {
   beforeEach(() => {
     vi.resetModules();
     // Break the DB import chain triggered by UserRepository
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({})),
     }));
   });
 
   it('returns valid for a well-formed username', async () => {
-    const { AuthService } = await import('@/webserver/auth/service/AuthService');
+    const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const result = AuthService.validateUsername('alice_42');
     expect(result.isValid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
 
   it('rejects username shorter than 3 characters', async () => {
-    const { AuthService } = await import('@/webserver/auth/service/AuthService');
+    const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const result = AuthService.validateUsername('ab');
     expect(result.isValid).toBe(false);
     expect(result.errors[0]).toMatch(/3/);
   });
 
   it('rejects username longer than 32 characters', async () => {
-    const { AuthService } = await import('@/webserver/auth/service/AuthService');
+    const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const result = AuthService.validateUsername('a'.repeat(33));
     expect(result.isValid).toBe(false);
     expect(result.errors[0]).toMatch(/32/);
   });
 
   it('rejects username with invalid characters (space)', async () => {
-    const { AuthService } = await import('@/webserver/auth/service/AuthService');
+    const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const result = AuthService.validateUsername('user name');
     expect(result.isValid).toBe(false);
   });
 
   it('rejects username starting with hyphen', async () => {
-    const { AuthService } = await import('@/webserver/auth/service/AuthService');
+    const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const result = AuthService.validateUsername('-alice');
     expect(result.isValid).toBe(false);
   });
 
   it('rejects username ending with underscore', async () => {
-    const { AuthService } = await import('@/webserver/auth/service/AuthService');
+    const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const result = AuthService.validateUsername('alice_');
     expect(result.isValid).toBe(false);
   });
@@ -69,34 +69,34 @@ describe('UserRepository.updateUsername', () => {
   });
 
   it('does not throw when db.updateUserUsername succeeds', async () => {
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({
         updateUserUsername: vi.fn(() => ({ success: true, data: true })),
       })),
     }));
 
-    const { UserRepository } = await import('@/webserver/auth/repository/UserRepository');
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     expect(() => UserRepository.updateUsername('user-123', 'newname')).not.toThrow();
   });
 
   it('throws when db.updateUserUsername returns failure', async () => {
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({
         updateUserUsername: vi.fn(() => ({ success: false, error: 'UNIQUE constraint failed', data: false })),
       })),
     }));
 
-    const { UserRepository } = await import('@/webserver/auth/repository/UserRepository');
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     expect(() => UserRepository.updateUsername('user-123', 'taken')).toThrow('UNIQUE constraint failed');
   });
 
   it('calls db.updateUserUsername with correct arguments', async () => {
     const updateUserUsernameMock = vi.fn(() => ({ success: true, data: true }));
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({ updateUserUsername: updateUserUsernameMock })),
     }));
 
-    const { UserRepository } = await import('@/webserver/auth/repository/UserRepository');
+    const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     UserRepository.updateUsername('user-123', 'newname');
     expect(updateUserUsernameMock).toHaveBeenCalledWith('user-123', 'newname');
   });
@@ -125,20 +125,20 @@ describe('WebuiService.changeUsername', () => {
     const updateUsernameMock = vi.fn();
     const invalidateAllTokensMock = vi.fn();
 
-    vi.doMock('@/webserver/auth/repository/UserRepository', () => ({
+    vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => null),
         updateUsername: updateUsernameMock,
       },
     }));
-    vi.doMock('@/webserver/auth/service/AuthService', () => ({
+    vi.doMock('@process/webserver/auth/service/AuthService', () => ({
       AuthService: {
         validateUsername: vi.fn(() => ({ isValid: true, errors: [] })),
         invalidateAllTokens: invalidateAllTokensMock,
       },
     }));
-    vi.doMock('@/webserver/index', () => ({
+    vi.doMock('@process/webserver/index', () => ({
       getInitialAdminPassword: vi.fn(() => null),
       clearInitialAdminPassword: vi.fn(),
     }));
@@ -151,20 +151,20 @@ describe('WebuiService.changeUsername', () => {
   });
 
   it('throws when username fails validation', async () => {
-    vi.doMock('@/webserver/auth/repository/UserRepository', () => ({
+    vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => null),
         updateUsername: vi.fn(),
       },
     }));
-    vi.doMock('@/webserver/auth/service/AuthService', () => ({
+    vi.doMock('@process/webserver/auth/service/AuthService', () => ({
       AuthService: {
         validateUsername: vi.fn(() => ({ isValid: false, errors: ['Username must be at least 3 characters long'] })),
         invalidateAllTokens: vi.fn(),
       },
     }));
-    vi.doMock('@/webserver/index', () => ({
+    vi.doMock('@process/webserver/index', () => ({
       getInitialAdminPassword: vi.fn(() => null),
       clearInitialAdminPassword: vi.fn(),
     }));
@@ -176,20 +176,20 @@ describe('WebuiService.changeUsername', () => {
   it('throws when username is already taken by another user', async () => {
     const otherUser = { ...makeAdminUser('taken'), id: 'other-user-id' };
 
-    vi.doMock('@/webserver/auth/repository/UserRepository', () => ({
+    vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => otherUser),
         updateUsername: vi.fn(),
       },
     }));
-    vi.doMock('@/webserver/auth/service/AuthService', () => ({
+    vi.doMock('@process/webserver/auth/service/AuthService', () => ({
       AuthService: {
         validateUsername: vi.fn(() => ({ isValid: true, errors: [] })),
         invalidateAllTokens: vi.fn(),
       },
     }));
-    vi.doMock('@/webserver/index', () => ({
+    vi.doMock('@process/webserver/index', () => ({
       getInitialAdminPassword: vi.fn(() => null),
       clearInitialAdminPassword: vi.fn(),
     }));
@@ -202,20 +202,20 @@ describe('WebuiService.changeUsername', () => {
     const updateUsernameMock = vi.fn();
     const invalidateAllTokensMock = vi.fn();
 
-    vi.doMock('@/webserver/auth/repository/UserRepository', () => ({
+    vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
       UserRepository: {
         getSystemUser: vi.fn(() => makeAdminUser('admin')),
         findByUsername: vi.fn(() => null),
         updateUsername: updateUsernameMock,
       },
     }));
-    vi.doMock('@/webserver/auth/service/AuthService', () => ({
+    vi.doMock('@process/webserver/auth/service/AuthService', () => ({
       AuthService: {
         validateUsername: vi.fn(() => ({ isValid: true, errors: [] })),
         invalidateAllTokens: invalidateAllTokensMock,
       },
     }));
-    vi.doMock('@/webserver/index', () => ({
+    vi.doMock('@process/webserver/index', () => ({
       getInitialAdminPassword: vi.fn(() => null),
       clearInitialAdminPassword: vi.fn(),
     }));

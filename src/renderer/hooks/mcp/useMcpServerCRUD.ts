@@ -1,8 +1,8 @@
 import type React from 'react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ConfigStorage } from '@/common/storage';
-import type { IMcpServer } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
+import type { IMcpServer } from '@/common/config/storage';
 
 /**
  * MCP服务器CRUD操作Hook

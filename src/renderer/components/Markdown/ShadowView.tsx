@@ -195,7 +195,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
 
   // Load custom CSS from ConfigStorage
   React.useEffect(() => {
-    void import('@/common/storage').then(({ ConfigStorage }) => {
+    void import('@/common/config/storage').then(({ ConfigStorage }) => {
       ConfigStorage.get('customCss')
         .then((css) => {
           if (css) {

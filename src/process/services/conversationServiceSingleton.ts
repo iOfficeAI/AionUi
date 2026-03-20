@@ -9,7 +9,7 @@
  * Extracted to a separate module to avoid circular dependencies.
  */
 
-import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { ConversationServiceImpl } from './ConversationServiceImpl';
 import type { IConversationService } from './IConversationService';
 

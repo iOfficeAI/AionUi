@@ -3,9 +3,9 @@ import { Plus, EditTwo, Delete } from '@icon-park/react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
-import { ConfigStorage } from '@/common/storage';
-import type { AcpBackendConfig } from '@/types/acpTypes';
-import { acpConversation } from '@/common/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import { acpConversation } from '@/common/adapter/ipcBridge';
 import CustomAcpAgentModal from './CustomAcpAgentModal';
 
 interface CustomAcpAgentProps {

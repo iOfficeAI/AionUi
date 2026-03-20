@@ -5,7 +5,7 @@ const aliases = {
   '@/': path.resolve(__dirname, './src') + '/',
   '@process/': path.resolve(__dirname, './src/process') + '/',
   '@renderer/': path.resolve(__dirname, './src/renderer') + '/',
-  '@worker/': path.resolve(__dirname, './src/worker') + '/',
+  '@worker/': path.resolve(__dirname, './src/process/worker') + '/',
   '@mcp/models/': path.resolve(__dirname, './src/common/models') + '/',
   '@mcp/types/': path.resolve(__dirname, './src/common') + '/',
   '@mcp/': path.resolve(__dirname, './src/common') + '/',
@@ -59,10 +59,10 @@ export default defineConfig({
         'src/preload.ts',
 
         // Shims / polyfills
-        'src/shims/**',
+        'src/common/utils/shims/**',
 
         // Pure type / constant files
-        'src/types/**',
+        'src/common/types/**',
 
         // Static assets and i18n JSON (no logic)
         'src/renderer/**/*.json',
@@ -70,7 +70,7 @@ export default defineConfig({
         'src/renderer/**/*.css',
 
         // i18n config (JSON-only)
-        'src/shared/**',
+        'src/common/config/i18n-config.json',
       ],
       // Thresholds apply to the included file set.
       // Keeping them informational until coverage ramps up across all files.

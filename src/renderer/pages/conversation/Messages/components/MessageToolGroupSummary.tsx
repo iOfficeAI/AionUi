@@ -2,7 +2,7 @@ import type { BadgeProps } from '@arco-design/web-react';
 import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import React, { useMemo, useState } from 'react';
-import type { IMessageAcpToolCall, IMessageToolGroup } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessageToolGroup } from '@/common/chat/chatLib';
 import './MessageToolGroupSummary.css';
 
 type ToolItem = {
@@ -165,12 +165,10 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
     );
   });
   const tools = useMemo(() => {
-    return messages
-      .map((m) => {
-        if (m.type === 'tool_group') return ToolGroupMapper(m);
-        return ToolAcpMapper(m);
-      })
-      .flat();
+    return messages.flatMap((m) => {
+      if (m.type === 'tool_group') return ToolGroupMapper(m);
+      return ToolAcpMapper(m);
+    });
   }, [messages]);
 
   return (

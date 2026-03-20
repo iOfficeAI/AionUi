@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/types/acpTypes';
-import type { TMessage } from '@/common/chatLib';
+import type { AcpBackend } from '@/common/types/acpTypes';
+import type { TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';

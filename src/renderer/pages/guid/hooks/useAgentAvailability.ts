@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import type { AcpBackend, AvailableAgent, EffectiveAgentInfo, PresetAgentType } from '../types';
 import { useCallback } from 'react';
 

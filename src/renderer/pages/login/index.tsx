@@ -19,12 +19,12 @@ const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 // Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
 const obfuscate = (text: string): string => {
   const encoded = btoa(encodeURIComponent(text));
-  return encoded.split('').reverse().join('');
+  return encoded.split('').toReversed().join('');
 };
 
 const deobfuscate = (text: string): string => {
   try {
-    const reversed = text.split('').reverse().join('');
+    const reversed = text.split('').toReversed().join('');
     return decodeURIComponent(atob(reversed));
   } catch {
     return '';

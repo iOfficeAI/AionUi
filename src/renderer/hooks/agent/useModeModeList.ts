@@ -72,7 +72,7 @@ export const geminiModeList = getGeminiModeList();
 
 // Gemini 模型排序函数：Pro 优先，版本号降序
 const sortGeminiModels = (models: { label: string; value: string }[]) => {
-  return models.sort((a, b) => {
+  return models.toSorted((a, b) => {
     const aPro = a.value.toLowerCase().includes('pro');
     const bPro = b.value.toLowerCase().includes('pro');
 

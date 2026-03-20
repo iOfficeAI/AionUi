@@ -4,39 +4,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
-import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
-import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
-import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { CodexAgent } from '@process/agent/codex';
+import type { NetworkError } from '@process/agent/codex/connection/CodexConnection';
+import { CodexEventHandler } from '@process/agent/codex/handlers/CodexEventHandler';
+import { CodexFileOperationHandler } from '@process/agent/codex/handlers/CodexFileOperationHandler';
+import { CodexSessionManager } from '@process/agent/codex/handlers/CodexSessionManager';
+import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { CodexAgentManagerData } from '@/common/codex/types';
-import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/codex/codexModels';
-import type { AcpModelInfo } from '@/types/acpTypes';
-import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
-import { mapPermissionDecision } from '@/common/codex/utils';
-import { AIONUI_FILES_MARKER } from '@/common/constants';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { CodexAgentManagerData } from '@/common/types/codex/types';
+import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/types/codex/codexModels';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+import { PERMISSION_DECISION_MAP } from '@/common/types/codex/types/permissionTypes';
+import { mapPermissionDecision } from '@/common/types/codex/utils';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { getDatabase } from '@process/database';
-import { ProcessConfig } from '@process/initStorage';
+import { getDatabase } from '@process/services/database';
+import { ProcessConfig } from '@process/utils/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import i18n from '@process/i18n';
+import i18n from '@process/services/i18n';
 import {
   getConfiguredAppClientName,
   getConfiguredAppClientVersion,
   getConfiguredCodexMcpProtocolVersion,
   setAppConfig,
-} from '../../common/utils/appConfig';
+} from '@/common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();

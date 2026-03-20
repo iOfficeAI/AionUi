@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import type { IMcpServer } from '../../../../common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import { safeExecFile } from '@process/utils/safeExec';

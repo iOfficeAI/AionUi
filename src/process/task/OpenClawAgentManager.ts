@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenClawAgent, type OpenClawAgentConfig } from '@/agent/openclaw';
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { OpenClawAgent, type OpenClawAgentConfig } from '@process/agent/openclaw';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import type { AcpBackendAll } from '@/types/acpTypes';
-import { getDatabase } from '@process/database';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
+import { getDatabase } from '@process/services/database';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';

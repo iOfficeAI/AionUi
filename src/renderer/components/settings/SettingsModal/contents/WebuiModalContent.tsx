@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { WEBUI_DEFAULT_PORT } from '@/common/constants';
-import { shell, webui, type IWebUIStatus } from '@/common/ipcBridge';
-import { ConfigStorage } from '@/common/storage';
+import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
+import { shell, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';

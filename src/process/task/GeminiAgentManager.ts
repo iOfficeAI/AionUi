@@ -4,28 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channelEventBus } from '@/channels/agent/ChannelEventBus';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { CronMessageMeta, IMessageText, IMessageToolGroup, TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { IMcpServer, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
-import { ExtensionRegistry } from '@/extensions';
+import type { CronMessageMeta, IMessageText, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import { ProcessConfig, getSkillsDir } from '@process/utils/initStorage';
+import { ExtensionRegistry } from '@process/extensions';
 import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
 import { detectSkillLoadRequest, AcpSkillManager, buildSkillContentText } from './AcpSkillManager';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType, getOauthInfoWithCache, Storage } from '@office-ai/aioncli-core';
-import { GeminiApprovalStore } from '../../agent/gemini/GeminiApprovalStore';
-import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
-import { getDatabase } from '@process/database';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { GeminiApprovalStore } from '../agent/gemini/GeminiApprovalStore';
+import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
+import { getDatabase } from '@process/services/database';
+import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { mainLog, mainWarn, mainError } from '../utils/mainLogger';
+import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
@@ -226,7 +226,7 @@ export class GeminiAgentManager extends BaseAgentManager<
               : '';
         return { n: s.name, e: s.enabled, st: s.status, t: transportKey };
       })
-      .sort((a, b) => a.n.localeCompare(b.n));
+      .toSorted((a, b) => a.n.localeCompare(b.n));
     return JSON.stringify(entries);
   }
 
@@ -667,7 +667,7 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   private async checkCronCommandsOnFinish(afterTimestamp: number): Promise<boolean> {
     try {
-      const { getDatabase } = await import('@process/database');
+      const { getDatabase } = await import('@process/services/database');
       const db = getDatabase();
       const result = db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
 

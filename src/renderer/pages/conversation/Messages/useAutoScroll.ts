@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { VirtuosoHandle } from 'react-virtuoso';
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
 
 // Ignore scroll events within this window after a programmatic scroll (ms)
 const PROGRAMMATIC_SCROLL_GUARD_MS = 150;

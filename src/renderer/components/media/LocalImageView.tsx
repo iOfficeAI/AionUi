@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import { joinPath } from '@/common/chatLib';
+import { joinPath } from '@/common/chat/chatLib';
 import { LoadingTwo } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
