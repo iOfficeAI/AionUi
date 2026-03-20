@@ -4,7 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IChannelPluginConfig, IChannelPairingRequest, IChannelUser, IChannelSession } from '@process/channels/types';
+import type {
+  IChannelPluginConfig,
+  IChannelPairingRequest,
+  IChannelUser,
+  IChannelSession,
+} from '@process/channels/types';
 import { getDatabase } from '@process/services/database';
 import type { IChannelRepository } from './IChannelRepository';
 

@@ -8,7 +8,6 @@
 // BaseAgentManager resolves the worker path from the agent type name,
 // but NanoBotAgentManager runs in-process (no forked worker needed).
 
-
 if (require.main === module) {
   console.log('Nanobot worker started');
 }

@@ -31,7 +31,12 @@ import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
-import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/utils/deepLink';
+import {
+  clearPendingDeepLinkUrl,
+  getPendingDeepLinkUrl,
+  handleDeepLinkUrl,
+  PROTOCOL_SCHEME,
+} from './process/utils/deepLink';
 import {
   bindMainWindowReferences,
   showAndFocusMainWindow,

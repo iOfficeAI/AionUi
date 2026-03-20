@@ -15,7 +15,9 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/common/config/storage', async () => {
-  const actual = await vi.importActual<typeof import('../../src/common/config/storage')>('../../src/common/config/storage');
+  const actual = await vi.importActual<typeof import('../../src/common/config/storage')>(
+    '../../src/common/config/storage'
+  );
   return {
     ...actual,
     ConfigStorage: {

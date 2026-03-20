@@ -114,7 +114,8 @@ describe('deepLink module', () => {
 
   describe('pending URL state', () => {
     it('should clear pending URL', async () => {
-      const { handleDeepLinkUrl, getPendingDeepLinkUrl, clearPendingDeepLinkUrl } = await import('@process/utils/deepLink');
+      const { handleDeepLinkUrl, getPendingDeepLinkUrl, clearPendingDeepLinkUrl } =
+        await import('@process/utils/deepLink');
 
       handleDeepLinkUrl('aionui://test');
       expect(getPendingDeepLinkUrl()).toBe('aionui://test');

@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('electron', () => ({
+  app: {
+    isPackaged: false,
+    getPath: vi.fn(() => '/mock/userData'),
+    getAppPath: vi.fn(() => '/mock/appPath'),
+  },
+  ipcMain: { handle: vi.fn(), on: vi.fn(), removeHandler: vi.fn() },
   powerSaveBlocker: { start: vi.fn(() => 1), stop: vi.fn() },
   powerMonitor: { on: vi.fn() },
 }));
@@ -11,13 +17,13 @@ vi.mock('@process/services/i18n', () => ({
   default: { t: vi.fn((key: string) => key) },
   i18nReady: Promise.resolve(),
 }));
-vi.mock('@process/message', () => ({ addMessage: vi.fn() }));
+vi.mock('@process/utils/message', () => ({ addMessage: vi.fn() }));
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: { responseStream: { emit: vi.fn() } },
   },
 }));
-vi.mock('@/process/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: { get: vi.fn(async () => false) },
 }));
 
@@ -310,7 +316,7 @@ describe('CronService', () => {
       expect.objectContaining({ state: expect.objectContaining({ lastStatus: 'missed' }) })
     );
     expect(emitter.emitJobUpdated).toHaveBeenCalledWith(job);
-    const { addMessage } = await import('@process/message');
+    const { addMessage } = await import('@process/utils/message');
     expect(addMessage).toHaveBeenCalledWith('conv-1', expect.objectContaining({ type: 'tips' }));
   });
 

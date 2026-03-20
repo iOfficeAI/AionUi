@@ -88,7 +88,10 @@ function createDuckTypedWrapper(
       await this.impl?.stop();
     }
 
-    async sendMessage(chatId: string, message: import('@process/channels/types').IUnifiedOutgoingMessage): Promise<string> {
+    async sendMessage(
+      chatId: string,
+      message: import('@process/channels/types').IUnifiedOutgoingMessage
+    ): Promise<string> {
       if (!this.impl) throw new Error('Extension plugin is not initialized');
       const result = await this.impl.sendMessage(chatId, message);
       return typeof result === 'string' ? result : `${pluginType}-msg-${Date.now()}`;

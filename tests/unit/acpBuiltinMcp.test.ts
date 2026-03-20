@@ -6,7 +6,10 @@
 
 import { describe, expect, it } from 'vitest';
 import type { IMcpServer } from '../../src/common/config/storage';
-import { buildBuiltinAcpSessionMcpServers, parseAcpMcpCapabilities } from '../../src/process/agent/acp/mcpSessionConfig';
+import {
+  buildBuiltinAcpSessionMcpServers,
+  parseAcpMcpCapabilities,
+} from '../../src/process/agent/acp/mcpSessionConfig';
 
 describe('ACP built-in MCP session config', () => {
   it('injects only enabled built-in MCP servers and converts transport shape for session/new', () => {

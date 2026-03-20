@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES6",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "module": "esnext",
     "moduleResolution": "bundler",

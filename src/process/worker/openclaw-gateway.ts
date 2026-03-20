@@ -6,8 +6,6 @@
  * but BaseAgentManager requires a valid worker file path at construction time.
  */
 
-
-
 if (require.main === module) {
   console.log('OpenClaw Gateway worker started');
 }

@@ -108,10 +108,10 @@ src/process/channels/plugins/dingtalk/  # lowercase
 
 **Violating these causes runtime crashes.**
 
-| Process                        | Can use                       | Cannot use                       |
-| ------------------------------ | ----------------------------- | -------------------------------- |
-| **Main** (`src/process/`)      | Node.js, Electron main APIs   | DOM APIs, React                  |
-| **Renderer** (`src/renderer/`) | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
+| Process                            | Can use                       | Cannot use                       |
+| ---------------------------------- | ----------------------------- | -------------------------------- |
+| **Main** (`src/process/`)          | Node.js, Electron main APIs   | DOM APIs, React                  |
+| **Renderer** (`src/renderer/`)     | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
 | **Worker** (`src/process/worker/`) | Node.js APIs                  | DOM APIs, Electron APIs          |
 
 Cross-process communication MUST go through:
@@ -304,10 +304,10 @@ PageName/                  # PascalCase
 
 Inside a page module (e.g., `pages/conversation/`), three types of subdirectories exist:
 
-| Type                                          | Convention | Examples                                             |
-| --------------------------------------------- | ---------- | ---------------------------------------------------- |
-| **Categorical** (standard role)               | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
-| **Feature module** (business feature)         | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
+| Type                                                  | Convention | Examples                                             |
+| ----------------------------------------------------- | ---------- | ---------------------------------------------------- |
+| **Categorical** (standard role)                       | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
+| **Feature module** (business feature)                 | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
 | **Platform directory** (mirrors `src/process/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
 
 Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/process/agent/<platform>/`.

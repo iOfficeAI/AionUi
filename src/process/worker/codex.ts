@@ -8,7 +8,6 @@
 
 // Export for use in the worker
 
-
 // If this is the main module, you can add any initialization logic here
 if (require.main === module) {
   console.log('Codex worker started');

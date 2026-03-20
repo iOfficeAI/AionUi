@@ -102,7 +102,9 @@ export async function writeTextFile(filePath: string, content: string): Promise<
 
     return null;
   } catch (error) {
-    throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`, {
+      cause: error,
+    });
   }
 }
 

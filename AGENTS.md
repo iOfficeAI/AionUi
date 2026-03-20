@@ -96,6 +96,6 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 
 ## Internationalization
 
-All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/shared/i18n-config.json`.
+All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/common/config/i18n-config.json`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.

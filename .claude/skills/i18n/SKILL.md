@@ -14,10 +14,10 @@ Standards and workflow for internationalization. All user-visible text must use 
 
 ## IMPORTANT: Read Config First
 
-Before doing any i18n work, **always read `src/shared/i18n-config.json`** to get the current list of supported languages and modules. Never assume a fixed number — languages and modules may have been added or removed since this skill was written.
+Before doing any i18n work, **always read `src/common/config/i18n-config.json`** to get the current list of supported languages and modules. Never assume a fixed number — languages and modules may have been added or removed since this skill was written.
 
 ```bash
-cat src/shared/i18n-config.json
+cat src/common/config/i18n-config.json
 ```
 
 This file is the **single source of truth**. All scripts, runtime code, and this workflow depend on it.
@@ -25,7 +25,7 @@ This file is the **single source of truth**. All scripts, runtime code, and this
 ## File Structure
 
 ```
-src/shared/i18n-config.json              # Single source of truth: languages, modules
+src/common/config/i18n-config.json              # Single source of truth: languages, modules
 src/renderer/i18n/
 ├── index.ts                             # i18next configuration
 ├── i18n-keys.d.ts                       # AUTO-GENERATED — do not edit manually
@@ -96,7 +96,7 @@ t('cron.status.active'); // nested key in cron.json
 
 ## Adding New Text — Workflow
 
-### Step 1: Read `src/shared/i18n-config.json`
+### Step 1: Read `src/common/config/i18n-config.json`
 
 Get the current language list and module list. Do not skip this step.
 
@@ -140,7 +140,7 @@ node scripts/check-i18n.js  # Validate completeness
 
 ## Adding a New Module
 
-1. Add module name to `src/shared/i18n-config.json` → `modules` array
+1. Add module name to `src/common/config/i18n-config.json` → `modules` array
 2. Create `<module>.json` in **every** locale directory (read `supportedLanguages` to know which)
 3. Add import + export in each locale's `index.ts`
 4. Run `bun run i18n:types` to regenerate type definitions
@@ -212,7 +212,7 @@ Most terms can be auto-converted from zh-CN, but some need manual review:
 
 Before submitting code with new text:
 
-- [ ] Read `src/shared/i18n-config.json` to get current languages and modules
+- [ ] Read `src/common/config/i18n-config.json` to get current languages and modules
 - [ ] All user-visible text uses `t()` function
 - [ ] New keys added to **every** locale directory in `supportedLanguages`
 - [ ] No hardcoded Chinese/English in JSX

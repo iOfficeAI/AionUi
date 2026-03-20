@@ -55,7 +55,13 @@ export { SandboxHost, createSandbox, destroySandbox, destroyAllSandboxes, getSan
 export type { SandboxHostOptions, SandboxMessage } from './sandbox/sandbox';
 
 // --- UI Protocol (Figma-inspired dual-thread communication) ---
-export { ExtensionUIBridge, getUIBridge, disposeUIBridge, disposeAllUIBridges, ExtUIMessageTypes } from './protocol/uiProtocol';
+export {
+  ExtensionUIBridge,
+  getUIBridge,
+  disposeUIBridge,
+  disposeAllUIBridges,
+  ExtUIMessageTypes,
+} from './protocol/uiProtocol';
 export type { ExtUIMessage, ExtUIResponse, ExtUIMessageHandler } from './protocol/uiProtocol';
 
 export { RESERVED_NAME_PREFIXES, PRESET_AGENT_TYPES } from './types';

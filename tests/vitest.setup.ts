@@ -5,7 +5,6 @@
 
 // Make this a module
 
-
 // Extend global types for testing
 declare global {
   // eslint-disable-next-line no-var

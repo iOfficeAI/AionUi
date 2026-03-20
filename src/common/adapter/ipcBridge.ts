@@ -986,7 +986,12 @@ export const extensions = {
 
 // ==================== Channel API ====================
 
-import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@process/channels/types';
+import type {
+  IChannelPairingRequest,
+  IChannelPluginStatus,
+  IChannelSession,
+  IChannelUser,
+} from '@process/channels/types';
 
 export const channel = {
   // Plugin Management

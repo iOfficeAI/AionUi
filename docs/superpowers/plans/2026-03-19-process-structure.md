@@ -19,6 +19,7 @@ All 5 modules are currently at `src/<module>/` and imported via `@/<module>/...`
 After moving to `src/process/<module>/`, imports change to `@process/<module>/...` (resolves through `@process/*` → `./src/process/*`).
 
 **Special cases:**
+
 - `@worker/*` alias in tsconfig/vite points to `src/worker/*` — must update to `src/process/worker/*`
 - Worker entry points in `electron.vite.config.ts` rollup input — must update paths
 - `vitest.config.ts` coverage include paths — must update
@@ -27,19 +28,20 @@ After moving to `src/process/<module>/`, imports change to `@process/<module>/..
 ### Verification Command
 
 After each task, run:
+
 ```bash
 bunx tsc --noEmit
 ```
 
 ### File Counts (imports to update per module)
 
-| Module | External import lines | Internal cross-imports |
-|--------|----------------------|----------------------|
-| worker/ | 1 | agent/ refs inside worker |
-| webserver/ | 9 | process/, extensions/, adapter/ refs inside |
-| channels/ | 20 | extensions/ ref inside |
-| extensions/ | 12 | channels/, common/ refs inside |
-| agent/ | 19 | process/, extensions/ refs inside |
+| Module      | External import lines | Internal cross-imports                      |
+| ----------- | --------------------- | ------------------------------------------- |
+| worker/     | 1                     | agent/ refs inside worker                   |
+| webserver/  | 9                     | process/, extensions/, adapter/ refs inside |
+| channels/   | 20                    | extensions/ ref inside                      |
+| extensions/ | 12                    | channels/, common/ refs inside              |
+| agent/      | 19                    | process/, extensions/ refs inside           |
 
 **Total: ~90 import lines to update across src/ and tests/**
 
@@ -48,6 +50,7 @@ bunx tsc --noEmit
 ## Task 1: Move `worker/` into `src/process/worker/`
 
 **Files:**
+
 - Move: `src/worker/` → `src/process/worker/`
 - Modify: `src/process/task/BaseAgentManager.ts:7`
 - Modify: `tsconfig.json` (`@worker/*` path)
@@ -63,10 +66,13 @@ git mv src/worker src/process/worker
 - [ ] **Step 2: Update tsconfig.json `@worker/*` path**
 
 Change:
+
 ```json
 "@worker/*": ["./src/worker/*"]
 ```
+
 To:
+
 ```json
 "@worker/*": ["./src/process/worker/*"]
 ```
@@ -74,6 +80,7 @@ To:
 - [ ] **Step 3: Update electron.vite.config.ts**
 
 In `mainAliases` (line 42):
+
 ```ts
 // Change:
 '@worker': resolve('src/worker'),
@@ -82,6 +89,7 @@ In `mainAliases` (line 42):
 ```
 
 In `rollupOptions.input` (lines 95-99):
+
 ```ts
 // Change all src/worker/ to src/process/worker/
 gemini: resolve('src/process/worker/gemini.ts'),
@@ -94,6 +102,7 @@ nanobot: resolve('src/process/worker/nanobot.ts'),
 - [ ] **Step 4: Update the one external import**
 
 `src/process/task/BaseAgentManager.ts:7`:
+
 ```ts
 // Change:
 import { ForkTask } from '@/worker/fork/ForkTask';
@@ -123,6 +132,7 @@ git commit -m "refactor(worker): move src/worker/ into src/process/worker/"
 ## Task 2: Move `webserver/` into `src/process/webserver/`
 
 **Files:**
+
 - Move: `src/webserver/` → `src/process/webserver/`
 - Modify: 9 external import files
 - Modify: `vitest.config.ts` (coverage paths)
@@ -138,11 +148,11 @@ git mv src/webserver src/process/webserver
 
 Replace `@/webserver/` with `@process/webserver/` in these files:
 
-| File | Line |
-|------|------|
-| `src/renderer/hooks/context/AuthContext.tsx` | 2 |
-| `src/process/bridge/webuiBridge.ts` | 10-16 |
-| `src/process/bridge/services/WebuiService.ts` | 9-11 |
+| File                                          | Line  |
+| --------------------------------------------- | ----- |
+| `src/renderer/hooks/context/AuthContext.tsx`  | 2     |
+| `src/process/bridge/webuiBridge.ts`           | 10-16 |
+| `src/process/bridge/services/WebuiService.ts` | 9-11  |
 
 - [ ] **Step 3: Update internal imports inside webserver**
 
@@ -164,6 +174,7 @@ Search for `@/webserver/` self-references → change to relative or `@process/we
 - [ ] **Step 5: Update test imports**
 
 `tests/unit/apiRoutesUploadWorkspace.test.ts:21`:
+
 ```ts
 // Change:
 import { resolveUploadWorkspace } from '@/webserver/routes/apiRoutes';
@@ -189,6 +200,7 @@ git commit -m "refactor(webserver): move src/webserver/ into src/process/webserv
 ## Task 3: Move `channels/` into `src/process/channels/`
 
 **Files:**
+
 - Move: `src/channels/` → `src/process/channels/`
 - Modify: ~20 external import files across renderer, process, common, extensions
 
@@ -203,15 +215,18 @@ git mv src/channels src/process/channels
 Replace `@/channels/` with `@process/channels/` in all files outside `src/process/channels/`:
 
 **Renderer (4 files — type-only imports):**
+
 - `src/renderer/components/settings/SettingsModal/contents/channels/LarkConfigForm.tsx`
 - `src/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent.tsx`
 - `src/renderer/components/settings/SettingsModal/contents/channels/TelegramConfigForm.tsx`
 - `src/renderer/components/settings/SettingsModal/contents/channels/DingTalkConfigForm.tsx`
 
 **Common (1 file):**
+
 - `src/common/ipcBridge.ts`
 
 **Process (8 files):**
+
 - `src/process/database/IChannelRepository.ts`
 - `src/process/database/SqliteChannelRepository.ts`
 - `src/process/database/index.ts`
@@ -223,6 +238,7 @@ Replace `@/channels/` with `@process/channels/` in all files outside `src/proces
 - `src/process/index.ts`
 
 **Extensions (1 file — will move in Task 4):**
+
 - `src/extensions/resolvers/ChannelPluginResolver.ts`
 
 - [ ] **Step 3: Update internal imports inside channels**
@@ -248,6 +264,7 @@ git commit -m "refactor(channels): move src/channels/ into src/process/channels/
 ## Task 4: Move `extensions/` into `src/process/extensions/`
 
 **Files:**
+
 - Move: `src/extensions/` → `src/process/extensions/`
 - Modify: ~12 external import files
 
@@ -262,9 +279,11 @@ git mv src/extensions src/process/extensions
 Replace `@/extensions` with `@process/extensions` in:
 
 **Agent (1 file — will move in Task 5):**
+
 - `src/agent/acp/AcpDetector.ts`
 
 **Process (8 files):**
+
 - `src/process/bridge/modelBridge.ts`
 - `src/process/bridge/extensionsBridge.ts`
 - `src/process/bridge/channelBridge.ts`
@@ -274,17 +293,21 @@ Replace `@/extensions` with `@process/extensions` in:
 - `src/process/index.ts`
 
 **Channels (now at src/process/channels/):**
+
 - `src/process/channels/core/ChannelManager.ts`
 
 **Webserver (now at src/process/webserver/):**
+
 - `src/process/webserver/routes/apiRoutes.ts`
 
 **Root entry:**
+
 - `src/index.ts`
 
 - [ ] **Step 3: Update internal imports inside extensions**
 
 Search `src/process/extensions/` for:
+
 - `@/channels/` → `@process/channels/` (ChannelPluginResolver)
 - `@/extensions/` self-references → relative imports
 
@@ -306,6 +329,7 @@ git commit -m "refactor(extensions): move src/extensions/ into src/process/exten
 ## Task 5: Move `agent/` into `src/process/agent/`
 
 **Files:**
+
 - Move: `src/agent/` → `src/process/agent/`
 - Modify: ~19 external import files
 - Modify: `vitest.config.ts` (coverage paths for ACP)
@@ -321,6 +345,7 @@ git mv src/agent src/process/agent
 Replace `@/agent/` with `@process/agent/` in:
 
 **Worker (now at src/process/worker/):**
+
 - `src/process/worker/gemini.ts`
 - `src/process/worker/acp.ts`
 - `src/process/worker/codex.ts`
@@ -328,11 +353,13 @@ Replace `@/agent/` with `@process/agent/` in:
 - `src/process/worker/nanobot.ts`
 
 **Bridge (3 files):**
+
 - `src/process/bridge/acpConversationBridge.ts`
 - `src/process/bridge/conversationBridge.ts`
 - `src/process/bridge/index.ts`
 
 **Task (6 files):**
+
 - `src/process/task/OpenClawAgentManager.ts`
 - `src/process/task/NanoBotAgentManager.ts`
 - `src/process/task/AcpAgentManager.ts`
@@ -341,11 +368,13 @@ Replace `@/agent/` with `@process/agent/` in:
 - `src/process/task/GeminiAgentManager.ts` (if it imports agent)
 
 **Channels (now at src/process/channels/):**
+
 - `src/process/channels/actions/SystemActions.ts`
 
 - [ ] **Step 3: Update internal imports inside agent**
 
 Search `src/process/agent/` for:
+
 - `@/extensions` → `@process/extensions`
 - `@/agent/` self-references → relative imports
 - `@process/` imports — already correct
@@ -391,6 +420,7 @@ ls -1 src/
 ```
 
 Expected remaining:
+
 ```
 adapter/
 common/
@@ -414,6 +444,7 @@ ls -1 src/process/
 ```
 
 Expected:
+
 ```
 agent/
 bridge/

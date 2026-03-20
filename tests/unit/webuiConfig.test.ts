@@ -18,6 +18,11 @@ describe('webuiConfig module', () => {
       app: {
         getPath: vi.fn(() => '/mock/userData'),
       },
+      ipcMain: {
+        handle: vi.fn(),
+        on: vi.fn(),
+        removeHandler: vi.fn(),
+      },
     }));
 
     vi.doMock('fs', () => ({
@@ -29,19 +34,23 @@ describe('webuiConfig module', () => {
       setWebServerInstance: vi.fn(),
     }));
 
-    vi.doMock('@/process/initStorage', () => ({
+    vi.doMock('@process/utils/initStorage', () => ({
       ProcessConfig: {
         get: vi.fn(() => Promise.resolve(undefined)),
       },
     }));
 
-    vi.doMock('@/webserver', () => ({
+    vi.doMock('@process/webserver', () => ({
       startWebServerWithInstance: vi.fn(() => Promise.resolve({ port: 3000 })),
     }));
 
-    vi.doMock('@process/webserver/config/constants', () => ({
-      SERVER_CONFIG: { DEFAULT_PORT: 3000 },
-    }));
+    vi.doMock('@process/webserver/config/constants', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('@process/webserver/config/constants')>();
+      return {
+        ...actual,
+        SERVER_CONFIG: { ...actual.SERVER_CONFIG, DEFAULT_PORT: 3000 },
+      };
+    });
   });
 
   afterEach(() => {

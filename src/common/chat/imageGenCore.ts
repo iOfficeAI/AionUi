@@ -93,7 +93,9 @@ export async function saveGeneratedImage(base64Data: string, workspaceDir: strin
     return filePath;
   } catch (error) {
     console.error('[ImageGen] Failed to save image file:', error);
-    throw new Error(`Failed to save image: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    throw new Error(`Failed to save image: ${error instanceof Error ? error.message : String(error)}`, {
+      cause: error,
+    });
   }
 }
 
@@ -147,7 +149,8 @@ export async function processImageUri(imageUri: string, workspaceDir: string): P
     }
 
     throw new Error(
-      `Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\nPlease ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)`, { cause: error }
+      `Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\nPlease ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)`,
+      { cause: error }
     );
   }
 }

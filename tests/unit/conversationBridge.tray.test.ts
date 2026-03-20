@@ -81,7 +81,7 @@ const registerMocks = () => {
     },
   }));
 
-  vi.doMock('@/process/initStorage', () => ({
+  vi.doMock('@process/utils/initStorage', () => ({
     getSkillsDir: vi.fn(() => '/mock/skills'),
     ProcessChat: { get: vi.fn(async () => []) },
   }));

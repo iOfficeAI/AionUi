@@ -19,7 +19,10 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
  */
 
 // Path to the bundled SKILL.md in the project
-const BUNDLED_SKILL_PATH = path.resolve(__dirname, '../../src/process/resources/skills/_builtin/aionui-skills/SKILL.md');
+const BUNDLED_SKILL_PATH = path.resolve(
+  __dirname,
+  '../../src/process/resources/skills/_builtin/aionui-skills/SKILL.md'
+);
 
 describe('Skills Market - Bundled SKILL.md', () => {
   it('bundled SKILL.md file exists', async () => {
