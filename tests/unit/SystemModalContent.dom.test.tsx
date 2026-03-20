@@ -237,6 +237,11 @@ describe('SystemModalContent', () => {
       expect(screen.getByText('settings.openDevTools')).toBeInTheDocument();
     });
 
+    // Wait for the event listener to be registered via useEffect
+    await waitFor(() => {
+      expect(eventCallback).not.toBeNull();
+    });
+
     // Simulate DevTools opened event from main process
     await act(async () => {
       eventCallback?.({ isOpen: true });
