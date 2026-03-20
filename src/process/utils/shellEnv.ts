@@ -471,7 +471,7 @@ export function resolveNpxPath(env: Record<string, string | undefined>): string 
   } catch {
     // which/node/npx resolution failed
   }
-  return npxName;
+  return 'npx';
 }
 
 /** Separate cache for full (unfiltered) shell environment */
