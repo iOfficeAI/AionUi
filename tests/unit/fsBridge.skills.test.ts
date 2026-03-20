@@ -56,7 +56,9 @@ describe('fsBridge skills functionality', () => {
               }
               throw new Error(`EISDIR: illegal operation on a directory, read '${fp}'`);
             }
-            throw new Error(`ENOENT: no such file or directory, open '${fp}'`);
+            const err = new Error(`ENOENT: no such file or directory, open '${fp}'`) as NodeJS.ErrnoException;
+            err.code = 'ENOENT';
+            throw err;
           }),
           writeFile: vi.fn(async (filePath: string, content: string) => {
             const fp = resolvePath(filePath);
@@ -257,6 +259,29 @@ describe('fsBridge skills functionality', () => {
     }
     throw new Error(`Provider ${channel} not found in registered mocks`);
   };
+
+  describe('readFile ENOENT handling (Fixes ELECTRON-6W)', () => {
+    it('returns null when file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readFile');
+      const result = await handler({ path: '/nonexistent/gemini-temp-123/README.md' });
+      expect(result).toBeNull();
+    });
+
+    it('still throws for non-ENOENT errors (e.g., EISDIR)', async () => {
+      // Create a directory entry so readFile throws EISDIR
+      mockFsStore[path.resolve('/mock/some-dir')] = { isDirectory: true };
+      const handler = await getProvider('readFile');
+      await expect(handler({ path: '/mock/some-dir' })).rejects.toThrow('EISDIR');
+    });
+  });
+
+  describe('readFileBuffer ENOENT handling', () => {
+    it('returns null when file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readFileBuffer');
+      const result = await handler({ path: '/nonexistent/temp-workspace/file.bin' });
+      expect(result).toBeNull();
+    });
+  });
 
   describe('listAvailableSkills', () => {
     it('should correctly parse SKILL.md and distinguish builtin vs custom', async () => {
