@@ -296,6 +296,9 @@
     "sessionCount": "{{count}}개 세션",
     "refresh": "새로고침",
     "loadError": "외부 세션 불러오기 실패",
-    "timeAgo": "{{time}} 전"
+    "timeAgo": "{{time}} 전",
+    "filterAll": "전체",
+    "searchPlaceholder": "이름 또는 경로 검색...",
+    "noResults": "일치하는 세션 없음"
   }
 }

@@ -11,6 +11,8 @@
 
 import { listClaudeCodeSessions } from './ClaudeCodeParser';
 import { listCodexSessions } from './CodexParser';
+import { listGeminiCliSessions } from './GeminiCliParser';
+import { listOpenCodeSessions } from './OpenCodeParser';
 import type { ExternalSessionInfo } from './types';
 
 /**
@@ -18,12 +20,14 @@ import type { ExternalSessionInfo } from './types';
  * Results are sorted by updatedAt descending (most recent first).
  */
 export async function listAllExternalSessions(): Promise<ExternalSessionInfo[]> {
-  const [claudeSessions, codexSessions] = await Promise.all([
+  const [claudeSessions, codexSessions, geminiSessions, openCodeSessions] = await Promise.all([
     listClaudeCodeSessions().catch((): ExternalSessionInfo[] => []),
     listCodexSessions().catch((): ExternalSessionInfo[] => []),
+    listGeminiCliSessions().catch((): ExternalSessionInfo[] => []),
+    listOpenCodeSessions().catch((): ExternalSessionInfo[] => []),
   ]);
 
-  const all = [...claudeSessions, ...codexSessions];
+  const all = [...claudeSessions, ...codexSessions, ...geminiSessions, ...openCodeSessions];
   all.sort((a, b) => b.updatedAt - a.updatedAt);
   return all;
 }

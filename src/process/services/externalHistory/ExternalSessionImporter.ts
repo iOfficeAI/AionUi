@@ -17,6 +17,8 @@ import { uuid } from '@/common/utils';
 import { getDatabase } from '@process/services/database';
 import { parseClaudeSession } from './ClaudeCodeParser';
 import { parseCodexSession } from './CodexParser';
+import { parseGeminiCliSession } from './GeminiCliParser';
+import { parseOpenCodeSession } from './OpenCodeParser';
 import type { ExternalMessage, ExternalParseResult } from './types';
 
 function convertToTMessages(
@@ -60,6 +62,12 @@ export async function importExternalSession(
       case 'codex':
         result = await parseCodexSession(sessionId);
         break;
+      case 'gemini-cli':
+        result = await parseGeminiCliSession(sessionId);
+        break;
+      case 'opencode':
+        result = await parseOpenCodeSession(sessionId);
+        break;
       default:
         return { success: false, error: `Unsupported backend: ${backend as string}` };
     }
@@ -75,19 +83,44 @@ export async function importExternalSession(
     const conversationId = uuid();
     const now = Date.now();
 
+    // Map external backend to native conversation type + model
+    const isGemini = backend === 'gemini-cli';
+    const conversationType = isGemini ? 'gemini' : 'acp';
+    const model = isGemini
+      ? {
+          id: 'gemini-placeholder',
+          name: 'Gemini',
+          useModel: 'default',
+          platform: 'gemini-with-google-auth',
+          baseUrl: '',
+          apiKey: '',
+        }
+      : { platform: '', name: '' };
+
+    const extra: Record<string, unknown> = {
+      workspace,
+      customWorkspace: Boolean(workspace),
+    };
+    // ACP conversations need backend in extra for proper routing/display
+    if (conversationType === 'acp') {
+      // Map external backend names to their ACP backend identifiers
+      const acpBackendMap: Record<string, string> = {
+        claude: 'claude',
+        codex: 'codex',
+        opencode: 'opencode',
+      };
+      extra.backend = acpBackendMap[backend] ?? backend;
+    }
+
     const conversation = {
       id: conversationId,
       name: sessionName || externalMessages[0]?.content.slice(0, 80) || `Imported ${backend} session`,
-      type: 'acp',
+      type: conversationType,
       createTime: now,
       modifyTime: now,
-      model: { platform: '', name: '' },
+      model,
       source: 'external-import',
-      extra: {
-        workspace,
-        customWorkspace: Boolean(workspace),
-        backend,
-      },
+      extra,
     } as TChatConversation;
 
     const tMessages = convertToTMessages(conversationId, externalMessages);

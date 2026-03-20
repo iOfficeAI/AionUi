@@ -296,6 +296,9 @@
     "sessionCount": "{{count}} 個對話",
     "refresh": "重新整理",
     "loadError": "載入外部對話失敗",
-    "timeAgo": "{{time}} 前"
+    "timeAgo": "{{time}} 前",
+    "filterAll": "全部",
+    "searchPlaceholder": "搜尋名稱或路徑...",
+    "noResults": "無符合條件的對話"
   }
 }

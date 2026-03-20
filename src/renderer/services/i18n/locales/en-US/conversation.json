@@ -296,6 +296,9 @@
     "sessionCount": "{{count}} sessions",
     "refresh": "Refresh",
     "loadError": "Failed to load external sessions",
-    "timeAgo": "{{time}} ago"
+    "timeAgo": "{{time}} ago",
+    "filterAll": "All",
+    "searchPlaceholder": "Search name or path...",
+    "noResults": "No matching sessions"
   }
 }

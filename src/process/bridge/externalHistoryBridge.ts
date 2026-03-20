@@ -19,10 +19,7 @@ import type { IConversationRepository } from '@process/services/database/IConver
 import { listAllExternalSessions } from '@process/services/externalHistory/ExternalSessionReader';
 import { importExternalSession } from '@process/services/externalHistory/ExternalSessionImporter';
 
-/** UUID v7 format: 8-4-4-4-12 hex characters. */
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-const VALID_BACKENDS = new Set<ExternalSessionBackend>(['claude', 'codex']);
+const VALID_BACKENDS = new Set<ExternalSessionBackend>(['claude', 'codex', 'gemini-cli', 'opencode']);
 
 export function initExternalHistoryBridge(repo: IConversationRepository): void {
   // List all external sessions from supported CLI agents
@@ -37,7 +34,7 @@ export function initExternalHistoryBridge(repo: IConversationRepository): void {
       if (!VALID_BACKENDS.has(params.backend)) {
         return { success: false, error: `Invalid backend: ${String(params.backend)}` };
       }
-      if (!params.id || !UUID_PATTERN.test(params.id)) {
+      if (!params.id || typeof params.id !== 'string' || params.id.length > 200) {
         return { success: false, error: 'Invalid session ID format' };
       }
 

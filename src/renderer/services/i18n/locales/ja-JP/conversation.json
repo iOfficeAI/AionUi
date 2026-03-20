@@ -296,6 +296,9 @@
     "sessionCount": "{{count}} セッション",
     "refresh": "更新",
     "loadError": "外部セッションの読み込みに失敗しました",
-    "timeAgo": "{{time}} 前"
+    "timeAgo": "{{time}} 前",
+    "filterAll": "すべて",
+    "searchPlaceholder": "名前またはパスで検索...",
+    "noResults": "一致するセッションがありません"
   }
 }

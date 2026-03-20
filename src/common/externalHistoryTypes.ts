@@ -9,8 +9,7 @@
  * Placed in src/common/ so both main process and renderer can import.
  */
 
-export type ExternalSessionBackend = 'claude' | 'codex';
-// Future: | 'gemini-cli' | 'opencode'
+export type ExternalSessionBackend = 'claude' | 'codex' | 'gemini-cli' | 'opencode';
 
 export type ExternalSessionInfo = {
   /** Unique session ID from the external CLI */

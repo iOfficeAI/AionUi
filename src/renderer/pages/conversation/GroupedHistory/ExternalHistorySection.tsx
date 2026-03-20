@@ -7,15 +7,16 @@
 /**
  * External CLI session history import feature.
  * Provides a trigger button and a Drawer that lists external sessions
- * (Claude Code, Codex) for importing into AionUi.
+ * (Claude Code, Codex, Gemini CLI, OpenCode) for importing into AionUi.
  */
 
 import { ipcBridge } from '@/common';
-import type { ExternalSessionInfo } from '@/common/externalHistoryTypes';
-import { Button, Drawer, Empty, Message, Spin, Tag, Tooltip } from '@arco-design/web-react';
-import { Download, FolderOpen, Refresh, Terminal } from '@icon-park/react';
-import React, { useCallback, useState } from 'react';
+import type { ExternalSessionBackend, ExternalSessionInfo } from '@/common/externalHistoryTypes';
+import { Button, Drawer, Empty, Input, Message, Select, Spin, Tag, Tooltip } from '@arco-design/web-react';
+import { Download, FolderOpen, Refresh, Search, Terminal } from '@icon-park/react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 
 /**
  * Unique key for a session (avoids collision across backends).
@@ -36,6 +37,33 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [importingIds, setImportingIds] = useState<Set<string>>(new Set());
+  const [filterBackend, setFilterBackend] = useState<ExternalSessionBackend | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const backendOptions = useMemo(() => [
+    { value: 'all', label: t('conversation.externalHistory.filterAll') },
+    { value: 'claude', label: 'Claude Code' },
+    { value: 'codex', label: 'Codex' },
+    { value: 'gemini-cli', label: 'Gemini CLI' },
+    { value: 'opencode', label: 'OpenCode' },
+  ], [t]);
+
+  /** Sessions filtered by backend + search query. */
+  const filteredSessions = useMemo(() => {
+    let list = sessions;
+    if (filterBackend !== 'all') {
+      list = list.filter((s) => s.backend === filterBackend);
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          (s.workspace?.toLowerCase().includes(q) ?? false),
+      );
+    }
+    return list.toSorted((a, b) => b.updatedAt - a.updatedAt);
+  }, [sessions, filterBackend, searchQuery]);
 
   const fetchSessions = useCallback(async () => {
     setLoading(true);
@@ -88,7 +116,6 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
     [t]
   );
 
-
   if (collapsed) return null;
 
   return (
@@ -123,9 +150,11 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
         headerStyle={{ borderBottom: '1px solid var(--color-border-2)' }}
       >
         {/* Toolbar */}
-        <div className='flex items-center justify-between mb-12px'>
+        <div className='flex items-center justify-between mb-8px'>
           <span className='text-13px text-t-secondary'>
-            {loaded && !loading ? t('conversation.externalHistory.sessionCount', { count: sessions.length }) : ''}
+            {loaded && !loading
+              ? t('conversation.externalHistory.sessionCount', { count: filteredSessions.length })
+              : ''}
           </span>
           <Button
             size='mini'
@@ -138,6 +167,31 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
           >
             {loading ? '' : t('conversation.externalHistory.refresh')}
           </Button>
+        </div>
+
+        {/* Filter & Search */}
+        <div className='flex items-center gap-8px mb-12px'>
+          <Select
+            size='small'
+            value={filterBackend}
+            onChange={(v: string) => setFilterBackend(v as ExternalSessionBackend | 'all')}
+            style={{ width: 140, flexShrink: 0 }}
+            getPopupContainer={() => document.body}
+          >
+            {backendOptions.map((opt) => (
+              <Select.Option key={opt.value} value={opt.value}>
+                {opt.label}
+              </Select.Option>
+            ))}
+          </Select>
+          <Input
+            size='small'
+            allowClear
+            placeholder={t('conversation.externalHistory.searchPlaceholder')}
+            prefix={<Search theme='outline' size='14' />}
+            value={searchQuery}
+            onChange={(v) => setSearchQuery(v)}
+          />
         </div>
 
         {/* Loading */}
@@ -159,16 +213,20 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
         )}
 
         {/* Empty state */}
-        {loaded && !error && sessions.length === 0 && !loading && (
+        {loaded && !error && filteredSessions.length === 0 && !loading && (
           <Empty
-            description={t('conversation.externalHistory.noSessions')}
+            description={
+              sessions.length === 0
+                ? t('conversation.externalHistory.noSessions')
+                : t('conversation.externalHistory.noResults')
+            }
             style={{ marginTop: '40px' }}
           />
         )}
 
         {/* Session list */}
         <div className='flex flex-col gap-4px'>
-          {sessions.map((session) => {
+          {filteredSessions.map((session) => {
             const key = sessionKey(session);
             const isImporting = importingIds.has(key);
             return (
@@ -188,8 +246,8 @@ export const ExternalHistoryButton: React.FC<{ collapsed?: boolean }> = ({ colla
                 {/* Content */}
                 <div className='flex-1 min-w-0'>
                   <div className='flex items-center gap-6px mb-4px'>
-                    <Tag size='small' color={session.backend === 'claude' ? 'orangered' : 'green'}>
-                      {session.backend === 'claude' ? 'Claude Code' : 'Codex'}
+                    <Tag size='small' color={backendTagColor(session.backend)}>
+                      {backendTagLabel(session.backend)}
                     </Tag>
                     <span className='text-11px text-t-secondary'>
                       {t('conversation.externalHistory.timeAgo', { time: formatTimeDiff(session.updatedAt) })}
@@ -248,6 +306,28 @@ function formatTimeDiff(timestamp: number): string {
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   return `${days}d`;
+}
+
+/** Map backend to Arco Tag color. */
+function backendTagColor(backend: string): string {
+  switch (backend) {
+    case 'claude': return 'orangered';
+    case 'codex': return 'green';
+    case 'gemini-cli': return 'arcoblue';
+    case 'opencode': return 'purple';
+    default: return 'gray';
+  }
+}
+
+/** Map backend to display label. */
+function backendTagLabel(backend: string): string {
+  switch (backend) {
+    case 'claude': return 'Claude Code';
+    case 'codex': return 'Codex';
+    case 'gemini-cli': return 'Gemini CLI';
+    case 'opencode': return 'OpenCode';
+    default: return backend;
+  }
 }
 
 export default ExternalHistoryButton;

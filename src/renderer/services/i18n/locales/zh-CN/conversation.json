@@ -296,6 +296,9 @@
     "sessionCount": "{{count}} 个会话",
     "refresh": "刷新",
     "loadError": "加载外部会话失败",
-    "timeAgo": "{{time}} 前"
+    "timeAgo": "{{time}} 前",
+    "filterAll": "全部",
+    "searchPlaceholder": "搜索名称或路径...",
+    "noResults": "无符合条件的对话"
   }
 }

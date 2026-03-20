@@ -298,6 +298,9 @@
     "sessionCount": "{{count}} oturum",
     "refresh": "Yenile",
     "loadError": "Harici oturumlar yüklenemedi",
-    "timeAgo": "{{time}} önce"
+    "timeAgo": "{{time}} önce",
+    "filterAll": "Tümü",
+    "searchPlaceholder": "Ad veya yol ara...",
+    "noResults": "Eşleşen oturum yok"
   }
 }
