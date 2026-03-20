@@ -68,6 +68,9 @@ export class AcpConnection {
   private configOptions: AcpSessionConfigOption[] | null = null;
   private models: AcpSessionModels | null = null;
 
+  // Cached agent capabilities from initialize response
+  private _supportsLoadSession: boolean = false;
+
   // Performance tracking: timestamp when last prompt was sent
   private lastPromptSentAt: number = 0;
   private firstChunkReceived: boolean = true;
@@ -441,6 +444,7 @@ export class AcpConnection {
     this.initializeResponse = null;
     this.configOptions = null;
     this.models = null;
+    this._supportsLoadSession = false;
     this.child = null;
 
     // 3. Notify AcpAgent about disconnect
@@ -750,6 +754,12 @@ export class AcpConnection {
     const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
     this.initializeResponse = response;
+
+    // Parse agentCapabilities from initialize response
+    const initResult = response.result as Record<string, unknown> | undefined;
+    const caps = initResult?.agentCapabilities as Record<string, unknown> | undefined;
+    this._supportsLoadSession = Boolean(caps?.loadSession);
+
     return response;
   }
 
@@ -880,7 +890,8 @@ export class AcpConnection {
     // Some CLIs require absolute paths for cwd
     // - Copilot: "Directory path must be absolute: ."
     // - Codex (via codex-acp): "cwd is not absolute: ."
-    if (this.backend === 'copilot' || this.backend === 'codex') {
+    // - Cursor (via agent acp): session/load requires absolute workspace path
+    if (this.backend === 'copilot' || this.backend === 'codex' || this.backend === 'cursor') {
       return path.resolve(cwd);
     }
 
@@ -1001,6 +1012,7 @@ export class AcpConnection {
     this.initializeResponse = null;
     this.configOptions = null;
     this.models = null;
+    this._supportsLoadSession = false;
   }
 
   get isConnected(): boolean {
@@ -1027,6 +1039,14 @@ export class AcpConnection {
 
   getInitializeResponse(): AcpResponse | null {
     return this.initializeResponse;
+  }
+
+  /**
+   * Whether the backend declared loadSession capability in its initialize response.
+   * When true, session resume should use session/load instead of session/new + resumeSessionId.
+   */
+  get supportsLoadSession(): boolean {
+    return this._supportsLoadSession;
   }
 
   // Normalize read operations to the conversation workspace before touching the filesystem

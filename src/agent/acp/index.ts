@@ -1326,7 +1326,9 @@ export class AcpAgent {
    * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
    *
    * Resume strategy per backend:
-   * - Codex:           uses dedicated ACP `session/load` method
+   * - loadSession capable (Codex, Cursor, etc.): uses dedicated ACP `session/load` method
+   *   Detected dynamically via agentCapabilities.loadSession from initialize response,
+   *   with codex as hardcoded fallback for backward compatibility.
    * - Claude/CodeBuddy: uses `session/new` with `_meta.claudeCode.options.resume`
    * - Others:          uses `session/new` with generic `resumeSessionId` param
    */
@@ -1341,10 +1343,11 @@ export class AcpAgent {
       try {
         let response: { sessionId?: string };
 
-        if (this.extra.backend === 'codex') {
-          // Codex ACP bridge implements session/load (load_session) which calls
-          // resume_thread_from_rollout internally to restore full conversation history.
-          // Codex ignores resumeSessionId in session/new, so we must use session/load.
+        // Prefer session/load when backend declares loadSession capability,
+        // with codex as hardcoded fallback (it ignores resumeSessionId in session/new).
+        const useLoadSession = this.connection.supportsLoadSession || this.extra.backend === 'codex';
+
+        if (useLoadSession) {
           response = await this.connection.loadSession(resumeSessionId, this.extra.workspace);
         } else {
           // Claude/CodeBuddy use _meta in session/new; others use generic resumeSessionId
