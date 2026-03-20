@@ -420,7 +420,7 @@ try {
   // Uses a dedicated script (build-mcp-servers.js) to avoid shell-quoting issues
   // with special characters in esbuild --define values.
   console.log('📦 Bundling builtin MCP servers (self-contained)...');
-  execSync(`node ${path.join(__dirname, 'build-mcp-servers.js')}`, {
+  execSync(`node "${path.join(__dirname, 'build-mcp-servers.js')}"`, {
     stdio: 'inherit',
     shell: process.platform === 'win32',
   });

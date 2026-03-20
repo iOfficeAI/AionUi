@@ -29,7 +29,7 @@ async function main() {
     define: {
       // @office-ai/aioncli-core uses import.meta.url for version detection.
       // Provide a valid file: URL so fileURLToPath() does not throw at startup.
-      'import.meta.url': JSON.stringify('file:///placeholder'),
+      'import.meta.url': JSON.stringify('file:///C:/placeholder'),
     },
   });
 }
