@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
 /**
  * Channel 全局事件类型

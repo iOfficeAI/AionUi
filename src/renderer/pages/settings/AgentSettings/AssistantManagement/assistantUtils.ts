@@ -1,4 +1,4 @@
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AssistantListItem } from './types';
 

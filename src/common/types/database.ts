@@ -1,5 +1,5 @@
-import type { TMessage } from '../chatLib';
-import type { TChatConversation } from '../storage';
+import type { TMessage } from '../chat/chatLib';
+import type { TChatConversation } from '../config/storage';
 
 export interface IMessageSearchItem {
   conversation: TChatConversation;

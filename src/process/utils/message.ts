@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
-import { composeMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
+import { composeMessage } from '@/common/chat/chatLib';
 import type { AcpBackend } from '@/common/types/acpTypes';
-import { getDatabase } from './database/export';
+import { getDatabase } from '../services/database/export';
 import { ProcessChat } from './initStorage';
 
 const Cache = new Map<string, ConversationManageWithDB>();

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import type { IAgentFactory, AgentCreator } from './IAgentFactory';
 import { UnknownAgentTypeError } from './IAgentFactory';
-import type { IAgentManager } from './managers/IAgentManager';
+import type { IAgentManager } from './IAgentManager';
 import type { BuildConversationOptions, AgentType } from './agentTypes';
 
 export class AgentFactory implements IAgentFactory {

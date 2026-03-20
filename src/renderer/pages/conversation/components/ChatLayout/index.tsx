@@ -1,4 +1,4 @@
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -12,9 +12,9 @@ import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
 import JSZip from 'jszip';
-import { ipcBridge } from '../../../common';
-import { getSystemDir, getAssistantsDir } from '../../initStorage';
-import { readDirectoryRecursive } from '../../utils';
+import { ipcBridge } from '@/common';
+import { getSystemDir, getAssistantsDir } from '@process/utils/initStorage';
+import { readDirectoryRecursive } from '@process/utils';
 
 // ============================================================================
 // Helper functions for builtin resource directory resolution
@@ -1399,7 +1399,7 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../../initStorage');
+      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
@@ -1409,7 +1409,7 @@ export function initFsBridge(): void {
       await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8');
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../../task/managers/AcpSkillManager');
+      const { AcpSkillManager } = await import('@process/task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill enabled' };
@@ -1425,12 +1425,12 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../../initStorage');
+      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../../task/managers/AcpSkillManager');
+      const { AcpSkillManager } = await import('@process/task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill disabled' };

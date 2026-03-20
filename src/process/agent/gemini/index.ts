@@ -8,13 +8,13 @@
 export { GeminiApprovalStore } from './GeminiApprovalStore';
 
 // src/core/ConfigManager.ts
-import { AIONUI_FILES_MARKER } from '@/common/constants';
-import { NavigationInterceptor } from '@/common/navigation';
-import type { TProviderWithModel } from '@/common/storage';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
+import { NavigationInterceptor } from '@/common/chat/navigation';
+import type { TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
-import { normalizeNewApiBaseUrl } from '@/common/ClientFactory';
+import { normalizeNewApiBaseUrl } from '@/common/api/ClientFactory';
 import type {
   CompletedToolCall,
   Config,
@@ -33,7 +33,7 @@ import {
   sessionId,
 } from '@office-ai/aioncli-core';
 import fs from 'fs';
-import { ApiKeyManager } from '../../common/ApiKeyManager';
+import { ApiKeyManager } from '@/common/api/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig } from './cli/config';
 import { loadExtensions } from './cli/extension';

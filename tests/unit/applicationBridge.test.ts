@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { IWorkerTaskManager } from '../../src/process/task/worker/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
   return {
@@ -103,7 +103,7 @@ describe('applicationBridge CDP functionality', () => {
 
   describe('initApplicationBridge', () => {
     it('should initialize without errors', async () => {
-      const { initApplicationBridge } = await import('@/process/bridge/system/applicationBridge');
+      const { initApplicationBridge } = await import('@process/bridge/applicationBridge');
 
       const taskMgr = makeTaskManager();
       expect(() => initApplicationBridge(taskMgr)).not.toThrow();
@@ -112,7 +112,7 @@ describe('applicationBridge CDP functionality', () => {
 
   describe('CDP IPC handlers', () => {
     it('should register getCdpStatus handler', async () => {
-      const mod = await import('@/process/bridge/system/applicationBridge');
+      const mod = await import('@process/bridge/applicationBridge');
       expect(mod.initApplicationBridge).toBeTypeOf('function');
     });
   });
@@ -152,7 +152,7 @@ describe('CDP configuration functions', () => {
       default: { get: vi.fn() },
     }));
 
-    const { getCdpStatus } = await import('@/utils/configureChromium');
+    const { getCdpStatus } = await import('@process/utils/configureChromium');
 
     const status = getCdpStatus();
 
@@ -184,7 +184,7 @@ describe('CDP configuration functions', () => {
       default: { get: vi.fn() },
     }));
 
-    const { updateCdpConfig } = await import('@/utils/configureChromium');
+    const { updateCdpConfig } = await import('@process/utils/configureChromium');
 
     const result = updateCdpConfig({ enabled: true, port: 9225 });
 
@@ -214,7 +214,7 @@ describe('CDP configuration functions', () => {
       default: { get: vi.fn() },
     }));
 
-    const { saveCdpConfig } = await import('@/utils/configureChromium');
+    const { saveCdpConfig } = await import('@process/utils/configureChromium');
 
     saveCdpConfig({ enabled: false });
 
@@ -258,7 +258,7 @@ describe('CDP configuration functions', () => {
     }));
 
     vi.resetModules();
-    const { initApplicationBridge } = await import('../../src/process/bridge/system/applicationBridge');
+    const { initApplicationBridge } = await import('../../src/process/bridge/applicationBridge');
     const taskMgr = makeTaskManager();
     initApplicationBridge(taskMgr);
 
@@ -287,7 +287,7 @@ describe('CDP configuration functions', () => {
       default: { get: vi.fn() },
     }));
 
-    const { unregisterInstance } = await import('@/utils/configureChromium');
+    const { unregisterInstance } = await import('@process/utils/configureChromium');
 
     // Should not throw
     expect(() => unregisterInstance()).not.toThrow();

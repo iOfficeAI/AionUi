@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import type {
   AcpBackend,

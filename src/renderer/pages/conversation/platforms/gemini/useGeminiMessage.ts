@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { TChatConversation, TokenUsageData } from '@/common/storage';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

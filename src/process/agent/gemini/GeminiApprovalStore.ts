@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BaseApprovalStore, type IApprovalKey } from '@/common/approval';
+import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 
 /**
  * Gemini-specific approval key

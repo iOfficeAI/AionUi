@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { WEBUI_DEFAULT_PORT } from '@/common/constants';
+import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 
 // CSRF token cookie/header identifiers (shared by server & WebUI)
 // CSRF Token 的 Cookie / Header 名称（服务端与 WebUI 共享）

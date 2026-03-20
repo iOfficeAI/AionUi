@@ -9,11 +9,11 @@ import type {
   IExtensionAgentActivityEvent,
   IExtensionAgentActivityItem,
   IExtensionAgentActivitySnapshot,
-} from '@/common/ipcBridge';
-import type { TMessage } from '@/common/chatLib';
-import type { TChatConversation } from '@/common/storage';
+} from '@/common/adapter/ipcBridge';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { TChatConversation } from '@/common/config/storage';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
-import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 const STATUS_TO_SYNCING = new Set(['connecting', 'connected', 'authenticated']);
 

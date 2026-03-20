@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
 import ChatWorkspace from '../Workspace';

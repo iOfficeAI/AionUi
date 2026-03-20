@@ -88,10 +88,10 @@ export default defineConfig({
         'src/process/agent/acp/modelInfo.ts',
         'src/process/agent/acp/mcpSessionConfig.ts',
         // Common
-        'src/common/imageGenCore.ts',
-        'src/common/chatLib.ts',
+        'src/common/chat/imageGenCore.ts',
+        'src/common/chat/chatLib.ts',
         'src/common/update/models/VersionInfo.ts',
-        'src/common/appEnv.ts',
+        'src/common/config/appEnv.ts',
         // Renderer utils
         'src/renderer/hooks/chat/useAutoScroll.ts',
         'src/renderer/pages/conversation/Messages/useAutoScroll.ts',

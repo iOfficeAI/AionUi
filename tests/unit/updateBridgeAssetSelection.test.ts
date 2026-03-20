@@ -52,7 +52,7 @@ vi.mock('electron-log', () => ({
   },
 }));
 
-import { pickRecommendedAsset } from '@/process/bridge/system/updateBridge';
+import { pickRecommendedAsset } from '@process/bridge/updateBridge';
 
 const asset = (name: string) => ({
   name,

@@ -5,8 +5,8 @@
  */
 
 // 复用现有的业务类型定义
-import type { ConversationSource, TChatConversation, IConfigStorageRefer } from '@/common/storage';
-import type { TMessage } from '@/common/chatLib';
+import type { ConversationSource, TChatConversation, IConfigStorageRefer } from '@/common/config/storage';
+import type { TMessage } from '@/common/chat/chatLib';
 
 /**
  * ======================

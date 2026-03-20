@@ -6,20 +6,20 @@
 
 import type { CodexAgentManager } from '@process/agent/codex';
 import { GeminiAgent, GeminiApprovalStore } from '@process/agent/gemini';
-import type { TChatConversation } from '@/common/storage';
-import type { IAgentManager } from '@process/task/managers/IAgentManager';
+import type { TChatConversation } from '@/common/config/storage';
+import type { IAgentManager } from '@process/task/IAgentManager';
 import type { IConversationService } from '@process/services/IConversationService';
-import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
-import { ipcBridge } from '../../../common';
-import { getSkillsDir, ProcessChat } from '../../initStorage';
-import type AcpAgentManager from '../../task/managers/AcpAgentManager';
-import type { GeminiAgentManager } from '../../task/managers/GeminiAgentManager';
-import type OpenClawAgentManager from '../../task/managers/OpenClawAgentManager';
-import { prepareFirstMessage } from '../../task/agentUtils';
-import { refreshTrayMenu } from '../../tray';
-import { copyFilesToDirectory, readDirectoryRecursive } from '../../utils';
-import { computeOpenClawIdentityHash } from '../../utils/openclawUtils';
-import { migrateConversationToDatabase } from '../data/migrationUtils';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import { ipcBridge } from '@/common';
+import { getSkillsDir, ProcessChat } from '@process/utils/initStorage';
+import type AcpAgentManager from '../task/AcpAgentManager';
+import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import type OpenClawAgentManager from '../task/OpenClawAgentManager';
+import { prepareFirstMessage } from '../task/agentUtils';
+import { refreshTrayMenu } from '@process/utils/tray';
+import { copyFilesToDirectory, readDirectoryRecursive } from '@process/utils';
+import { computeOpenClawIdentityHash } from '@process/utils/openclawUtils';
+import { migrateConversationToDatabase } from './migrationUtils';
 
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {

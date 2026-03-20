@@ -12,13 +12,13 @@ import type {
   UpdateDownloadResult,
   UpdateReleaseInfo,
   GitHubReleaseAsset,
-} from '@/common/updateTypes';
+} from '@/common/update/updateTypes';
 import { uuid } from '@/common/utils';
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
-import { autoUpdaterService } from '../../services/autoUpdaterService';
+import { autoUpdaterService } from '../services/autoUpdaterService';
 
 type GitHubReleaseApiAsset = {
   name: string;
@@ -432,7 +432,7 @@ const startDownloadInBackground = async (
  * The ipcBridge channel broadcasts to all renderer listeners, so no window guard is needed here.
  */
 export function createAutoUpdateStatusBroadcast(): (
-  status: import('../../services/autoUpdaterService').AutoUpdateStatus
+  status: import('../services/autoUpdaterService').AutoUpdateStatus
 ) => void {
   return (status) => {
     ipcBridge.autoUpdate.status.emit(status);

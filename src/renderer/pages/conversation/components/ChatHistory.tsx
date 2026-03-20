@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMcpServer } from '@/common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import type { AcpResponse } from '@/common/types/acpTypes';
 
 export interface AcpSessionMcpNameValue {

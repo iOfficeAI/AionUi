@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getSkillsDir, loadSkillsContent } from '@process/initStorage';
-import { AcpSkillManager, buildSkillsIndexText } from './managers/AcpSkillManager';
+import { getSkillsDir, loadSkillsContent } from '@process/utils/initStorage';
+import { AcpSkillManager, buildSkillsIndexText } from './AcpSkillManager';
 
 /**
  * 首次消息处理配置

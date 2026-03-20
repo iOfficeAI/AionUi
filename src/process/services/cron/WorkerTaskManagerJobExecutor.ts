@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CronMessageMeta } from '@/common/chatLib';
+import type { CronMessageMeta } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
-import type BaseAgentManager from '@process/task/managers/BaseAgentManager';
-import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
+import type BaseAgentManager from '@process/task/BaseAgentManager';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { copyFilesToDirectory } from '@process/utils';
 import type { CronBusyGuard } from './CronBusyGuard';
 import type { CronJob } from './CronStore';

@@ -1,4 +1,4 @@
-import type { IProvider, TProviderWithModel } from '@/common/storage';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { useCallback, useEffect, useState } from 'react';

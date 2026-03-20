@@ -1,7 +1,7 @@
 import { Badge } from '@arco-design/web-react';
 import { IconCheckCircle, IconDown, IconRight } from '@arco-design/web-react/icon';
 import React, { useState } from 'react';
-import type { IMessagePlan } from '@/common/chatLib';
+import type { IMessagePlan } from '@/common/chat/chatLib';
 
 const MessagePlan: React.FC<{ message: IMessagePlan }> = ({ message }) => {
   const [showMore, setShowMore] = useState(true);

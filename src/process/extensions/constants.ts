@@ -7,7 +7,7 @@
 import * as path from 'path';
 import * as os from 'os';
 import { app } from 'electron';
-import { getEnvAwareName } from '@/common/appEnv';
+import { getEnvAwareName } from '@/common/config/appEnv';
 
 export const AIONUI_EXTENSIONS_PATH_ENV = 'AIONUI_EXTENSIONS_PATH';
 export const AIONUI_STRICT_ENV_ENV = 'AIONUI_STRICT_ENV';

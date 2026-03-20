@@ -8,8 +8,8 @@
 // All methods are synchronous (better-sqlite3 driver).
 // The service layer is async to allow future migration.
 
-import type { TChatConversation } from '@/common/storage';
-import type { TMessage } from '@/common/chatLib';
+import type { TChatConversation } from '@/common/config/storage';
+import type { TMessage } from '@/common/chat/chatLib';
 import type { IMessageSearchResponse } from '@/common/types/database';
 
 export type PaginatedResult<T> = {

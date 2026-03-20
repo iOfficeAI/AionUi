@@ -26,14 +26,14 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/storage', () => ({
+vi.mock('../../src/common/config/storage', () => ({
   ConfigStorage: {
     get: vi.fn(),
     set: vi.fn(),
   },
 }));
 
-vi.mock('../../src/common/presets/assistantPresets', () => ({
+vi.mock('../../src/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: [
     {
       id: 'test-preset',
@@ -50,7 +50,7 @@ vi.mock('../../src/common/presets/assistantPresets', () => ({
 import { useAgentAvailability } from '../../src/renderer/pages/guid/hooks/useAgentAvailability';
 import { usePresetAssistantResolver } from '../../src/renderer/pages/guid/hooks/usePresetAssistantResolver';
 import type { AcpBackendConfig, AvailableAgent } from '../../src/renderer/pages/guid/types';
-import type { IProvider } from '../../src/common/storage';
+import type { IProvider } from '../../src/common/config/storage';
 
 // ---------------------------------------------------------------------------
 // useAgentAvailability

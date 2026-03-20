@@ -25,9 +25,9 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
-import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/system/systemSettingsBridge';
+import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
-import { workerTaskManager } from './process/task/worker/workerTaskManagerSingleton';
+import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
@@ -267,7 +267,7 @@ const createWindow = (): void => {
   const disableAutoUpdater =
     process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
   if (!disableAutoUpdater) {
-    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/system/updateBridge')])
+    Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
         // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
         const statusBroadcast = createAutoUpdateStatusBroadcast();
@@ -407,7 +407,7 @@ const handleAppReady = async (): Promise<void> => {
       const username = argsAfterCommand.find((arg) => !arg.startsWith('--')) || 'admin';
 
       // Import resetpass logic
-      const { resetPasswordCLI } = await import('./utils/resetPasswordCLI');
+      const { resetPasswordCLI } = await import('./process/utils/resetPasswordCLI');
       await resetPasswordCLI(username);
 
       app.quit();
@@ -522,7 +522,7 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Verify CDP is ready and log status
-  const { cdpPort, verifyCdpReady } = await import('./utils/configureChromium');
+  const { cdpPort, verifyCdpReady } = await import('./process/utils/configureChromium');
   if (cdpPort) {
     const cdpReady = await verifyCdpReady(cdpPort);
     if (cdpReady) {

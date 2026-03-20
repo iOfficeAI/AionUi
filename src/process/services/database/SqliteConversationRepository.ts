@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getDatabase } from '@process/database';
+import { getDatabase } from '@process/services/database';
 import type { IConversationRepository, PaginatedResult } from './IConversationRepository';
-import type { TChatConversation } from '@/common/storage';
-import type { TMessage } from '@/common/chatLib';
+import type { TChatConversation } from '@/common/config/storage';
+import type { TMessage } from '@/common/chat/chatLib';
 import type { IMessageSearchResponse } from '@/common/types/database';
 
 /**

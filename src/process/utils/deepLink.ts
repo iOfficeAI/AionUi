@@ -5,7 +5,7 @@
  */
 
 import type { BrowserWindow } from 'electron';
-import { ipcBridge } from '../common';
+import { ipcBridge } from '@/common';
 
 export const PROTOCOL_SCHEME = 'aionui';
 

@@ -5,7 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import i18nConfig from '../../src/shared/i18n-config.json';
+import i18nConfig from '../../src/common/config/i18n-config.json';
 
 const LOCALES_DIR = path.resolve(__dirname, '../../src/renderer/services/i18n/locales');
 const SUPPORTED_LANGUAGES = i18nConfig.supportedLanguages;

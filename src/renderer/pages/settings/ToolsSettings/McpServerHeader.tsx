@@ -1,4 +1,4 @@
-import type { IMcpServer } from '@/common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import { Button, Dropdown, Menu, Switch, Tooltip } from '@arco-design/web-react';
 import {
   Check,

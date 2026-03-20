@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AcpAdapter } from '../../src/agent/acp/AcpAdapter';
+import { AcpAdapter } from '../../src/process/agent/acp/AcpAdapter';
 import type { ToolCallUpdate, ToolCallUpdateStatus } from '../../src/types/acpTypes';
 
 describe('AcpAdapter - rawInput merging (#1113)', () => {

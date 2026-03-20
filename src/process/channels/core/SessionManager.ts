@@ -5,7 +5,7 @@
  */
 
 import { uuid } from '@/common/utils';
-import { getDatabase } from '@/process/database';
+import { getDatabase } from '@process/services/database';
 import type { ChannelAgentType, IChannelSession, IChannelUser, PluginType } from '../types';
 
 /**

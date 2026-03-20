@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { Button, Divider, Form, Input, Message } from '@arco-design/web-react';

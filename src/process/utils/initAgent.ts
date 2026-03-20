@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICreateConversationParams } from '@/common/ipcBridge';
-import type { TChatConversation, TProviderWithModel } from '@/common/storage';
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { PresetAgentType } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSkillsDir, getSystemDir } from './initStorage';
-import { computeOpenClawIdentityHash } from './utils/openclawUtils';
+import { computeOpenClawIdentityHash } from './openclawUtils';
 
 /**
  * Agent 类型到原生 skills 目录的映射（仅列出有专属目录的 CLI）

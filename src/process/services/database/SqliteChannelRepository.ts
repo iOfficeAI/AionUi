@@ -5,7 +5,7 @@
  */
 
 import type { IChannelPluginConfig, IChannelPairingRequest, IChannelUser, IChannelSession } from '@process/channels/types';
-import { getDatabase } from '@process/database';
+import { getDatabase } from '@process/services/database';
 import type { IChannelRepository } from './IChannelRepository';
 
 /** Thin delegation wrapper around the better-sqlite3 database for channel-related queries. */

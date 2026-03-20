@@ -14,7 +14,7 @@ import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
 import { uuid } from '@/common/utils';
-import { acpConversation } from '@/common/ipcBridge';
+import { acpConversation } from '@/common/adapter/ipcBridge';
 import { CheckSmall } from '@icon-park/react';
 
 // CLI Logo 导入 / CLI Logo imports

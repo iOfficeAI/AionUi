@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExtensionLoader } from '../../../src/extensions/ExtensionLoader';
+import { ExtensionLoader } from '../../../src/process/extensions/ExtensionLoader';
 
 vi.mock('electron', () => ({
   app: {

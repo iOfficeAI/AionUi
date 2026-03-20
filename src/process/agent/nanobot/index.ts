@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
 import { NanobotConnection } from './NanobotConnection';
 import type { AcpResult } from '@/common/types/acpTypes';

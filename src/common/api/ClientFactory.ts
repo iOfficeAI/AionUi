@@ -5,13 +5,13 @@
  */
 
 import { AuthType } from '@office-ai/aioncli-core';
-import type { TProviderWithModel } from './storage';
-import { OpenAIRotatingClient, type OpenAIClientConfig } from './adapters/OpenAIRotatingClient';
-import { GeminiRotatingClient, type GeminiClientConfig } from './adapters/GeminiRotatingClient';
-import { AnthropicRotatingClient, type AnthropicClientConfig } from './adapters/AnthropicRotatingClient';
+import type { TProviderWithModel } from '../config/storage';
+import { OpenAIRotatingClient, type OpenAIClientConfig } from './OpenAIRotatingClient';
+import { GeminiRotatingClient, type GeminiClientConfig } from './GeminiRotatingClient';
+import { AnthropicRotatingClient, type AnthropicClientConfig } from './AnthropicRotatingClient';
 import type { RotatingApiClientOptions } from './RotatingApiClient';
-import { getProviderAuthType } from './utils/platformAuthType';
-import { isNewApiPlatform } from './utils/platformConstants';
+import { getProviderAuthType } from '../utils/platformAuthType';
+import { isNewApiPlatform } from '../utils/platformConstants';
 
 export interface ClientOptions {
   timeout?: number;

@@ -8,7 +8,7 @@ import type { BrowserWindow } from 'electron';
 import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
 import i18n from '@process/services/i18n';
-import { workerTaskManager } from './task/worker/workerTaskManagerSingleton';
+import { workerTaskManager } from '../task/workerTaskManagerSingleton';
 
 let tray: Tray | null = null;
 let closeToTrayEnabled = false;
@@ -50,7 +50,7 @@ const getTrayIcon = (): Electron.NativeImage => {
 const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
-      const { getDatabase } = await import('@process/database');
+      const { getDatabase } = await import('@process/services/database');
       const db = getDatabase();
       const result = db.getUserConversations(undefined, 0, 5);
       return (result.data || [])

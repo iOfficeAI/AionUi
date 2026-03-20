@@ -5,10 +5,10 @@
  */
 
 import { acpDetector } from '@process/agent/acp/AcpDetector';
-import type { TChatConversation, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig } from '@/process/initStorage';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
-import { workerTaskManager } from '@process/task/worker/workerTaskManagerSingleton';
+import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
@@ -42,7 +42,7 @@ import {
 import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
-import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import type { AcpBackend } from '@/common/types/acpTypes';
 
 /**

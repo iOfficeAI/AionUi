@@ -14,10 +14,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { jsonrepair } from 'jsonrepair';
 import type OpenAI from 'openai';
-import { ClientFactory, type RotatingClient } from '@/common/ClientFactory';
-import type { TProviderWithModel } from '@/common/storage';
-import type { UnifiedChatCompletionResponse } from '@/common/RotatingApiClient';
-import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants';
+import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
+import type { TProviderWithModel } from '@/common/config/storage';
+import type { UnifiedChatCompletionResponse } from '@/common/api/RotatingApiClient';
+import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/config/constants';
 
 const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
 

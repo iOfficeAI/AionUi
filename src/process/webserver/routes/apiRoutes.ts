@@ -9,11 +9,11 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
 import multer from 'multer';
-import { getDatabase } from '@process/database';
-import { getSystemDir } from '@process/initStorage';
+import { getDatabase } from '@process/services/database';
+import { getSystemDir } from '@process/utils/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
 

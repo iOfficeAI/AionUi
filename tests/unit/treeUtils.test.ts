@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { IDirOrFile } from '@/common/ipcBridge';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import {
   collectFilePaths,
   computeContextMenuPosition,

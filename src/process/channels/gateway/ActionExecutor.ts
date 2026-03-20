@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
-import type { TChatConversation } from '@/common/storage';
-import { getDatabase } from '@/process/database';
-import { ProcessConfig } from '@/process/initStorage';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { TChatConversation } from '@/common/config/storage';
+import { getDatabase } from '@process/services/database';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';

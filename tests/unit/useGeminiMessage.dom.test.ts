@@ -33,7 +33,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/common/chatLib', () => ({
+vi.mock('@/common/chat/chatLib', () => ({
   transformMessage: vi.fn((msg: unknown) => msg),
 }));
 

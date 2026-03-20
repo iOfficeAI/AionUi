@@ -6,7 +6,7 @@
 
 import * as path from 'path';
 import { existsSync, readFileSync } from 'fs';
-import type { ICssTheme } from '@/common/storage';
+import type { ICssTheme } from '@/common/config/storage';
 import type { LoadedExtension, ExtTheme } from '../types';
 import { toAssetUrl } from '../protocol/assetProtocol';
 import { isPathWithinDirectory } from '../sandbox/pathSafety';

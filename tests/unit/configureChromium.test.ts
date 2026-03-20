@@ -80,7 +80,7 @@ async function loadConfigureChromium(options: SetupOptions = {}) {
     },
   }));
 
-  const mod = await import('@/utils/configureChromium');
+  const mod = await import('@process/utils/configureChromium');
 
   return {
     mod,

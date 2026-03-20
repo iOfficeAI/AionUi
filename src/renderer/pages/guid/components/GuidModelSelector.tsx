@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import type { AcpModelInfo } from '../types';

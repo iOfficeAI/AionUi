@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import {
   type ProtocolDetectionRequest,
@@ -22,8 +22,8 @@ import {
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
 import { isNewApiPlatform } from '@/common/utils/platformConstants';
-import { ipcBridge } from '../../../common';
-import { ProcessConfig } from '../../initStorage';
+import { ipcBridge } from '@/common';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { ExtensionRegistry } from '@process/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
 

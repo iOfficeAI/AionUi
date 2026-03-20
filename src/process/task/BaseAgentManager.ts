@@ -6,8 +6,8 @@
 
 import { ForkTask } from '@process/worker/fork/ForkTask';
 import path from 'path';
-import type { IConfirmation } from '../../../common/chatLib';
-import type { AgentType, AgentStatus } from '../agentTypes';
+import type { IConfirmation } from '@/common/chat/chatLib';
+import type { AgentType, AgentStatus } from './agentTypes';
 import type { IAgentEventEmitter } from './IAgentEventEmitter';
 import type { IAgentManager } from './IAgentManager';
 

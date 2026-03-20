@@ -38,7 +38,7 @@ vi.mock('@process/utils/mainLogger', () => ({
 }));
 
 import { execFile as execFileCb, spawn } from 'child_process';
-import { connectCodex, createGenericSpawnConfig, spawnNpxBackend } from '../../src/agent/acp/acpConnectors';
+import { connectCodex, createGenericSpawnConfig, spawnNpxBackend } from '../../src/process/agent/acp/acpConnectors';
 
 const mockExecFile = vi.mocked(execFileCb);
 const mockSpawn = vi.mocked(spawn);

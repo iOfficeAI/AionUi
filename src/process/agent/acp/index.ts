@@ -5,12 +5,12 @@
  */
 
 import { AcpAdapter } from '@process/agent/acp/AcpAdapter';
-import type { IMcpServer } from '@/common/storage';
-import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/atCommandParser';
-import type { TMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import { NavigationInterceptor } from '@/common/navigation';
-import type { SlashCommandItem } from '@/common/slash/types';
+import type { IMcpServer } from '@/common/config/storage';
+import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/chat/atCommandParser';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { NavigationInterceptor } from '@/common/chat/navigation';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { uuid } from '@/common/utils';
 import type {
   AcpBackend,
@@ -27,7 +27,7 @@ import { AcpErrorType, createAcpError } from '@/common/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { ProcessConfig } from '@process/initStorage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { mainLog } from '@process/utils/mainLogger';
 import { getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { AcpConnection } from './AcpConnection';
@@ -884,7 +884,7 @@ export class AcpAgent {
       // Intercept tool_call_update to extract URL from navigation tool results
       // 拦截 tool_call_update 以从导航工具结果中提取 URL
       if (data.update?.sessionUpdate === 'tool_call_update') {
-        const statusUpdate = data as import('@/types/acpTypes').ToolCallUpdateStatus;
+        const statusUpdate = data as import('@/common/types/acpTypes').ToolCallUpdateStatus;
         const toolCallId = statusUpdate.update?.toolCallId;
         if (toolCallId && this.pendingNavigationTools.has(toolCallId)) {
           // This is a result for a tracked navigation tool

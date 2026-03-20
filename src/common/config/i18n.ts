@@ -8,7 +8,7 @@
  * Shared i18n utility functions used by both main process and renderer.
  */
 
-import i18nConfig from '@/common/i18n-config.json';
+import i18nConfig from '@/common/config/i18n-config.json';
 
 export const SUPPORTED_LANGUAGES = i18nConfig.supportedLanguages;
 export const DEFAULT_LANGUAGE = i18nConfig.fallbackLanguage;

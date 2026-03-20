@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channel as channelBridge } from '@/common/ipcBridge';
-import { getDatabase } from '@/process/database';
+import { channel as channelBridge } from '@/common/adapter/ipcBridge';
+import { getDatabase } from '@process/services/database';
 import type { SessionManager } from '../core/SessionManager';
 import type { BasePlugin, PluginMessageHandler, PluginConfirmHandler } from '../plugins/BasePlugin';
 import { hasPluginCredentials } from '../types';

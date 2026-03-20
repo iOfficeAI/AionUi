@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mcpService } from '@/common/ipcBridge';
-import type { IMcpServer } from '@/common/storage';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
 
 /**

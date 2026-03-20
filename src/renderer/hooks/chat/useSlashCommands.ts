@@ -1,5 +1,5 @@
-import { isSlashCommandListEnabled } from '@/common/slash/availability';
-import type { SlashCommandItem } from '@/common/slash/types';
+import { isSlashCommandListEnabled } from '@/common/chat/slash/availability';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { ipcBridge } from '@/common';
 import { useEffect, useRef, useState } from 'react';
 

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { cronService } from '@process/services/cron/cronServiceSingleton';

@@ -5,8 +5,8 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
-import { acpConversation, channel } from '@/common/ipcBridge';
-import { ConfigStorage } from '@/common/storage';
+import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';

@@ -1,4 +1,4 @@
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 
 /**

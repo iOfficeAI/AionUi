@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getDatabase } from '@/process/database';
+import { getDatabase } from '@process/services/database';
 import { ExtensionRegistry } from '@process/extensions';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelDefaultModel } from '../actions/SystemActions';

@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '../types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { mutate } from 'swr';

@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate } from '@/common/chatLib';
+import type { CodexToolCallUpdate } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
-import type { FileChange, McpInvocation, CodexEventMsg } from '@/common/codex/types';
-import { ToolRegistry } from '@/common/codex/utils';
+import type { FileChange, McpInvocation, CodexEventMsg } from '@/common/types/codex/types';
+import { ToolRegistry } from '@/common/types/codex/utils';
 import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import { NavigationInterceptor } from '@/common/navigation';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { NavigationInterceptor } from '@/common/chat/navigation';
 
 /**
  * Metadata for exec approval requests (for ApprovalStore)

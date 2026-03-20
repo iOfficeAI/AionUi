@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { STORAGE_KEYS } from '@/common/storageKeys';
+import { STORAGE_KEYS } from '@/common/config/storageKeys';
 import { useEffect, useState } from 'react';
 
 /**

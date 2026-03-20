@@ -3,8 +3,8 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import type { CodexError, ErrorCode } from '@/common/codex/types/errorTypes';
-import { ERROR_CODES } from '@/common/codex/types/errorTypes';
+import type { CodexError, ErrorCode } from '@/common/types/codex/types/errorTypes';
+import { ERROR_CODES } from '@/common/types/codex/types/errorTypes';
 
 // Re-export types for convenience
 export type { CodexError, ErrorCode };

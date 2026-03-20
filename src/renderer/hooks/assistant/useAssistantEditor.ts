@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import type { Message } from '@arco-design/web-react';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import {

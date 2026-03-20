@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useRef, useState } from 'react';

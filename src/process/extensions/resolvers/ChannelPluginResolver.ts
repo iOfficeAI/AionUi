@@ -70,7 +70,7 @@ function createDuckTypedWrapper(
       this.impl?.onConfirm?.(handler);
     }
 
-    protected async onInitialize(config: import('@/channels/types').IChannelPluginConfig): Promise<void> {
+    protected async onInitialize(config: import('@process/channels/types').IChannelPluginConfig): Promise<void> {
       this.impl = new PluginClass(config);
       if (this.messageHandler) {
         this.impl.onMessage?.(this.messageHandler);
@@ -88,7 +88,7 @@ function createDuckTypedWrapper(
       await this.impl?.stop();
     }
 
-    async sendMessage(chatId: string, message: import('@/channels/types').IUnifiedOutgoingMessage): Promise<string> {
+    async sendMessage(chatId: string, message: import('@process/channels/types').IUnifiedOutgoingMessage): Promise<string> {
       if (!this.impl) throw new Error('Extension plugin is not initialized');
       const result = await this.impl.sendMessage(chatId, message);
       return typeof result === 'string' ? result : `${pluginType}-msg-${Date.now()}`;
@@ -97,7 +97,7 @@ function createDuckTypedWrapper(
     async editMessage(
       chatId: string,
       messageId: string,
-      message: import('@/channels/types').IUnifiedOutgoingMessage
+      message: import('@process/channels/types').IUnifiedOutgoingMessage
     ): Promise<void> {
       if (!this.impl) throw new Error('Extension plugin is not initialized');
       if (typeof this.impl.editMessage === 'function') {

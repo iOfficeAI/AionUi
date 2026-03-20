@@ -6,8 +6,8 @@
 
 // src/process/task/IAgentManager.ts
 
-import type { IConfirmation } from '@/common/chatLib';
-import type { AgentType, AgentStatus } from '../agentTypes';
+import type { IConfirmation } from '@/common/chat/chatLib';
+import type { AgentType, AgentStatus } from './agentTypes';
 
 export interface IAgentManager {
   readonly type: AgentType;

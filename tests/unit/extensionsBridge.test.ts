@@ -9,10 +9,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
 import { ActivitySnapshotBuilder } from '../../src/process/bridge/services/ActivitySnapshotBuilder';
-import type { IConversationRepository } from '../../src/process/database/IConversationRepository';
-import type { IWorkerTaskManager } from '../../src/process/task/worker/IWorkerTaskManager';
-import type { TChatConversation } from '../../src/common/storage';
-import type { TMessage } from '../../src/common/chatLib';
+import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
+import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import type { TChatConversation } from '../../src/common/config/storage';
+import type { TMessage } from '../../src/common/chat/chatLib';
 
 function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRepository {
   return {

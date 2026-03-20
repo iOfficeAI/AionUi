@@ -13,7 +13,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ProcessConfig } from '@/process/initStorage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
 
 type CloseToTrayChangeListener = (enabled: boolean) => void;

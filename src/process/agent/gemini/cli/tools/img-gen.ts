@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TProviderWithModel } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/config/storage';
 import { Type } from '@google/genai';
 import type {
   Config,
@@ -18,7 +18,7 @@ import type {
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import * as path from 'path';
-import { executeImageGeneration, safeJsonParse, isImageFile, isHttpUrl } from '@/common/imageGenCore';
+import { executeImageGeneration, safeJsonParse, isImageFile, isHttpUrl } from '@/common/chat/imageGenCore';
 
 export interface ImageGenerationToolParams {
   /**

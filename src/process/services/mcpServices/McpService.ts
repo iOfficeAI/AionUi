@@ -5,8 +5,8 @@
  */
 
 import { execSync } from 'child_process';
-import type { AcpBackend } from '../../../types/acpTypes';
-import type { IMcpServer } from '../../../common/storage';
+import type { AcpBackend } from '@/common/types/acpTypes';
+import type { IMcpServer } from '@/common/config/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { CodebuddyMcpAgent } from './agents/CodebuddyMcpAgent';
 import { QwenMcpAgent } from './agents/QwenMcpAgent';

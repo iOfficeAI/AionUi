@@ -40,7 +40,7 @@ const mainAliases = {
   '@renderer': resolve('src/renderer'),
   '@process': resolve('src/process'),
   '@worker': resolve('src/process/worker'),
-  '@xterm/headless': resolve('src/common/shims/xterm-headless.ts'),
+  '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
 };
 
 export default defineConfig(({ mode }) => {

@@ -9,7 +9,7 @@ import { promises as fs } from 'fs';
 import { safeExec } from '@process/utils/safeExec';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import { JSONRPC_VERSION } from '@/common/types/acpTypes';
-import type { IMcpServer } from '@/common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';

@@ -8,13 +8,13 @@ import { acpDetector } from '@process/agent/acp/AcpDetector';
 import { AcpConnection } from '@process/agent/acp/AcpConnection';
 import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
 import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
-import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
-import AcpAgentManager from '@/process/task/managers/AcpAgentManager';
-import CodexAgentManager from '@/process/task/managers/CodexAgentManager';
-import { GeminiAgentManager } from '@/process/task/managers/GeminiAgentManager';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
+import AcpAgentManager from '@process/task/AcpAgentManager';
+import CodexAgentManager from '@process/task/CodexAgentManager';
+import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { mainLog, mainWarn } from '@/process/utils/mainLogger';
-import { ipcBridge } from '../../../common';
+import { ipcBridge } from '@/common';
 import * as os from 'os';
 
 export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {

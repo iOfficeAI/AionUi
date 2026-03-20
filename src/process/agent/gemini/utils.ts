@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DEFAULT_IMAGE_EXTENSION, MIME_TO_EXT_MAP } from '@/common/constants';
+import { DEFAULT_IMAGE_EXTENSION, MIME_TO_EXT_MAP } from '@/common/config/constants';
 import type {
   CompletedToolCall,
   Config,

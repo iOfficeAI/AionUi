@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getDatabase } from '@process/database';
+import { getDatabase } from '@process/services/database';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 
 /**

@@ -15,7 +15,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
-import { getSkillsDir, getBuiltinSkillsDir } from '../../initStorage';
+import { getSkillsDir, getBuiltinSkillsDir } from '@process/utils/initStorage';
 import { ExtensionRegistry } from '@process/extensions';
 
 /**

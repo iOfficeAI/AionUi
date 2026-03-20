@@ -33,7 +33,7 @@ import type {
   PluginType,
   PluginStatus,
 } from '@process/channels/types';
-import type { ConversationSource, TProviderWithModel } from '@/common/storage';
+import type { ConversationSource, TProviderWithModel } from '@/common/config/storage';
 import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@process/channels/types';
 import { encryptCredentials, decryptCredentials } from '@process/channels/utils/credentialCrypto';
 

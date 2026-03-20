@@ -1,16 +1,16 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
-import i18nConfig from '@/common/i18n-config.json';
+import i18nConfig from '@/common/config/i18n-config.json';
 import {
   DEFAULT_LANGUAGE,
   normalizeLanguageCode,
   mergeWithFallback,
   ensureAndSwitch,
   type LocaleData,
-} from '@/common/i18n';
+} from '@/common/config/i18n';
 
 // Static imports for all locales to ensure packaged app can always switch language.
 import enUS from './locales/en-US/index';
@@ -23,8 +23,8 @@ import trTR from './locales/tr-TR/index';
 export type { I18nKey, I18nModule } from './i18n-keys';
 
 // Re-exports
-export { normalizeLanguageCode } from '@/common/i18n';
-export type { SupportedLanguage } from '@/common/i18n';
+export { normalizeLanguageCode } from '@/common/config/i18n';
+export type { SupportedLanguage } from '@/common/config/i18n';
 
 export const supportedLanguages = i18nConfig.supportedLanguages;
 

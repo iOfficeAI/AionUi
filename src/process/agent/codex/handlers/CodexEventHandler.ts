@@ -6,11 +6,11 @@
 
 import { uuid } from '@/common/utils';
 import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
-import type { CodexEventMsg, CodexJsonRpcEvent } from '@/common/codex/types';
+import type { CodexEventMsg, CodexJsonRpcEvent } from '@/common/types/codex/types';
 import { CodexMessageProcessor } from '@process/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@process/agent/codex/handlers/CodexToolHandlers';
-import { PermissionType } from '@/common/codex/types/permissionTypes';
-import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
+import { PermissionType } from '@/common/types/codex/types/permissionTypes';
+import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/types/codex/utils';
 
 export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;

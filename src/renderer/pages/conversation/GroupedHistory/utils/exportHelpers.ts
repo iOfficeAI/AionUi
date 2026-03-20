@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
-import type { IDirOrFile } from '@/common/ipcBridge';
-import type { TChatConversation } from '@/common/storage';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 
 import type { ExportZipFile } from '../types';
 

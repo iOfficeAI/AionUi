@@ -8,7 +8,7 @@ import { MCPOAuthProvider, OAUTH_DISPLAY_MESSAGE_EVENT } from '@office-ai/aioncl
 import { MCPOAuthTokenStorage } from '@office-ai/aioncli-core/dist/src/mcp/oauth-token-storage.js';
 import type { MCPOAuthConfig } from '@office-ai/aioncli-core/dist/src/mcp/oauth-provider.js';
 import { EventEmitter } from 'node:events';
-import type { IMcpServer } from '../../../common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 
 export interface OAuthStatus {
   isAuthenticated: boolean;

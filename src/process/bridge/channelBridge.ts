@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channel } from '@/common/ipcBridge';
+import { channel } from '@/common/adapter/ipcBridge';
 import { getChannelManager } from '@process/channels/core/ChannelManager';
 import { getPairingService } from '@process/channels/pairing/PairingService';
 import { ExtensionRegistry } from '@process/extensions';

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { IMcpServer } from '../../src/common/storage';
+import type { IMcpServer } from '../../src/common/config/storage';
 import { buildClaudeStdioJsonConfig } from '../../src/process/services/mcpServices/agents/ClaudeMcpAgent';
 
 describe('ClaudeMcpAgent helpers', () => {

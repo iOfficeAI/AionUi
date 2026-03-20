@@ -127,13 +127,13 @@ describe('Skills Market - Enable/Disable flow', () => {
 describe('Skills Market - AcpSkillManager integration', () => {
   // Mock Electron app and initStorage before importing AcpSkillManager
   vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
-  vi.mock('../../src/process/initStorage', () => ({
+  vi.mock('../../src/process/utils/initStorage', () => ({
     getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
     getBuiltinSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
   }));
 
   it('resetInstance clears the singleton so new discoveries happen', async () => {
-    const { AcpSkillManager } = await import('../../src/process/task/managers/AcpSkillManager');
+    const { AcpSkillManager } = await import('../../src/process/task/AcpSkillManager');
 
     // Get an instance (creates singleton)
     const instance1 = AcpSkillManager.getInstance();

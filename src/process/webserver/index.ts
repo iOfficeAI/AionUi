@@ -17,7 +17,7 @@ import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerStaticRoutes } from './routes/staticRoutes';
-import { generateQRLoginUrlDirect } from '@/process/bridge/platform/webuiBridge';
+import { generateQRLoginUrlDirect } from '@process/bridge/webuiBridge';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts

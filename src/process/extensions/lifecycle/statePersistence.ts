@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as os from 'os';
 import type { ExtensionState } from '../types';
 import { extensionEventBus, ExtensionSystemEvents } from './ExtensionEventBus';
-import { getEnvAwareName } from '@/common/appEnv';
+import { getEnvAwareName } from '@/common/config/appEnv';
 
 const EXTENSION_STATES_FILE_ENV = 'AIONUI_EXTENSION_STATES_FILE';
 const DEFAULT_STATES_FILE = 'extension-states.json';

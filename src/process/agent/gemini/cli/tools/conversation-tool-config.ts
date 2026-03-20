@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TProviderWithModel } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config } from '@office-ai/aioncli-core';

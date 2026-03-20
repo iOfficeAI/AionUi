@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IDirOrFile } from '@/common/ipcBridge';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { app } from 'electron';
-import { getEnvAwareName } from '@/common/appEnv';
+import { getEnvAwareName } from '@/common/config/appEnv';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';

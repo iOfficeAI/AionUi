@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { IMcpServer } from '../../src/common/storage';
+import type { IMcpServer } from '../../src/common/config/storage';
 import {
   buildCodexAddArgs,
   parseCodexMcpListOutput,

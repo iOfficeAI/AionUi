@@ -9,7 +9,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '../../../../common/storage';
+import type { IMcpServer } from '@/common/config/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { safeExec } from '@process/utils/safeExec';
 

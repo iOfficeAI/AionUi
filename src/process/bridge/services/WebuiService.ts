@@ -5,7 +5,7 @@
  */
 
 import { networkInterfaces } from 'os';
-import type { IWebUIStatus } from '@/common/ipcBridge';
+import type { IWebUIStatus } from '@/common/adapter/ipcBridge';
 import { AuthService } from '@process/webserver/auth/service/AuthService';
 import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
@@ -26,7 +26,7 @@ export class WebuiService {
   private static async loadWebServerFunctions(): Promise<void> {
     if (this.webServerFunctionsLoaded) return;
 
-    const webServer = await import('@/webserver/index');
+    const webServer = await import('@process/webserver/index');
     this._getInitialAdminPassword = webServer.getInitialAdminPassword;
     this._clearInitialAdminPassword = webServer.clearInitialAdminPassword;
     this.webServerFunctionsLoaded = true;

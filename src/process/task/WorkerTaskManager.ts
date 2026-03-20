@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IAgentFactory } from '../IAgentFactory';
-import type { IAgentManager } from '../managers/IAgentManager';
+import type { IAgentFactory } from './IAgentFactory';
+import type { IAgentManager } from './IAgentManager';
 import type { IWorkerTaskManager } from './IWorkerTaskManager';
-import type { BuildConversationOptions, AgentType } from '../agentTypes';
+import type { BuildConversationOptions, AgentType } from './agentTypes';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 
 export class WorkerTaskManager implements IWorkerTaskManager {
   private taskList: Array<{ id: string; task: IAgentManager }> = [];

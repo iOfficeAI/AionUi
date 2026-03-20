@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
 import { uuid } from '@/common/utils';
 

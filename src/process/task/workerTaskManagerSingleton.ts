@@ -9,14 +9,14 @@
  * Extracted to a separate module to avoid circular dependencies with initBridge.ts.
  */
 
-import { AgentFactory } from '../AgentFactory';
+import { AgentFactory } from './AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
 import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
-import { GeminiAgentManager } from '../managers/GeminiAgentManager';
-import AcpAgentManager from '../managers/AcpAgentManager';
+import { GeminiAgentManager } from './GeminiAgentManager';
+import AcpAgentManager from './AcpAgentManager';
 import { CodexAgentManager } from '@process/agent/codex';
-import OpenClawAgentManager from '../managers/OpenClawAgentManager';
-import NanoBotAgentManager from '../managers/NanoBotAgentManager';
+import OpenClawAgentManager from './OpenClawAgentManager';
+import NanoBotAgentManager from './NanoBotAgentManager';
 
 const agentFactory = new AgentFactory();
 

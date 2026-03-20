@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IConfirmation } from '@/common/chatLib';
+import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { McpSource } from '../process/services/mcpServices/McpProtocol';
+import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, AcpBackendAll, AcpModelInfo, PresetAgentType } from '../types/acpTypes';
-import type { SlashCommandItem } from './slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from './storage';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
+import type { SlashCommandItem } from '../chat/slash/types';
+import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
+import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
 import type {
   UpdateCheckRequest,
   UpdateCheckResult,
@@ -19,8 +19,8 @@ import type {
   UpdateDownloadRequest,
   UpdateDownloadResult,
   AutoUpdateStatus,
-} from './updateTypes';
-import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
+} from '../update/updateTypes';
+import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -510,15 +510,15 @@ export const openclawConversation = {
 // Database operations
 export const database = {
   getConversationMessages: bridge.buildProvider<
-    import('@/common/chatLib').TMessage[],
+    import('@/common/chat/chatLib').TMessage[],
     { conversation_id: string; page?: number; pageSize?: number }
   >('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<
-    import('@/common/storage').TChatConversation[],
+    import('@/common/config/storage').TChatConversation[],
     { page?: number; pageSize?: number }
   >('database.get-user-conversations'),
   searchConversationMessages: bridge.buildProvider<
-    import('./types/database').IMessageSearchResponse,
+    import('../types/database').IMessageSearchResponse,
     { keyword: string; page?: number; pageSize?: number }
   >('database.search-conversation-messages'),
 };
@@ -539,7 +539,7 @@ export const preview = {
   // Agent 触发打开预览（如 chrome-devtools 导航到 URL）/ Agent triggers open preview (e.g., chrome-devtools navigates to URL)
   open: bridge.buildEmitter<{
     content: string; // URL 或内容 / URL or content
-    contentType: import('./types/preview').PreviewContentType; // 内容类型 / Content type
+    contentType: import('../types/preview').PreviewContentType; // 内容类型 / Content type
     metadata?: {
       title?: string;
       fileName?: string;
@@ -549,8 +549,8 @@ export const preview = {
 
 export const document = {
   convert: bridge.buildProvider<
-    import('./types/conversion').DocumentConversionResponse,
-    import('./types/conversion').DocumentConversionRequest
+    import('../types/conversion').DocumentConversionResponse,
+    import('../types/conversion').DocumentConversionRequest
   >('document.convert'),
 };
 

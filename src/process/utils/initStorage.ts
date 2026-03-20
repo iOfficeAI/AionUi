@@ -8,9 +8,9 @@ import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from '
 import fs from 'fs/promises';
 import path from 'path';
 import { app } from 'electron';
-import { application } from '../common/ipcBridge';
-import type { TMessage } from '@/common/chatLib';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
+import { application } from '@/common/adapter/ipcBridge';
+import type { TMessage } from '@/common/chat/chatLib';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import type {
   IChatConversationRefer,
   IConfigStorageRefer,
@@ -18,8 +18,8 @@ import type {
   IMcpServer,
   TChatConversation,
   TProviderWithModel,
-} from '../common/storage';
-import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
+} from '@/common/config/storage';
+import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '@/common/config/storage';
 import {
   copyDirectoryRecursively,
   ensureDirectory,
@@ -28,9 +28,9 @@ import {
   getTempPath,
   verifyDirectoryFiles,
 } from './utils';
-import { getDatabase } from './database/export';
+import { getDatabase } from '../services/database/export';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
-import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './builtinMcp/constants';
+import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from '../resources/builtinMcp/constants';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';

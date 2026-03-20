@@ -6,7 +6,7 @@
 
 import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { cronService } from './cron/cronServiceSingleton';
 import {
@@ -15,7 +15,7 @@ import {
   createCodexAgent,
   createOpenClawAgent,
   createNanobotAgent,
-} from '@process/initAgent';
+} from '@process/utils/initAgent';
 
 /**
  * Concrete implementation of IConversationService.

@@ -5,9 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import { ConfigStorage } from '@/common/storage';
-import type { IProvider } from '@/common/storage';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
+import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';

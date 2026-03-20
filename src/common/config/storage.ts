@@ -53,7 +53,7 @@ export interface IConfigStorageRefer {
   };
   'acp.customAgents'?: AcpBackendConfig[];
   // Cached model lists per ACP backend for Guid page pre-selection
-  'acp.cachedModels'?: Record<string, import('@/types/acpTypes').AcpModelInfo>;
+  'acp.cachedModels'?: Record<string, import('@/common/types/acpTypes').AcpModelInfo>;
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;

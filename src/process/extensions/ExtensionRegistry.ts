@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICssTheme } from '@/common/storage';
+import type { ICssTheme } from '@/common/config/storage';
 import type { LoadedExtension, ExtensionState } from './types';
 import { ExtensionLoader } from './ExtensionLoader';
 import { resolveAcpAdapters } from './resolvers/AcpAdapterResolver';

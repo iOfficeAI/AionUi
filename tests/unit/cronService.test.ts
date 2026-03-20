@@ -25,7 +25,7 @@ import { CronService } from '../../src/process/services/cron/CronService';
 import type { ICronRepository } from '../../src/process/services/cron/ICronRepository';
 import type { ICronEventEmitter } from '../../src/process/services/cron/ICronEventEmitter';
 import type { ICronJobExecutor } from '../../src/process/services/cron/ICronJobExecutor';
-import type { IConversationRepository } from '../../src/process/database/IConversationRepository';
+import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
 import type { CronJob } from '../../src/process/services/cron/CronStore';
 
 function makeRepo(overrides?: Partial<ICronRepository>): ICronRepository {

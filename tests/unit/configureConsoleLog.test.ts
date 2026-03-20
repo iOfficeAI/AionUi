@@ -49,37 +49,37 @@ describe('configureConsoleLog', () => {
   });
 
   it('sets daily log file name in YYYY-MM-DD.log format', async () => {
-    await import('@/utils/configureConsoleLog');
+    await import('@process/utils/configureConsoleLog');
 
     expect(mockLog.transports.file.fileName).toMatch(/^\d{4}-\d{2}-\d{2}\.log$/);
   });
 
   it('sets file transport level to info', async () => {
-    await import('@/utils/configureConsoleLog');
+    await import('@process/utils/configureConsoleLog');
 
     expect(mockLog.transports.file.level).toBe('info');
   });
 
   it('sets console transport level to silly', async () => {
-    await import('@/utils/configureConsoleLog');
+    await import('@process/utils/configureConsoleLog');
 
     expect(mockLog.transports.console.level).toBe('silly');
   });
 
   it('caps daily log file at 10 MB', async () => {
-    await import('@/utils/configureConsoleLog');
+    await import('@process/utils/configureConsoleLog');
 
     expect(mockLog.transports.file.maxSize).toBe(10 * 1024 * 1024);
   });
 
   it('calls log.initialize()', async () => {
-    await import('@/utils/configureConsoleLog');
+    await import('@process/utils/configureConsoleLog');
 
     expect(mockLog.initialize).toHaveBeenCalledOnce();
   });
 
   it('redirects main-process console to electron-log functions', async () => {
-    await import('@/utils/configureConsoleLog');
+    await import('@process/utils/configureConsoleLog');
 
     // After import, console.log should be replaced by electron-log's function
     expect(console.log).toBe(mockLog.functions.log);

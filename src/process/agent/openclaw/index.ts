@@ -6,9 +6,9 @@
 
 import { AcpAdapter } from '@process/agent/acp/AcpAdapter';
 import { AcpApprovalStore } from '@process/agent/acp/ApprovalStore';
-import type { TMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import { NavigationInterceptor } from '@/common/navigation';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { NavigationInterceptor } from '@/common/chat/navigation';
 import { uuid } from '@/common/utils';
 import type { AcpResult, ToolCallUpdate } from '@/common/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/common/types/acpTypes';

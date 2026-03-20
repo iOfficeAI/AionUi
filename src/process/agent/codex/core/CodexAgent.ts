@@ -6,7 +6,7 @@
 
 import type { NetworkError, CodexEventEnvelope } from '@process/agent/codex/connection/CodexConnection';
 import { CodexConnection } from '@process/agent/codex/connection/CodexConnection';
-import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/codex/types';
+import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/types/codex/types';
 import type { CodexEventHandler } from '@process/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@process/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@process/agent/codex/handlers/CodexFileOperationHandler';
@@ -16,7 +16,7 @@ import {
   getConfiguredAppClientName,
   getConfiguredAppClientVersion,
   getConfiguredCodexMcpProtocolVersion,
-} from '../../../common/utils/appConfig';
+} from '@/common/utils/appConfig';
 import { lt } from 'semver';
 
 interface LegacyNetworkErrorDetails {

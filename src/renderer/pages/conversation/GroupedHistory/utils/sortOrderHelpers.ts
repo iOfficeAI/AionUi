@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 
 const SORT_ORDER_GAP = 1000;
 const MIN_GAP_THRESHOLD = 1;
