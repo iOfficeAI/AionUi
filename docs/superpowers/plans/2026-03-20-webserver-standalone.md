@@ -83,7 +83,7 @@ Extract shared WebSocket broadcaster registry and bridge emitter reference from 
 - Create: `src/common/adapter/registry.ts`
 - Create: `src/common/adapter/__tests__/registry.test.ts`
 
-- [ ] **Step 1.1: Write the failing tests**
+- [x] **Step 1.1: Write the failing tests**
 
 ```typescript
 // src/common/adapter/__tests__/registry.test.ts
@@ -121,7 +121,7 @@ describe('registry', () => {
 })
 ```
 
-- [ ] **Step 1.2: Run tests — expect FAIL (module not found)**
+- [x] **Step 1.2: Run tests — expect FAIL (module not found)**
 
 ```bash
 bun run test src/common/adapter/__tests__/registry.test.ts
@@ -129,7 +129,7 @@ bun run test src/common/adapter/__tests__/registry.test.ts
 
 Expected: `Cannot find module '../registry'`
 
-- [ ] **Step 1.3: Create `src/common/adapter/registry.ts`**
+- [x] **Step 1.3: Create `src/common/adapter/registry.ts`**
 
 ```typescript
 /**
@@ -181,13 +181,13 @@ export function setBridgeEmitter(emitter: typeof bridgeEmitter): void {
 }
 ```
 
-- [ ] **Step 1.4: Run tests — expect PASS**
+- [x] **Step 1.4: Run tests — expect PASS**
 
 ```bash
 bun run test src/common/adapter/__tests__/registry.test.ts
 ```
 
-- [ ] **Step 1.5: Commit**
+- [x] **Step 1.5: Commit**
 
 ```bash
 git add src/common/adapter/registry.ts src/common/adapter/__tests__/registry.test.ts
