@@ -325,13 +325,8 @@ const createWindow = (): void => {
     console.log('[AionUi] Main window closed');
   });
 
-  // 只在开发环境自动打开 DevTools / Only auto-open DevTools in development
-  // 使用 app.isPackaged 判断更可靠，打包后的应用不会自动打开 DevTools
-  // Using app.isPackaged is more reliable, packaged apps won't auto-open DevTools
-  const disableDevToolsByEnv = process.env.AIONUI_DISABLE_DEVTOOLS === '1' || process.env.AIONUI_E2E_TEST === '1';
-  if (!app.isPackaged && !disableDevToolsByEnv) {
-    mainWindow.webContents.openDevTools();
-  }
+  // DevTools is no longer auto-opened at startup.
+  // Use the DevTools toggle in Settings > System (dev mode only) to open it.
 
   // Listen to DevTools state changes and notify Renderer
   mainWindow.webContents.on('devtools-opened', () => {
