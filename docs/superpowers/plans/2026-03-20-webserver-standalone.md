@@ -1,6 +1,6 @@
 # WebServer Standalone Mode Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Allow the WebServer to run as a standalone Node.js process (no Electron) so it can be deployed on a Linux server / VPS or started locally without the desktop app.
 
@@ -317,7 +317,7 @@ git commit -m "refactor(webserver): import broadcaster/emitter from registry ins
 - Modify: `src/process/bridge/webuiBridge.ts`
 - Modify: `src/process/webserver/index.ts`
 
-- [ ] **Step 4.1: Write tests for the extracted functions**
+- [x] **Step 4.1: Write tests for the extracted functions**
 
 ```typescript
 // src/process/bridge/__tests__/webuiQR.test.ts
@@ -362,7 +362,7 @@ describe('verifyQRTokenDirect', () => {
 })
 ```
 
-- [ ] **Step 4.2: Run tests — expect FAIL**
+- [x] **Step 4.2: Run tests — expect FAIL**
 
 ```bash
 bun run test src/process/bridge/__tests__/webuiQR.test.ts
@@ -370,7 +370,7 @@ bun run test src/process/bridge/__tests__/webuiQR.test.ts
 
 Expected: `Cannot find module '../webuiQR'`
 
-- [ ] **Step 4.3: Create `src/process/bridge/webuiQR.ts`**
+- [x] **Step 4.3: Create `src/process/bridge/webuiQR.ts`**
 
 Move the following code **verbatim** from `webuiBridge.ts` into this new file (no Electron imports needed):
 - The `qrTokenStore` map and `QR_TOKEN_EXPIRY` constant
@@ -406,7 +406,7 @@ const QR_TOKEN_EXPIRY = 5 * 60 * 1000
 export { generateQRLoginUrlDirect, verifyQRTokenDirect }
 ```
 
-- [ ] **Step 4.4: Update `webuiBridge.ts`** — replace the local definitions with an import from `./webuiQR`:
+- [x] **Step 4.4: Update `webuiBridge.ts`** — replace the local definitions with an import from `./webuiQR`:
 
 ```diff
 +import { generateQRLoginUrlDirect, verifyQRTokenDirect } from './webuiQR'
@@ -422,21 +422,21 @@ export { generateQRLoginUrlDirect, verifyQRTokenDirect }
 
 `webuiBridge.ts` still re-exports these so the Electron IPC path (`authRoutes.ts` calling via IPC) continues to work unchanged.
 
-- [ ] **Step 4.5: Update `src/process/webserver/index.ts`** — 1-line import change:
+- [x] **Step 4.5: Update `src/process/webserver/index.ts`** — 1-line import change:
 
 ```diff
 -import { generateQRLoginUrlDirect } from '@process/bridge/webuiBridge';
 +import { generateQRLoginUrlDirect } from '@process/bridge/webuiQR';
 ```
 
-- [ ] **Step 4.6: Run tests and type-check**
+- [x] **Step 4.6: Run tests and type-check**
 
 ```bash
 bun run test src/process/bridge/__tests__/webuiQR.test.ts
 bunx tsc --noEmit
 ```
 
-- [ ] **Step 4.7: Commit**
+- [x] **Step 4.7: Commit**
 
 ```bash
 git add src/process/bridge/webuiQR.ts src/process/bridge/webuiBridge.ts src/process/webserver/index.ts src/process/bridge/__tests__/webuiQR.test.ts
@@ -455,7 +455,7 @@ The standalone bridge adapter: uses Node.js `EventEmitter` in place of `ipcMain`
 
 > **Critical constraint:** `bridge.adapter()` is called once at module-load time. `standalone.ts` and `main.ts` must **never both be imported in the same process**. `server.ts` (standalone entry) must never import `main.ts`.
 
-- [ ] **Step 5.1: Write tests**
+- [x] **Step 5.1: Write tests**
 
 ```typescript
 // src/common/adapter/__tests__/standalone.test.ts
@@ -505,13 +505,13 @@ describe('standalone adapter', () => {
 })
 ```
 
-- [ ] **Step 5.2: Run tests — expect FAIL**
+- [x] **Step 5.2: Run tests — expect FAIL**
 
 ```bash
 bun run test src/common/adapter/__tests__/standalone.test.ts
 ```
 
-- [ ] **Step 5.3: Create `src/common/adapter/standalone.ts`**
+- [x] **Step 5.3: Create `src/common/adapter/standalone.ts`**
 
 ```typescript
 /**
@@ -550,14 +550,14 @@ export function dispatchMessage(name: string, data: unknown): void {
 }
 ```
 
-- [ ] **Step 5.4: Run tests — expect PASS**
+- [x] **Step 5.4: Run tests — expect PASS**
 
 ```bash
 bun run test src/common/adapter/__tests__/standalone.test.ts
 bunx tsc --noEmit
 ```
 
-- [ ] **Step 5.5: Commit**
+- [x] **Step 5.5: Commit**
 
 ```bash
 git add src/common/adapter/standalone.ts src/common/adapter/__tests__/standalone.test.ts
@@ -587,7 +587,7 @@ Bridge initialiser for standalone mode. Identical structure to `initBridge.ts` b
 | `cronBridge` | `CronService` → `powerSaveBlocker` |
 | `mcpBridge` | `McpProtocol` → `app.getPath()` |
 
-- [ ] **Step 6.1: Create `src/process/utils/initBridgeStandalone.ts`**
+- [x] **Step 6.1: Create `src/process/utils/initBridgeStandalone.ts`**
 
 Model this directly on `initBridge.ts`, keeping identical dependency wiring but omitting the 10 skipped bridges and the `cronService.init()` call:
 
@@ -647,7 +647,7 @@ export function initBridgeStandalone(): void {
 }
 ```
 
-- [ ] **Step 6.2: Type-check**
+- [x] **Step 6.2: Type-check**
 
 ```bash
 bunx tsc --noEmit
@@ -655,7 +655,7 @@ bunx tsc --noEmit
 
 Expected: 0 errors. If any skipped bridge import was accidentally included and has Electron deps, a runtime crash will occur — verify with the import graph check in Task 9.
 
-- [ ] **Step 6.3: Commit**
+- [x] **Step 6.3: Commit**
 
 ```bash
 git add src/process/utils/initBridgeStandalone.ts
@@ -728,11 +728,11 @@ case 'userData':
 
 > **Note:** If `DATA_DIR` override is more cleanly added in `utils.ts` rather than `initStorage.ts`, do it there — the important thing is `getConfigPath()` respects `DATA_DIR`.
 
-- [ ] **Step 7.1: Read current `src/process/utils/initStorage.ts` and `src/process/utils/utils.ts`** to understand current state before editing.
+- [x] **Step 7.1: Read current `src/process/utils/initStorage.ts` and `src/process/utils/utils.ts`** to understand current state before editing.
 
-- [ ] **Step 7.2: Apply the three guards to `initStorage.ts`** (and optionally the DATA_DIR change to `utils.ts`) as described above.
+- [x] **Step 7.2: Apply the three guards to `initStorage.ts`** (and optionally the DATA_DIR change to `utils.ts`) as described above.
 
-- [ ] **Step 7.3: Run existing tests**
+- [x] **Step 7.3: Run existing tests**
 
 ```bash
 bun run test && bunx tsc --noEmit
@@ -740,7 +740,7 @@ bun run test && bunx tsc --noEmit
 
 Expected: same pass count, 0 TS errors.
 
-- [ ] **Step 7.4: Commit**
+- [x] **Step 7.4: Commit**
 
 ```bash
 git add src/process/utils/initStorage.ts src/process/utils/utils.ts
@@ -754,7 +754,7 @@ git commit -m "fix(storage): guard Electron-only calls and add DATA_DIR env var 
 **Files:**
 - Create: `src/server.ts`
 
-- [ ] **Step 8.1: Create `src/server.ts`**
+- [x] **Step 8.1: Create `src/server.ts`**
 
 ```typescript
 /**
@@ -799,13 +799,13 @@ process.on('SIGINT', shutdown)
 
 > **Top-level `await`:** Bun natively supports top-level await in ESM modules. Node.js 18+ also supports it in `.mjs` files. The `bun build --target node` output handles this correctly.
 
-- [ ] **Step 8.2: Type-check**
+- [x] **Step 8.2: Type-check**
 
 ```bash
 bunx tsc --noEmit
 ```
 
-- [ ] **Step 8.3: Commit**
+- [x] **Step 8.3: Commit**
 
 ```bash
 git add src/server.ts
@@ -819,7 +819,7 @@ git commit -m "feat: add standalone server entry point (src/server.ts)"
 **Files:**
 - Modify: `package.json`
 
-- [ ] **Step 9.1: Add scripts**
+- [x] **Step 9.1: Add scripts**
 
 In the `"scripts"` section of `package.json`, add:
 
@@ -828,7 +828,7 @@ In the `"scripts"` section of `package.json`, add:
 "build:server": "bun build src/server.ts --outdir dist-server --target node"
 ```
 
-- [ ] **Step 9.2: Commit**
+- [x] **Step 9.2: Commit**
 
 ```bash
 git add package.json
@@ -842,7 +842,7 @@ git commit -m "chore: add server and build:server npm scripts"
 **Files:**
 - Create: `Dockerfile`
 
-- [ ] **Step 10.1: Create `Dockerfile`**
+- [x] **Step 10.1: Create `Dockerfile`**
 
 ```dockerfile
 FROM node:20-slim
@@ -871,7 +871,7 @@ EXPOSE 3000
 CMD ["node", "dist-server/server.js"]
 ```
 
-- [ ] **Step 10.2: Commit**
+- [x] **Step 10.2: Commit**
 
 ```bash
 git add Dockerfile
@@ -887,7 +887,7 @@ Verify that `src/server.ts` and its entire transitive import tree contain no `el
 **Files:**
 - Read: (no file changes)
 
-- [ ] **Step 11.1: Run import audit**
+- [x] **Step 11.1: Run import audit**
 
 ```bash
 # Check direct + transitive electron imports reachable from server.ts
@@ -897,7 +897,7 @@ grep -r "from 'electron'" src/common/adapter/registry.ts src/common/adapter/stan
 
 Expected: **no output** (zero matches).
 
-- [ ] **Step 11.2: Verify webuiQR.ts has no electron imports**
+- [x] **Step 11.2: Verify webuiQR.ts has no electron imports**
 
 ```bash
 grep "from 'electron'" src/process/bridge/webuiQR.ts
@@ -905,7 +905,7 @@ grep "from 'electron'" src/process/bridge/webuiQR.ts
 
 Expected: no output.
 
-- [ ] **Step 11.3: Full audit of all new/modified files**
+- [x] **Step 11.3: Full audit of all new/modified files**
 
 ```bash
 grep -r "from 'electron'" \
@@ -922,7 +922,7 @@ Expected: **zero matches**.
 
 ## Task 12: Smoke test — run the standalone server
 
-- [ ] **Step 12.1: Start the server**
+- [x] **Step 12.1: Start the server**
 
 ```bash
 PORT=3000 bun run server
@@ -935,15 +935,15 @@ Expected output:
 
 No crash on startup.
 
-- [ ] **Step 12.2: Verify the WebUI is accessible**
+- [x] **Step 12.2: Verify the WebUI is accessible**
 
 Open `http://localhost:3000` in a browser. Expected: the login page loads.
 
-- [ ] **Step 12.3: Verify login flow works**
+- [x] **Step 12.3: Verify login flow works**
 
 Log in with the admin password printed in the console on first start. Expected: chat UI loads and connects via WebSocket.
 
-- [ ] **Step 12.4: Verify Electron app still works (no regression)**
+- [x] **Step 12.4: Verify Electron app still works (no regression)**
 
 ```bash
 bun run start
@@ -951,7 +951,7 @@ bun run start
 
 Expected: Electron desktop app starts normally; all existing features work.
 
-- [ ] **Step 12.5: Run full test suite**
+- [x] **Step 12.5: Run full test suite**
 
 ```bash
 bun run test
@@ -963,13 +963,13 @@ Expected: same or higher pass count as before this feature branch.
 
 ## Task 13: Test with DATA_DIR env var
 
-- [ ] **Step 13.1: Start server with custom data dir**
+- [x] **Step 13.1: Start server with custom data dir**
 
 ```bash
 DATA_DIR=/tmp/aionui-test PORT=3001 bun run server
 ```
 
-- [ ] **Step 13.2: Verify data directory is used**
+- [x] **Step 13.2: Verify data directory is used**
 
 ```bash
 ls /tmp/aionui-test/
@@ -981,7 +981,7 @@ Expected: SQLite database file (`.db`) and config files present.
 
 ## Task 14: Docker build verification
 
-- [ ] **Step 14.1: Build Docker image**
+- [x] **Step 14.1: Build Docker image**
 
 ```bash
 docker build -t aionui-server .
@@ -989,7 +989,7 @@ docker build -t aionui-server .
 
 Expected: build succeeds (no errors).
 
-- [ ] **Step 14.2: Run Docker container**
+- [x] **Step 14.2: Run Docker container**
 
 ```bash
 docker run -p 3000:3000 -v $(pwd)/docker-data:/data -e DATA_DIR=/data aionui-server
@@ -997,7 +997,7 @@ docker run -p 3000:3000 -v $(pwd)/docker-data:/data -e DATA_DIR=/data aionui-ser
 
 Expected: server starts, WebUI accessible at `http://localhost:3000`.
 
-- [ ] **Step 14.3: Verify graceful shutdown**
+- [x] **Step 14.3: Verify graceful shutdown**
 
 ```bash
 docker stop <container_id>
@@ -1011,13 +1011,13 @@ Expected: `[server] Shutting down...` in logs; SQLite not corrupted.
 
 Before marking this feature complete:
 
-- [ ] `bun run test` — all tests pass (≥80% coverage maintained)
-- [ ] `bunx tsc --noEmit` — 0 TypeScript errors
-- [ ] `bun run lint:fix` — 0 lint errors
-- [ ] `bun run server` — WebUI loads at `http://localhost:3000`
-- [ ] `bun run start` — Electron app still works (no regression)
-- [ ] Import audit passes (Task 11 — zero electron refs in standalone path)
-- [ ] Docker build and run succeed (Task 14)
+- [x] `bun run test` — all tests pass (≥80% coverage maintained)
+- [x] `bunx tsc --noEmit` — 0 TypeScript errors
+- [x] `bun run lint:fix` — 0 lint errors
+- [x] `bun run server` — WebUI loads at `http://localhost:3000`
+- [x] `bun run start` — Electron app still works (no regression)
+- [x] Import audit passes (Task 11 — zero electron refs in standalone path)
+- [x] Docker build and run succeed (Task 14)
 
 ---
 
