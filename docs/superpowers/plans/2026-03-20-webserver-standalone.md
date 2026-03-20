@@ -282,7 +282,7 @@ Change the import source from `@/common/adapter/main` to `@/common/adapter/regis
 **Files:**
 - Modify: `src/process/webserver/adapter.ts`
 
-- [ ] **Step 3.1: Apply the 1-line change**
+- [x] **Step 3.1: Apply the 1-line change**
 
 ```diff
 -import { registerWebSocketBroadcaster, getBridgeEmitter } from '@/common/adapter/main';
@@ -291,7 +291,7 @@ Change the import source from `@/common/adapter/main` to `@/common/adapter/regis
 
 > **Confirmed correct:** `adapter.ts` calls `getBridgeEmitter().emit(name, data)` directly (not `dispatchMessage`). Since `registry.ts` exports `getBridgeEmitter`, this 1-line import change is all that's needed. No additional `dispatchMessage` wiring required here.
 
-- [ ] **Step 3.2: Type-check**
+- [x] **Step 3.2: Type-check**
 
 ```bash
 bunx tsc --noEmit
@@ -299,7 +299,7 @@ bunx tsc --noEmit
 
 Expected: 0 errors.
 
-- [ ] **Step 3.3: Commit**
+- [x] **Step 3.3: Commit**
 
 ```bash
 git add src/process/webserver/adapter.ts
