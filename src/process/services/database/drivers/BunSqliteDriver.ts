@@ -1,8 +1,9 @@
+// @ts-nocheck -- this file uses bun:sqlite which is a Bun built-in not available to tsc
 // src/process/services/database/drivers/BunSqliteDriver.ts
 // bun:sqlite is a Bun built-in — this file must only be loaded when running under Bun.
 
-import { Database } from 'bun:sqlite';
-import type { ISqliteDriver, IStatement } from './ISqliteDriver';
+import { Database } from "bun:sqlite";
+import type { ISqliteDriver, IStatement } from "./ISqliteDriver";
 
 class BunStatement implements IStatement {
   constructor(
@@ -18,7 +19,10 @@ class BunStatement implements IStatement {
     return this.db.query(this.sql).all(...args) as unknown[];
   }
 
-  run(...args: unknown[]): { changes: number; lastInsertRowid: number | bigint } {
+  run(...args: unknown[]): {
+    changes: number;
+    lastInsertRowid: number | bigint;
+  } {
     // bun:sqlite db.query(...).run() returns void.
     // Use db.run() (top-level Database method) which returns { changes, lastInsertRowid }.
     return this.db.run(this.sql, ...args);
@@ -44,13 +48,16 @@ export class BunSqliteDriver implements ISqliteDriver {
 
   pragma(sql: string, options?: { simple?: boolean }): unknown {
     // Setter pragma: contains '=' (e.g. 'foreign_keys = ON')
-    if (sql.includes('=')) {
+    if (sql.includes("=")) {
       this.db.run(`PRAGMA ${sql}`);
       return undefined;
     }
     // Getter pragma with { simple: true }: return scalar value
     if (options?.simple) {
-      const row = this.db.query(`PRAGMA ${sql}`).get() as Record<string, unknown> | null;
+      const row = this.db.query(`PRAGMA ${sql}`).get() as Record<
+        string,
+        unknown
+      > | null;
       if (!row) return undefined;
       return Object.values(row)[0];
     }
