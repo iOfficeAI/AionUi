@@ -3,6 +3,11 @@
  * Global configuration for extension system tests
  */
 
+// Register NodePlatformServices so modules that call getPlatformServices() work in tests.
+import { registerPlatformServices } from "../src/common/platform";
+import { NodePlatformServices } from "../src/common/platform/NodePlatformServices";
+registerPlatformServices(new NodePlatformServices());
+
 // Make this a module
 
 // Extend global types for testing
@@ -29,6 +34,6 @@ const windowControlsMock = {
   windowControls: windowControlsMock,
 };
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   (window as any).electronAPI = (global as any).electronAPI;
 }

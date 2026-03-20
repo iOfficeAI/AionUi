@@ -5,7 +5,7 @@
  */
 
 import type { IDirOrFile } from "@/common/adapter/ipcBridge";
-import { app } from "electron";
+import { getPlatformServices } from "@/common/platform";
 import { getEnvAwareName } from "@/common/config/appEnv";
 import {
   existsSync,
@@ -29,30 +29,20 @@ const lazyGetSystemDir = () => {
 };
 
 export const hasElectronAppPath = (): boolean => {
-  return typeof app?.getPath === "function";
+  return getPlatformServices().paths.getAppPath() !== null;
 };
 
 const getElectronPathOrFallback = (
   name: "temp" | "home" | "userData",
 ): string => {
-  if (hasElectronAppPath()) {
-    try {
-      return app.getPath(name);
-    } catch (_error) {
-      // Fall through to deterministic filesystem paths for tests and non-Electron environments.
-    }
-  }
-
+  const paths = getPlatformServices().paths;
   switch (name) {
     case "temp":
-      return os.tmpdir();
+      return paths.getTempDir();
     case "home":
-      return os.homedir();
+      return paths.getHomeDir();
     case "userData":
-      return (
-        process.env.DATA_DIR ??
-        path.join(os.tmpdir(), getEnvAwareName("aionui-user-data"))
-      );
+      return paths.getDataDir();
   }
 };
 

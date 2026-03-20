@@ -11,9 +11,8 @@ import {
   readFileSync,
 } from "fs";
 import fs from "fs/promises";
-import os from "os";
 import path from "path";
-import { app } from "electron";
+import { getPlatformServices } from "@/common/platform";
 import { application } from "@/common/adapter/ipcBridge";
 import type { TMessage } from "@/common/chat/chatLib";
 import { ASSISTANT_PRESETS } from "@/common/config/presets/assistantPresets";
@@ -450,9 +449,10 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   // When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
   // 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
   const resolveBuiltinDir = (dirPath: string): string => {
-    const appPath = app.getAppPath();
+    const platform = getPlatformServices().paths;
+    const appPath = platform.getAppPath()!;
     let candidates: string[];
-    if (app.isPackaged) {
+    if (platform.isPackaged()) {
       // asarUnpack extracts files to app.asar.unpacked directory
       // asarUnpack 会将文件解压到 app.asar.unpacked 目录
       const unpackedPath = appPath.replace("app.asar", "app.asar.unpacked");
@@ -1133,9 +1133,7 @@ export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
   // electron-log writes to the platform-standard logs directory
-  const logDir = hasElectronAppPath()
-    ? path.join(app.getPath("logs"))
-    : path.join(os.tmpdir(), "aionui-logs");
+  const logDir = getPlatformServices().paths.getLogsDir();
 
   return {
     cacheDir: cacheDir,
