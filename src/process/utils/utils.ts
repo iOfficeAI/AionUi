@@ -188,7 +188,13 @@ export async function readDirectoryRecursive(
   });
   if (maxDepth === 0 || searchResult) return result;
   checkStatus();
-  const items = await fs.readdir(dirPath);
+  let items: string[];
+  try {
+    items = await fs.readdir(dirPath);
+  } catch {
+    // Permission denied (EPERM/EACCES) or other fs errors — skip this directory
+    return result;
+  }
   checkStatus();
 
   for (const item of items) {
