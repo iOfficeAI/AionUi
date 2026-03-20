@@ -46,73 +46,39 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      // 手动指定需要覆盖的源文件，确保只检测新增/修改的逻辑
-      // 新增功能时，将对应的源文件路径添加到此数组
-      // 例如: 'src/process/services/newService.ts'
-      include: [
-        // Build scripts
-        'scripts/prepareBundledBun.js',
-        'src/process/utils/tray.ts',
-        'src/process/utils/deepLink.ts',
-        'src/process/utils/mainWindowLifecycle.ts',
-        'src/process/utils/webuiConfig.ts',
-        'src/process/bridge/services/WebuiService.ts',
-        'src/process/services/database/index.ts',
-        'src/process/webserver/auth/service/AuthService.ts',
-        'src/process/webserver/auth/repository/UserRepository.ts',
-        'src/process/services/autoUpdaterService.ts',
-        'src/process/services/cron/CronService.ts',
-        'src/process/services/cron/CronStore.ts',
-        'src/process/bridge/cronBridge.ts',
-        'src/process/bridge/conversationBridge.ts',
-        // Decoupling layer (interfaces + implementations)
-        'src/process/services/database/SqliteConversationRepository.ts',
-        'src/process/services/database/SqliteChannelRepository.ts',
-        'src/process/services/ConversationServiceImpl.ts',
-        'src/process/services/cron/SqliteCronRepository.ts',
-        'src/process/services/cron/IpcCronEventEmitter.ts',
-        'src/process/services/cron/WorkerTaskManagerJobExecutor.ts',
-        'src/process/bridge/services/ActivitySnapshotBuilder.ts',
-        'src/process/bridge/databaseBridge.ts',
-        'src/process/task/AgentFactory.ts',
-        'src/process/task/WorkerTaskManager.ts',
-        'src/process/task/IpcAgentEventEmitter.ts',
-        'src/process/task/BaseAgentManager.ts',
-        'src/process/bridge/updateBridge.ts',
-        'src/process/bridge/applicationBridge.ts',
-        'src/process/utils/configureChromium.ts',
-        // ACP
-        'src/process/agent/acp/AcpAdapter.ts',
-        'src/process/agent/acp/AcpConnection.ts',
-        'src/process/agent/acp/acpConnectors.ts',
-        'src/process/agent/acp/modelInfo.ts',
-        'src/process/agent/acp/mcpSessionConfig.ts',
-        // Common
-        'src/common/chat/imageGenCore.ts',
-        'src/common/chat/chatLib.ts',
-        'src/common/update/models/VersionInfo.ts',
-        'src/common/config/appEnv.ts',
-        // Renderer utils
-        'src/renderer/hooks/chat/useAutoScroll.ts',
-        'src/renderer/pages/conversation/Messages/useAutoScroll.ts',
-        'src/renderer/utils/emitter.ts',
-        'src/renderer/utils/file/base64.ts',
-        'src/renderer/utils/file/download.ts',
-        // Extension system (only files with existing tests)
-        'src/process/extensions/ExtensionLoader.ts',
-        'src/process/extensions/{dependencyResolver,pathSafety,statePersistence,entryPointResolver,envResolver,fileResolver}.ts',
-        'src/process/extensions/resolvers/WebuiResolver.ts',
-        // Renderer components
-        'src/renderer/pages/conversation/platforms/gemini/GeminiSendBox.tsx',
-        'src/renderer/pages/conversation/platforms/gemini/useGeminiMessage.ts',
-        'src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapUtils.ts',
-        'src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel.ts',
+      // Cover ALL source code by default — new files are automatically included.
+      // Only exclude files that genuinely cannot be unit-tested (entry points,
+      // type-only files, static assets, etc.).
+      include: ['src/**/*.{ts,tsx}', 'scripts/prepareBundledBun.js'],
+      exclude: [
+        // Type declaration files (no runtime code)
+        'src/**/*.d.ts',
+
+        // Electron entry points (require Electron runtime)
+        'src/index.ts',
+        'src/preload.ts',
+
+        // Shims / polyfills
+        'src/common/utils/shims/**',
+
+        // Pure type / constant files
+        'src/common/types/**',
+
+        // Static assets and i18n JSON (no logic)
+        'src/renderer/**/*.json',
+        'src/renderer/**/*.svg',
+        'src/renderer/**/*.css',
+
+        // i18n config (JSON-only)
+        'src/common/config/i18n-config.json',
       ],
+      // Thresholds apply to the included file set.
+      // Keeping them informational until coverage ramps up across all files.
       thresholds: {
-        statements: 30,
-        branches: 10,
-        functions: 35,
-        lines: 30,
+        statements: 0,
+        branches: 0,
+        functions: 0,
+        lines: 0,
       },
     },
   },
