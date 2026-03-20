@@ -49,7 +49,11 @@ export class McpService {
     // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
     // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
     try {
-      execSync(`${whichCommand} ${cliCommand}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000 });
+      execSync(`${whichCommand} ${cliCommand}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: 1000,
+      });
       return true;
     } catch {
       if (!isWindows) return false;
@@ -152,17 +156,9 @@ export class McpService {
     agentInstance: IMcpProtocol | undefined;
     source: McpSource;
   } {
-    if (agent.backend === 'gemini' && !agent.cliPath) {
-      return {
-        agentInstance: this.agents.get('aionui'),
-        source: 'gemini',
-      };
-    }
-
-    return {
-      agentInstance: this.getAgent(agent.backend),
-      source: agent.backend as McpSource,
-    };
+    const agentInstance = this.getAgentForConfig(agent);
+    const source: McpSource = agent.backend === 'gemini' && !agent.cliPath ? 'gemini' : (agent.backend as McpSource);
+    return { agentInstance, source };
   }
 
   /**
@@ -258,7 +254,10 @@ export class McpService {
     if (firstAgent) {
       return await firstAgent.testMcpConnection(server);
     }
-    return { success: false, error: 'No agent available for connection testing' };
+    return {
+      success: false,
+      error: 'No agent available for connection testing',
+    };
   }
 
   /**

@@ -180,7 +180,21 @@ gh pr view <PR_NUMBER> --json comments --jq '.comments[] | select(.body | starts
 
 If a pr-assess comment exists, use it as supplementary context (risk signals, change overview) when forming your review. Do not re-verify its conclusions — treat it as background information only.
 
-### Step 7 — Read Changed File Contents
+### Step 7 — Run Lint on Changed Files
+
+Run oxlint on all changed `.ts` / `.tsx` files (skip deleted files):
+
+```bash
+bunx oxlint <changed_ts_tsx_files...>
+```
+
+Save the lint output as **lint baseline**. Use it when reviewing style and code quality in Step 8:
+
+- If a pattern produces **no lint warning** → it is project-approved; do not flag it as a style issue.
+- If a pattern produces **a lint warning/error** → it is a real violation; report it at the appropriate severity (ERROR → HIGH, WARNING → LOW).
+- Do **not** suggest replacing a lint-clean pattern with an alternative based on general convention alone (e.g. do not suggest spread over `Object.assign` if `no-map-spread` is active).
+
+### Step 8 — Read Changed File Contents
 
 Use the Read tool to read each changed file locally.
 
@@ -201,7 +215,7 @@ Use the Read tool to read each changed file locally.
 
 Also read key interface/type definition files imported by the changed files when they provide important context.
 
-### Step 8 — Perform Code Review
+### Step 9 — Perform Code Review
 
 Write the code review report in **Chinese**.
 
@@ -326,7 +340,7 @@ If no issues are found across all dimensions, output:
 
 > ✅ 未发现明显问题，代码质量良好，建议批准合并。
 
-### Step 9 — Ask to Post Comment
+### Step 10 — Ask to Post Comment
 
 Print the complete review report to the terminal, then ask the user:
 
@@ -355,7 +369,7 @@ gh pr comment <PR_NUMBER> --body "<!-- pr-review-bot -->
 <review_report>"
 ```
 
-### Step 10 — Cleanup
+### Step 11 — Cleanup
 
 Switch back to the original branch:
 
