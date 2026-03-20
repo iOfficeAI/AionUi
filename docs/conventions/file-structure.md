@@ -43,9 +43,9 @@ src/
 └── index.ts           # Main process entry point
 ```
 
-### Current Structure (transitional)
+### Current Structure
 
-Some main-process modules still live at `src/` root and will be migrated incrementally. New modules should be created in the **target** location when possible.
+All main-process modules now live under `src/process/`. The `src/` root contains only the three core layers (`renderer/`, `process/`, `common/`), the entry files (`index.ts`, `preload.ts`), and the ambient type declaration (`types.d.ts`).
 
 ## Directory Naming — Two Conventions by Process
 
@@ -56,7 +56,7 @@ This project straddles two ecosystems. Each follows its own convention:
 | **Renderer** (`src/renderer/`)     | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
 | **Everything else**                | **lowercase**                            | Node.js ecosystem                                                           |
 | **Categorical dirs** (everywhere)  | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
-| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `src/agent/<platform>/` naming for cross-process consistency         |
+| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `src/process/agent/<platform>/` naming for cross-process consistency |
 
 ### Quick test
 
@@ -64,7 +64,7 @@ This project straddles two ecosystems. Each follows its own convention:
 >
 > **YES** → PascalCase. **NO** → lowercase.
 >
-> **Exception**: Platform directories (`acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) always use lowercase, even inside renderer, to match `src/agent/`.
+> **Exception**: Platform directories (`acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) always use lowercase, even inside renderer, to match `src/process/agent/`.
 
 ### Renderer examples
 
@@ -88,9 +88,9 @@ src/renderer/
 ### Non-renderer examples
 
 ```
-src/process/services/cron/       # lowercase
-src/agent/acp/                   # lowercase
-src/channels/plugins/dingtalk/   # lowercase
+src/process/services/cron/            # lowercase
+src/process/agent/acp/               # lowercase
+src/process/channels/plugins/dingtalk/  # lowercase
 ```
 
 ## File Naming — Same Everywhere
@@ -112,12 +112,12 @@ src/channels/plugins/dingtalk/   # lowercase
 | ------------------------------ | ----------------------------- | -------------------------------- |
 | **Main** (`src/process/`)      | Node.js, Electron main APIs   | DOM APIs, React                  |
 | **Renderer** (`src/renderer/`) | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
-| **Worker** (`src/worker/`)     | Node.js APIs                  | DOM APIs, Electron APIs          |
+| **Worker** (`src/process/worker/`) | Node.js APIs                  | DOM APIs, Electron APIs          |
 
 Cross-process communication MUST go through:
 
 - Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
-- Main ↔ Worker: fork protocol via `src/worker/WorkerProtocol.ts`
+- Main ↔ Worker: fork protocol via `src/process/worker/WorkerProtocol.ts`
 
 ## Main Process Naming
 
@@ -167,7 +167,7 @@ Test files must mirror the source file they test:
 | `src/process/bridge/fsBridge.ts`             | `tests/unit/fsBridge.test.ts`                   |
 | `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts`            |
 | `src/renderer/hooks/ui/useAutoScroll.ts`     | `tests/unit/useAutoScroll.dom.test.ts`          |
-| `src/extensions/ExtensionLoader.ts`          | `tests/unit/extensions/extensionLoader.test.ts` |
+| `src/process/extensions/ExtensionLoader.ts`  | `tests/unit/extensions/extensionLoader.test.ts` |
 
 When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/extensions/`). New source files with logic should be added to `vitest.config.ts` → `coverage.include`.
 
@@ -308,6 +308,6 @@ Inside a page module (e.g., `pages/conversation/`), three types of subdirectorie
 | --------------------------------------------- | ---------- | ---------------------------------------------------- |
 | **Categorical** (standard role)               | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
 | **Feature module** (business feature)         | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
-| **Platform directory** (mirrors `src/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
+| **Platform directory** (mirrors `src/process/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
 
-Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/agent/<platform>/`.
+Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/process/agent/<platform>/`.

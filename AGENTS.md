@@ -45,7 +45,7 @@ Three process types — never mix their APIs:
 
 - `src/process/` — main process, no DOM APIs
 - `src/renderer/` — renderer, no Node.js APIs
-- `src/worker/` — fork workers, no Electron APIs
+- `src/process/worker/` — fork workers, no Electron APIs
 
 Cross-process communication must go through the IPC bridge (`src/preload.ts`).
 See [docs/tech/architecture.md](docs/tech/architecture.md) for details.
