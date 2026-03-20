@@ -1,4 +1,5 @@
 import type { IPlatformServices } from "./IPlatformServices";
+import { NodePlatformServices } from "./NodePlatformServices";
 
 let _services: IPlatformServices | null = null;
 
@@ -21,9 +22,6 @@ export function getPlatformServices(): IPlatformServices {
       // ElectronPlatformServices.fork so paths still resolve correctly).
       const processType = (process as NodeJS.Process & { type?: string }).type;
       if (processType !== "browser") {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { NodePlatformServices } =
-          require("./NodePlatformServices") as typeof import("./NodePlatformServices");
         _services = new NodePlatformServices();
       } else {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
