@@ -91,9 +91,9 @@ bun run test:coverage     # Check coverage (before opening a PR)
 
 ### Step 4: Verify Coverage
 
-**Coverage target**: ≥ 80% for all files listed in `vitest.config.ts` → `coverage.include`.
+**Coverage target**: ≥ 80% for all source files matched by `vitest.config.ts` → `coverage.include` (currently `src/**/*.{ts,tsx}` plus a few scripts).
 
-If you added new source files to a feature area, make sure they are included in the coverage config.
+New source files are automatically included in coverage — no manual config changes needed. If a new file is accidentally excluded by a rule in `coverage.exclude`, remove it from the exclude list.
 
 ### Step 5: Update Existing Tests
 
@@ -124,7 +124,7 @@ Before submitting code:
 - [ ] `bun run test` passes
 - [ ] Tests describe **behavior**, not implementation
 - [ ] At least one failure path per describe block
-- [ ] New source files added to `coverage.include` if applicable
+- [ ] New source files are not accidentally excluded by `coverage.exclude`
 - [ ] `bun run test:coverage` meets ≥ 80% target
 
 ## Common Mistakes
