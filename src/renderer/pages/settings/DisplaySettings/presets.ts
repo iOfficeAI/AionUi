@@ -22,6 +22,8 @@ import helloKittyCss from './presets/hello-kitty.css?raw';
 import retroWindowsCss from './presets/retro-windows.css?raw';
 import retromaY2kCss from './presets/retroma-y2k.css?raw';
 import retromaObsidianBookCss from './presets/retroma-obsidian-book.css?raw';
+import discourseHorizonCss from './presets/discourse-horizon.css?raw';
+import glitteringInputFieldCss from './presets/glittering-input-field.css?raw';
 
 /**
  * 默认主题 ID / Default theme ID
@@ -85,6 +87,22 @@ export const PRESET_THEMES: ICssTheme[] = [
     isPreset: true,
     cover: retromaObsidianBookCover,
     css: retromaObsidianBookCss,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  },
+  {
+    id: 'discourse-horizon',
+    name: 'Discourse Horizon',
+    isPreset: true,
+    css: discourseHorizonCss,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  },
+  {
+    id: 'glittering-input-field',
+    name: 'Glittering Input Field',
+    isPreset: true,
+    css: glitteringInputFieldCss,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   },
