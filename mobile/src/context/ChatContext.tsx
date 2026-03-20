@@ -238,7 +238,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       bridge
         .request('confirmation.confirm', {
           conversation_id: conversationId,
-          id: confirmationId,
+          msg_id: confirmationId,
           callId,
           data: confirmKey,
         })
