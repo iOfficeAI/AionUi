@@ -144,7 +144,7 @@ const SystemModalContent: React.FC = () => {
         savingRef.current = false;
       }
     },
-    [systemInfo, form, saveDirConfigValidate],
+    [systemInfo, form, saveDirConfigValidate]
   );
 
   return (
