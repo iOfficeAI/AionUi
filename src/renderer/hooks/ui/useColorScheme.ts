@@ -5,7 +5,7 @@
  */
 
 // hooks/useColorScheme.ts - Color Scheme Management Hook 配色方案管理
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { useCallback, useEffect, useState } from 'react';
 
 // Supported color schemes 支持的配色方案类型

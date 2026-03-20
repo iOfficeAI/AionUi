@@ -6,7 +6,7 @@
 
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { isPathWithinDirectory } from '../../../src/extensions/pathSafety';
+import { isPathWithinDirectory } from '../../../src/process/extensions/sandbox/pathSafety';
 
 describe('extensions/pathSafety', () => {
   const root = path.resolve('tmp', 'extensions', 'safe-root');

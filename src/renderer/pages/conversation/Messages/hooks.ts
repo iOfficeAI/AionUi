@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
-import { composeMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
+import { composeMessage } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 

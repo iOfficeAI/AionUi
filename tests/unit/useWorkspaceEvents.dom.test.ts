@@ -9,7 +9,7 @@ import { act } from '@testing-library/react';
 import { emitter } from '../../src/renderer/utils/emitter';
 
 // Mock ipcBridge
-vi.mock('../../src/common/ipcBridge', () => ({
+vi.mock('../../src/common/adapter/ipcBridge', () => ({
   ipcBridge: {
     geminiConversation: {
       responseStream: {

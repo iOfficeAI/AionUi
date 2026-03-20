@@ -1,5 +1,5 @@
-import type { IMcpServer, IMcpTool } from '@/common/storage';
-import { acpConversation, mcpService } from '@/common/ipcBridge';
+import type { IMcpServer, IMcpTool } from '@/common/config/storage';
+import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import { Button, Select, Spin } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';

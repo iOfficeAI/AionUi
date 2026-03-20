@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage, type IConfigStorageRefer, type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/storage';
-import { acpConversation } from '@/common/ipcBridge';
+import {
+  ConfigStorage,
+  type IConfigStorageRefer,
+  type IMcpServer,
+  BUILTIN_IMAGE_GEN_ID,
+} from '@/common/config/storage';
+import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

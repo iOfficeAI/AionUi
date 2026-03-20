@@ -6,7 +6,7 @@
 
 // Pure utility functions for the conversation minimap panel.
 
-import type { IMessageText, TMessage } from '@/common/chatLib';
+import type { IMessageText, TMessage } from '@/common/chat/chatLib';
 import React from 'react';
 import {
   defaultVisualStyle,

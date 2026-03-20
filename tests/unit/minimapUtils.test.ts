@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chat/chatLib';
 import { MAX_LINE_LEN } from '@/renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes';
 import {
   buildSearchSnippet,

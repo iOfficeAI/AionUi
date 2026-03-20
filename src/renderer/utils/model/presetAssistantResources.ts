@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
-import { ConfigStorage } from '@/common/storage';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
+import { ConfigStorage } from '@/common/config/storage';
 
 export type PresetAssistantResourceDeps = {
   readAssistantRule: (args: { assistantId: string; locale: string }) => Promise<string>;

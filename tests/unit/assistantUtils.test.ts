@@ -27,7 +27,7 @@ const MOCK_PRESETS = vi.hoisted(() => [
   },
 ]);
 
-vi.mock('@/common/presets/assistantPresets', () => ({
+vi.mock('@/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: MOCK_PRESETS,
 }));
 

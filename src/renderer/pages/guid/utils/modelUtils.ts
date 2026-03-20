@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
 /**

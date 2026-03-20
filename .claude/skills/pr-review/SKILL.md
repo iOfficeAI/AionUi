@@ -194,9 +194,9 @@ Use the Read tool to read each changed file locally.
 **Priority order (read highest priority first):**
 
 1. `src/process/`
-2. `src/channels/`
+2. `src/process/channels/`
 3. `src/common/`
-4. `src/worker/`
+4. `src/process/worker/`
 5. `src/renderer/`
 
 Also read key interface/type definition files imported by the changed files when they provide important context.
@@ -218,7 +218,7 @@ Review dimensions:
 - **测试** — 对照 [testing skill](../testing/SKILL.md) 的标准评估，以下任一情况须指出：
   - 新增功能没有对应测试用例
   - 修改了逻辑但未更新已有相关测试
-  - 新增的源文件未加入 `vitest.config.ts` 的 `coverage.include`
+  - 新增的源文件被 `vitest.config.ts` 的 `coverage.exclude` 意外排除（即本应计入覆盖但被错误排除）
   - 已有测试不符合 testing skill Step 2 的质量规则
 - **可测试性** — 变更后的代码是否仍可独立测试；依赖是否可 mock；
   是否与已有模块保持解耦；能否在不依赖完整运行环境的情况下运行单元测试。

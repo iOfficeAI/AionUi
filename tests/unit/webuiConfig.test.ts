@@ -18,6 +18,11 @@ describe('webuiConfig module', () => {
       app: {
         getPath: vi.fn(() => '/mock/userData'),
       },
+      ipcMain: {
+        handle: vi.fn(),
+        on: vi.fn(),
+        removeHandler: vi.fn(),
+      },
     }));
 
     vi.doMock('fs', () => ({
@@ -25,23 +30,27 @@ describe('webuiConfig module', () => {
       readFileSync: vi.fn(() => '{}'),
     }));
 
-    vi.doMock('@/process/bridge/webuiBridge', () => ({
+    vi.doMock('@process/bridge/webuiBridge', () => ({
       setWebServerInstance: vi.fn(),
     }));
 
-    vi.doMock('@/process/initStorage', () => ({
+    vi.doMock('@process/utils/initStorage', () => ({
       ProcessConfig: {
         get: vi.fn(() => Promise.resolve(undefined)),
       },
     }));
 
-    vi.doMock('@/webserver', () => ({
+    vi.doMock('@process/webserver', () => ({
       startWebServerWithInstance: vi.fn(() => Promise.resolve({ port: 3000 })),
     }));
 
-    vi.doMock('@/webserver/config/constants', () => ({
-      SERVER_CONFIG: { DEFAULT_PORT: 3000 },
-    }));
+    vi.doMock('@process/webserver/config/constants', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('@process/webserver/config/constants')>();
+      return {
+        ...actual,
+        SERVER_CONFIG: { ...actual.SERVER_CONFIG, DEFAULT_PORT: 3000 },
+      };
+    });
   });
 
   afterEach(() => {
@@ -50,7 +59,7 @@ describe('webuiConfig module', () => {
 
   describe('parsePortValue', () => {
     it('should parse valid port numbers', async () => {
-      const { parsePortValue } = await import('@/process/webuiConfig');
+      const { parsePortValue } = await import('@process/utils/webuiConfig');
 
       expect(parsePortValue(8080)).toBe(8080);
       expect(parsePortValue('3000')).toBe(3000);
@@ -59,7 +68,7 @@ describe('webuiConfig module', () => {
     });
 
     it('should return null for invalid values', async () => {
-      const { parsePortValue } = await import('@/process/webuiConfig');
+      const { parsePortValue } = await import('@process/utils/webuiConfig');
 
       expect(parsePortValue(null)).toBeNull();
       expect(parsePortValue(undefined)).toBeNull();
@@ -73,7 +82,7 @@ describe('webuiConfig module', () => {
 
   describe('parseBooleanEnv', () => {
     it('should parse truthy values', async () => {
-      const { parseBooleanEnv } = await import('@/process/webuiConfig');
+      const { parseBooleanEnv } = await import('@process/utils/webuiConfig');
 
       expect(parseBooleanEnv('1')).toBe(true);
       expect(parseBooleanEnv('true')).toBe(true);
@@ -83,7 +92,7 @@ describe('webuiConfig module', () => {
     });
 
     it('should parse falsy values', async () => {
-      const { parseBooleanEnv } = await import('@/process/webuiConfig');
+      const { parseBooleanEnv } = await import('@process/utils/webuiConfig');
 
       expect(parseBooleanEnv('0')).toBe(false);
       expect(parseBooleanEnv('false')).toBe(false);
@@ -92,7 +101,7 @@ describe('webuiConfig module', () => {
     });
 
     it('should return null for empty or undefined', async () => {
-      const { parseBooleanEnv } = await import('@/process/webuiConfig');
+      const { parseBooleanEnv } = await import('@process/utils/webuiConfig');
 
       expect(parseBooleanEnv(undefined)).toBeNull();
       expect(parseBooleanEnv('')).toBeNull();
@@ -101,7 +110,7 @@ describe('webuiConfig module', () => {
 
   describe('loadUserWebUIConfig', () => {
     it('should return empty config when file does not exist', async () => {
-      const { loadUserWebUIConfig } = await import('@/process/webuiConfig');
+      const { loadUserWebUIConfig } = await import('@process/utils/webuiConfig');
       const result = loadUserWebUIConfig();
 
       expect(result.exists).toBe(false);
@@ -115,7 +124,7 @@ describe('webuiConfig module', () => {
         readFileSync: vi.fn(() => JSON.stringify({ port: 8080, allowRemote: true })),
       }));
 
-      const { loadUserWebUIConfig } = await import('@/process/webuiConfig');
+      const { loadUserWebUIConfig } = await import('@process/utils/webuiConfig');
       const result = loadUserWebUIConfig();
 
       expect(result.exists).toBe(true);
@@ -126,7 +135,7 @@ describe('webuiConfig module', () => {
 
   describe('resolveWebUIPort', () => {
     it('should use CLI switch value first', async () => {
-      const { resolveWebUIPort } = await import('@/process/webuiConfig');
+      const { resolveWebUIPort } = await import('@process/utils/webuiConfig');
       const getSwitchValue = (flag: string) => (flag === 'port' ? '9090' : undefined);
 
       expect(resolveWebUIPort({}, getSwitchValue)).toBe(9090);
@@ -134,19 +143,19 @@ describe('webuiConfig module', () => {
 
     it('should fallback to env variable', async () => {
       process.env.AIONUI_PORT = '7070';
-      const { resolveWebUIPort } = await import('@/process/webuiConfig');
+      const { resolveWebUIPort } = await import('@process/utils/webuiConfig');
 
       expect(resolveWebUIPort({}, () => undefined)).toBe(7070);
     });
 
     it('should fallback to config port', async () => {
-      const { resolveWebUIPort } = await import('@/process/webuiConfig');
+      const { resolveWebUIPort } = await import('@process/utils/webuiConfig');
 
       expect(resolveWebUIPort({ port: 5050 }, () => undefined)).toBe(5050);
     });
 
     it('should fallback to default port', async () => {
-      const { resolveWebUIPort } = await import('@/process/webuiConfig');
+      const { resolveWebUIPort } = await import('@process/utils/webuiConfig');
 
       expect(resolveWebUIPort({}, () => undefined)).toBe(3000);
     });
@@ -154,33 +163,33 @@ describe('webuiConfig module', () => {
 
   describe('resolveRemoteAccess', () => {
     it('should return true when isRemoteMode is true', async () => {
-      const { resolveRemoteAccess } = await import('@/process/webuiConfig');
+      const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({}, true)).toBe(true);
     });
 
     it('should return true when env says allow remote', async () => {
       process.env.AIONUI_ALLOW_REMOTE = '1';
-      const { resolveRemoteAccess } = await import('@/process/webuiConfig');
+      const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({}, false)).toBe(true);
     });
 
     it('should return true when host is 0.0.0.0', async () => {
       process.env.AIONUI_HOST = '0.0.0.0';
-      const { resolveRemoteAccess } = await import('@/process/webuiConfig');
+      const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({}, false)).toBe(true);
     });
 
     it('should return true when config allows remote', async () => {
-      const { resolveRemoteAccess } = await import('@/process/webuiConfig');
+      const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({ allowRemote: true }, false)).toBe(true);
     });
 
     it('should return false when nothing enables remote', async () => {
-      const { resolveRemoteAccess } = await import('@/process/webuiConfig');
+      const { resolveRemoteAccess } = await import('@process/utils/webuiConfig');
 
       expect(resolveRemoteAccess({}, false)).toBe(false);
     });

@@ -202,7 +202,7 @@ vi.mock('@/renderer/hooks/agent/useConfigModelListWithImage', () => ({
   }),
 }));
 
-vi.mock('@/common/storage', () => ({
+vi.mock('@/common/config/storage', () => ({
   BUILTIN_IMAGE_GEN_ID: testState.BUILTIN_IMAGE_GEN_ID,
   ConfigStorage: {
     get: (...args: unknown[]) => testState.mockConfigGet(...args),
@@ -211,7 +211,7 @@ vi.mock('@/common/storage', () => ({
   },
 }));
 
-vi.mock('@/common/ipcBridge', () => ({
+vi.mock('@/common/adapter/ipcBridge', () => ({
   acpConversation: {
     getAvailableAgents: {
       invoke: vi.fn(() => Promise.resolve({ success: true, data: [] })),

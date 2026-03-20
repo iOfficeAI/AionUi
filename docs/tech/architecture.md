@@ -6,7 +6,7 @@ AionUi is an Electron app with three types of processes:
 
 - **Main Process** (`src/process/`, `src/index.ts`) — application logic, database, IPC handling. No DOM APIs available.
 - **Renderer Process** (`src/renderer/`) — React UI. No Node.js APIs available.
-- **Worker Processes** (`src/worker/`) — background AI tasks (gemini, codex, acp workers).
+- **Worker Processes** (`src/process/worker/`) — background AI tasks (gemini, codex, acp workers).
 
 Cross-process communication must go through the IPC bridge.
 
@@ -18,7 +18,7 @@ Cross-process communication must go through the IPC bridge.
 
 ## WebUI Server
 
-Located in `src/webserver/`.
+Located in `src/process/webserver/`.
 
 - Express + WebSocket for real-time communication
 - JWT authentication for remote access

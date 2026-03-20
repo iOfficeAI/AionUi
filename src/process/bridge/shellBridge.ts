@@ -5,7 +5,7 @@
  */
 
 import { shell } from 'electron';
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 
 export function initShellBridge(): void {
   ipcBridge.shell.openFile.provider(async (path) => {

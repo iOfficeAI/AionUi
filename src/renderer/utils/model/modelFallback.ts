@@ -1,4 +1,4 @@
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
 import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 
 /**
@@ -45,7 +45,7 @@ export const resolveFallbackTarget = (params: ResolveFallbackParams): { provider
   );
 
   if (!candidates.length) return null;
-  const sortedCandidates = [...candidates].sort((a, b) => {
+  const sortedCandidates = [...candidates].toSorted((a, b) => {
     const scoreA = scoreModel(a);
     const scoreB = scoreModel(b);
     if (scoreA !== scoreB) return scoreA - scoreB;

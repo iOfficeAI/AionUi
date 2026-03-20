@@ -49,7 +49,7 @@ describe('scoreModel', () => {
 
   it('sorts candidates correctly when used for fallback ordering', () => {
     const models = ['gemini-2.0-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-standard'];
-    const sorted = [...models].sort((a, b) => scoreModel(a) - scoreModel(b));
+    const sorted = [...models].toSorted((a, b) => scoreModel(a) - scoreModel(b));
 
     // Lightest first: flash-lite(-3), flash(-1), standard(0), pro(2)
     expect(sorted).toEqual(['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-standard', 'gemini-2.0-pro']);

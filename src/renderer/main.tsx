@@ -13,7 +13,7 @@ Sentry.init();
 import './utils/ui/runtimePatches';
 
 // Browser adapter setup
-import '../adapter/browser';
+import '@/common/adapter/browser';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';

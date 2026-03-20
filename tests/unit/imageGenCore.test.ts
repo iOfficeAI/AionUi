@@ -13,7 +13,7 @@ import {
   getFileExtensionFromDataUrl,
   processImageUri,
   executeImageGeneration,
-} from '../../src/common/imageGenCore';
+} from '../../src/common/chat/imageGenCore';
 
 // ---------------------------------------------------------------------------
 // safeJsonParse

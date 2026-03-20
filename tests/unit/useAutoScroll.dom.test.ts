@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAutoScroll } from '../../src/renderer/pages/conversation/Messages/useAutoScroll';
-import type { TMessage, IMessageText } from '../../src/common/chatLib';
+import type { TMessage, IMessageText } from '../../src/common/chat/chatLib';
 
 // Mock VirtuosoHandle
 const createMockVirtuosoHandle = () => ({

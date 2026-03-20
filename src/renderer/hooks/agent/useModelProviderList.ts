@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
-import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/constants';
-import type { IProvider } from '@/common/storage';
+import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
+import type { IProvider } from '@/common/config/storage';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import { useGeminiGoogleAuthModels } from './useGeminiGoogleAuthModels';

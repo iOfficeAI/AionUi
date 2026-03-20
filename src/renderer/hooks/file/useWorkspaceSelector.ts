@@ -10,7 +10,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { useTranslation } from 'react-i18next';
 import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
-import type { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/config/storage';
 
 export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex';
 

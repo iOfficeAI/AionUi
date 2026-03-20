@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICssTheme } from '@/common/storage.ts';
+import type { ICssTheme } from '@/common/config/storage.ts';
 
 import {
   defaultThemeCover,

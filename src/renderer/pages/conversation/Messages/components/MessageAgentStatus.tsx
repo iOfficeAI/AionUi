@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAgentStatus } from '@/common/chatLib';
-import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
+import type { IMessageAgentStatus } from '@/common/chat/chatLib';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { Badge, Typography } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';

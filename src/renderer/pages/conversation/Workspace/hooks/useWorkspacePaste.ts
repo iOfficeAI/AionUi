@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IDirOrFile } from '@/common/ipcBridge';
-import { ConfigStorage } from '@/common/storage';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { ConfigStorage } from '@/common/config/storage';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
 import { uploadFileViaHttp, MAX_UPLOAD_SIZE_MB } from '@/renderer/services/FileService';
 import { isElectronDesktop } from '@/renderer/utils/platform';

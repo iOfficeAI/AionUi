@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES6",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -18,7 +19,7 @@
       "@/*": ["./src/*"],
       "@process/*": ["./src/process/*"],
       "@renderer/*": ["./src/renderer/*"],
-      "@worker/*": ["./src/worker/*"]
+      "@worker/*": ["./src/process/worker/*"]
     }
   },
   "include": ["src/**/*", "uno.config.ts", "electron.vite.config.ts", "playwright.config.ts", "src/renderer/types.d.ts"]

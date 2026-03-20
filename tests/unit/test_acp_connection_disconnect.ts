@@ -11,7 +11,7 @@ import { once } from 'events';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { AcpConnection } from '../../src/agent/acp/AcpConnection';
+import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

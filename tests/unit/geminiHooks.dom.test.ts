@@ -5,8 +5,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import type { IProvider } from '@/common/storage';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IProvider } from '@/common/config/storage';
 
 // --- Mocks ---
 

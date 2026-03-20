@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IDirOrFile } from '@/common/ipcBridge';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter } from '@/renderer/utils/emitter';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useCallback, useRef, useState } from 'react';

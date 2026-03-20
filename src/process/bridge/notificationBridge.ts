@@ -14,7 +14,7 @@
 import { Notification, app } from 'electron';
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
-import { ProcessConfig } from '@/process/initStorage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import path from 'path';
 import fs from 'fs';
 

@@ -8,7 +8,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IAgentEventEmitter, AgentMessageEvent } from './IAgentEventEmitter';
-import type { IConfirmation } from '@/common/chatLib';
+import type { IConfirmation } from '@/common/chat/chatLib';
 
 export class IpcAgentEventEmitter implements IAgentEventEmitter {
   emitConfirmationAdd(conversationId: string, data: IConfirmation): void {

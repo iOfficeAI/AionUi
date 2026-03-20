@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import type { AcpBackend, AcpBackendConfig } from '../types';
 import { useCallback } from 'react';
 

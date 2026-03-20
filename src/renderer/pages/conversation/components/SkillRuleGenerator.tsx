@@ -15,11 +15,11 @@ import {
 import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import type { TMessage } from '@/common/chatLib';
-import type { IDirOrFile } from '@/common/ipcBridge';
-import type { AcpBackendConfig } from '@/types/acpTypes';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 interface SkillRuleGeneratorProps {
   conversationId: string;

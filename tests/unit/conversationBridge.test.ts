@@ -45,7 +45,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/process/initStorage', () => ({
+vi.mock('../../src/process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
   getSkillsDir: vi.fn(() => '/skills'),
 }));
@@ -75,7 +75,7 @@ vi.mock('../../src/process/task/agentUtils', () => ({
 import { initConversationBridge } from '../../src/process/bridge/conversationBridge';
 import type { IConversationService } from '../../src/process/services/IConversationService';
 import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
-import type { TChatConversation } from '../../src/common/storage';
+import type { TChatConversation } from '../../src/common/config/storage';
 
 function makeService(overrides?: Partial<IConversationService>): IConversationService {
   return {

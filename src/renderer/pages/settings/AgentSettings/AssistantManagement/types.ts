@@ -1,5 +1,5 @@
 import type { Message } from '@arco-design/web-react';
-import type { AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 // Skill info type
 export type SkillInfo = {

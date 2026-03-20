@@ -42,7 +42,7 @@ const Hook = (...hooks: Array<() => void>) => {
 const Wrapper = (...HOCComponents: Array<React.FC<any> | HOCComponentAndProps>) => {
   return <Props extends Record<string, any>>(Component: React.FC<Props>): React.FC<Props> => {
     // 为了修复类型错误，避免 reduce 过程中类型不一致，需显式断言类型
-    return HOCComponents.reverse().reduce<React.FC<Props>>((Com, HOCComponent) => {
+    return HOCComponents.toReversed().reduce<React.FC<Props>>((Com, HOCComponent) => {
       if (Array.isArray(HOCComponent)) {
         // 断言类型，确保传递给 HOC 的是 React.FC<Props>
         return HOC(HOCComponent[0] as React.FC<any>, HOCComponent[1])(Com);

@@ -4,15 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channel } from '@/common/ipcBridge';
-import { getChannelManager } from '@/channels/core/ChannelManager';
-import { getPairingService } from '@/channels/pairing/PairingService';
-import { ExtensionRegistry } from '@/extensions';
-import { toAssetUrl } from '@/extensions/assetProtocol';
+import { channel } from '@/common/adapter/ipcBridge';
+import { getChannelManager } from '@process/channels/core/ChannelManager';
+import { getPairingService } from '@process/channels/pairing/PairingService';
+import { ExtensionRegistry } from '@process/extensions';
+import { toAssetUrl } from '@process/extensions/protocol/assetProtocol';
 import * as path from 'path';
-import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
-import { hasPluginCredentials } from '@/channels/types';
-import type { IChannelRepository } from '@process/database/IChannelRepository';
+import type {
+  IChannelPluginStatus,
+  IChannelUser,
+  IChannelPairingRequest,
+  IChannelSession,
+} from '@process/channels/types';
+import { hasPluginCredentials } from '@process/channels/types';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
 
 /**
  * Initialize Channel IPC Bridge
@@ -30,7 +35,7 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
     try {
       const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
-      let dbPlugins: import('@/channels/types').IChannelPluginConfig[] = [];
+      let dbPlugins: import('@process/channels/types').IChannelPluginConfig[] = [];
       try {
         dbPlugins = channelRepo.getChannelPlugins();
       } catch (dbError) {
