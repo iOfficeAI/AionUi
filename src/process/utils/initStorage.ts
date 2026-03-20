@@ -438,7 +438,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         mkdirSync(userSkillsDir);
       }
       // 复制内置技能到用户目录（不覆盖已存在的文件）
-      await copyDirectoryRecursively(builtinSkillsDir, userSkillsDir, { overwrite: false });
+      await copyDirectoryRecursively(builtinSkillsDir, userSkillsDir, {
+        overwrite: false,
+      });
     } catch (error) {
       console.warn(`[AionUi] Failed to copy skills directory:`, error);
     }
@@ -628,7 +630,13 @@ const getDefaultMcpServers = (): IMcpServer[] => {
 const getBuiltinMcpBaseDir = (): string => {
   const mainModuleDir =
     typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
-  return path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
+  const baseDir = path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
+  // In packaged mode the main bundle lives inside app.asar, but external node
+  // processes cannot read files from ASAR archives. Redirect to the unpacked copy.
+  if (app.isPackaged) {
+    return baseDir.replace('app.asar', 'app.asar.unpacked');
+  }
+  return baseDir;
 };
 
 /**
