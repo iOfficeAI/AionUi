@@ -30,7 +30,7 @@ import BaseAgentManager from '@process/task/managers/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/managers/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import i18n from '@process/i18n';
+import i18n from '@process/services/i18n';
 import {
   getConfiguredAppClientName,
   getConfiguredAppClientVersion,

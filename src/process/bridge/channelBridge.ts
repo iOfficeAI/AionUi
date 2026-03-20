@@ -12,7 +12,7 @@ import { toAssetUrl } from '@process/extensions/protocol/assetProtocol';
 import * as path from 'path';
 import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@process/channels/types';
 import { hasPluginCredentials } from '@process/channels/types';
-import type { IChannelRepository } from '@process/database/IChannelRepository';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
 
 /**
  * Initialize Channel IPC Bridge

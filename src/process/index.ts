@@ -12,9 +12,9 @@ import { app } from 'electron';
 if (app.isPackaged) {
   process.env.PREBUILDS_ONLY = '1';
 }
-import initStorage from './initStorage';
-import './initBridge';
-import './i18n'; // Initialize i18n for main process
+import initStorage from './utils/initStorage';
+import './utils/initBridge';
+import './services/i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@process/channels';
 import { ExtensionRegistry } from '@process/extensions';
 

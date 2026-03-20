@@ -12,7 +12,7 @@ import type {
 } from '@/common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
 import type { TChatConversation } from '@/common/storage';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { IWorkerTaskManager } from '@process/task/worker/IWorkerTaskManager';
 
 const STATUS_TO_SYNCING = new Set(['connecting', 'connected', 'authenticated']);

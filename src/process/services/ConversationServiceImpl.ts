@@ -5,7 +5,7 @@
  */
 
 import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { cronService } from './cron/cronServiceSingleton';

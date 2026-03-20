@@ -6,8 +6,8 @@
 
 import { logger } from '@office-ai/platform';
 import { initAllBridges } from './bridge';
-import { SqliteChannelRepository } from '@process/database/SqliteChannelRepository';
-import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
+import { SqliteChannelRepository } from '@process/services/database/SqliteChannelRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { ConversationServiceImpl } from '@process/services/ConversationServiceImpl';
 import { cronService } from '@process/services/cron/cronServiceSingleton';
 import { workerTaskManager } from '@process/task/worker/workerTaskManagerSingleton';

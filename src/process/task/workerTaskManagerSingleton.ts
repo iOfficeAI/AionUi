@@ -11,7 +11,7 @@
 
 import { AgentFactory } from '../AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
-import { SqliteConversationRepository } from '@process/database/SqliteConversationRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { GeminiAgentManager } from '../managers/GeminiAgentManager';
 import AcpAgentManager from '../managers/AcpAgentManager';
 import { CodexAgentManager } from '@process/agent/codex';

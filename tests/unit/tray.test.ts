@@ -79,7 +79,7 @@ const mockModules = () => {
     },
   }));
 
-  vi.doMock('@process/i18n', () => ({
+  vi.doMock('@process/services/i18n', () => ({
     default: { t: vi.fn((key: string) => key) },
   }));
 
@@ -104,7 +104,7 @@ describe('tray module', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
     vi.doUnmock('electron');
     vi.doUnmock('@/common');
-    vi.doUnmock('@process/i18n');
+    vi.doUnmock('@process/services/i18n');
     vi.doUnmock('@process/task/workerTaskManagerSingleton');
     vi.doUnmock('@process/database');
   });

@@ -7,7 +7,7 @@
 import type { BrowserWindow } from 'electron';
 import { app, Menu, nativeImage, Tray } from 'electron';
 import * as path from 'path';
-import i18n from '@process/i18n';
+import i18n from '@process/services/i18n';
 import { workerTaskManager } from './task/worker/workerTaskManagerSingleton';
 
 let tray: Tray | null = null;

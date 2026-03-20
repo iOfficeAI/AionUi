@@ -72,9 +72,9 @@ export default defineConfig(({ mode }) => {
               viteStaticCopy({
                 structured: false,
                 targets: [
-                  { src: 'src/process/skills/**', dest: 'skills' },
+                  { src: 'src/process/resources/skills/**', dest: 'skills' },
                   { src: 'rules/**', dest: 'rules' },
-                  { src: 'src/process/assistant/**', dest: 'assistant' },
+                  { src: 'src/process/resources/assistant/**', dest: 'assistant' },
                   { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
                 ],
               }),
@@ -98,7 +98,7 @@ export default defineConfig(({ mode }) => {
             'openclaw-gateway': resolve('src/process/worker/openclaw-gateway.ts'),
             nanobot: resolve('src/process/worker/nanobot.ts'),
             // Built-in MCP server entry points
-            'builtin-mcp-image-gen': resolve('src/process/builtinMcp/imageGenServer.ts'),
+            'builtin-mcp-image-gen': resolve('src/process/resources/builtinMcp/imageGenServer.ts'),
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;

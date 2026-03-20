@@ -8,7 +8,7 @@ import type { IAgentFactory } from '../IAgentFactory';
 import type { IAgentManager } from '../managers/IAgentManager';
 import type { IWorkerTaskManager } from './IWorkerTaskManager';
 import type { BuildConversationOptions, AgentType } from '../agentTypes';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/storage';
 
 export class WorkerTaskManager implements IWorkerTaskManager {

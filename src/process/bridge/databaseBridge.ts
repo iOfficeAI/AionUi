@@ -8,7 +8,7 @@ import { ipcBridge } from '../../../common';
 import { ProcessChat } from '../../initStorage';
 import type { TChatConversation } from '@/common/storage';
 import { migrateConversationToDatabase } from './migrationUtils';
-import type { IConversationRepository } from '@process/database/IConversationRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 
 export function initDatabaseBridge(repo: IConversationRepository): void {
   // Get conversation messages from database

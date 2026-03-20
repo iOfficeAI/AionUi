@@ -14,7 +14,7 @@ describe('AuthService.validateUsername', () => {
   beforeEach(() => {
     vi.resetModules();
     // Break the DB import chain triggered by UserRepository
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({})),
     }));
   });
@@ -69,7 +69,7 @@ describe('UserRepository.updateUsername', () => {
   });
 
   it('does not throw when db.updateUserUsername succeeds', async () => {
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({
         updateUserUsername: vi.fn(() => ({ success: true, data: true })),
       })),
@@ -80,7 +80,7 @@ describe('UserRepository.updateUsername', () => {
   });
 
   it('throws when db.updateUserUsername returns failure', async () => {
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({
         updateUserUsername: vi.fn(() => ({ success: false, error: 'UNIQUE constraint failed', data: false })),
       })),
@@ -92,7 +92,7 @@ describe('UserRepository.updateUsername', () => {
 
   it('calls db.updateUserUsername with correct arguments', async () => {
     const updateUserUsernameMock = vi.fn(() => ({ success: true, data: true }));
-    vi.doMock('@process/database/export', () => ({
+    vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => ({ updateUserUsername: updateUserUsernameMock })),
     }));
 

@@ -52,12 +52,12 @@ export default defineConfig({
       include: [
         // Build scripts
         'scripts/prepareBundledBun.js',
-        'src/process/tray.ts',
-        'src/process/deepLink.ts',
-        'src/process/mainWindowLifecycle.ts',
-        'src/process/webuiConfig.ts',
+        'src/process/utils/tray.ts',
+        'src/process/utils/deepLink.ts',
+        'src/process/utils/mainWindowLifecycle.ts',
+        'src/process/utils/webuiConfig.ts',
         'src/process/bridge/services/WebuiService.ts',
-        'src/process/database/index.ts',
+        'src/process/services/database/index.ts',
         'src/process/webserver/auth/service/AuthService.ts',
         'src/process/webserver/auth/repository/UserRepository.ts',
         'src/process/services/autoUpdaterService.ts',
@@ -66,8 +66,8 @@ export default defineConfig({
         'src/process/bridge/cronBridge.ts',
         'src/process/bridge/conversationBridge.ts',
         // Decoupling layer (interfaces + implementations)
-        'src/process/database/SqliteConversationRepository.ts',
-        'src/process/database/SqliteChannelRepository.ts',
+        'src/process/services/database/SqliteConversationRepository.ts',
+        'src/process/services/database/SqliteChannelRepository.ts',
         'src/process/services/ConversationServiceImpl.ts',
         'src/process/services/cron/SqliteCronRepository.ts',
         'src/process/services/cron/IpcCronEventEmitter.ts',

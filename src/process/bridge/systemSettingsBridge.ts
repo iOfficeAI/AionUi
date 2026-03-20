@@ -14,7 +14,7 @@
 
 import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@/process/initStorage';
-import { changeLanguage } from '@process/i18n';
+import { changeLanguage } from '@process/services/i18n';
 
 type CloseToTrayChangeListener = (enabled: boolean) => void;
 let _changeListener: CloseToTrayChangeListener | null = null;

@@ -22,27 +22,27 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
-import { ProcessConfig } from './process/initStorage';
+import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners } from '@process/bridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/system/systemSettingsBridge';
-import { setInitialLanguage } from '@process/i18n';
+import { setInitialLanguage } from '@process/services/i18n';
 import { workerTaskManager } from './process/task/worker/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { applyZoomToWindow } from './process/utils/zoom';
-import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/deepLink';
+import { clearPendingDeepLinkUrl, getPendingDeepLinkUrl, handleDeepLinkUrl, PROTOCOL_SCHEME } from './process/utils/deepLink';
 import {
   bindMainWindowReferences,
   showAndFocusMainWindow,
   showOrCreateMainWindow,
-} from './process/mainWindowLifecycle';
+} from './process/utils/mainWindowLifecycle';
 import {
   loadUserWebUIConfig,
   resolveRemoteAccess,
   resolveWebUIPort,
   restoreDesktopWebUIFromPreferences,
-} from './process/webuiConfig';
+} from './process/utils/webuiConfig';
 import {
   createOrUpdateTray,
   destroyTray,
@@ -51,7 +51,7 @@ import {
   refreshTrayMenu,
   setCloseToTrayEnabled,
   setIsQuitting,
-} from './process/tray';
+} from './process/utils/tray';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
