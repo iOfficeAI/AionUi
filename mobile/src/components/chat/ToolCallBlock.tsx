@@ -70,7 +70,20 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
     );
   }
 
-  // codex_tool_call or acp_tool_call
+  // codex_tool_call — check for special subtypes
+  if (type === 'codex_tool_call') {
+    const subtype = content.subtype;
+
+    if (subtype === 'web_search_begin' || subtype === 'web_search_end') {
+      return <WebSearchBlock content={content} />;
+    }
+
+    if (subtype === 'turn_diff') {
+      return <DiffBlock content={content} />;
+    }
+  }
+
+  // codex_tool_call or acp_tool_call (generic)
   const status = content.status || 'pending';
   const title = content.title || content.description || content.kind || t('chat.toolCall');
   const info = statusIcons[status as keyof typeof statusIcons] || statusIcons.pending;
@@ -91,6 +104,142 @@ export function ToolCallBlock({ content, type }: ToolCallBlockProps) {
       {expanded && content.description && (
         <View style={[styles.detail, { backgroundColor: surface }]}>
           <ThemedText type='caption'>{content.description}</ThemedText>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// --- Web Search Display ---
+
+function WebSearchBlock({ content }: { content: any }) {
+  const { t } = useTranslation();
+  const surface = useThemeColor({}, 'surface');
+  const border = useThemeColor({}, 'border');
+  const tint = useThemeColor({}, 'tint');
+  const statusIcons = useStatusIcons();
+  const status = content.status || 'pending';
+  const info = statusIcons[status as keyof typeof statusIcons] || statusIcons.pending;
+
+  const isEnd = content.subtype === 'web_search_end';
+  const query = isEnd && content.data?.query;
+
+  const displayTitle = isEnd
+    ? query
+      ? `${t('chat.webSearch')}: ${query}`
+      : t('chat.webSearchCompleted')
+    : t('chat.webSearchStarted');
+
+  return (
+    <View style={[styles.container, { backgroundColor: surface }]}>
+      <View style={[styles.item, { borderBottomColor: border }]}>
+        <Ionicons name='search' size={18} color={tint} />
+        <Ionicons name={info.icon} size={14} color={info.color} />
+        <ThemedText style={styles.toolName} numberOfLines={2}>
+          {displayTitle}
+        </ThemedText>
+      </View>
+      {isEnd && query && (
+        <View style={[styles.detail, { backgroundColor: surface }]}>
+          <ThemedText type='caption' style={{ opacity: 0.7 }}>
+            {t('chat.searchQuery')}
+          </ThemedText>
+          <View style={[styles.queryBox, { borderColor: border }]}>
+            <ThemedText style={styles.queryText}>{query}</ThemedText>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// --- Diff Display ---
+
+function parseDiffStats(unifiedDiff: string): { fileName: string; insertions: number; deletions: number } {
+  let fileName = '';
+  let insertions = 0;
+  let deletions = 0;
+
+  const lines = unifiedDiff.split('\n');
+  for (const line of lines) {
+    if (!fileName) {
+      // Try to extract file path from diff header
+      const bMatch = line.match(/^\+\+\+ b\/(.+)/);
+      if (bMatch) {
+        fileName = bMatch[1];
+        continue;
+      }
+      const aMatch = line.match(/^--- a\/(.+)/);
+      if (aMatch && !fileName) {
+        fileName = aMatch[1];
+        continue;
+      }
+    }
+    if (line.startsWith('+') && !line.startsWith('+++')) {
+      insertions++;
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
+      deletions++;
+    }
+  }
+
+  // Fallback: extract filename from path
+  if (fileName) {
+    const parts = fileName.split('/');
+    fileName = parts[parts.length - 1];
+  }
+
+  return { fileName: fileName || 'file', insertions, deletions };
+}
+
+function DiffBlock({ content }: { content: any }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  const surface = useThemeColor({}, 'surface');
+  const border = useThemeColor({}, 'border');
+  const success = useThemeColor({}, 'success');
+  const error = useThemeColor({}, 'error');
+  const iconColor = useThemeColor({}, 'icon');
+  const codeBackground = useThemeColor({}, 'codeBackground');
+  const text = useThemeColor({}, 'text');
+
+  const unifiedDiff = content.data?.unified_diff || '';
+  const stats = parseDiffStats(unifiedDiff);
+
+  return (
+    <View style={[styles.container, { backgroundColor: surface }]}>
+      <TouchableOpacity
+        style={[styles.item, { borderBottomColor: border }]}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.diffDot, { backgroundColor: success }]} />
+        <ThemedText style={styles.toolName} numberOfLines={1}>
+          {stats.fileName}
+        </ThemedText>
+        <View style={styles.diffStats}>
+          {stats.insertions > 0 && (
+            <ThemedText style={[styles.diffStat, { color: success }]}>+{stats.insertions}</ThemedText>
+          )}
+          {stats.deletions > 0 && (
+            <ThemedText style={[styles.diffStat, { color: error }]}>-{stats.deletions}</ThemedText>
+          )}
+        </View>
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={iconColor} />
+      </TouchableOpacity>
+      {expanded && unifiedDiff && (
+        <View style={[styles.diffContent, { backgroundColor: codeBackground }]}>
+          {unifiedDiff.split('\n').map((line: string, i: number) => {
+            let lineColor = text;
+            if (line.startsWith('+') && !line.startsWith('+++')) lineColor = success;
+            else if (line.startsWith('-') && !line.startsWith('---')) lineColor = error;
+            else if (line.startsWith('@@')) lineColor = iconColor;
+
+            return (
+              <ThemedText key={i} style={[styles.diffLine, { color: lineColor }]} numberOfLines={1}>
+                {line}
+              </ThemedText>
+            );
+          })}
         </View>
       )}
     </View>
@@ -162,5 +311,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 4,
+  },
+  queryBox: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  queryText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  diffDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  diffStats: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  diffStat: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  diffContent: {
+    padding: 10,
+    maxHeight: 300,
+  },
+  diffLine: {
+    fontFamily: 'ui-monospace',
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

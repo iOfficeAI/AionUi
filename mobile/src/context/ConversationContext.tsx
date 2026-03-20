@@ -66,6 +66,7 @@ type ConversationContextType = {
   fetchAgents: () => Promise<void>;
   createConversation: (params: CreateConversationParams) => Promise<Conversation | null>;
   deleteConversation: (id: string) => Promise<boolean>;
+  renameConversation: (id: string, name: string) => Promise<boolean>;
 };
 
 const ConversationContext = createContext<ConversationContextType>({
@@ -82,6 +83,7 @@ const ConversationContext = createContext<ConversationContextType>({
   fetchAgents: async () => {},
   createConversation: async () => null,
   deleteConversation: async () => false,
+  renameConversation: async () => false,
 });
 
 export function ConversationProvider({ children }: { children: React.ReactNode }) {
@@ -237,6 +239,25 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     [refresh, activeConversationId, conversations]
   );
 
+  const renameConversation = useCallback(
+    async (id: string, name: string) => {
+      try {
+        const success = await bridge.request<boolean>('update-conversation', {
+          id,
+          updates: { name },
+        });
+        if (success) {
+          await refresh();
+        }
+        return !!success;
+      } catch (e) {
+        console.warn('[Conversations] Failed to rename:', e);
+        return false;
+      }
+    },
+    [refresh]
+  );
+
   return (
     <ConversationContext.Provider
       value={{
@@ -253,6 +274,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
         fetchAgents,
         createConversation,
         deleteConversation,
+        renameConversation,
       }}
     >
       {children}

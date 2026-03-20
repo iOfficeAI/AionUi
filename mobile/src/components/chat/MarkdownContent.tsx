@@ -1,6 +1,10 @@
-import React, { useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import * as Clipboard from 'expo-clipboard';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { ThemedText } from '../ui/ThemedText';
 import { useThemeColor } from '../../hooks/useThemeColor';
 
 type MarkdownContentProps = {
@@ -8,11 +12,25 @@ type MarkdownContentProps = {
 };
 
 export function MarkdownContent({ content }: MarkdownContentProps) {
+  const { t } = useTranslation();
   const text = useThemeColor({}, 'text');
   const codeBackground = useThemeColor({}, 'codeBackground');
   const codeForeground = useThemeColor({}, 'codeForeground');
   const border = useThemeColor({}, 'border');
   const tint = useThemeColor({}, 'tint');
+  const textSecondary = useThemeColor({}, 'textSecondary');
+
+  const handleCopy = useCallback(
+    async (code: string) => {
+      try {
+        await Clipboard.setStringAsync(code);
+        Alert.alert(t('common.copied'));
+      } catch {
+        // Silently fail
+      }
+    },
+    [t]
+  );
 
   const markdownStyles = useMemo(
     () =>
@@ -99,5 +117,49 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
     [text, codeBackground, codeForeground, border, tint]
   );
 
-  return <Markdown style={markdownStyles}>{content}</Markdown>;
+  const rules = useMemo(
+    () => ({
+      fence: (node: any, _children: any, _parent: any, styles: any) => {
+        const code = node.content || '';
+        const language = node.sourceInfo || '';
+        return (
+          <View key={node.key} style={fenceStyles.wrapper}>
+            <View style={[fenceStyles.header, { backgroundColor: codeBackground }]}>
+              <ThemedText style={[fenceStyles.lang, { color: textSecondary }]}>{language}</ThemedText>
+              <TouchableOpacity onPress={() => handleCopy(code)} hitSlop={8}>
+                <Ionicons name='copy-outline' size={16} color={textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ThemedText style={styles.fence}>{code}</ThemedText>
+          </View>
+        );
+      },
+    }),
+    [codeBackground, textSecondary, handleCopy]
+  );
+
+  return (
+    <Markdown style={markdownStyles} rules={rules}>
+      {content}
+    </Markdown>
+  );
 }
+
+const fenceStyles = StyleSheet.create({
+  wrapper: {
+    marginVertical: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  lang: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+});

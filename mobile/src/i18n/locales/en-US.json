@@ -11,6 +11,7 @@
     "ok": "OK",
     "close": "Close",
     "copy": "Copy",
+    "copied": "Copied",
     "disconnect": "Disconnect"
   },
   "connect": {
@@ -40,7 +41,13 @@
     "noAgents": "No agents available",
     "statusPending": "Pending",
     "statusRunning": "Running",
-    "statusFinished": "Finished"
+    "statusFinished": "Finished",
+    "searchPlaceholder": "Search conversations...",
+    "noResults": "No matching conversations",
+    "rename": "Rename",
+    "renameTitle": "Rename Conversation",
+    "renamePlaceholder": "Enter new name",
+    "renameFailed": "Failed to rename"
   },
   "chat": {
     "inputPlaceholder": "Type a message...",
@@ -51,6 +58,13 @@
     "toolExecuting": "Executing",
     "toolSuccess": "Success",
     "toolError": "Error",
+    "webSearchStarted": "Web search started",
+    "webSearch": "Web search",
+    "webSearchCompleted": "Web search completed",
+    "searchQuery": "Search query",
+    "fileChanges": "File changes",
+    "insertions": "+{{count}}",
+    "deletions": "-{{count}}",
     "approve": "Approve",
     "deny": "Deny",
     "permissionRequest": "Permission Request",

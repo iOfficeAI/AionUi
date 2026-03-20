@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet, ActionSheetIOS, Platform, Alert } from 'react-native';
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActionSheetIOS,
+  Platform,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
@@ -12,13 +21,35 @@ import { buildGroupedHistory } from '../../utils/groupingHelpers';
 
 export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
   const { t } = useTranslation();
-  const { conversations, activeConversationId, setActiveConversationId, startNewChat, deleteConversation } = useConversations();
+  const {
+    conversations,
+    activeConversationId,
+    setActiveConversationId,
+    startNewChat,
+    deleteConversation,
+    renameConversation,
+  } = useConversations();
   const [showNewModal, setShowNewModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const background = useThemeColor({}, 'background');
   const border = useThemeColor({}, 'border');
   const tint = useThemeColor({}, 'tint');
+  const surface = useThemeColor({}, 'surface');
+  const textColor = useThemeColor({}, 'text');
+  const textSecondary = useThemeColor({}, 'textSecondary');
 
-  const grouped = useMemo(() => buildGroupedHistory(conversations, t), [conversations, t]);
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase();
+    return conversations.filter(
+      (c) =>
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.extra?.agentName || '').toLowerCase().includes(q) ||
+        (c.extra?.backend || '').toLowerCase().includes(q)
+    );
+  }, [conversations, searchQuery]);
+
+  const grouped = useMemo(() => buildGroupedHistory(filteredConversations, t), [filteredConversations, t]);
 
   const handleSelect = (id: string) => {
     setActiveConversationId(id);
@@ -30,37 +61,119 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
     navigation.closeDrawer();
   };
 
-  const handleLongPress = (conversation: Conversation) => {
-    const confirmDelete = () => {
-      Alert.alert(t('conversations.deleteConfirm'), t('conversations.deleteMessage'), [
+  const promptRename = (conversation: Conversation) => {
+    Alert.prompt(
+      t('conversations.renameTitle'),
+      undefined,
+      [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => deleteConversation(conversation.id),
+          text: t('common.confirm'),
+          onPress: async (newName?: string) => {
+            if (!newName?.trim()) return;
+            const ok = await renameConversation(conversation.id, newName.trim());
+            if (!ok) {
+              Alert.alert(t('conversations.renameFailed'));
+            }
+          },
         },
-      ]);
-    };
+      ],
+      'plain-text',
+      conversation.name || ''
+    );
+  };
 
+  const promptRenameAndroid = (conversation: Conversation) => {
+    // Android doesn't support Alert.prompt — use a simple confirm + edit flow
+    // We reuse the name as a prompt fallback
+    Alert.alert(t('conversations.renameTitle'), t('conversations.renamePlaceholder'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.confirm'),
+        onPress: () => {
+          // On Android, we'll use a workaround — prompt via state
+          setRenameTarget(conversation);
+        },
+      },
+    ]);
+  };
+
+  const [renameTarget, setRenameTarget] = useState<Conversation | null>(null);
+  const [renameText, setRenameText] = useState('');
+
+  // When renameTarget is set, show the inline rename input
+  React.useEffect(() => {
+    if (renameTarget) {
+      setRenameText(renameTarget.name || '');
+    }
+  }, [renameTarget]);
+
+  const handleRenameSubmit = async () => {
+    if (!renameTarget || !renameText.trim()) {
+      setRenameTarget(null);
+      return;
+    }
+    const ok = await renameConversation(renameTarget.id, renameText.trim());
+    if (!ok) {
+      Alert.alert(t('conversations.renameFailed'));
+    }
+    setRenameTarget(null);
+  };
+
+  const handleLongPress = (conversation: Conversation) => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [t('common.cancel'), t('common.delete')],
-          destructiveButtonIndex: 1,
+          options: [t('common.cancel'), t('conversations.rename'), t('common.delete')],
+          destructiveButtonIndex: 2,
           cancelButtonIndex: 0,
         },
         (index) => {
-          if (index === 1) confirmDelete();
+          if (index === 1) promptRename(conversation);
+          if (index === 2) confirmDelete(conversation);
         }
       );
     } else {
-      confirmDelete();
+      Alert.alert(conversation.name || 'Untitled', undefined, [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('conversations.rename'), onPress: () => promptRenameAndroid(conversation) },
+        { text: t('common.delete'), style: 'destructive', onPress: () => confirmDelete(conversation) },
+      ]);
     }
+  };
+
+  const confirmDelete = (conversation: Conversation) => {
+    Alert.alert(t('conversations.deleteConfirm'), t('conversations.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => deleteConversation(conversation.id),
+      },
+    ]);
   };
 
   const renderConversationItem = (conv: Conversation) => {
     const isActive = conv.id === activeConversationId;
     const agentType = conv.extra?.backend || conv.type;
+
+    // If this conversation is the rename target on Android, show inline input
+    if (renameTarget?.id === conv.id && Platform.OS !== 'ios') {
+      return (
+        <View key={conv.id} style={[styles.item, styles.renameRow]}>
+          <TextInput
+            style={[styles.renameInput, { color: textColor, borderColor: tint }]}
+            value={renameText}
+            onChangeText={setRenameText}
+            onSubmitEditing={handleRenameSubmit}
+            onBlur={handleRenameSubmit}
+            autoFocus
+            selectTextOnFocus
+          />
+        </View>
+      );
+    }
+
     return (
       <TouchableOpacity
         key={conv.id}
@@ -94,9 +207,33 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
         </TouchableOpacity>
       </View>
 
+      {/* Search bar */}
+      <View style={[styles.searchContainer, { borderBottomColor: border }]}>
+        <View style={[styles.searchBar, { backgroundColor: surface }]}>
+          <Ionicons name='search' size={16} color={textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: textColor }]}
+            placeholder={t('conversations.searchPlaceholder')}
+            placeholderTextColor={textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode='while-editing'
+            autoCorrect={false}
+            autoCapitalize='none'
+          />
+          {searchQuery.length > 0 && Platform.OS !== 'ios' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name='close-circle' size={16} color={textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {isEmpty ? (
         <View style={styles.empty}>
-          <ThemedText type='caption'>{t('conversations.empty')}</ThemedText>
+          <ThemedText type='caption'>
+            {searchQuery.trim() ? t('conversations.noResults') : t('conversations.empty')}
+          </ThemedText>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
@@ -161,6 +298,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
+  searchContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 2,
+  },
   list: {
     flexGrow: 1,
   },
@@ -188,6 +343,16 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 15,
+  },
+  renameRow: {
+    paddingVertical: 6,
+  },
+  renameInput: {
+    fontSize: 15,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   empty: {
     padding: 40,
