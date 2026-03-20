@@ -6,6 +6,7 @@
 ## 1. TypeScript Interface Analysis
 
 **Source files:**
+
 - `src/process/bridge/fsBridge.ts` (IPC handler implementations)
 - `src/common/adapter/ipcBridge.ts` (IPC interface definitions)
 - `src/process/utils/utils.ts` (filesystem utilities)
@@ -14,23 +15,23 @@
 
 <!-- TO BE FILLED by rust-design -->
 
-| TS Function | Parameters | Return Type | Sync/Async |
-|-------------|-----------|-------------|------------|
-| `getFilesByDir` | `{dir, root}` | `IDirOrFile[]` | async |
-| `getImageBase64` | `{path}` | `string` | async |
-| `readFile` | `{path}` | `string` | async |
-| `readFileBuffer` | `{path}` | `ArrayBuffer` | async |
-| `writeFile` | `{path, data}` | `boolean` | async |
-| `createTempFile` | `{fileName}` | `string` | async |
-| `getFileMetadata` | `{path}` | `FileMetadata` | async |
-| `copyFiles` | `{src, dest}` | `Result` | async |
-| `removeEntry` | `{path}` | `Result` | async |
-| `renameEntry` | `{path, newName}` | `Result` | async |
-| `readBuiltinRule` | `{fileName}` | `string` | async |
-| `readBuiltinSkill` | `{fileName}` | `string` | async |
-| `readAssistantRule` | `{assistantId, locale}` | `string` | async |
-| `readAssistantSkill` | `{assistantId, locale}` | `string` | async |
-| `readDirectoryRecursive` | `dirPath, options` | `Promise<IDirOrFile>` | async |
+| TS Function              | Parameters              | Return Type           | Sync/Async |
+| ------------------------ | ----------------------- | --------------------- | ---------- |
+| `getFilesByDir`          | `{dir, root}`           | `IDirOrFile[]`        | async      |
+| `getImageBase64`         | `{path}`                | `string`              | async      |
+| `readFile`               | `{path}`                | `string`              | async      |
+| `readFileBuffer`         | `{path}`                | `ArrayBuffer`         | async      |
+| `writeFile`              | `{path, data}`          | `boolean`             | async      |
+| `createTempFile`         | `{fileName}`            | `string`              | async      |
+| `getFileMetadata`        | `{path}`                | `FileMetadata`        | async      |
+| `copyFiles`              | `{src, dest}`           | `Result`              | async      |
+| `removeEntry`            | `{path}`                | `Result`              | async      |
+| `renameEntry`            | `{path, newName}`       | `Result`              | async      |
+| `readBuiltinRule`        | `{fileName}`            | `string`              | async      |
+| `readBuiltinSkill`       | `{fileName}`            | `string`              | async      |
+| `readAssistantRule`      | `{assistantId, locale}` | `string`              | async      |
+| `readAssistantSkill`     | `{assistantId, locale}` | `string`              | async      |
+| `readDirectoryRecursive` | `dirPath, options`      | `Promise<IDirOrFile>` | async      |
 
 **Caller sites:**
 

@@ -22,7 +22,7 @@ Read all source files for the target module (see Module Directory Mapping in SKI
 Build a complete table of every public function:
 
 | Function | Parameters (with types) | Return Type | Sync/Async | Notes |
-|----------|------------------------|-------------|------------|-------|
+| -------- | ----------------------- | ----------- | ---------- | ----- |
 
 Include type definitions (`type`, `interface`) that cross the module boundary.
 
@@ -41,9 +41,10 @@ Use `find_referencing_symbols` or `search_for_pattern` for thorough coverage.
 For each TS function, propose the Rust equivalent:
 
 | TS Function | Rust Function | Rust Params | Rust Return | Binding |
-|-------------|--------------|-------------|-------------|---------|
+| ----------- | ------------- | ----------- | ----------- | ------- |
 
 Type mapping rules:
+
 - `string` -> `String`
 - `number` -> `i64` or `f64` (check usage)
 - `boolean` -> `bool`
@@ -53,6 +54,7 @@ Type mapping rules:
 - Custom interfaces -> `#[napi(object)]` structs
 
 Decide sync vs async for each function:
+
 - Sync if: pure computation, fast (<1ms), no I/O
 - Async if: I/O bound, CPU-heavy (>1ms), currently returns Promise
 
@@ -73,6 +75,7 @@ Map each variant to the error message JS callers currently see. Ensure backward 
 ### Step 6: Plan Migration Strategy
 
 Decide between:
+
 - **All-at-once**: Replace all callers in a single commit. Best for small modules with few callers.
 - **Gradual**: Add Rust alongside TS, migrate callers one by one, then remove TS. Best for large modules.
 
@@ -81,6 +84,7 @@ Document the decision and rationale.
 ### Step 7: Define Test Strategy
 
 For each function, define:
+
 - **Contract test**: same input -> same output for TS and Rust
 - **Edge cases**: empty input, maximum size, Unicode, error conditions
 - **Migration test**: caller works correctly after switching to Rust
@@ -92,6 +96,7 @@ Populate all sections of the module's `design.md` file with the analysis from st
 ### Step 9: Update progress.md
 
 Update the module's `progress.md`:
+
 - Set Design stage status to `complete`
 - Record the date
 - Fill in the confidence assessment

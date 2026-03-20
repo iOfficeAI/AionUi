@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "main": "index.js",
   "types": "index.d.ts",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  },
   "napi": {
     "name": "aionui-native",
     "triples": {
       "defaults": true
     }
-  },
-  "devDependencies": {
-    "@napi-rs/cli": "^2.18.0"
   }
 }

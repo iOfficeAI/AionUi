@@ -6,6 +6,7 @@
 ## 1. TypeScript Interface Analysis
 
 **Source files:**
+
 - `src/process/webserver/auth/service/AuthService.ts`
 - `src/process/webserver/auth/repository/UserRepository.ts`
 - `src/process/webserver/auth/middleware/AuthMiddleware.ts`
@@ -16,19 +17,19 @@
 
 <!-- TO BE FILLED by rust-design: extract all public methods from AuthService -->
 
-| TS Function | Parameters | Return Type | Sync/Async |
-|-------------|-----------|-------------|------------|
-| `hashPassword` | `password: string` | `Promise<string>` | async |
-| `verifyPassword` | `password: string, hash: string` | `Promise<boolean>` | async |
-| `generateToken` | `user: {id, username}` | `string` | sync |
-| `verifyToken` | `token: string` | `TokenPayload \| null` | sync |
-| `validateUsername` | `username: string` | `{isValid, errors}` | sync |
-| `validatePasswordStrength` | `password: string` | `{isValid, errors}` | sync |
-| `generateUserCredentials` | -- | `UserCredentials` | sync |
-| `generateSessionId` | -- | `string` | sync |
-| `constantTimeVerify` | `provided, expected, hashProvided?` | `Promise<boolean>` | async |
-| `blacklistToken` | `token: string` | `void` | sync |
-| `isTokenBlacklisted` | `token: string` | `boolean` | sync |
+| TS Function                | Parameters                          | Return Type            | Sync/Async |
+| -------------------------- | ----------------------------------- | ---------------------- | ---------- |
+| `hashPassword`             | `password: string`                  | `Promise<string>`      | async      |
+| `verifyPassword`           | `password: string, hash: string`    | `Promise<boolean>`     | async      |
+| `generateToken`            | `user: {id, username}`              | `string`               | sync       |
+| `verifyToken`              | `token: string`                     | `TokenPayload \| null` | sync       |
+| `validateUsername`         | `username: string`                  | `{isValid, errors}`    | sync       |
+| `validatePasswordStrength` | `password: string`                  | `{isValid, errors}`    | sync       |
+| `generateUserCredentials`  | --                                  | `UserCredentials`      | sync       |
+| `generateSessionId`        | --                                  | `string`               | sync       |
+| `constantTimeVerify`       | `provided, expected, hashProvided?` | `Promise<boolean>`     | async      |
+| `blacklistToken`           | `token: string`                     | `void`                 | sync       |
+| `isTokenBlacklisted`       | `token: string`                     | `boolean`              | sync       |
 
 **Caller sites:**
 

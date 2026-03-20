@@ -72,6 +72,7 @@ Populate the module's `benchmark.md` with:
 ### Step 5: Update progress.md
 
 Update the module's `progress.md`:
+
 - Set Benchmark stage status to `complete`
 - Record the date
 - Summarize key findings (e.g., "3.2x faster for hash, 8x faster for bulk reads")

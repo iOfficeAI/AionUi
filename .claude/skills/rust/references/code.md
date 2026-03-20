@@ -15,6 +15,7 @@ If `design.md` is incomplete, stop and tell the user to run `/rust-design` first
 ### Step 1: Verify Design Completeness
 
 Read the module's `design.md`. Check:
+
 - [ ] Function mapping table is complete
 - [ ] Type mapping is defined for every parameter and return value
 - [ ] Error enum is specified
@@ -35,6 +36,7 @@ native/crates/<crate-name>/
 ```
 
 Add the crate to:
+
 1. `native/Cargo.toml` workspace members
 2. `native/binding/Cargo.toml` dependencies
 
@@ -69,6 +71,7 @@ pub fn function_name(/* napi-compatible params */) -> napi::Result</* return */>
 ```
 
 Rules:
+
 - The binding layer is a thin adapter. No business logic here.
 - Use `#[napi(object)]` for struct parameters/returns that map to JS objects.
 - Use `Buffer` for binary data crossing the boundary.
@@ -113,6 +116,7 @@ Run `bun run test` and ensure all contract tests pass.
 ### Step 7: Update progress.md
 
 Update the module's `progress.md`:
+
 - Set Implementation stage status to `complete`
 - Record the date
 - Note the crate location and any deviations from `design.md`

@@ -10,18 +10,18 @@ AionUi is migrating five TypeScript modules to Rust via napi-rs. The motivations
 
 ## Tech Stack
 
-| Layer | Choice | Notes |
-|-------|--------|-------|
-| Rust ↔ Node binding | **napi-rs** (`@napi-rs/cli`) | Generates `.node` addon; supports async, Buffer, serde |
-| SQLite | **rusqlite** + bundled | Replaces `better-sqlite3`; sync API matches current usage |
-| Password hashing | **argon2** crate | Replaces `bcryptjs`; stronger algorithm, configurable cost |
-| JWT | **jsonwebtoken** crate | Replaces `jsonwebtoken` npm; same HMAC-SHA256 flow |
-| Symmetric encryption | **aes-gcm** + **ring** | Future-proof credential encryption (currently Base64 only) |
-| Excel parsing | **calamine** | Replaces `xlsx-republish`; read-only, fast |
-| Excel writing | **rust_xlsxwriter** | Replaces `xlsx-republish` write path |
-| Word/DOCX | **quick-xml** + **zip** | Replaces `mammoth` (read) and `docx` (write) |
-| Filesystem | **tokio::fs** or std::fs | Replaces Node.js `fs/promises` |
-| Error handling | **thiserror** | Structured errors mapped to `napi::Error` at the boundary |
+| Layer                | Choice                       | Notes                                                      |
+| -------------------- | ---------------------------- | ---------------------------------------------------------- |
+| Rust ↔ Node binding  | **napi-rs** (`@napi-rs/cli`) | Generates `.node` addon; supports async, Buffer, serde     |
+| SQLite               | **rusqlite** + bundled       | Replaces `better-sqlite3`; sync API matches current usage  |
+| Password hashing     | **argon2** crate             | Replaces `bcryptjs`; stronger algorithm, configurable cost |
+| JWT                  | **jsonwebtoken** crate       | Replaces `jsonwebtoken` npm; same HMAC-SHA256 flow         |
+| Symmetric encryption | **aes-gcm** + **ring**       | Future-proof credential encryption (currently Base64 only) |
+| Excel parsing        | **calamine**                 | Replaces `xlsx-republish`; read-only, fast                 |
+| Excel writing        | **rust_xlsxwriter**          | Replaces `xlsx-republish` write path                       |
+| Word/DOCX            | **quick-xml** + **zip**      | Replaces `mammoth` (read) and `docx` (write)               |
+| Filesystem           | **tokio::fs** or std::fs     | Replaces Node.js `fs/promises`                             |
+| Error handling       | **thiserror**                | Structured errors mapped to `napi::Error` at the boundary  |
 
 ## Architecture Position
 
@@ -58,13 +58,13 @@ The Rust addon lives in the main process only. Renderer access goes through the 
 
 Ordered by risk (lowest first) and value (highest first):
 
-| Priority | Module | Rationale |
-|----------|--------|-----------|
-| 1 | **credential-crypto** | Smallest surface (4 functions), no external state, ideal proof-of-concept |
-| 2 | **auth** | Self-contained; bcrypt→argon2 migration is a clear win |
-| 3 | **fs-bridge** | Stateless I/O; enables benchmarking of bulk file operations |
-| 4 | **database** | Largest surface, highest value; replaces `better-sqlite3` native rebuild pain |
-| 5 | **document-converter** | Highest complexity (multiple formats); depends on ecosystem maturity |
+| Priority | Module                 | Rationale                                                                     |
+| -------- | ---------------------- | ----------------------------------------------------------------------------- |
+| 1        | **credential-crypto**  | Smallest surface (4 functions), no external state, ideal proof-of-concept     |
+| 2        | **auth**               | Self-contained; bcrypt→argon2 migration is a clear win                        |
+| 3        | **fs-bridge**          | Stateless I/O; enables benchmarking of bulk file operations                   |
+| 4        | **database**           | Largest surface, highest value; replaces `better-sqlite3` native rebuild pain |
+| 5        | **document-converter** | Highest complexity (multiple formats); depends on ecosystem maturity          |
 
 ## Cargo Workspace Layout
 

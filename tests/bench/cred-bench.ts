@@ -141,15 +141,11 @@ const rustHeapDelta = process.memoryUsage().heapUsed - memBefore2;
 
 // Print results
 console.log(`\nIterations: ${ITERATIONS} (warmup: ${WARMUP})\n`);
-console.log(
-  '| Operation | TS p50 | TS p95 | Rust p50 | Rust p95 | Speedup (p50) |',
-);
-console.log(
-  '|-----------|--------|--------|----------|----------|---------------|',
-);
+console.log('| Operation | TS p50 | TS p95 | Rust p50 | Rust p95 | Speedup (p50) |');
+console.log('|-----------|--------|--------|----------|----------|---------------|');
 for (const r of results) {
   console.log(
-    `| ${r.operation.padEnd(27)} | ${formatMs(r.ts.p50).padStart(6)} | ${formatMs(r.ts.p95).padStart(6)} | ${formatMs(r.rust.p50).padStart(8)} | ${formatMs(r.rust.p95).padStart(8)} | ${speedup(r.ts.p50, r.rust.p50).padStart(13)} |`,
+    `| ${r.operation.padEnd(27)} | ${formatMs(r.ts.p50).padStart(6)} | ${formatMs(r.ts.p95).padStart(6)} | ${formatMs(r.rust.p50).padStart(8)} | ${formatMs(r.rust.p95).padStart(8)} | ${speedup(r.ts.p50, r.rust.p50).padStart(13)} |`
   );
 }
 

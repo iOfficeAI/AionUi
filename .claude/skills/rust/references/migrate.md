@@ -75,6 +75,7 @@ Be cautious: check that no other module imports from the deleted files before re
 ### Step 5: Update progress.md
 
 Update the module's `progress.md`:
+
 - Set Migration stage status to `complete`
 - Record the date
 - Document any deviations from the original migration plan

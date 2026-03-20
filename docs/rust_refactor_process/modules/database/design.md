@@ -6,6 +6,7 @@
 ## 1. TypeScript Interface Analysis
 
 **Source files:**
+
 - `src/process/services/database/index.ts` (AionUIDatabase class)
 - `src/process/services/database/schema.ts`
 - `src/process/services/database/migrations.ts`
@@ -17,27 +18,27 @@
 
 <!-- TO BE FILLED by rust-design: extract all public methods from AionUIDatabase -->
 
-| TS Function | Parameters | Return Type | Sync/Async |
-|-------------|-----------|-------------|------------|
-| `getDatabase` | -- | `AionUIDatabase` | sync |
-| `closeDatabase` | -- | `void` | sync |
-| `createUser` | user data | `IUser` | sync |
-| `getUser` | id | `IUser \| undefined` | sync |
-| `getUserByUsername` | username | `IUser \| undefined` | sync |
-| `hasUsers` | -- | `boolean` | sync |
-| `getConversation` | id | `IConversationRow` | sync |
-| `createConversation` | data | `IConversationRow` | sync |
-| `updateConversation` | id, data | `void` | sync |
-| `getConversationMessages` | conversationId | `IMessageRow[]` | sync |
-| `insertMessage` | data | `IMessageRow` | sync |
-| `insertMessages` | data[] | `IMessageRow[]` | sync |
-| `getMessage` | id | `IMessageRow` | sync |
-| `updateMessage` | id, data | `void` | sync |
-| `deleteMessage` | id | `void` | sync |
-| `getConfig` | key | `string \| undefined` | sync |
-| `setConfig` | key, value | `void` | sync |
-| `vacuum` | -- | `void` | sync |
-| `runMigrations` | db, from, to | `void` | sync |
+| TS Function               | Parameters     | Return Type           | Sync/Async |
+| ------------------------- | -------------- | --------------------- | ---------- |
+| `getDatabase`             | --             | `AionUIDatabase`      | sync       |
+| `closeDatabase`           | --             | `void`                | sync       |
+| `createUser`              | user data      | `IUser`               | sync       |
+| `getUser`                 | id             | `IUser \| undefined`  | sync       |
+| `getUserByUsername`       | username       | `IUser \| undefined`  | sync       |
+| `hasUsers`                | --             | `boolean`             | sync       |
+| `getConversation`         | id             | `IConversationRow`    | sync       |
+| `createConversation`      | data           | `IConversationRow`    | sync       |
+| `updateConversation`      | id, data       | `void`                | sync       |
+| `getConversationMessages` | conversationId | `IMessageRow[]`       | sync       |
+| `insertMessage`           | data           | `IMessageRow`         | sync       |
+| `insertMessages`          | data[]         | `IMessageRow[]`       | sync       |
+| `getMessage`              | id             | `IMessageRow`         | sync       |
+| `updateMessage`           | id, data       | `void`                | sync       |
+| `deleteMessage`           | id             | `void`                | sync       |
+| `getConfig`               | key            | `string \| undefined` | sync       |
+| `setConfig`               | key, value     | `void`                | sync       |
+| `vacuum`                  | --             | `void`                | sync       |
+| `runMigrations`           | db, from, to   | `void`                | sync       |
 
 **Caller sites:**
 

@@ -1,6 +1,5 @@
 # the name by which the project can be referenced within Serena
-project_name: "AionUi_Rust"
-
+project_name: 'AionUi_Rust'
 
 # list of languages for which language servers are started; choose from:
 #   al                  bash                clojure             cpp                 csharp
@@ -26,11 +25,11 @@ project_name: "AionUi_Rust"
 # The first language is the default language and the respective language server will be used as a fallback.
 # Note that when using the JetBrains backend, language servers are not used and this list is correspondingly ignored.
 languages:
-- typescript
+  - typescript
 
 # the encoding used by text files in the project
 # For a list of possible encodings, see https://docs.python.org/3.11/library/codecs.html#standard-encodings
-encoding: "utf-8"
+encoding: 'utf-8'
 
 # line ending convention to use when writing source files.
 # Possible values: unset (use global setting), "lf", "crlf", or "native" (platform default)
@@ -61,7 +60,7 @@ read_only: false
 # This extends the existing exclusions (e.g. from the global configuration)
 #
 # Below is the complete list of tools for convenience.
-# To make sure you have the latest list of tools, and to view their descriptions, 
+# To make sure you have the latest list of tools, and to view their descriptions,
 # execute `uv run scripts/print_tool_overview.py`.
 #
 #  * `activate_project`: Activates a project by name.
@@ -125,7 +124,7 @@ default_modes:
 
 # initial prompt for the project. It will always be given to the LLM upon activating the project
 # (contrary to the memories, which are loaded on demand).
-initial_prompt: ""
+initial_prompt: ''
 
 # time budget (seconds) per tool call for the retrieval of additional symbol information
 # such as docstrings or parameter information.

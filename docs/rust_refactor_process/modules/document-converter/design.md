@@ -6,6 +6,7 @@
 ## 1. TypeScript Interface Analysis
 
 **Source files:**
+
 - `src/common/chat/document/DocumentConverter.ts` (markdown-centric converter)
 - `src/process/services/conversionService.ts` (advanced conversion service)
 - `src/process/bridge/documentBridge.ts` (IPC bridge)
@@ -14,17 +15,17 @@
 
 <!-- TO BE FILLED by rust-design -->
 
-| TS Function | Parameters | Return Type | Sync/Async |
-|-------------|-----------|-------------|------------|
-| `wordToMarkdown` | `arrayBuffer: ArrayBuffer` | `Promise<string>` | async |
-| `markdownToWord` | `markdown: string` | `Promise<ArrayBuffer>` | async |
-| `excelToMarkdown` | `arrayBuffer: ArrayBuffer` | `Promise<string>` | async |
-| `markdownToExcel` | `markdown: string` | `Promise<ArrayBuffer>` | async |
-| `parseMarkdownTables` | `markdown: string` | `[{name, data}]` | sync |
-| `excelToJson` | `filePath: string` | `Promise<ConversionResult>` | async |
-| `jsonToExcel` | `data, targetPath` | `Promise<ConversionResult>` | async |
-| `wordToJson` | `filePath: string` | `Promise<ConversionResult>` | async |
-| `extractExcelImages` | `buffer: Buffer` | `Promise<ImageData[]>` | async |
+| TS Function           | Parameters                 | Return Type                 | Sync/Async |
+| --------------------- | -------------------------- | --------------------------- | ---------- |
+| `wordToMarkdown`      | `arrayBuffer: ArrayBuffer` | `Promise<string>`           | async      |
+| `markdownToWord`      | `markdown: string`         | `Promise<ArrayBuffer>`      | async      |
+| `excelToMarkdown`     | `arrayBuffer: ArrayBuffer` | `Promise<string>`           | async      |
+| `markdownToExcel`     | `markdown: string`         | `Promise<ArrayBuffer>`      | async      |
+| `parseMarkdownTables` | `markdown: string`         | `[{name, data}]`            | sync       |
+| `excelToJson`         | `filePath: string`         | `Promise<ConversionResult>` | async      |
+| `jsonToExcel`         | `data, targetPath`         | `Promise<ConversionResult>` | async      |
+| `wordToJson`          | `filePath: string`         | `Promise<ConversionResult>` | async      |
+| `extractExcelImages`  | `buffer: Buffer`           | `Promise<ImageData[]>`      | async      |
 
 **Caller sites:**
 

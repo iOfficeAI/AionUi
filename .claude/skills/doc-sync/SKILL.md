@@ -31,22 +31,22 @@ Map each changed file to a documentation area using the rules below. A single fi
 
 #### Mapping Rules
 
-| Changed File Pattern | Documentation Target | Action |
-|---------------------|---------------------|--------|
-| `native/crates/aionui-auth/**` | `docs/rust_refactor_process/modules/auth/progress.md` | Update implementation/benchmark status |
-| `native/crates/aionui-db/**` | `docs/rust_refactor_process/modules/database/progress.md` | Update implementation/benchmark status |
-| `native/crates/aionui-doc/**` | `docs/rust_refactor_process/modules/document-converter/progress.md` | Update implementation/benchmark status |
-| `native/crates/aionui-cred/**` | `docs/rust_refactor_process/modules/credential-crypto/progress.md` | Update implementation/benchmark status |
-| `native/crates/aionui-fs/**` | `docs/rust_refactor_process/modules/fs-bridge/progress.md` | Update implementation/benchmark status |
-| `src/process/webserver/auth/**` | `docs/rust_refactor_process/modules/auth/design.md` | Check if TS interface changed; flag if design.md needs revision |
-| `src/process/services/database/**` | `docs/rust_refactor_process/modules/database/design.md` | Check if TS interface changed; flag if design.md needs revision |
-| `src/common/chat/document/**` | `docs/rust_refactor_process/modules/document-converter/design.md` | Check if TS interface changed; flag if design.md needs revision |
-| `src/process/channels/utils/credentialCrypto.ts` | `docs/rust_refactor_process/modules/credential-crypto/design.md` | Check if TS interface changed; flag if design.md needs revision |
-| `src/process/bridge/fsBridge.ts` | `docs/rust_refactor_process/modules/fs-bridge/design.md` | Check if TS interface changed; flag if design.md needs revision |
-| `tests/bench/**` | Corresponding module's `benchmark.md` | Update benchmark data if results changed |
-| `.claude/skills/**` | `AGENTS.md` Skills Index table | Verify skill registration is up to date |
-| `docs/rust_refactor_process/overview.md` | -- | Informational: core reference doc changed |
-| `docs/conventions/**` | `AGENTS.md` | Check if conventions section needs sync |
+| Changed File Pattern                             | Documentation Target                                                | Action                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `native/crates/aionui-auth/**`                   | `docs/rust_refactor_process/modules/auth/progress.md`               | Update implementation/benchmark status                          |
+| `native/crates/aionui-db/**`                     | `docs/rust_refactor_process/modules/database/progress.md`           | Update implementation/benchmark status                          |
+| `native/crates/aionui-doc/**`                    | `docs/rust_refactor_process/modules/document-converter/progress.md` | Update implementation/benchmark status                          |
+| `native/crates/aionui-cred/**`                   | `docs/rust_refactor_process/modules/credential-crypto/progress.md`  | Update implementation/benchmark status                          |
+| `native/crates/aionui-fs/**`                     | `docs/rust_refactor_process/modules/fs-bridge/progress.md`          | Update implementation/benchmark status                          |
+| `src/process/webserver/auth/**`                  | `docs/rust_refactor_process/modules/auth/design.md`                 | Check if TS interface changed; flag if design.md needs revision |
+| `src/process/services/database/**`               | `docs/rust_refactor_process/modules/database/design.md`             | Check if TS interface changed; flag if design.md needs revision |
+| `src/common/chat/document/**`                    | `docs/rust_refactor_process/modules/document-converter/design.md`   | Check if TS interface changed; flag if design.md needs revision |
+| `src/process/channels/utils/credentialCrypto.ts` | `docs/rust_refactor_process/modules/credential-crypto/design.md`    | Check if TS interface changed; flag if design.md needs revision |
+| `src/process/bridge/fsBridge.ts`                 | `docs/rust_refactor_process/modules/fs-bridge/design.md`            | Check if TS interface changed; flag if design.md needs revision |
+| `tests/bench/**`                                 | Corresponding module's `benchmark.md`                               | Update benchmark data if results changed                        |
+| `.claude/skills/**`                              | `AGENTS.md` Skills Index table                                      | Verify skill registration is up to date                         |
+| `docs/rust_refactor_process/overview.md`         | --                                                                  | Informational: core reference doc changed                       |
+| `docs/conventions/**`                            | `AGENTS.md`                                                         | Check if conventions section needs sync                         |
 
 If a changed file doesn't match any pattern, skip it -- not every change needs doc updates.
 
@@ -59,20 +59,24 @@ For each matched documentation file, read its current content. Compare against t
 For each affected doc, apply the appropriate update:
 
 **progress.md updates:**
+
 - Set the current stage status based on what exists in the codebase (e.g., if the Rust crate now compiles, mark Implementation as `in progress`)
 - Record today's date
 - Add decision log entries for significant choices visible in the diff
 - Update confidence assessment if warranted
 
 **design.md flags:**
+
 - If a TS source function signature changed, warn the user: "The TS interface for [module] has changed since the design was written. Run `/rust-design` to refresh."
 - Do NOT silently modify design.md -- it requires the full design workflow
 
 **benchmark.md updates:**
+
 - If benchmark scripts changed, note that results may need re-running
 - If new benchmark data files exist, incorporate the numbers
 
 **AGENTS.md updates:**
+
 - If a new skill directory was added, ensure it appears in the Skills Index table
 - If a skill's SKILL.md description changed, sync the table entry
 

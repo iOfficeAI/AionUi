@@ -99,10 +99,7 @@ describe('credential-crypto contract: encryptCredentials', () => {
   });
 
   it('non-string token (number)', () => {
-    const input = { token: 12345, name: 'test' } as unknown as Record<
-      string,
-      string | number | boolean | undefined
-    >;
+    const input = { token: 12345, name: 'test' } as unknown as Record<string, string | number | boolean | undefined>;
     const tsResult = ts.encryptCredentials({ ...input });
     const rustResult = rust.encryptCredentials({ ...input });
     expect(rustResult).toEqual(tsResult);
