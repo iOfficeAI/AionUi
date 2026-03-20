@@ -203,7 +203,7 @@ Remove the duplicate state definitions from `main.ts` and delegate to `registry.
 **Files:**
 - Modify: `src/common/adapter/main.ts`
 
-- [ ] **Step 2.1: Run existing tests to establish baseline**
+- [x] **Step 2.1: Run existing tests to establish baseline**
 
 ```bash
 bun run test
@@ -211,7 +211,7 @@ bun run test
 
 Record current pass count.
 
-- [ ] **Step 2.2: Edit `src/common/adapter/main.ts`**
+- [x] **Step 2.2: Edit `src/common/adapter/main.ts`**
 
 Replace the local `webSocketBroadcasters`, `bridgeEmitter`, `registerWebSocketBroadcaster`, and `getBridgeEmitter` definitions with imports from `./registry`. Keep all existing exports so callers are unaffected.
 
@@ -260,13 +260,13 @@ The diff is approximately:
  });
 ```
 
-- [ ] **Step 2.3: Run tests — expect same pass count (no regressions)**
+- [x] **Step 2.3: Run tests — expect same pass count (no regressions)**
 
 ```bash
 bun run test && bunx tsc --noEmit
 ```
 
-- [ ] **Step 2.4: Commit**
+- [x] **Step 2.4: Commit**
 
 ```bash
 git add src/common/adapter/main.ts
