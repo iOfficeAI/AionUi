@@ -1,61 +1,62 @@
-# 02-minimal-corporate — 极简商务汇报
+# 02-minimal-corporate — Minimal Corporate Presentation
 
+## Style Overview
 
-## 风格概述
-纯白背景配深蓝金色点缀，采用左侧色块分割+垂直信息流布局，适合年度汇报、工作总结、商务提案等场合
+Pure white background with dark blue and gold accents, using left-side color block division + vertical information flow layout, suitable for annual reports, work summaries, business proposals, and similar occasions
 
-- **场景**: 年度汇报、工作总结、项目汇报、商务提案
-- **情绪**: 专业、简洁、清晰、高级、稳重
-- **色调**: 浅色、暖色调、低对比
-- **行业**: 金融、咨询、企业、政府、教育
+- **Scene**: Annual reports, work summaries, project reports, business proposals
+- **Mood**: Professional, concise, clear, sophisticated, stable
+- **Color Tone**: Light tone, warm tone, low contrast
+- **Industry**: Finance, consulting, enterprise, government, education
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #FFFFFF | background |
-| 卡片背景 | #E8EEF4 | card |
-| 主色 | #1E3A5F | primary |
-| 辅助色 | #D4A84B | secondary |
-| 主文字 | #333333 | text_primary |
-| 副文字 | #666666 | text_secondary |
-| 辅助文字 | #999999 | text_muted |
+| Name            | Hex     | Usage          |
+| --------------- | ------- | -------------- |
+| Background      | #FFFFFF | background     |
+| Card Background | #E8EEF4 | card           |
+| Primary         | #1E3A5F | primary        |
+| Secondary       | #D4A84B | secondary      |
+| Primary Text    | #333333 | text_primary   |
+| Secondary Text  | #666666 | text_secondary |
+| Muted Text      | #999999 | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Arial Black |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Arial Black     |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| data | Arial |
+| body     | Microsoft YaHei |
+| data     | Arial           |
 
-## 设计手法
+## Design Techniques
 
-- 纯白背景大量留白
-- 深蓝金色专业配色
-- 简洁线条装饰
-- 几何方块点缀
-- 不对称网格布局
-- 左侧色块分割布局
-- 坐标冲突已修复
+- Pure white background with generous whitespace
+- Dark blue and gold professional color scheme
+- Simple line decorations
+- Geometric block accents
+- Asymmetric grid layout
+- Left-side color block division layout
+- Coordinate conflicts fixed
 
-## 页面结构（6页）
+## Page Structure (6 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 50 | 封面页 - 左侧深蓝竖条+大标题+信息卡片 |
-| S2 | statement | 45 | 观点页 - 左侧内容+右侧装饰区，修复坐标冲突 |
-| S3 | grid | 60 | 网格页 - 不对称网格(上2下4) |
-| S4 | case | 50 | 案例页 - 左右两卡片对比 |
-| S5 | comparison | 50 | 对比页 - 中央VS分隔 |
-| S6 | thanks | 40 | 感谢页 - 左侧感谢+右侧联系 |
+| Slide | Type       | Elements | Description                                                                       |
+| ----- | ---------- | -------- | --------------------------------------------------------------------------------- |
+| S1    | hero       | 50       | Cover page - left dark blue vertical bar + large title + info cards               |
+| S2    | statement  | 45       | Statement page - left content + right decoration area, coordinate conflicts fixed |
+| S3    | grid       | 60       | Grid page - asymmetric grid (2 top, 4 bottom)                                     |
+| S4    | case       | 50       | Case page - left-right two card comparison                                        |
+| S5    | comparison | 50       | Comparison page - central VS separator                                            |
+| S6    | thanks     | 40       | Thank you page - left thank you + right contact                                   |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script is in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 左侧深蓝竖条+大标题+信息卡片
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - left dark blue vertical bar + large title + info cards
+
+No need to read all — skim 2-3 representative slides.

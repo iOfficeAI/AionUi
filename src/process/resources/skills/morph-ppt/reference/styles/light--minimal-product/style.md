@@ -1,61 +1,62 @@
-# 05-minimal-product — 极简产品介绍
+# 05-minimal-product — Minimal Product Introduction
 
+## Style Overview
 
-## 风格概述
-浅灰背景深灰主色绿色强调的极简主义风格，采用中央聚焦+极简留白布局，适合产品发布、科技展示、商务演示等场合
+Light gray background with dark gray primary color and green accent in a minimalist style, using centered focus + minimal whitespace layout, suitable for product launches, tech showcases, business presentations, and similar occasions
 
-- **场景**: 产品发布、科技展示、品牌介绍、商务演示
-- **情绪**: 专业、现代、简约、高端、科技
-- **色调**: 冷色调、低饱和度、高对比
-- **行业**: 科技、电子、软件、互联网、金融
+- **Scene**: Product launches, tech showcases, brand introductions, business presentations
+- **Mood**: Professional, modern, minimalist, premium, technological
+- **Color Tone**: Cool tone, low saturation, high contrast
+- **Industry**: Technology, electronics, software, internet, finance
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #FAFAFA | background |
-| 主色 | #2D3436 | primary |
-| 强调色 | #00B894 | accent |
-| 辅助色 | #636E72 | secondary |
-| 主文字 | #2D3436 | text_primary |
-| 副文字 | #636E72 | text_secondary |
-| 辅助文字 | #B2BEC3 | text_muted |
+| Name           | Hex     | Usage          |
+| -------------- | ------- | -------------- |
+| Background     | #FAFAFA | background     |
+| Primary        | #2D3436 | primary        |
+| Accent         | #00B894 | accent         |
+| Secondary      | #636E72 | secondary      |
+| Primary Text   | #2D3436 | text_primary   |
+| Secondary Text | #636E72 | text_secondary |
+| Muted Text     | #B2BEC3 | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Arial |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Arial           |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| data | Arial Black |
+| body     | Microsoft YaHei |
+| data     | Arial Black     |
 
-## 设计手法
+## Design Techniques
 
-- 浅灰背景深灰主色绿色强调
-- 中央聚焦布局
-- 极简留白设计
-- 细线条装饰
-- 高对比度设计
-- Morph过渡动画
-- 装饰元素规范化
+- Light gray background with dark gray primary color and green accent
+- Centered focus layout
+- Minimal whitespace design
+- Thin line decorations
+- High contrast design
+- Morph transition animations
+- Standardized decorative elements
 
-## 页面结构（6页）
+## Page Structure (6 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 45 | 封面页 - 居中标题+底部细线+品牌信息 |
-| S2 | product | 50 | 产品页 - 中央产品展示+左右功能亮点 |
-| S3 | features | 55 | 功能页 - 上下两排功能卡片 |
-| S4 | compare | 50 | 对比页 - 中央VS分隔+左右对比 |
-| S5 | highlights | 50 | 亮点页 - 中央超大数字+数据卡片 |
-| S6 | cta | 45 | CTA页 - 中央大按钮+联系信息 |
+| Slide | Type       | Elements | Description                                                             |
+| ----- | ---------- | -------- | ----------------------------------------------------------------------- |
+| S1    | hero       | 45       | Cover page - centered title + bottom thin line + brand info             |
+| S2    | product    | 50       | Product page - central product showcase + left-right feature highlights |
+| S3    | features   | 55       | Features page - two rows of feature cards                               |
+| S4    | compare    | 50       | Comparison page - central VS separator + left-right comparison          |
+| S5    | highlights | 50       | Highlights page - central oversized number + data cards                 |
+| S6    | cta        | 45       | CTA page - central large button + contact info                          |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script is in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 居中标题+底部细线+品牌信息
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - centered title + bottom thin line + brand info
+
+No need to read all — skim 2-3 representative slides.

@@ -1,72 +1,74 @@
-# 02 Playful Blocks — 积木乐园
+# 02 Playful Blocks — Building Block Paradise
 
-## 风格概述
-暖米色背景上彩色圆角矩形如积木般散布、旋转、重组，充满童趣和创造力。
+## Style Overview
 
-- **场景**: 儿童教育、创意工坊、团队建设
-- **情绪**: 温暖、活泼、童趣、Lego 风
-- **色调**: 暖色底、多彩积木色
+Colorful rounded rectangles scattered, rotated, and reorganized like building blocks on warm beige background, full of playfulness and creativity.
 
-## 配色
+- **Scene**: Children's education, creative workshops, team building
+- **Mood**: Warm, lively, playful, Lego-style
+- **Tone**: Warm base, colorful building block colors
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 暖米色 | #FFF8F0 | 页面背景 |
-| 积木红 | #FF4444 | 主积木块、圆点 |
-| 积木蓝 | #3388FF | 积木块、圆点 |
-| 积木黄 | #FFCC00 | 积木块、圆点 |
-| 积木绿 | #44BB44 | 积木块 |
-| 积木橙 | #FF8833 | 积木块 |
-| 标题深色 | #2D2D2D | 标题文字 |
-| 正文灰 | #666666 | 正文文字 |
+## Color Palette
 
-## 字体
+| Name         | Hex     | Usage             |
+| ------------ | ------- | ----------------- |
+| Warm Beige   | #FFF8F0 | Page background   |
+| Block Red    | #FF4444 | Main blocks, dots |
+| Block Blue   | #3388FF | Blocks, dots      |
+| Block Yellow | #FFCC00 | Blocks, dots      |
+| Block Green  | #44BB44 | Blocks            |
+| Block Orange | #FF8833 | Blocks            |
+| Title Dark   | #2D2D2D | Title text        |
+| Body Gray    | #666666 | Body text         |
 
-| 元素 | 字体 | 字号 |
-|------|------|------|
-| 主标题 | Segoe UI Black | 54-72pt |
-| 数据数字 | Segoe UI Black | 48pt |
-| 栏目标题 | Segoe UI Black | 28-40pt |
-| 正文/副标题 | Segoe UI | 16-28pt |
+## Typography
 
-## 设计手法
+| Element       | Font           | Size    |
+| ------------- | -------------- | ------- |
+| Main Title    | Segoe UI Black | 54-72pt |
+| Data Numbers  | Segoe UI Black | 48pt    |
+| Column Title  | Segoe UI Black | 28-40pt |
+| Body/Subtitle | Segoe UI       | 16-28pt |
 
-- **圆角积木块**: 5 个 roundRect 作为彩色积木，散落在画布四角和边缘
-- **圆点装饰**: 3 个 ellipse 作为小圆点，半透明，增添活泼感
-- **散布与旋转**: 积木块在页面间大幅移动、旋转（5-15 度），morph 产生积木"飞舞重组"效果
-- **功能变形**: S1 散布四角 → S2 旋转聚拢到边缘 → S3 变为三列卡片背景（opacity 降为 0.12）→ S4 变为数据色块背景（opacity 0.3-0.5）→ S5 回归散布带旋转
-- **透明度分层**: 作为装饰时 0.5-1.0，作为内容背景时降为 0.12-0.5
+## Design Techniques
 
-## Scene Actors
+- **Rounded building blocks**: 5 roundRect as colorful blocks, scattered in four corners and edges of canvas
+- **Dot decorations**: 3 ellipse as small dots, semi-transparent, adding liveliness
+- **Scatter and rotation**: Blocks move and rotate significantly (5-15 degrees) between pages, morph produces "flying and reorganizing" block effect
+- **Functional transformation**: S1 scattered in corners → S2 rotated and gathered to edges → S3 becomes three-column card backgrounds (opacity reduced to 0.12) → S4 becomes data block backgrounds (opacity 0.3-0.5) → S5 returns to scattered with rotation
+- **Transparency layering**: 0.5-1.0 as decoration, reduced to 0.12-0.5 as content backgrounds
 
-| 名称 | 类型 | 说明 |
-|------|------|------|
-| `!!block-red` | roundRect | 红色积木块 |
-| `!!block-blue` | roundRect | 蓝色积木块 |
-| `!!block-yellow` | roundRect | 黄色积木块 |
-| `!!block-green` | roundRect | 绿色积木块 |
-| `!!block-orange` | roundRect | 橙色积木块 |
-| `!!dot-red` | ellipse | 红色圆点装饰 |
-| `!!dot-blue` | ellipse | 蓝色圆点装饰 |
-| `!!dot-yellow` | ellipse | 黄色圆点装饰 |
+## Scene Elements
 
-## 页面结构（5页）
+| Name             | Type      | Description           |
+| ---------------- | --------- | --------------------- |
+| `!!block-red`    | roundRect | Red building block    |
+| `!!block-blue`   | roundRect | Blue building block   |
+| `!!block-yellow` | roundRect | Yellow building block |
+| `!!block-green`  | roundRect | Green building block  |
+| `!!block-orange` | roundRect | Orange building block |
+| `!!dot-red`      | ellipse   | Red dot decoration    |
+| `!!dot-blue`     | ellipse   | Blue dot decoration   |
+| `!!dot-yellow`   | ellipse   | Yellow dot decoration |
 
-| 页 | 类型 | 说明 |
-|----|------|------|
-| S1 | hero | 封面 — 积木散布四角，居中大标题 |
-| S2 | statement | 宣言 — 积木旋转聚拢到边缘和底部，居中大标题 |
-| S3 | pillars | 三栏 — 积木变为三列淡色卡片背景，三组内容 |
-| S4 | evidence | 数据 — 积木变为半透明数据色块背景，三组大数字 |
-| S5 | cta | 结束 — 积木回归散布 + 旋转，行动号召 |
+## Page Structure (5 pages)
 
-## 参考脚本
+| Slide | Type      | Elements                                                                               | Description |
+| ----- | --------- | -------------------------------------------------------------------------------------- | ----------- |
+| S1    | hero      | Cover — blocks scattered in corners, centered large title                              |
+| S2    | statement | Statement — blocks rotated and gathered to edges and bottom, centered large title      |
+| S3    | pillars   | Three-column — blocks become three-column light card backgrounds, three content groups |
+| S4    | evidence  | Data — blocks become semi-transparent data block backgrounds, three large numbers      |
+| S5    | cta       | Closing — blocks return to scattered + rotation, call to action                        |
 
-完整构建脚本见 `build.sh`。
+## Reference Script
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 8 个 scene actor 的初始散布位置
-- **Slide 3 (pillars)** — 积木如何变形为三列卡片背景，理解 opacity + size 变化
-- **Slide 5 (cta)** — 积木回归散布的旋转角度设置
+Complete build script available in `build.sh`.
 
-不需要全部阅读，选 2-3 个代表页面即可。
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Initial scattered positions of 8 scene actors
+- **Slide 3 (pillars)** — How blocks transform into three-column card backgrounds, understanding opacity + size changes
+- **Slide 5 (cta)** — Rotation angle settings for blocks returning to scattered state
+
+No need to read all — skim 2-3 representative slides.

@@ -1,30 +1,35 @@
-# architectural-plan — 建筑平面图
+# architectural-plan — Architectural Plan
 
-## 风格概述
-深蓝灰底色搭配浅蓝面板与金色强调，用规整的面板分割模拟建筑平面图的专业版式。
+## Style Overview
 
-- **场景**: 建筑设计、商业计划、地产开发
-- **情绪**: 专业、规整、建筑感
-- **色调**: 深蓝灰底 + 浅蓝面板 + 金色强调
+Dark blue-gray background with light blue panels and gold accents, using structured panel divisions to simulate the professional layout of architectural plans.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Dark Blue | 1C2B3A | 背景底色 |
-| Panel Blue | B8D4E0 | 内容面板、侧栏 |
-| Gold Accent | F4C430 | 强调色、标题下划线、徽章 |
+- **Scene**: Architectural design, business plans, real estate development
+- **Mood**: Professional, structured, architectural
+- **Color Tone**: Dark blue-gray background + light blue panels + gold accents
 
-## 设计手法
-- 页面分为深色区与浅色面板区，模拟建筑图纸的留白与标注区域
-- 左右内容面板交替布局（左内容右面板 / 右内容左面板），增加节奏变化
-- 顶部导航条 + 编号系统（01, 02...），强化建筑图纸的分区编码感
-- star_badge 星形徽章作为装饰，金色标题下划线提升层级感
-- roundRect 圆角按钮搭配金色填充，统一 CTA 视觉风格
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (title)** — 左右面板分割布局与 star_badge 装饰
-- **Slide 3 (services)** — 面板交替布局与顶部导航条的实现
-- **Slide 5 (contact)** — 多统计数字排列与 CTA 按钮设计
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name        | Hex    | Usage                                  |
+| ----------- | ------ | -------------------------------------- |
+| Dark Blue   | 1C2B3A | Background                             |
+| Panel Blue  | B8D4E0 | Content panels, sidebars               |
+| Gold Accent | F4C430 | Accent color, title underlines, badges |
+
+## Design Techniques
+
+- Pages divided into dark areas and light panel areas, simulating the white space and annotation zones of architectural drawings
+- Left-right content panel alternating layout (left content/right panel or right content/left panel), adding rhythmic variation
+- Top navigation bar + numbering system (01, 02...), reinforcing the sectional coding aesthetic of architectural drawings
+- star_badge star-shaped badges as decorations, gold title underlines elevate hierarchy
+- roundRect rounded buttons with gold fill, unifying CTA visual style
+
+## Reference Script
+
+Full build script available in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (title)** — Left-right panel division layout and star_badge decoration
+- **Slide 3 (services)** — Alternating panel layout and top navigation bar implementation
+- **Slide 5 (contact)** — Multi-statistic arrangement and CTA button design
+  No need to read all — skim 2-3 representative slides.

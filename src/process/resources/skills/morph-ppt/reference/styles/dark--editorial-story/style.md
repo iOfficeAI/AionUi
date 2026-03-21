@@ -1,61 +1,62 @@
-# 06-editorial-story — 编辑杂志故事
+# 06-editorial-story — Editorial Magazine Story
 
+## Style Overview
 
-## 风格概述
-深蓝灰红色强调的杂志编辑风格，采用杂志网格+图文并排布局，适合故事讲述、品牌故事、杂志内容等场合
+Deep blue-gray with red emphasis in editorial magazine style, using magazine grid + image-text side-by-side layout, suitable for storytelling, brand stories, magazine content and similar scenarios
 
-- **场景**: 故事讲述、品牌故事、编辑杂志、内容发布
-- **情绪**: 专业、叙事、文艺、高端、媒体
-- **色调**: 冷色调、低饱和度、高对比
-- **行业**: 媒体、出版、广告、品牌
+- **Scene**: Storytelling, brand stories, editorial magazines, content publishing
+- **Mood**: Professional, narrative, literary, premium, media
+- **Tone**: Cool tones, low saturation, high contrast
+- **Industry**: Media, publishing, advertising, branding
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #FFFFFF | background |
-| 主色 | #2C3E50 | primary |
-| 强调色 | #E74C3C | accent |
-| 辅助色 | #636E72 | secondary |
-| 主文字 | #2C3E50 | text_primary |
-| 副文字 | #666666 | text_secondary |
-| 辅助文字 | #999999 | text_muted |
+| Name           | Hex     | Usage          |
+| -------------- | ------- | -------------- |
+| Background     | #FFFFFF | background     |
+| Primary        | #2C3E50 | primary        |
+| Accent         | #E74C3C | accent         |
+| Auxiliary      | #636E72 | secondary      |
+| Primary Text   | #2C3E50 | text_primary   |
+| Secondary Text | #666666 | text_secondary |
+| Muted Text     | #999999 | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Georgia |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Georgia         |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| data | Arial Black |
+| body     | Microsoft YaHei |
+| data     | Arial Black     |
 
-## 设计手法
+## Design Techniques
 
-- 深蓝灰红色强调配色
-- 杂志网格布局
-- 图文并排设计
-- 装饰引号元素
-- 期号标签设计
-- Morph过渡动画
-- 装饰元素规范化
+- Deep blue-gray with red emphasis color scheme
+- Magazine grid layout
+- Image-text side-by-side design
+- Decorative quotation mark elements
+- Issue number label design
+- Morph transition animation
+- Standardized decorative elements
 
-## 页面结构（6页）
+## Page Structure (6 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 45 | 封面页 - 杂志封面布局+期号标签 |
-| S2 | story | 50 | 故事页 - 左图右文布局 |
-| S3 | quote | 50 | 引用页 - 全页引用+装饰引号 |
-| S4 | team | 55 | 团队页 - 四宫格杂志排版 |
-| S5 | data | 50 | 数据页 - 左侧装饰+数据卡片 |
-| S6 | thanks | 45 | 感谢页 - 杂志末页风格 |
+| Slide | Type   | Elements | Description                                               |
+| ----- | ------ | -------- | --------------------------------------------------------- |
+| S1    | hero   | 45       | Cover page - Magazine cover layout + Issue number label   |
+| S2    | story  | 50       | Story page - Left image, right text layout                |
+| S3    | quote  | 50       | Quote page - Full-page quote + Decorative quotation marks |
+| S4    | team   | 55       | Team page - Four-grid magazine layout                     |
+| S5    | data   | 50       | Data page - Left decoration + Data cards                  |
+| S6    | thanks | 45       | Thanks page - Magazine closing page style                 |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script is in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 杂志封面布局+期号标签
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - Magazine cover layout + Issue number label
+
+No need to read all — skim 2-3 representative slides.

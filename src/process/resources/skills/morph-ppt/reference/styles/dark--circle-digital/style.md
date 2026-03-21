@@ -1,32 +1,37 @@
-# circle-digital — 暗酷数字机构
+# circle-digital — Dark Cool Digital Agency
 
-## 风格概述
-近黑背景搭配深灰卡片与霓虹绿强调色，打造暗黑模式下的数字营销机构风格。
+## Style Overview
 
-- **场景**: 数字营销、创意机构、科技公司
-- **情绪**: 现代、暗酷、数字感
-- **色调**: 近黑底 + 深灰卡片层次 + 霓虹绿点缀
+Near-black background with dark gray cards and neon lime accent color, creating a dark mode digital marketing agency aesthetic.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Near Black | 0D0E11 | 背景底色 |
-| Dark Gray 1 | 171A20 | 卡片底层 |
-| Dark Gray 2 | 22252E | 卡片中层 |
-| Dark Gray 3 | 2D3140 | 卡片高层 |
-| Neon Lime | C4FF00 | 强调色、CTA、装饰线 |
+- **Scene**: Digital marketing, creative agencies, tech companies
+- **Mood**: Modern, dark-cool, digital
+- **Color Tone**: Near-black background + dark gray card layers + neon lime accents
 
-## 设计手法
-- 大量使用圆形（ellipse）作为图片占位与装饰元素，体现 "圆形" 主题
-- 多层深灰卡片叠加营造暗色模式下的层次感与深度
-- 霓虹绿作为唯一亮色，用于 CTA 按钮、装饰点和分割线，形成强烈对比
-- 左侧竖条装饰线 + 编号系统，增加版式的结构感
-- roundRect 圆角按钮搭配霓虹绿填充，突出行动号召
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (title)** — 圆形图片占位、霓虹绿 CTA 按钮与左侧竖条装饰
-- **Slide 2 (services)** — 深灰多层卡片的排列与层次构建
-- **Slide 4 (portfolio)** — 圆形元素在内容展示中的运用
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name        | Hex    | Usage                               |
+| ----------- | ------ | ----------------------------------- |
+| Near Black  | 0D0E11 | Background                          |
+| Dark Gray 1 | 171A20 | Card bottom layer                   |
+| Dark Gray 2 | 22252E | Card middle layer                   |
+| Dark Gray 3 | 2D3140 | Card top layer                      |
+| Neon Lime   | C4FF00 | Accent color, CTA, decorative lines |
+
+## Design Techniques
+
+- Extensive use of circles (ellipse) as image placeholders and decorative elements, embodying the "circle" theme
+- Multi-layer dark gray cards stacked to create dark mode hierarchy and depth
+- Neon lime as the only bright color, used for CTA buttons, decorative dots, and dividers, creating strong contrast
+- Left vertical decorative bars + numbering system, adding structural sense to the layout
+- roundRect rounded buttons with neon lime fill, highlighting calls to action
+
+## Reference Script
+
+Full build script available in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (title)** — Circle image placeholder, neon lime CTA button, and left vertical decorative bar
+- **Slide 2 (services)** — Dark gray multi-layer card arrangement and hierarchy construction
+- **Slide 4 (portfolio)** — Application of circle elements in content display
+  No need to read all — skim 2-3 representative slides.

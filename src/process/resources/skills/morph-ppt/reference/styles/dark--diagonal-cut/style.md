@@ -1,69 +1,71 @@
-# 09 Diagonal Cut — 斜切工业风
+# 09 Diagonal Cut — Industrial Diagonal Cut
 
-## 风格概述
-近黑背景上大胆的斜向矩形切割与锐利线条，营造工业力量感。
+## Style Overview
 
-- **场景**: 工业、工程、建筑、制造
-- **情绪**: 硬朗、力量感、工业、大胆
-- **色调**: 深色底、高对比暖色强调
+Bold diagonal rectangle cuts and sharp lines on a near-black background create an industrial sense of power.
 
-## 配色
+- **Scene**: Industrial, engineering, architecture, manufacturing
+- **Mood**: Rugged, powerful, industrial, bold
+- **Color Tone**: Dark background, high-contrast warm accent colors
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 近黑 | #1A1A1A | 页面背景 |
-| 工业橙 | #FF6600 | 主强调色、斜切条、切割线 |
-| 纯白 | #FFFFFF | 标题文字、辅助斜切条 |
-| 警示黄 | #FFCC00 | 第二强调色、斜切条 |
-| 深灰 | #333333 | 辅助斜切条 |
-| 浅灰 | #CCCCCC | 正文/副标题文字 |
+## Color Palette
 
-## 字体
+| Name              | Hex     | Usage                                            |
+| ----------------- | ------- | ------------------------------------------------ |
+| Near Black        | #1A1A1A | Page background                                  |
+| Industrial Orange | #FF6600 | Primary accent color, diagonal strips, cut lines |
+| Pure White        | #FFFFFF | Title text, secondary diagonal strips            |
+| Warning Yellow    | #FFCC00 | Secondary accent color, diagonal strips          |
+| Dark Gray         | #333333 | Secondary diagonal strips                        |
+| Light Gray        | #CCCCCC | Body/subtitle text                               |
 
-| 元素 | 字体 | 字号 |
-|------|------|------|
-| 主标题 | Segoe UI Black | 64-72pt |
-| 数据数字 | Segoe UI Black | 48-64pt |
-| 栏目标题 | Segoe UI Black | 28-40pt |
-| 正文/副标题 | Segoe UI | 14-24pt |
+## Typography
 
-## 设计手法
+| Element        | Font           | Size    |
+| -------------- | -------------- | ------- |
+| Main Title     | Segoe UI Black | 64-72pt |
+| Data Numbers   | Segoe UI Black | 48-64pt |
+| Section Titles | Segoe UI Black | 28-40pt |
+| Body/Subtitle  | Segoe UI       | 14-24pt |
 
-- **斜切矩形**: 4 个大尺寸 rect 旋转 30-45 度横跨画布，形成斜向切割效果
-- **切割线**: 2 条极细 rect（height 0.1-0.15cm）贯穿全幅，模拟工业切割痕迹
-- **圆点装饰**: 2 个 ellipse 作为角落点缀，平衡几何构图
-- **Morph 编排**: 斜切条在页面间旋转 20-25 度 + 位移 8-12cm，产生动态"切割翻转"效果；Slide 3 斜切条变形为近乎竖直的分栏分隔线，形成"散乱→有序"的变换
-- **透明度分层**: 主色 0.85-0.9，辅色 0.15-0.3，灰色 0.5-0.7，形成前后层次
+## Design Techniques
 
-## Scene Actors
+- **Diagonal rectangles**: 4 large rect elements rotated 30-45 degrees spanning across the canvas, creating diagonal cut effects
+- **Cut lines**: 2 ultra-thin rects (height 0.1-0.15cm) crossing the full width, simulating industrial cutting marks
+- **Circle decorations**: 2 ellipses as corner accents, balancing geometric composition
+- **Morph choreography**: Diagonal strips rotate 20-25 degrees + shift 8-12cm between pages, producing dynamic "cut-flip" effects; Slide 3 diagonal strips transform into nearly vertical column dividers, creating a "scattered → orderly" transformation
+- **Transparency layering**: Primary colors 0.85-0.9, secondary colors 0.15-0.3, gray 0.5-0.7, creating depth hierarchy
 
-| 名称 | 类型 | 说明 |
-|------|------|------|
-| `!!slash-orange` | rect | 主橙色斜切条，最大最醒目 |
-| `!!slash-white` | rect | 白色半透明斜切条，营造深度 |
-| `!!slash-yellow` | rect | 黄色斜切条，第二强调 |
-| `!!slash-gray` | rect | 深灰斜切条，增加层次 |
-| `!!cut-line-1` | rect (极细) | 橙色贯穿切割线 |
-| `!!cut-line-2` | rect (极细) | 白色半透明切割线 |
-| `!!dot-orange` | ellipse | 橙色圆点装饰 |
-| `!!dot-yellow` | ellipse | 黄色圆点装饰 |
+## Scene Elements
 
-## 页面结构（5页）
+| Name             | Type              | Description                                               |
+| ---------------- | ----------------- | --------------------------------------------------------- |
+| `!!slash-orange` | rect              | Primary orange diagonal strip, largest and most prominent |
+| `!!slash-white`  | rect              | White semi-transparent diagonal strip, creating depth     |
+| `!!slash-yellow` | rect              | Yellow diagonal strip, secondary accent                   |
+| `!!slash-gray`   | rect              | Dark gray diagonal strip, adding layers                   |
+| `!!cut-line-1`   | rect (ultra-thin) | Orange crossing cut line                                  |
+| `!!cut-line-2`   | rect (ultra-thin) | White semi-transparent cut line                           |
+| `!!dot-orange`   | ellipse           | Orange circle decoration                                  |
+| `!!dot-yellow`   | ellipse           | Yellow circle decoration                                  |
 
-| 页 | 类型 | 说明 |
-|----|------|------|
-| S1 | hero | 封面 — 斜切条散布 + 居中大标题 "CUT THROUGH" |
-| S2 | statement | 宣言 — 斜切条大幅旋转偏移 + 居中文字 |
-| S3 | pillars | 三栏 — 斜切条变为近竖直分栏线，三列内容 |
-| S4 | evidence | 数据 — 斜切条不对称框住数据，三组大数字 |
-| S5 | cta | 结束 — 斜切条回归散布斜向，行动号召 |
+## Page Structure (5 pages)
 
-## 参考脚本
+| Slide | Type      | Elements                                                                                     | Description |
+| ----- | --------- | -------------------------------------------------------------------------------------------- | ----------- |
+| S1    | hero      | Cover — diagonal strips scattered + centered large title "CUT THROUGH"                       |
+| S2    | statement | Statement — diagonal strips rotate and shift significantly + centered text                   |
+| S3    | pillars   | Three columns — diagonal strips become nearly vertical column dividers, three-column content |
+| S4    | evidence  | Data — diagonal strips asymmetrically frame data, three groups of large numbers              |
+| S5    | cta       | Closing — diagonal strips return to scattered diagonal orientation, call to action           |
 
-完整构建脚本见 `build.sh`。
+## Reference Script
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 8 个 scene actor 的初始布局和旋转角度
-- **Slide 3 (pillars)** — 斜切条如何变形为近竖直分栏线，理解 morph 变换幅度
+Full build script available in `build.sh`.
 
-不需要全部阅读，选 2-3 个代表页面即可。
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Initial layout and rotation angles of 8 scene actors
+- **Slide 3 (pillars)** — How diagonal strips transform into nearly vertical column dividers, understanding morph transformation magnitude
+
+No need to read all — skim 2-3 representative slides.

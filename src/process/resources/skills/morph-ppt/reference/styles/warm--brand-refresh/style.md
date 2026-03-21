@@ -1,46 +1,53 @@
-# Brand Refresh — 品牌焕新
+# Brand Refresh — Brand Refresh
 
-## 风格概述
-暖色奶油底上多彩色块拼贴，形成活泼时尚的品牌视觉。
+## Style Overview
 
-- **场景**: 品牌发布、企业形象更新、创意提案
-- **情绪**: 温暖、时尚、多彩、现代
-- **色调**: 暖色底、多彩色块
+Colorful block collage on warm cream background, creating lively and fashionable brand visuals.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Warm Cream | F5F0E8 | 背景色（羊皮纸质感） |
-| Deep Navy | 162040 | 标题文字 |
-| Blue | 1A6BFF | 色块主色 |
-| Orange | F4713A | 色块强调 |
-| Cyan | 00C9D4 | 色块辅色 |
-| Mint Green | 7EC8A0 | 色块辅色 |
-| Pink | E8749A | 色块点缀 |
-| Muted Text | 9A9080 | 弱化文字 |
-| Body Text | 6B6355 | 正文文字 |
+- **Scene**: Brand launches, corporate image updates, creative proposals
+- **Mood**: Warm, fashionable, colorful, modern
+- **Tone**: Warm base, colorful blocks
 
-## 字体
-- 标题：Arial 52pt Bold
-- 正文：Arial 15pt
-- 标签：Arial 11pt
+## Color Palette
 
-## 场景元素
-- 6 个矩形色块（blk-a 至 blk-f），在右侧形成马赛克网格
-- 色块在每页之间重新排列、缩放、位移
-- 使用图片素材（portrait1.jpg, portrait2.jpg, abstract1.jpg, team1.jpg）— 作为风格参考时可忽略
+| Name       | Hex    | Usage                          |
+| ---------- | ------ | ------------------------------ |
+| Warm Cream | F5F0E8 | Background (parchment texture) |
+| Deep Navy  | 162040 | Title text                     |
+| Blue       | 1A6BFF | Primary block color            |
+| Orange     | F4713A | Block accent                   |
+| Cyan       | 00C9D4 | Block secondary color          |
+| Mint Green | 7EC8A0 | Block secondary color          |
+| Pink       | E8749A | Block highlight                |
+| Muted Text | 9A9080 | Muted text                     |
+| Body Text  | 6B6355 | Body text                      |
 
-## 设计手法
-- 色块马赛克布局 — 色块在每页形成不同的网格图案
-- 照片嵌入色块网格之中
-- 左侧文字 + 右侧多彩色块的经典分栏
-- Morph 过渡让色块平滑滑动和缩放
-- 6 页幻灯片
+## Typography
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-注意：脚本中使用了 assets/ 目录的图片资源，作为风格参考时可忽略图片部分。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1** — 标题页，色块网格初始布局
-- **Slide 4** — 色块大幅重组，展示马赛克变形效果
-不需要全部阅读，选 2-3 个代表页面即可。
+- Titles: Arial 52pt Bold
+- Body: Arial 15pt
+- Labels: Arial 11pt
+
+## Scene Elements
+
+- 6 rectangular color blocks (blk-a to blk-f), forming mosaic grid on right side
+- Blocks rearrange, scale, and shift between each page
+- Uses image assets (portrait1.jpg, portrait2.jpg, abstract1.jpg, team1.jpg) — can be ignored when using as style reference
+
+## Design Techniques
+
+- Block mosaic layout — blocks form different grid patterns on each page
+- Photos embedded within block grid
+- Classic split layout: text on left + colorful blocks on right
+- Morph transitions smoothly slide and scale blocks
+- 6 slides
+
+## Reference Script
+
+Complete build script available in `build.sh`.
+Note: Script uses image resources from assets/ directory, image parts can be ignored when using as style reference.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1** — Title page, initial layout of block grid
+- **Slide 4** — Major block reorganization, demonstrating mosaic transformation effect
+  No need to read all — skim 2-3 representative slides.

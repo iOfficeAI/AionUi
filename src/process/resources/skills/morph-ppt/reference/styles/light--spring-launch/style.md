@@ -1,63 +1,64 @@
-# 07-spring-launch — 春季发布清新
+# 07-spring-launch — Spring Launch Fresh
 
+## Style Overview
 
-## 风格概述
-浅绿渐变嫩绿黄绿配色，采用自然曲线+花瓣布局，适合春季发布会、新品发布、季节营销等清新自然场合
+Light green gradient with tender green and yellow-green color scheme, using natural curves + petal layout, suitable for spring launch events, new product releases, seasonal marketing, and other fresh natural occasions
 
-- **场景**: 春季发布会、新品发布、季节营销、品牌活动
-- **情绪**: 清新、自然、生机、活力、希望
-- **色调**: 绿色调、浅色系、自然色、清新渐变
-- **行业**: 消费品、环保、健康、美妆、食品
+- **Scene**: Spring launch events, new product releases, seasonal marketing, brand activities
+- **Mood**: Fresh, natural, vibrant, energetic, hopeful
+- **Color Tone**: Green tone, light color system, natural colors, fresh gradients
+- **Industry**: Consumer goods, environmental, health, beauty, food
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #E8F5E9 | background |
-| 主色 | #4CAF50 | primary |
-| 辅助色 | #8BC34A | secondary |
-| 强调色 | #81C784 | accent |
-| dark | #1B5E20 | dark |
-| 主文字 | #1B5E20 | text_primary |
-| 副文字 | #388E3C | text_secondary |
-| 辅助文字 | #66BB6A | text_muted |
+| Name           | Hex     | Usage          |
+| -------------- | ------- | -------------- |
+| Background     | #E8F5E9 | background     |
+| Primary        | #4CAF50 | primary        |
+| Secondary      | #8BC34A | secondary      |
+| Accent         | #81C784 | accent         |
+| Dark           | #1B5E20 | dark           |
+| Primary Text   | #1B5E20 | text_primary   |
+| Secondary Text | #388E3C | text_secondary |
+| Muted Text     | #66BB6A | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Arial Black |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Arial Black     |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| data | Arial Black |
+| body     | Microsoft YaHei |
+| data     | Arial Black     |
 
-## 设计手法
+## Design Techniques
 
-- 浅绿渐变嫩绿黄绿配色
-- 自然曲线布局
-- 花瓣装饰元素
-- 四叶草式排列
-- 垂直时间轴设计
-- Morph过渡动画
-- 装饰元素规范化
+- Light green gradient with tender green and yellow-green color scheme
+- Natural curve layout
+- Petal decorative elements
+- Four-leaf clover arrangement
+- Vertical timeline design
+- Morph transition animations
+- Standardized decorative elements
 
-## 页面结构（6页）
+## Page Structure (6 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 45 | 封面页 - 曲线分割+花瓣装饰+中央卡片 |
-| S2 | highlights | 55 | 亮点页 - 四叶草式错位排列卡片 |
-| S3 | features | 55 | 功能页 - 左侧产品+纵向功能流 |
-| S4 | pricing | 55 | 价格页 - 三列定价卡片 |
-| S5 | timeline | 50 | 时间轴页 - 嫩芽生长式垂直时间轴 |
-| S6 | cta | 50 | CTA页 - 顶部绿色区+行动按钮 |
+| Slide | Type       | Elements | Description                                                          |
+| ----- | ---------- | -------- | -------------------------------------------------------------------- |
+| S1    | hero       | 45       | Cover page - curve division + petal decorations + central card       |
+| S2    | highlights | 55       | Highlights page - four-leaf clover style staggered arrangement cards |
+| S3    | features   | 55       | Features page - left product + vertical feature flow                 |
+| S4    | pricing    | 55       | Pricing page - three column pricing cards                            |
+| S5    | timeline   | 50       | Timeline page - sprout growth style vertical timeline                |
+| S6    | cta        | 50       | CTA page - top green area + action button                            |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script is in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 曲线分割+花瓣装饰+中央卡片
-- **Slide 5 (timeline)** — 时间轴页 - 嫩芽生长式垂直时间轴
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - curve division + petal decorations + central card
+- **Slide 5 (timeline)** — Timeline page - sprout growth style vertical timeline
+
+No need to read all — skim 2-3 representative slides.

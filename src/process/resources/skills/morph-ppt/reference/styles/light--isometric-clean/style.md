@@ -1,28 +1,33 @@
-# S23-isometric-clean — 等距清新科技
+# S23-isometric-clean — Isometric Clean Tech
 
-## 风格概述
-浅蓝灰底色上用菱形与矩形组合营造等距/3D 方块视觉，传递清新现代的科技感。
+## Style Overview
 
-- **场景**: 科技产品、SaaS 平台、数据展示
-- **情绪**: 清新、现代、科技
-- **色调**: 浅蓝灰底 + 蓝色强调 + 浅灰层次
+Light blue-gray background using diamond and rectangle combinations to create isometric/3D block visuals, conveying a clean and modern technological feel.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Light Blue-Gray | F0F4F8 | 背景底色 |
-| Blue | 4A90D9 | 主强调色、等距方块顶面 |
-| Light Gray | E8ECF1 | 方块侧面、辅助色块 |
+- **Scene**: Tech products, SaaS platforms, data display
+- **Mood**: Clean, modern, technological
+- **Color Tone**: Light blue-gray base + blue accent + light gray layers
 
-## 设计手法
-- diamond（菱形）模拟等距视角的方块顶面，rect 作为侧面，组合成 3D 方块效果
-- 方块以网格排列，形成等距空间感
-- 配色克制（仅蓝灰两色），保持清爽不杂乱
-- 字体使用 Inter Bold 等现代无衬线字体
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 菱形 + 矩形组合构建等距方块的方式
-- **Slide 3 (pillars)** — 多方块排列的网格布局
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name            | Hex    | Usage                                          |
+| --------------- | ------ | ---------------------------------------------- |
+| Light Blue-Gray | F0F4F8 | Background base color                          |
+| Blue            | 4A90D9 | Primary accent color, isometric block top face |
+| Light Gray      | E8ECF1 | Block side face, auxiliary color block         |
+
+## Design Techniques
+
+- Diamond shapes simulate isometric perspective block top faces, rectangles serve as side faces, combined to create 3D block effects
+- Blocks arranged in grid pattern, forming isometric spatial sense
+- Restrained color scheme (only blue-gray), maintaining clean and uncluttered appearance
+- Typography uses modern sans-serif fonts like Inter Bold
+
+## Reference Script
+
+Complete build script is in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — How to construct isometric blocks using diamond + rectangle combinations
+- **Slide 3 (pillars)** — Grid layout with multiple block arrangements
+  No need to read all — skim 2-3 representative slides.

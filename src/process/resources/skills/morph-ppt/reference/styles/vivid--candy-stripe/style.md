@@ -1,71 +1,73 @@
-# 10 Candy Stripe — 彩虹糖条纹
+# 10 Candy Stripe — Rainbow Candy Stripes
 
-## 风格概述
-白色背景上六条全宽彩虹色带在页面间滑动、伸缩、聚散，营造节日欢乐感。
+## Style Overview
 
-- **场景**: 活动庆典、节日、儿童教育、创意营销
-- **情绪**: 欢乐、活泼、节庆、彩虹
-- **色调**: 白底、六色彩虹强调
+Six full-width rainbow stripes slide, stretch, and gather across pages on white background, creating festive joyful atmosphere.
 
-## 配色
+- **Scene**: Celebrations, festivals, children's education, creative marketing
+- **Mood**: Joyful, lively, festive, rainbow
+- **Tone**: White base, six-color rainbow accents
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 纯白 | #FFFFFF | 页面背景 |
-| 糖果红 | #FF5252 | 彩虹条 1 |
-| 橙色 | #FF7B39 | 彩虹条 2 |
-| 柠檬黄 | #FFD740 | 彩虹条 3 |
-| 薄荷绿 | #69F0AE | 彩虹条 4 |
-| 天空蓝 | #40C4FF | 彩虹条 5 |
-| 紫罗兰 | #7C4DFF | 彩虹条 6 |
-| 标题黑 | #1A1A1A | 标题文字 |
-| 正文灰 | #555555 | 正文文字 |
+## Color Palette
 
-## 字体
+| Name         | Hex     | Usage            |
+| ------------ | ------- | ---------------- |
+| Pure White   | #FFFFFF | Page background  |
+| Candy Red    | #FF5252 | Rainbow stripe 1 |
+| Orange       | #FF7B39 | Rainbow stripe 2 |
+| Lemon Yellow | #FFD740 | Rainbow stripe 3 |
+| Mint Green   | #69F0AE | Rainbow stripe 4 |
+| Sky Blue     | #40C4FF | Rainbow stripe 5 |
+| Violet       | #7C4DFF | Rainbow stripe 6 |
+| Title Black  | #1A1A1A | Title text       |
+| Body Gray    | #555555 | Body text        |
 
-| 元素 | 字体 | 字号 |
-|------|------|------|
-| 主标题 | Segoe UI Black | 54-64pt |
-| 数据数字 | Segoe UI Black | 48-72pt |
-| 栏目标题 | Segoe UI Black | 28-40pt |
-| 正文/副标题 | Segoe UI | 16-28pt |
+## Typography
 
-## 设计手法
+| Element       | Font           | Size    |
+| ------------- | -------------- | ------- |
+| Main Title    | Segoe UI Black | 54-64pt |
+| Data Numbers  | Segoe UI Black | 48-72pt |
+| Column Title  | Segoe UI Black | 28-40pt |
+| Body/Subtitle | Segoe UI       | 16-28pt |
 
-- **全宽彩虹条**: 6 条 full-width rect（width=34cm），仅通过 y 位置和 height 变化创造视觉节奏
-- **垂直滑动**: 条纹在页面间上下滑动，morph 产生流畅的垂直运动
-- **伸缩变化**: 条纹 height 从 2cm（均匀展开）到 0.3cm（压缩为细线）到 8cm（扩展为大色块背景）
-- **透明度调节**: 0.12（淡化为卡片背景色）到 0.85（正常展示）到 1.0（压缩时加深）
-- **功能变形**: S1 均匀分布 → S2 压缩为顶部彩条 → S3 变为三列卡片背景 → S4 蓝色扩展为数据背景 → S5 汇聚为底部渐变彩条
+## Design Techniques
 
-## Scene Actors
+- **Full-width rainbow stripes**: 6 full-width rect (width=34cm), creating visual rhythm through y position and height changes only
+- **Vertical sliding**: Stripes slide up and down between pages, morph produces smooth vertical movement
+- **Stretch variation**: Stripe height changes from 2cm (evenly spread) to 0.3cm (compressed into thin lines) to 8cm (expanded into large color block backgrounds)
+- **Opacity adjustment**: 0.12 (faded as card background) to 0.85 (normal display) to 1.0 (deepened when compressed)
+- **Functional transformation**: S1 evenly distributed → S2 compressed into top color bar → S3 becomes three-column card backgrounds → S4 blue expands as data background → S5 gathers into bottom gradient color bar
 
-| 名称 | 类型 | 说明 |
-|------|------|------|
-| `!!stripe-red` | rect | 红色全宽彩虹条 |
-| `!!stripe-orange` | rect | 橙色全宽彩虹条 |
-| `!!stripe-yellow` | rect | 黄色全宽彩虹条 |
-| `!!stripe-green` | rect | 绿色全宽彩虹条 |
-| `!!stripe-blue` | rect | 蓝色全宽彩虹条 |
-| `!!stripe-purple` | rect | 紫色全宽彩虹条 |
+## Scene Elements
 
-## 页面结构（5页）
+| Name              | Type | Description                      |
+| ----------------- | ---- | -------------------------------- |
+| `!!stripe-red`    | rect | Red full-width rainbow stripe    |
+| `!!stripe-orange` | rect | Orange full-width rainbow stripe |
+| `!!stripe-yellow` | rect | Yellow full-width rainbow stripe |
+| `!!stripe-green`  | rect | Green full-width rainbow stripe  |
+| `!!stripe-blue`   | rect | Blue full-width rainbow stripe   |
+| `!!stripe-purple` | rect | Purple full-width rainbow stripe |
 
-| 页 | 类型 | 说明 |
-|----|------|------|
-| S1 | hero | 封面 — 6 条彩虹均匀分布（间距3.4cm），居中标题 |
-| S2 | statement | 宣言 — 6 条压缩到顶部 4cm 形成彩色标题栏，下方白色空间放文字 |
-| S3 | pillars | 三栏 — 条纹两两配对变为三列卡片背景色（红+橙、黄+绿、蓝+紫） |
-| S4 | evidence | 数据 — 蓝条扩展为 8cm 高数据背景，其余条纹退缩到上下边缘 |
-| S5 | cta | 结束 — 条纹汇聚到底部形成倒序彩虹渐变页脚 |
+## Page Structure (5 pages)
 
-## 参考脚本
+| Slide | Type      | Elements                                                                                                 | Description |
+| ----- | --------- | -------------------------------------------------------------------------------------------------------- | ----------- |
+| S1    | hero      | Cover — 6 rainbow stripes evenly distributed (3.4cm spacing), centered title                             |
+| S2    | statement | Statement — 6 stripes compressed to top 4cm forming color title bar, white space below for text          |
+| S3    | pillars   | Three-column — stripes paired into three column card backgrounds (red+orange, yellow+green, blue+purple) |
+| S4    | evidence  | Data — blue stripe expands to 8cm high data background, other stripes retreat to top and bottom edges    |
+| S5    | cta       | Closing — stripes gather at bottom forming inverted rainbow gradient footer                              |
 
-完整构建脚本见 `build.sh`。
+## Reference Script
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 6 条彩虹的初始均匀布局
-- **Slide 2 (statement)** — 条纹压缩效果，理解 height 和 y 的变化逻辑
-- **Slide 4 (evidence)** — 单条扩展为大面积背景的技巧
+Complete build script available in `build.sh`.
 
-不需要全部阅读，选 2-3 个代表页面即可。
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Initial even layout of 6 rainbow stripes
+- **Slide 2 (statement)** — Stripe compression effect, understanding height and y position change logic
+- **Slide 4 (evidence)** — Technique for expanding single stripe into large area background
+
+No need to read all — skim 2-3 representative slides.
