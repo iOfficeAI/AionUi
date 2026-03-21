@@ -81,34 +81,7 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
 
 ## 3) Fonts
 
-### Recommended Fonts (prefer these for a more polished look)
-
-**English Fonts** (by priority):
-| Priority | Font | Style | Use Case |
-|----------|------|-------|----------|
-| **\* | **Montserrat** | Modern geometric | Tech, branding, business (requires install) |
-| \*** | **Inter** | Clear and readable | General, data, product (requires install) |
-| **\* | **Poppins** | Rounded and friendly | Marketing, education, creative (requires install) |
-| ** | **Segoe UI** | Microsoft system font | Windows general (pre-installed) |
-| ** | **Helvetica Neue** | Classic Swiss | macOS general (pre-installed) |
-| \* | **Arial\*\* | Basic sans-serif | Fallback (pre-installed on all systems) |
-
-**Chinese Fonts** (by priority):
-| Priority | Font | Style | Use Case |
-|----------|------|-------|----------|
-| **\* | **思源黑体 (Source Han Sans)** | Modern and elegant | General (requires install, free) |
-| \*** | **阿里巴巴普惠体** | Business-clear | Business, tech (requires install, free) |
-| ** | **苹方 (PingFang SC)** | Apple system font | macOS general (pre-installed) |
-| ** | **微软雅黑 (Microsoft YaHei)** | Microsoft system font | Windows general (pre-installed) |
-
-**Avoid**:
-
-- SimSun / 宋体 (print-style serif, looks dated in PPT)
-- SimHei / 黑体 (rough, lacks modern feel)
-- KaiTi / 楷体 (handwriting style, unsuitable for business PPT)
-- Times New Roman (serif, poor readability in PPT)
-
-**Recommended Font Combinations (use these by default, no need to choose)**:
+### Font Combinations (use these by default)
 
 | Content Type              | Recommended Fonts                 | Fallback (if unsure about install)          |
 | ------------------------- | --------------------------------- | ------------------------------------------- |
@@ -116,12 +89,11 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
 | **Chinese-only PPT**      | 思源黑体 (all text)               | 苹方 (macOS) / 微软雅黑 (Windows)           |
 | **Mixed Chinese/English** | Montserrat + 思源黑体             | Segoe UI + 苹方 / 微软雅黑                  |
 
-**Font Selection Rules**:
+**Rules**:
 
-1. **Default to recommended fonts** — they provide the best quality
-2. **Use fallback fonts only if you're uncertain about the user's system** (e.g., corporate environment with restricted installs)
-3. **Same font family for titles and body** — differentiate hierarchy by weight (bold vs regular) and size
-4. **Never use**: SimSun/宋体, SimHei/黑体, KaiTi/楷体, Times New Roman (see "Avoid" list above)
+1. **Default to recommended fonts** — use fallback only if unsure about the user's system
+2. **Same font family for titles and body** — differentiate by weight (bold vs regular) and size
+3. **Never use**: SimSun/宋体, SimHei/黑体, KaiTi/楷体, Times New Roman (dated/serif fonts)
 
 ### Font Size Standards
 
@@ -142,34 +114,13 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
 | Body / card title         | 24-32pt   | Single-col 7-8cm, double-col 15-16cm     | ~8-10 chars per column                     |
 | Description text          | 16-20pt   | 6-8cm (single-col), 12-15cm (double-col) | Allow 2-3 lines                            |
 
-**Mandatory rules:**
+**Rules**:
 
-1. **Title text (>=48pt) MUST be single-line**: if length is unpredictable, set width to 25cm+ and center
-2. **Multi-line text must reserve line height**: line-height = fontSize x 1.3, vertical gap between adjacent text boxes >= 1cm
-3. **Prefer reducing font size for long text**: title over 12 chars -> reduce to 56-60pt, over 15 chars -> reduce to 48-52pt
-4. **Verify after generation**: use `officecli pptx view` to check for text overflow
-
-**Text box sizing formula (prevent line-wrap overflow):**
-
-If a text box is too small -> text is forced to wrap -> wrapped text overflows the box -> overlaps with content below.
-
-**Calculation method**:
-
-- **Width**: `character count x width per character + margin`
-  - Chinese character width ~ fontSize (e.g., 16pt font, each char ~0.56cm)
-  - English letter width ~ fontSize x 0.5
-  - **Reserve 30% margin** (to prevent overflow from letter-spacing, punctuation, etc.)
-- **Height**: `line count x fontSize x 1.5`
-  - Single line: `fontSize x 1.5`
-  - Multi-line: add `fontSize x 1.3` for each additional line
-  - **Reserve at least 1 extra line**
-
-**Special attention for description text inside cards**:
-
-- Card width is typically 7-9cm, description text 14-16pt
-- Chinese 14pt is ~0.5cm per character -> 7cm width fits only ~14 chars/line
-- If the description exceeds 3 lines -> **reduce the text** or **increase card width**
-- Do NOT cram 50 characters into a 7cm-wide text box
+1. **Title text (>=48pt) MUST be single-line**: set width to 25cm+ when in doubt
+2. **Long titles**: over 12 chars → reduce to 56-60pt; over 15 chars → reduce to 48-52pt
+3. **Multi-line text**: leave >= 1cm vertical gap between adjacent text boxes
+4. **Card descriptions**: card width ~7-9cm fits only ~14 Chinese chars/line at 14pt — keep text short or widen the card
+5. **When in doubt, make widths generous** — overflow from wrapping is worse than extra whitespace
 
 ### Text Readability (Mandatory)
 
@@ -276,10 +227,11 @@ Slide 2: !!dot-main (x=8cm, y=10cm), !!line-top (x=15cm, y=5cm), !!slash-accent 
 Slide 3: !!dot-main (x=36cm, y=0cm) [ghost], !!line-top (x=10cm, y=2cm), !!slash-accent (x=25cm, rotation=0)
 ```
 
-### Content Actor Design Rules
+### Headline & Content Actor Rules
 
-- Add content shapes independently on each slide as needed
-- No need to plan a "global actor list" in advance
+- **Define all headline/content actors on slide 1** (ghosted at `x=36cm`) so they carry forward when cloning
+- Each slide type has its own set: hero title, statement text, pillar titles, evidence numbers, cta text, etc.
+- Activate only the current slide's actors; keep all others ghosted
 
 ### Morph Auto-Pairing (Important!)
 
