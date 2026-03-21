@@ -26,18 +26,22 @@ export function getPlatformServices(): IPlatformServices {
       } else {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { app } = require("electron") as typeof import("electron");
+        // Typed as IPlatformPaths so tsc enforces completeness: any new method
+        // added to the interface will cause a compile error here if omitted below.
+        const paths: import("./IPlatformServices").IPlatformPaths = {
+          getDataDir: () => app.getPath("userData"),
+          getTempDir: () => app.getPath("temp"),
+          getHomeDir: () => app.getPath("home"),
+          getLogsDir: () => app.getPath("logs"),
+          getAppPath: () => app.getAppPath(),
+          isPackaged: () => app.isPackaged,
+          getSystemPath: (name) => app.getPath(name),
+          getName: () => app.getName(),
+          getVersion: () => app.getVersion(),
+          needsCliSafeSymlinks: () => process.platform === "darwin",
+        };
         _services = {
-          paths: {
-            getDataDir: () => app.getPath("userData"),
-            getTempDir: () => app.getPath("temp"),
-            getHomeDir: () => app.getPath("home"),
-            getLogsDir: () => app.getPath("logs"),
-            getAppPath: () => app.getAppPath(),
-            isPackaged: () => app.isPackaged,
-            getSystemPath: (name) => app.getPath(name),
-            getName: () => app.getName(),
-            getVersion: () => app.getVersion(),
-          },
+          paths,
           worker: {
             fork: () => {
               throw new Error(
