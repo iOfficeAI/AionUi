@@ -52,77 +52,53 @@ transition=morph-byWord   # Match by word (word-by-word text animation)
 transition=morph-byChar   # Match by character (character-by-character text animation)
 ```
 
-### Pitfalls (Important! Common Errors)
+### Command Rules (read before generating any commands)
 
-**Coordinates**:
+**Syntax essentials**:
 
-- **Negative coordinates are not supported** (`x=-3cm` will error); use `x=36cm` uniformly for ghosting
-- After creating a file, you must `add slide` first; otherwise you get "Slide not found"
+1. **All properties use `--prop key=value`**: `--prop name="!!bg-glow1"` (not `--name "!!bg-glow1"`)
+2. **XPath uses numeric indexing only**: `'/slide[1]/shape[3]'` (not `'/slide[1]/shape[@name="dot-main"]'`)
+3. **Wrap XPath in single quotes**: `'/slide[1]/shape[2]'`
+4. **Wrap property values in double quotes**: `--prop text="Hello World"`
+5. **Coordinates start at 0cm** — ghost position is `x=36cm` (right of canvas)
+6. **After creating a file**, `add slide` first — otherwise "Slide not found"
 
-**Path indexing**:
+**Shell script rules** (for build.sh generation):
 
-- **Name-based indexing is not supported**: `/slide[1]/shape[dot-main]` will error
-- **Only numeric indexing works**: `/slide[1]/shape[3]`
-- To find a shape's index by name, first run `officecli get <file> '/slide[1]' --depth 1`
+7. **Multi-line text**: use `\\n` (escaped), or split into multiple text boxes
+8. **Line continuation `\`**: no trailing spaces after the backslash
+9. **Chinese file names** may cause encoding issues in some shells — use English names if needed (e.g., `AionUI-Intro.pptx`)
 
-**Parameter format**:
+**Batch JSON rules** (if using `officecli batch`):
 
-- **Standalone arguments are not supported**: `--name "!!bg-glow1"` will error (Unrecognized argument)
-- **All properties go through `--prop`**: `--prop name="!!bg-glow1"`
-- All officecli properties (name, text, fill, x, y, etc.) must use the `--prop key=value` format
+10. **Boolean values must be strings**: `{"props":{"bold":"true"}}` (not `{"bold":true}`)
+11. **Escape quotes inside JSON strings**: `{"props":{"text":"It\\'s working"}}`
 
-**File names**:
+### Shape Index Management
 
-- officecli supports Chinese file names, but some shell environments may have encoding issues
-- If you encounter garbled Chinese file names -> switch to English names (e.g., `AionUI-Intro.pptx`)
+Shape indices are determined by creation order on each slide. Key behaviors:
 
-**Animations**:
+- **After clone**: the new slide inherits all shapes with the same indices as the source
+- **After `add`**: new shapes get the next index (e.g., if slide has 8 shapes, new shape is `shape[9]`)
+- **After `remove`**: subsequent shapes shift down (e.g., removing `shape[3]` makes old `shape[4]` become `shape[3]`)
 
-- Do not add entrance animations by default (each animation adds one extra click)
-- If an entrance is truly needed, use the `with` trigger: `animation=fade-entrance-300-with`
+**To check current indices**, run:
+```bash
+officecli get <file> '/slide[N]' --depth 1
+```
+This shows all shapes with their names and indices — use it before writing `set` commands.
 
-### Shell Script Rules (CRITICAL — read before generating any commands)
+### Troubleshooting
 
-**⚠️ TOP 3 MOST COMMON ERRORS**:
+When a command fails:
 
-1. **XPath only supports numeric indexing — NEVER use name-based indexing**
-   - ✅ `'/slide[1]/shape[3]'` (numeric index)
-   - ❌ `'/slide[1]/shape[@name="dot-main"]'` (will error)
-   - To find a shape's index by name: `officecli get <file> '/slide[1]' --depth 1`
-
-2. **Negative coordinates are NOT supported**
-   - ❌ `x=-3cm` (will error)
-   - ✅ `x=36cm` (ghost position, off right edge of canvas)
-
-3. **ALL properties use `--prop key=value`** — no standalone arguments
-   - ✅ `--prop name="!!bg-glow1"`
-   - ❌ `--name "!!bg-glow1"` (Unrecognized argument)
-
-**`set` command rules** (used for slide-by-slide generation):
-
-4. **Path wrapping**: Wrap XPath in single quotes
-   - ✅ `'/slide[1]/shape[2]'`
-   - ❌ `/slide[1]/shape[2]` (shell may expand brackets)
-
-5. **Property value wrapping**: Wrap values in double quotes
-   - ✅ `--prop text="Hello World"`
-   - ❌ `--prop text=Hello World` (shell splits on space)
-
-6. **Multi-line text**: Do NOT use `\n` inside `--prop text="..."`
-   - ✅ `--prop text="Line 1\\nLine 2"` (escaped) or split into multiple text boxes
-   - ❌ `--prop text="Line 1\nLine 2"` (shell parsing error)
-
-7. **Line continuation**: NO trailing spaces after `\`
-
-**`batch` JSON rules** (only if you choose to use batch — individual `set` commands are preferred):
-
-8. **Boolean values MUST be strings**
-   - ✅ `{"props":{"bold":"true"}}`
-   - ❌ `{"props":{"bold":true}}` (officecli rejects non-string values)
-
-9. **Escape quotes in JSON strings**
-   - ✅ `{"props":{"text":"It\\'s working"}}`
-   - ❌ `{"props":{"text":"It's working"}}` (breaks JSON)
+1. **Read the error message** — officecli errors are descriptive (e.g., "Unrecognized argument", "Slide not found")
+2. **Inspect the current state**: `officecli get <file> '/slide[N]' --depth 1`
+3. **Check command syntax**: `officecli pptx set` or `officecli pptx add` for the latest property reference
+4. **Common fixes**:
+   - "Slide not found" → `add slide` first
+   - "Unrecognized argument" → use `--prop key=value` format
+   - Shape not where expected → run `get` to verify indices
 
 ## 3) Command Reference
 
