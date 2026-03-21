@@ -6,6 +6,7 @@ description: OfficeCli Command Reference — PPT generation and validation comma
 # OfficeCli PPT Command Reference
 
 ## 0) Install & Update
+
 ```bash
 # Check if installed
 officecli --version
@@ -23,6 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh
 ## 1) Query Command Usage (dynamic; always matches the current version)
 
 **Prefer CLI help for the latest syntax** — do not rely on the snapshot below:
+
 ```bash
 officecli pptx set    # View all PPT set properties
 officecli pptx add    # View all PPT add types
@@ -35,6 +37,7 @@ https://github.com/iOfficeAI/OfficeCli/wiki/agent-guide
 ## 2) Morph-Specific Knowledge (unique to this skill)
 
 ### Morph Pairing Mechanism
+
 - `transition=morph` achieves morph animation through shape name matching
 - **Adjacent slides must have shapes with the same names** for morph to produce smooth transitions
 - If adjacent slides have completely different shape names -> only fade in/out, no morph animation
@@ -42,6 +45,7 @@ https://github.com/iOfficeAI/OfficeCli/wiki/agent-guide
 - Shapes not needed on a slide -> move off-screen (ghost); do not delete
 
 ### Morph Variants
+
 ```
 transition=morph          # Match by object (default, most common)
 transition=morph-byWord   # Match by word (word-by-word text animation)
@@ -51,40 +55,75 @@ transition=morph-byChar   # Match by character (character-by-character text anim
 ### Pitfalls (Important! Common Errors)
 
 **Coordinates**:
+
 - **Negative coordinates are not supported** (`x=-3cm` will error); use `x=36cm` uniformly for ghosting
 - After creating a file, you must `add slide` first; otherwise you get "Slide not found"
 
 **Path indexing**:
+
 - **Name-based indexing is not supported**: `/slide[1]/shape[dot-main]` will error
 - **Only numeric indexing works**: `/slide[1]/shape[3]`
 - To find a shape's index by name, first run `officecli get <file> '/slide[1]' --depth 1`
 
 **Parameter format**:
+
 - **Standalone arguments are not supported**: `--name "!!bg-glow1"` will error (Unrecognized argument)
 - **All properties go through `--prop`**: `--prop name="!!bg-glow1"`
 - All officecli properties (name, text, fill, x, y, etc.) must use the `--prop key=value` format
 
 **File names**:
+
 - officecli supports Chinese file names, but some shell environments may have encoding issues
 - If you encounter garbled Chinese file names -> switch to English names (e.g., `AionUI-Intro.pptx`)
 
 **Animations**:
+
 - Do not add entrance animations by default (each animation adds one extra click)
 - If an entrance is truly needed, use the `with` trigger: `animation=fade-entrance-300-with`
 
-**Shell script generation**:
-- Do NOT use `\n` newlines inside `--prop text="..."` (causes shell parsing errors)
-- For multi-line text, use `\\n` to escape, or split into multiple text boxes
-- Do NOT mix nested single and double quotes within a single command
-- Wrap paths in single quotes: `'/slide[1]/shape[2]'`
-- Wrap property values in double quotes: `--prop text="Hello World"`
-- When using `\` for line continuation, there must be no trailing spaces after `\`
+### Shell Script Rules (CRITICAL when generating build.sh)
+
+When generating `build.sh` or using `officecli batch`, follow these rules to avoid shell parsing errors:
+
+1. **Property format**: ALL properties use `--prop key=value`
+   - ✅ `--prop name="!!bg-glow1"`
+   - ❌ `--name "!!bg-glow1"` (Unrecognized argument)
+
+2. **Path wrapping**: Wrap XPath in single quotes
+   - ✅ `'/slide[1]/shape[2]'`
+   - ❌ `/slide[1]/shape[2]` (shell may expand brackets)
+
+3. **Property value wrapping**: Wrap values in double quotes
+   - ✅ `--prop text="Hello World"`
+   - ❌ `--prop text=Hello World` (shell splits on space)
+
+4. **Multi-line text**: Do NOT use `\n` inside `--prop text="..."`
+   - ❌ `--prop text="Line 1\nLine 2"` (shell parsing error)
+   - ✅ `--prop text="Line 1\\nLine 2"` (escaped newline)
+   - ✅ Or split into multiple text boxes
+
+5. **Line continuation**: NO trailing spaces after `\`
+   - ✅ `--prop x=2cm \` (clean backslash)
+   - ❌ `--prop x=2cm \ ` (trailing space breaks continuation)
+
+6. **Quotes nesting**: Avoid mixing nested quotes
+   - ✅ Use JSON format for batch with proper escaping
+   - ❌ `'--prop text="It's"'` (quote conflict)
+
+7. **Negative coordinates**: NOT supported
+   - ❌ `x=-3cm` (will error)
+   - ✅ `x=36cm` (ghost position, off right edge)
+
+8. **Batch JSON escaping**: Escape double quotes inside JSON strings
+   - ✅ `{"props":{"text":"It\\'s working"}}`
+   - ❌ `{"props":{"text":"It's working"}}` (breaks JSON)
 
 ## 3) Command Reference
 
 **Prefer running `officecli pptx set/add` for the latest syntax**
 
 ### Create & Add
+
 ```bash
 officecli create deck.pptx
 officecli add deck.pptx '/' --type slide --prop layout=blank --prop background=FFFFFF --prop transition=morph
@@ -104,6 +143,7 @@ officecli add deck.pptx '/' --from '/slide[1]'  # clone
 ```
 
 ### Modify
+
 ```bash
 officecli set deck.pptx '/slide[1]/shape[1]' --prop text="New" --prop fill=0000FF --prop opacity=0.5
 officecli set deck.pptx '/slide[2]' --prop transition=morph --prop background=080A1F
@@ -112,6 +152,7 @@ officecli remove deck.pptx '/slide[2]/shape[5]'
 ```
 
 ### Batch
+
 ```bash
 echo '[
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"text":"Hi","fill":"FF0000","x":"2cm","y":"3cm","width":"8cm","height":"4cm"}},
@@ -120,6 +161,7 @@ echo '[
 ```
 
 ### Inspect
+
 ```bash
 officecli validate deck.pptx
 officecli view deck.pptx outline
@@ -130,36 +172,36 @@ officecli get deck.pptx '/slide[1]' --depth 2
 
 ### Supported Element Types
 
-| Type | Purpose | Parent |
-|------|---------|--------|
-| slide | Slide | / |
-| shape | Shape / text box | /slide[N] |
-| picture | Image | /slide[N] |
-| chart | Chart | /slide[N] |
-| table | Table | /slide[N] |
-| connector | Connector line | /slide[N] |
-| group | Grouped shapes | /slide[N] |
-| video/audio | Video / audio | /slide[N] |
-| equation | Math formula | /slide[N] |
-| zoom | Slide zoom | /slide[N] |
-| notes | Speaker notes | /slide[N] |
-| paragraph | Paragraph | /slide[N]/shape[M] |
-| run | Text run | /slide[N]/shape[M] or paragraph[P] |
+| Type        | Purpose          | Parent                             |
+| ----------- | ---------------- | ---------------------------------- |
+| slide       | Slide            | /                                  |
+| shape       | Shape / text box | /slide[N]                          |
+| picture     | Image            | /slide[N]                          |
+| chart       | Chart            | /slide[N]                          |
+| table       | Table            | /slide[N]                          |
+| connector   | Connector line   | /slide[N]                          |
+| group       | Grouped shapes   | /slide[N]                          |
+| video/audio | Video / audio    | /slide[N]                          |
+| equation    | Math formula     | /slide[N]                          |
+| zoom        | Slide zoom       | /slide[N]                          |
+| notes       | Speaker notes    | /slide[N]                          |
+| paragraph   | Paragraph        | /slide[N]/shape[M]                 |
+| run         | Text run         | /slide[N]/shape[M] or paragraph[P] |
 
 ### Shape Properties
 
-| Category | Properties |
-|----------|------------|
-| Position | x, y, width, height, rotation, flipH, flipV |
-| Fill | fill, gradient, image, opacity |
-| Border | line, lineWidth, lineDash, lineOpacity |
-| Text | text, font, size, bold, italic, underline, strikethrough, color, textFill, textGradient, spacing, baseline, superscript, subscript |
-| Alignment | align, valign, margin, lineSpacing, spaceBefore, spaceAfter, indent, marginLeft, marginRight, list |
-| Geometry | preset (ellipse/rect/roundRect/triangle/...), geometry (SVG path) |
-| 3D | rot3d, rotX, rotY, rotZ, bevel, bevelTop, bevelBottom, depth, material, lighting |
-| Effects | shadow, glow, reflection, textWarp, softEdge |
-| Animation | animation, motionPath |
-| Other | name, zorder, autoFit, link |
+| Category  | Properties                                                                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Position  | x, y, width, height, rotation, flipH, flipV                                                                                        |
+| Fill      | fill, gradient, image, opacity                                                                                                     |
+| Border    | line, lineWidth, lineDash, lineOpacity                                                                                             |
+| Text      | text, font, size, bold, italic, underline, strikethrough, color, textFill, textGradient, spacing, baseline, superscript, subscript |
+| Alignment | align, valign, margin, lineSpacing, spaceBefore, spaceAfter, indent, marginLeft, marginRight, list                                 |
+| Geometry  | preset (ellipse/rect/roundRect/triangle/...), geometry (SVG path)                                                                  |
+| 3D        | rot3d, rotX, rotY, rotZ, bevel, bevelTop, bevelBottom, depth, material, lighting                                                   |
+| Effects   | shadow, glow, reflection, textWarp, softEdge                                                                                       |
+| Animation | animation, motionPath                                                                                                              |
+| Other     | name, zorder, autoFit, link                                                                                                        |
 
 ### Animation Format
 
@@ -215,4 +257,4 @@ crop, cropLeft, cropTop, cropRight, cropBottom
 ### Table Properties
 
 rows, cols, style
-Cell: text, fill, image, border.*, gridSpan, rowSpan
+Cell: text, fill, image, border.\*, gridSpan, rowSpan
