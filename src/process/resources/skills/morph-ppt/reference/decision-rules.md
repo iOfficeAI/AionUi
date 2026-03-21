@@ -16,6 +16,7 @@ Output: A single `brief.md` containing extraction summary, outline, and detailed
 **Thinking Method**: Based on topic keywords and usage context, ask "Who will view this PPT? What do they care about most?"
 
 **Common Patterns (examples, not exhaustive)**:
+
 - Fundraising / Roadshow → Investors
 - Teaching / Training → Students
 - Product Introduction → Clients
@@ -30,6 +31,7 @@ Output: A single `brief.md` containing extraction summary, outline, and detailed
 **Thinking Method**: Based on topic keywords, ask "What outcome does the user want to achieve with this PPT?"
 
 **Common Patterns (examples, not exhaustive)**:
+
 - Fundraising / Roadshow → Persuade Investment
 - Product Introduction → Demonstrate Value
 - Analysis / Report → Deliver Insights
@@ -44,12 +46,12 @@ Output: A single `brief.md` containing extraction summary, outline, and detailed
 
 **Common Structures (examples, not exhaustive)**:
 
-| Applicable Scenario | Narrative Structure | Page Sequence Example |
-|---------|---------|------------|
-| Fundraising / Sales / Bidding | problem_solution | hero → statement → pillars → evidence → cta |
-| Reporting / Analysis | insight_driven | hero → statement → evidence → pillars → cta |
-| Promotion / Speech | vision_driven | hero → quote → pillars → evidence → cta |
-| Teaching / Training | educational | hero → statement → pillars → pillars → showcase → cta |
+| Applicable Scenario           | Narrative Structure | Page Sequence Example                                 |
+| ----------------------------- | ------------------- | ----------------------------------------------------- |
+| Fundraising / Sales / Bidding | problem_solution    | hero → statement → pillars → evidence → cta           |
+| Reporting / Analysis          | insight_driven      | hero → statement → evidence → pillars → cta           |
+| Promotion / Speech            | vision_driven       | hero → quote → pillars → evidence → cta               |
+| Teaching / Training           | educational         | hero → statement → pillars → pillars → showcase → cta |
 
 **Free Combination**: Feel free to adapt based on the specific content.
 
@@ -74,6 +76,7 @@ Output: A single `brief.md` containing extraction summary, outline, and detailed
 6. Where is the audience most likely to push back?
 
 ### Page Count Guidelines (reference only)
+
 - Quick intro / single topic: 3–5 slides
 - Standard presentation: 5–8 slides
 - Deep analysis / annual report: 10–15 slides
@@ -129,10 +132,10 @@ S3 [pillars] ★key slide
 
 ## Fallback Strategy
 
-| Failure Scenario | Fallback Strategy |
-|---------|---------|
-| Cannot infer audience | General Business |
-| Cannot infer purpose | Present Information |
+| Failure Scenario            | Fallback Strategy                               |
+| --------------------------- | ----------------------------------------------- |
+| Cannot infer audience       | General Business                                |
+| Cannot infer purpose        | Present Information                             |
 | Cannot determine page count | Decide based on content volume; avoid <3 or >20 |
 
 ---
