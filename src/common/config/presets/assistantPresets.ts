@@ -45,12 +45,12 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     promptsI18n: {
       'en-US': [
         'Pick a fun topic yourself and create a complete PPT',
-        'Create the most beautiful PPT you can imagine',
+        'Create the most beautiful PPT you can imagine, topic is up to you',
         'Create a coffee brand introduction PPT with a minimalist premium feel',
       ],
       'zh-CN': [
         '自己想一个有趣的主题，帮我做一份PPT',
-        '做一个你认为最好看的 PPT',
+        '做一个你认为最好看的 PPT，主题你定',
         '做一份咖啡品牌介绍PPT，要极简高级感',
       ],
     },
