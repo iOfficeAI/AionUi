@@ -24,6 +24,39 @@ export type AssistantPreset = {
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
+    id: 'morph-ppt',
+    avatar: '🎬',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/morph-ppt',
+    ruleFiles: {
+      'en-US': 'morph-ppt.md',
+      'zh-CN': 'morph-ppt.zh-CN.md',
+    },
+    defaultEnabledSkills: ['morph-ppt'],
+    nameI18n: {
+      'en-US': 'Morph PPT',
+      'zh-CN': 'Morph PPT',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create professional Morph-animated presentations with officecli. Supports multiple visual styles and end-to-end workflow from topic to polished slides.',
+      'zh-CN':
+        '使用 officecli 创建专业的 Morph 动画演示文稿。支持多种视觉风格，从主题到精美幻灯片的端到端工作流。',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Create a 10-slide presentation about AI trends in 2026',
+        'Make a product launch deck with dark tech style',
+        'Generate a quarterly business report presentation',
+      ],
+      'zh-CN': [
+        '制作一份关于 2026 年 AI 趋势的 10 页演示文稿',
+        '用深色科技风格制作产品发布演示',
+        '生成一份季度业务报告演示文稿',
+      ],
+    },
+  },
+  {
     id: 'star-office-helper',
     avatar: '📺',
     presetAgentType: 'gemini',
