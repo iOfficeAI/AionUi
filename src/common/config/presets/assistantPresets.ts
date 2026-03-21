@@ -45,14 +45,14 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
     promptsI18n: {
       'en-US': [
-        'Create a 10-slide presentation about AI trends in 2026',
-        'Make a product launch deck with dark tech style',
-        'Generate a quarterly business report presentation',
+        'Pick a fun topic yourself and create a complete PPT',
+        'Create a cinematic space exploration timeline with dramatic Morph transitions',
+        'Create a coffee brand introduction PPT with a minimalist premium feel',
       ],
       'zh-CN': [
-        '制作一份关于 2026 年 AI 趋势的 10 页演示文稿',
-        '用深色科技风格制作产品发布演示',
-        '生成一份季度业务报告演示文稿',
+        '自己想一个有趣的主题，帮我做一份PPT',
+        '做一个太空探索历程的PPT，用电影感的Morph转场讲述故事',
+        '做一份咖啡品牌介绍PPT，要极简高级感',
       ],
     },
   },
