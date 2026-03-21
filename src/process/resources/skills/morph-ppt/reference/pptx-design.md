@@ -509,7 +509,7 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
 
 ## 8) Generation Strategy
 
-### Recommended Approach: Create all actors on slide 1 + adjust per slide (official template best practice)
+### Recommended Approach: Define all actors on slide 1, then clone-and-adjust slide by slide
 
 **Steps**:
 
@@ -520,53 +520,32 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    officecli add <topic-name>.pptx '/' --type slide --prop layout=blank --prop background=XXXXXX
    ```
 
-2. **Create all actors on slide 1** (including those used only on later slides)
-   - Define 6-8 fixed-name scene actors: `!!dot-main`, `!!line-top`, `!!slash-accent`, etc.
-   - Define all headline actors: `!!hero-title`, `!!statement-text`, `!!cta-text`, etc.
-   - Define all content actors: `!!pillar-1-num`, `!!metric-1-label`, etc.
-   - Actors needed on slide 1: place at their normal positions
-   - Actors not needed on slide 1: place off-screen (`x=36cm`, spread y-coordinates)
+2. **Add all actors to slide 1** (including those used only on later slides)
+   - 6-8 scene actors + all headline/content actors for every slide type
+   - Actors needed on slide 1 → normal positions
+   - Actors not needed on slide 1 → off-screen (`x=36cm`, spread y-coordinates)
 
-3. **Create slide 2 by cloning slide 1, then adjust with `set` commands**
+3. **For each subsequent slide: clone previous → adjust → check**
 
-   ```bash
-   officecli add <topic-name>.pptx '/' --from '/slide[1]'
-   officecli set <topic-name>.pptx '/slide[2]' --prop transition=morph
-   # Ghost previous content
-   officecli set <topic-name>.pptx '/slide[2]/shape[8]' --prop x=36cm
-   officecli set <topic-name>.pptx '/slide[2]/shape[9]' --prop x=36cm
-   # Activate this slide's content
-   officecli set <topic-name>.pptx '/slide[2]/shape[10]' --prop x=5cm --prop y=7cm
-   # Adjust scene actors
-   officecli set <topic-name>.pptx '/slide[2]/shape[1]' --prop x=8cm --prop y=10cm
-   ```
-   **→ Run Per-Slide Checklist → fix if needed → proceed to next slide**
-
-4. **Create slide 3+ by cloning the PREVIOUS slide (NOT slide 1!)**
+   Always clone from the **previous slide** (NOT slide 1!) so ghost states carry forward.
 
    ```bash
-   officecli add <topic-name>.pptx '/' --from '/slide[2]'  # clone PREVIOUS slide
-   officecli set <topic-name>.pptx '/slide[3]' --prop transition=morph
-   # Ghost previous content (slide 2's actors)
-   officecli set <topic-name>.pptx '/slide[3]/shape[10]' --prop x=36cm
-   # Activate this slide's content
-   officecli set <topic-name>.pptx '/slide[3]/shape[12]' --prop x=3cm --prop y=2cm
-   # Adjust scene actors for differentiation
-   officecli set <topic-name>.pptx '/slide[3]/shape[1]' --prop x=20cm --prop width=12cm
+   # Clone previous slide (ghost states inherited automatically)
+   officecli add <topic-name>.pptx '/' --from '/slide[N-1]'
+   # Step A: Set transition
+   officecli set <topic-name>.pptx '/slide[N]' --prop transition=morph
+   # Step B: Ghost previous slide's content → x=36cm
+   officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=36cm
+   # Step C: Activate this slide's content → visible positions
+   officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=4cm --prop y=7cm
+   # Step D: Adjust scene actors for spatial differentiation
+   officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=20cm --prop width=12cm
    ```
-   **→ Run Per-Slide Checklist → fix if needed → proceed to next slide**
 
-   **Why clone from the previous slide instead of slide 1?**
-   - Actors already ghosted on slide 2 **stay ghosted** on slide 3 automatically
-   - You only need to handle the **delta** (ghost previous content, activate new content)
-   - Cloning from slide 1 resets ALL actors to their original positions, causing forgotten ghost bugs
+   **→ Run Per-Slide Checklist → fix if needed → next slide**
 
-   **Per-slide pattern** (3 groups of `set` commands):
-   1. **Set transition**: `transition=morph`
-   2. **Ghost previous content**: Move previous slide's headline/content actors to `x=36cm`
-   3. **Activate + adjust**: Move current slide's actors to visible positions, adjust scene actors for differentiation
+4. **Validate**
 
-5. **Validate**
    ```bash
    officecli validate <topic-name>.pptx
    officecli view outline <topic-name>.pptx
@@ -590,17 +569,15 @@ After creating/adjusting each slide, verify ALL of the following:
 
 ---
 
-**Why this approach?**
+**Why clone from previous slide (not slide 1)?**
 
-- Ensures all slides have actors with the same names (the key to Morph pairing)
-- No need to delete actors; just move their positions
-- **Cloning from the previous slide** carries forward ghost states, preventing the #1 defect (text overlap)
-- Delivers the best and most reliable Morph effects
+- Ghost states carry forward — actors ghosted on slide 2 stay ghosted on slide 3+
+- You only handle the **delta** between adjacent slides, not the full actor set
+- Cloning from slide 1 resets ALL positions → easy to forget re-ghosting → text overlap
 
 **Not recommended**:
 
-- ❌ Cloning from slide 1 for every slide (resets all ghost states, easy to forget re-ghosting → text overlap)
-- ❌ Creating different shapes independently on each slide (inconsistent names, poor Morph results)
-- ❌ Deleting unneeded actors (causes actor mismatches between adjacent slides)
-- ❌ Using batch to create all slides at once with different shapes (breaks Morph pairing)
-- ❌ Forgetting `transition=morph` after cloning (slide 1 has no transition, so clones won't either)
+- ❌ Cloning from slide 1 for every slide (resets ghost states → #1 cause of text overlap)
+- ❌ Using batch JSON instead of individual `set` commands (causes boolean/escaping errors)
+- ❌ Creating shapes independently per slide (inconsistent names → poor Morph)
+- ❌ Deleting unneeded actors (breaks Morph pairing between slides)
