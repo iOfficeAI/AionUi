@@ -116,13 +116,13 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 
 **Morph Core Mechanism (signature feature of this skill)**:
 
-1. **Slide 1 defines all scene actors** (6-8 fixed names, e.g., `!!dot-main`, `!!line-top`)
-2. **Subsequent slides modify these actors' properties** (position, size, rotation, color)
-3. **Actors not needed on a slide are moved off-screen** (ghost: `x=36cm`)
+1. **Slide 1 defines 6-8 scene actors** (fixed names, e.g., `!!dot-main`, `!!line-top`) + slide 1's content
+2. **Scene actors persist across all slides** — clone from previous slide, adjust positions/size/rotation
+3. **Content is added fresh per slide** — ghost previous slide's content, then `add` new content
 4. **All slides 2+ must set `transition=morph`**
-5. **Adjacent slides should have noticeably different spatial compositions** (avoid monotony, create rhythm)
+5. **Adjacent slides should have noticeably different spatial compositions**
 
-See `reference/pptx-design.md`, section "Scene Actor Design Rules"
+See `reference/pptx-design.md`, section "Generation Strategy"
 
 **Per-Slide Self-Check**: After EVERY slide, run the checklist in `reference/pptx-design.md` → "Per-Slide Morph Checklist". Fix any failures before moving on.
 
