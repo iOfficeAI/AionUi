@@ -124,14 +124,7 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 
 See `reference/pptx-design.md`, section "Scene Actor Design Rules"
 
-**Per-Slide Self-Check (run after EVERY slide)**:
-
-- [ ] `transition=morph` is set (slides 2+)
-- [ ] All scene actors from slide 1 exist (same names)
-- [ ] Unused scene actors at `x=36cm` (NOT deleted)
-- [ ] **⚠️ CRITICAL TEXT OVERLAP CHECK**: Follow the 3-step process in `reference/quality-gates.md` → "Critical Text Overlap Check" (the #1 most common defect)
-- [ ] Text color contrasts with background (brightness formula)
-- If any item fails → fix immediately before moving to the next slide
+**Per-Slide Self-Check**: After EVERY slide, run the checklist in `reference/pptx-design.md` → "Per-Slide Morph Checklist". Fix any failures before moving on.
 
 **Output Artifacts**:
 
