@@ -85,3 +85,36 @@ export class Database {
   pragmaGet(name: string): unknown;
   pragmaSet(statement: string): void;
 }
+
+// --- Document Converter (aionui-doc) ---
+
+export interface JsExcelSheetImage {
+  row: number;
+  col: number;
+  src: string;
+  width?: number;
+  height?: number;
+}
+
+export interface JsMergeCell {
+  r: number;
+  c: number;
+}
+
+export interface JsMergeRange {
+  s: JsMergeCell;
+  e: JsMergeCell;
+}
+
+export interface JsExcelSheetData {
+  name: string;
+  data: unknown[][];
+  merges: JsMergeRange[];
+  images: JsExcelSheetImage[];
+}
+
+export interface JsExcelWorkbookData {
+  sheets: JsExcelSheetData[];
+}
+
+export function excelToJson(filePath: string): JsExcelWorkbookData;

@@ -14,6 +14,7 @@ aionui-cred = { path = "../crates/aionui-cred" }
 aionui-auth = { path = "../crates/aionui-auth" }
 aionui-fs = { path = "../crates/aionui-fs" }
 aionui-db = { path = "../crates/aionui-db" }
+aionui-doc = { path = "../crates/aionui-doc" }
 
 [build-dependencies]
 napi-build = "2"

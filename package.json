@@ -87,7 +87,6 @@
     "diff": "^8.0.3",
     "diff2html": "^3.4.55",
     "dingtalk-stream": "^2.1.4",
-    "docx": "^9.5.1",
     "electron-log": "^5.4.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
@@ -131,7 +130,6 @@
     "turndown-plugin-gfm": "^1.0.2",
     "web-tree-sitter": "^0.25.10",
     "ws": "^8.18.3",
-    "xlsx-republish": "^0.20.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {

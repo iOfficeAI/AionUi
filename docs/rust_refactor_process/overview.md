@@ -14,12 +14,10 @@ AionUi is migrating five TypeScript modules to Rust via napi-rs. The motivations
 | -------------------- | ---------------------------- | ---------------------------------------------------------- |
 | Rust ↔ Node binding  | **napi-rs** (`@napi-rs/cli`) | Generates `.node` addon; supports async, Buffer, serde     |
 | SQLite               | **rusqlite** + bundled       | Replaces `better-sqlite3`; sync API matches current usage  |
-| Password hashing     | **argon2** crate             | Replaces `bcryptjs`; stronger algorithm, configurable cost |
+| Password hashing     | **bcrypt** crate             | Replaces `bcryptjs` npm; same algorithm, native speed      |
 | JWT                  | **jsonwebtoken** crate       | Replaces `jsonwebtoken` npm; same HMAC-SHA256 flow         |
 | Symmetric encryption | **aes-gcm** + **ring**       | Future-proof credential encryption (currently Base64 only) |
-| Excel parsing        | **calamine**                 | Replaces `xlsx-republish`; read-only, fast                 |
-| Excel writing        | **rust_xlsxwriter**          | Replaces `xlsx-republish` write path                       |
-| Word/DOCX            | **quick-xml** + **zip**      | Replaces `mammoth` (read) and `docx` (write)               |
+| Excel parsing        | **calamine** + **zip** + **quick-xml** | Replaces `xlsx-republish` read + image extraction  |
 | Filesystem           | **tokio::fs** or std::fs     | Replaces Node.js `fs/promises`                             |
 | Error handling       | **thiserror**                | Structured errors mapped to `napi::Error` at the boundary  |
 
@@ -54,17 +52,30 @@ AionUi is migrating five TypeScript modules to Rust via napi-rs. The motivations
 
 The Rust addon lives in the main process only. Renderer access goes through the existing IPC bridge, unchanged. Worker processes can also load the addon directly if needed.
 
-## Module Priority
+## Module Priority & Status
 
-Ordered by risk (lowest first) and value (highest first):
+Ordered by risk (lowest first) and value (highest first). All 5 modules completed 2026-03-21.
 
-| Priority | Module                 | Rationale                                                                     |
-| -------- | ---------------------- | ----------------------------------------------------------------------------- |
-| 1        | **credential-crypto**  | Smallest surface (4 functions), no external state, ideal proof-of-concept     |
-| 2        | **auth**               | Self-contained; bcrypt→argon2 migration is a clear win                        |
-| 3        | **fs-bridge**          | Stateless I/O; enables benchmarking of bulk file operations                   |
-| 4        | **database**           | Largest surface, highest value; replaces `better-sqlite3` native rebuild pain |
-| 5        | **document-converter** | Highest complexity (multiple formats); depends on ecosystem maturity          |
+| Priority | Module                 | Status       | Strategy             | Key Result                                              |
+| -------- | ---------------------- | ------------ | -------------------- | ------------------------------------------------------- |
+| 1        | **credential-crypto**  | **Complete** | Function migration   | 4 functions; proof-of-concept for napi-rs pipeline      |
+| 2        | **auth**               | **Complete** | Function migration   | 12 functions; JWT 100-180x, hashPassword 12.6x faster   |
+| 3        | **fs-bridge**          | **Complete** | Function migration   | 4 functions; readDirTree 2x, copyDir 1.2x faster        |
+| 4        | **database**           | **Complete** | Driver replacement   | Replaces better-sqlite3; eliminates node-gyp; 1.1-1.2x  |
+| 5        | **document-converter** | **Complete** | Selective migration  | Only excelToJson migrated (calamine); 1.2-4.4x faster   |
+
+### npm Packages Eliminated
+
+| Package              | Replaced By         | Module            |
+| -------------------- | ------------------- | ----------------- |
+| `better-sqlite3`     | `rusqlite`          | database          |
+| `@types/better-sqlite3` | --              | database          |
+| `xlsx-republish`     | `calamine`          | document-converter |
+| `docx`               | -- (dead code removed) | document-converter |
+
+### npm Packages Retained (document-converter)
+
+`mammoth`, `turndown`, `turndown-plugin-gfm`, `pptx2json` — no viable Rust replacements; wordToMarkdown and pptToJson remain in TypeScript.
 
 ## Cargo Workspace Layout
 
@@ -115,3 +126,15 @@ JS callers receive standard `Error` objects with descriptive messages, preservin
 - The `.node` artifact is platform-specific; CI builds for `win32-x64`, `darwin-arm64`, and `linux-x64`.
 - Pre-built binaries are committed to `native/artifacts/` for quick local setup (optional, team decides).
 - `bun run test` continues to work unchanged; contract tests import the built `.node` addon.
+
+## Final Metrics (2026-03-21)
+
+| Metric                    | Value                          |
+| ------------------------- | ------------------------------ |
+| Rust crates               | 5 (aionui-cred, auth, fs, db, doc) |
+| Rust unit tests           | 91 (21 db + 28 doc + 12 auth + 18 cred + 12 fs) |
+| Contract tests            | 105 (33 db + 11 doc + 26 auth + 16 cred + 19 fs) |
+| Full test suite           | 1302 passing, 0 failing        |
+| npm packages removed      | 4 (better-sqlite3, @types/better-sqlite3, xlsx-republish, docx) |
+| Dead code removed         | DocumentConverter class, 4 unused ConversionService methods |
+| TS caller changes         | ~50 db call sites + 1 excelToJson + CronStore |
