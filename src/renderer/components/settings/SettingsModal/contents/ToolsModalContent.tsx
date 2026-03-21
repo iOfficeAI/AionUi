@@ -13,7 +13,7 @@ import {
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -127,11 +127,8 @@ const ModalMcpManagementSection: React.FC<{
   );
 
   const wrappedHandleEditMcpServer = useCallback(
-    async (
-      editingMcpServer: IMcpServer | undefined,
-      serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>
-    ) => {
-      const updatedServer = await handleEditMcpServer(editingMcpServer, serverData);
+    async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => {
+      const updatedServer = await handleEditMcpServer(serverToEdit, serverData);
       if (updatedServer) {
         void handleTestMcpConnection(updatedServer);
         if (updatedServer.transport.type === 'http' || updatedServer.transport.type === 'sse') {
@@ -171,7 +168,12 @@ const ModalMcpManagementSection: React.FC<{
       try {
         const response = await acpConversation.getAvailableAgents.invoke();
         if (response.success && response.data) {
-          setDetectedAgents(response.data.map((agent) => ({ backend: agent.backend, name: agent.name })));
+          setDetectedAgents(
+            response.data.map((agent) => ({
+              backend: agent.backend,
+              name: agent.name,
+            }))
+          );
         }
       } catch (error) {
         console.error('Failed to load agents:', error);
@@ -338,13 +340,17 @@ const ToolsModalContent: React.FC = () => {
   const [imageGenerationModel, setImageGenerationModel] = useState<
     IConfigStorageRefer['tools.imageGenerationModel'] | undefined
   >();
-  const [imageGenerationCompatibleAgents, setImageGenerationCompatibleAgents] = useState<string[]>([]);
-  const [isLoadingImageGenerationAgents, setIsLoadingImageGenerationAgents] = useState(false);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
+  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } =
+    useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, mcpMessage);
   const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
+  const skipNextImageGenerationAutoCheckRef = useRef(false);
+  const imageGenerationInstalledAgents = builtinImageGenServer?.name
+    ? (agentInstallStatus[builtinImageGenServer.name] ?? [])
+    : [];
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
@@ -358,18 +364,18 @@ const ToolsModalContent: React.FC = () => {
         const filteredModels = v.model.filter(isImageModel);
         return filteredModels.length > 0;
       })
-      .map((v) => ({
-        ...v,
-        model: v.model.filter(isImageModel),
-      }));
+      .map((v) => {
+        const filteredModels = v.model.filter(isImageModel);
+        return Object.assign({}, v, { model: filteredModels });
+      });
   }, [data]);
 
   useEffect(() => {
     const loadConfigs = async () => {
       try {
-        const data = await ConfigStorage.get('tools.imageGenerationModel');
-        if (data) {
-          setImageGenerationModel(data);
+        const storedModel = await ConfigStorage.get('tools.imageGenerationModel');
+        if (storedModel) {
+          setImageGenerationModel(storedModel);
         }
       } catch (error) {
         console.error('Failed to load image generation model config:', error);
@@ -380,52 +386,25 @@ const ToolsModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!builtinImageGenServer) {
-      setImageGenerationCompatibleAgents([]);
-      setIsLoadingImageGenerationAgents(false);
+    if (!builtinImageGenServer?.name || !builtinImageGenServer.enabled) return;
+    if (skipNextImageGenerationAutoCheckRef.current) {
+      skipNextImageGenerationAutoCheckRef.current = false;
       return;
     }
+    void checkSingleServerInstallStatus(builtinImageGenServer.name);
+  }, [builtinImageGenServer?.enabled, builtinImageGenServer?.name, checkSingleServerInstallStatus]);
 
-    let cancelled = false;
-
-    const loadCompatibleAgents = async () => {
-      setIsLoadingImageGenerationAgents(true);
-      try {
-        const response = await acpConversation.getAvailableAgents.invoke();
-        if (!response.success || !response.data || cancelled) {
-          if (!cancelled) {
-            setImageGenerationCompatibleAgents([]);
-          }
-          return;
-        }
-
-        const compatibleAgents = [
-          ...new Set(
-            response.data
-              .filter((agent) => agent.supportedTransports?.includes(builtinImageGenServer.transport.type))
-              .map((agent) => agent.backend)
-          ),
-        ];
-
-        setImageGenerationCompatibleAgents(compatibleAgents);
-      } catch (error) {
-        if (!cancelled) {
-          setImageGenerationCompatibleAgents([]);
-        }
-        console.error('Failed to load image generation compatible agents:', error);
-      } finally {
-        if (!cancelled) {
-          setIsLoadingImageGenerationAgents(false);
-        }
-      }
-    };
-
-    void loadCompatibleAgents();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [builtinImageGenServer]);
+  const clearImageGenerationAgentStatus = useCallback(
+    (serverName: string) => {
+      const updated = { ...agentInstallStatus };
+      delete updated[serverName];
+      setAgentInstallStatus(updated);
+      void ConfigStorage.set('mcp.agentInstallStatus', updated).catch((error) => {
+        console.error('Failed to clear image generation agent install status:', error);
+      });
+    },
+    [setAgentInstallStatus, agentInstallStatus]
+  );
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
@@ -522,6 +501,7 @@ const ToolsModalContent: React.FC = () => {
       };
 
       setIsUpdatingImageGeneration(true);
+      skipNextImageGenerationAutoCheckRef.current = checked;
       try {
         await saveMcpServers((prevServers) =>
           prevServers.map((server) => (isBuiltinImageGenServer(server) ? updatedServer : server))
@@ -537,17 +517,31 @@ const ToolsModalContent: React.FC = () => {
         });
 
         if (checked) {
+          clearImageGenerationAgentStatus(updatedServer.name);
           await syncMcpToAgents(updatedServer, true);
+          await checkSingleServerInstallStatus(updatedServer.name);
         } else {
           await removeMcpFromAgents(updatedServer.name, undefined, updatedServer.transport.type);
+          clearImageGenerationAgentStatus(updatedServer.name);
         }
       } catch (error) {
+        skipNextImageGenerationAutoCheckRef.current = false;
         console.error('Failed to toggle image generation MCP server:', error);
       } finally {
+        if (!checked) {
+          skipNextImageGenerationAutoCheckRef.current = false;
+        }
         setIsUpdatingImageGeneration(false);
       }
     },
-    [builtinImageGenServer, removeMcpFromAgents, saveMcpServers, syncMcpToAgents]
+    [
+      builtinImageGenServer,
+      checkSingleServerInstallStatus,
+      clearImageGenerationAgentStatus,
+      removeMcpFromAgents,
+      saveMcpServers,
+      syncMcpToAgents,
+    ]
   );
 
   const viewMode = useSettingsViewMode();
@@ -585,8 +579,10 @@ const ToolsModalContent: React.FC = () => {
                 {builtinImageGenServer?.enabled && builtinImageGenServer.name && (
                   <McpAgentStatusDisplay
                     serverName={builtinImageGenServer.name}
-                    agentInstallStatus={{ [builtinImageGenServer.name]: imageGenerationCompatibleAgents }}
-                    isLoadingAgentStatus={isLoadingImageGenerationAgents}
+                    agentInstallStatus={agentInstallStatus}
+                    isLoadingAgentStatus={
+                      isServerLoading(builtinImageGenServer.name) && imageGenerationInstalledAgents.length === 0
+                    }
                     alwaysVisible
                   />
                 )}
@@ -618,7 +614,10 @@ const ToolsModalContent: React.FC = () => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
                       if (platform) {
-                        handleImageGenerationModelChange({ ...platform, useModel: modelName });
+                        handleImageGenerationModelChange({
+                          ...platform,
+                          useModel: modelName,
+                        });
                       }
                     }}
                   >

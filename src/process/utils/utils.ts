@@ -11,22 +11,7 @@ import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import {
-  readDirectoryTree as nativeReadDirectoryTree,
-  copyDirectory as nativeCopyDirectory,
-  verifyDirectoryStructure as nativeVerifyDirectoryStructure,
-  ensureDir as nativeEnsureDir,
-} from '@aionui/native';
-import type { DirOrFile } from '@aionui/native';
-// Lazy import to break circular dependency (initStorage.ts imports from this file)
-let _getSystemDir: typeof import('./initStorage').getSystemDir;
-const lazyGetSystemDir = () => {
-  if (!_getSystemDir) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    _getSystemDir = require('./initStorage').getSystemDir;
-  }
-  return _getSystemDir();
-};
+import { getSystemDir } from './initStorage';
 
 const hasElectronAppPath = (): boolean => {
   return typeof app?.getPath === 'function';
@@ -229,7 +214,7 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
 export const copyFilesToDirectory = async (dir: string, files?: string[], skipCleanup = false): Promise<string[]> => {
   if (!files) return [];
 
-  const { cacheDir } = lazyGetSystemDir();
+  const { cacheDir } = getSystemDir();
   const tempDir = path.join(cacheDir, 'temp');
   const copiedFiles: string[] = [];
   const resolvedDir = path.resolve(dir);

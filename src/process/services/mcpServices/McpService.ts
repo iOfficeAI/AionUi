@@ -49,7 +49,11 @@ export class McpService {
     // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
     // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
     try {
-      execSync(`${whichCommand} ${cliCommand}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000 });
+      execSync(`${whichCommand} ${cliCommand}`, {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: 1000,
+      });
       return true;
     } catch {
       if (!isWindows) return false;
@@ -145,6 +149,45 @@ export class McpService {
   }
 
   /**
+   * Resolve which MCP agent should be used for config detection and how it
+   * should be reported back to the renderer.
+   */
+  private getDetectionTarget(agent: { backend: AcpBackend; cliPath?: string }): {
+    agentInstance: IMcpProtocol | undefined;
+    source: McpSource;
+  } {
+    const agentInstance = this.getAgentForConfig(agent);
+    const source: McpSource = agent.backend === 'gemini' && !agent.cliPath ? 'gemini' : (agent.backend as McpSource);
+    return { agentInstance, source };
+  }
+
+  /**
+   * Merge detection results by source so the UI sees a single entry per agent.
+   * This also prevents duplicate Gemini rows when both built-in Gemini and the
+   * native Gemini CLI expose the same MCP server names.
+   */
+  private mergeDetectedServers(results: DetectedMcpServer[]): DetectedMcpServer[] {
+    const merged = new Map<McpSource, Map<string, IMcpServer>>();
+
+    results.forEach((result) => {
+      const serversByName = merged.get(result.source) ?? new Map<string, IMcpServer>();
+
+      result.servers.forEach((server) => {
+        if (!serversByName.has(server.name)) {
+          serversByName.set(server.name, server);
+        }
+      });
+
+      merged.set(result.source, serversByName);
+    });
+
+    return Array.from(merged.entries()).map(([source, serversByName]) => ({
+      source,
+      servers: Array.from(serversByName.values()),
+    }));
+  }
+
+  /**
    * 从检测到的ACP agents中获取MCP配置（并发版本）
    *
    * 注意：此方法还会额外检测原生 Gemini CLI 的 MCP 配置，
@@ -164,14 +207,7 @@ export class McpService {
       // 并发执行所有agent的MCP检测
       const promises = allAgentsToCheck.map(async (agent) => {
         try {
-          // 跳过 fork 的 Gemini（backend='gemini' 且 cliPath=undefined）
-          // fork 的 Gemini 的 MCP 配置应该由 AionuiMcpAgent 管理
-          if (agent.backend === 'gemini' && !agent.cliPath) {
-            console.log(`[McpService] Skipping fork Gemini (ACP only, MCP managed by AionuiMcpAgent)`);
-            return null;
-          }
-
-          const agentInstance = this.getAgent(agent.backend);
+          const { agentInstance, source } = this.getDetectionTarget(agent);
           if (!agentInstance) {
             console.warn(`[McpService] No agent instance for backend: ${agent.backend}`);
             return null;
@@ -184,7 +220,7 @@ export class McpService {
 
           if (servers.length > 0) {
             return {
-              source: agent.backend as McpSource,
+              source,
               servers,
             };
           }
@@ -196,7 +232,7 @@ export class McpService {
       });
 
       const results = await Promise.all(promises);
-      return results.filter((result): result is DetectedMcpServer => result !== null);
+      return this.mergeDetectedServers(results.filter((result): result is DetectedMcpServer => result !== null));
     });
   }
 
@@ -218,7 +254,10 @@ export class McpService {
     if (firstAgent) {
       return await firstAgent.testMcpConnection(server);
     }
-    return { success: false, error: 'No agent available for connection testing' };
+    return {
+      success: false,
+      error: 'No agent available for connection testing',
+    };
   }
 
   /**
