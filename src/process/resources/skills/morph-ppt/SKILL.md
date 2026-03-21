@@ -10,9 +10,11 @@ Generate PPTs with officecli. Key features:
 - **Morph Animation**: Smooth transitions between slides with automatic shape-matching animation
 - **Flexible Design**: Freely design around the topic, with multiple style references available
 - **Quick Generation**: User provides a topic, Agent infers audience/purpose/narrative and generates automatically
+
 ---
 
 ## Use when
+
 - User wants to generate a `.pptx`
 
 ---
@@ -20,6 +22,7 @@ Generate PPTs with officecli. Key features:
 ## Workflow
 
 **Execution Rules**:
+
 - Once Phase 2 (Planning) begins, proceed sequentially through Phase 2 → 3 → 4 until a complete PPT is delivered
 - Do not pause midway to ask "should I continue?" or "should I move to the next step?"
 - Unless the user actively interrupts or requests a stop, execute all the way through
@@ -31,12 +34,14 @@ Generate PPTs with officecli. Key features:
 **Ask (only when the topic is unclear)**
 
 **Decision Criteria**:
+
 - No need to ask: "Make a PPT introducing the AionUi product" (topic is clear)
 - No need to ask: "Company annual report" (topic is clear)
 - Must ask: "Help me make a PPT" (no topic at all)
 - Must ask: "Make a presentation" (topic is unclear)
 
 **Ask the user**:
+
 ```
 What is the topic of the PPT?
 
@@ -65,6 +70,7 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
    - If any item is uncertain, prefix with `[inferred]` so the user can correct later
 
 2. **Outline** — one-line-per-slide summary:
+
    ```
    Overall conclusion: ...
    ---
@@ -80,10 +86,12 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
    - Core information must be detailed and complete — the Design Expert will use it directly
 
 **Key points**:
+
 - Do NOT pause to wait for user confirmation — proceed directly to Phase 3
 - If the user corrects something midway, adjust accordingly
 
 **2.2 Research (optional, if tools are available)**
+
 - If the topic requires supplementary data/cases and web/search tools are available, search for additional material
 - **If no search tools are available**, skip this step
 
@@ -94,16 +102,20 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 **Role**: officecli Design Expert who masters all capabilities — design, layout, animation, and shapes.
 
 **Reference Docs**:
+
 - `reference/pptx-design.md` — Coordinate system, fonts, spacing, Morph constraints, slide types, **style quick reference**
-- `reference/officecli-pptx-min.md` — Command syntax
+- `reference/officecli-pptx-min.md` — Command syntax + **Shell Script Rules** (MUST read before generating build.sh)
 - `reference/styles/<style-name>/style.md` — Full design reference (only read when user requests a specific style or you need deep inspiration)
 
 **Generation Requirements**:
+
 - Generate slide by slide following the Page Brief, ensuring comfortable layout
 - Comply with the coordinate system, font, and Actor system specifications
 - **Use `officecli batch` for each slide** — pack all shape operations into one batch call instead of running commands one by one
+- **Before writing build.sh**: Read the "Shell Script Rules" section in `reference/officecli-pptx-min.md` to avoid parsing errors
 
 **Morph Core Mechanism (signature feature of this skill)**:
+
 1. **Slide 1 defines all scene actors** (6-8 fixed names, e.g., `!!dot-main`, `!!line-top`)
 2. **Subsequent slides modify these actors' properties** (position, size, rotation, color)
 3. **Actors not needed on a slide are moved off-screen** (ghost: `x=36cm`)
@@ -113,14 +125,16 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 See `reference/pptx-design.md`, section "Scene Actor Design Rules"
 
 **Per-Slide Self-Check (run after EVERY slide)**:
+
 - [ ] `transition=morph` is set (slides 2+)
 - [ ] All scene actors from slide 1 exist (same names)
 - [ ] Unused scene actors at `x=36cm` (NOT deleted)
-- [ ] **⚠️ CRITICAL: ALL headline/content actors from OTHER slide types MUST be at `x=36cm`** — e.g., hero title on a pillars slide, statement text on an evidence slide. Failure to ghost these causes visible text overlap, the #1 most common defect.
+- [ ] **⚠️ CRITICAL TEXT OVERLAP CHECK**: Follow the 3-step process in `reference/quality-gates.md` → "Critical Text Overlap Check" (the #1 most common defect)
 - [ ] Text color contrasts with background (brightness formula)
 - If any item fails → fix immediately before moving to the next slide
 
 **Output Artifacts**:
+
 - `<topic-name>.pptx` — The generated PPT file (named after the topic)
 - `build.sh` — Re-runnable Bash build script (one file only, no other build scripts)
 
@@ -136,6 +150,7 @@ Since each slide was self-checked during generation, only run final validation:
 **If issues found**: fix and re-validate (max 2 rounds). If still failing, report to user.
 
 **Final Deliverables (exactly 3 files, no more)**:
+
 - `<topic-name>.pptx` — PPT file
 - `build.sh` — Re-runnable Bash build script (one file only)
 - `brief.md` — Plan (contains outline + page briefs)
@@ -145,10 +160,12 @@ Since each slide was self-checked during generation, only run final validation:
 ### Phase 5: Iteration (Ongoing)
 
 After delivering the PPT, **ask the user**:
+
 - Is there anything you are not satisfied with?
 - Would you like to adjust content, design, color scheme, or layout?
 
 **Supports quick adjustments**:
+
 - Change style/color scheme
 - Edit a specific slide's content
 - Adjust structure/order
@@ -171,9 +188,11 @@ Wait for user feedback and respond promptly.
 ## Reference Docs
 
 ### Planner (Phase 2)
+
 - `reference/decision-rules.md` — Inference, Pyramid Principle, Page Brief construction
 
 ### Design Expert (Phase 3)
+
 - `reference/pptx-design.md` — Coordinate system, fonts, Actor system, Morph constraints, slide types, style quick reference
 - `reference/officecli-pptx-min.md` — officecli command syntax
 - `reference/styles/<style-name>/style.md` — Full design reference (read on demand)
