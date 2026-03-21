@@ -24,21 +24,25 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
 
 ## 2) Design References
 
-The `reference/styles/` directory provides 33 design reference cases.
+### Style Quick Reference (choose by use case, no need to read files)
 
-**How to find them**:
-1. First read `reference/styles/INDEX.md` — filter quickly by color tone/scenario
-2. After selecting, read `<directory>/style.md` — understand the design philosophy, color palette, and Morph choreography
-3. For implementation details, read `<directory>/build.sh` — reference the officecli build script (reading 2-3 pages is enough)
+| Use Case | Recommended Styles (directory names) |
+|----------|--------------------------------------|
+| **Tech / AI / SaaS** | `dark--tech-architecture`, `light--isometric-clean` |
+| **Investment / Pitch** | `dark--investor-pitch`, `dark--premium-navy`, `light--project-proposal` |
+| **Corporate / Reports** | `light--minimal-corporate`, `light--minimal-product`, `dark--premium-navy` |
+| **Brand / Marketing** | `warm--brand-refresh`, `warm--creative-marketing`, `vivid--playful-marketing`, `dark--creative-gradient` |
+| **Design / Architecture** | `bw--swiss-bauhaus`, `dark--architectural-plan`, `mixed--duotone-split` |
+| **Education / Training** | `light--training-interactive`, `warm--playful-blocks`, `vivid--candy-stripe` |
+| **Keynotes / Events** | `dark--spotlight-stage`, `dark--liquid-flow` |
+| **Developer / Technical** | `dark--retro-terminal`, `dark--blueprint-grid` |
+| **Eco / Nature** | `warm--earth-organic`, `warm--organic-sweet`, `light--spring-launch` |
 
-**Directory naming convention**: `tone--style-name` (e.g., `dark--premium-navy`, `light--minimal-corporate`)
-- `dark--` dark tones | `light--` light tones | `warm--` warm tones | `vivid--` vivid tones | `bw--` black & white | `mixed--` mixed tones
+**When to read full style files**: Only when the user requests a specific style, or you need deep design inspiration. Read `reference/styles/<dir>/style.md` for philosophy; skim `build.sh` for technique reference (2-3 pages enough).
 
 **Key philosophy**:
-- "Do NOT just pick a template from styles and apply it"
-- "Instead, create freely based on the topic + draw inspiration from styles"
-- You may combine techniques from multiple styles
-- You may create something entirely original without referencing any style
+- Create freely based on the topic — draw inspiration from styles, don't copy them
+- You may combine techniques from multiple styles or create something entirely original
 
 **Design Principles**:
 
@@ -271,14 +275,23 @@ Slide 3: !!dot-main (x=36cm, y=0cm) [ghost], !!line-top (x=10cm, y=2cm), !!slash
    - Slide 3: `!!dot-main`, `!!line-top`, `!!slash-accent` (same names, different positions)
    - **Every slide has these actors; only their position/size/rotation/color changes**
 
-2. **Actors not needed on a slide -> ghost position (critical! prevents text overlap)**
+2. **Actors not needed on a slide -> ghost position (`x=36cm`)**
    - Slide 1 needs `!!dot-main` -> `x=2cm, y=3cm`
    - Slide 2 doesn't need `!!dot-main` -> `x=36cm, y=0cm` (off-screen)
    - Slide 3 needs `!!dot-main` again -> `x=8cm, y=10cm`
    - **Do not delete; just move off-screen**
-   - **Headline and content actors must also be ghosted!**
-     - A hero slide's large title that isn't needed on the pillars slide -> must move to `x=36cm`
-     - Otherwise the previous slide's text will overlap with the current slide's content
+
+   **⚠️ #1 DEFECT: TEXT OVERLAP FROM UN-GHOSTED HEADLINE/CONTENT ACTORS**
+
+   Every slide type has its own headline and content actors. When switching slide types (e.g., hero → pillars → evidence), ALL headline/content actors from the PREVIOUS slide type MUST be ghosted to `x=36cm`. Otherwise the old text remains visible and overlaps with new content.
+
+   **Example** — a 3-slide deck with hero → statement → pillars:
+   ```
+   Slide 1 (hero):     !!hero-title x=4cm,     !!statement-text x=36cm,  !!pillar-1-title x=36cm
+   Slide 2 (statement): !!hero-title x=36cm,    !!statement-text x=4cm,   !!pillar-1-title x=36cm
+   Slide 3 (pillars):   !!hero-title x=36cm,    !!statement-text x=36cm,  !!pillar-1-title x=2cm
+   ```
+   If slide 3 forgets to ghost `!!hero-title` and `!!statement-text` → both texts appear on top of the pillars content.
 
 3. **Automatic `!!` prefix**
    - officecli handles this automatically; no need to manually name shapes `!!xxx`
@@ -462,19 +475,24 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    - Actors needed on slide 1: place at their normal positions
    - Actors not needed on slide 1: place off-screen (`x=36cm`, spread y-coordinates)
 
-3. **Create slide 2 and adjust actors**
+3. **Create slide 2 and adjust actors (use batch!)**
    ```bash
    officecli add <topic-name>.pptx '/' --from '/slide[1]'  # clone slide 1
-   officecli set <topic-name>.pptx '/slide[2]' --prop transition=morph
-   # Use batch or set to adjust all actors' position/size/rotation/color
+   # Use batch to adjust all actors in one call:
+   echo '[
+     {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
+     {"command":"set","path":"/slide[2]/shape[1]","props":{"x":"8cm","y":"10cm"}},
+     {"command":"set","path":"/slide[2]/shape[2]","props":{"x":"36cm","y":"0cm"}},
+     {"command":"add","parent":"/slide[2]","type":"shape","props":{"text":"New content","x":"2cm","y":"5cm","width":"12cm","height":"3cm"}}
+   ]' | officecli batch <topic-name>.pptx
    ```
 
 4. **Repeat step 3 for remaining slides**
    - Clone slide 1 for each new slide (ensures all actors are present)
-   - **MUST set `transition=morph`** on every new slide (slide 1 has no transition; clones inherit this)
-   - Adjust each actor's properties
-   - Actors not needed on that slide → move to `x=36cm` off-screen
-   - Headline/content actors from previous slide type → also ghost to `x=36cm`
+   - **MUST set `transition=morph`** on every new slide
+   - **Use `officecli batch`** to adjust all actors + add content in one call per slide
+   - Actors not needed → move to `x=36cm` off-screen
+   - Previous slide's headline/content actors → also ghost to `x=36cm`
 
 5. **Validate**
    ```bash

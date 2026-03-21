@@ -122,71 +122,33 @@ officecli get <filename>.pptx '/slide[2]' --depth 1 | grep name
 
 - ✅ Must pass `officecli validate <filename>.pptx`
 - ✅ Must pass `officecli view outline <filename>.pptx` (structure is reasonable)
-- ✅ Output `<topic-name>.pptx` + build script (filename based on the topic)
-- ✅ Build script can be re-run to produce the same result
-  - Recommended: `build.sh` (Bash) or `build.py` (Python)
-  - Any language that can invoke CLI commands is acceptable
+- ✅ Exactly 3 deliverables: `<topic-name>.pptx` + `build.sh` + `brief.md` (no other files)
+- ✅ `build.sh` can be re-run to produce the same result
 
 ---
 
 ## Check Flow
 
-### During-Generation Check (recommended)
+### Per-Slide Check (during Phase 3 — mandatory)
 
-Self-check immediately after generating each slide:
-1. **Content Gate**: Is the headline clear? Is the number of bullet points reasonable?
-2. **Layout Gate**:
-   - Are text boxes overlapping? Are coordinates aligned?
-   - **Does the text color have sufficient contrast with the background?** (dark background → white text; light background → black text)
-3. **Morph Gate (important)**:
-   - Does this slide use **identically named** scene actors as the previous slide? (e.g., both have `!!dot-main`, `!!line-top`)
-   - Do these actors have noticeably different position/size/rotation?
-   - Are unneeded actors placed off-screen (`x=36cm`) rather than deleted?
-   - If names differ → fix immediately by using consistent names
+Self-check immediately after generating each slide. Fix issues before moving on.
 
-**Benefit**: Fix issues as you go, avoiding a bulk fix session at the end.
-**Critical**: Text readability issues must be caught and fixed immediately — otherwise the user will open the PPT and see nothing.
+1. **Content**: Headline clear? Bullet points <= 5?
+2. **Layout**: No overlaps? Text color contrasts with background?
+3. **Morph**: Same actor names as previous slide? Unneeded scene actors ghosted to `x=36cm`?
+4. **⚠️ Ghost check (most common defect)**: Are ALL headline/content actors from OTHER slide types at `x=36cm`? (e.g., hero title must be ghosted on pillars/evidence/statement slides — otherwise old text overlaps new content)
 
-### Pre-Delivery Check (mandatory)
+**This is the primary quality gate.** If every slide passes, the PPT is already high quality.
 
-After all slides are generated, execute the following in order:
+### Pre-Delivery Check (Phase 4 — two commands)
 
-1. **Run `officecli validate <filename>.pptx`**
-   - Checks for syntax errors, out-of-bounds coordinates, color format issues, etc.
-   - Must pass; otherwise the PPT may fail to open
+After all slides are generated:
 
-2. **Run `officecli view outline <filename>.pptx`**
-   - Verify slide count, titles, and types are reasonable
-   - Verify narrative logic is coherent
+```bash
+officecli validate <filename>.pptx    # must pass
+officecli view outline <filename>.pptx # verify structure
+```
 
-3. **Check text readability (critical)**
-   - Inspect the `color` attribute of every text box on each slide
-   - Compare against the background color at the text box's position (slide background or scene actor fill)
-   - **Must ensure**: dark backgrounds use light text; light backgrounds use dark text
-   - **Prohibited**: text color = background color, or insufficient contrast
-   - If an issue is found → fix immediately (change text color or background color)
-
-4. **Check build script completeness**
-   - Ensure the script can be re-run to produce the same result
-   - Verify all officecli commands are included
-   - Recommended format: Bash (`build.sh`) or Python (`build.py`)
-
-### Fix Strategy
-
-| Issue Type | Action |
-|---------|---------|
-| validate failure | Fix based on error messages, re-validate (2 rounds max) |
-| Outline structure is unreasonable | Adjust slide order, or merge/split slides |
-| Quality gate not passed | Refer to the "Common Issues & Fixes" tables above |
-| Multiple fix attempts still failing | Inform the user of the issue and suggestions, and request feedback |
-
-### Optimization Suggestions (optional)
-
-If time permits, further optimizations can be made:
-- **Use `officecli get` to check whether scene actor types are consistent across adjacent slides** (ensures morph can produce transform effects)
-- Check whether the color scheme is distinctive — avoid generic AIGC palettes (dark blue + cyan + purple + gradient circles)
-- Check whether scene actors are evenly distributed
-- Check whether morph transitions between adjacent slides have 2+ significant changes
-- Check whether text size hierarchy is clear (title > body > description)
+If issues found → fix and re-validate (max 2 rounds). If still failing → report to user.
 
 ---
