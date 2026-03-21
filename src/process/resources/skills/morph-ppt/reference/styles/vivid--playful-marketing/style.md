@@ -1,62 +1,63 @@
-# 03-playful-marketing — 活力青春营销
+# 03-playful-marketing — Vibrant Youth Marketing
 
+## Style Overview
 
-## 风格概述
-珊瑚橙明黄薄荷绿撞色搭配，采用大色块拼接+对角线分割布局，适合营销活动、新品推广、促销活动等年轻化场合
+Coral orange, bright yellow, and mint green color clash with large color blocks and diagonal division layout, suitable for marketing campaigns, new product launches, promotional activities, and other youth-oriented occasions.
 
-- **场景**: 营销活动、品牌发布、新品推广、促销活动
-- **情绪**: 年轻、活力、热情、创意、大胆
-- **色调**: 暖色调、高饱和度、高对比
-- **行业**: 消费品、电商、娱乐、教育、餐饮
+- **Scene**: Marketing campaigns, brand launches, new product promotions, promotional activities
+- **Mood**: Youthful, energetic, enthusiastic, creative, bold
+- **Tone**: Warm tones, high saturation, high contrast
+- **Industry**: Consumer goods, e-commerce, entertainment, education, food & beverage
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #FFFFFF | background |
-| 主色 | #FF6B6B | primary |
-| 辅助色 | #FFE66D | secondary |
-| 强调色 | #4ECDC4 | accent |
-| dark | #2C2C54 | dark |
-| 主文字 | #2C2C54 | text_primary |
-| 副文字 | #666666 | text_secondary |
-| 辅助文字 | #999999 | text_muted |
+| Name           | Hex     | Usage          |
+| -------------- | ------- | -------------- |
+| Background     | #FFFFFF | background     |
+| Primary        | #FF6B6B | primary        |
+| Secondary      | #FFE66D | secondary      |
+| Accent         | #4ECDC4 | accent         |
+| Dark           | #2C2C54 | dark           |
+| Text Primary   | #2C2C54 | text_primary   |
+| Text Secondary | #666666 | text_secondary |
+| Text Muted     | #999999 | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Arial Black |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Arial Black     |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| data | Arial Black |
+| body     | Microsoft YaHei |
+| data     | Arial Black     |
 
-## 设计手法
+## Design Techniques
 
-- 珊瑚橙明黄薄荷绿撞色
-- 大色块拼接布局
-- 对角线分割设计
-- 动感活泼布局
-- 高对比度设计
-- Morph过渡动画
-- 坐标冲突已修复
+- Coral orange, bright yellow, mint green color clash
+- Large color block assembly layout
+- Diagonal division design
+- Dynamic lively layout
+- High contrast design
+- Morph transition animation
+- Coordinate conflicts fixed
 
-## 页面结构（6页）
+## Page Structure (6 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 50 | 封面页 - 左侧大色块+右侧内容卡片 |
-| S2 | statement | 45 | 观点页 - 中央内容+数据卡片 |
-| S3 | product | 50 | 产品页 - 左图右文布局 |
-| S4 | grid | 55 | 网格页 - 2x3卡片网格 |
-| S5 | quote | 40 | 引用页 - 大引号+评价环绕 |
-| S6 | cta | 40 | CTA页 - 顶部大色块+底部行动区 |
+| Slide | Type      | Elements | Description                                                    |
+| ----- | --------- | -------- | -------------------------------------------------------------- |
+| S1    | hero      | 50       | Cover page - large color block on left + content card on right |
+| S2    | statement | 45       | Statement page - central content + data cards                  |
+| S3    | product   | 50       | Product page - left image right text layout                    |
+| S4    | grid      | 55       | Grid page - 2x3 card grid                                      |
+| S5    | quote     | 40       | Quote page - large quotation marks + surrounding testimonials  |
+| S6    | cta       | 40       | CTA page - top large color block + bottom action area          |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script available in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 左侧大色块+右侧内容卡片
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - large color block on left + content card on right
+
+No need to read all — skim 2-3 representative slides.

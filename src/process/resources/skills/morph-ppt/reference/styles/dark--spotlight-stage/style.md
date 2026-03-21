@@ -1,28 +1,33 @@
-# S18-spotlight-stage — 舞台聚光灯
+# S18-spotlight-stage — Stage Spotlight
 
-## 风格概述
-近黑背景上用大尺寸椭圆光斑模拟舞台聚光灯效果，光斑在页面间大幅位移营造戏剧感。
+## Style Overview
 
-- **场景**: 演讲、发布会、TED 式、年会
-- **情绪**: 戏剧性、聚焦、舞台感
-- **色调**: 近黑底色 + 暖白/金色聚光
+Large elliptical light spots on a near-black background simulate stage spotlight effects, with spots shifting dramatically between pages to create dramatic atmosphere.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Near Black | 0A0A0A | 背景底色（舞台暗面） |
-| Spotlight | 暖白/金色渐变 | 聚光灯光斑 |
+- **Scene**: Speeches, product launches, TED-style, annual meetings
+- **Mood**: Dramatic, focused, theatrical
+- **Color Tone**: Near-black background + warm white/gold spotlight
 
-## 设计手法
-- 聚光灯用大尺寸 ellipse 实现，每页之间位移 15cm+，触发 Morph 过渡时产生光束扫动效果
-- ellipse 用于光斑与光晕，rect 用于舞台元素（地板线、文字底板）
-- 多层 ellipse 叠加模拟光晕扩散（中心亮、边缘淡）
-- 文字置于光斑中心区域，暗区留空，引导视觉聚焦
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 聚光灯椭圆的尺寸、位置与透明度设定
-- **Slide 2 (statement)** — 光斑大幅位移的 Morph 过渡效果
-- **Slide 5 (cta)** — 多光源叠加的舞台终场效果
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name       | Hex                      | Usage                       |
+| ---------- | ------------------------ | --------------------------- |
+| Near Black | 0A0A0A                   | Background (stage darkness) |
+| Spotlight  | Warm white/gold gradient | Spotlight beam              |
+
+## Design Techniques
+
+- Spotlights implemented using large ellipses, shifting 15cm+ between pages, creating beam-sweeping effect during Morph transitions
+- Use ellipse for light spots and halos, rect for stage elements (floor lines, text panels)
+- Multiple ellipse layers overlay to simulate halo diffusion (bright center, faint edges)
+- Text placed in spotlight center area, dark areas left empty, guiding visual focus
+
+## Reference Script
+
+Full build script available in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Spotlight ellipse size, position, and transparency settings
+- **Slide 2 (statement)** — Morph transition effect with large spot shifts
+- **Slide 5 (cta)** — Multi-light layering for stage finale effect
+  No need to read all — skim 2-3 representative slides.

@@ -1,42 +1,44 @@
-# Retro Terminal — 复古终端
+# Retro Terminal — Retro Terminal
 
-## 风格概述
-终端黑背景 + 荧光绿文字 + 等宽字体，模拟 CRT 终端界面。
+## Style Overview
 
-- **场景**: 开发者大会、技术分享、黑客马拉松、编程教育
-- **情绪**: 极客、复古、技术、神秘
-- **色调**: 纯黑 + 荧光绿
+Terminal black background + phosphor green text + monospace fonts, simulating CRT terminal interface.
 
-## 配色
+- **Scene**: Developer conferences, tech talks, hackathons, programming education
+- **Mood**: Geeky, retro, technical, mysterious
+- **Color Tone**: Pure black + phosphor green
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 终端黑 | #0D1117 | 页面背景 |
-| 终端绿 | #00FF41 | 主色（文字、线条、代码行） |
-| 亮绿 | #39FF14 | 强调色（光标、高亮） |
-| 面板绿 | #1A3A1A | 终端窗口背景 |
+## Color Palette
 
-## 字体
+| Name           | Hex     | Usage                                  |
+| -------------- | ------- | -------------------------------------- |
+| Terminal Black | #0D1117 | Page background                        |
+| Terminal Green | #00FF41 | Primary color (text, lines, code rows) |
+| Bright Green   | #39FF14 | Accent color (cursor, highlights)      |
+| Panel Green    | #1A3A1A | Terminal window background             |
 
-| 元素 | 字体 | 说明 |
-|------|------|------|
-| 标题 | Courier New 44pt | 等宽字体，终端感 |
-| 正文 | Courier New | 所有文字都用等宽 |
+## Typography
 
-## 设计手法
+| Element | Font             | Description                        |
+| ------- | ---------------- | ---------------------------------- |
+| Title   | Courier New 44pt | Monospace font, terminal aesthetic |
+| Body    | Courier New      | All text uses monospace            |
 
-- **终端窗口**: 深绿面板(#1A3A1A) + 绿色细边框，模拟终端窗口
-- **代码行**: 极细 rect（0.3cm高）+ 低透明度绿色，模拟代码行
-- **光标**: 小 rect（0.4×0.8cm）高透明度亮绿，模拟闪烁光标
-- **扫描线**: 超细水平 rect（0.02cm高）+ 极低透明度，模拟 CRT 扫描线效果
-- **Morph 编排**: 终端窗口在页面间移动和缩放，代码行展开/收缩
+## Design Techniques
 
-## 参考脚本
+- **Terminal window**: Dark green panel (#1A3A1A) + green thin border, simulating terminal window
+- **Code rows**: Ultra-thin rects (0.3cm height) + low opacity green, simulating code lines
+- **Cursor**: Small rect (0.4×0.8cm) high opacity bright green, simulating blinking cursor
+- **Scan lines**: Ultra-thin horizontal rects (0.02cm height) + very low opacity, simulating CRT scan line effect
+- **Morph choreography**: Terminal windows move and scale between pages, code rows expand/contract
 
-完整构建脚本见 `build.sh`。
+## Reference Script
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 终端窗口 + 代码行 + 光标 + 扫描线的组合
-- **Slide 3** — 终端窗口如何配合内容展示
+Full build script available in `build.sh`.
 
-不需要全部阅读，选 2-3 个代表页面即可。
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Combination of terminal window + code rows + cursor + scan lines
+- **Slide 3** — How terminal window coordinates with content display
+
+No need to read all — skim 2-3 representative slides.

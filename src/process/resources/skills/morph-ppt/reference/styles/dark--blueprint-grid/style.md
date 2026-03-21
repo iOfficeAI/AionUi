@@ -1,29 +1,34 @@
-# S15-blueprint-grid — 工程蓝图网格
+# S15-blueprint-grid — Engineering Blueprint Grid
 
-## 风格概述
-深蓝底色上用白色网格线与金色标记营造工程制图般的精密感。
+## Style Overview
 
-- **场景**: 技术规划、工程蓝图、系统架构
-- **情绪**: 精密、专业、工程感
-- **色调**: 深蓝 + 白色网格 + 金色点缀
+Deep blue background with white grid lines and gold markers creates a precise engineering drafting aesthetic.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Deep Blue | 1B3A5C | 背景底色 |
-| Bright Blue | 4A90D9 | 亮色强调、标题 |
-| White | FFFFFF | 网格线、正文 |
-| Gold Warning | E8C547 | 警示标记、CTA 按钮 |
+- **Scene**: Technical planning, engineering blueprints, system architecture
+- **Mood**: Precise, professional, engineering-oriented
+- **Color Tone**: Deep blue + white grid + gold accents
 
-## 设计手法
-- rect 绘制等间距水平/垂直网格线（opacity 0.25），模拟蓝图方格纸
-- ellipse 作为定位标记点，暗示坐标系中的关键节点
-- 全部形状使用低透明度叠加，保持蓝图的层次感
-- 文字采用等宽或粗体无衬线字体，强化工程制图气质
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 网格线绘制方式与布局间距
-- **Slide 3 (pillars)** — 多列并排 + 网格对齐的排版手法
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name         | Hex    | Usage                        |
+| ------------ | ------ | ---------------------------- |
+| Deep Blue    | 1B3A5C | Background                   |
+| Bright Blue  | 4A90D9 | Highlight color, titles      |
+| White        | FFFFFF | Grid lines, body text        |
+| Gold Warning | E8C547 | Warning markers, CTA buttons |
+
+## Design Techniques
+
+- Use rect to draw evenly spaced horizontal/vertical grid lines (opacity 0.25), simulating blueprint graph paper
+- Use ellipse as positioning marker points, suggesting key nodes in a coordinate system
+- All shapes use low transparency overlay to maintain blueprint hierarchy
+- Typography uses monospace or bold sans-serif fonts to reinforce engineering drafting aesthetic
+
+## Reference Script
+
+Full build script available in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Grid line drawing method and layout spacing
+- **Slide 3 (pillars)** — Multi-column layout + grid-aligned typesetting technique
+  No need to read all — skim 2-3 representative slides.

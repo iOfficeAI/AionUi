@@ -1,44 +1,46 @@
-# Brutalist Raw — 粗野主义
+# Brutalist Raw — Brutalism
 
-## 风格概述
-纯白背景 + 黑色粗框 + 红色点缀，超大字体、粗线条、暴力排版。
+## Style Overview
 
-- **场景**: 先锋艺术展、实验设计、独立品牌、反传统场合
-- **情绪**: 反叛、粗犷、冲击力、原始
-- **色调**: 黑白红三色
+Pure white background + black thick borders + red accents, oversized fonts, thick lines, violent typography.
 
-## 配色
+- **Scene**: Avant-garde art exhibitions, experimental design, independent brands, anti-traditional contexts
+- **Mood**: Rebellious, rough, impactful, raw
+- **Tone**: Black-white-red three colors
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 纯白 | #FFFFFF | 页面背景 |
-| 纯黑 | #000000 | 粗框、实心块、粗线、标题 |
-| 纯红 | #FF0000 | 唯一强调色 |
+## Color Palette
 
-## 字体
+| Name       | Hex     | Usage                                            |
+| ---------- | ------- | ------------------------------------------------ |
+| Pure White | #FFFFFF | Page background                                  |
+| Pure Black | #000000 | Thick borders, solid blocks, thick lines, titles |
+| Pure Red   | #FF0000 | Only accent color                                |
 
-| 元素 | 字体 | 说明 |
-|------|------|------|
-| 主标题 | Arial Black 120pt | 故意超大，占据画面 |
-| 副标题 | Arial Black 48pt | 大号英文 |
-| 正文 | Arial | 常规尺寸 |
+## Typography
 
-## 设计手法
+| Element    | Font              | Description                                    |
+| ---------- | ----------------- | ---------------------------------------------- |
+| Main Title | Arial Black 120pt | Intentionally oversized, dominating the canvas |
+| Subtitle   | Arial Black 48pt  | Large English text                             |
+| Body       | Arial             | Regular size                                   |
 
-- **粗边框**: rect + 3pt 黑色边框线，刻意暴露结构
-- **实心色块**: 纯黑 rect（5×5cm），沉重几何感
-- **红色点缀**: 唯一彩色（纯红 #FF0000），极度克制
-- **粗线条**: 0.15cm 高的黑色 rect，作为分隔线
-- **超大字体**: 120pt 标题故意溢出常规排版区域
-- **暴力 Morph**: 形状在页面间猛烈移动（12cm+），不是优雅漂移，是"砸"过去
-- **与 swiss-bauhaus 区别**: bauhaus 严谨理性，brutalist 故意粗犷原始
+## Design Techniques
 
-## 参考脚本
+- **Thick borders**: rect + 3pt black border lines, deliberately exposing structure
+- **Solid color blocks**: Pure black rect (5×5cm), heavy geometric feel
+- **Red accents**: Only color (pure red #FF0000), extremely restrained
+- **Thick lines**: 0.15cm high black rect, as divider lines
+- **Oversized fonts**: 120pt titles intentionally overflow conventional layout areas
+- **Violent Morph**: Shapes move violently between pages (12cm+), not elegant drift, but "slam" over
+- **Difference from swiss-bauhaus**: bauhaus is rigorous and rational, brutalist is intentionally rough and raw
 
-完整构建脚本见 `build.sh`。
+## Reference Script
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 超大标题 + 粗框 + 实心块的布局
-- **Slide 2 (statement)** — 暴力 morph 移动（12cm+）
+Complete build script available in `build.sh`.
 
-不需要全部阅读，选 2-3 个代表页面即可。
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Layout of oversized titles + thick borders + solid blocks
+- **Slide 2 (statement)** — Violent morph movement (12cm+)
+
+No need to read all — skim 2-3 representative slides.

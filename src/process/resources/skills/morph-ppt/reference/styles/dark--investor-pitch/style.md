@@ -1,60 +1,61 @@
-# 08-investor-pitch — 投资路演专业
+# 08-investor-pitch — Investor Pitch Professional
 
+## Style Overview
 
-## 风格概述
-深蓝专业色调配红色强调，适合投资路演、融资演示、商业计划等场合
+Deep blue professional tone with red emphasis, suitable for investor pitches, fundraising presentations, business plans and similar scenarios
 
-- **场景**: 投资路演、融资演示、商业计划、创业展示
-- **情绪**: 专业、可信、稳重、进取
-- **色调**: 深色、冷色调、专业蓝红搭配
-- **行业**: 创投、科技、金融、企业服务
+- **Scene**: Investor pitches, fundraising presentations, business plans, startup showcases
+- **Mood**: Professional, trustworthy, stable, progressive
+- **Tone**: Dark tones, cool colors, professional blue-red pairing
+- **Industry**: Venture capital, tech, finance, enterprise services
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #1A1A2E | background |
-| 卡片背景 | #16213E | card |
-| 辅助色 | #0F3460 | secondary |
-| 强调色 | #E94560 | accent |
-| 主文字 | #FFFFFF | text_primary |
-| 副文字 | #B8B8D1 | text_secondary |
-| 辅助文字 | #6B6B8D | text_muted |
+| Name            | Hex     | Usage          |
+| --------------- | ------- | -------------- |
+| Background      | #1A1A2E | background     |
+| Card Background | #16213E | card           |
+| Auxiliary       | #0F3460 | secondary      |
+| Accent          | #E94560 | accent         |
+| Primary Text    | #FFFFFF | text_primary   |
+| Secondary Text  | #B8B8D1 | text_secondary |
+| Muted Text      | #6B6B8D | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Arial Black |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Arial Black     |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| data | Arial Black |
+| body     | Microsoft YaHei |
+| data     | Arial Black     |
 
-## 设计手法
+## Design Techniques
 
-- 深蓝专业色调
-- 红色关键数据强调
-- 数据可视化图表
-- 几何线条装饰
-- 清晰信息层级
-- Morph过渡动画
+- Deep blue professional tone
+- Red emphasis on key data
+- Data visualization charts
+- Geometric line decoration
+- Clear information hierarchy
+- Morph transition animation
 
-## 页面结构（6页）
+## Page Structure (6 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 68 | 封面页 - 公司Logo+项目名称+融资信息 |
-| S2 | problem | 56 | 问题页 - 行业痛点+市场机会 |
-| S3 | solution | 75 | 方案页 - 解决方案+产品展示 |
-| S4 | market | 55 | 市场页 - 市场规模+竞争格局 |
-| S5 | financial | 57 | 财务页 - 财务数据+增长预测 |
-| S6 | fundraising | 72 | 融资页 - 融资需求+联系方式 |
+| Slide | Type        | Elements | Description                                              |
+| ----- | ----------- | -------- | -------------------------------------------------------- |
+| S1    | hero        | 68       | Cover page - Company Logo + Project Name + Funding Info  |
+| S2    | problem     | 56       | Problem page - Industry pain points + Market opportunity |
+| S3    | solution    | 75       | Solution page - Solution + Product showcase              |
+| S4    | market      | 55       | Market page - Market size + Competitive landscape        |
+| S5    | financial   | 57       | Financial page - Financial data + Growth forecast        |
+| S6    | fundraising | 72       | Fundraising page - Funding needs + Contact info          |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script is in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 公司Logo+项目名称+融资信息
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - Company Logo + Project Name + Funding Info
+
+No need to read all — skim 2-3 representative slides.

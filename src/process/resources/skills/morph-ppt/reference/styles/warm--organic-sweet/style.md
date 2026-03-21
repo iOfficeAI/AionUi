@@ -1,30 +1,35 @@
-# organic-sweet — 有机暖甜
+# organic-sweet — Organic Warmth
 
-## 风格概述
-象牙白底色搭配森林绿、赤陶红、蜂蜜琥珀，用 SVG 路径绘制有机 blob 形状，营造温暖手工质感。
+## Style Overview
 
-- **场景**: 烘焙、手工艺、有机品牌、生活方式
-- **情绪**: 温暖、自然、手工感
-- **色调**: 象牙白底 + 森林绿/赤陶红/蜂蜜琥珀暖色系
+Ivory white background paired with forest green, terracotta red, and honey amber, using SVG paths to draw organic blob shapes, creating a warm handcrafted texture.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Ivory | FFFDF8 | 背景底色 |
-| Forest Green | 1E4D38 | 主色调、标题、导航 |
-| Terracotta | C4552A | 强调色、装饰元素 |
-| Honey Amber | E8A838 | 点缀色、星形装饰 |
+- **Scene**: Baking, handicrafts, organic brands, lifestyle
+- **Mood**: Warm, natural, handcrafted feel
+- **Tone**: Ivory white base + forest green/terracotta red/honey amber warm palette
 
-## 设计手法
-- 使用 SVG geometry 自定义路径绘制有机 blob 形状（!!blob-main），非规则几何图形
-- blob 形状跨页面 Morph 过渡，产生流动变形效果
-- 星形（sparkle）和叶片（leaf_deco）作为散落装饰，增加手工插画感
-- 椭圆形图片占位配合有机形状，柔化整体视觉
-- 导航栏与 CTA 按钮使用森林绿，保持品牌一致性
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (cover)** — SVG blob 路径定义与 sparkle/leaf 装饰的实现方式
-- **Slide 3 (menu/products)** — 有机形状与产品内容的排版配合
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name         | Hex    | Usage                             |
+| ------------ | ------ | --------------------------------- |
+| Ivory        | FFFDF8 | Background                        |
+| Forest Green | 1E4D38 | Primary color, titles, navigation |
+| Terracotta   | C4552A | Accent color, decorative elements |
+| Honey Amber  | E8A838 | Highlight color, star decorations |
+
+## Design Techniques
+
+- Use SVG geometry custom paths to draw organic blob shapes (!!blob-main), irregular geometric forms
+- Blob shapes morph across pages, producing flowing transformation effects
+- Stars (sparkle) and leaves (leaf_deco) scattered as decorations, adding handmade illustration feel
+- Elliptical image placeholders coordinated with organic shapes, softening overall visuals
+- Navigation bar and CTA buttons use forest green, maintaining brand consistency
+
+## Reference Script
+
+Complete build script available in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (cover)** — SVG blob path definition and sparkle/leaf decoration implementation
+- **Slide 3 (menu/products)** — Layout coordination between organic shapes and product content
+  No need to read all — skim 2-3 representative slides.

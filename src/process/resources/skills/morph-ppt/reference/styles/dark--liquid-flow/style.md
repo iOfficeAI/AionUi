@@ -1,39 +1,41 @@
-# Liquid Flow — 流体光效
+# Liquid Flow — Fluid Light Effects
 
-## 风格概述
-深紫背景配多彩流体光斑，大椭圆低透明度交叠营造液态流动感。
+## Style Overview
 
-- **场景**: 品牌视觉升级、创意发布、时尚展示、高端产品
-- **情绪**: 流动、梦幻、高端、前卫
-- **色调**: 深色、多彩渐变光效
+Deep purple background with multicolor fluid light spots, large ellipses with low transparency overlapping to create a liquid flow effect.
 
-## 配色
+- **Scene**: Brand visual upgrade, creative launches, fashion showcases, premium products
+- **Mood**: Flowing, dreamy, premium, avant-garde
+- **Tone**: Dark tones, multicolor gradient light effects
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 深紫夜 | #0F0F2D | 页面背景 |
-| 紫罗兰 | #6C63FF | 主光斑 |
-| 薄荷绿 | #48E5C2 | 辅助光斑 |
-| 珊瑚粉 | #FF6B8A | 辅助光斑 |
-| 电蓝 | #3D5AFE | 辅助光斑 |
-| 琥珀 | #F5AF19 | 小液滴 |
-| 标题白 | #F5F5FF | 标题文字 |
-| 正文蓝 | #C8C8FF | 正文文字 |
-| 辅助灰 | #8888CC | 辅助文字 |
+## Color Palette
 
-## 设计手法
+| Name              | Hex     | Usage                |
+| ----------------- | ------- | -------------------- |
+| Deep Purple Night | #0F0F2D | Page background      |
+| Violet            | #6C63FF | Primary light spot   |
+| Mint Green        | #48E5C2 | Auxiliary light spot |
+| Coral Pink        | #FF6B8A | Auxiliary light spot |
+| Electric Blue     | #3D5AFE | Auxiliary light spot |
+| Amber             | #F5AF19 | Small droplets       |
+| Title White       | #F5F5FF | Title text           |
+| Body Blue         | #C8C8FF | Body text            |
+| Auxiliary Gray    | #8888CC | Auxiliary text       |
 
-- **流体光斑**: 4 个大椭圆（12-14cm）+ 3 个小液滴（3-4cm），不同颜色、不同透明度（0.28-0.55），带旋转
-- **液态流动感**: 椭圆之间有重叠，颜色混合产生深度效果
-- **Morph 编排**: 光斑在页面间大幅漂移（10-15cm）+ 旋转变化，营造流动感
-- **特点**: 不规则流体光斑 + 多彩颜色叠加，营造液态流动感
+## Design Techniques
 
-## 参考脚本
+- **Fluid light spots**: 4 large ellipses (12-14cm) + 3 small droplets (3-4cm), different colors, different transparency (0.28-0.55), with rotation
+- **Liquid flow effect**: Ellipses overlap each other, color mixing creates depth effect
+- **Morph choreography**: Light spots shift significantly between pages (10-15cm) + rotation changes, creating a sense of flow
+- **Characteristics**: Irregular fluid light spots + multicolor layering, creating liquid flow effect
 
-完整构建脚本见 `build.sh`。
+## Reference Script
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 流体光斑布局和层叠效果
-- **Slide 3 (pillars)** — 光斑如何配合内容卡片
+Complete build script is in `build.sh`.
 
-不需要全部阅读，选 2-3 个代表页面即可。
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Fluid light spot layout and layering effects
+- **Slide 3 (pillars)** — How light spots complement content cards
+
+No need to read all — skim 2-3 representative slides.

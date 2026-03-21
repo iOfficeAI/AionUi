@@ -1,68 +1,69 @@
-# 09-tech-architecture — 技术架构分享
+# 09-tech-architecture — Technical Architecture Presentation
 
+## Style Overview
 
-## 风格概述
-深色技术风格，适合架构分享、技术培训、系统设计演示
+Dark technical style, suitable for architecture sharing, technical training, system design demonstrations
 
-- **场景**: 技术分享、架构评审、团队培训、技术路演
-- **情绪**: 专业、技术、清晰、现代
-- **色调**: 深色、科技蓝、紫、青
-- **行业**: 软件、互联网、云计算、AI、SaaS
+- **Scene**: Technical sharing, architecture reviews, team training, technical pitches
+- **Mood**: Professional, technical, clear, modern
+- **Tone**: Dark tones, tech blue, purple, cyan
+- **Industry**: Software, internet, cloud computing, AI, SaaS
 
-## 配色
+## Color Palette
 
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 背景 | #0D1117 | background |
-| 卡片背景 | #161B22 | card |
-| 主色 | #58A6FF | primary |
-| 辅助色 | #7C3AED | secondary |
-| 强调色 | #06B6D4 | accent |
-| 主文字 | #FFFFFF | text_primary |
-| 副文字 | #C9D1D9 | text_secondary |
-| 辅助文字 | #8B949E | text_muted |
+| Name            | Hex     | Usage          |
+| --------------- | ------- | -------------- |
+| Background      | #0D1117 | background     |
+| Card Background | #161B22 | card           |
+| Primary         | #58A6FF | primary        |
+| Auxiliary       | #7C3AED | secondary      |
+| Accent          | #06B6D4 | accent         |
+| Primary Text    | #FFFFFF | text_primary   |
+| Secondary Text  | #C9D1D9 | text_secondary |
+| Muted Text      | #8B949E | text_muted     |
 
-## 字体
+## Typography
 
-| 元素 | 字体 |
-|------|------|
-| title_en | Arial Black |
+| Element  | Font            |
+| -------- | --------------- |
+| title_en | Arial Black     |
 | title_cn | Microsoft YaHei |
-| body | Microsoft YaHei |
-| code | Consolas |
+| body     | Microsoft YaHei |
+| code     | Consolas        |
 
-## 设计手法
+## Design Techniques
 
-- 网格背景装饰
-- 三层架构展示
-- 流程图节点
-- 代码窗口模拟
-- 演示截图框架
-- 技术标签装饰
-- 性能数据展示
-- 安全架构四要素
-- 可扩展性设计
+- Grid background decoration
+- Three-layer architecture showcase
+- Flow diagram nodes
+- Code window simulation
+- Demo screenshot framework
+- Technical tag decoration
+- Performance data display
+- Security architecture four elements
+- Scalability design
 
-## 页面结构（10页）
+## Page Structure (10 pages)
 
-| 页 | 类型 | 元素数 | 说明 |
-|----|------|--------|------|
-| S1 | hero | 50 | 封面页 - 网格装饰+技术标签 |
-| S2 | architecture | 33 | 架构页 - 三层架构卡片 |
-| S3 | flow | 48 | 流程页 - 水平流程图 |
-| S4 | code | 31 | 代码页 - 代码展示区 |
-| S5 | demo | 34 | 演示页 - 功能演示区 |
-| S6 | summary | 83 | 总结页 - 关键要点 |
-| S7 | data | 30 | 数据页 - 性能指标展示 |
-| S8 | security | 48 | 安全页 - 安全架构四要素 |
-| S9 | scalability | 32 | 扩展页 - 可扩展性设计 |
-| S10 | thanks | 9 | 结束页 - 感谢+Q&A |
+| Slide | Type         | Elements | Description                                         |
+| ----- | ------------ | -------- | --------------------------------------------------- |
+| S1    | hero         | 50       | Cover page - Grid decoration + Technical tags       |
+| S2    | architecture | 33       | Architecture page - Three-layer architecture cards  |
+| S3    | flow         | 48       | Flow page - Horizontal flowchart                    |
+| S4    | code         | 31       | Code page - Code display area                       |
+| S5    | demo         | 34       | Demo page - Feature demo area                       |
+| S6    | summary      | 83       | Summary page - Key points                           |
+| S7    | data         | 30       | Data page - Performance metrics display             |
+| S8    | security     | 48       | Security page - Security architecture four elements |
+| S9    | scalability  | 32       | Scalability page - Scalability design               |
+| S10   | thanks       | 9        | Closing page - Thanks + Q&A                         |
 
-## 参考脚本
+## Reference Script
 
-完整构建脚本见 `build.sh`。
+Complete build script is in `build.sh`.
 
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 封面页 - 网格装饰+技术标签
+**Recommended slides to read for understanding core design techniques**:
 
-不需要全部阅读，选 2-3 个代表页面即可。
+- **Slide 1 (hero)** — Cover page - Grid decoration + Technical tags
+
+No need to read all — skim 2-3 representative slides.

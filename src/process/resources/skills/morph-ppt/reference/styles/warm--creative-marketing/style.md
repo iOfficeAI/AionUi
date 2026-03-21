@@ -1,42 +1,49 @@
-# Creative Marketing — 创意营销
+# Creative Marketing — Creative Marketing
 
-## 风格概述
-大胆的橙黑撞色配合超大 Impact 字体，海报级视觉冲击力。
+## Style Overview
 
-- **场景**: 营销活动、品牌推广、广告创意、海报风PPT
-- **情绪**: 大胆、冲击力、活力、张扬
-- **色调**: 暖橙、黑白对比
+Bold orange-black contrast paired with oversized Impact font, poster-level visual impact.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Warm Peach/Sand | F5E0C0 | 背景色 |
-| Bold Orange | E8601C | 主色、色块、星形装饰 |
-| Black | 1A1A1A | 对比色、色块、文字 |
-| Peach (BG Match) | F5E0C0 | 色块（与背景同色） |
+- **Scene**: Marketing campaigns, brand promotion, advertising creative, poster-style presentations
+- **Mood**: Bold, impactful, energetic, assertive
+- **Tone**: Warm orange, black-white contrast
 
-## 字体
-- 主标题：Impact 88pt（超大海报字体）
-- 副标题：Impact 17pt
-- 正文：Segoe UI
+## Color Palette
 
-## 场景元素
-- 3 个大矩形色块：blk-a（橙色条）、blk-b（黑色）、blk-c（桃色）
-- 3 个旋转 45° 的菱形/星形装饰：star-1（桃色）、star-2（黑色）、star-3（橙色）
-- 使用图片素材（bold-portrait.jpg, bold-color.jpg）— 作为风格参考时可忽略
+| Name             | Hex    | Usage                                   |
+| ---------------- | ------ | --------------------------------------- |
+| Warm Peach/Sand  | F5E0C0 | Background                              |
+| Bold Orange      | E8601C | Primary color, blocks, star decorations |
+| Black            | 1A1A1A | Contrast color, blocks, text            |
+| Peach (BG Match) | F5E0C0 | Blocks (matching background)            |
 
-## 设计手法
-- 大色块拼接，橙/黑/桃三色高对比度组合
-- 超大 Impact 字体营造海报级视觉冲击
-- 45° 旋转方块作为星形装饰元素
-- 照片在关键页面出现，融入色块布局
-- 整体风格极具平面设计/海报感
-- 6 页幻灯片
+## Typography
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-注意：脚本中使用了 assets/ 目录的图片资源，作为风格参考时可忽略图片部分。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1** — 标题页，色块 + 星形装饰的初始冲击布局
-- **Slide 3** — 照片融入色块，展示图文结合手法
-不需要全部阅读，选 2-3 个代表页面即可。
+- Main Title: Impact 88pt (oversized poster font)
+- Subtitle: Impact 17pt
+- Body: Segoe UI
+
+## Scene Elements
+
+- 3 large rectangular blocks: blk-a (orange bar), blk-b (black), blk-c (peach)
+- 3 rotated 45° diamond/star decorations: star-1 (peach), star-2 (black), star-3 (orange)
+- Uses image assets (bold-portrait.jpg, bold-color.jpg) — can be ignored when using as style reference
+
+## Design Techniques
+
+- Large block assembly, orange/black/peach three-color high-contrast combination
+- Oversized Impact font creates poster-level visual impact
+- 45° rotated squares as star decorative elements
+- Photos appear on key pages, integrated into block layout
+- Overall style extremely graphic design/poster-like
+- 6 slides
+
+## Reference Script
+
+Complete build script available in `build.sh`.
+Note: Script uses image resources from assets/ directory, image parts can be ignored when using as style reference.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1** — Title page, initial impactful layout with blocks + star decorations
+- **Slide 3** — Photos integrated with blocks, demonstrating image-text combination technique
+  No need to read all — skim 2-3 representative slides.

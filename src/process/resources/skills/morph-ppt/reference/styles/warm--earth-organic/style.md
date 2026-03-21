@@ -1,74 +1,82 @@
-# 04-earth-organic — 大地与鼠尾草
+# 04-earth-organic — Earth and Sage
 
-## 风格概述
-以暖色羊皮纸底色搭配有机椭圆和圆角矩形，营造温暖自然的叙事氛围。
+## Style Overview
 
-- **场景**: 环保、可持续发展、有机品牌、自然主题
-- **情绪**: 温暖、真诚、自然、有故事感
-- **色调**: 暖棕 + 鼠尾草绿 + 赤土 + 沙金，整体大地色系
+A warm parchment background combined with organic ellipses and rounded rectangles creates a warm, natural narrative atmosphere.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 暖羊皮纸 | `F5F0E8` | 背景 |
-| 暖棕 | `8B6F47` | 叶片、鹅卵石、装饰 |
-| 鼠尾草绿 | `A8C686` | 叶片、鹅卵石、卡片高亮 |
-| 赤土橘 | `D4956B` | 石块、编号高亮 |
-| 沙金 | `C2A878` | 石块装饰 |
-| 森林绿 | `6B8E6B` | 种子装饰、数据高亮 |
-| 奶油白 | `E8D5B0` | 种子装饰 |
-| 深棕 (标题) | `3C2415` | 标题文字 |
-| 暖灰 (正文) | `6B5B4A` | 正文文字 |
-| 柔灰 (辅助) | `9E8E7A` | 辅助说明文字 |
+- **Scene**: Environmental sustainability, organic brands, nature themes
+- **Mood**: Warm, sincere, natural, storytelling
+- **Tone**: Warm brown + sage green + terracotta + sandy gold, overall earth tone palette
 
-## 字体
-| 角色 | 字体 | 字号 | 颜色 |
-|------|------|------|------|
-| 大标题 | Segoe UI Bold | 64pt | 3C2415 |
-| 副标题 | Segoe UI Light | 24pt | 6B5B4A |
-| 卡片编号 | Segoe UI Bold | 48pt | D4956B / A8C686 / 6B8E6B |
-| 卡片标题 | Segoe UI Bold | 28pt | 3C2415 |
-| 卡片描述 | Segoe UI Light | 16pt | 6B5B4A |
-| 数据数字 | Segoe UI Bold | 64pt | 各色高亮 |
-| 辅助说明 | Segoe UI Light | 14-16pt | 9E8E7A |
+## Color Palette
 
-## 设计手法
-- **有机形状**：用 `ellipse` 模拟叶片和种子 (大椭圆 6-9cm)，用 `roundRect` 模拟石块 (5-7cm)，都带不同 opacity (0.12-0.5)
-- **半透明层叠**：多个有机形状以不同透明度重叠，创造自然肌理
-- **Morph 动画**：有机形状在页面间缓慢漂移、变换大小，模拟自然界的有机运动
-- **Slide 3 卡片化**：三个有机形状变形为 `roundRect` 卡片底色 (opacity 0.12)，形成三列内容区
-- **Slide 4 数据叙事**：有机形状放大为数据区背景，数据数字用品牌色高亮
+| Name                  | Hex      | Usage                             |
+| --------------------- | -------- | --------------------------------- |
+| Warm Parchment        | `F5F0E8` | Background                        |
+| Warm Brown            | `8B6F47` | Leaves, pebbles, decorations      |
+| Sage Green            | `A8C686` | Leaves, pebbles, card highlights  |
+| Terracotta Orange     | `D4956B` | Stones, number highlights         |
+| Sandy Gold            | `C2A878` | Stone decorations                 |
+| Forest Green          | `6B8E6B` | Seed decorations, data highlights |
+| Cream White           | `E8D5B0` | Seed decorations                  |
+| Deep Brown (titles)   | `3C2415` | Title text                        |
+| Warm Gray (body)      | `6B5B4A` | Body text                         |
+| Soft Gray (secondary) | `9E8E7A` | Secondary text                    |
 
-## Scene Actors
-共 8 个场景元素，每页位置和形态不同：
+## Typography
 
-| 名称 | preset | fill | opacity | 典型尺寸 | 说明 |
-|------|--------|------|---------|----------|------|
-| `!!leaf-brown` | ellipse | 8B6F47 | 0.30 | 6cm x 5cm | 棕色叶片 |
-| `!!leaf-sage` | ellipse | A8C686 | 0.25 | 8cm x 6cm | 鼠尾草绿叶片 |
-| `!!stone-terra` | roundRect | D4956B | 0.20 | 5cm x 4cm | 赤土石块 |
-| `!!stone-sand` | roundRect | C2A878 | 0.30 | 7cm x 5cm | 沙金石块 |
-| `!!seed-forest` | ellipse | 6B8E6B | 1.0 | 3cm x 2.5cm | 森林绿种子 |
-| `!!seed-cream` | ellipse | E8D5B0 | 0.50 | 2cm x 2cm | 奶油色种子 |
-| `!!pebble-1` | ellipse | 8B6F47 | 0.40 | 1.5cm x 1.2cm | 小鹅卵石 |
-| `!!pebble-2` | ellipse | A8C686 | 0.35 | 1.8cm x 1.5cm | 绿色小鹅卵石 |
+| Role             | Font           | Size    | Color                    |
+| ---------------- | -------------- | ------- | ------------------------ |
+| Main Title       | Segoe UI Bold  | 64pt    | 3C2415                   |
+| Subtitle         | Segoe UI Light | 24pt    | 6B5B4A                   |
+| Card Number      | Segoe UI Bold  | 48pt    | D4956B / A8C686 / 6B8E6B |
+| Card Title       | Segoe UI Bold  | 28pt    | 3C2415                   |
+| Card Description | Segoe UI Light | 16pt    | 6B5B4A                   |
+| Data Number      | Segoe UI Bold  | 64pt    | Various highlights       |
+| Secondary Text   | Segoe UI Light | 14-16pt | 9E8E7A                   |
 
-## 页面结构
-共 5 页，Slide 2-5 设置 `transition=morph`：
+## Design Techniques
 
-| 页面 | 类型 | 说明 |
-|------|------|------|
-| Slide 1 | Hero | 居中大标题 + 副标题，有机形状散落四周 |
-| Slide 2 | Statement | 大字陈述 "Nature Knows Best"，有机形状重新分布 |
-| Slide 3 | 3-Column Pillars | 三个有机形状变形为卡片底色 (roundRect opacity 0.12)，编号 01/02/03 + 标题 + 描述 |
-| Slide 4 | Metrics / Impact | 有机形状放大为数据区域背景，展示 40%/2M/Carbon Neutral 等数据 |
-| Slide 5 | CTA / Closing | 有机形状回归自然散布，居中 CTA + 联系方式 |
+- **Organic shapes**: Use `ellipse` to simulate leaves and seeds (large ellipses 6-9cm), use `roundRect` to simulate stones (5-7cm), all with different opacity (0.12-0.5)
+- **Semi-transparent layering**: Multiple organic shapes overlap with varying opacity to create natural texture
+- **Morph animation**: Organic shapes slowly drift and scale across pages, simulating organic movement in nature
+- **Slide 3 card design**: Three organic shapes morph into `roundRect` card backgrounds (opacity 0.12), forming three-column content areas
+- **Slide 4 data narrative**: Organic shapes enlarge as data area backgrounds, data numbers highlighted with brand colors
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (Hero)** — 8 个有机 scene actor 的初始布局和 opacity 设置
-- **Slide 3 (Pillars)** — 有机形状变形为 roundRect 卡片底色的关键技法
-- **Slide 4 (Metrics)** — 有机形状放大为数据区域背景的布局方式
+## Scene Elements
 
-不需要全部阅读，选 2-3 个代表页面即可。
+8 scene elements with different positions and forms on each page:
+
+| Name            | preset    | fill   | opacity | Typical Size  | Description        |
+| --------------- | --------- | ------ | ------- | ------------- | ------------------ |
+| `!!leaf-brown`  | ellipse   | 8B6F47 | 0.30    | 6cm x 5cm     | Brown leaf         |
+| `!!leaf-sage`   | ellipse   | A8C686 | 0.25    | 8cm x 6cm     | Sage green leaf    |
+| `!!stone-terra` | roundRect | D4956B | 0.20    | 5cm x 4cm     | Terracotta stone   |
+| `!!stone-sand`  | roundRect | C2A878 | 0.30    | 7cm x 5cm     | Sandy gold stone   |
+| `!!seed-forest` | ellipse   | 6B8E6B | 1.0     | 3cm x 2.5cm   | Forest green seed  |
+| `!!seed-cream`  | ellipse   | E8D5B0 | 0.50    | 2cm x 2cm     | Cream seed         |
+| `!!pebble-1`    | ellipse   | 8B6F47 | 0.40    | 1.5cm x 1.2cm | Small pebble       |
+| `!!pebble-2`    | ellipse   | A8C686 | 0.35    | 1.8cm x 1.5cm | Green small pebble |
+
+## Page Structure
+
+5 pages total, Slides 2-5 set `transition=morph`:
+
+| Slide   | Type             | Elements                                                                                                           | Description |
+| ------- | ---------------- | ------------------------------------------------------------------------------------------------------------------ | ----------- |
+| Slide 1 | Hero             | Centered large title + subtitle, organic shapes scattered around                                                   |
+| Slide 2 | Statement        | Large text statement "Nature Knows Best", organic shapes redistributed                                             |
+| Slide 3 | 3-Column Pillars | Three organic shapes morph into card backgrounds (roundRect opacity 0.12), numbered 01/02/03 + title + description |
+| Slide 4 | Metrics / Impact | Organic shapes enlarged as data area backgrounds, displaying data like 40%/2M/Carbon Neutral                       |
+| Slide 5 | CTA / Closing    | Organic shapes return to natural distribution, centered CTA + contact info                                         |
+
+## Reference Script
+
+Complete build script available in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (Hero)** — Initial layout and opacity settings for 8 organic scene actors
+- **Slide 3 (Pillars)** — Key technique for morphing organic shapes into roundRect card backgrounds
+- **Slide 4 (Metrics)** — Layout approach for enlarging organic shapes as data area backgrounds
+
+No need to read all — skim 2-3 representative slides.

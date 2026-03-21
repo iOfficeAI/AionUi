@@ -1,70 +1,78 @@
-# 05-premium-navy — 高端藏蓝与金
+# 05-premium-navy — Premium Navy & Gold
 
-## 风格概述
-深藏蓝底色搭配金色与钢蓝装饰，打造高端企业级视觉语言。
+## Style Overview
 
-- **场景**: 高端企业、年度战略、董事会汇报
-- **情绪**: 权威、精致、高端、值得信赖
-- **色调**: 深藏蓝底 + 金色高亮 + 钢蓝辅助
+Deep navy background paired with gold and steel blue accents, creating a premium enterprise-grade visual language.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| 深藏蓝 | `0C1B33` | 背景 |
-| 浓金 | `C9A84C` | 金色横线、框架、圆点、编号高亮 |
-| 纯白 | `FFFFFF` | 标题文字 |
-| 中藏蓝 | `1E3A5F` | 竖线、框架底色 |
-| 钢蓝 | `8EACC1` | 装饰圆、描述文字 |
-| 藏蓝强调 | `2C4F7C` | 卡片底色 |
+- **Scene**: Premium enterprise, annual strategy, board reports
+- **Mood**: Authoritative, refined, premium, trustworthy
+- **Tone**: Deep navy base + gold highlights + steel blue auxiliary
 
-## 字体
-| 角色 | 字体 | 字号 | 颜色 |
-|------|------|------|------|
-| 大标题 | Segoe UI Black | 60pt | FFFFFF |
-| 副标题 | Segoe UI Light | 24pt | C9A84C |
-| 卡片编号 | Segoe UI Black | 48pt | C9A84C |
-| 卡片标题 | Segoe UI Black | 22pt | FFFFFF |
-| 卡片描述 | Segoe UI Light | 14pt | 8EACC1 |
-| 数据数字 | Segoe UI Black | 54-64pt | FFFFFF |
-| 辅助说明 | Segoe UI Light | 16-18pt | 8EACC1 |
+## Color Palette
 
-## 设计手法
-- **金色细线分隔**：水平金线 (height=0.08cm)、垂直藏蓝线 (width=0.06cm) 构建精致网格
-- **半透明框架**：`roundRect` 作为卡片底色 (opacity 0.12-0.45)，金色和藏蓝交替
-- **金色圆点点缀**：小 `ellipse` 作为视觉锚点，金色 opacity 0.6，白色 opacity 0.3
-- **深色背景上的高对比**：白色标题 + 金色副标题，在深藏蓝上形成强烈层次
-- **Morph 动画**：金线和框架在页面间重新排列，框架变形为数据区域背景
+| Name          | Hex      | Usage                                                  |
+| ------------- | -------- | ------------------------------------------------------ |
+| Deep Navy     | `0C1B33` | Background                                             |
+| Rich Gold     | `C9A84C` | Gold horizontal lines, frames, dots, number highlights |
+| Pure White    | `FFFFFF` | Title text                                             |
+| Mid Navy      | `1E3A5F` | Vertical lines, frame base color                       |
+| Steel Blue    | `8EACC1` | Accent circles, description text                       |
+| Navy Emphasis | `2C4F7C` | Card background                                        |
 
-## Scene Actors
-共 8 个场景元素，每页位置不同：
+## Typography
 
-| 名称 | preset | fill | opacity | 典型尺寸 | 说明 |
-|------|--------|------|---------|----------|------|
-| `!!bar-gold` | rect | C9A84C | 1.0 | 18cm x 0.08cm | 金色水平线 |
-| `!!bar-navy` | rect | 1E3A5F | 1.0 | 0.06cm x 14cm | 藏蓝垂直线 |
-| `!!frame-gold` | roundRect | C9A84C | 0.15 | 8cm x 6cm | 金色半透明框 |
-| `!!frame-navy` | roundRect | 1E3A5F | 0.30 | 10cm x 6cm | 藏蓝半透明框 |
-| `!!accent-gold` | ellipse | C9A84C | 0.20 | 3cm x 3cm | 金色装饰圆 |
-| `!!accent-steel` | ellipse | 8EACC1 | 0.15 | 4cm x 4cm | 钢蓝装饰圆 |
-| `!!dot-gold` | ellipse | C9A84C | 0.60 | 1.5cm x 1.5cm | 金色小圆点 |
-| `!!dot-white` | ellipse | FFFFFF | 0.30 | 1cm x 1cm | 白色小圆点 |
+| Role             | Font           | Size    | Color  |
+| ---------------- | -------------- | ------- | ------ |
+| Main Title       | Segoe UI Black | 60pt    | FFFFFF |
+| Subtitle         | Segoe UI Light | 24pt    | C9A84C |
+| Card Number      | Segoe UI Black | 48pt    | C9A84C |
+| Card Title       | Segoe UI Black | 22pt    | FFFFFF |
+| Card Description | Segoe UI Light | 14pt    | 8EACC1 |
+| Data Numbers     | Segoe UI Black | 54-64pt | FFFFFF |
+| Auxiliary Notes  | Segoe UI Light | 16-18pt | 8EACC1 |
 
-## 页面结构
-共 5 页，Slide 2-5 设置 `transition=morph`：
+## Design Techniques
 
-| 页面 | 类型 | 说明 |
-|------|------|------|
-| Slide 1 | Hero | 居中大标题白色 + 金色副标题，金线横贯画面中部 |
-| Slide 2 | Statement | 大字陈述，金线和框架重新排列 |
-| Slide 3 | 3-Column Pillars | 金线作为栏顶分隔，三个 roundRect 卡片 (opacity 0.12) 并排，编号 + 标题 + 描述 |
-| Slide 4 | Metrics / Performance | 金色框架放大为数据背景区，展示 $128M / 34% / #1 等指标 |
-| Slide 5 | CTA / Closing | 框架收缩为角落装饰，居中大标题 + 金色副标题 |
+- **Gold fine line separators**: Horizontal gold lines (height=0.08cm), vertical navy lines (width=0.06cm) building refined grid
+- **Semi-transparent frames**: `roundRect` as card background (opacity 0.12-0.45), alternating gold and navy
+- **Gold dot accents**: Small `ellipse` as visual anchors, gold opacity 0.6, white opacity 0.3
+- **High contrast on dark background**: White titles + gold subtitles, forming strong hierarchy on deep navy
+- **Morph animation**: Gold lines and frames rearrange between pages, frames transform into data area backgrounds
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (Hero)** — 8 个 scene actor 的初始布局，金线 + 框架 + 圆点的组合
-- **Slide 3 (Pillars)** — 框架变形为卡片底色，金线变为栏顶分隔线
-- **Slide 4 (Metrics)** — 框架放大变色为数据区域背景的高级技法
+## Scene Elements
 
-不需要全部阅读，选 2-3 个代表页面即可。
+8 scene elements total, different positions on each page:
+
+| Name             | preset    | fill   | opacity | Typical Size  | Description                 |
+| ---------------- | --------- | ------ | ------- | ------------- | --------------------------- |
+| `!!bar-gold`     | rect      | C9A84C | 1.0     | 18cm x 0.08cm | Gold horizontal line        |
+| `!!bar-navy`     | rect      | 1E3A5F | 1.0     | 0.06cm x 14cm | Navy vertical line          |
+| `!!frame-gold`   | roundRect | C9A84C | 0.15    | 8cm x 6cm     | Gold semi-transparent frame |
+| `!!frame-navy`   | roundRect | 1E3A5F | 0.30    | 10cm x 6cm    | Navy semi-transparent frame |
+| `!!accent-gold`  | ellipse   | C9A84C | 0.20    | 3cm x 3cm     | Gold accent circle          |
+| `!!accent-steel` | ellipse   | 8EACC1 | 0.15    | 4cm x 4cm     | Steel blue accent circle    |
+| `!!dot-gold`     | ellipse   | C9A84C | 0.60    | 1.5cm x 1.5cm | Gold small dot              |
+| `!!dot-white`    | ellipse   | FFFFFF | 0.30    | 1cm x 1cm     | White small dot             |
+
+## Page Structure
+
+5 pages total, Slides 2-5 set `transition=morph`:
+
+| Slide   | Type                  | Description                                                                                                          |
+| ------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Slide 1 | Hero                  | Centered large title in white + gold subtitle, gold line across center                                               |
+| Slide 2 | Statement             | Large statement text, gold lines and frames rearranged                                                               |
+| Slide 3 | 3-Column Pillars      | Gold lines as column top separators, three roundRect cards (opacity 0.12) side by side, number + title + description |
+| Slide 4 | Metrics / Performance | Gold frame enlarged as data background area, showing metrics like $128M / 34% / #1                                   |
+| Slide 5 | CTA / Closing         | Frames shrink to corner accents, centered large title + gold subtitle                                                |
+
+## Reference Script
+
+Complete build script is in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (Hero)** — Initial layout of 8 scene actors, combination of gold lines + frames + dots
+- **Slide 3 (Pillars)** — Frames transform into card backgrounds, gold lines become column top separators
+- **Slide 4 (Metrics)** — Advanced technique of frames enlarging and changing color to data area background
+
+No need to read all — skim 2-3 representative slides.

@@ -1,30 +1,35 @@
-# S16-watercolor-wash — 水彩晕染
+# S16-watercolor-wash — Watercolor Wash
 
-## 风格概述
-暖白底色上用极低透明度的彩色椭圆模拟水彩晕染效果，营造柔和诗意氛围。
+## Style Overview
 
-- **场景**: 艺术、文创、茶道、婚礼
-- **情绪**: 柔和、诗意、文艺
-- **色调**: 暖白底 + 天蓝/蜜桃/鼠尾草/薰衣草多色晕染
+Warm white base color using extremely low transparency colored ellipses to simulate watercolor wash effect, creating a soft and poetic atmosphere.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Warm White | FFFDF7 | 背景底色 |
-| Sky Blue | 7AADCF | 水彩晕染色块 |
-| Peach | E8A87C | 水彩晕染色块 |
-| Sage Green | B5C99A | 水彩晕染色块 |
-| Lavender | D4A5C9 | 水彩晕染色块 |
+- **Scene**: Art, cultural creativity, tea ceremony, weddings
+- **Mood**: Soft, poetic, artistic
+- **Color Tone**: Warm white base + sky blue/peach/sage/lavender multicolor wash
 
-## 设计手法
-- 全部装饰形状均为 ellipse，不使用 rect，保持圆润柔和
-- 所有色块 opacity 极低（0.06-0.12），模拟水彩颜料渗透纸面的效果
-- 多个椭圆重叠产生自然的色彩混合与边缘渐变
-- 文字使用细体/衬线字体，与水彩质感呼应
+## Color Palette
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1 (hero)** — 多色低透明度椭圆的叠加方式
-- **Slide 4 (evidence)** — 色块与内容区域的配合关系
-不需要全部阅读，选 2-3 个代表页面即可。
+| Name       | Hex    | Usage                       |
+| ---------- | ------ | --------------------------- |
+| Warm White | FFFDF7 | Background base color       |
+| Sky Blue   | 7AADCF | Watercolor wash color block |
+| Peach      | E8A87C | Watercolor wash color block |
+| Sage Green | B5C99A | Watercolor wash color block |
+| Lavender   | D4A5C9 | Watercolor wash color block |
+
+## Design Techniques
+
+- All decorative shapes are ellipses, no rectangles used, maintaining rounded softness
+- All color blocks have extremely low opacity (0.06-0.12), simulating watercolor pigment seeping into paper effect
+- Multiple overlapping ellipses produce natural color mixing and edge gradients
+- Typography uses thin/serif fonts, echoing the watercolor texture
+
+## Reference Script
+
+Complete build script is in `build.sh`.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1 (hero)** — Method of layering multicolor low transparency ellipses
+- **Slide 4 (evidence)** — Relationship between color blocks and content areas
+  No need to read all — skim 2-3 representative slides.

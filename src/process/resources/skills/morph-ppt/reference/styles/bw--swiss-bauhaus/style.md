@@ -1,47 +1,54 @@
-# Swiss Bauhaus — 瑞士包豪斯
+# Swiss Bauhaus — Swiss Bauhaus
 
-## 风格概述
-严格的红黑白三色几何网格，经典瑞士/包豪斯设计风格。
+## Style Overview
 
-- **场景**: 设计机构、建筑事务所、艺术展览、品牌设计
-- **情绪**: 理性、严谨、经典、克制
-- **色调**: 红黑白三色
+Strict red-black-white three-color geometric grid, classic Swiss/Bauhaus design style.
 
-## 配色
-| 名称 | 色值 | 用途 |
-|------|------|------|
-| Off-White | F5F5F5 | 背景色 |
-| Bauhaus Red | E63322 | 主色块、强调色 |
-| Near Black | 1C1C1C | 色块、文字 |
-| White | F5F5F5 | 色块（与背景同色） |
+- **Scene**: Design agencies, architectural firms, art exhibitions, brand design
+- **Mood**: Rational, rigorous, classic, restrained
+- **Tone**: Red-black-white three colors
 
-严格红/黑/白三色配色，不使用其他颜色。
+## Color Palette
 
-## 字体
-- 标题：Segoe UI Black
-- 正文：Segoe UI
-- 注意：不使用 Impact 字体（脚本注释中有明确说明）
+| Name        | Hex    | Usage                        |
+| ----------- | ------ | ---------------------------- |
+| Off-White   | F5F5F5 | Background                   |
+| Bauhaus Red | E63322 | Main blocks, accent color    |
+| Near Black  | 1C1C1C | Blocks, text                 |
+| White       | F5F5F5 | Blocks (matching background) |
 
-## 场景元素
-- blk-a（红色矩形）、blk-b（深色矩形）、blk-c（白色矩形）— 主要色块
-- bar-1（细线条）— 网格/分隔线
-- dot-1、dot-2（小方块）— 几何标点装饰
-- photo-1、photo-2 — 照片元素
-- 使用图片素材（design-workshop.jpg, design-abstract.jpg, team1.jpg）— 作为风格参考时可忽略
+Strict red/black/white three-color palette, no other colors used.
 
-## 设计手法
-- 经典瑞士/包豪斯设计 — 严格几何网格
-- 大色块在每页戏剧性重组：左列 → 顶栏 → 中间带 → 底部填充 → 全覆盖
-- 细线条（bar）创建网格/标尺线
-- 小方块（dot）作为几何标点装饰
-- 文字遵循严格的边距规则（x≥1.6cm，width≤block-2cm）
-- 6 页幻灯片
+## Typography
 
-## 参考脚本
-完整构建脚本见 `build.sh`。
-注意：脚本中使用了 assets/ 目录的图片资源，作为风格参考时可忽略图片部分。
-**推荐阅读以下页面理解核心设计手法**：
-- **Slide 1** — 标题页，色块初始几何布局 + 细线网格
-- **Slide 4** — 色块大幅重组，展示从左列到横栏的戏剧性变形
-- **Slide 6** — 色块全覆盖终态，理解完整的形变序列
-不需要全部阅读，选 2-3 个代表页面即可。
+- Titles: Segoe UI Black
+- Body: Segoe UI
+- Note: Impact font not used (explicitly stated in script comments)
+
+## Scene Elements
+
+- blk-a (red rectangle), blk-b (dark rectangle), blk-c (white rectangle) — Main color blocks
+- bar-1 (thin lines) — Grid/divider lines
+- dot-1, dot-2 (small squares) — Geometric punctuation decorations
+- photo-1, photo-2 — Photo elements
+- Uses image assets (design-workshop.jpg, design-abstract.jpg, team1.jpg) — can be ignored when using as style reference
+
+## Design Techniques
+
+- Classic Swiss/Bauhaus design — strict geometric grid
+- Large color blocks dramatically reorganize on each page: left column → top bar → middle band → bottom fill → full coverage
+- Thin lines (bar) create grid/ruler lines
+- Small squares (dot) as geometric punctuation decorations
+- Text follows strict margin rules (x≥1.6cm, width≤block-2cm)
+- 6 slides
+
+## Reference Script
+
+Complete build script available in `build.sh`.
+Note: Script uses image resources from assets/ directory, image parts can be ignored when using as style reference.
+**Recommended slides to read for understanding core design techniques**:
+
+- **Slide 1** — Title page, initial geometric layout of blocks + thin line grid
+- **Slide 4** — Major block reorganization, demonstrating dramatic transformation from left column to horizontal bar
+- **Slide 6** — Full block coverage final state, understanding complete transformation sequence
+  No need to read all — skim 2-3 representative slides.
