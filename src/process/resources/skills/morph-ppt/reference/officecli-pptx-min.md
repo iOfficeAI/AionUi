@@ -81,56 +81,48 @@ transition=morph-byChar   # Match by character (character-by-character text anim
 - Do not add entrance animations by default (each animation adds one extra click)
 - If an entrance is truly needed, use the `with` trigger: `animation=fade-entrance-300-with`
 
-### Shell Script Rules (CRITICAL when generating build.sh)
+### Shell Script Rules (CRITICAL — read before generating any commands)
 
-When generating `build.sh` or using `officecli batch`, follow these rules to avoid errors.
+**⚠️ TOP 3 MOST COMMON ERRORS**:
 
-**⚠️ TOP 3 MOST COMMON ERRORS (read these first!)**:
-
-1. **Boolean values MUST be strings in batch JSON**
-   - ✅ `{"props":{"bold":"true","italic":"false"}}`
-   - ❌ `{"props":{"bold":true}}` (officecli rejects non-string values)
-   - This applies to: bold, italic, underline, strikethrough, autoplay, autoFit, flipH, flipV
-
-2. **XPath only supports numeric indexing — NEVER use name-based indexing**
+1. **XPath only supports numeric indexing — NEVER use name-based indexing**
    - ✅ `'/slide[1]/shape[3]'` (numeric index)
-   - ❌ `'/slide[1]/shape[@name="dot-main"]'` (will error: not supported)
+   - ❌ `'/slide[1]/shape[@name="dot-main"]'` (will error)
    - To find a shape's index by name: `officecli get <file> '/slide[1]' --depth 1`
 
-3. **Negative coordinates are NOT supported**
+2. **Negative coordinates are NOT supported**
    - ❌ `x=-3cm` (will error)
    - ✅ `x=36cm` (ghost position, off right edge of canvas)
 
-**All rules**:
-
-4. **Property format**: ALL properties use `--prop key=value`
+3. **ALL properties use `--prop key=value`** — no standalone arguments
    - ✅ `--prop name="!!bg-glow1"`
    - ❌ `--name "!!bg-glow1"` (Unrecognized argument)
 
-5. **Path wrapping**: Wrap XPath in single quotes
+**`set` command rules** (used for slide-by-slide generation):
+
+4. **Path wrapping**: Wrap XPath in single quotes
    - ✅ `'/slide[1]/shape[2]'`
    - ❌ `/slide[1]/shape[2]` (shell may expand brackets)
 
-6. **Property value wrapping**: Wrap values in double quotes
+5. **Property value wrapping**: Wrap values in double quotes
    - ✅ `--prop text="Hello World"`
    - ❌ `--prop text=Hello World` (shell splits on space)
 
-7. **Multi-line text**: Do NOT use `\n` inside `--prop text="..."`
+6. **Multi-line text**: Do NOT use `\n` inside `--prop text="..."`
+   - ✅ `--prop text="Line 1\\nLine 2"` (escaped) or split into multiple text boxes
    - ❌ `--prop text="Line 1\nLine 2"` (shell parsing error)
-   - ✅ `--prop text="Line 1\\nLine 2"` (escaped newline)
-   - ✅ Or split into multiple text boxes
 
-8. **Line continuation**: NO trailing spaces after `\`
-   - ✅ `--prop x=2cm \` (clean backslash)
-   - ❌ `--prop x=2cm \ ` (trailing space breaks continuation)
+7. **Line continuation**: NO trailing spaces after `\`
 
-9. **Quotes nesting**: Avoid mixing nested quotes
-   - ✅ Use JSON format for batch with proper escaping
-   - ❌ `'--prop text="It's"'` (quote conflict)
+**`batch` JSON rules** (only if you choose to use batch — individual `set` commands are preferred):
 
-10. **Batch JSON escaping**: Escape double quotes inside JSON strings
-    - ✅ `{"props":{"text":"It\\'s working"}}`
-    - ❌ `{"props":{"text":"It's working"}}` (breaks JSON)
+8. **Boolean values MUST be strings**
+   - ✅ `{"props":{"bold":"true"}}`
+   - ❌ `{"props":{"bold":true}}` (officecli rejects non-string values)
+
+9. **Escape quotes in JSON strings**
+   - ✅ `{"props":{"text":"It\\'s working"}}`
+   - ❌ `{"props":{"text":"It's working"}}` (breaks JSON)
 
 ## 3) Command Reference
 
