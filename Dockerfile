@@ -1,24 +1,36 @@
-FROM node:20-slim
+FROM node:20-slim AS builder
 WORKDIR /app
 
 # Install bun
 RUN npm install -g bun
 
-# Copy source and install production dependencies
+# Install all dependencies (including devDeps for build)
+COPY package.json bun.lockb ./
+RUN bun install
+
+# Copy source
+COPY . .
+
+# Build renderer (no Electron needed) and server bundle
+RUN bun run build:renderer:web
+RUN node scripts/build-server.mjs
+
+# ---- Runtime image ----
+FROM oven/bun:latest AS runtime
+WORKDIR /app
+
+# Copy only build artifacts and production deps
+COPY --from=builder /app/dist-server ./dist-server
+COPY --from=builder /app/out/renderer ./out/renderer
 COPY package.json bun.lockb ./
 RUN bun install --production
 
-# Copy remaining source
-COPY . .
-
-# Build standalone server bundle
-RUN bun build src/server.ts --outdir dist-server --target node
-
 ENV PORT=3000
+ENV NODE_ENV=production
 ENV ALLOW_REMOTE=true
 
 # SQLite data volume — mount with: -v $(pwd)/data:/data -e DATA_DIR=/data
 VOLUME ["/data"]
 EXPOSE 3000
 
-CMD ["node", "dist-server/server.js"]
+CMD ["bun", "dist-server/server.mjs"]
