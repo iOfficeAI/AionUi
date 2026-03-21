@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { ContextMenuState } from '../types';
 
 interface UseWorkspaceEventsOptions {
@@ -85,23 +85,43 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   ]);
 
   /**
-   * 监听 Agent 响应流 - 自动刷新工作空间
-   * Listen to agent response stream - auto refresh workspace
+   * 节流的刷新函数 - 避免 Agent 连续 tool_call 导致工作空间反复刷新
+   * Throttled refresh - prevent rapid workspace refreshes during agent tool calls
+   */
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const throttledRefresh = useCallback(() => {
+    if (throttleTimerRef.current) return;
+    refreshWorkspace();
+    throttleTimerRef.current = setTimeout(() => {
+      throttleTimerRef.current = null;
+    }, 2000);
+  }, [refreshWorkspace]);
+
+  // Cleanup throttle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+    };
+  }, []);
+
+  /**
+   * 监听 Agent 响应流 - 自动刷新工作空间（节流）
+   * Listen to agent response stream - auto refresh workspace (throttled)
    */
   useEffect(() => {
     const handleGeminiResponse = (data: { type: string }) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
-        refreshWorkspace();
+        throttledRefresh();
       }
     };
     const handleAcpResponse = (data: { type: string }) => {
       if (data.type === 'acp_tool_call') {
-        refreshWorkspace();
+        throttledRefresh();
       }
     };
     const handleCodexResponse = (data: { type: string }) => {
       if (data.type === 'codex_tool_call') {
-        refreshWorkspace();
+        throttledRefresh();
       }
     };
     const unsubscribeGemini = ipcBridge.geminiConversation.responseStream.on(handleGeminiResponse);
@@ -113,7 +133,7 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
       unsubscribeAcp();
       unsubscribeCodex();
     };
-  }, [conversation_id, eventPrefix, refreshWorkspace]);
+  }, [conversation_id, eventPrefix, throttledRefresh]);
 
   /**
    * 监听手动刷新工作空间事件
