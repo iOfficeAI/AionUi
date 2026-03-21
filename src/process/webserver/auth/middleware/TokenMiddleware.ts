@@ -6,7 +6,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import type { IncomingMessage } from "http";
-import cookie from "cookie";
+import * as cookie from "cookie";
 import { AuthService } from "../service/AuthService";
 import { UserRepository } from "../repository/UserRepository";
 import { AUTH_CONFIG } from "../../config/constants";

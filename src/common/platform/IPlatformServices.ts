@@ -35,6 +35,12 @@ export interface IPlatformPaths {
   getName(): string;
   /** Application version string used for MCP client identification. */
   getVersion(): string;
+  /**
+   * Whether CLI-safe symlinks should be created in the home directory.
+   * True only for Electron on macOS, where userData lives under "Application Support" (contains spaces).
+   * False for standalone server mode, where data dir has no spaces.
+   */
+  needsCliSafeSymlinks(): boolean;
 }
 
 /**

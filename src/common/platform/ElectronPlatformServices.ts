@@ -37,6 +37,7 @@ export class ElectronPlatformServices implements IPlatformServices {
       app.getPath(name),
     getName: () => app.getName(),
     getVersion: () => app.getVersion(),
+    needsCliSafeSymlinks: () => process.platform === "darwin",
   };
 
   worker = {
