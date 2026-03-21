@@ -58,8 +58,7 @@
     "server:prod":        "bunx vite build --config vite.renderer.config.ts && node scripts/build-server.mjs && cross-env NODE_ENV=production bun dist-server/server.mjs",
     "server:prod:remote": "bunx vite build --config vite.renderer.config.ts && node scripts/build-server.mjs && cross-env NODE_ENV=production ALLOW_REMOTE=true bun dist-server/server.mjs",
     "build:renderer:web": "bunx vite build --config vite.renderer.config.ts",
-    "build:server":       "node scripts/build-server.mjs",
-    "build:server:run":   "node scripts/build-server.mjs && node dist-server/server.mjs"
+    "build:server":       "node scripts/build-server.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
