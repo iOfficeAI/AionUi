@@ -527,7 +527,7 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    - Actors needed on slide 1: place at their normal positions
    - Actors not needed on slide 1: place off-screen (`x=36cm`, spread y-coordinates)
 
-3. **Create slide 2 and adjust actors (use batch!)**
+3. **Create slide 2 by cloning slide 1 (use batch!)**
 
    ```bash
    officecli add <topic-name>.pptx '/' --from '/slide[1]'  # clone slide 1
@@ -540,12 +540,23 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    ]' | officecli batch <topic-name>.pptx
    ```
 
-4. **Repeat step 3 for remaining slides**
-   - Clone slide 1 for each new slide (ensures all actors are present)
+4. **Create slide 3+ by cloning the PREVIOUS slide (NOT slide 1!)**
+
+   ```bash
+   officecli add <topic-name>.pptx '/' --from '/slide[2]'  # clone PREVIOUS slide
+   ```
+
+   **Why clone from the previous slide instead of slide 1?**
+   - Actors already ghosted on slide 2 **stay ghosted** on slide 3 automatically
+   - You only need to handle the **delta** (ghost previous content, activate new content)
+   - Cloning from slide 1 resets ALL actors to their original positions, causing forgotten ghost bugs
+
+   **Per-slide workflow**:
    - **MUST set `transition=morph`** on every new slide
    - **Use `officecli batch`** to adjust all actors + add content in one call per slide
-   - Actors not needed → move to `x=36cm` off-screen
-   - Previous slide's headline/content actors → also ghost to `x=36cm`
+   - Ghost the **previous slide's** headline/content actors → `x=36cm`
+   - Activate the **current slide's** headline/content actors → move to visible positions
+   - Adjust scene actors for spatial differentiation
 
 5. **Validate**
    ```bash
@@ -575,11 +586,12 @@ After creating/adjusting each slide, verify ALL of the following:
 
 - Ensures all slides have actors with the same names (the key to Morph pairing)
 - No need to delete actors; just move their positions
-- All official templates use this approach
+- **Cloning from the previous slide** carries forward ghost states, preventing the #1 defect (text overlap)
 - Delivers the best and most reliable Morph effects
 
 **Not recommended**:
 
+- ❌ Cloning from slide 1 for every slide (resets all ghost states, easy to forget re-ghosting → text overlap)
 - ❌ Creating different shapes independently on each slide (inconsistent names, poor Morph results)
 - ❌ Deleting unneeded actors (causes actor mismatches between adjacent slides)
 - ❌ Using batch to create all slides at once with different shapes (breaks Morph pairing)
