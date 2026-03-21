@@ -28,17 +28,20 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
 
 ### Style Quick Reference (choose by use case, no need to read files)
 
-| Use Case                  | Recommended Styles (directory names)                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Tech / AI / SaaS**      | `dark--tech-architecture`, `light--isometric-clean`                                                      |
-| **Investment / Pitch**    | `dark--investor-pitch`, `dark--premium-navy`, `light--project-proposal`                                  |
-| **Corporate / Reports**   | `light--minimal-corporate`, `light--minimal-product`, `dark--premium-navy`                               |
-| **Brand / Marketing**     | `warm--brand-refresh`, `warm--creative-marketing`, `vivid--playful-marketing`, `dark--creative-gradient` |
-| **Design / Architecture** | `bw--swiss-bauhaus`, `dark--architectural-plan`, `mixed--duotone-split`                                  |
-| **Education / Training**  | `light--training-interactive`, `warm--playful-blocks`, `vivid--candy-stripe`                             |
-| **Keynotes / Events**     | `dark--spotlight-stage`, `dark--liquid-flow`                                                             |
-| **Developer / Technical** | `dark--retro-terminal`, `dark--blueprint-grid`                                                           |
-| **Eco / Nature**          | `warm--earth-organic`, `warm--organic-sweet`, `light--spring-launch`                                     |
+| Use Case                    | Recommended Styles (directory names)                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Tech / AI / SaaS**        | `dark--tech-cosmos`, `dark--cyber-future`, `light--isometric-clean`                             |
+| **Investment / Pitch**      | `dark--investor-pitch`, `dark--premium-navy`, `light--project-proposal`                         |
+| **Corporate / Reports**     | `light--minimal-corporate`, `light--minimal-product`, `dark--premium-navy`                      |
+| **Brand / Marketing**       | `warm--brand-refresh`, `warm--creative-marketing`, `vivid--playful-marketing`, `warm--minimal-brand` |
+| **Design / Architecture**   | `bw--swiss-bauhaus`, `dark--architectural-plan`, `mixed--duotone-split`                         |
+| **Education / Training**    | `light--training-interactive`, `warm--playful-organic`, `vivid--candy-stripe`                   |
+| **Keynotes / Events**       | `dark--spotlight-stage`, `dark--liquid-flow`                                                    |
+| **Developer / Technical**   | `dark--cyber-future`, `dark--blueprint-grid`, `dark--tech-cosmos`                               |
+| **Eco / Nature**            | `warm--earth-organic`, `warm--minimal-brand`, `light--spring-launch`                            |
+| **Sci-Fi / Space**          | `dark--space-odyssey`, `dark--cosmic-neon`, `dark--cyber-future`                                |
+| **Luxury / Premium**        | `dark--luxury-minimal`, `dark--premium-navy`, `warm--minimal-brand`                             |
+| **Productivity / Motivation** | `dark--neon-productivity`, `dark--cyber-future`                                               |
 
 **When to read full style files**: Only when the user requests a specific style, or you need deep design inspiration. Read `reference/styles/<dir>/style.md` for philosophy; skim `build.sh` for technique reference (2-3 pages enough).
 
