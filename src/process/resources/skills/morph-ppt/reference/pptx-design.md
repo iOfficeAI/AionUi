@@ -62,10 +62,8 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
    - Go to `reference/styles/INDEX.md` → find the "Quick Lookup by Use Case" table
    - Select 1-2 matching styles based on topic and use case
    - Read `reference/styles/<selected-style>/style.md` for color palette and design philosophy
-   - **You may adapt the palette** (adjust saturation, swap colors) but **MUST NOT use generic AIGC palettes**:
-     - ❌ Dark blue background + cyan + purple + gradient circles (cookie-cutter)
-     - ❌ Dark purple background + pink + blue gradient (typical AI-generated style)
-   - **Create freely ONLY if you draw clear inspiration from the reference** (not guessing randomly)
+   - **You may adapt the palette** (adjust saturation, swap colors) — aim for a unique, non-generic look
+   - Create freely, drawing clear inspiration from the selected reference style
 
 2. **Layout Serves Content**
    - Data-heavy: consider clear grouping, grid alignment, visual noise reduction
@@ -159,124 +157,61 @@ Decision:
 - `#F39C12` (orange) = 160 -> light -> use black text
 - `#FFFFFF` (white) = 255 -> light -> use black text
 
-**Prohibited combinations**:
+**Safe combinations**:
 
-- Dark blue text on dark blue background (completely invisible)
-- White text on light gray background (insufficient contrast)
-- Black text on dark red background (poor readability)
-- Gray text on gray background (indistinguishable)
+- White text (#FFFFFF) on dark backgrounds (#000000–#555555)
+- Black/dark gray text (#000000–#333333) on light backgrounds (#EEEEEE–#FFFFFF)
+- For mixed backgrounds: add a semi-transparent backing block behind the text
 
-**Recommended safe combinations**:
-
-- White text on dark background (#FFFFFF on #000000-#555555)
-- Black/dark gray text on light background (#000000-#333333 on #EEEEEE-#FFFFFF)
-- Dark text + light background block (add semi-transparent white backing behind text)
-- Light text + dark background block (add semi-transparent black backing behind text)
-
-**Verification method**:
-
-- After generating each text box, check the `color` property against the background color at that position
-- If the background is a scene actor, check that actor's `fill` and `opacity`
-- If the background is the slide background, check the `background` property
-- **Ensure sufficient contrast — better to have too much contrast than too little**
+**Tip**: When in doubt, choose high contrast — it's always more readable.
 
 ## 4) Actor System
 
-### Three-Layer Actors (mandatory)
+### Two Types of Actors
 
-| Layer           | Purpose                                                                 | Suggested Count |
-| --------------- | ----------------------------------------------------------------------- | --------------- |
-| Scene actors    | Geometric decoration; participate in morph transitions to create motion |
-| Headline actors | Titles / subtitles / lead-in text                                       | 2-4             |
-| Content actors  | Cards, numbers, descriptions, labels, etc.                              |
+| Type | Lifecycle | Purpose |
+| --- | --- | --- |
+| **Scene actors** | Persist across all slides (defined on slide 1, cloned forward) | Geometric decoration — create smooth Morph motion between slides |
+| **Content** | Added fresh on each slide | Titles, text, numbers, cards — changes every slide |
 
-### Scene Actor Design Rules
+### Scene Actors (6-8 per deck)
 
-**Best Practices (based on official templates)**:
+Scene actors are the engine of Morph animation. They have **fixed names** and appear on every slide — only their properties change (position, size, rotation, color, opacity).
 
-1. **Define a fixed set of scene actors** (6-8)
-   - Each actor has a fixed name (e.g., `!!line-top`, `!!dot-accent`, `!!slash-main`)
-   - Create all actors on slide 1 (including those used only on later slides)
-   - Shape types: ellipse, rect, roundRect, triangle, diamond, etc. (or custom SVG path)
-   - Mix sizes: large (5-8cm) + medium (2-4cm) + small accents (1-2cm)
-   - Choose colors from the theme palette to match the overall style
-   - Transparency: decorative backgrounds should have opacity <= 0.12 to avoid obscuring content
+**Setup**:
+- Define all scene actors on slide 1 with named identifiers (e.g., `name="dot-main"`, `name="line-top"`)
+- officecli automatically adds the `!!` prefix for Morph pairing — just use plain names
+- Mix sizes: large (5-8cm) + medium (2-4cm) + small accents (1-2cm)
+- Shape types: ellipse, rect, roundRect, triangle, diamond, star5, hexagon, or custom SVG via `geometry`
+- Decorative opacity: <= 0.12 so they don't obscure content
 
-2. **Use the same actors on every slide, changing only their properties**
-   - Change position (x, y)
-   - Change size (width, height)
-   - Change rotation (rotation)
-   - Change color (fill)
-   - Change opacity (opacity)
+**How Morph pairing works**:
+- PowerPoint matches shapes by **name** across adjacent slides
+- Same name + different properties = smooth animated transition
+- To hide a scene actor on a slide, move it off-screen: `x=36cm` (ghost position, right of canvas)
+- To bring it back, move it to a visible position on the next slide
 
-3. **Actors not needed on a slide -> move off-screen (ghost)**
-   - Ghost position: `x=36cm` (off the right edge of the canvas)
-   - **Do NOT use negative coordinates** (`x=-3cm` will error; officecli does not support this)
-   - Spread y-coordinates to avoid overlap: `y=0cm`, `y=5cm`, `y=10cm`, `y=15cm`
-
-4. **Shape selection**
-   - **Basic geometry**: ellipse, rect, roundRect, triangle, diamond, star5, hexagon
-   - **Complex presets**: arrow, chevron, cloud, heart, moon, sun, wave, etc.
-   - **Custom shapes**: use the `geometry` property with an SVG path
-
-**Example**:
-
+**Example** — 3 scene actors across 3 slides:
 ```
-Slide 1: !!dot-main (x=2cm, y=3cm), !!line-top (x=5cm, y=1cm), !!slash-accent (x=10cm, rotation=30)
-Slide 2: !!dot-main (x=8cm, y=10cm), !!line-top (x=15cm, y=5cm), !!slash-accent (x=20cm, rotation=60)
-Slide 3: !!dot-main (x=36cm, y=0cm) [ghost], !!line-top (x=10cm, y=2cm), !!slash-accent (x=25cm, rotation=0)
+Slide 1: dot-main (x=2cm, y=3cm), line-top (x=5cm, y=1cm), slash-accent (x=10cm, rotation=30)
+Slide 2: dot-main (x=8cm, y=10cm), line-top (x=15cm, y=5cm), slash-accent (x=20cm, rotation=60)
+Slide 3: dot-main (x=36cm) [hidden], line-top (x=10cm, y=2cm), slash-accent (x=25cm, rotation=0)
 ```
 
-### Headline & Content Actor Rules
+### Content (added fresh per slide)
 
-- **Content actors are added fresh on each slide** — do NOT pre-define all slide types' content on slide 1
-- Only scene actors need to persist across slides (for Morph). Content text changes every slide, so Morph just cross-fades it — no benefit from same-name pairing
-- When cloning from the previous slide, **ghost the previous slide's content** (`x=36cm`), then `add` new content for the current slide
+Content (titles, body text, numbers, cards) is added fresh on each slide. Since text changes every slide, Morph just cross-fades it — no benefit from same-name pairing.
 
-### Morph Auto-Pairing (Important!)
-
-**How it works**:
-
-- When officecli sets `transition=morph`, it automatically adds a `!!` prefix to shape names
-- PowerPoint morph pairs shapes across adjacent slides by **name** (same name = forced pairing)
-- Successful pairing -> smooth morph animation (position, size, rotation, color transition)
-- Failed pairing -> simple fade in/out (no morphing)
-
-**Best Practices (strongly recommended)**:
-
-1. **All scene actors should use fixed names**
-   - Slide 1: `!!dot-main`, `!!line-top`, `!!slash-accent`
-   - Slide 2: `!!dot-main`, `!!line-top`, `!!slash-accent` (same names, different positions)
-   - Slide 3: `!!dot-main`, `!!line-top`, `!!slash-accent` (same names, different positions)
-   - **Every slide has these actors; only their position/size/rotation/color changes**
-
-2. **Actors not needed on a slide -> ghost position (`x=36cm`)**
-   - Slide 1 needs `!!dot-main` -> `x=2cm, y=3cm`
-   - Slide 2 doesn't need `!!dot-main` -> `x=36cm, y=0cm` (off-screen)
-   - Slide 3 needs `!!dot-main` again -> `x=8cm, y=10cm`
-   - **Do not delete; just move off-screen**
-
-   **⚠️ #1 DEFECT: TEXT OVERLAP FROM UN-GHOSTED CONTENT**
-
-   When cloning from the previous slide, the previous slide's content actors come along. If you don't ghost them (`x=36cm`) before adding new content, old text overlaps with new text.
-
-   **Fix**: Always ghost ALL of the previous slide's content actors before adding new ones.
-
-3. **Automatic `!!` prefix**
-   - officecli handles this automatically; no need to manually name shapes `!!xxx`
-   - Just give the shape a name (e.g., `name="dot-main"`), and officecli will process it to `!!dot-main`
-
-**Technically possible but not recommended**:
-
-- PowerPoint Morph can heuristically match shapes by type/position/size (different names but similar shapes)
-- But the results are unreliable — pairing errors or plain fades are common
-- **All official templates use the fixed-name approach**
+**Per-slide workflow**:
+1. Clone the previous slide (scene actors carry forward)
+2. Ghost the previous slide's content to `x=36cm`
+3. Add this slide's new content with `officecli add`
 
 ### Coordinate Notes
 
-- **officecli does not support negative coordinates** (`x=-3cm` will error)
-- Use `x=36cm` (off the right edge) uniformly for ghosting; do not use negative coordinates
-- If you need a shape to extend beyond the left canvas edge: use `x=0cm` flush to the edge + a large size so the shape naturally overflows
+- Ghost position: `x=36cm` (off the right edge of the 33.87cm canvas)
+- Spread y-coordinates for ghosted shapes: `y=0cm`, `y=5cm`, `y=10cm`, `y=15cm`
+- Coordinates start at `x=0cm` — negative values are not supported
 
 ## 5) Page Type Menu (combine as needed; not a fixed order)
 
@@ -286,7 +221,6 @@ Below are the available page types. **Choose one type per slide based on the sli
 
 - Large centered title + subtitle + tagline
 - Scene actors scattered across corners/edges, retaining their original geometric forms
-- All content actors ghosted
 
 ### statement — Key Point / Transition
 
@@ -336,7 +270,6 @@ Below are the available page types. **Choose one type per slide based on the sli
 
 - Title returns to large and centered
 - Scene actors revert to geometric forms scattered along edges, echoing the hero but not identical
-- Content actors return to ghost (spread across different positions)
 
 ### showcase — Featured Display (product / screenshot)
 
@@ -354,27 +287,16 @@ Every pair of adjacent slides MUST satisfy:
 2. At least **2 are headline/content actors**
 3. At least **1 has a significant change** (displacement >= 2.7cm / size >= 20% / rotation >= 15 deg / preset morph)
 
-### Spatial Structure Differentiation Rules
+### Spatial Structure Differentiation
 
-- **Adjacent slides MUST have noticeably different scene actor spatial structures**
-- Consecutive slides with "N-column even split" or "full-width bar + columns" are prohibited
-- Good rhythm example: scattered -> structured -> asymmetric -> scattered -> converging
-- Bad rhythm example: three-column -> three-column -> three-column
-
-### Pairing Strategy (critical! directly affects animation quality)
-
-- Morph achieves morph animation through **shape name matching**
-- **Adjacent slides must have shapes with the same names** for morph to produce smooth transitions
-- If adjacent slides have completely different shape names -> morph only does fade in/out -> **appears as if there is no animation**
-- Therefore **scene actors must use fixed names** (e.g., `!!dot-main`); every slide has these actors, only their properties change
-- To make a shape "appear from nowhere" -> place it off-screen (ghost) on the previous slide, move it onto the canvas on the current slide
-- To make a shape "disappear" -> move it off-screen (ghost) on the current slide; do not delete it
+- Adjacent slides should have **noticeably different** scene actor spatial structures
+- Vary the rhythm: scattered → structured → asymmetric → scattered → converging
+- Avoid repeating the same layout pattern (e.g., three-column → three-column → three-column)
 
 ### Entrance Effects
 
-- **Do not add entrance animations by default** — morph automatically handles shape appearance/disappearance/transformation; no additional animations are needed
-- Each entrance animation adds one extra click before advancing; multiple animations cause "many clicks before anything moves"
-- If an entrance is truly needed, MUST use the `with` trigger so it plays simultaneously with morph, adding no extra clicks
+- Morph handles shape transitions automatically — entrance animations are usually unnecessary
+- If an entrance is needed, use the `with` trigger so it plays simultaneously with morph: `animation=fade-entrance-300-with`
 
 ### Animation Format (if needed)
 
@@ -466,8 +388,7 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
 
 2. **Add scene actors + slide 1's content to slide 1**
    - 6-8 scene actors (these persist across all slides for Morph)
-   - Slide 1's own content only (hero title, subtitle, etc.)
-   - Do NOT pre-define content for other slide types
+   - Slide 1's own content (hero title, subtitle, etc.)
 
 3. **For each subsequent slide: clone previous → ghost old content → add new content → adjust scene**
 
@@ -510,14 +431,7 @@ After creating/adjusting each slide, verify ALL of the following:
 
 **Why this approach?**
 
-- **Scene actors morph beautifully** — same names across slides create smooth position/size/rotation transitions
-- **Content doesn't need Morph** — text changes every slide, so Morph just cross-fades it anyway
+- **Scene actors morph beautifully** — same names across slides create smooth animated transitions
+- **Content is fresh per slide** — text changes every slide, so it's simpler to add new content than manage pre-defined actors
 - **Clone from previous** carries scene actor positions forward; only ghost the previous slide's content
-- **Slide 1 stays simple** — ~10 shapes instead of 30+, easy to manage
-
-**Not recommended**:
-
-- ❌ Pre-defining all content actors for all slide types on slide 1 (bloated, complex index management)
-- ❌ Cloning from slide 1 for every slide (resets ghost states → text overlap)
-- ❌ Using batch JSON instead of individual `set` commands (causes boolean/escaping errors)
-- ❌ Deleting scene actors (breaks Morph pairing — ghost them instead)
+- **Slide 1 stays simple** — ~10 shapes, easy to manage and debug
