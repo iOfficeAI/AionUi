@@ -7,6 +7,8 @@
  * - Token via Sec-WebSocket-Protocol header
  */
 
+import { decodeJwtPayload } from '../utils/jwt';
+
 type WSMessage = { name: string; data: unknown };
 type MessageHandler = (name: string, data: unknown) => void;
 
@@ -30,6 +32,7 @@ export class WebSocketService {
   private deadConnectionTimer: ReturnType<typeof setInterval> | null = null;
   private authChallengeHandler: (() => Promise<boolean>) | null = null;
   private isHandlingAuthChallenge = false;
+  private heartbeatHandler: (() => void) | null = null;
 
   get state(): ConnectionState {
     return this._state;
@@ -59,12 +62,23 @@ export class WebSocketService {
     this.authChallengeHandler = handler;
   }
 
+  setHeartbeatHandler(handler: (() => void) | null) {
+    this.heartbeatHandler = handler;
+  }
+
   updateToken(token: string) {
     this.token = token;
   }
 
   connect() {
     if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    // If token is already expired, go through auth challenge instead of attempting connection
+    if (this.isTokenExpired()) {
+      console.warn('[WS] Token expired before connect, triggering auth challenge');
+      void this.handleAuthChallenge();
       return;
     }
 
@@ -97,6 +111,7 @@ export class WebSocketService {
         if (payload.name === 'ping') {
           this.lastPingReceived = Date.now();
           this.send('pong', { timestamp: Date.now() });
+          this.heartbeatHandler?.();
           return;
         }
 
@@ -236,6 +251,13 @@ export class WebSocketService {
       clearInterval(this.deadConnectionTimer);
       this.deadConnectionTimer = null;
     }
+  }
+
+  private isTokenExpired(): boolean {
+    if (!this.token) return false;
+    const payload = decodeJwtPayload(this.token);
+    if (!payload?.exp) return false;
+    return payload.exp * 1000 < Date.now();
   }
 }
 

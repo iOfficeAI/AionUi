@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import * as SecureStore from 'expo-secure-store';
 import { wsService, type ConnectionState } from '../services/websocket';
 import { configureApi, resetApi, refreshToken } from '../services/api';
+import { decodeJwtPayload } from '../utils/jwt';
 
 const STORAGE_KEY = 'aionui_connection';
 
@@ -31,71 +32,12 @@ const ConnectionContext = createContext<ConnectionContextType>({
   isRestoring: true,
 });
 
-/**
- * Decode JWT payload without importing a library.
- * Returns the parsed payload object, or null on failure.
- */
-function decodeJwtPayload(token: string): { exp?: number } | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    // Base64url → base64
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const json = atob(base64);
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
 export function ConnectionProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<ConnectionConfig | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [isRestoring, setIsRestoring] = useState(true);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const configRef = useRef<ConnectionConfig | null>(null);
   const isRecoveringRef = useRef(false);
-
-  const clearRefreshTimer = useCallback(() => {
-    if (refreshTimerRef.current !== null) {
-      clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleTokenRefresh = useCallback(
-    (token: string, currentConfig: ConnectionConfig) => {
-      clearRefreshTimer();
-      const payload = decodeJwtPayload(token);
-      if (!payload?.exp) return;
-
-      // Refresh 1 hour before expiry, but at least 1 minute from now
-      const refreshAt = payload.exp * 1000 - 3600_000;
-      const delay = Math.max(refreshAt - Date.now(), 60_000);
-
-      refreshTimerRef.current = setTimeout(async () => {
-        const newToken = await refreshToken(token);
-        if (!newToken) {
-          console.warn('[Connection] Token refresh failed');
-          return;
-        }
-
-        // Update stored config
-        const newConfig = { ...currentConfig, token: newToken };
-        await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(newConfig));
-        setConfig(newConfig);
-
-        // Reconfigure services and reconnect
-        configureApi(newConfig.host, newConfig.port, newConfig.token);
-        wsService.configure(newConfig.host, newConfig.port, newConfig.token);
-        wsService.reconnect();
-
-        // Schedule next refresh
-        scheduleTokenRefresh(newToken, newConfig);
-      }, delay);
-    },
-    [clearRefreshTimer],
-  );
 
   // Keep configRef in sync
   useEffect(() => {
@@ -118,11 +60,42 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
     wsService.updateToken(newToken);
     wsService.configure(newConfig.host, newConfig.port, newConfig.token);
     wsService.reconnect();
-    scheduleTokenRefresh(newToken, newConfig);
     return true;
-  }, [scheduleTokenRefresh]);
+  }, []);
 
-  // Register auth challenge handler on mount
+  // Check token expiry on each heartbeat and refresh if needed
+  const checkAndRefreshToken = useCallback(() => {
+    const currentConfig = configRef.current;
+    if (!currentConfig) return;
+
+    const payload = decodeJwtPayload(currentConfig.token);
+    if (!payload?.exp) return;
+
+    const remainingMs = payload.exp * 1000 - Date.now();
+    if (remainingMs > 3600_000) return; // More than 1 hour left, no action needed
+
+    // Token expires within 1 hour — refresh proactively
+    refreshToken(currentConfig.token)
+      .then(async (newToken) => {
+        if (!newToken) {
+          console.warn('[Connection] Heartbeat token refresh failed, will retry next heartbeat');
+          return;
+        }
+
+        const newConfig = { ...currentConfig, token: newToken };
+        await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(newConfig));
+        setConfig(newConfig);
+
+        configureApi(newConfig.host, newConfig.port, newConfig.token);
+        wsService.updateToken(newToken);
+        wsService.configure(newConfig.host, newConfig.port, newConfig.token);
+      })
+      .catch(() => {
+        console.warn('[Connection] Heartbeat token refresh error, will retry next heartbeat');
+      });
+  }, []);
+
+  // Register auth challenge handler and heartbeat handler on mount
   useEffect(() => {
     wsService.setAuthChallengeHandler(async () => {
       if (isRecoveringRef.current) return false;
@@ -133,8 +106,12 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
         isRecoveringRef.current = false;
       }
     });
-    return () => wsService.setAuthChallengeHandler(null);
-  }, [attemptTokenRecovery]);
+    wsService.setHeartbeatHandler(checkAndRefreshToken);
+    return () => {
+      wsService.setAuthChallengeHandler(null);
+      wsService.setHeartbeatHandler(null);
+    };
+  }, [attemptTokenRecovery, checkAndRefreshToken]);
 
   const tryReconnect = useCallback(() => {
     if (isRecoveringRef.current) return;
@@ -174,7 +151,6 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
           configureApi(parsed.host, parsed.port, parsed.token);
           wsService.configure(parsed.host, parsed.port, parsed.token);
           wsService.connect();
-          scheduleTokenRefresh(parsed.token, parsed);
         }
       } catch {
         // No saved config or invalid
@@ -196,18 +172,16 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
       configureApi(host, port, token);
       wsService.configure(host, port, token);
       wsService.connect();
-      scheduleTokenRefresh(token, newConfig);
     },
-    [scheduleTokenRefresh],
+    [],
   );
 
   const disconnect = useCallback(() => {
-    clearRefreshTimer();
     wsService.disconnect();
     resetApi();
     setConfig(null);
     SecureStore.deleteItemAsync(STORAGE_KEY).catch(() => {});
-  }, [clearRefreshTimer]);
+  }, []);
 
   return (
     <ConnectionContext.Provider
