@@ -40,8 +40,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     descriptionI18n: {
       'en-US':
         'Create professional Morph-animated presentations with officecli. Supports multiple visual styles and end-to-end workflow from topic to polished slides.',
-      'zh-CN':
-        '使用 officecli 创建专业的 Morph 动画演示文稿。支持多种视觉风格，从主题到精美幻灯片的端到端工作流。',
+      'zh-CN': '使用 officecli 创建专业的 Morph 动画演示文稿。支持多种视觉风格，从主题到精美幻灯片的端到端工作流。',
     },
     promptsI18n: {
       'en-US': [
