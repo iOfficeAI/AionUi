@@ -200,12 +200,7 @@ Slide 3: dot-main (x=36cm) [hidden], line-top (x=10cm, y=2cm), slash-accent (x=2
 
 ### Content (added fresh per slide)
 
-Content (titles, body text, numbers, cards) is added fresh on each slide. Since text changes every slide, Morph just cross-fades it — no benefit from same-name pairing.
-
-**Per-slide workflow**:
-1. Clone the previous slide (scene actors carry forward)
-2. Ghost the previous slide's content to `x=36cm`
-3. Add this slide's new content with `officecli add`
+Content (titles, body text, numbers, cards) is added fresh on each slide with `officecli add`. Since text changes every slide, Morph just cross-fades it — no benefit from same-name pairing. See Section 8 for the full generation workflow.
 
 ### Coordinate Notes
 
@@ -232,7 +227,7 @@ Below are the available page types. **Choose one type per slide based on the sli
 
 - Title in the upper-left
 - N scene actors morph into card backgrounds (roundRect, opacity=0.12)
-- Content actors expand from ghost; **MUST add fade-entrance-300/500**
+- Add column content (title + description per column); optionally use `animation=fade-entrance-300-with` for a reveal effect
 
 ### evidence — Data / Statistics (asymmetric)
 
@@ -395,14 +390,17 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    ```bash
    # Clone previous slide (scene actors + their positions inherited)
    officecli add <topic-name>.pptx '/' --from '/slide[N-1]'
+   # Find shape indices on the new slide
+   officecli get <topic-name>.pptx '/slide[N]' --depth 1
    # Step A: Set transition
    officecli set <topic-name>.pptx '/slide[N]' --prop transition=morph
-   # Step B: Ghost previous slide's content actors → x=36cm
-   officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=36cm
+   # Step B: Ghost previous slide's content actors → x=36cm (use indices from get output)
+   officecli set <topic-name>.pptx '/slide[N]/shape[8]' --prop x=36cm
+   officecli set <topic-name>.pptx '/slide[N]/shape[9]' --prop x=36cm
    # Step C: Add this slide's new content
-   officecli add <topic-name>.pptx '/slide[N]' --type shape --prop text="..." --prop x=4cm --prop y=7cm ...
+   officecli add <topic-name>.pptx '/slide[N]' --type shape --prop text="..." --prop x=4cm --prop y=7cm --prop width=20cm --prop height=3cm
    # Step D: Adjust scene actors for spatial differentiation
-   officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=20cm --prop width=12cm
+   officecli set <topic-name>.pptx '/slide[N]/shape[1]' --prop x=20cm --prop width=12cm
    ```
 
    **→ Run Per-Slide Checklist → fix if needed → next slide**
