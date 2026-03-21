@@ -284,7 +284,7 @@ export function ChatSidebar({ navigation }: DrawerContentComponentProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: 16,
   },
   header: {
     flexDirection: 'row',

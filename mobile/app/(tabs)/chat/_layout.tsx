@@ -9,12 +9,23 @@ import { useConversations } from '../../../src/context/ConversationContext';
 import { useWorkspace } from '../../../src/context/WorkspaceContext';
 import { ThemedText } from '../../../src/components/ui/ThemedText';
 
+function DrawerMenuButton() {
+  const navigation = useNavigation();
+  const tint = useThemeColor({}, 'tint');
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+      style={{ marginLeft: 16 }}
+    >
+      <Ionicons name='menu' size={24} color={tint} />
+    </TouchableOpacity>
+  );
+}
+
 export default function ChatDrawerLayout() {
   const background = useThemeColor({}, 'background');
-  const tint = useThemeColor({}, 'tint');
   const text = useThemeColor({}, 'text');
   const textSecondary = useThemeColor({}, 'textSecondary');
-  const navigation = useNavigation();
   const { conversations, activeConversationId, pendingAgent } = useConversations();
   const { currentWorkspace, workspaceDisplayName } = useWorkspace();
 
@@ -54,14 +65,7 @@ export default function ChatDrawerLayout() {
         ),
         headerTintColor: text,
         headerStyle: { backgroundColor: background },
-        headerLeft: () => (
-          <TouchableOpacity
-            onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-            style={{ marginLeft: 16 }}
-          >
-            <Ionicons name='menu' size={24} color={tint} />
-          </TouchableOpacity>
-        ),
+        headerLeft: () => <DrawerMenuButton />,
       }}
     >
       <Drawer.Screen name='index' options={{ title: 'Chat' }} />
