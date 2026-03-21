@@ -527,41 +527,41 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    - Actors needed on slide 1: place at their normal positions
    - Actors not needed on slide 1: place off-screen (`x=36cm`, spread y-coordinates)
 
-3. **Create slide 2 by cloning slide 1 (use batch!)**
+3. **Create slide 2 by cloning slide 1, then adjust with `set` commands**
 
    ```bash
-   officecli add <topic-name>.pptx '/' --from '/slide[1]'  # clone slide 1
-   # Use batch to adjust all actors in one call:
-   echo '[
-     {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-     {"command":"set","path":"/slide[2]/shape[1]","props":{"x":"8cm","y":"10cm"}},
-     {"command":"set","path":"/slide[2]/shape[2]","props":{"x":"36cm","y":"0cm"}},
-     {"command":"add","parent":"/slide[2]","type":"shape","props":{"text":"New content","x":"2cm","y":"5cm","width":"12cm","height":"3cm"}}
-   ]' | officecli batch <topic-name>.pptx
+   officecli add <topic-name>.pptx '/' --from '/slide[1]'
+   officecli set <topic-name>.pptx '/slide[2]' --prop transition=morph
+   # Ghost previous content
+   officecli set <topic-name>.pptx '/slide[2]/shape[8]' --prop x=36cm
+   officecli set <topic-name>.pptx '/slide[2]/shape[9]' --prop x=36cm
+   # Activate this slide's content
+   officecli set <topic-name>.pptx '/slide[2]/shape[10]' --prop x=5cm --prop y=7cm
+   # Adjust scene actors
+   officecli set <topic-name>.pptx '/slide[2]/shape[1]' --prop x=8cm --prop y=10cm
    ```
+   **→ Run Per-Slide Checklist → fix if needed → proceed to next slide**
 
 4. **Create slide 3+ by cloning the PREVIOUS slide (NOT slide 1!)**
 
    ```bash
-   # Clone from previous slide — ghost states carry forward automatically
-   officecli add <topic-name>.pptx '/' --from '/slide[2]'
-   # Batch: set transition + ghost previous content + activate new content + adjust scene actors
-   echo '[
-     {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-     {"command":"set","path":"/slide[3]/shape[10]","props":{"x":"36cm"}},
-     {"command":"set","path":"/slide[3]/shape[11]","props":{"x":"36cm"}},
-     {"command":"set","path":"/slide[3]/shape[12]","props":{"x":"3cm","y":"2cm","text":"New Title","font":"Montserrat","bold":"true","size":"36","color":"FFFFFF"}},
-     {"command":"set","path":"/slide[3]/shape[1]","props":{"x":"20cm","y":"2cm","width":"12cm"}},
-     {"command":"set","path":"/slide[3]/shape[2]","props":{"x":"5cm","y":"10cm"}}
-   ]' | officecli batch <topic-name>.pptx
+   officecli add <topic-name>.pptx '/' --from '/slide[2]'  # clone PREVIOUS slide
+   officecli set <topic-name>.pptx '/slide[3]' --prop transition=morph
+   # Ghost previous content (slide 2's actors)
+   officecli set <topic-name>.pptx '/slide[3]/shape[10]' --prop x=36cm
+   # Activate this slide's content
+   officecli set <topic-name>.pptx '/slide[3]/shape[12]' --prop x=3cm --prop y=2cm
+   # Adjust scene actors for differentiation
+   officecli set <topic-name>.pptx '/slide[3]/shape[1]' --prop x=20cm --prop width=12cm
    ```
+   **→ Run Per-Slide Checklist → fix if needed → proceed to next slide**
 
    **Why clone from the previous slide instead of slide 1?**
    - Actors already ghosted on slide 2 **stay ghosted** on slide 3 automatically
    - You only need to handle the **delta** (ghost previous content, activate new content)
    - Cloning from slide 1 resets ALL actors to their original positions, causing forgotten ghost bugs
 
-   **Per-slide batch pattern** (3 groups in every batch call):
+   **Per-slide pattern** (3 groups of `set` commands):
    1. **Set transition**: `transition=morph`
    2. **Ghost previous content**: Move previous slide's headline/content actors to `x=36cm`
    3. **Activate + adjust**: Move current slide's actors to visible positions, adjust scene actors for differentiation

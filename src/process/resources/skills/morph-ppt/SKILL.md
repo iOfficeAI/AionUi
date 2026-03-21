@@ -109,9 +109,9 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 
 **Generation Requirements**:
 
-- Generate slide by slide following the Page Brief, ensuring comfortable layout
+- **Generate slide by slide**: Clone previous slide → adjust with `set` commands → run checklist → next slide
 - Comply with the coordinate system, font, and Actor system specifications
-- **Use `officecli batch` for each slide** — pack all shape operations into one batch call instead of running commands one by one
+- Use individual `officecli set` commands (NOT batch JSON — it causes boolean/escaping errors)
 - **Before writing build.sh**: Read the "Shell Script Rules" section in `reference/officecli-pptx-min.md` to avoid parsing errors
 
 **Morph Core Mechanism (signature feature of this skill)**:
