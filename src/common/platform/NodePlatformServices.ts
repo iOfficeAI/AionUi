@@ -40,7 +40,7 @@ export class NodePlatformServices implements IPlatformServices {
     getHomeDir: () => os.homedir(),
     getLogsDir: () =>
       process.env.LOGS_DIR ?? path.join(os.tmpdir(), "aionui-logs"),
-    getAppPath: (): string | null => null,
+    getAppPath: (): string | null => process.cwd(),
     isPackaged: () => process.env.IS_PACKAGED === "true",
     getSystemPath: (_name: "desktop" | "home" | "downloads"): string | null =>
       null,
