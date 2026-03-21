@@ -61,16 +61,16 @@ export class CronService {
     }
 
     try {
-      this.cleanupOrphanJobs();
+      await this.cleanupOrphanJobs();
 
-      const jobs = this.repo.listEnabled();
+      const jobs = await this.repo.listEnabled();
 
       for (const job of jobs) {
-        this.startTimer(job);
+        await this.startTimer(job);
       }
 
       this.initialized = true;
-      this.updatePowerBlocker();
+      await this.updatePowerBlocker();
     } catch (error) {
       console.error("[CronService] Initialization failed:", error);
       throw error;
@@ -81,11 +81,11 @@ export class CronService {
    * Remove cron jobs whose associated conversation no longer exists.
    * Called once during init to clean up stale jobs left by abnormal deletion paths.
    */
-  private cleanupOrphanJobs(): void {
+  private async cleanupOrphanJobs(): Promise<void> {
     try {
-      const allJobs = this.repo.listAll();
+      const allJobs = await this.repo.listAll();
       for (const job of allJobs) {
-        const conversation = this.conversationRepo.getConversation(
+        const conversation = await this.conversationRepo.getConversation(
           job.metadata.conversationId,
         );
         if (!conversation) {
@@ -93,7 +93,7 @@ export class CronService {
             `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`,
           );
           this.stopTimer(job.id);
-          this.repo.delete(job.id);
+          await this.repo.delete(job.id);
           this.emitter.emitJobRemoved(job.id);
         }
       }
@@ -108,7 +108,9 @@ export class CronService {
    */
   async addJob(params: CreateCronJobParams): Promise<CronJob> {
     // Check if conversation already has a cron job (one job per conversation limit)
-    const existingJobs = this.repo.listByConversation(params.conversationId);
+    const existingJobs = await this.repo.listByConversation(
+      params.conversationId,
+    );
     if (existingJobs.length > 0) {
       const existingJob = existingJobs[0];
       throw new Error(
@@ -149,11 +151,11 @@ export class CronService {
     this.updateNextRunTime(job);
 
     // Save to database
-    this.repo.insert(job);
+    await this.repo.insert(job);
 
     // Update conversation modifyTime so it appears at the top of the list
     try {
-      this.conversationRepo.updateConversation(params.conversationId, {
+      await this.conversationRepo.updateConversation(params.conversationId, {
         modifyTime: now,
       });
     } catch (err) {
@@ -164,8 +166,8 @@ export class CronService {
     }
 
     // Start timer
-    this.startTimer(job);
-    this.updatePowerBlocker();
+    await this.startTimer(job);
+    await this.updatePowerBlocker();
 
     // Emit event to notify frontend (especially when created by agent)
     this.emitter.emitJobCreated(job);
@@ -177,7 +179,7 @@ export class CronService {
    * Update an existing cron job
    */
   async updateJob(jobId: string, updates: Partial<CronJob>): Promise<CronJob> {
-    const existing = this.repo.getById(jobId);
+    const existing = await this.repo.getById(jobId);
     if (!existing) {
       throw new Error(`Job not found: ${jobId}`);
     }
@@ -186,23 +188,23 @@ export class CronService {
     this.stopTimer(jobId);
 
     // Update in database
-    this.repo.update(jobId, updates);
+    await this.repo.update(jobId, updates);
 
     // Get updated job
-    const updated = this.repo.getById(jobId)!;
+    const updated = (await this.repo.getById(jobId))!;
 
     // Recalculate next run time if schedule changed or job is being enabled
     if (updates.schedule || (updates.enabled === true && !existing.enabled)) {
       this.updateNextRunTime(updated);
-      this.repo.update(jobId, { state: updated.state });
+      await this.repo.update(jobId, { state: updated.state });
     }
 
     // Restart timer if enabled
     if (updated.enabled) {
-      this.startTimer(updated);
+      await this.startTimer(updated);
     }
 
-    this.updatePowerBlocker();
+    await this.updatePowerBlocker();
 
     // Emit event to notify frontend
     this.emitter.emitJobUpdated(updated);
@@ -218,8 +220,8 @@ export class CronService {
     this.stopTimer(jobId);
 
     // Delete from database
-    this.repo.delete(jobId);
-    this.updatePowerBlocker();
+    await this.repo.delete(jobId);
+    await this.updatePowerBlocker();
 
     // Emit event to notify frontend
     this.emitter.emitJobRemoved(jobId);
@@ -250,7 +252,7 @@ export class CronService {
    * Start timer for a job
    * Supports cron expressions, fixed intervals (every), and one-time tasks (at)
    */
-  private startTimer(job: CronJob): void {
+  private async startTimer(job: CronJob): Promise<void> {
     // Stop existing timer if any
     this.stopTimer(job.id);
 
@@ -273,7 +275,7 @@ export class CronService {
         // Sync nextRunAtMs with actual next run time and notify frontend
         const nextRun = timer.nextRun();
         job.state.nextRunAtMs = nextRun ? nextRun.getTime() : undefined;
-        this.repo.update(job.id, { state: job.state });
+        await this.repo.update(job.id, { state: job.state });
         this.emitter.emitJobUpdated(job);
         break;
       }
@@ -286,7 +288,7 @@ export class CronService {
 
         // Sync nextRunAtMs with actual timer start time and notify frontend
         job.state.nextRunAtMs = Date.now() + schedule.everyMs;
-        this.repo.update(job.id, { state: job.state });
+        await this.repo.update(job.id, { state: job.state });
         this.emitter.emitJobUpdated(job);
         break;
       }
@@ -303,7 +305,7 @@ export class CronService {
 
           // Sync nextRunAtMs and notify frontend
           job.state.nextRunAtMs = schedule.atMs;
-          this.repo.update(job.id, { state: job.state });
+          await this.repo.update(job.id, { state: job.state });
           this.emitter.emitJobUpdated(job);
         } else {
           // Past one-time job, mark as expired and disable
@@ -311,7 +313,7 @@ export class CronService {
           job.state.lastStatus = "skipped";
           job.state.lastError = i18n.t("cron:error.scheduledTimePassed");
           job.enabled = false;
-          this.repo.update(job.id, { enabled: false, state: job.state });
+          await this.repo.update(job.id, { enabled: false, state: job.state });
           this.emitter.emitJobUpdated(job);
         }
         break;
@@ -363,7 +365,7 @@ export class CronService {
         // Max retries exceeded, skip this run
         this.retryCounts.delete(job.id);
         this.updateNextRunTime(job);
-        this.repo.update(job.id, {
+        await this.repo.update(job.id, {
           state: {
             ...job.state,
             lastStatus: "skipped",
@@ -372,7 +374,7 @@ export class CronService {
             }),
           },
         });
-        const skippedJob = this.repo.getById(job.id);
+        const skippedJob = await this.repo.getById(job.id);
         if (skippedJob) {
           this.emitter.emitJobUpdated(skippedJob);
         }
@@ -408,7 +410,7 @@ export class CronService {
 
       // Update conversation modifyTime so it appears at the top of the list
       try {
-        this.conversationRepo.updateConversation(conversationId, {
+        await this.conversationRepo.updateConversation(conversationId, {
           modifyTime: Date.now(),
         });
       } catch (err) {
@@ -428,7 +430,7 @@ export class CronService {
     this.updateNextRunTime(job);
 
     // Persist state as new object and notify frontend
-    this.repo.update(job.id, {
+    await this.repo.update(job.id, {
       state: {
         ...job.state,
         lastRunAtMs,
@@ -437,7 +439,7 @@ export class CronService {
         lastError,
       },
     });
-    const updatedJob = this.repo.getById(job.id);
+    const updatedJob = await this.repo.getById(job.id);
     if (updatedJob) {
       this.emitter.emitJobUpdated(updatedJob);
     }
@@ -513,7 +515,7 @@ export class CronService {
 
     console.log("[CronService] System resumed, checking for missed jobs...");
     const now = Date.now();
-    const jobs = this.repo.listEnabled();
+    const jobs = await this.repo.listEnabled();
 
     for (const job of jobs) {
       // Stop stale timer (it was paused during sleep and may be in invalid state)
@@ -533,7 +535,7 @@ export class CronService {
           time: new Date(nextRunAt).toLocaleString(),
         });
         this.updateNextRunTime(job);
-        this.repo.update(job.id, { state: job.state });
+        await this.repo.update(job.id, { state: job.state });
         this.emitter.emitJobUpdated(job);
 
         // Insert a notification message into the conversation
@@ -541,9 +543,9 @@ export class CronService {
       }
 
       // Restart timer with fresh schedule
-      const latestJob = this.repo.getById(job.id);
+      const latestJob = await this.repo.getById(job.id);
       if (latestJob && latestJob.enabled) {
-        this.startTimer(latestJob);
+        await this.startTimer(latestJob);
       }
     }
   }
@@ -588,8 +590,9 @@ export class CronService {
    * Uses 'prevent-app-suspension' mode which prevents the app from being suspended
    * but does not prevent the display from sleeping.
    */
-  private updatePowerBlocker(): void {
-    const hasEnabledJobs = this.repo.listEnabled().length > 0;
+  private async updatePowerBlocker(): Promise<void> {
+    const enabledJobs = await this.repo.listEnabled();
+    const hasEnabledJobs = enabledJobs.length > 0;
 
     if (hasEnabledJobs && this.powerSaveBlockerId === null) {
       try {

@@ -9,52 +9,54 @@ import type {
   IChannelPairingRequest,
   IChannelUser,
   IChannelSession,
-} from '@process/channels/types';
-import { getDatabase } from '@process/services/database';
-import type { IChannelRepository } from './IChannelRepository';
+} from "@process/channels/types";
+import { getDatabase } from "@process/services/database";
+import type { IChannelRepository } from "./IChannelRepository";
 
 /** Thin delegation wrapper around the better-sqlite3 database for channel-related queries. */
 export class SqliteChannelRepository implements IChannelRepository {
-  getChannelPlugins(): IChannelPluginConfig[] {
-    const db = getDatabase();
+  async getChannelPlugins(): Promise<IChannelPluginConfig[]> {
+    const db = await getDatabase();
     const result = db.getChannelPlugins();
     if (!result.success || !Array.isArray(result.data)) {
-      throw new Error(result.error ?? 'Failed to get channel plugins');
+      throw new Error(result.error ?? "Failed to get channel plugins");
     }
     return result.data;
   }
 
-  getPendingPairingRequests(): IChannelPairingRequest[] {
-    const db = getDatabase();
+  async getPendingPairingRequests(): Promise<IChannelPairingRequest[]> {
+    const db = await getDatabase();
     const result = db.getPendingPairingRequests();
     if (!result.success || !result.data) {
-      throw new Error(result.error ?? 'Failed to get pending pairing requests');
+      throw new Error(result.error ?? "Failed to get pending pairing requests");
     }
     return result.data;
   }
 
-  getChannelUsers(): IChannelUser[] {
-    const db = getDatabase();
+  async getChannelUsers(): Promise<IChannelUser[]> {
+    const db = await getDatabase();
     const result = db.getChannelUsers();
     if (!result.success || !result.data) {
-      throw new Error(result.error ?? 'Failed to get channel users');
+      throw new Error(result.error ?? "Failed to get channel users");
     }
     return result.data;
   }
 
-  deleteChannelUser(userId: string): void {
-    const db = getDatabase();
+  async deleteChannelUser(userId: string): Promise<void> {
+    const db = await getDatabase();
     const result = db.deleteChannelUser(userId);
     if (!result.success) {
-      throw new Error(result.error ?? `Failed to delete channel user ${userId}`);
+      throw new Error(
+        result.error ?? `Failed to delete channel user ${userId}`,
+      );
     }
   }
 
-  getChannelSessions(): IChannelSession[] {
-    const db = getDatabase();
+  async getChannelSessions(): Promise<IChannelSession[]> {
+    const db = await getDatabase();
     const result = db.getChannelSessions();
     if (!result.success || !result.data) {
-      throw new Error(result.error ?? 'Failed to get channel sessions');
+      throw new Error(result.error ?? "Failed to get channel sessions");
     }
     return result.data;
   }

@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
-import type { AuthUser } from '../repository/UserRepository';
-import { UserRepository } from '../repository/UserRepository';
-import { AUTH_CONFIG } from '../../config/constants';
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import type { AuthUser } from "../repository/UserRepository";
+import { UserRepository } from "../repository/UserRepository";
+import { AUTH_CONFIG } from "../../config/constants";
 
 interface TokenPayload {
   userId: string;
@@ -18,7 +18,7 @@ interface TokenPayload {
   exp?: number;
 }
 
-type RawTokenPayload = Omit<TokenPayload, 'userId'> & {
+type RawTokenPayload = Omit<TokenPayload, "userId"> & {
   userId: string | number;
 };
 
@@ -28,7 +28,10 @@ interface UserCredentials {
   createdAt: number;
 }
 
-const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
+const hashPasswordAsync = (
+  password: string,
+  saltRounds: number,
+): Promise<string> =>
   new Promise((resolve, reject) => {
     bcrypt.hash(password, saltRounds, (error, hash) => {
       if (error) {
@@ -39,7 +42,10 @@ const hashPasswordAsync = (password: string, saltRounds: number): Promise<string
     });
   });
 
-const comparePasswordAsync = (password: string, hash: string): Promise<boolean> =>
+const comparePasswordAsync = (
+  password: string,
+  hash: string,
+): Promise<boolean> =>
   new Promise((resolve, reject) => {
     bcrypt.compare(password, hash, (error, same) => {
       if (error) {
@@ -66,7 +72,8 @@ export class AuthService {
    */
   private static tokenBlacklist: Map<string, number> = new Map();
   private static readonly BLACKLIST_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
-  private static blacklistCleanupTimer: ReturnType<typeof setInterval> | null = null;
+  private static blacklistCleanupTimer: ReturnType<typeof setInterval> | null =
+    null;
 
   /**
    * 将 token 加入黑名单（登出时调用）
@@ -74,19 +81,24 @@ export class AuthService {
    */
   public static blacklistToken(token: string): void {
     // 使用 token 的哈希作为 key，避免存储原始 token
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
     // 解析 token 获取过期时间
     try {
       const decoded = jwt.decode(token) as { exp?: number } | null;
-      const expiry = decoded?.exp ? decoded.exp * 1000 : Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE;
+      const expiry = decoded?.exp
+        ? decoded.exp * 1000
+        : Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE;
       this.tokenBlacklist.set(tokenHash, expiry);
 
       // 启动清理定时器（如果还没启动）
       this.startBlacklistCleanup();
     } catch {
       // 即使解析失败，也加入黑名单（使用默认过期时间）
-      this.tokenBlacklist.set(tokenHash, Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE);
+      this.tokenBlacklist.set(
+        tokenHash,
+        Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+      );
     }
   }
 
@@ -95,7 +107,7 @@ export class AuthService {
    * Check if token is blacklisted
    */
   public static isTokenBlacklisted(token: string): boolean {
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const expiry = this.tokenBlacklist.get(tokenHash);
 
     if (!expiry) {
@@ -139,7 +151,7 @@ export class AuthService {
    */
   private static generateSecretKey(): string {
     // 始终使用随机数确保密钥不可预测 / Always rely on randomness for unpredictability
-    return crypto.randomBytes(64).toString('hex');
+    return crypto.randomBytes(64).toString("hex");
   }
 
   /**
@@ -149,7 +161,7 @@ export class AuthService {
    * JWT secret 存储在 users 表的 admin 用户中
    * JWT secret is stored in the admin user's row in users table
    */
-  public static getJwtSecret(): string {
+  public static async getJwtSecret(): Promise<string> {
     if (this.jwtSecret) {
       return this.jwtSecret;
     }
@@ -163,7 +175,7 @@ export class AuthService {
     try {
       // 从数据库读取 admin 用户的 jwt_secret
       // Read jwt_secret from admin user in database
-      const systemUser = UserRepository.getSystemUser();
+      const systemUser = await UserRepository.getSystemUser();
       if (systemUser && systemUser.jwt_secret) {
         this.jwtSecret = systemUser.jwt_secret;
         return this.jwtSecret;
@@ -173,17 +185,19 @@ export class AuthService {
       // Generate new secret and save to admin user
       if (systemUser) {
         const newSecret = this.generateSecretKey();
-        UserRepository.updateJwtSecret(systemUser.id, newSecret);
+        await UserRepository.updateJwtSecret(systemUser.id, newSecret);
         this.jwtSecret = newSecret;
         return this.jwtSecret;
       }
 
       // Fallback: 如果 admin 用户不存在(不应该发生)
-      console.warn('[AuthService] System WebUI user not found, using temporary secret');
+      console.warn(
+        "[AuthService] System WebUI user not found, using temporary secret",
+      );
       this.jwtSecret = this.generateSecretKey();
       return this.jwtSecret;
     } catch (error) {
-      console.error('Failed to get/save JWT secret:', error);
+      console.error("Failed to get/save JWT secret:", error);
       this.jwtSecret = this.generateSecretKey();
       return this.jwtSecret;
     }
@@ -193,19 +207,21 @@ export class AuthService {
    * 通过旋转密钥的方式让所有现有 Token 失效
    * Rotate the JWT secret to invalidate all existing tokens
    */
-  public static invalidateAllTokens(): void {
+  public static async invalidateAllTokens(): Promise<void> {
     try {
-      const systemUser = UserRepository.getSystemUser();
+      const systemUser = await UserRepository.getSystemUser();
       if (!systemUser) {
-        console.warn('[AuthService] System WebUI user not found, cannot invalidate tokens');
+        console.warn(
+          "[AuthService] System WebUI user not found, cannot invalidate tokens",
+        );
         return;
       }
 
       const newSecret = this.generateSecretKey();
-      UserRepository.updateJwtSecret(systemUser.id, newSecret);
+      await UserRepository.updateJwtSecret(systemUser.id, newSecret);
       this.jwtSecret = newSecret;
     } catch (error) {
-      console.error('Failed to invalidate tokens:', error);
+      console.error("Failed to invalidate tokens:", error);
     }
   }
 
@@ -221,7 +237,10 @@ export class AuthService {
    * 验证密码是否与存储的哈希匹配
    * Verify whether the password matches the stored hash
    */
-  public static verifyPassword(password: string, hash: string): Promise<boolean> {
+  public static verifyPassword(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
     return comparePasswordAsync(password, hash);
   }
 
@@ -229,16 +248,18 @@ export class AuthService {
    * 生成 WebUI 使用的标准会话 Token
    * Generate standard WebUI session token
    */
-  public static generateToken(user: Pick<AuthUser, 'id' | 'username'>): string {
+  public static async generateToken(
+    user: Pick<AuthUser, "id" | "username">,
+  ): Promise<string> {
     const payload: TokenPayload = {
       userId: user.id,
       username: user.username,
     };
 
-    return jwt.sign(payload, this.getJwtSecret(), {
+    return jwt.sign(payload, await this.getJwtSecret(), {
       expiresIn: this.TOKEN_EXPIRY,
-      issuer: 'aionui',
-      audience: 'aionui-webui',
+      issuer: "aionui",
+      audience: "aionui-webui",
     });
   }
 
@@ -259,16 +280,16 @@ export class AuthService {
    * 验证 WebUI 会话 Token 是否有效
    * Verify standard WebUI session token validity
    */
-  public static verifyToken(token: string): TokenPayload | null {
+  public static async verifyToken(token: string): Promise<TokenPayload | null> {
     try {
       // 先检查黑名单 / Check blacklist first
       if (this.isTokenBlacklisted(token)) {
         return null;
       }
 
-      const decoded = jwt.verify(token, this.getJwtSecret(), {
-        issuer: 'aionui',
-        audience: 'aionui-webui',
+      const decoded = jwt.verify(token, await this.getJwtSecret(), {
+        issuer: "aionui",
+        audience: "aionui-webui",
       }) as RawTokenPayload;
 
       return {
@@ -283,7 +304,7 @@ export class AuthService {
       ) {
         return null;
       }
-      console.error('Token verification failed:', error);
+      console.error("Token verification failed:", error);
       return null;
     }
   }
@@ -297,16 +318,18 @@ export class AuthService {
    * @param token - JWT token string
    * @returns Token payload if valid, null otherwise
    */
-  public static verifyWebSocketToken(token: string): TokenPayload | null {
+  public static async verifyWebSocketToken(
+    token: string,
+  ): Promise<TokenPayload | null> {
     try {
       // 先检查黑名单 / Check blacklist first
       if (this.isTokenBlacklisted(token)) {
         return null;
       }
 
-      const decoded = jwt.verify(token, this.getJwtSecret(), {
-        issuer: 'aionui',
-        audience: 'aionui-webui', // 使用与 Web 登录相同的 audience
+      const decoded = jwt.verify(token, await this.getJwtSecret(), {
+        issuer: "aionui",
+        audience: "aionui-webui", // 使用与 Web 登录相同的 audience
       }) as RawTokenPayload;
 
       return {
@@ -319,7 +342,7 @@ export class AuthService {
       if (error instanceof jwt.TokenExpiredError) {
         return null;
       }
-      console.error('WebSocket token verification failed:', error);
+      console.error("WebSocket token verification failed:", error);
       return null;
     }
   }
@@ -328,8 +351,8 @@ export class AuthService {
    * 刷新会话 Token（不检查原 Token 是否过期）
    * Refresh a session token without enforcing expiry check
    */
-  public static refreshToken(token: string): string | null {
-    const decoded = this.verifyToken(token);
+  public static async refreshToken(token: string): Promise<string | null> {
+    const decoded = await this.verifyToken(token);
     if (!decoded) {
       return null;
     }
@@ -350,13 +373,14 @@ export class AuthService {
     const lengthVariance = 5;
     const passwordLength = baseLength + crypto.randomInt(0, lengthVariance);
 
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const digits = '0123456789';
-    const special = '!@#$%^&*';
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const digits = "0123456789";
+    const special = "!@#$%^&*";
     const allChars = lowercase + uppercase + digits + special;
 
-    const ensureCategory = (chars: string) => chars[crypto.randomInt(0, chars.length)];
+    const ensureCategory = (chars: string) =>
+      chars[crypto.randomInt(0, chars.length)];
 
     const passwordChars: string[] = [
       ensureCategory(lowercase),
@@ -374,10 +398,13 @@ export class AuthService {
     // 打乱字符顺序，避免类型排列固定 / Shuffle to avoid predictable category order
     for (let i = passwordChars.length - 1; i > 0; i--) {
       const j = crypto.randomInt(0, i + 1);
-      [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+      [passwordChars[i], passwordChars[j]] = [
+        passwordChars[j],
+        passwordChars[i],
+      ];
     }
 
-    return passwordChars.join('');
+    return passwordChars.join("");
   }
 
   /**
@@ -387,8 +414,8 @@ export class AuthService {
   public static generateUserCredentials(): UserCredentials {
     // 用户名长度控制在 6-8 位，便于记忆 / Username length fixed to 6-8 chars for memorability
     const usernameLength = crypto.randomInt(6, 9); // 6-8 chars
-    const usernameChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let username = '';
+    const usernameChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let username = "";
     for (let i = 0; i < usernameLength; i++) {
       username += usernameChars[crypto.randomInt(0, usernameChars.length)];
     }
@@ -412,17 +439,23 @@ export class AuthService {
 
     // 仅要求最小长度 / Only require minimum length
     if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
+      errors.push("Password must be at least 8 characters long");
     }
 
     if (password.length > 128) {
-      errors.push('Password must be less than 128 characters long');
+      errors.push("Password must be less than 128 characters long");
     }
 
     // 禁止明显的弱密码 / Block obvious weak passwords
-    const weakPasswords = ['password', '12345678', '123456789', 'qwertyui', 'abcdefgh'];
+    const weakPasswords = [
+      "password",
+      "12345678",
+      "123456789",
+      "qwertyui",
+      "abcdefgh",
+    ];
     if (weakPasswords.includes(password.toLowerCase())) {
-      errors.push('Password is too common, please choose a stronger one');
+      errors.push("Password is too common, please choose a stronger one");
     }
 
     return {
@@ -442,19 +475,21 @@ export class AuthService {
     const errors: string[] = [];
 
     if (username.length < 3) {
-      errors.push('Username must be at least 3 characters long');
+      errors.push("Username must be at least 3 characters long");
     }
 
     if (username.length > 32) {
-      errors.push('Username must be less than 32 characters long');
+      errors.push("Username must be less than 32 characters long");
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      errors.push('Username can only contain letters, numbers, hyphens, and underscores');
+      errors.push(
+        "Username can only contain letters, numbers, hyphens, and underscores",
+      );
     }
 
     if (/^[_-]|[_-]$/.test(username)) {
-      errors.push('Username cannot start or end with hyphen or underscore');
+      errors.push("Username cannot start or end with hyphen or underscore");
     }
 
     return {
@@ -468,14 +503,18 @@ export class AuthService {
    * Generate a high-entropy session identifier
    */
   public static generateSessionId(): string {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
   }
 
   /**
    * 常量时间比较，降低时序攻击风险
    * Perform constant-time comparison to mitigate timing attacks
    */
-  public static async constantTimeVerify(provided: string, expected: string, hashProvided = false): Promise<boolean> {
+  public static async constantTimeVerify(
+    provided: string,
+    expected: string,
+    hashProvided = false,
+  ): Promise<boolean> {
     // 强制执行固定时间对比 / Ensure constant-time comparison routine
     const start = process.hrtime.bigint();
 
@@ -484,8 +523,8 @@ export class AuthService {
       result = await comparePasswordAsync(provided, expected);
     } else {
       result = crypto.timingSafeEqual(
-        Buffer.from(provided.padEnd(expected.length, '0')),
-        Buffer.from(expected.padEnd(provided.length, '0'))
+        Buffer.from(provided.padEnd(expected.length, "0")),
+        Buffer.from(expected.padEnd(provided.length, "0")),
       );
     }
 

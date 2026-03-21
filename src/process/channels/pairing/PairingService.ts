@@ -4,10 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channel as channelBridge } from '@/common/adapter/ipcBridge';
-import { getDatabase } from '@process/services/database';
-import * as crypto from 'crypto';
-import type { IChannelPairingRequest, IChannelUser, PluginType } from '../types';
+import { channel as channelBridge } from "@/common/adapter/ipcBridge";
+import { getDatabase } from "@process/services/database";
+import * as crypto from "crypto";
+import type {
+  IChannelPairingRequest,
+  IChannelUser,
+  PluginType,
+} from "../types";
 
 /**
  * Pairing code configuration
@@ -42,15 +46,18 @@ export class PairingService {
   async generatePairingCode(
     platformUserId: string,
     platformType: PluginType,
-    displayName?: string
+    displayName?: string,
   ): Promise<{ code: string; expiresAt: number }> {
-    const db = getDatabase();
+    const db = await getDatabase();
 
     // Check for existing pending request
     const existingResult = db.getPendingPairingRequests();
     if (existingResult.success && existingResult.data) {
       const existing = existingResult.data.find(
-        (r) => r.platformUserId === platformUserId && r.platformType === platformType && r.status === 'pending'
+        (r) =>
+          r.platformUserId === platformUserId &&
+          r.platformType === platformType &&
+          r.status === "pending",
       );
 
       // Return existing code if not expired
@@ -75,12 +82,12 @@ export class PairingService {
       displayName,
       requestedAt: now,
       expiresAt,
-      status: 'pending',
+      status: "pending",
     };
 
     const createResult = db.createPairingRequest(request);
     if (!createResult.success) {
-      throw new Error(createResult.error || 'Failed to create pairing request');
+      throw new Error(createResult.error || "Failed to create pairing request");
     }
 
     // Emit event for Settings UI
@@ -95,9 +102,9 @@ export class PairingService {
   async refreshPairingCode(
     platformUserId: string,
     platformType: PluginType,
-    displayName?: string
+    displayName?: string,
   ): Promise<{ code: string; expiresAt: number }> {
-    const db = getDatabase();
+    const db = await getDatabase();
 
     // Expire any existing pending codes
     const existingResult = db.getPendingPairingRequests();
@@ -106,9 +113,9 @@ export class PairingService {
         if (
           request.platformUserId === platformUserId &&
           request.platformType === platformType &&
-          request.status === 'pending'
+          request.status === "pending"
         ) {
-          db.updatePairingRequestStatus(request.code, 'expired');
+          db.updatePairingRequestStatus(request.code, "expired");
         }
       }
     }
@@ -120,8 +127,11 @@ export class PairingService {
   /**
    * Check if a user is already authorized
    */
-  isUserAuthorized(platformUserId: string, platformType: PluginType): boolean {
-    const db = getDatabase();
+  async isUserAuthorized(
+    platformUserId: string,
+    platformType: PluginType,
+  ): Promise<boolean> {
+    const db = await getDatabase();
     const result = db.getChannelUserByPlatform(platformUserId, platformType);
     return result.success && result.data !== null;
   }
@@ -129,8 +139,10 @@ export class PairingService {
   /**
    * Get pairing request by code
    */
-  getPairingRequest(code: string): IChannelPairingRequest | null {
-    const db = getDatabase();
+  async getPairingRequest(
+    code: string,
+  ): Promise<IChannelPairingRequest | null> {
+    const db = await getDatabase();
     const result = db.getPairingRequestByCode(code);
     return result.success ? (result.data ?? null) : null;
   }
@@ -138,8 +150,11 @@ export class PairingService {
   /**
    * Get pending pairing request for a user
    */
-  getPendingRequestForUser(platformUserId: string, platformType: PluginType): IChannelPairingRequest | null {
-    const db = getDatabase();
+  async getPendingRequestForUser(
+    platformUserId: string,
+    platformType: PluginType,
+  ): Promise<IChannelPairingRequest | null> {
+    const db = await getDatabase();
     const result = db.getPendingPairingRequests();
 
     if (!result.success || !result.data) {
@@ -151,8 +166,8 @@ export class PairingService {
         (r) =>
           r.platformUserId === platformUserId &&
           r.platformType === platformType &&
-          r.status === 'pending' &&
-          r.expiresAt > Date.now()
+          r.status === "pending" &&
+          r.expiresAt > Date.now(),
       ) ?? null
     );
   }
@@ -160,35 +175,43 @@ export class PairingService {
   /**
    * Approve a pairing request
    */
-  async approvePairing(code: string): Promise<{ success: boolean; user?: IChannelUser; error?: string }> {
-    const db = getDatabase();
+  async approvePairing(
+    code: string,
+  ): Promise<{ success: boolean; user?: IChannelUser; error?: string }> {
+    const db = await getDatabase();
 
     // Get the pairing request
-    const request = this.getPairingRequest(code);
+    const request = await this.getPairingRequest(code);
     if (!request) {
-      return { success: false, error: 'Pairing request not found' };
+      return { success: false, error: "Pairing request not found" };
     }
 
     // Check if expired
     if (request.expiresAt < Date.now()) {
-      db.updatePairingRequestStatus(code, 'expired');
-      return { success: false, error: 'Pairing code has expired' };
+      db.updatePairingRequestStatus(code, "expired");
+      return { success: false, error: "Pairing code has expired" };
     }
 
     // Check if already processed
-    if (request.status !== 'pending') {
-      return { success: false, error: `Pairing request already ${request.status}` };
+    if (request.status !== "pending") {
+      return {
+        success: false,
+        error: `Pairing request already ${request.status}`,
+      };
     }
 
     // Check if user already exists
-    const existingUser = db.getChannelUserByPlatform(request.platformUserId, request.platformType);
+    const existingUser = db.getChannelUserByPlatform(
+      request.platformUserId,
+      request.platformType,
+    );
     if (existingUser.success && existingUser.data) {
-      db.updatePairingRequestStatus(code, 'approved');
+      db.updatePairingRequestStatus(code, "approved");
       return { success: true, user: existingUser.data };
     }
 
     // Create authorized user
-    const userId = `assistant_user_${Date.now()}_${crypto.randomBytes(4).toString('hex').slice(0, 6)}`;
+    const userId = `assistant_user_${Date.now()}_${crypto.randomBytes(4).toString("hex").slice(0, 6)}`;
     const user: IChannelUser = {
       id: userId,
       platformUserId: request.platformUserId,
@@ -203,7 +226,7 @@ export class PairingService {
     }
 
     // Update pairing request status
-    db.updatePairingRequestStatus(code, 'approved');
+    db.updatePairingRequestStatus(code, "approved");
 
     // Emit user authorized event
     channelBridge.userAuthorized.emit(user);
@@ -214,17 +237,19 @@ export class PairingService {
   /**
    * Reject a pairing request
    */
-  async rejectPairing(code: string): Promise<{ success: boolean; error?: string }> {
-    const db = getDatabase();
+  async rejectPairing(
+    code: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const db = await getDatabase();
 
     // Get the pairing request
-    const request = this.getPairingRequest(code);
+    const request = await this.getPairingRequest(code);
     if (!request) {
-      return { success: false, error: 'Pairing request not found' };
+      return { success: false, error: "Pairing request not found" };
     }
 
     // Update status
-    db.updatePairingRequestStatus(code, 'rejected');
+    db.updatePairingRequestStatus(code, "rejected");
 
     return { success: true };
   }
@@ -232,22 +257,24 @@ export class PairingService {
   /**
    * Get all pending pairing requests
    */
-  getPendingRequests(): IChannelPairingRequest[] {
-    const db = getDatabase();
+  async getPendingRequests(): Promise<IChannelPairingRequest[]> {
+    const db = await getDatabase();
     const result = db.getPendingPairingRequests();
 
     if (!result.success || !result.data) {
       return [];
     }
 
-    return result.data.filter((r) => r.status === 'pending' && r.expiresAt > Date.now());
+    return result.data.filter(
+      (r) => r.status === "pending" && r.expiresAt > Date.now(),
+    );
   }
 
   /**
    * Cleanup expired pairing codes
    */
-  cleanupExpired(): number {
-    const db = getDatabase();
+  async cleanupExpired(): Promise<number> {
+    const db = await getDatabase();
     const result = db.cleanupExpiredPairingRequests();
     return result.success ? (result.data ?? 0) : 0;
   }
@@ -266,7 +293,7 @@ export class PairingService {
    * Generate a unique 6-digit pairing code
    */
   private async generateUniqueCode(): Promise<string> {
-    const db = getDatabase();
+    const db = await getDatabase();
     let attempts = 0;
     const maxAttempts = 10;
 
@@ -280,22 +307,25 @@ export class PairingService {
       }
 
       // If code exists but expired, we can reuse it
-      if (existing.data.status !== 'pending' || existing.data.expiresAt < Date.now()) {
+      if (
+        existing.data.status !== "pending" ||
+        existing.data.expiresAt < Date.now()
+      ) {
         return code;
       }
 
       attempts++;
     }
 
-    throw new Error('Failed to generate unique pairing code');
+    throw new Error("Failed to generate unique pairing code");
   }
 
   /**
    * Generate a random 6-digit code
    */
   private generateRandomCode(): string {
-    const chars = '0123456789';
-    let code = '';
+    const chars = "0123456789";
+    let code = "";
     for (let i = 0; i < PAIRING_CONFIG.CODE_LENGTH; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
@@ -306,10 +336,12 @@ export class PairingService {
    * Start the cleanup interval
    */
   private startCleanupInterval(): void {
-    this.cleanupInterval = setInterval(() => {
-      const cleaned = this.cleanupExpired();
+    this.cleanupInterval = setInterval(async () => {
+      const cleaned = await this.cleanupExpired();
       if (cleaned > 0) {
-        console.log(`[PairingService] Cleaned up ${cleaned} expired pairing requests`);
+        console.log(
+          `[PairingService] Cleaned up ${cleaned} expired pairing requests`,
+        );
       }
     }, PAIRING_CONFIG.CLEANUP_INTERVAL_MS);
   }

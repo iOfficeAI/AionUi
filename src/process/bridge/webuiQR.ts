@@ -7,15 +7,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import crypto from 'crypto';
-import { AuthService } from '@process/webserver/auth/service/AuthService';
-import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
-import { WebuiService } from './services/WebuiService';
+import crypto from "crypto";
+import { AuthService } from "@process/webserver/auth/service/AuthService";
+import { UserRepository } from "@process/webserver/auth/repository/UserRepository";
+import { WebuiService } from "./services/WebuiService";
 
 // QR Token 存储 (内存中，有效期短) / QR Token store (in-memory, short-lived)
 // 增加 allowLocalOnly 标志，限制本地模式下只能从本地网络使用
 // Added allowLocalOnly flag to restrict local mode to local network only
-const qrTokenStore = new Map<string, { expiresAt: number; used: boolean; allowLocalOnly: boolean }>();
+const qrTokenStore = new Map<
+  string,
+  { expiresAt: number; used: boolean; allowLocalOnly: boolean }
+>();
 
 // QR Token 有效期 5 分钟 / QR Token validity: 5 minutes
 const QR_TOKEN_EXPIRY = 5 * 60 * 1000;
@@ -40,22 +43,22 @@ function cleanupExpiredTokens(): void {
 function isLocalIP(ip: string): boolean {
   if (!ip) return false;
   // 处理 IPv6 格式的 localhost / Handle IPv6 localhost format
-  const cleanIP = ip.replace(/^::ffff:/, '');
+  const cleanIP = ip.replace(/^::ffff:/, "");
 
   // localhost
-  if (cleanIP === '127.0.0.1' || cleanIP === 'localhost' || cleanIP === '::1') {
+  if (cleanIP === "127.0.0.1" || cleanIP === "localhost" || cleanIP === "::1") {
     return true;
   }
 
   // 私有网络地址 / Private network addresses
   // 10.0.0.0/8
-  if (cleanIP.startsWith('10.')) return true;
+  if (cleanIP.startsWith("10.")) return true;
   // 172.16.0.0/12
   if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(cleanIP)) return true;
   // 192.168.0.0/16
-  if (cleanIP.startsWith('192.168.')) return true;
+  if (cleanIP.startsWith("192.168.")) return true;
   // Link-local
-  if (cleanIP.startsWith('169.254.')) return true;
+  if (cleanIP.startsWith("169.254.")) return true;
 
   return false;
 }
@@ -64,12 +67,15 @@ function isLocalIP(ip: string): boolean {
  * 直接生成二维码登录 URL（供服务端启动时调用）
  * Generate QR login URL directly (for server-side use on startup)
  */
-export function generateQRLoginUrlDirect(port: number, allowRemote: boolean): { qrUrl: string; expiresAt: number } {
+export function generateQRLoginUrlDirect(
+  port: number,
+  allowRemote: boolean,
+): { qrUrl: string; expiresAt: number } {
   // 清理过期 token / Clean up expired tokens
   cleanupExpiredTokens();
 
   // 生成随机 token / Generate random token
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + QR_TOKEN_EXPIRY;
 
   // 存储 token / Store token
@@ -78,7 +84,10 @@ export function generateQRLoginUrlDirect(port: number, allowRemote: boolean): { 
 
   // 构建 QR URL / Build QR URL
   const lanIP = WebuiService.getLanIP();
-  const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
+  const baseUrl =
+    allowRemote && lanIP
+      ? `http://${lanIP}:${port}`
+      : `http://localhost:${port}`;
   const qrUrl = `${baseUrl}/qr-login?token=${token}`;
 
   return { qrUrl, expiresAt };
@@ -93,15 +102,19 @@ export function generateQRLoginUrlDirect(port: number, allowRemote: boolean): { 
  */
 export async function verifyQRTokenDirect(
   qrToken: string,
-  clientIP?: string
-): Promise<{ success: boolean; data?: { sessionToken: string; username: string }; msg?: string }> {
+  clientIP?: string,
+): Promise<{
+  success: boolean;
+  data?: { sessionToken: string; username: string };
+  msg?: string;
+}> {
   try {
     // 检查 token 是否存在 / Check if token exists
     const tokenData = qrTokenStore.get(qrToken);
     if (!tokenData) {
       return {
         success: false,
-        msg: 'Invalid or expired QR token',
+        msg: "Invalid or expired QR token",
       };
     }
 
@@ -110,7 +123,7 @@ export async function verifyQRTokenDirect(
       qrTokenStore.delete(qrToken);
       return {
         success: false,
-        msg: 'QR token has expired',
+        msg: "QR token has expired",
       };
     }
 
@@ -119,16 +132,18 @@ export async function verifyQRTokenDirect(
       qrTokenStore.delete(qrToken);
       return {
         success: false,
-        msg: 'QR token has already been used',
+        msg: "QR token has already been used",
       };
     }
 
     // P0 安全修复：检查本地网络限制 / P0 Security fix: Check local network restriction
     if (tokenData.allowLocalOnly && clientIP && !isLocalIP(clientIP)) {
-      console.warn(`[WebUI QR] QR token rejected: non-local IP ${clientIP} attempted to use local-only token`);
+      console.warn(
+        `[WebUI QR] QR token rejected: non-local IP ${clientIP} attempted to use local-only token`,
+      );
       return {
         success: false,
-        msg: 'QR login is only allowed from local network',
+        msg: "QR login is only allowed from local network",
       };
     }
 
@@ -136,19 +151,19 @@ export async function verifyQRTokenDirect(
     tokenData.used = true;
 
     // 获取管理员用户 / Get admin user
-    const adminUser = UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getSystemUser();
     if (!adminUser) {
       return {
         success: false,
-        msg: 'WebUI user not found',
+        msg: "WebUI user not found",
       };
     }
 
     // 生成会话 token / Generate session token
-    const sessionToken = AuthService.generateToken(adminUser);
+    const sessionToken = await AuthService.generateToken(adminUser);
 
     // 更新最后登录时间 / Update last login time
-    UserRepository.updateLastLogin(adminUser.id);
+    await UserRepository.updateLastLogin(adminUser.id);
 
     // 删除已使用的 QR token / Delete used QR token
     qrTokenStore.delete(qrToken);
@@ -161,10 +176,10 @@ export async function verifyQRTokenDirect(
       },
     };
   } catch (error) {
-    console.error('[WebUI QR] Verify QR token error:', error);
+    console.error("[WebUI QR] Verify QR token error:", error);
     return {
       success: false,
-      msg: error instanceof Error ? error.message : 'Failed to verify QR token',
+      msg: error instanceof Error ? error.message : "Failed to verify QR token",
     };
   }
 }

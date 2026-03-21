@@ -148,8 +148,8 @@ async function initializeDefaultAdmin(): Promise<{
 } | null> {
   const username = DEFAULT_ADMIN_USERNAME;
 
-  const systemUser = UserRepository.getSystemUser();
-  const existingAdmin = UserRepository.findByUsername(username);
+  const systemUser = await UserRepository.getSystemUser();
+  const existingAdmin = await UserRepository.findByUsername(username);
 
   // 已存在且密码有效则视为完成初始化
   // Treat existing admin with valid password as already initialized
@@ -172,7 +172,7 @@ async function initializeDefaultAdmin(): Promise<{
     if (existingAdmin) {
       // 情况 1：库中已有 admin 记录但密码缺失 -> 重置密码并输出凭证
       // Case 1: admin row exists but password is blank -> refresh password and expose credentials
-      UserRepository.updatePassword(existingAdmin.id, hashedPassword);
+      await UserRepository.updatePassword(existingAdmin.id, hashedPassword);
       initialAdminPassword = password; // 存储初始密码 / Store initial password
       return { username, password };
     }
@@ -180,14 +180,14 @@ async function initializeDefaultAdmin(): Promise<{
     if (systemUser) {
       // 情况 2：仅存在 system_default_user 占位行 -> 更新用户名和密码
       // Case 2: only placeholder system user exists -> update username/password in place
-      UserRepository.setSystemUserCredentials(username, hashedPassword);
+      await UserRepository.setSystemUserCredentials(username, hashedPassword);
       initialAdminPassword = password; // 存储初始密码 / Store initial password
       return { username, password };
     }
 
     // 情况 3：初次启动，无任何用户 -> 新建 admin 账户
     // Case 3: fresh install with no users -> create admin user explicitly
-    UserRepository.createUser(username, hashedPassword);
+    await UserRepository.createUser(username, hashedPassword);
     initialAdminPassword = password; // 存储初始密码 / Store initial password
     return { username, password };
   } catch (error) {

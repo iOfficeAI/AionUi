@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { WebSocketServer } from 'ws';
-import { WebSocket } from 'ws';
-import type { IncomingMessage } from 'http';
-import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
-import { WEBSOCKET_CONFIG } from '../config/constants';
-import { SHOW_OPEN_REQUEST_EVENT } from '@/common/adapter/constant';
+import type { WebSocketServer } from "ws";
+import { WebSocket } from "ws";
+import type { IncomingMessage } from "http";
+import { TokenMiddleware } from "@process/webserver/auth/middleware/TokenMiddleware";
+import { WEBSOCKET_CONFIG } from "../config/constants";
+import { SHOW_OPEN_REQUEST_EVENT } from "@/common/adapter/constant";
 
 interface ClientInfo {
   token: string;
@@ -32,18 +32,20 @@ export class WebSocketManager {
    */
   initialize(): void {
     this.startHeartbeat();
-    console.log('[WebSocketManager] Initialized');
+    console.log("[WebSocketManager] Initialized");
   }
 
   /**
    * 设置连接处理器
    * Setup connection handler
    */
-  setupConnectionHandler(onMessage: (name: string, data: any, ws: WebSocket) => void): void {
-    this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+  setupConnectionHandler(
+    onMessage: (name: string, data: any, ws: WebSocket) => void,
+  ): void {
+    this.wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
       const token = TokenMiddleware.extractWebSocketToken(req);
 
-      if (!this.validateConnection(ws, token)) {
+      if (!(await this.validateConnection(ws, token))) {
         return;
       }
 
@@ -52,7 +54,7 @@ export class WebSocketManager {
       this.setupCloseHandler(ws);
       this.setupErrorHandler(ws);
 
-      console.log('[WebSocketManager] Client connected');
+      console.log("[WebSocketManager] Client connected");
     });
   }
 
@@ -60,22 +62,36 @@ export class WebSocketManager {
    * 验证连接
    * Validate connection
    */
-  private validateConnection(ws: WebSocket, token: string | null): boolean {
+  private async validateConnection(
+    ws: WebSocket,
+    token: string | null,
+  ): Promise<boolean> {
     if (!token) {
-      ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'No token provided');
+      ws.close(
+        WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION,
+        "No token provided",
+      );
       return false;
     }
 
-    if (!TokenMiddleware.validateWebSocketToken(token)) {
+    if (!(await TokenMiddleware.validateWebSocketToken(token))) {
       // Send auth-expired before closing so the client can redirect to login
       // instead of entering an infinite reconnection loop.
       // This mirrors the behavior in checkClients() heartbeat check.
       try {
-        ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
+        ws.send(
+          JSON.stringify({
+            name: "auth-expired",
+            data: { message: "Token expired, please login again" },
+          }),
+        );
       } catch {
         // Socket may not be ready for sending yet; close will still fire on client
       }
-      ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Invalid or expired token');
+      ws.close(
+        WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION,
+        "Invalid or expired token",
+      );
       return false;
     }
 
@@ -97,20 +113,23 @@ export class WebSocketManager {
    * 设置消息处理器
    * Setup message handler
    */
-  private setupMessageHandler(ws: WebSocket, onMessage: (name: string, data: any, ws: WebSocket) => void): void {
-    ws.on('message', (rawData) => {
+  private setupMessageHandler(
+    ws: WebSocket,
+    onMessage: (name: string, data: any, ws: WebSocket) => void,
+  ): void {
+    ws.on("message", (rawData) => {
       try {
         const parsed = JSON.parse(rawData.toString());
         const { name, data } = parsed;
 
         // Handle pong response - update last ping time
-        if (name === 'pong') {
+        if (name === "pong") {
           this.updateLastPing(ws);
           return;
         }
 
         // Handle file selection request - forward to client
-        if (name === 'subscribe-show-open') {
+        if (name === "subscribe-show-open") {
           this.handleFileSelection(ws, data);
           return;
         }
@@ -120,9 +139,9 @@ export class WebSocketManager {
       } catch (error) {
         ws.send(
           JSON.stringify({
-            error: 'Invalid message format',
+            error: "Invalid message format",
             expected: '{ "name": "event-name", "data": {...} }',
-          })
+          }),
         );
       }
     });
@@ -138,10 +157,18 @@ export class WebSocketManager {
     const properties = actualData.properties;
 
     // Determine if this is file selection mode
-    const isFileMode = properties && properties.includes('openFile') && !properties.includes('openDirectory');
+    const isFileMode =
+      properties &&
+      properties.includes("openFile") &&
+      !properties.includes("openDirectory");
 
     // Send file selection request to client with isFileMode flag
-    ws.send(JSON.stringify({ name: SHOW_OPEN_REQUEST_EVENT, data: { ...data, isFileMode } }));
+    ws.send(
+      JSON.stringify({
+        name: SHOW_OPEN_REQUEST_EVENT,
+        data: { ...data, isFileMode },
+      }),
+    );
   }
 
   /**
@@ -149,9 +176,9 @@ export class WebSocketManager {
    * Setup close handler
    */
   private setupCloseHandler(ws: WebSocket): void {
-    ws.on('close', () => {
+    ws.on("close", () => {
       this.clients.delete(ws);
-      console.log('[WebSocketManager] Client disconnected');
+      console.log("[WebSocketManager] Client disconnected");
     });
   }
 
@@ -160,8 +187,8 @@ export class WebSocketManager {
    * Setup error handler
    */
   private setupErrorHandler(ws: WebSocket): void {
-    ws.on('error', (error) => {
-      console.error('[WebSocketManager] Client error:', error);
+    ws.on("error", (error) => {
+      console.error("[WebSocketManager] Client error:", error);
       this.clients.delete(ws);
     });
   }
@@ -191,23 +218,36 @@ export class WebSocketManager {
    * 检查所有客户端
    * Check all clients
    */
-  private checkClients(): void {
+  private async checkClients(): Promise<void> {
     const now = Date.now();
 
     for (const [ws, clientInfo] of this.clients) {
       // Check if client timed out
       if (this.isClientTimeout(clientInfo, now)) {
-        console.log('[WebSocketManager] Client heartbeat timeout, closing connection');
-        ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Heartbeat timeout');
+        console.log(
+          "[WebSocketManager] Client heartbeat timeout, closing connection",
+        );
+        ws.close(
+          WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION,
+          "Heartbeat timeout",
+        );
         this.clients.delete(ws);
         continue;
       }
 
       // Validate if WebSocket token is still valid
-      if (!TokenMiddleware.validateWebSocketToken(clientInfo.token)) {
-        console.log('[WebSocketManager] Token expired, closing connection');
-        ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
-        ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Token expired');
+      if (!(await TokenMiddleware.validateWebSocketToken(clientInfo.token))) {
+        console.log("[WebSocketManager] Token expired, closing connection");
+        ws.send(
+          JSON.stringify({
+            name: "auth-expired",
+            data: { message: "Token expired, please login again" },
+          }),
+        );
+        ws.close(
+          WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION,
+          "Token expired",
+        );
         this.clients.delete(ws);
         continue;
       }
@@ -231,7 +271,9 @@ export class WebSocketManager {
    */
   private sendHeartbeat(ws: WebSocket): void {
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ name: 'ping', data: { timestamp: Date.now() } }));
+      ws.send(
+        JSON.stringify({ name: "ping", data: { timestamp: Date.now() } }),
+      );
     }
   }
 
@@ -269,11 +311,14 @@ export class WebSocketManager {
 
     // Close all connections
     for (const [ws] of this.clients) {
-      ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.NORMAL_CLOSURE, 'Server shutting down');
+      ws.close(
+        WEBSOCKET_CONFIG.CLOSE_CODES.NORMAL_CLOSURE,
+        "Server shutting down",
+      );
     }
 
     this.clients.clear();
-    console.log('[WebSocketManager] Destroyed');
+    console.log("[WebSocketManager] Destroyed");
   }
 }
 

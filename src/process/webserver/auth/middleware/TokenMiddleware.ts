@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Request, Response, NextFunction } from 'express';
-import type { IncomingMessage } from 'http';
-import cookie from 'cookie';
-import { AuthService } from '../service/AuthService';
-import { UserRepository } from '../repository/UserRepository';
-import { AUTH_CONFIG } from '../../config/constants';
+import type { Request, Response, NextFunction } from "express";
+import type { IncomingMessage } from "http";
+import cookie from "cookie";
+import { AuthService } from "../service/AuthService";
+import { UserRepository } from "../repository/UserRepository";
+import { AUTH_CONFIG } from "../../config/constants";
 
 /**
  * Token 负载接口
@@ -43,14 +43,14 @@ class TokenExtractor {
   static extract(req: Request): string | null {
     // 1. 尝试从 Authorization header 提取 / Try to extract from Authorization header
     const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
+    if (authHeader?.startsWith("Bearer ")) {
       return authHeader.substring(7);
     }
 
     // 2. 尝试从 Cookie 提取 / Try to extract from Cookie
-    if (typeof req.cookies === 'object' && req.cookies) {
+    if (typeof req.cookies === "object" && req.cookies) {
       const cookieToken = req.cookies[AUTH_CONFIG.COOKIE.NAME];
-      if (typeof cookieToken === 'string' && cookieToken.trim() !== '') {
+      if (typeof cookieToken === "string" && cookieToken.trim() !== "") {
         return cookieToken;
       }
     }
@@ -76,7 +76,9 @@ interface ValidationStrategy {
  */
 class JsonValidationStrategy implements ValidationStrategy {
   handleUnauthorized(res: Response): void {
-    res.status(403).json({ success: false, error: 'Access denied. Please login first.' });
+    res
+      .status(403)
+      .json({ success: false, error: "Access denied. Please login first." });
   }
 }
 
@@ -86,7 +88,7 @@ class JsonValidationStrategy implements ValidationStrategy {
  */
 class HtmlValidationStrategy implements ValidationStrategy {
   handleUnauthorized(res: Response): void {
-    res.status(403).send('Access Denied');
+    res.status(403).send("Access Denied");
   }
 }
 
@@ -101,8 +103,8 @@ class ValidatorFactory {
    * @param type - 策略类型 (json 或 html) / Strategy type (json or html)
    * @returns 验证策略实例 / Validation strategy instance
    */
-  static create(type: 'json' | 'html'): ValidationStrategy {
-    if (type === 'html') {
+  static create(type: "json" | "html"): ValidationStrategy {
+    if (type === "html") {
       return new HtmlValidationStrategy();
     }
     return new JsonValidationStrategy();
@@ -128,10 +130,14 @@ class ValidatorFactory {
  * @param type - 响应类型 (json 或 html) / Response type (json or html)
  * @returns Express 中间件函数 / Express middleware function
  */
-export const createAuthMiddleware = (type: 'json' | 'html' = 'json') => {
+export const createAuthMiddleware = (type: "json" | "html" = "json") => {
   const strategy = ValidatorFactory.create(type);
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     // 1. 提取 token / Extract token
     const token = TokenExtractor.extract(req);
 
@@ -141,14 +147,14 @@ export const createAuthMiddleware = (type: 'json' | 'html' = 'json') => {
     }
 
     // 2. 验证 token / Verify token
-    const decoded = AuthService.verifyToken(token);
+    const decoded = await AuthService.verifyToken(token);
     if (!decoded) {
       strategy.handleUnauthorized(res);
       return;
     }
 
     // 3. 查找用户 / Find user
-    const user = UserRepository.findById(decoded.userId);
+    const user = await UserRepository.findById(decoded.userId);
     if (!user) {
       strategy.handleUnauthorized(res);
       return;
@@ -191,15 +197,15 @@ export const TokenMiddleware = {
   },
 
   /** 校验 token 是否有效 / Verify token validity */
-  isTokenValid(token: string | null): boolean {
-    return Boolean(token && AuthService.verifyToken(token));
+  async isTokenValid(token: string | null): Promise<boolean> {
+    return Boolean(token && (await AuthService.verifyToken(token)));
   },
 
   /** 返回认证中间件（默认为 JSON 响应）/ Return auth middleware (JSON response by default) */
   validateToken(options?: {
-    responseType?: 'json' | 'html';
-  }): (req: Request, res: Response, next: NextFunction) => void {
-    return createAuthMiddleware(options?.responseType ?? 'json');
+    responseType?: "json" | "html";
+  }): (req: Request, res: Response, next: NextFunction) => Promise<void> {
+    return createAuthMiddleware(options?.responseType ?? "json");
   },
 
   /**
@@ -211,14 +217,14 @@ export const TokenMiddleware = {
    */
   extractWebSocketToken(req: IncomingMessage): string | null {
     // 1. 从 Authorization header 提取
-    const authHeader = req.headers['authorization'];
-    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    const authHeader = req.headers["authorization"];
+    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
       return authHeader.substring(7);
     }
 
     // 2. 从 Cookie 提取 (WebUI 模式)
-    const cookieHeader = req.headers['cookie'];
-    if (typeof cookieHeader === 'string') {
+    const cookieHeader = req.headers["cookie"];
+    if (typeof cookieHeader === "string") {
       const cookies = cookie.parse(cookieHeader);
       const cookieToken = cookies[AUTH_CONFIG.COOKIE.NAME];
       if (cookieToken) {
@@ -227,9 +233,9 @@ export const TokenMiddleware = {
     }
 
     // 3. 从 sec-websocket-protocol 提取（用于不支持 Cookie 的客户端）
-    const protocolHeader = req.headers['sec-websocket-protocol'];
-    if (typeof protocolHeader === 'string' && protocolHeader.trim() !== '') {
-      return protocolHeader.split(',')[0]?.trim() ?? null;
+    const protocolHeader = req.headers["sec-websocket-protocol"];
+    if (typeof protocolHeader === "string" && protocolHeader.trim() !== "") {
+      return protocolHeader.split(",")[0]?.trim() ?? null;
     }
 
     // 不再支持从 URL query 参数提取 token（安全风险）
@@ -239,7 +245,7 @@ export const TokenMiddleware = {
   },
 
   /** 校验 WebSocket token 是否有效 / Validate WebSocket token */
-  validateWebSocketToken(token: string | null): boolean {
-    return Boolean(token && AuthService.verifyWebSocketToken(token));
+  async validateWebSocketToken(token: string | null): Promise<boolean> {
+    return Boolean(token && (await AuthService.verifyWebSocketToken(token)));
   },
 };

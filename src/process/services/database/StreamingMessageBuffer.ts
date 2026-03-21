@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chat/chatLib';
-import { getDatabase } from './index';
+import type { TMessage } from "@/common/chat/chatLib";
+import { getDatabase } from "./index";
 
 /**
  * 流式消息缓冲管理器
@@ -29,7 +29,7 @@ interface StreamBuffer {
   chunkCount: number;
   lastDbUpdate: number;
   updateTimer?: NodeJS.Timeout;
-  mode: 'accumulate' | 'replace'; // 每个 buffer 独立的模式，避免并发冲突
+  mode: "accumulate" | "replace"; // 每个 buffer 独立的模式，避免并发冲突
 }
 
 interface StreamingConfig {
@@ -64,7 +64,13 @@ export class StreamingMessageBuffer {
    * 性能优化：批量写入而非每个 chunk 都写数据库
    * @param mode
    */
-  append(id: string, messageId: string, conversationId: string, chunk: string, mode: 'accumulate' | 'replace'): void {
+  append(
+    id: string,
+    messageId: string,
+    conversationId: string,
+    chunk: string,
+    mode: "accumulate" | "replace",
+  ): void {
     let buffer = this.buffers.get(messageId);
 
     if (!buffer) {
@@ -80,7 +86,7 @@ export class StreamingMessageBuffer {
       this.buffers.set(messageId, buffer);
     } else {
       // 根据 buffer 的模式累积或替换内容（使用 buffer.mode 而非 this.mode）
-      if (buffer.mode === 'accumulate') {
+      if (buffer.mode === "accumulate") {
         buffer.currentContent += chunk;
       } else {
         buffer.currentContent = chunk; // 替换模式：直接覆盖
@@ -117,26 +123,34 @@ export class StreamingMessageBuffer {
    * @param messageId - 合并消息唯一消息 ID
    * @param clearBuffer - 是否清理缓冲区（默认 false）
    */
-  private flushBuffer(id: string, messageId: string, clearBuffer = false): void {
+  private async flushBuffer(
+    id: string,
+    messageId: string,
+    clearBuffer = false,
+  ): Promise<void> {
     const buffer = this.buffers.get(messageId);
     if (!buffer) return;
 
-    const db = getDatabase();
+    const db = await getDatabase();
 
     try {
       const message: TMessage = {
         id: id,
         msg_id: messageId,
         conversation_id: buffer.conversationId,
-        type: 'text',
+        type: "text",
         content: { content: buffer.currentContent },
-        status: 'pending',
-        position: 'left',
+        status: "pending",
+        position: "left",
         createdAt: Date.now(),
       };
 
       // Check if message exists in database
-      const existing = db.getMessageByMsgId(buffer.conversationId, messageId, 'text');
+      const existing = db.getMessageByMsgId(
+        buffer.conversationId,
+        messageId,
+        "text",
+      );
 
       if (existing.success && existing.data) {
         // Message exists - update it
@@ -154,7 +168,10 @@ export class StreamingMessageBuffer {
         this.buffers.delete(messageId);
       }
     } catch (error) {
-      console.error(`[StreamingBuffer] Failed to flush buffer for ${messageId}:`, error);
+      console.error(
+        `[StreamingBuffer] Failed to flush buffer for ${messageId}:`,
+        error,
+      );
     }
   }
 }

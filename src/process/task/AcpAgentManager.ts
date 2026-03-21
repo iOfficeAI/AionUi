@@ -1,35 +1,42 @@
-import { AcpAgent } from '@process/agent/acp';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
-import { ipcBridge } from '@/common';
-import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
-import type { SlashCommandItem } from '@/common/chat/slash/types';
-import { transformMessage } from '@/common/chat/chatLib';
-import { AIONUI_FILES_MARKER } from '@/common/config/constants';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { parseError, uuid } from '@/common/utils';
+import { AcpAgent } from "@process/agent/acp";
+import { channelEventBus } from "@process/channels/agent/ChannelEventBus";
+import { ipcBridge } from "@/common";
+import type { CronMessageMeta, TMessage } from "@/common/chat/chatLib";
+import type { SlashCommandItem } from "@/common/chat/slash/types";
+import { transformMessage } from "@/common/chat/chatLib";
+import { AIONUI_FILES_MARKER } from "@/common/config/constants";
+import type { IResponseMessage } from "@/common/adapter/ipcBridge";
+import { parseError, uuid } from "@/common/utils";
 import type {
   AcpBackend,
   AcpModelInfo,
   AcpPermissionOption,
   AcpPermissionRequest,
   AcpSessionConfigOption,
-} from '@/common/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
-import { ExtensionRegistry } from '@process/extensions';
-import { getDatabase } from '@process/services/database';
-import { ProcessConfig } from '@process/utils/initStorage';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
-import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
+} from "@/common/types/acpTypes";
+import { ACP_BACKENDS_ALL } from "@/common/types/acpTypes";
+import { ExtensionRegistry } from "@process/extensions";
+import { getDatabase } from "@process/services/database";
+import { ProcessConfig } from "@process/utils/initStorage";
+import {
+  addMessage,
+  addOrUpdateMessage,
+  nextTickToLocalFinish,
+} from "@process/utils/message";
+import { handlePreviewOpenEvent } from "@process/utils/previewUtils";
+import { cronBusyGuard } from "@process/services/cron/CronBusyGuard";
+import { mainLog, mainWarn, mainError } from "@process/utils/mainLogger";
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
-const ACP_PERF_LOG = process.env.ACP_PERF === '1';
+const ACP_PERF_LOG = process.env.ACP_PERF === "1";
 
-import BaseAgentManager from './BaseAgentManager';
-import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { hasCronCommands } from './CronCommandDetector';
-import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
-import { stripThinkTags } from './ThinkTagDetector';
+import BaseAgentManager from "./BaseAgentManager";
+import { IpcAgentEventEmitter } from "./IpcAgentEventEmitter";
+import { hasCronCommands } from "./CronCommandDetector";
+import {
+  extractTextFromMessage,
+  processCronInMessage,
+} from "./MessageMiddleware";
+import { stripThinkTags } from "./ThinkTagDetector";
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -58,43 +65,59 @@ interface AcpAgentManagerData {
 type BufferedStreamTextMessage = {
   conversationId: string;
   backend: AcpBackend;
-  message: Extract<TMessage, { type: 'text' }>;
+  message: Extract<TMessage, { type: "text" }>;
   timer: ReturnType<typeof setTimeout>;
 };
 
-class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
+class AcpAgentManager extends BaseAgentManager<
+  AcpAgentManagerData,
+  AcpPermissionOption
+> {
   workspace: string;
   agent: AcpAgent;
   private bootstrap: Promise<AcpAgent> | undefined;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
-  private currentMode: string = 'default';
+  private currentMode: string = "default";
   private persistedModelId: string | null = null;
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
-  private currentMsgContent: string = '';
+  private currentMsgContent: string = "";
   private acpAvailableSlashCommands: SlashCommandItem[] = [];
-  private acpAvailableSlashWaiters: Array<(commands: SlashCommandItem[]) => void> = [];
+  private acpAvailableSlashWaiters: Array<
+    (commands: SlashCommandItem[]) => void
+  > = [];
   private readonly streamDbFlushIntervalMs = 120;
-  private readonly bufferedStreamTextMessages = new Map<string, BufferedStreamTextMessage>();
+  private readonly bufferedStreamTextMessages = new Map<
+    string,
+    BufferedStreamTextMessage
+  >();
 
   constructor(data: AcpAgentManagerData) {
-    super('acp', data, new IpcAgentEventEmitter());
+    super("acp", data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
-    this.currentMode = data.sessionMode || 'default';
+    this.currentMode = data.sessionMode || "default";
     this.persistedModelId = data.currentModelId || null;
-    this.status = 'pending';
+    this.status = "pending";
     // Sync yoloMode from sessionMode so addConfirmation auto-approves when Full Auto is selected
-    this.yoloMode = this.yoloMode || this.currentMode === 'yolo' || this.currentMode === 'bypassPermissions';
+    this.yoloMode =
+      this.yoloMode ||
+      this.currentMode === "yolo" ||
+      this.currentMode === "bypassPermissions";
   }
 
-  private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
+  private makeStreamBufferKey(
+    message: Extract<TMessage, { type: "text" }>,
+  ): string {
     return `${message.conversation_id}:${message.msg_id || message.id}`;
   }
 
-  private queueBufferedStreamTextMessage(message: Extract<TMessage, { type: 'text' }>, backend: AcpBackend): void {
+  private queueBufferedStreamTextMessage(
+    message: Extract<TMessage, { type: "text" }>,
+    backend: AcpBackend,
+  ): void {
     const key = this.makeStreamBufferKey(message);
     const existing = this.bufferedStreamTextMessages.get(key);
     if (existing) {
@@ -111,7 +134,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return;
     }
 
-    const bufferedMessage: Extract<TMessage, { type: 'text' }> = {
+    const bufferedMessage: Extract<TMessage, { type: "text" }> = {
       ...message,
       content: { ...message.content },
     };
@@ -133,7 +156,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
     clearTimeout(buffered.timer);
     this.bufferedStreamTextMessages.delete(key);
-    addOrUpdateMessage(buffered.conversationId, buffered.message, buffered.backend);
+    addOrUpdateMessage(
+      buffered.conversationId,
+      buffered.message,
+      buffered.backend,
+    );
   }
 
   private flushBufferedStreamTextMessages(): void {
@@ -154,31 +181,47 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
       // 处理自定义后端：优先读 acp.customAgents；若未命中则尝试扩展贡献的 adapter
       // Handle custom backend: prefer acp.customAgents; fallback to extension-contributed adapters
-      if (data.backend === 'custom' && data.customAgentId) {
-        const customAgents = await ProcessConfig.get('acp.customAgents');
+      if (data.backend === "custom" && data.customAgentId) {
+        const customAgents = await ProcessConfig.get("acp.customAgents");
         // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
-        let customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+        let customAgentConfig = customAgents?.find(
+          (agent) => agent.id === data.customAgentId,
+        );
 
         // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
-        if (!customAgentConfig && data.customAgentId.startsWith('ext:')) {
-          const [, extensionName, ...idParts] = data.customAgentId.split(':');
-          const adapterId = idParts.join(':');
+        if (!customAgentConfig && data.customAgentId.startsWith("ext:")) {
+          const [, extensionName, ...idParts] = data.customAgentId.split(":");
+          const adapterId = idParts.join(":");
           const adapter = ExtensionRegistry.getInstance()
             .getAcpAdapters()
             .find((item) => {
               const record = item as Record<string, unknown>;
-              return record._extensionName === extensionName && record.id === adapterId;
+              return (
+                record._extensionName === extensionName &&
+                record.id === adapterId
+              );
             }) as Record<string, unknown> | undefined;
 
           if (adapter) {
             customAgentConfig = {
               id: data.customAgentId,
-              name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
-              defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
+              name:
+                typeof adapter.name === "string"
+                  ? adapter.name
+                  : data.customAgentId,
+              defaultCliPath:
+                typeof adapter.defaultCliPath === "string"
+                  ? adapter.defaultCliPath
+                  : undefined,
               acpArgs: Array.isArray(adapter.acpArgs)
-                ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
+                ? adapter.acpArgs.filter(
+                    (v): v is string => typeof v === "string",
+                  )
                 : undefined,
-              env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
+              env:
+                typeof adapter.env === "object" && adapter.env
+                  ? (adapter.env as Record<string, string>)
+                  : undefined,
             } as any;
           }
         }
@@ -192,33 +235,42 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           customArgs = customAgentConfig.acpArgs;
           customEnv = customAgentConfig.env;
         }
-      } else if (data.backend !== 'custom') {
+      } else if (data.backend !== "custom") {
         // Handle built-in backends: read from acp.config
-        const config = await ProcessConfig.get('acp.config');
+        const config = await ProcessConfig.get("acp.config");
         if (!cliPath && config?.[data.backend]?.cliPath) {
           cliPath = config[data.backend].cliPath;
         }
         // yoloMode priority: data.yoloMode (from CronService) > config setting
         // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-        const legacyYoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
+        const legacyYoloMode =
+          data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
 
         // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
         // Maps to each backend's native yolo mode value for correct protocol behavior.
         // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
-        if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+        if (
+          legacyYoloMode &&
+          this.currentMode === "default" &&
+          !data.sessionMode
+        ) {
           const yoloModeValues: Record<string, string> = {
-            claude: 'bypassPermissions',
-            qwen: 'yolo',
-            iflow: 'yolo',
-            codex: 'yolo',
+            claude: "bypassPermissions",
+            qwen: "yolo",
+            iflow: "yolo",
+            codex: "yolo",
           };
-          this.currentMode = yoloModeValues[data.backend] || 'yolo';
+          this.currentMode = yoloModeValues[data.backend] || "yolo";
           this.yoloMode = true;
         }
 
         // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
         // on the Guid page, clear the legacy config so it won't re-activate next time.
-        if (legacyYoloMode && data.sessionMode && !this.isYoloMode(data.sessionMode)) {
+        if (
+          legacyYoloMode &&
+          data.sessionMode &&
+          !this.isYoloMode(data.sessionMode)
+        ) {
           void this.clearLegacyYoloConfig();
         }
 
@@ -240,7 +292,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       } else {
         // backend === 'custom' but no customAgentId - this is an invalid state
         // 自定义后端但缺少 customAgentId - 这是无效状态
-        mainWarn('[AcpAgentManager]', 'Custom backend specified but customAgentId is missing');
+        mainWarn(
+          "[AcpAgentManager]",
+          "Custom backend specified but customAgentId is missing",
+        );
       }
 
       this.agent = new AcpAgent({
@@ -278,12 +333,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               name,
               description: command.description || name,
               hint: command.hint,
-              kind: 'template',
-              source: 'acp',
+              kind: "template",
+              source: "acp",
             });
           }
           this.acpAvailableSlashCommands = nextCommands;
-          const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+          const waiters = this.acpAvailableSlashWaiters.splice(
+            0,
+            this.acpAvailableSlashWaiters.length,
+          );
           for (const resolve of waiters) {
             resolve(this.getAcpSlashCommands());
           }
@@ -293,9 +351,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           // Reduce status noise: show full lifecycle only for the first turn.
           // After first turn, only keep failure statuses to avoid reconnect chatter.
-          if (message.type === 'agent_status') {
+          if (message.type === "agent_status") {
             const status = (message.data as { status?: string } | null)?.status;
-            const shouldDisplayStatus = this.isFirstMessage || status === 'error' || status === 'disconnected';
+            const shouldDisplayStatus =
+              this.isFirstMessage ||
+              status === "error" ||
+              status === "disconnected";
             if (!shouldDisplayStatus) {
               return;
             }
@@ -309,24 +370,30 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
           // Mark as finished when content is output (visible to user)
           // ACP uses: content, agent_status, acp_tool_call, plan
-          const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
+          const contentTypes = [
+            "content",
+            "agent_status",
+            "acp_tool_call",
+            "plan",
+          ];
           if (contentTypes.includes(message.type)) {
-            this.status = 'finished';
+            this.status = "finished";
           }
 
           // Emit request trace on each model generation start
-          if (message.type === 'start') {
+          if (message.type === "start") {
             const modelInfo = this.agent?.getModelInfo();
             const traceData = {
-              agentType: 'acp' as const,
+              agentType: "acp" as const,
               backend: data.backend,
-              modelId: modelInfo?.currentModelId || this.persistedModelId || 'unknown',
+              modelId:
+                modelInfo?.currentModelId || this.persistedModelId || "unknown",
               cliPath: this.options?.cliPath,
               sessionMode: this.currentMode,
               timestamp: Date.now(),
             };
             ipcBridge.acpConversation.responseStream.emit({
-              type: 'request_trace',
+              type: "request_trace",
               conversation_id: this.conversation_id,
               msg_id: uuid(),
               data: traceData,
@@ -334,31 +401,40 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           }
 
           // Persist context usage to conversation extra for restore on page switch
-          if (message.type === 'acp_context_usage') {
+          if (message.type === "acp_context_usage") {
             const usageData = message.data as { used: number; size: number };
             this.saveContextUsage(usageData);
           }
 
-          if (message.type !== 'thought' && message.type !== 'acp_model_info' && message.type !== 'acp_context_usage') {
+          if (
+            message.type !== "thought" &&
+            message.type !== "acp_model_info" &&
+            message.type !== "acp_context_usage"
+          ) {
             const transformStart = Date.now();
             const tMessage = transformMessage(message as IResponseMessage);
             const transformDuration = Date.now() - transformStart;
 
             if (tMessage) {
               const dbStart = Date.now();
-              const isStreamTextChunk = tMessage.type === 'text' && message.type === 'content';
+              const isStreamTextChunk =
+                tMessage.type === "text" && message.type === "content";
               if (isStreamTextChunk) {
                 this.queueBufferedStreamTextMessage(tMessage, data.backend);
               } else {
                 this.flushBufferedStreamTextMessages();
-                addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
+                addOrUpdateMessage(
+                  message.conversation_id,
+                  tMessage,
+                  data.backend,
+                );
               }
               const dbDuration = Date.now() - dbStart;
 
               if (transformDuration > 5 || dbDuration > 5) {
                 if (ACP_PERF_LOG)
                   console.log(
-                    `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${message.type}`
+                    `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${message.type}`,
                   );
               }
 
@@ -381,7 +457,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // Filter think tags from streaming content before emitting to UI
           // 在发送到 UI 之前过滤流式内容中的 think 标签
           const filterStart = Date.now();
-          const filteredMessage = this.filterThinkTagsFromMessage(message as IResponseMessage);
+          const filteredMessage = this.filterThinkTagsFromMessage(
+            message as IResponseMessage,
+          );
           const filterDuration = Date.now() - filterStart;
 
           const emitStart = Date.now();
@@ -399,7 +477,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           if (totalDuration > 10) {
             if (ACP_PERF_LOG)
               console.log(
-                `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`
+                `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (filter=${filterDuration}ms, emit=${emitDuration}ms) type=${message.type}`,
               );
           }
         },
@@ -408,13 +486,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           this.flushBufferedStreamTextMessages();
 
           // 仅发送信号到前端，不更新消息列表
-          if (v.type === 'acp_permission') {
+          if (v.type === "acp_permission") {
             const { toolCall, options } = v.data as AcpPermissionRequest;
             this.addConfirmation({
-              title: toolCall.title || 'messages.permissionRequest',
-              action: 'messages.command',
+              title: toolCall.title || "messages.permissionRequest",
+              action: "messages.command",
               id: v.msg_id,
-              description: toolCall.rawInput?.description || 'messages.agentRequestingPermission',
+              description:
+                toolCall.rawInput?.description ||
+                "messages.agentRequestingPermission",
               callId: toolCall.toolCallId || v.msg_id,
               options: options.map((option) => ({
                 label: option.name,
@@ -425,53 +505,62 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             // Channels (Telegram/Lark) currently don't have interactive permission UX.
             // Emit a readable error to avoid "silent hang" in external platforms.
             channelEventBus.emitAgentMessage(this.conversation_id, {
-              type: 'error',
+              type: "error",
               conversation_id: this.conversation_id,
               msg_id: v.msg_id,
-              data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
+              data: "Permission required. Please open AionUi and confirm the pending request in the conversation panel.",
             });
             return;
           }
 
           // Clear busy guard when turn ends
-          if (v.type === 'finish') {
+          if (v.type === "finish") {
             cronBusyGuard.setProcessing(this.conversation_id, false);
           }
 
           // Process cron commands when turn ends (finish signal)
           // ACP streams content in chunks, so we check the accumulated content here
-          if (v.type === 'finish' && this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
+          if (
+            v.type === "finish" &&
+            this.currentMsgContent &&
+            hasCronCommands(this.currentMsgContent)
+          ) {
             const message: TMessage = {
               id: this.currentMsgId || uuid(),
               msg_id: this.currentMsgId || uuid(),
-              type: 'text',
-              position: 'left',
+              type: "text",
+              position: "left",
               conversation_id: this.conversation_id,
               content: { content: this.currentMsgContent },
-              status: 'finish',
+              status: "finish",
               createdAt: Date.now(),
             };
             // Process cron commands and send results back to AI
             const collectedResponses: string[] = [];
-            await processCronInMessage(this.conversation_id, data.backend as any, message, (sysMsg) => {
-              collectedResponses.push(sysMsg);
-              // Also emit to frontend for display
-              const systemMessage: IResponseMessage = {
-                type: 'system',
-                conversation_id: this.conversation_id,
-                msg_id: uuid(),
-                data: sysMsg,
-              };
-              ipcBridge.acpConversation.responseStream.emit(systemMessage);
-            });
+            await processCronInMessage(
+              this.conversation_id,
+              data.backend as any,
+              message,
+              (sysMsg) => {
+                collectedResponses.push(sysMsg);
+                // Also emit to frontend for display
+                const systemMessage: IResponseMessage = {
+                  type: "system",
+                  conversation_id: this.conversation_id,
+                  msg_id: uuid(),
+                  data: sysMsg,
+                };
+                ipcBridge.acpConversation.responseStream.emit(systemMessage);
+              },
+            );
             // Send collected responses back to AI agent so it can continue
             if (collectedResponses.length > 0 && this.agent) {
-              const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+              const feedbackMessage = `[System Response]\n${collectedResponses.join("\n")}`;
               await this.agent.sendMessage({ content: feedbackMessage });
             }
             // Reset after processing
             this.currentMsgId = null;
-            this.currentMsgContent = '';
+            this.currentMsgContent = "";
           }
 
           ipcBridge.acpConversation.responseStream.emit(v);
@@ -486,12 +575,19 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return this.agent.start().then(async () => {
         // Re-apply persisted mode after session start/resume
         // 在会话启动/恢复后重新应用持久化的模式
-        if (this.currentMode && this.currentMode !== 'default') {
+        if (this.currentMode && this.currentMode !== "default") {
           try {
             await this.agent.setMode(this.currentMode);
-            mainLog('[AcpAgentManager]', `Re-applied persisted mode: ${this.currentMode}`);
+            mainLog(
+              "[AcpAgentManager]",
+              `Re-applied persisted mode: ${this.currentMode}`,
+            );
           } catch (error) {
-            mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
+            mainWarn(
+              "[AcpAgentManager]",
+              `Failed to re-apply mode ${this.currentMode}`,
+              error,
+            );
           }
         }
         // Re-apply persisted model if current model differs from persisted one
@@ -500,23 +596,33 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           const currentInfo = this.agent.getModelInfo();
           // Validate persisted model exists in current available models before re-applying.
           // Stale cache may reference models that no longer exist (e.g., gpt-5.3-codex).
-          const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
+          const isModelAvailable = currentInfo?.availableModels?.some(
+            (m) => m.id === this.persistedModelId,
+          );
           if (!isModelAvailable) {
             mainWarn(
-              '[AcpAgentManager]',
-              `Persisted model ${this.persistedModelId} is not in available models, clearing`
+              "[AcpAgentManager]",
+              `Persisted model ${this.persistedModelId} is not in available models, clearing`,
             );
             this.persistedModelId = null;
           } else if (currentInfo?.currentModelId !== this.persistedModelId) {
             try {
               await this.agent.setModelByConfigOption(this.persistedModelId);
             } catch (error) {
-              const errMsg = error instanceof Error ? error.message : String(error);
-              mainWarn('[AcpAgentManager]', `Failed to re-apply model ${this.persistedModelId}`, error);
+              const errMsg =
+                error instanceof Error ? error.message : String(error);
+              mainWarn(
+                "[AcpAgentManager]",
+                `Failed to re-apply model ${this.persistedModelId}`,
+                error,
+              );
               // Emit visible error for relay/proxy compatibility issues
-              if (errMsg.includes('model_not_found') || errMsg.includes('无可用渠道')) {
+              if (
+                errMsg.includes("model_not_found") ||
+                errMsg.includes("无可用渠道")
+              ) {
                 ipcBridge.acpConversation.responseStream.emit({
-                  type: 'error',
+                  type: "error",
                   conversation_id: this.conversation_id,
                   msg_id: `model_error_${Date.now()}`,
                   data:
@@ -539,7 +645,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.bootstrap;
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }): Promise<{
+  async sendMessage(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+  }): Promise<{
     success: boolean;
     msg?: string;
     message?: string;
@@ -548,7 +659,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
-    this.status = 'running';
+    this.status = "running";
     try {
       // Emit/persist user message immediately so UI can refresh without waiting
       // for ACP connection/auth/session initialization.
@@ -556,8 +667,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
+          type: "text",
+          position: "right",
           conversation_id: this.conversation_id,
           content: {
             content: data.content,
@@ -568,12 +679,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
         try {
-          getDatabase().updateConversation(this.conversation_id, {});
+          (await getDatabase()).updateConversation(this.conversation_id, {});
         } catch {
           // Conversation might not exist in DB yet
         }
         const userResponseMessage: IResponseMessage = {
-          type: 'user_content',
+          type: "user_content",
           conversation_id: this.conversation_id,
           msg_id: data.msg_id,
           data: data.cronMeta
@@ -585,7 +696,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
       const initStart = Date.now();
       await this.initAgent(this.options);
-      if (ACP_PERF_LOG) console.log(`[ACP-PERF] manager: initAgent completed ${Date.now() - initStart}ms`);
+      if (ACP_PERF_LOG)
+        console.log(
+          `[ACP-PERF] manager: initAgent completed ${Date.now() - initStart}ms`,
+        );
 
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
@@ -601,10 +715,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
 
         const agentSendStart = Date.now();
-        const result = await this.agent.sendMessage({ ...data, content: contentToSend });
+        const result = await this.agent.sendMessage({
+          ...data,
+          content: contentToSend,
+        });
         if (ACP_PERF_LOG)
           console.log(
-            `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
+            `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`,
           );
         // 首条消息发送后标记，无论是否有 presetContext
         if (this.isFirstMessage) {
@@ -619,15 +736,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       const result = await this.agent.sendMessage(data);
       if (ACP_PERF_LOG)
         console.log(
-          `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
+          `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`,
         );
       return result;
     } catch (e) {
       this.flushBufferedStreamTextMessages();
       cronBusyGuard.setProcessing(this.conversation_id, false);
-      this.status = 'finished';
+      this.status = "finished";
       const message: IResponseMessage = {
-        type: 'error',
+        type: "error",
         conversation_id: this.conversation_id,
         msg_id: data.msg_id || uuid(),
         data: parseError(e),
@@ -645,7 +762,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       // Emit finish signal so the frontend resets loading state
       // (mirrors AcpAgent.handleDisconnect pattern)
       const finishMessage: IResponseMessage = {
-        type: 'finish',
+        type: "finish",
         conversation_id: this.conversation_id,
         msg_id: uuid(),
         data: null,
@@ -664,7 +781,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.acpAvailableSlashCommands.map((item) => ({ ...item }));
   }
 
-  async loadAcpSlashCommands(timeoutMs: number = 6000): Promise<SlashCommandItem[]> {
+  async loadAcpSlashCommands(
+    timeoutMs: number = 6000,
+  ): Promise<SlashCommandItem[]> {
     // Return cached commands immediately if available
     if (this.acpAvailableSlashCommands.length > 0) {
       return this.getAcpSlashCommands();
@@ -681,7 +800,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     try {
       await this.bootstrap;
     } catch (error) {
-      console.warn('[AcpAgentManager] Agent initialization failed while loading ACP slash commands:', error);
+      console.warn(
+        "[AcpAgentManager] Agent initialization failed while loading ACP slash commands:",
+        error,
+      );
       return this.getAcpSlashCommands();
     }
 
@@ -698,7 +820,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         resolve(commands);
       };
       timer = setTimeout(() => {
-        this.acpAvailableSlashWaiters = this.acpAvailableSlashWaiters.filter((waiter) => waiter !== wrappedResolve);
+        this.acpAvailableSlashWaiters = this.acpAvailableSlashWaiters.filter(
+          (waiter) => waiter !== wrappedResolve,
+        );
         resolve(this.getAcpSlashCommands());
       }, timeoutMs);
 
@@ -723,9 +847,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * @param message - The streaming message to filter
    * @returns Message with think tags removed from content
    */
-  private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
+  private filterThinkTagsFromMessage(
+    message: IResponseMessage,
+  ): IResponseMessage {
     // Only filter content messages
-    if (message.type !== 'content' || typeof message.data !== 'string') {
+    if (message.type !== "content" || typeof message.data !== "string") {
       return message;
     }
 
@@ -761,7 +887,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         await this.agent.enableYoloMode();
         return true;
       } catch (error) {
-        mainError('[AcpAgentManager]', 'Failed to enable yoloMode dynamically', error);
+        mainError(
+          "[AcpAgentManager]",
+          "Failed to enable yoloMode dynamically",
+          error,
+        );
         return false;
       }
     }
@@ -799,7 +929,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       // Return persisted model info when agent is not yet initialized
       if (this.persistedModelId) {
         return {
-          source: 'models',
+          source: "models",
           currentModelId: this.persistedModelId,
           currentModelLabel: this.persistedModelId,
           canSwitch: false,
@@ -849,7 +979,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Set a config option value on the underlying ACP agent.
    * Used for reasoning effort and other non-model config options.
    */
-  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+  async setConfigOption(
+    configId: string,
+    value: string,
+  ): Promise<AcpSessionConfigOption[]> {
     if (!this.agent) {
       try {
         await this.initAgent(this.options);
@@ -871,11 +1004,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * @param mode - The mode ID to set
    * @returns Promise that resolves with success status and current mode
    */
-  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+  async setMode(
+    mode: string,
+  ): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
     // Codex (via codex-acp bridge) does not support ACP session/set_mode — it uses MCP
     // and manages approval at the Manager layer. Update local state only to avoid
     // "Invalid params" JSON-RPC error from the bridge.
-    if (this.options.backend === 'codex') {
+    if (this.options.backend === "codex") {
       const prev = this.currentMode;
       this.currentMode = mode;
       this.yoloMode = this.isYoloMode(mode);
@@ -894,13 +1029,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         await this.initAgent(this.options);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        return { success: false, msg: `Agent initialization failed: ${errorMsg}` };
+        return {
+          success: false,
+          msg: `Agent initialization failed: ${errorMsg}`,
+        };
       }
     }
 
     // Check again after initialization attempt
     if (!this.agent) {
-      return { success: false, msg: 'Agent not initialized' };
+      return { success: false, msg: "Agent not initialized" };
     }
 
     const result = await this.agent.setMode(mode);
@@ -916,12 +1054,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         void this.clearLegacyYoloConfig();
       }
     }
-    return { success: result.success, msg: result.error, data: { mode: this.currentMode } };
+    return {
+      success: result.success,
+      msg: result.error,
+      data: { mode: this.currentMode },
+    };
   }
 
   /** Check if a mode value represents YOLO mode for any backend */
   private isYoloMode(mode: string): boolean {
-    return mode === 'yolo' || mode === 'bypassPermissions';
+    return mode === "yolo" || mode === "bypassPermissions";
   }
 
   /**
@@ -931,16 +1073,20 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private async clearLegacyYoloConfig(): Promise<void> {
     try {
-      const config = await ProcessConfig.get('acp.config');
+      const config = await ProcessConfig.get("acp.config");
       const backendConfig = config?.[this.options.backend];
       if ((backendConfig as any)?.yoloMode) {
-        await ProcessConfig.set('acp.config', {
+        await ProcessConfig.set("acp.config", {
           ...config,
           [this.options.backend]: { ...backendConfig, yoloMode: false },
         });
       }
     } catch (error) {
-      mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
+      mainError(
+        "[AcpAgentManager]",
+        "Failed to clear legacy yoloMode config",
+        error,
+      );
     }
   }
 
@@ -948,20 +1094,22 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save model ID to database for resume support.
    * 保存模型 ID 到数据库以支持恢复。
    */
-  private saveModelId(modelId: string): void {
+  private async saveModelId(modelId: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && result.data.type === "acp") {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           currentModelId: modelId,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
-      mainWarn('[AcpAgentManager]', 'Failed to save model ID', error);
+      mainWarn("[AcpAgentManager]", "Failed to save model ID", error);
     }
   }
 
@@ -969,18 +1117,23 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save context usage to database for restore on page switch.
    * 保存上下文使用量到数据库，以便在页面切换时恢复。
    */
-  private saveContextUsage(usage: { used: number; size: number }): void {
+  private async saveContextUsage(usage: {
+    used: number;
+    size: number;
+  }): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && result.data.type === "acp") {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           lastTokenUsage: { totalTokens: usage.used },
           lastContextLimit: usage.size,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch {
       // Non-critical metadata, silently ignore errors
@@ -991,20 +1144,22 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save session mode to database for resume support.
    * 保存会话模式到数据库以支持恢复。
    */
-  private saveSessionMode(mode: string): void {
+  private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && result.data.type === "acp") {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
-      mainError('[AcpAgentManager]', 'Failed to save session mode', error);
+      mainError("[AcpAgentManager]", "Failed to save session mode", error);
     }
   }
 
@@ -1032,7 +1187,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
     // Clear pending slash command waiters to prevent memory leaks
     // 清除待处理的斜杠命令等待者，防止内存泄漏
-    const waiters = this.acpAvailableSlashWaiters.splice(0, this.acpAvailableSlashWaiters.length);
+    const waiters = this.acpAvailableSlashWaiters.splice(
+      0,
+      this.acpAvailableSlashWaiters.length,
+    );
     for (const resolve of waiters) {
       resolve([]);
     }
@@ -1051,7 +1209,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     // Graceful path: stop → grace period → kill
     void (this.agent?.stop?.() || Promise.resolve())
       .catch((err) => {
-        mainWarn('[AcpAgentManager]', 'agent.stop() failed during kill', err);
+        mainWarn("[AcpAgentManager]", "agent.stop() failed during kill", err);
       })
       .then(() => new Promise<void>((r) => setTimeout(r, GRACE_PERIOD_MS)))
       .finally(doKill);
@@ -1063,30 +1221,36 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
     try {
-      const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+      const cached = (await ProcessConfig.get("acp.cachedModels")) || {};
       const nextCachedInfo = {
         ...modelInfo,
         // Keep the original default from initial session, not from user switches
-        currentModelId: cached[this.options.backend]?.currentModelId ?? modelInfo.currentModelId,
-        currentModelLabel: cached[this.options.backend]?.currentModelLabel ?? modelInfo.currentModelLabel,
+        currentModelId:
+          cached[this.options.backend]?.currentModelId ??
+          modelInfo.currentModelId,
+        currentModelLabel:
+          cached[this.options.backend]?.currentModelLabel ??
+          modelInfo.currentModelLabel,
       };
       // Cache the available model list only. Don't overwrite currentModelId from
       // session-level switches — that should not affect the Guid page default.
       // The Guid page default is managed separately via acp.config[backend].preferredModelId.
-      await ProcessConfig.set('acp.cachedModels', {
+      await ProcessConfig.set("acp.cachedModels", {
         ...cached,
         [this.options.backend]: nextCachedInfo,
       });
-      if (this.options.backend === 'codex') {
-        mainLog('[AcpAgentManager]', 'Cached Codex model list', {
+      if (this.options.backend === "codex") {
+        mainLog("[AcpAgentManager]", "Cached Codex model list", {
           backend: this.options.backend,
           currentModelId: nextCachedInfo.currentModelId,
           availableModelCount: nextCachedInfo.availableModels?.length || 0,
-          sampleModelIds: (nextCachedInfo.availableModels || []).slice(0, 8).map((model) => model.id),
+          sampleModelIds: (nextCachedInfo.availableModels || [])
+            .slice(0, 8)
+            .map((model) => model.id),
         });
       }
     } catch (error) {
-      mainWarn('[AcpAgentManager]', 'Failed to cache model list', error);
+      mainWarn("[AcpAgentManager]", "Failed to cache model list", error);
     }
   }
 
@@ -1094,22 +1258,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save ACP session ID to database for resume support.
    * 保存 ACP session ID 到数据库以支持会话恢复。
    */
-  private saveAcpSessionId(sessionId: string): void {
+  private async saveAcpSessionId(sessionId: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
+      if (result.success && result.data && result.data.type === "acp") {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           acpSessionId: sessionId,
           acpSessionUpdatedAt: Date.now(),
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
-        mainLog('[AcpAgentManager]', `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
+        mainLog(
+          "[AcpAgentManager]",
+          `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`,
+        );
       }
     } catch (error) {
-      mainError('[AcpAgentManager]', 'Failed to save ACP session ID', error);
+      mainError("[AcpAgentManager]", "Failed to save ACP session ID", error);
     }
   }
 }

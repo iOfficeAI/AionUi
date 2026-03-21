@@ -886,9 +886,9 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
  * 启动时清理异常遗留的健康检测临时会话
  * Cleanup orphaned health-check temporary conversations on startup
  */
-const cleanupOrphanedHealthCheckConversations = () => {
+const cleanupOrphanedHealthCheckConversations = async () => {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
     const pageSize = 1000;
     const idsToDelete: string[] = [];
     let page = 0;
@@ -1114,8 +1114,8 @@ const initStorage = async () => {
 
   // 6. 初始化数据库（better-sqlite3）
   try {
-    getDatabase();
-    cleanupOrphanedHealthCheckConversations();
+    await getDatabase();
+    await cleanupOrphanedHealthCheckConversations();
   } catch (error) {
     console.error(
       "[InitStorage] Database initialization failed, falling back to file-based storage:",

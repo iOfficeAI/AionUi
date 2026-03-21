@@ -4,11 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { networkInterfaces } from 'os';
-import type { IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { AuthService } from '@process/webserver/auth/service/AuthService';
-import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
+import { networkInterfaces } from "os";
+import type { IWebUIStatus } from "@/common/adapter/ipcBridge";
+import { AuthService } from "@process/webserver/auth/service/AuthService";
+import { UserRepository } from "@process/webserver/auth/repository/UserRepository";
+import {
+  AUTH_CONFIG,
+  SERVER_CONFIG,
+} from "@process/webserver/config/constants";
 
 /**
  * WebUI 服务层 - 封装所有 WebUI 相关的业务逻辑
@@ -26,7 +29,7 @@ export class WebuiService {
   private static async loadWebServerFunctions(): Promise<void> {
     if (this.webServerFunctionsLoaded) return;
 
-    const webServer = await import('@process/webserver/index');
+    const webServer = await import("@process/webserver/index");
     this._getInitialAdminPassword = webServer.getInitialAdminPassword;
     this._clearInitialAdminPassword = webServer.clearInitialAdminPassword;
     this.webServerFunctionsLoaded = true;
@@ -60,7 +63,7 @@ export class WebuiService {
 
       for (const net of netInfo) {
         // Node.js 18.4+ returns number (4/6), older versions return string ('IPv4'/'IPv6')
-        const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
+        const isIPv4 = net.family === "IPv4" || (net.family as unknown) === 4;
         const isNotInternal = !net.internal;
         if (isIPv4 && isNotInternal) {
           return net.address;
@@ -76,7 +79,7 @@ export class WebuiService {
    */
   static async handleAsync<T>(
     handler: () => Promise<{ success: boolean; data?: T; msg?: string }>,
-    context = 'Operation'
+    context = "Operation",
   ): Promise<{ success: boolean; data?: T; msg?: string }> {
     try {
       return await handler();
@@ -95,9 +98,9 @@ export class WebuiService {
    */
   static async getAdminUser() {
     await this.loadWebServerFunctions();
-    const adminUser = UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getSystemUser();
     if (!adminUser) {
-      throw new Error('WebUI user not found');
+      throw new Error("WebUI user not found");
     }
     return adminUser;
   }
@@ -108,22 +111,23 @@ export class WebuiService {
    */
   static async getStatus(
     webServerInstance: {
-      server: import('http').Server;
-      wss: import('ws').WebSocketServer;
+      server: import("http").Server;
+      wss: import("ws").WebSocketServer;
       port: number;
       allowRemote: boolean;
-    } | null
+    } | null,
   ): Promise<IWebUIStatus> {
     await this.loadWebServerFunctions();
 
-    const adminUser = UserRepository.getSystemUser();
+    const adminUser = await UserRepository.getSystemUser();
     const running = webServerInstance !== null;
     const port = webServerInstance?.port ?? SERVER_CONFIG.DEFAULT_PORT;
     const allowRemote = webServerInstance?.allowRemote ?? false;
 
     const localUrl = `http://localhost:${port}`;
     const lanIP = this.getLanIP();
-    const networkUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined;
+    const networkUrl =
+      allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined;
 
     return {
       running,
@@ -145,17 +149,18 @@ export class WebuiService {
     const adminUser = await this.getAdminUser();
 
     // 验证新密码强度 / Validate new password strength
-    const passwordValidation = AuthService.validatePasswordStrength(newPassword);
+    const passwordValidation =
+      AuthService.validatePasswordStrength(newPassword);
     if (!passwordValidation.isValid) {
-      throw new Error(passwordValidation.errors.join('; '));
+      throw new Error(passwordValidation.errors.join("; "));
     }
 
     // 更新密码（密文存储）/ Update password (encrypted storage)
     const newPasswordHash = await AuthService.hashPassword(newPassword);
-    UserRepository.updatePassword(adminUser.id, newPasswordHash);
+    await UserRepository.updatePassword(adminUser.id, newPasswordHash);
 
     // 使所有现有 token 失效 / Invalidate all existing tokens
-    AuthService.invalidateAllTokens();
+    await AuthService.invalidateAllTokens();
 
     // 清除初始密码（用户已修改密码）/ Clear initial password (user has changed password)
     this.clearInitialAdminPassword();
@@ -167,20 +172,21 @@ export class WebuiService {
 
     const usernameValidation = AuthService.validateUsername(normalizedUsername);
     if (!usernameValidation.isValid) {
-      throw new Error(usernameValidation.errors.join('; '));
+      throw new Error(usernameValidation.errors.join("; "));
     }
 
-    const existingUser = UserRepository.findByUsername(normalizedUsername);
+    const existingUser =
+      await UserRepository.findByUsername(normalizedUsername);
     if (existingUser && existingUser.id !== adminUser.id) {
-      throw new Error('Username already exists');
+      throw new Error("Username already exists");
     }
 
     if (normalizedUsername === adminUser.username) {
       return adminUser.username;
     }
 
-    UserRepository.updateUsername(adminUser.id, normalizedUsername);
-    AuthService.invalidateAllTokens();
+    await UserRepository.updateUsername(adminUser.id, normalizedUsername);
+    await AuthService.invalidateAllTokens();
 
     return normalizedUsername;
   }
@@ -197,10 +203,10 @@ export class WebuiService {
     const newPasswordHash = await AuthService.hashPassword(newPassword);
 
     // 更新密码 / Update password
-    UserRepository.updatePassword(adminUser.id, newPasswordHash);
+    await UserRepository.updatePassword(adminUser.id, newPasswordHash);
 
     // 使所有现有 token 失效 / Invalidate all existing tokens
-    AuthService.invalidateAllTokens();
+    await AuthService.invalidateAllTokens();
 
     // 清除旧的初始密码 / Clear old initial password
     this.clearInitialAdminPassword();

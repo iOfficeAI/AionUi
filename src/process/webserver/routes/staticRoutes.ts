@@ -114,14 +114,14 @@ function registerProductionStaticRoutes(
     message: "Too many requests, please try again later",
   });
 
-  const serveApplication = (req: Request, res: Response) => {
+  const serveApplication = async (req: Request, res: Response) => {
     try {
       res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
 
       const token = TokenMiddleware.extractToken(req);
-      if (token && !TokenMiddleware.isTokenValid(token)) {
+      if (token && !(await TokenMiddleware.isTokenValid(token))) {
         res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
       }
 

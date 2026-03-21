@@ -4,13 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
-import { getDatabase } from '@process/services/database';
-import type BaseAgentManager from '@process/task/BaseAgentManager';
-import type { IAgentManager } from '@process/task/IAgentManager';
-import { composeMessage, transformMessage, type TMessage } from '@/common/chat/chatLib';
-import { uuid } from '@/common/utils';
-import { channelEventBus, type IAgentMessageEvent } from './ChannelEventBus';
+import { workerTaskManager } from "@process/task/workerTaskManagerSingleton";
+import { getDatabase } from "@process/services/database";
+import type BaseAgentManager from "@process/task/BaseAgentManager";
+import type { IAgentManager } from "@process/task/IAgentManager";
+import {
+  composeMessage,
+  transformMessage,
+  type TMessage,
+} from "@/common/chat/chatLib";
+import { uuid } from "@/common/utils";
+import { channelEventBus, type IAgentMessageEvent } from "./ChannelEventBus";
 
 /**
  * Streaming callback for progress updates
@@ -98,14 +102,14 @@ export class ChannelMessageService {
     // Track 'start' events to count multi-turn continuations (e.g., tool call → model response).
     // The Gemini agent emits a new 'start' for each submitQuery turn, including continuations
     // triggered by onAllToolCallsComplete. We must wait for all turns to finish.
-    if (event.type === 'start') {
+    if (event.type === "start") {
       stream.turnCount++;
       return;
     }
 
     // Detect stream completion: only resolve when all turns have finished.
     // When turnCount is 0 (no 'start' received, e.g., error-only flows), resolve immediately.
-    if (event.type === 'finish') {
+    if (event.type === "finish") {
       stream.finishCount++;
       if (stream.turnCount === 0 || stream.finishCount >= stream.turnCount) {
         this.activeStreams.delete(conversationId);
@@ -128,13 +132,17 @@ export class ChannelMessageService {
       messageList = [];
     }
 
-    messageList = composeMessage(message, messageList, (type, msg: TMessage) => {
-      // insert: true 表示新消息，false 表示更新现有消息
-      // insert: true means new message, false means update existing message
+    messageList = composeMessage(
+      message,
+      messageList,
+      (type, msg: TMessage) => {
+        // insert: true 表示新消息，false 表示更新现有消息
+        // insert: true means new message, false means update existing message
 
-      const isInsert = type === 'insert';
-      stream.callback(msg, isInsert);
-    });
+        const isInsert = type === "insert";
+        stream.callback(msg, isInsert);
+      },
+    );
     this.messageListMap.set(conversationId, messageList.slice(-20));
   }
 
@@ -151,7 +159,7 @@ export class ChannelMessageService {
     _sessionId: string,
     conversationId: string,
     message: string,
-    onStream: StreamCallback
+    onStream: StreamCallback,
   ): Promise<string> {
     // 确保服务已初始化
     // Ensure service is initialized
@@ -167,31 +175,34 @@ export class ChannelMessageService {
     try {
       // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
       // Check conversation source, enable yoloMode if it's from a Channel
-      const db = getDatabase();
+      const db = await getDatabase();
       const dbResult = db.getConversation(conversationId);
       const isFromChannel =
         dbResult.success &&
-        (dbResult.data?.source === 'lark' ||
-          dbResult.data?.source === 'telegram' ||
-          dbResult.data?.source === 'dingtalk');
+        (dbResult.data?.source === "lark" ||
+          dbResult.data?.source === "telegram" ||
+          dbResult.data?.source === "dingtalk");
 
       task = await workerTaskManager.getOrBuildTask(conversationId, {
         yoloMode: isFromChannel,
       });
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to get conversation task';
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : "Failed to get conversation task";
       console.error(`[ChannelMessageService] Failed to get task:`, errorMsg);
       onStream(
         {
-          type: 'tips',
+          type: "tips",
           id: uuid(),
           conversation_id: conversationId,
           content: {
-            type: 'error',
+            type: "error",
             content: `Error: ${errorMsg}`,
           },
         },
-        true
+        true,
       );
       throw error;
     }
@@ -202,7 +213,7 @@ export class ChannelMessageService {
       this.activeStreams.set(conversationId, {
         msgId,
         callback: onStream,
-        buffer: '',
+        buffer: "",
         resolve,
         reject,
         turnCount: 0,
@@ -212,23 +223,23 @@ export class ChannelMessageService {
       // Build payload based on agent type.
       // Gemini expects { input }, ACP/Codex expect { content }.
       const payload: { input?: string; content?: string; msg_id: string } =
-        task.type === 'gemini'
+        task.type === "gemini"
           ? { input: message, msg_id: msgId }
-          : task.type === 'acp' || task.type === 'codex'
+          : task.type === "acp" || task.type === "codex"
             ? { content: message, msg_id: msgId }
             : { content: message, msg_id: msgId };
 
       task.sendMessage(payload).catch((error: Error) => {
-        const errorMessage = `Error: ${error.message || 'Failed to send message'}`;
+        const errorMessage = `Error: ${error.message || "Failed to send message"}`;
         console.error(`[ChannelMessageService] Send error:`, error);
         onStream(
           {
-            type: 'tips',
+            type: "tips",
             id: uuid(),
             conversation_id: conversationId,
-            content: { type: 'error', content: errorMessage },
+            content: { type: "error", content: errorMessage },
           },
-          true
+          true,
         );
         this.activeStreams.delete(conversationId);
         reject(error);
@@ -282,7 +293,11 @@ export class ChannelMessageService {
    * @param callId - Tool call ID
    * @param value - Confirmation value (e.g., 'proceed_once', 'cancel')
    */
-  async confirm(conversationId: string, callId: string, value: string): Promise<void> {
+  async confirm(
+    conversationId: string,
+    callId: string,
+    value: string,
+  ): Promise<void> {
     try {
       const task = workerTaskManager.getTask(conversationId);
       if (!task) {
@@ -293,7 +308,10 @@ export class ChannelMessageService {
       // Call agent's confirm method
       task.confirm(conversationId, callId, value);
     } catch (error) {
-      console.error(`[ChannelMessageService] Failed to confirm tool call:`, error);
+      console.error(
+        `[ChannelMessageService] Failed to confirm tool call:`,
+        error,
+      );
       throw error;
     }
   }
@@ -333,4 +351,7 @@ export function getChannelMessageService(): ChannelMessageService {
 
 // Backward compatibility export
 // 向后兼容的导出
-export { ChannelMessageService as ChannelGeminiService, getChannelMessageService as getChannelGeminiService };
+export {
+  ChannelMessageService as ChannelGeminiService,
+  getChannelMessageService as getChannelGeminiService,
+};

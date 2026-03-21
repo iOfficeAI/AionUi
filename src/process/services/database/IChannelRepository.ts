@@ -9,12 +9,12 @@ import type {
   IChannelPairingRequest,
   IChannelUser,
   IChannelSession,
-} from '@process/channels/types';
+} from "@process/channels/types";
 
 export interface IChannelRepository {
-  getChannelPlugins(): IChannelPluginConfig[];
-  getPendingPairingRequests(): IChannelPairingRequest[];
-  getChannelUsers(): IChannelUser[];
-  deleteChannelUser(userId: string): void;
-  getChannelSessions(): IChannelSession[];
+  getChannelPlugins(): Promise<IChannelPluginConfig[]>;
+  getPendingPairingRequests(): Promise<IChannelPairingRequest[]>;
+  getChannelUsers(): Promise<IChannelUser[]>;
+  deleteChannelUser(userId: string): Promise<void>;
+  getChannelSessions(): Promise<IChannelSession[]>;
 }

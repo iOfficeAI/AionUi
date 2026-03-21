@@ -4,19 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenClawAgent, type OpenClawAgentConfig } from '@process/agent/openclaw';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
-import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { uuid } from '@/common/utils';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
-import { getDatabase } from '@process/services/database';
-import { addMessage, addOrUpdateMessage } from '@process/utils/message';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import BaseAgentManager from '@process/task/BaseAgentManager';
-import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import {
+  OpenClawAgent,
+  type OpenClawAgentConfig,
+} from "@process/agent/openclaw";
+import { channelEventBus } from "@process/channels/agent/ChannelEventBus";
+import { ipcBridge } from "@/common";
+import type { IConfirmation, TMessage } from "@/common/chat/chatLib";
+import { transformMessage } from "@/common/chat/chatLib";
+import type { IResponseMessage } from "@/common/adapter/ipcBridge";
+import { uuid } from "@/common/utils";
+import type { AcpBackendAll } from "@/common/types/acpTypes";
+import { getDatabase } from "@process/services/database";
+import { addMessage, addOrUpdateMessage } from "@process/utils/message";
+import { cronBusyGuard } from "@process/services/cron/CronBusyGuard";
+import BaseAgentManager from "@process/task/BaseAgentManager";
+import { IpcAgentEventEmitter } from "@process/task/IpcAgentEventEmitter";
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
@@ -45,16 +48,18 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   private options: OpenClawAgentManagerData;
 
   constructor(data: OpenClawAgentManagerData) {
-    super('openclaw-gateway', data, new IpcAgentEventEmitter());
+    super("openclaw-gateway", data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
-    this.workspace = data.workspace ?? '';
+    this.workspace = data.workspace ?? "";
     this.options = data;
-    this.status = 'pending';
+    this.status = "pending";
 
     this.bootstrap = this.initAgent(data);
   }
 
-  private async initAgent(data: OpenClawAgentManagerData): Promise<OpenClawAgent> {
+  private async initAgent(
+    data: OpenClawAgentManagerData,
+  ): Promise<OpenClawAgent> {
     const config: OpenClawAgentConfig = {
       id: data.conversation_id,
       workingDir: data.workspace || process.cwd(),
@@ -71,7 +76,8 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       },
       onStreamEvent: (message) => this.handleStreamEvent(message),
       onSignalEvent: (message) => this.handleSignalEvent(message),
-      onSessionKeyUpdate: (sessionKey) => this.handleSessionKeyUpdate(sessionKey),
+      onSessionKeyUpdate: (sessionKey) =>
+        this.handleSessionKeyUpdate(sessionKey),
     };
 
     this.agent = new OpenClawAgent(config);
@@ -91,9 +97,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
     // Mark as finished when content is output (visible to user)
     // OpenClaw uses: content, agent_status, acp_tool_call, plan
-    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
+    const contentTypes = ["content", "agent_status", "acp_tool_call", "plan"];
     if (contentTypes.includes(msg.type)) {
-      this.status = 'finished';
+      this.status = "finished";
     }
 
     // Persist messages to database
@@ -101,7 +107,10 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     if (tMessage) {
       // Use addOrUpdateMessage for types that reuse the same msg_id (content streaming, agent_status updates)
       // Use addMessage for non-streaming messages that should be inserted as-is
-      if ((msg.type === 'content' || msg.type === 'agent_status') && msg.msg_id) {
+      if (
+        (msg.type === "content" || msg.type === "agent_status") &&
+        msg.msg_id
+      ) {
         addOrUpdateMessage(this.conversation_id, tMessage);
       } else {
         addMessage(this.conversation_id, tMessage);
@@ -121,10 +130,15 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     const msg = { ...message, conversation_id: this.conversation_id };
 
     // Handle permission requests
-    if (msg.type === 'acp_permission') {
+    if (msg.type === "acp_permission") {
       const permissionData = msg.data as {
         sessionId: string;
-        toolCall: { toolCallId: string; title?: string; kind?: string; rawInput?: Record<string, unknown> };
+        toolCall: {
+          toolCallId: string;
+          title?: string;
+          kind?: string;
+          rawInput?: Record<string, unknown>;
+        };
         options: Array<{ optionId: string; name: string; kind: string }>;
       };
 
@@ -132,7 +146,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       const confirmation: IConfirmation = {
         id: permissionData.toolCall.toolCallId,
         callId: permissionData.toolCall.toolCallId,
-        title: permissionData.toolCall.title || 'Permission Required',
+        title: permissionData.toolCall.title || "Permission Required",
         description: JSON.stringify(permissionData.toolCall.rawInput || {}),
         options: permissionData.options.map((opt) => ({
           label: opt.name,
@@ -145,7 +159,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
 
     // Handle finish event
-    if (msg.type === 'finish') {
+    if (msg.type === "finish") {
       cronBusyGuard.setProcessing(this.conversation_id, false);
     }
 
@@ -165,27 +179,41 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
    * Persist the resolved session key to the database for resume support.
    * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
    */
-  private saveSessionKey(sessionKey: string): void {
+  private async saveSessionKey(sessionKey: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'openclaw-gateway') {
+      if (
+        result.success &&
+        result.data &&
+        result.data.type === "openclaw-gateway"
+      ) {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionKey,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
-      console.error('[OpenClawAgentManager] Failed to save session key:', error);
+      console.error(
+        "[OpenClawAgentManager] Failed to save session key:",
+        error,
+      );
     }
   }
 
-  async sendMessage(data: { content: string; agentContent?: string; files?: string[]; msg_id?: string }) {
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
-    this.status = 'running';
+    this.status = "running";
     try {
       await this.bootstrap;
 
@@ -194,8 +222,8 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
+          type: "text",
+          position: "right",
           conversation_id: this.conversation_id,
           content: { content: data.content },
           createdAt: Date.now(),
@@ -213,7 +241,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       return result;
     } catch (error) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
-      this.status = 'finished';
+      this.status = "finished";
 
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.emitErrorMessage(`Failed to send message: ${errorMsg}`);
@@ -234,7 +262,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
   private emitErrorMessage(error: string): void {
     const message: IResponseMessage = {
-      type: 'error',
+      type: "error",
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: error,

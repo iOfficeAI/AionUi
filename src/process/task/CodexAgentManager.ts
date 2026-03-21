@@ -4,39 +4,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgent } from '@process/agent/codex';
-import type { NetworkError } from '@process/agent/codex/connection/CodexConnection';
-import { CodexEventHandler } from '@process/agent/codex/handlers/CodexEventHandler';
-import { CodexFileOperationHandler } from '@process/agent/codex/handlers/CodexFileOperationHandler';
-import { CodexSessionManager } from '@process/agent/codex/handlers/CodexSessionManager';
-import type { ICodexMessageEmitter } from '@process/agent/codex/messaging/CodexMessageEmitter';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
-import { ipcBridge } from '@/common';
-import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
-import type { CodexAgentManagerData } from '@/common/types/codex/types';
-import { DEFAULT_CODEX_MODELS, DEFAULT_CODEX_MODEL_ID } from '@/common/types/codex/codexModels';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
-import { PERMISSION_DECISION_MAP } from '@/common/types/codex/types/permissionTypes';
-import { mapPermissionDecision } from '@/common/types/codex/utils';
-import { AIONUI_FILES_MARKER } from '@/common/config/constants';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/utils/message';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { getDatabase } from '@process/services/database';
-import { ProcessConfig } from '@process/utils/initStorage';
-import BaseAgentManager from '@process/task/BaseAgentManager';
-import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
-import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
-import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import i18n from '@process/services/i18n';
+import { CodexAgent } from "@process/agent/codex";
+import type { NetworkError } from "@process/agent/codex/connection/CodexConnection";
+import { CodexEventHandler } from "@process/agent/codex/handlers/CodexEventHandler";
+import { CodexFileOperationHandler } from "@process/agent/codex/handlers/CodexFileOperationHandler";
+import { CodexSessionManager } from "@process/agent/codex/handlers/CodexSessionManager";
+import type { ICodexMessageEmitter } from "@process/agent/codex/messaging/CodexMessageEmitter";
+import { channelEventBus } from "@process/channels/agent/ChannelEventBus";
+import { ipcBridge } from "@/common";
+import type {
+  CronMessageMeta,
+  IConfirmation,
+  TMessage,
+} from "@/common/chat/chatLib";
+import { transformMessage } from "@/common/chat/chatLib";
+import type { CodexAgentManagerData } from "@/common/types/codex/types";
+import {
+  DEFAULT_CODEX_MODELS,
+  DEFAULT_CODEX_MODEL_ID,
+} from "@/common/types/codex/codexModels";
+import type { AcpModelInfo } from "@/common/types/acpTypes";
+import { PERMISSION_DECISION_MAP } from "@/common/types/codex/types/permissionTypes";
+import { mapPermissionDecision } from "@/common/types/codex/utils";
+import { AIONUI_FILES_MARKER } from "@/common/config/constants";
+import type { IResponseMessage } from "@/common/adapter/ipcBridge";
+import { uuid } from "@/common/utils";
+import { addMessage, addOrUpdateMessage } from "@process/utils/message";
+import { cronBusyGuard } from "@process/services/cron/CronBusyGuard";
+import { getDatabase } from "@process/services/database";
+import { ProcessConfig } from "@process/utils/initStorage";
+import BaseAgentManager from "@process/task/BaseAgentManager";
+import { IpcAgentEventEmitter } from "@process/task/IpcAgentEventEmitter";
+import { prepareFirstMessageWithSkillsIndex } from "@process/task/agentUtils";
+import { handlePreviewOpenEvent } from "@process/utils/previewUtils";
+import i18n from "@process/services/i18n";
 import {
   getConfiguredAppClientName,
   getConfiguredAppClientVersion,
   getConfiguredCodexMcpProtocolVersion,
   setAppConfig,
-} from '@/common/utils/appConfig';
+} from "@/common/utils/appConfig";
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -48,14 +55,17 @@ const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
  * This class is only kept for backward compatibility with existing sessions
  * that were created before the ACP migration.
  */
-class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
+class CodexAgentManager
+  extends BaseAgentManager<CodexAgentManagerData>
+  implements ICodexMessageEmitter
+{
   agent!: CodexAgent; // Initialized in bootstrap promise
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
   private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
 
   /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
-  private currentMode: string = 'default';
+  private currentMode: string = "default";
 
   /** Cached model name from session_configured event */
   private currentModelName: string | null = null;
@@ -65,12 +75,12 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
-    super('codex', data, new IpcAgentEventEmitter());
+    super("codex", data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
-    this.workspace = data.workspace ?? '';
+    this.workspace = data.workspace ?? "";
     this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
-    this.status = 'pending';
-    this.currentMode = data.sessionMode || 'default';
+    this.status = "pending";
+    this.currentMode = data.sessionMode || "default";
     this.selectedModel = data.codexModel || null;
 
     this.initAgent(data);
@@ -85,12 +95,12 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         cliPath: data.cliPath,
         workingDir: data.workspace || process.cwd(),
       },
-      this
+      this,
     );
     const fileOperationHandler = new CodexFileOperationHandler(
       data.workspace || process.cwd(),
       data.conversation_id,
-      this
+      this,
     );
 
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
@@ -98,7 +108,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.bootstrap = (async () => {
       // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
       try {
-        const electronModule = await import('electron');
+        const electronModule = await import("electron");
         const app = electronModule.app;
         setAppConfig({
           name: app.getName(),
@@ -117,20 +127,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // Read codex.config for global yoloMode setting
       // yoloMode priority: data.yoloMode (from CronService) > config setting
       // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
-      const codexConfig = await ProcessConfig.get('codex.config');
+      const codexConfig = await ProcessConfig.get("codex.config");
       const legacyYoloMode = data.yoloMode ?? codexConfig?.yoloMode;
 
       // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
       // When old config has yoloMode=true and no explicit session mode was set,
       // initialize currentMode to 'yolo' so the mode selector reflects the setting.
       // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
-      if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
-        this.currentMode = 'yolo';
+      if (
+        legacyYoloMode &&
+        this.currentMode === "default" &&
+        !data.sessionMode
+      ) {
+        this.currentMode = "yolo";
       }
 
       // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
       // on the Guid page, clear the legacy config so it won't re-activate next time.
-      if (legacyYoloMode && data.sessionMode && data.sessionMode !== 'yolo') {
+      if (legacyYoloMode && data.sessionMode && data.sessionMode !== "yolo") {
         void this.clearLegacyYoloConfig();
       }
 
@@ -147,7 +161,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         eventHandler,
         sessionManager,
         fileOperationHandler,
-        sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
+        sandboxMode: data.sandboxMode || "workspace-write", // Enable file writing within workspace by default
         yoloMode: false, // Always false — approval handled by Manager, not CLI
         onNetworkError: (error) => {
           this.handleNetworkError(error);
@@ -157,7 +171,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       await this.startWithSessionManagement();
       return this.agent;
     })().catch((e) => {
-      this.agent?.getSessionManager?.()?.emitSessionEvent('bootstrap_failed', { error: e.message });
+      this.agent
+        ?.getSessionManager?.()
+        ?.emitSessionEvent("bootstrap_failed", { error: e.message });
       throw e;
     });
   }
@@ -191,36 +207,37 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       const diagnostics = this.getDiagnostics();
 
       // 提供具体的错误信息和建议
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       let suggestions: string[] = [];
 
-      if (errorMessage.includes('timed out')) {
+      if (errorMessage.includes("timed out")) {
         suggestions = [
           'Check if Codex CLI is installed: run "codex --version"',
           'Verify authentication: run "codex auth status"',
-          'Check network connectivity',
-          'Try restarting the application',
+          "Check network connectivity",
+          "Try restarting the application",
         ];
-      } else if (errorMessage.includes('command not found')) {
+      } else if (errorMessage.includes("command not found")) {
         suggestions = [
-          'Install Codex CLI: https://codex.com/install',
-          'Add Codex to your PATH environment variable',
-          'Restart your terminal/application after installation',
+          "Install Codex CLI: https://codex.com/install",
+          "Add Codex to your PATH environment variable",
+          "Restart your terminal/application after installation",
         ];
-      } else if (errorMessage.includes('authentication')) {
+      } else if (errorMessage.includes("authentication")) {
         suggestions = [
           'Run "codex auth" to authenticate with your account',
-          'Check if your authentication token is valid',
-          'Try logging out and logging back in',
+          "Check if your authentication token is valid",
+          "Try logging out and logging back in",
         ];
       }
 
       // Log troubleshooting suggestions for debugging
 
       // 即使设置失败，也尝试继续运行，因为连接可能仍然有效
-      this.agent.getSessionManager().emitSessionEvent('session_partial', {
+      this.agent.getSessionManager().emitSessionEvent("session_partial", {
         workspace: this.workspace,
-        agent_type: 'codex',
+        agent_type: "codex",
         error: errorMessage,
         diagnostics,
         suggestions,
@@ -231,10 +248,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; cronMeta?: CronMessageMeta }) {
+  async sendMessage(data: {
+    content: string;
+    files?: string[];
+    msg_id?: string;
+    cronMeta?: CronMessageMeta;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
-    this.status = 'running';
+    this.status = "running";
     try {
       await this.bootstrap;
       const contentToSend = data.content?.includes(AIONUI_FILES_MARKER)
@@ -246,8 +268,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
+          type: "text",
+          position: "right",
           conversation_id: this.conversation_id,
           content: {
             content: data.content,
@@ -260,17 +282,22 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         // even if the component mounts after the DB save but before the DB load completes.
         if (data.cronMeta) {
           const userResponseMessage: IResponseMessage = {
-            type: 'user_content',
+            type: "user_content",
             conversation_id: this.conversation_id,
             msg_id: data.msg_id,
-            data: { content: userMessage.content.content, cronMeta: data.cronMeta },
+            data: {
+              content: userMessage.content.content,
+              cronMeta: data.cronMeta,
+            },
           };
           ipcBridge.codexConversation.responseStream.emit(userResponseMessage);
         }
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
-      let processedContent = this.agent.getFileOperationHandler().processFileReferences(contentToSend, data.files);
+      let processedContent = this.agent
+        .getFileOperationHandler()
+        .processFileReferences(contentToSend, data.files);
 
       // 如果是第一条消息，通过 newSession 发送以避免双消息问题
       if (this.isFirstMessage) {
@@ -278,12 +305,19 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
         // 注入智能助手的预设规则和 skills 索引（如果有）
         // Inject preset context and skills INDEX from smart assistant (if available)
-        processedContent = await prepareFirstMessageWithSkillsIndex(processedContent, {
-          presetContext: this.options.presetContext,
-          enabledSkills: this.options.enabledSkills,
-        });
+        processedContent = await prepareFirstMessageWithSkillsIndex(
+          processedContent,
+          {
+            presetContext: this.options.presetContext,
+            enabledSkills: this.options.enabledSkills,
+          },
+        );
 
-        const result = await this.agent.newSession(this.workspace, processedContent, this.selectedModel || undefined);
+        const result = await this.agent.newSession(
+          this.workspace,
+          processedContent,
+          this.selectedModel || undefined,
+        );
 
         // Session created successfully - Codex will send session_configured event automatically
         // Note: setProcessing(false) is called in CodexMessageProcessor.processTaskComplete
@@ -297,11 +331,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
     } catch (e) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
-      this.status = 'finished';
+      this.status = "finished";
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
       const errorMsg = e instanceof Error ? e.message : String(e);
-      const isUsageLimitError = errorMsg.toLowerCase().includes("you've hit your usage limit");
+      const isUsageLimitError = errorMsg
+        .toLowerCase()
+        .includes("you've hit your usage limit");
 
       if (isUsageLimitError) {
         // Usage limit 错误已经通过 MCP 事件流处理，避免重复发送
@@ -309,21 +345,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       // Create more descriptive error message based on error type
-      let errorMessage = 'Failed to send message to Codex';
+      let errorMessage = "Failed to send message to Codex";
       if (e instanceof Error) {
-        if (e.message.includes('timeout')) {
-          errorMessage = 'Request timed out. Please check your connection and try again.';
-        } else if (e.message.includes('authentication')) {
-          errorMessage = 'Authentication failed. Please verify your Codex credentials.';
-        } else if (e.message.includes('network')) {
-          errorMessage = 'Network error. Please check your internet connection.';
+        if (e.message.includes("timeout")) {
+          errorMessage =
+            "Request timed out. Please check your connection and try again.";
+        } else if (e.message.includes("authentication")) {
+          errorMessage =
+            "Authentication failed. Please verify your Codex credentials.";
+        } else if (e.message.includes("network")) {
+          errorMessage =
+            "Network error. Please check your internet connection.";
         } else {
           errorMessage = `Codex error: ${e.message}`;
         }
       }
 
       const message: IResponseMessage = {
-        type: 'error',
+        type: "error",
         conversation_id: this.conversation_id,
         msg_id: data.msg_id || uuid(),
         data: errorMessage,
@@ -344,7 +383,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     if (this.currentModelName) {
       // Post session_configured: show actual model from CLI
       return {
-        source: 'models',
+        source: "models",
         currentModelId: this.currentModelName,
         currentModelLabel: this.currentModelName,
         canSwitch: false,
@@ -356,7 +395,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     const currentId = this.selectedModel || DEFAULT_CODEX_MODEL_ID;
     const currentModel = DEFAULT_CODEX_MODELS.find((m) => m.id === currentId);
     return {
-      source: 'models',
+      source: "models",
       currentModelId: currentId,
       currentModelLabel: currentModel?.label || currentId,
       canSwitch: false,
@@ -368,34 +407,38 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     return { mode: this.currentMode, initialized: true };
   }
 
-  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+  async setMode(
+    mode: string,
+  ): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
     const prev = this.currentMode;
     this.currentMode = mode;
     this.saveSessionMode(mode);
 
     // Sync legacy yoloMode config: when leaving yolo mode, clear the old
     // SecurityModalContent setting to prevent it from re-activating on next session.
-    if (prev === 'yolo' && mode !== 'yolo') {
+    if (prev === "yolo" && mode !== "yolo") {
       void this.clearLegacyYoloConfig();
     }
 
     return { success: true, data: { mode: this.currentMode } };
   }
 
-  private saveSessionMode(mode: string): void {
+  private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'codex') {
+      if (result.success && result.data && result.data.type === "codex") {
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
-      console.error('[CodexAgentManager] Failed to save session mode:', error);
+      console.error("[CodexAgentManager] Failed to save session mode:", error);
     }
   }
 
@@ -406,12 +449,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
    */
   private async clearLegacyYoloConfig(): Promise<void> {
     try {
-      const config = await ProcessConfig.get('codex.config');
+      const config = await ProcessConfig.get("codex.config");
       if (config?.yoloMode) {
-        await ProcessConfig.set('codex.config', { ...config, yoloMode: false });
+        await ProcessConfig.set("codex.config", { ...config, yoloMode: false });
       }
     } catch (error) {
-      console.error('[CodexAgentManager] Failed to clear legacy yoloMode config:', error);
+      console.error(
+        "[CodexAgentManager] Failed to clear legacy yoloMode config:",
+        error,
+      );
     }
   }
 
@@ -422,18 +468,28 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   async confirm(id: string, callId: string, data: string) {
     super.confirm(id, callId, data);
     await this.bootstrap;
-    this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(callId);
+    this.agent
+      .getEventHandler()
+      .getToolHandlers()
+      .removePendingConfirmation(callId);
 
     // Use standardized permission decision mapping
     // Maps UI options to Codex CLI's ReviewDecision (snake_case format)
     const decisionKey =
-      data in PERMISSION_DECISION_MAP ? (data as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
-    const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
+      data in PERMISSION_DECISION_MAP
+        ? (data as keyof typeof PERMISSION_DECISION_MAP)
+        : "reject_once";
+    const decision = mapPermissionDecision(decisionKey) as
+      | "approved"
+      | "approved_for_session"
+      | "denied"
+      | "abort";
 
-    const isApproved = decision === 'approved' || decision === 'approved_for_session';
+    const isApproved =
+      decision === "approved" || decision === "approved_for_session";
 
     // Store decision in ApprovalStore if user selected "always allow" or "always reject"
-    if (decision === 'approved_for_session' || decision === 'abort') {
+    if (decision === "approved_for_session" || decision === "abort") {
       this.storeApprovalDecision(callId, decision);
     }
 
@@ -442,13 +498,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Normalize call id back to server's codex_call_id
     // Handle the new unified permission_ prefix as well as legacy prefixes
-    const origCallId = callId.startsWith('permission_')
+    const origCallId = callId.startsWith("permission_")
       ? callId.substring(11) // Remove 'permission_' prefix
-      : callId.startsWith('patch_')
+      : callId.startsWith("patch_")
         ? callId.substring(6)
-        : callId.startsWith('elicitation_')
+        : callId.startsWith("elicitation_")
           ? callId.substring(12)
-          : callId.startsWith('exec_')
+          : callId.startsWith("exec_")
             ? callId.substring(5)
             : callId;
 
@@ -462,7 +518,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   /**
    * Store approval/rejection decision in ApprovalStore based on request type
    */
-  private storeApprovalDecision(callId: string, decision: 'approved_for_session' | 'abort'): void {
+  private storeApprovalDecision(
+    callId: string,
+    decision: "approved_for_session" | "abort",
+  ): void {
     const toolHandlers = this.agent.getEventHandler().getToolHandlers();
 
     // Check if this is an exec request
@@ -482,39 +541,52 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   private handleNetworkError(error: NetworkError): void {
     // Create a user-friendly error message based on error type
-    let userMessage = '';
+    let userMessage = "";
     let recoveryActions: string[] = [];
 
     switch (error.type) {
-      case 'cloudflare_blocked':
-        userMessage = i18n.t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
-        recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', {
-          returnObjects: true,
-        }) as string[];
+      case "cloudflare_blocked":
+        userMessage = i18n.t("codex.network.cloudflare_blocked_title", {
+          service: "Codex",
+        });
+        recoveryActions = i18n.t(
+          "codex.network.recovery_actions.cloudflare_blocked",
+          {
+            returnObjects: true,
+          },
+        ) as string[];
         break;
 
-      case 'network_timeout':
-        userMessage = i18n.t('codex.network.network_timeout_title');
-        recoveryActions = i18n.t('codex.network.recovery_actions.network_timeout', { returnObjects: true }) as string[];
+      case "network_timeout":
+        userMessage = i18n.t("codex.network.network_timeout_title");
+        recoveryActions = i18n.t(
+          "codex.network.recovery_actions.network_timeout",
+          { returnObjects: true },
+        ) as string[];
         break;
 
-      case 'connection_refused':
-        userMessage = i18n.t('codex.network.connection_refused_title');
-        recoveryActions = i18n.t('codex.network.recovery_actions.connection_refused', {
-          returnObjects: true,
-        }) as string[];
+      case "connection_refused":
+        userMessage = i18n.t("codex.network.connection_refused_title");
+        recoveryActions = i18n.t(
+          "codex.network.recovery_actions.connection_refused",
+          {
+            returnObjects: true,
+          },
+        ) as string[];
         break;
 
       default:
-        userMessage = i18n.t('codex.network.unknown_error_title');
-        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
+        userMessage = i18n.t("codex.network.unknown_error_title");
+        recoveryActions = i18n.t("codex.network.recovery_actions.unknown", {
+          returnObjects: true,
+        }) as string[];
     }
 
-    const detailedMessage = `${userMessage}\n\n${i18n.t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${i18n.t('codex.network.technical_info')}\n- ${i18n.t('codex.network.error_type')}：${error.type}\n- ${i18n.t('codex.network.retry_count')}：${error.retryCount}\n- ${i18n.t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
+    const detailedMessage = `${userMessage}\n\n${i18n.t("codex.network.recovery_suggestions")}\n${recoveryActions.join("\n")}\n\n${i18n.t("codex.network.technical_info")}\n- ${i18n.t("codex.network.error_type")}：${error.type}\n- ${i18n.t("codex.network.retry_count")}：${error.retryCount}\n- ${i18n.t("codex.network.error_details")}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? "..." : ""}`;
 
     // Emit network error message to UI
     const networkErrorMessage: IResponseMessage = {
-      type: 'tips',
+      type: "tips",
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: {
@@ -522,7 +594,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         title: userMessage,
         message: detailedMessage,
         recoveryActions: recoveryActions,
-        quickSwitchContent: i18n.t('codex.network.quick_switch_content'),
+        quickSwitchContent: i18n.t("codex.network.quick_switch_content"),
       },
     };
 
@@ -555,7 +627,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 停止 agent
     this.agent?.stop?.().catch((error) => {
-      console.error('Failed to stop Codex agent during cleanup:', error);
+      console.error("Failed to stop Codex agent during cleanup:", error);
     });
 
     // Cleanup completed
@@ -579,18 +651,21 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   kill() {
     try {
       this.agent?.stop?.().catch((error) => {
-        console.error('Failed to stop Codex agent during kill:', error);
+        console.error("Failed to stop Codex agent during kill:", error);
       });
     } finally {
       super.kill();
     }
   }
 
-  emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
+  emitAndPersistMessage(
+    message: IResponseMessage,
+    persist: boolean = true,
+  ): void {
     message.conversation_id = this.conversation_id;
 
     // Intercept codex_model_info: cache model name, emit to frontend, skip DB persistence
-    if (message.type === 'codex_model_info') {
+    if (message.type === "codex_model_info") {
       const modelData = message.data as { model: string };
       if (modelData?.model) {
         this.currentModelName = modelData.model;
@@ -602,9 +677,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Mark as finished when content is output (visible to user)
     // Codex uses: content, agent_status, codex_tool_call
-    const contentTypes = ['content', 'agent_status', 'codex_tool_call'];
+    const contentTypes = ["content", "agent_status", "codex_tool_call"];
     if (contentTypes.includes(message.type)) {
-      this.status = 'finished';
+      this.status = "finished";
     }
 
     // Handle preview_open event (chrome-devtools navigation interception)
@@ -620,7 +695,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         // These message types go through composeMessage/addOrUpdateMessage for merging:
         // - agent_status: uses fixed globalStatusMessageId (from CodexSessionManager) to merge with last status
         // - codex_tool_call: has dedicated merge logic that searches by toolCallId
-        if (tMessage.type === 'agent_status' || tMessage.type === 'codex_tool_call') {
+        if (
+          tMessage.type === "agent_status" ||
+          tMessage.type === "codex_tool_call"
+        ) {
           addOrUpdateMessage(this.conversation_id, tMessage);
         } else {
           addMessage(this.conversation_id, tMessage);
@@ -645,7 +723,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Codex confirmations use action='edit' for file patches and action='exec' for shell commands.
     // yolo: auto-approve ALL operations
     // autoEdit: auto-approve file edits only, shell commands still require confirmation
-    if (this.currentMode === 'yolo' || (this.currentMode === 'autoEdit' && data.action === 'edit')) {
+    if (
+      this.currentMode === "yolo" ||
+      (this.currentMode === "autoEdit" && data.action === "edit")
+    ) {
       // Direct synchronous approval — avoids the timing issue with async confirm().
       // When auto-approving, we must respond to the CLI within the same event-handling
       // call chain (handleIncoming → onEvent → addConfirmation). The async confirm()
@@ -653,16 +734,21 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // the CLI to hang waiting for a response that arrives too late.
       // User-initiated approval (Plan mode) works because it runs in a separate
       // event-loop tick triggered by the IPC bridge.
-      const origCallId = data.callId.startsWith('permission_') ? data.callId.substring(11) : data.callId;
+      const origCallId = data.callId.startsWith("permission_")
+        ? data.callId.substring(11)
+        : data.callId;
 
       // Clean up pending confirmation tracking
-      this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
+      this.agent
+        .getEventHandler()
+        .getToolHandlers()
+        .removePendingConfirmation(data.callId);
 
       // IMPORTANT: Do not apply patch changes locally in auto-approve mode.
       // Let Codex CLI apply changes after approval response.
 
       // Send approval response to CLI (synchronous write to stdin)
-      this.agent.respondElicitation(origCallId, 'approved');
+      this.agent.respondElicitation(origCallId, "approved");
 
       // Unpause the connection and resume any queued requests
       this.agent.resolvePermission(origCallId, true);
