@@ -229,9 +229,9 @@ Slide 3: !!dot-main (x=36cm, y=0cm) [ghost], !!line-top (x=10cm, y=2cm), !!slash
 
 ### Headline & Content Actor Rules
 
-- **Define all headline/content actors on slide 1** (ghosted at `x=36cm`) so they carry forward when cloning
-- Each slide type has its own set: hero title, statement text, pillar titles, evidence numbers, cta text, etc.
-- Activate only the current slide's actors; keep all others ghosted
+- **Content actors are added fresh on each slide** — do NOT pre-define all slide types' content on slide 1
+- Only scene actors need to persist across slides (for Morph). Content text changes every slide, so Morph just cross-fades it — no benefit from same-name pairing
+- When cloning from the previous slide, **ghost the previous slide's content** (`x=36cm`), then `add` new content for the current slide
 
 ### Morph Auto-Pairing (Important!)
 
@@ -256,19 +256,11 @@ Slide 3: !!dot-main (x=36cm, y=0cm) [ghost], !!line-top (x=10cm, y=2cm), !!slash
    - Slide 3 needs `!!dot-main` again -> `x=8cm, y=10cm`
    - **Do not delete; just move off-screen**
 
-   **⚠️ #1 DEFECT: TEXT OVERLAP FROM UN-GHOSTED HEADLINE/CONTENT ACTORS**
+   **⚠️ #1 DEFECT: TEXT OVERLAP FROM UN-GHOSTED CONTENT**
 
-   Every slide type has its own headline and content actors. When switching slide types (e.g., hero → pillars → evidence), ALL headline/content actors from the PREVIOUS slide type MUST be ghosted to `x=36cm`. Otherwise the old text remains visible and overlaps with new content.
+   When cloning from the previous slide, the previous slide's content actors come along. If you don't ghost them (`x=36cm`) before adding new content, old text overlaps with new text.
 
-   **Example** — a 3-slide deck with hero → statement → pillars:
-
-   ```
-   Slide 1 (hero):     !!hero-title x=4cm,     !!statement-text x=36cm,  !!pillar-1-title x=36cm
-   Slide 2 (statement): !!hero-title x=36cm,    !!statement-text x=4cm,   !!pillar-1-title x=36cm
-   Slide 3 (pillars):   !!hero-title x=36cm,    !!statement-text x=36cm,  !!pillar-1-title x=2cm
-   ```
-
-   If slide 3 forgets to ghost `!!hero-title` and `!!statement-text` → both texts appear on top of the pillars content.
+   **Fix**: Always ghost ALL of the previous slide's content actors before adding new ones.
 
 3. **Automatic `!!` prefix**
    - officecli handles this automatically; no need to manually name shapes `!!xxx`
@@ -461,7 +453,7 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
 
 ## 8) Generation Strategy
 
-### Recommended Approach: Define all actors on slide 1, then clone-and-adjust slide by slide
+### Recommended Approach: Scene actors persist, content added fresh per slide
 
 **Steps**:
 
@@ -472,24 +464,22 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    officecli add <topic-name>.pptx '/' --type slide --prop layout=blank --prop background=XXXXXX
    ```
 
-2. **Add all actors to slide 1** (including those used only on later slides)
-   - 6-8 scene actors + all headline/content actors for every slide type
-   - Actors needed on slide 1 → normal positions
-   - Actors not needed on slide 1 → off-screen (`x=36cm`, spread y-coordinates)
+2. **Add scene actors + slide 1's content to slide 1**
+   - 6-8 scene actors (these persist across all slides for Morph)
+   - Slide 1's own content only (hero title, subtitle, etc.)
+   - Do NOT pre-define content for other slide types
 
-3. **For each subsequent slide: clone previous → adjust → check**
-
-   Always clone from the **previous slide** (NOT slide 1!) so ghost states carry forward.
+3. **For each subsequent slide: clone previous → ghost old content → add new content → adjust scene**
 
    ```bash
-   # Clone previous slide (ghost states inherited automatically)
+   # Clone previous slide (scene actors + their positions inherited)
    officecli add <topic-name>.pptx '/' --from '/slide[N-1]'
    # Step A: Set transition
    officecli set <topic-name>.pptx '/slide[N]' --prop transition=morph
-   # Step B: Ghost previous slide's content → x=36cm
+   # Step B: Ghost previous slide's content actors → x=36cm
    officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=36cm
-   # Step C: Activate this slide's content → visible positions
-   officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=4cm --prop y=7cm
+   # Step C: Add this slide's new content
+   officecli add <topic-name>.pptx '/slide[N]' --type shape --prop text="..." --prop x=4cm --prop y=7cm ...
    # Step D: Adjust scene actors for spatial differentiation
    officecli set <topic-name>.pptx '/slide[N]/shape[...]' --prop x=20cm --prop width=12cm
    ```
@@ -507,29 +497,27 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
 
 After creating/adjusting each slide, verify ALL of the following:
 
-- [ ] `transition=morph` is set on this slide (slides 2+)
-- [ ] All scene actors from slide 1 exist on this slide (same names)
-- [ ] Actors not needed on this slide are at `x=36cm` (NOT deleted)
-- [ ] **⚠️ TEXT OVERLAP CHECK (3-step mandatory)**:
-  1. List active actors on THIS slide (which headline/content actors are visible?)
-  2. List ALL headline/content actors from OTHER slide types
-  3. Verify EVERY actor from step 2 is at `x=36cm` — if not, STOP and fix
-- [ ] At least 6 actors have visible changes vs. the previous slide
-- [ ] Text color contrasts with background (brightness formula)
+- [ ] `transition=morph` is set (slides 2+)
+- [ ] All scene actors exist with same names as slide 1
+- [ ] **Previous slide's content actors are ghosted** (`x=36cm`) — if any remain visible, old text overlaps new content
+- [ ] This slide's new content is added and positioned correctly
+- [ ] At least 6 actors have visible changes vs. the previous slide (scene actors moved/resized)
+- [ ] Text color contrasts with background
 
 **If any item fails → fix immediately before moving to the next slide.**
 
 ---
 
-**Why clone from previous slide (not slide 1)?**
+**Why this approach?**
 
-- Ghost states carry forward — actors ghosted on slide 2 stay ghosted on slide 3+
-- You only handle the **delta** between adjacent slides, not the full actor set
-- Cloning from slide 1 resets ALL positions → easy to forget re-ghosting → text overlap
+- **Scene actors morph beautifully** — same names across slides create smooth position/size/rotation transitions
+- **Content doesn't need Morph** — text changes every slide, so Morph just cross-fades it anyway
+- **Clone from previous** carries scene actor positions forward; only ghost the previous slide's content
+- **Slide 1 stays simple** — ~10 shapes instead of 30+, easy to manage
 
 **Not recommended**:
 
-- ❌ Cloning from slide 1 for every slide (resets ghost states → #1 cause of text overlap)
+- ❌ Pre-defining all content actors for all slide types on slide 1 (bloated, complex index management)
+- ❌ Cloning from slide 1 for every slide (resets ghost states → text overlap)
 - ❌ Using batch JSON instead of individual `set` commands (causes boolean/escaping errors)
-- ❌ Creating shapes independently per slide (inconsistent names → poor Morph)
-- ❌ Deleting unneeded actors (breaks Morph pairing between slides)
+- ❌ Deleting scene actors (breaks Morph pairing — ghost them instead)

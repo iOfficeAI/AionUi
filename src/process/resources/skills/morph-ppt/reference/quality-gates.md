@@ -138,12 +138,9 @@ Self-check immediately after generating each slide. Fix issues before moving on.
 
 1. **Content**: Headline clear? Bullet points <= 5?
 2. **Layout**: No overlaps? Text color contrasts with background?
-3. **Morph**: Same actor names as previous slide? Unneeded scene actors ghosted to `x=36cm`?
-4. **⚠️ CRITICAL TEXT OVERLAP CHECK (3-step mandatory process)**:
-   - **Step 1**: List active actors on THIS slide (which headline/content actors are visible, not at x=36cm?)
-   - **Step 2**: List ALL headline/content actors from OTHER slide types (hero title, statement text, evidence labels, cta text, quote text, etc.)
-   - **Step 3**: Verify EVERY actor from step 2 is at `x=36cm` — if any is not ghosted, STOP and fix immediately
-   - Example: On a `pillars` slide, ensure `!!hero-title`, `!!statement-text`, `!!evidence-label-1`, etc. are ALL at x=36cm
+3. **Morph**: Scene actors have same names as previous slide? Scene actors not needed are ghosted to `x=36cm`?
+4. **⚠️ TEXT OVERLAP CHECK**: Previous slide's content actors are ALL ghosted (`x=36cm`)? This slide's new content is added fresh?
+   - Since content is added per slide (not pre-defined on slide 1), you only need to check the **previous slide's** content — not all slide types
    - **This is the #1 most common defect** — failure causes visible text overlap
 
 **This is the primary quality gate.** If every slide passes, the PPT is already high quality.
