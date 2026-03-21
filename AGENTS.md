@@ -82,15 +82,17 @@ See the `commit` skill (`.claude/skills/commit/SKILL.md`) for complete workflow,
 
 Detailed rules and guidelines are organized into Skills for better modularity:
 
-| Skill            | Purpose                                                                            | Triggers                                                           |
-| ---------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **architecture** | File & directory structure conventions for all process types                       | Creating files, adding modules, architectural decisions            |
-| **i18n**         | Internationalization workflow and standards                                        | Adding user-facing text, creating components with user-facing text |
-| **testing**      | Testing workflow and quality standards                                             | Writing tests, adding features, before claiming completion         |
-| **commit**       | Structured git commit workflow with quality checks                                 | Committing code, `/commit`, `/oss-pr`                              |
-| **pr**           | Pull request workflow: ensure issue exists, push branch, open PR                   | Creating pull requests, after committing, `/oss-pr`                |
-| **pr-review**    | Local PR code review with full project context, no truncation limits               | Reviewing a PR, user says "review PR", `/pr-review`                |
-| **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix | After pr-review, user says "fix all issues", `/pr-fix`             |
+| Skill            | Purpose                                                                              | Triggers                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| **architecture** | File & directory structure conventions for all process types                         | Creating files, adding modules, architectural decisions                           |
+| **i18n**         | Internationalization workflow and standards                                          | Adding user-facing text, creating components with user-facing text                |
+| **testing**      | Testing workflow and quality standards                                               | Writing tests, adding features, before claiming completion                        |
+| **commit**       | Structured git commit workflow with quality checks                                   | Committing code, `/commit`, `/oss-pr`                                             |
+| **pr**           | Pull request workflow: ensure issue exists, push branch, open PR                     | Creating pull requests, after committing, `/oss-pr`                               |
+| **pr-review**    | Local PR code review with full project context, no truncation limits                 | Reviewing a PR, user says "review PR", `/pr-review`                               |
+| **pr-fix**       | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix   | After pr-review, user says "fix all issues", `/pr-fix`                            |
+| **rust**         | Rust refactoring lifecycle: design, implement, benchmark, migrate TS->Rust (napi-rs) | Analyzing TS for Rust rewrite, implementing Rust, benchmarking, migrating callers |
+| **doc-sync**     | Track uncommitted changes and update related project documentation                   | After development tasks, before committing, `/doc-sync`                           |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
 
@@ -99,3 +101,14 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/common/config/i18n-config.json`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
+
+## Post-Development Skill Reminders
+
+After completing a development task, remind the user about relevant follow-up skills:
+
+| Condition                                                 | Reminder                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------ |
+| Code files were modified                                  | Suggest `/doc-sync` to update related documentation          |
+| Rust crate or TS module in the refactor scope was touched | Suggest the appropriate `/rust-*` command for the next stage |
+| New user-facing text was added                            | Suggest `/i18n` to ensure translations are in place          |
+| Changes are ready to commit                               | Suggest `/commit` to run quality checks and commit           |

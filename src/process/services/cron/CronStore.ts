@@ -176,10 +176,8 @@ class CronStore {
     const row = jobToRow(job);
 
     // @ts-expect-error - db is private but we need direct access
-    db.db
-      .prepare(
-        `
-      INSERT INTO cron_jobs (
+    db.db.run(
+      `INSERT INTO cron_jobs (
         id, name, enabled,
         schedule_kind, schedule_value, schedule_tz, schedule_description,
         payload_message,
@@ -187,32 +185,9 @@ class CronStore {
         created_at, updated_at,
         next_run_at, last_run_at, last_status, last_error,
         run_count, retry_count, max_retries
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `
-      )
-      .run(
-        row.id,
-        row.name,
-        row.enabled,
-        row.schedule_kind,
-        row.schedule_value,
-        row.schedule_tz,
-        row.schedule_description,
-        row.payload_message,
-        row.conversation_id,
-        row.conversation_title,
-        row.agent_type,
-        row.created_by,
-        row.created_at,
-        row.updated_at,
-        row.next_run_at,
-        row.last_run_at,
-        row.last_status,
-        row.last_error,
-        row.run_count,
-        row.retry_count,
-        row.max_retries
-      );
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [row.id, row.name, row.enabled, row.schedule_kind, row.schedule_value, row.schedule_tz, row.schedule_description, row.payload_message, row.conversation_id, row.conversation_title, row.agent_type, row.created_by, row.created_at, row.updated_at, row.next_run_at, row.last_run_at, row.last_status, row.last_error, row.run_count, row.retry_count, row.max_retries],
+    );
   }
 
   /**
@@ -247,10 +222,8 @@ class CronStore {
     const db = getDatabase();
 
     // @ts-expect-error - db is private but we need direct access
-    db.db
-      .prepare(
-        `
-      UPDATE cron_jobs SET
+    db.db.run(
+      `UPDATE cron_jobs SET
         name = ?, enabled = ?,
         schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_description = ?,
         payload_message = ?,
@@ -258,30 +231,9 @@ class CronStore {
         updated_at = ?,
         next_run_at = ?, last_run_at = ?, last_status = ?, last_error = ?,
         run_count = ?, retry_count = ?, max_retries = ?
-      WHERE id = ?
-    `
-      )
-      .run(
-        row.name,
-        row.enabled,
-        row.schedule_kind,
-        row.schedule_value,
-        row.schedule_tz,
-        row.schedule_description,
-        row.payload_message,
-        row.conversation_id,
-        row.conversation_title,
-        row.agent_type,
-        row.updated_at,
-        row.next_run_at,
-        row.last_run_at,
-        row.last_status,
-        row.last_error,
-        row.run_count,
-        row.retry_count,
-        row.max_retries,
-        jobId
-      );
+      WHERE id = ?`,
+      [row.name, row.enabled, row.schedule_kind, row.schedule_value, row.schedule_tz, row.schedule_description, row.payload_message, row.conversation_id, row.conversation_title, row.agent_type, row.updated_at, row.next_run_at, row.last_run_at, row.last_status, row.last_error, row.run_count, row.retry_count, row.max_retries, jobId],
+    );
   }
 
   /**
@@ -290,7 +242,7 @@ class CronStore {
   delete(jobId: string): void {
     const db = getDatabase();
     // @ts-expect-error - db is private but we need direct access
-    db.db.prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
+    db.db.run('DELETE FROM cron_jobs WHERE id = ?', [jobId]);
   }
 
   /**
@@ -299,7 +251,7 @@ class CronStore {
   getById(jobId: string): CronJob | null {
     const db = getDatabase();
     // @ts-expect-error - db is private but we need direct access
-    const row = db.db.prepare('SELECT * FROM cron_jobs WHERE id = ?').get(jobId) as CronJobRow | undefined;
+    const row = db.db.get('SELECT * FROM cron_jobs WHERE id = ?', [jobId]) as CronJobRow | null;
     return row ? rowToJob(row) : null;
   }
 
@@ -309,7 +261,7 @@ class CronStore {
   listAll(): CronJob[] {
     const db = getDatabase();
     // @ts-expect-error - db is private but we need direct access
-    const rows = db.db.prepare('SELECT * FROM cron_jobs ORDER BY created_at DESC').all() as CronJobRow[];
+    const rows = db.db.all('SELECT * FROM cron_jobs ORDER BY created_at DESC') as unknown as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -319,9 +271,7 @@ class CronStore {
   listByConversation(conversationId: string): CronJob[] {
     const db = getDatabase();
     // @ts-expect-error - db is private but we need direct access
-    const rows = db.db
-      .prepare('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC')
-      .all(conversationId) as CronJobRow[];
+    const rows = db.db.all('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC', [conversationId]) as unknown as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -331,9 +281,7 @@ class CronStore {
   listEnabled(): CronJob[] {
     const db = getDatabase();
     // @ts-expect-error - db is private but we need direct access
-    const rows = db.db
-      .prepare('SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC')
-      .all() as CronJobRow[];
+    const rows = db.db.all('SELECT * FROM cron_jobs WHERE enabled = 1 ORDER BY next_run_at ASC') as unknown as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -344,7 +292,7 @@ class CronStore {
   deleteByConversation(conversationId: string): number {
     const db = getDatabase();
     // @ts-expect-error - db is private but we need direct access
-    const result = db.db.prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversationId);
+    const result = db.db.run('DELETE FROM cron_jobs WHERE conversation_id = ?', [conversationId]);
     return result.changes;
   }
 }

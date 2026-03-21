@@ -7,10 +7,12 @@
  * 打包应用的密码重置命令行工具
  */
 
-import crypto from 'crypto';
-import type Database from 'better-sqlite3';
-import BetterSqlite3 from 'better-sqlite3';
-import bcrypt from 'bcryptjs';
+import {
+  Database,
+  hashPassword as nativeHashPassword,
+  generateRandomPassword as nativeGenerateRandomPassword,
+  generateSecretKey as nativeGenerateSecretKey,
+} from '@aionui/native';
 import { getDataPath, ensureDirectory } from '@process/utils';
 import path from 'path';
 
@@ -33,33 +35,6 @@ const log = {
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
-const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
-  new Promise((resolve, reject) => {
-    bcrypt.hash(password, saltRounds, (error, hash) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(hash);
-    });
-  });
-
-// Hash password using bcrypt
-// 使用 bcrypt 哈希密码
-async function hashPassword(password: string): Promise<string> {
-  return await hashPasswordAsync(password, 10);
-}
-
-// 生成随机密码 / Generate random password
-function generatePassword(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
 /**
  * Reset password for a user (CLI mode, works in packaged apps)
  * 重置用户密码（CLI模式,在打包应用中可用）
@@ -67,7 +42,7 @@ function generatePassword(): string {
  * @param username - Username to reset password for
  */
 export async function resetPasswordCLI(username: string): Promise<void> {
-  let db: Database.Database | null = null;
+  let db: Database | null = null;
 
   try {
     log.info('Starting password reset...');
@@ -82,12 +57,10 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     ensureDirectory(dir);
 
     // Connect to database
-    db = new BetterSqlite3(dbPath);
+    db = new Database(dbPath);
 
     // Check if users table exists
-    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get() as
-      | { name: string }
-      | undefined;
+    const tableExists = db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'") as { name: string } | null;
 
     if (!tableExists) {
       log.error('Database is not initialized yet');
@@ -101,15 +74,14 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     }
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
-      | { id: string; username: string; password_hash: string; jwt_secret: string | null }
-      | undefined;
+    const user = db.get('SELECT * FROM users WHERE username = ?', [username]) as
+      { id: string; username: string; password_hash: string; jwt_secret: string | null } | null;
 
     if (!user) {
       log.error(`User '${username}' not found in database`);
       log.info('');
       log.info('Available users:');
-      const allUsers = db.prepare('SELECT username FROM users').all() as { username: string }[];
+      const allUsers = db.all('SELECT username FROM users') as { username: string }[];
       if (allUsers.length === 0) {
         log.info('  (no users found)');
       } else {
@@ -120,17 +92,19 @@ export async function resetPasswordCLI(username: string): Promise<void> {
 
     log.info(`Found user: ${user.username} (ID: ${user.id})`);
 
-    // Generate new password
-    const newPassword = generatePassword();
-    const hashedPassword = await hashPassword(newPassword);
+    // Generate new password using Rust native addon
+    const newPassword = nativeGenerateRandomPassword();
+    const hashedPassword = await nativeHashPassword(newPassword);
 
-    // Update password
+    // Update password and rotate JWT secret in a single query
     const now = Date.now();
-    db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(hashedPassword, now, user.id);
-
-    // Generate and update JWT Secret
-    const newJwtSecret = crypto.randomBytes(64).toString('hex');
-    db.prepare('UPDATE users SET jwt_secret = ?, updated_at = ? WHERE id = ?').run(newJwtSecret, now, user.id);
+    const newJwtSecret = nativeGenerateSecretKey();
+    db.run('UPDATE users SET password_hash = ?, jwt_secret = ?, updated_at = ? WHERE id = ?', [
+      hashedPassword,
+      newJwtSecret,
+      now,
+      user.id,
+    ]);
 
     // Display result
     console.log('');

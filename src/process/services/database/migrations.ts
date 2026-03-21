@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type Database from 'better-sqlite3';
+import type { Database } from '@aionui/native';
 
 /**
  * Migration script definition
@@ -12,8 +12,8 @@ import type Database from 'better-sqlite3';
 export interface IMigration {
   version: number; // Target version after this migration
   name: string; // Migration name for logging
-  up: (db: Database.Database) => void; // Upgrade script
-  down: (db: Database.Database) => void; // Downgrade script (for rollback)
+  up: (db: Database) => void; // Upgrade script
+  down: (db: Database) => void; // Downgrade script (for rollback)
 }
 
 /**
@@ -137,7 +137,7 @@ const migration_v6: IMigration = {
   name: 'Add jwt_secret to users table',
   up: (db) => {
     // Check if jwt_secret column already exists
-    const tableInfo = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
+    const tableInfo = db.all('PRAGMA table_info(users)') as Array<{ name: string }>;
     const hasJwtSecret = tableInfo.some((col) => col.name === 'jwt_secret');
 
     if (!hasJwtSecret) {
@@ -751,7 +751,7 @@ const migration_v14: IMigration = {
     `);
 
     // 3. Add chat_id to assistant_sessions for per-chat session isolation
-    const sessTableInfo = db.prepare('PRAGMA table_info(assistant_sessions)').all() as Array<{ name: string }>;
+    const sessTableInfo = db.all('PRAGMA table_info(assistant_sessions)') as Array<{ name: string }>;
     if (!sessTableInfo.some((col) => col.name === 'chat_id')) {
       db.exec(`ALTER TABLE assistant_sessions ADD COLUMN chat_id TEXT;`);
     }
@@ -930,7 +930,7 @@ export function getMigrationsToRollback(fromVersion: number, toVersion: number):
 /**
  * Run migrations in a transaction
  */
-export function runMigrations(db: Database.Database, fromVersion: number, toVersion: number): void {
+export function runMigrations(db: Database, fromVersion: number, toVersion: number): void {
   if (fromVersion === toVersion) {
     console.log('[Migrations] Already at target version');
     return;
@@ -953,10 +953,11 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
   // (DROP TABLE + CREATE TABLE). PRAGMA foreign_keys cannot be changed inside
   // a transaction — it is silently ignored.
   // See: https://www.sqlite.org/lang_altertable.html#otheralter
-  db.pragma('foreign_keys = OFF');
+  db.pragmaSet('foreign_keys = OFF');
 
   // Run all migrations in a single transaction
-  const runAll = db.transaction(() => {
+  db.exec('BEGIN');
+  try {
     for (const migration of migrations) {
       try {
         console.log(`[Migrations] Running migration v${migration.version}: ${migration.name}`);
@@ -965,27 +966,26 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
         console.log(`[Migrations] ✓ Migration v${migration.version} completed`);
       } catch (error) {
         console.error(`[Migrations] ✗ Migration v${migration.version} failed:`, error);
-        throw error; // Transaction will rollback
+        throw error;
       }
     }
 
     // Verify foreign key integrity after all migrations
-    const fkViolations = db.pragma('foreign_key_check') as unknown[];
+    const fkViolations = db.all('PRAGMA foreign_key_check');
     if (fkViolations.length > 0) {
       console.error('[Migrations] Foreign key violations detected:', fkViolations);
       throw new Error(`[Migrations] Foreign key check failed: ${fkViolations.length} violation(s)`);
     }
-  });
 
-  try {
-    runAll();
+    db.exec('COMMIT');
     console.log(`[Migrations] All migrations completed successfully`);
   } catch (error) {
+    db.exec('ROLLBACK');
     console.error('[Migrations] Migration failed, all changes rolled back:', error);
     throw error;
   } finally {
     // Re-enable foreign keys regardless of success or failure
-    db.pragma('foreign_keys = ON');
+    db.pragmaSet('foreign_keys = ON');
   }
 }
 
@@ -993,7 +993,7 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
  * Rollback migrations (for testing/emergency use)
  * WARNING: This can cause data loss!
  */
-export function rollbackMigrations(db: Database.Database, fromVersion: number, toVersion: number): void {
+export function rollbackMigrations(db: Database, fromVersion: number, toVersion: number): void {
   if (fromVersion <= toVersion) {
     throw new Error('[Migrations] Cannot rollback to a higher or equal version');
   }
@@ -1009,10 +1009,11 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
   console.warn('[Migrations] WARNING: This may cause data loss!');
 
   // Disable foreign keys BEFORE the transaction (same reason as runMigrations)
-  db.pragma('foreign_keys = OFF');
+  db.pragmaSet('foreign_keys = OFF');
 
   // Run all rollbacks in a single transaction
-  const rollbackAll = db.transaction(() => {
+  db.exec('BEGIN');
+  try {
     for (const migration of migrations) {
       try {
         console.log(`[Migrations] Rolling back migration v${migration.version}: ${migration.name}`);
@@ -1021,26 +1022,25 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
         console.log(`[Migrations] ✓ Rollback v${migration.version} completed`);
       } catch (error) {
         console.error(`[Migrations] ✗ Rollback v${migration.version} failed:`, error);
-        throw error; // Transaction will rollback
+        throw error;
       }
     }
 
     // Verify foreign key integrity after rollback
-    const fkViolations = db.pragma('foreign_key_check') as unknown[];
+    const fkViolations = db.all('PRAGMA foreign_key_check');
     if (fkViolations.length > 0) {
       console.error('[Migrations] Foreign key violations detected after rollback:', fkViolations);
       throw new Error(`[Migrations] Foreign key check failed: ${fkViolations.length} violation(s)`);
     }
-  });
 
-  try {
-    rollbackAll();
+    db.exec('COMMIT');
     console.log(`[Migrations] All rollbacks completed successfully`);
   } catch (error) {
+    db.exec('ROLLBACK');
     console.error('[Migrations] Rollback failed:', error);
     throw error;
   } finally {
-    db.pragma('foreign_keys = ON');
+    db.pragmaSet('foreign_keys = ON');
   }
 }
 
@@ -1049,9 +1049,9 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
  * Now simplified - just returns the current version
  */
 export function getMigrationHistory(
-  db: Database.Database
+  db: Database
 ): Array<{ version: number; name: string; timestamp: number }> {
-  const currentVersion = db.pragma('user_version', { simple: true }) as number;
+  const currentVersion = db.pragmaGet('user_version') as number;
 
   // Return a simple array with just the current version
   return [
@@ -1067,7 +1067,7 @@ export function getMigrationHistory(
  * Check if a specific migration has been applied
  * Now simplified - checks if current version >= target version
  */
-export function isMigrationApplied(db: Database.Database, version: number): boolean {
-  const currentVersion = db.pragma('user_version', { simple: true }) as number;
+export function isMigrationApplied(db: Database, version: number): boolean {
+  const currentVersion = db.pragmaGet('user_version') as number;
   return currentVersion >= version;
 }

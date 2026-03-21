@@ -4,21 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type Database from 'better-sqlite3';
+import type { Database } from '@aionui/native';
 
 /**
  * Initialize database schema with all tables and indexes
  */
-export function initSchema(db: Database.Database): void {
+export function initSchema(db: Database): void {
   // Enable foreign keys
-  db.pragma('foreign_keys = ON');
+  db.pragmaSet('foreign_keys = ON');
   // Enable Write-Ahead Logging for better performance
   try {
-    db.pragma('journal_mode = WAL');
+    db.pragmaSet('journal_mode = WAL');
+    // rusqlite keeps synchronous=FULL after WAL; explicitly set NORMAL for parity
+    db.pragmaSet('synchronous = NORMAL');
   } catch (error) {
     console.warn('[Database] Failed to enable WAL mode, using default journal mode:', error);
     // Continue with default journal mode if WAL fails
   }
+  // Match better-sqlite3 default cache size (16 MB)
+  db.pragmaSet('cache_size = -16000');
 
   // Users table (账户系统)
   db.exec(`
@@ -87,9 +91,9 @@ export function initSchema(db: Database.Database): void {
  * Get database version for migration tracking
  * Uses SQLite's built-in user_version pragma
  */
-export function getDatabaseVersion(db: Database.Database): number {
+export function getDatabaseVersion(db: Database): number {
   try {
-    const result = db.pragma('user_version', { simple: true }) as number;
+    const result = db.pragmaGet('user_version') as number;
     return result;
   } catch {
     return 0;
@@ -100,8 +104,8 @@ export function getDatabaseVersion(db: Database.Database): number {
  * Set database version
  * Uses SQLite's built-in user_version pragma
  */
-export function setDatabaseVersion(db: Database.Database, version: number): void {
-  db.pragma(`user_version = ${version}`);
+export function setDatabaseVersion(db: Database, version: number): void {
+  db.pragmaSet(`user_version = ${version}`);
 }
 
 /**

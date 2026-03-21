@@ -1,0 +1,20 @@
+[package]
+name = "aionui-native"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2", default-features = false, features = ["napi8", "serde-json"] }
+napi-derive = "2"
+serde_json = "1"
+aionui-cred = { path = "../crates/aionui-cred" }
+aionui-auth = { path = "../crates/aionui-auth" }
+aionui-fs = { path = "../crates/aionui-fs" }
+aionui-db = { path = "../crates/aionui-db" }
+aionui-doc = { path = "../crates/aionui-doc" }
+
+[build-dependencies]
+napi-build = "2"
