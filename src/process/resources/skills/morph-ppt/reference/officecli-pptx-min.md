@@ -83,40 +83,54 @@ transition=morph-byChar   # Match by character (character-by-character text anim
 
 ### Shell Script Rules (CRITICAL when generating build.sh)
 
-When generating `build.sh` or using `officecli batch`, follow these rules to avoid shell parsing errors:
+When generating `build.sh` or using `officecli batch`, follow these rules to avoid errors.
 
-1. **Property format**: ALL properties use `--prop key=value`
+**⚠️ TOP 3 MOST COMMON ERRORS (read these first!)**:
+
+1. **Boolean values MUST be strings in batch JSON**
+   - ✅ `{"props":{"bold":"true","italic":"false"}}`
+   - ❌ `{"props":{"bold":true}}` (officecli rejects non-string values)
+   - This applies to: bold, italic, underline, strikethrough, autoplay, autoFit, flipH, flipV
+
+2. **XPath only supports numeric indexing — NEVER use name-based indexing**
+   - ✅ `'/slide[1]/shape[3]'` (numeric index)
+   - ❌ `'/slide[1]/shape[@name="dot-main"]'` (will error: not supported)
+   - To find a shape's index by name: `officecli get <file> '/slide[1]' --depth 1`
+
+3. **Negative coordinates are NOT supported**
+   - ❌ `x=-3cm` (will error)
+   - ✅ `x=36cm` (ghost position, off right edge of canvas)
+
+**All rules**:
+
+4. **Property format**: ALL properties use `--prop key=value`
    - ✅ `--prop name="!!bg-glow1"`
    - ❌ `--name "!!bg-glow1"` (Unrecognized argument)
 
-2. **Path wrapping**: Wrap XPath in single quotes
+5. **Path wrapping**: Wrap XPath in single quotes
    - ✅ `'/slide[1]/shape[2]'`
    - ❌ `/slide[1]/shape[2]` (shell may expand brackets)
 
-3. **Property value wrapping**: Wrap values in double quotes
+6. **Property value wrapping**: Wrap values in double quotes
    - ✅ `--prop text="Hello World"`
    - ❌ `--prop text=Hello World` (shell splits on space)
 
-4. **Multi-line text**: Do NOT use `\n` inside `--prop text="..."`
+7. **Multi-line text**: Do NOT use `\n` inside `--prop text="..."`
    - ❌ `--prop text="Line 1\nLine 2"` (shell parsing error)
    - ✅ `--prop text="Line 1\\nLine 2"` (escaped newline)
    - ✅ Or split into multiple text boxes
 
-5. **Line continuation**: NO trailing spaces after `\`
+8. **Line continuation**: NO trailing spaces after `\`
    - ✅ `--prop x=2cm \` (clean backslash)
    - ❌ `--prop x=2cm \ ` (trailing space breaks continuation)
 
-6. **Quotes nesting**: Avoid mixing nested quotes
+9. **Quotes nesting**: Avoid mixing nested quotes
    - ✅ Use JSON format for batch with proper escaping
    - ❌ `'--prop text="It's"'` (quote conflict)
 
-7. **Negative coordinates**: NOT supported
-   - ❌ `x=-3cm` (will error)
-   - ✅ `x=36cm` (ghost position, off right edge)
-
-8. **Batch JSON escaping**: Escape double quotes inside JSON strings
-   - ✅ `{"props":{"text":"It\\'s working"}}`
-   - ❌ `{"props":{"text":"It's working"}}` (breaks JSON)
+10. **Batch JSON escaping**: Escape double quotes inside JSON strings
+    - ✅ `{"props":{"text":"It\\'s working"}}`
+    - ❌ `{"props":{"text":"It's working"}}` (breaks JSON)
 
 ## 3) Command Reference
 
