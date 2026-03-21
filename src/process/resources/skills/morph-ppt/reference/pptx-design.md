@@ -543,7 +543,17 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
 4. **Create slide 3+ by cloning the PREVIOUS slide (NOT slide 1!)**
 
    ```bash
-   officecli add <topic-name>.pptx '/' --from '/slide[2]'  # clone PREVIOUS slide
+   # Clone from previous slide — ghost states carry forward automatically
+   officecli add <topic-name>.pptx '/' --from '/slide[2]'
+   # Batch: set transition + ghost previous content + activate new content + adjust scene actors
+   echo '[
+     {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
+     {"command":"set","path":"/slide[3]/shape[10]","props":{"x":"36cm"}},
+     {"command":"set","path":"/slide[3]/shape[11]","props":{"x":"36cm"}},
+     {"command":"set","path":"/slide[3]/shape[12]","props":{"x":"3cm","y":"2cm","text":"New Title","font":"Montserrat","bold":"true","size":"36","color":"FFFFFF"}},
+     {"command":"set","path":"/slide[3]/shape[1]","props":{"x":"20cm","y":"2cm","width":"12cm"}},
+     {"command":"set","path":"/slide[3]/shape[2]","props":{"x":"5cm","y":"10cm"}}
+   ]' | officecli batch <topic-name>.pptx
    ```
 
    **Why clone from the previous slide instead of slide 1?**
@@ -551,12 +561,10 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    - You only need to handle the **delta** (ghost previous content, activate new content)
    - Cloning from slide 1 resets ALL actors to their original positions, causing forgotten ghost bugs
 
-   **Per-slide workflow**:
-   - **MUST set `transition=morph`** on every new slide
-   - **Use `officecli batch`** to adjust all actors + add content in one call per slide
-   - Ghost the **previous slide's** headline/content actors → `x=36cm`
-   - Activate the **current slide's** headline/content actors → move to visible positions
-   - Adjust scene actors for spatial differentiation
+   **Per-slide batch pattern** (3 groups in every batch call):
+   1. **Set transition**: `transition=morph`
+   2. **Ghost previous content**: Move previous slide's headline/content actors to `x=36cm`
+   3. **Activate + adjust**: Move current slide's actors to visible positions, adjust scene actors for differentiation
 
 5. **Validate**
    ```bash
