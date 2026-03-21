@@ -7,9 +7,8 @@
  * 打包应用的密码重置命令行工具
  */
 
-import type Database from 'better-sqlite3';
-import BetterSqlite3 from 'better-sqlite3';
 import {
+  Database,
   hashPassword as nativeHashPassword,
   generateRandomPassword as nativeGenerateRandomPassword,
   generateSecretKey as nativeGenerateSecretKey,
@@ -43,7 +42,7 @@ const log = {
  * @param username - Username to reset password for
  */
 export async function resetPasswordCLI(username: string): Promise<void> {
-  let db: Database.Database | null = null;
+  let db: Database | null = null;
 
   try {
     log.info('Starting password reset...');
@@ -58,12 +57,10 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     ensureDirectory(dir);
 
     // Connect to database
-    db = new BetterSqlite3(dbPath);
+    db = new Database(dbPath);
 
     // Check if users table exists
-    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get() as
-      | { name: string }
-      | undefined;
+    const tableExists = db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users'") as { name: string } | null;
 
     if (!tableExists) {
       log.error('Database is not initialized yet');
@@ -77,15 +74,14 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     }
 
     // Find user
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as
-      | { id: string; username: string; password_hash: string; jwt_secret: string | null }
-      | undefined;
+    const user = db.get('SELECT * FROM users WHERE username = ?', [username]) as
+      { id: string; username: string; password_hash: string; jwt_secret: string | null } | null;
 
     if (!user) {
       log.error(`User '${username}' not found in database`);
       log.info('');
       log.info('Available users:');
-      const allUsers = db.prepare('SELECT username FROM users').all() as { username: string }[];
+      const allUsers = db.all('SELECT username FROM users') as { username: string }[];
       if (allUsers.length === 0) {
         log.info('  (no users found)');
       } else {
@@ -103,12 +99,12 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     // Update password and rotate JWT secret in a single query
     const now = Date.now();
     const newJwtSecret = nativeGenerateSecretKey();
-    db.prepare('UPDATE users SET password_hash = ?, jwt_secret = ?, updated_at = ? WHERE id = ?').run(
+    db.run('UPDATE users SET password_hash = ?, jwt_secret = ?, updated_at = ? WHERE id = ?', [
       hashedPassword,
       newJwtSecret,
       now,
-      user.id
-    );
+      user.id,
+    ]);
 
     // Display result
     console.log('');

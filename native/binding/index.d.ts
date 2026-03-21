@@ -67,3 +67,21 @@ export function copyDirectory(src: string, dest: string, overwrite?: boolean | u
 export function verifyDirectoryStructure(dir1: string, dir2: string): Promise<boolean>;
 
 export function ensureDir(dirPath: string): void;
+
+// --- Database (aionui-db) ---
+
+export interface RunResult {
+  changes: number;
+  lastInsertRowid: number;
+}
+
+export class Database {
+  constructor(path: string);
+  close(): void;
+  exec(sql: string): void;
+  run(sql: string, params?: unknown[]): RunResult;
+  get(sql: string, params?: unknown[]): unknown;
+  all(sql: string, params?: unknown[]): unknown[];
+  pragmaGet(name: string): unknown;
+  pragmaSet(statement: string): void;
+}

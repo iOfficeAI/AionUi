@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/aionui-cred", "crates/aionui-auth", "crates/aionui-fs", "binding"]
+members = ["crates/aionui-cred", "crates/aionui-auth", "crates/aionui-fs", "crates/aionui-db", "binding"]
 resolver = "2"
 
 [profile.release]
