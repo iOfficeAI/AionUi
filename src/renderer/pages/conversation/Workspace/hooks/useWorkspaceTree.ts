@@ -100,9 +100,17 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
             setTreeKey(Math.random());
           }
 
-          // 只展开第一层文件夹（根节点）
-          // Only expand first level folders (root node)
-          setExpandedKeys(getFirstLevelKeys(res));
+          // 首次加载时展开第一层，后续刷新时保留用户已展开的目录
+          // On first load expand first level; on subsequent refreshes preserve user-expanded dirs
+          if (isFirstLoadRef.current) {
+            setExpandedKeys(getFirstLevelKeys(res));
+          } else {
+            setExpandedKeys((prev) => {
+              const firstLevel = getFirstLevelKeys(res);
+              // Merge: keep user-expanded keys + ensure first level is always expanded
+              return [...new Set([...prev, ...firstLevel])];
+            });
+          }
 
           // 根据是否有文件决定工作空间面板的展开/折叠状态
           // Determine workspace panel expand/collapse state based on files
