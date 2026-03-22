@@ -14,6 +14,7 @@ import "./common/adapter/standalone";
 
 import { initBridgeStandalone } from "./process/utils/initBridgeStandalone";
 import { startWebServerWithInstance } from "./process/webserver";
+import { cleanupWebAdapter } from "./process/webserver/adapter";
 import initStorage from "./process/utils/initStorage";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -36,11 +37,15 @@ async function main(): Promise<void> {
   // Graceful shutdown
   const shutdown = () => {
     console.log("[server] Shutting down...");
-    instance.wss.clients.forEach((ws) =>
-      ws.close(1000, "Server shutting down"),
-    );
+    // Destroy heartbeat timer and broadcaster registry before closing connections
+    cleanupWebAdapter();
+    // Terminate WebSocket connections immediately (no close-handshake wait)
+    instance.wss.clients.forEach((ws) => ws.terminate());
+    instance.wss.close();
+    // Stop accepting new connections; callback fires once all connections are gone
     instance.server.close(() => process.exit(0));
-    setTimeout(() => process.exit(1), 5000);
+    // Force exit after 1 s in case HTTP keep-alive connections delay server.close()
+    setTimeout(() => process.exit(0), 1000);
   };
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
