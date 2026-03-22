@@ -62,7 +62,7 @@ officecli add "$FILE" '/' --from '/slide[1]'
 cat << 'JSON_EOF' | officecli batch "$FILE"
 [
   {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-  
+
   {"command":"set","path":"/slide[2]/shape[1]","props":{"x":"20cm","y":"8cm","opacity":"0.05","fill":"45A29E"}},
   {"command":"set","path":"/slide[2]/shape[2]","props":{"x":"14cm","y":"2cm","width":"18cm","opacity":"0.1"}},
   {"command":"set","path":"/slide[2]/shape[3]","props":{"x":"2cm","y":"2cm","width":"30cm","height":"0.2cm"}},
@@ -86,11 +86,11 @@ officecli add "$FILE" '/' --from '/slide[2]'
 cat << 'JSON_EOF' | officecli batch "$FILE"
 [
   {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-  
+
   {"command":"set","path":"/slide[3]/shape[1]","props":{"x":"10cm","y":"0cm","opacity":"0.08","fill":"66FCF1"}},
   {"command":"set","path":"/slide[3]/shape[2]","props":{"x":"2cm","y":"2cm","width":"30cm","height":"2cm","opacity":"0.1"}},
   {"command":"set","path":"/slide[3]/shape[3]","props":{"x":"31cm","y":"4cm","width":"0.2cm","height":"5cm"}},
-  
+
   {"command":"set","path":"/slide[3]/shape[10]","props":{"x":"36cm","y":"0cm"}},
   {"command":"set","path":"/slide[3]/shape[11]","props":{"x":"36cm","y":"0cm"}},
 
@@ -119,7 +119,7 @@ officecli add "$FILE" '/' --from '/slide[3]'
 cat << 'JSON_EOF' | officecli batch "$FILE"
 [
   {"command":"set","path":"/slide[4]","props":{"transition":"morph"}},
-  
+
   {"command":"set","path":"/slide[4]/shape[1]","props":{"x":"15cm","y":"10cm","opacity":"0.05"}},
   {"command":"set","path":"/slide[4]/shape[2]","props":{"x":"2cm","y":"4cm","width":"4cm","height":"11cm"}},
   {"command":"set","path":"/slide[4]/shape[3]","props":{"x":"2cm","y":"15.5cm","width":"12cm","height":"0.2cm"}},

@@ -125,12 +125,12 @@ officecli add deck.pptx '/slide[1]' --type video --prop path=demo.mp4 --prop aut
 
 ### Syntax Pitfalls (Top 4 Mistakes)
 
-| ❌ Wrong | ✅ Correct | Why |
-|---------|----------|-----|
-| `--name "foo"` | `--prop name="foo"` | All attributes go through `--prop` |
-| `'/slide[@name="foo"]'` | `'/slide[1]/shape[3]'` | Numeric indexing only (1-based) |
-| `x=-3cm` | `x=0cm` or `x=36cm` | No negative coordinates. Use 36cm for off-screen |
-| Add shapes before slide | Create → add slide → add shapes | Must add slide first or "Slide not found" |
+| ❌ Wrong                | ✅ Correct                      | Why                                              |
+| ----------------------- | ------------------------------- | ------------------------------------------------ |
+| `--name "foo"`          | `--prop name="foo"`             | All attributes go through `--prop`               |
+| `'/slide[@name="foo"]'` | `'/slide[1]/shape[3]'`          | Numeric indexing only (1-based)                  |
+| `x=-3cm`                | `x=0cm` or `x=36cm`             | No negative coordinates. Use 36cm for off-screen |
+| Add shapes before slide | Create → add slide → add shapes | Must add slide first or "Slide not found"        |
 
 ### Shape Index Management
 
@@ -143,6 +143,7 @@ officecli get deck.pptx '/slide[1]' --depth 1
 ```
 
 **Index behavior:**
+
 - **After clone:** New slide inherits all shapes with same indices as source
 - **After add:** New shape gets next index (if slide has 8 shapes, new = `shape[9]`)
 - **After remove:** Indices shift down (remove `shape[3]` → old `shape[4]` becomes `shape[3]`)
@@ -152,6 +153,7 @@ officecli get deck.pptx '/slide[1]' --depth 1
 `transition=morph` creates smooth animations by **matching shapes by name** across adjacent slides.
 
 **Critical rules:**
+
 1. Adjacent slides must have shapes with **identical names** for morphing
 2. If names don't match → only fade in/out (no morph effect)
 3. **Best practice workflow:**
@@ -161,10 +163,12 @@ officecli get deck.pptx '/slide[1]' --depth 1
    - Repeat for more slides
 
 **Ghost technique:**
+
 - Shapes not visible on a slide? Move off-screen (`x=36cm`) — **don't delete**
 - Deleting breaks morph pairing across slides
 
 **Morph variants:**
+
 ```bash
 --prop transition=morph          # Match by object (default)
 --prop transition=morph-byWord   # Word-by-word text animation
@@ -194,6 +198,7 @@ When a command fails:
    - "Could not find path" → verify file exists
 
 2. **Inspect current state:**
+
    ```bash
    officecli get <file> '/slide[N]' --depth 1   # List all shapes + indices
    officecli view <file> outline                # Document structure
@@ -201,6 +206,7 @@ When a command fails:
    ```
 
 3. **Check command syntax:**
+
    ```bash
    officecli pptx set <element>    # See available properties
    officecli pptx add              # See available element types

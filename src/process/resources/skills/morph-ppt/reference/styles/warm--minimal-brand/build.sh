@@ -28,11 +28,11 @@ cat << 'JSON_EOF' > s1.json
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p1-title","text":"甄选微批次","font":"思源黑体","bold":"true","size":"24","color":"2B2624","x":"36cm","y":"8cm","width":"6.5cm","height":"1.5cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p1-sub","text":"Micro-Lot Selection","font":"Montserrat","size":"14","color":"C2A878","x":"36cm","y":"9.5cm","width":"6.5cm","height":"1cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p1-desc","text":"深入原产地，仅挑选SCA评分85+以上的单一产区微批次咖啡豆。","font":"思源黑体","size":"16","color":"8B6F47","x":"36cm","y":"11cm","width":"6.5cm","height":"5cm","align":"center","valign":"top","line":"none","fill":"none"}},
-  
+
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p2-title","text":"极简烘焙","font":"思源黑体","bold":"true","size":"24","color":"2B2624","x":"36cm","y":"8cm","width":"6.5cm","height":"1.5cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p2-sub","text":"Minimalist Roasting","font":"Montserrat","size":"14","color":"C2A878","x":"36cm","y":"9.5cm","width":"6.5cm","height":"1cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p2-desc","text":"摒弃重度烘焙，采用精准的浅中烘焙曲线，保留地域风味特色。","font":"思源黑体","size":"16","color":"8B6F47","x":"36cm","y":"11cm","width":"6.5cm","height":"5cm","align":"center","valign":"top","line":"none","fill":"none"}},
-  
+
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p3-title","text":"大师手冲","font":"思源黑体","bold":"true","size":"24","color":"2B2624","x":"36cm","y":"8cm","width":"6.5cm","height":"1.5cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p3-sub","text":"Master Brewing","font":"Montserrat","size":"14","color":"C2A878","x":"36cm","y":"9.5cm","width":"6.5cm","height":"1cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!p3-desc","text":"严控水温、水粉比与冲煮时间，确保每一杯出品的极致稳定与干净。","font":"思源黑体","size":"16","color":"8B6F47","x":"36cm","y":"11cm","width":"6.5cm","height":"5cm","align":"center","valign":"top","line":"none","fill":"none"}},
@@ -40,10 +40,10 @@ cat << 'JSON_EOF' > s1.json
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-title","text":"经得起挑剔的品质标准","font":"思源黑体","bold":"true","size":"36","color":"2B2624","x":"36cm","y":"2cm","width":"20cm","height":"2cm","align":"left","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-num1","text":"15","font":"Montserrat","bold":"true","size":"80","color":"2B2624","x":"36cm","y":"6cm","width":"12cm","height":"4cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-t1","text":"天最佳赏味期限制","font":"思源黑体","size":"20","color":"8B6F47","x":"36cm","y":"11cm","width":"12cm","height":"2cm","align":"center","line":"none","fill":"none"}},
-  
+
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-num2","text":"0","font":"Montserrat","bold":"true","size":"48","color":"2B2624","x":"36cm","y":"6cm","width":"5cm","height":"3cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-t2","text":"添加人工香精","font":"思源黑体","size":"18","color":"8B6F47","x":"36cm","y":"9cm","width":"7cm","height":"2cm","align":"left","valign":"middle","line":"none","fill":"none"}},
-  
+
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-num3","text":"100%","font":"Montserrat","bold":"true","size":"48","color":"2B2624","x":"36cm","y":"6cm","width":"5cm","height":"3cm","align":"center","line":"none","fill":"none"}},
   {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-t3","text":"可降解环保包装","font":"思源黑体","size":"18","color":"8B6F47","x":"36cm","y":"9cm","width":"7cm","height":"2cm","align":"left","valign":"middle","line":"none","fill":"none"}},
 
@@ -86,7 +86,7 @@ cat << 'JSON_EOF' > s3.json
   {"command":"set","path":"/slide[3]/shape[8]","props":{"x":"36cm"}},
   {"command":"set","path":"/slide[3]/shape[9]","props":{"x":"36cm"}},
   {"command":"set","path":"/slide[3]/shape[12]","props":{"x":"3cm","y":"1.5cm"}},
-  
+
   {"command":"set","path":"/slide[3]/shape[13]","props":{"x":"4cm","y":"7.5cm"}},
   {"command":"set","path":"/slide[3]/shape[14]","props":{"x":"4cm","y":"9cm"}},
   {"command":"set","path":"/slide[3]/shape[15]","props":{"x":"4cm","y":"11cm"}},
@@ -114,7 +114,7 @@ cat << 'JSON_EOF' > s4.json
   {"command":"set","path":"/slide[4]/shape[7]","props":{"x":"17cm","y":"11.5cm","width":"14cm","height":"5.5cm"}},
   {"command":"set","path":"/slide[4]/shape[8]","props":{"x":"36cm"}},
   {"command":"set","path":"/slide[4]/shape[9]","props":{"x":"36cm"}},
-  
+
   {"command":"set","path":"/slide[4]/shape[22]","props":{"x":"2cm","y":"1.5cm"}},
   {"command":"set","path":"/slide[4]/shape[23]","props":{"x":"3cm","y":"7cm"}},
   {"command":"set","path":"/slide[4]/shape[24]","props":{"x":"3cm","y":"12cm"}},
@@ -137,7 +137,7 @@ cat << 'JSON_EOF' > s5.json
   {"command":"set","path":"/slide[5]/shape[4]","props":{"x":"28cm","y":"4cm","height":"4cm","rotation":"45"}},
   {"command":"set","path":"/slide[5]/shape[8]","props":{"x":"36cm"}},
   {"command":"set","path":"/slide[5]/shape[9]","props":{"x":"36cm"}},
-  
+
   {"command":"set","path":"/slide[5]/shape[29]","props":{"x":"4cm","y":"8cm"}},
   {"command":"set","path":"/slide[5]/shape[30]","props":{"x":"4cm","y":"13.5cm"}},
   {"command":"set","path":"/slide[5]/shape[31]","props":{"x":"4cm","y":"15cm"}}

@@ -220,4 +220,3 @@ officecli validate morph-templates/04-earth-organic/template.pptx
 officecli view morph-templates/04-earth-organic/template.pptx outline
 
 officecli view morph-templates/04-earth-organic/template.pptx annotated
-
