@@ -11,22 +11,14 @@ import { useParams } from 'react-router-dom';
 import type { GroupedHistoryResult } from '../types';
 import { useConversationListSync } from './useConversationListSync';
 import { buildGroupedHistory } from '../utils/groupingHelpers';
-
-const EXPANSION_STORAGE_KEY = 'aionui_workspace_expansion';
+import {
+  dispatchWorkspaceExpansionChange,
+  readExpandedWorkspaces,
+  WORKSPACE_EXPANSION_STORAGE_KEY,
+} from './useWorkspaceExpansionState';
 
 export const useConversations = () => {
-  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem(EXPANSION_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return Array.isArray(parsed) ? parsed : [];
-      }
-    } catch {
-      // ignore
-    }
-    return [];
-  });
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => readExpandedWorkspaces());
   const { id } = useParams();
   const { t } = useTranslation();
   const { conversations, isConversationGenerating, hasCompletionUnread, clearCompletionUnread, setActiveConversation } =
@@ -57,10 +49,12 @@ export const useConversations = () => {
   // Persist expansion state
   useEffect(() => {
     try {
-      localStorage.setItem(EXPANSION_STORAGE_KEY, JSON.stringify(expandedWorkspaces));
+      localStorage.setItem(WORKSPACE_EXPANSION_STORAGE_KEY, JSON.stringify(expandedWorkspaces));
     } catch {
       // ignore
     }
+
+    dispatchWorkspaceExpansionChange(expandedWorkspaces);
   }, [expandedWorkspaces]);
 
   const groupedHistory: GroupedHistoryResult = useMemo(() => {
