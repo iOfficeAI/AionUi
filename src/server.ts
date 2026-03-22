@@ -20,6 +20,34 @@ import initStorage from "./process/utils/initStorage";
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const ALLOW_REMOTE = process.env.ALLOW_REMOTE === "true";
 
+// Track server instance for shutdown (set by main() once server is ready)
+let serverInstance: Awaited<
+  ReturnType<typeof startWebServerWithInstance>
+> | null = null;
+
+// Register signal handlers at the TOP LEVEL — before any async operations — so
+// they are always active regardless of where in the startup sequence a signal
+// arrives. Registering them inside async main() risks a race where the signal
+// fires before the await chain completes and the handlers are never registered.
+const shutdown = (signal: string) => {
+  console.log(`[server] Received ${signal}, shutting down...`);
+  try {
+    cleanupWebAdapter();
+    if (serverInstance) {
+      serverInstance.wss.clients.forEach((ws) => ws.terminate());
+      serverInstance.wss.close();
+      serverInstance.server.close(() => process.exit(0));
+    }
+  } catch (e) {
+    console.error("[server] Shutdown error:", e);
+  }
+  // Force exit after 1 s regardless of connection state
+  setTimeout(() => process.exit(0), 1000);
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+
 async function main(): Promise<void> {
   // Initialize storage (respects DATA_DIR env var)
   await initStorage();
@@ -29,26 +57,12 @@ async function main(): Promise<void> {
 
   // Start the WebServer
   const instance = await startWebServerWithInstance(PORT, ALLOW_REMOTE);
+  // Expose to the top-level shutdown handler
+  serverInstance = instance;
 
   console.log(
     `[server] WebUI running on http://${ALLOW_REMOTE ? "0.0.0.0" : "localhost"}:${PORT}`,
   );
-
-  // Graceful shutdown
-  const shutdown = () => {
-    console.log("[server] Shutting down...");
-    // Destroy heartbeat timer and broadcaster registry before closing connections
-    cleanupWebAdapter();
-    // Terminate WebSocket connections immediately (no close-handshake wait)
-    instance.wss.clients.forEach((ws) => ws.terminate());
-    instance.wss.close();
-    // Stop accepting new connections; callback fires once all connections are gone
-    instance.server.close(() => process.exit(0));
-    // Force exit after 1 s in case HTTP keep-alive connections delay server.close()
-    setTimeout(() => process.exit(0), 1000);
-  };
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
 }
 
 main().catch((err: unknown) => {
