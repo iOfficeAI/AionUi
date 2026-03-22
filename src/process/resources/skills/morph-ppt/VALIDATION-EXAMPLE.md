@@ -79,8 +79,8 @@ bash src/process/resources/skills/morph-ppt/validate-morph.sh demo.pptx 2 "dot-m
 
 ✅ Check 1/4: transition=morph is set
 ✅ Check 2/4: All 3 scene actors exist
-✅ Check 3/4: No unghosted content detected (all text shapes are either scene actors or x >= 35cm)
-✅ Check 4/4: At least 3 scene actors changed position
+✅ Check 3/4: No unghosted content from previous slide detected
+✅ Check 4/4: 3 scene actors changed (x/y/width/height/rotation)
 
 ✅ Validation passed for slide 2
 ```
@@ -196,11 +196,23 @@ The script will attempt to auto-detect scene actors from slide 1 (by finding sha
 
 A: No. The script uses smart detection — it compares text content with the previous slide. Only shapes that have **the same text as the previous slide** AND x < 35cm are flagged. Newly added content with different text is never flagged as unghosted.
 
-**Q: What if I intentionally want to keep text from the previous slide visible?**
+**Q: What counts as a "scene actor change" in Check 4?**
 
-A: The script will flag it as unghosted (since same text + x < 35cm). If this is intentional, you can:
-1. Change the text slightly (e.g., "Slide 1: Introduction" → "Slide 2: Introduction")
-2. Or ignore the validation error and proceed (though this breaks the Morph convention)
+A: The script checks if any of these properties changed: **x, y, width, height, rotation**. Even if you only change one property (e.g., just rotation), the actor counts as changed. The goal is to ensure spatial differentiation between slides — at least 3 actors should visibly move/resize/rotate.
+
+**Q: What if I intentionally want to keep text from the previous slide visible (e.g., footer/header)?**
+
+A: The script will flag it as unghosted (since same text + x < 35cm). This is a known limitation. Options:
+
+1. **Convert to scene actor (recommended)**: Add footer as a scene actor with `!!` prefix on slide 1, so it persists via Morph pairing
+   ```bash
+   officecli add demo.pptx '/slide[1]' --type shape --prop name="footer" \
+     --prop text="© Company 2024" --prop x=2cm --prop y=18cm
+   ```
+
+2. **Change text slightly per slide**: "© Company 2024 • Slide 1" → "© Company 2024 • Slide 2"
+
+3. **Accept the warning**: Proceed manually despite the validation error (not recommended for text-heavy content that actually overlaps)
 
 **Q: Validation passed, but the PPT still has issues?**
 
@@ -208,3 +220,15 @@ A: The validation script checks Morph-specific issues (ghosting, transition, sce
 1. Run `officecli view demo.pptx html` to preview
 2. Check against `reference/quality-gates.md` criteria
 3. Run `officecli validate demo.pptx` for file integrity
+
+---
+
+## Known Limitations
+
+1. **Persistent text (footer/header) triggers false positives**: If you have the same text on multiple slides by design (e.g., "© Company 2024" footer), Check 3 will flag it. Workaround: convert to scene actor with `!!` prefix.
+
+2. **Partial text changes not detected**: If you only slightly modify text ("Introduction to AI" → "Introduction to ML"), the script won't detect unghosted content. This is acceptable since the new text is different enough.
+
+3. **Only checks text-based content**: Images, charts, and other non-text shapes are not checked for ghosting. Visual inspection via `officecli view <file> html` is recommended.
+
+4. **Requires scene actor list**: For best results, provide scene actor names explicitly. Auto-detection from slide 1 may fail if actors aren't properly named with `!!` prefix.

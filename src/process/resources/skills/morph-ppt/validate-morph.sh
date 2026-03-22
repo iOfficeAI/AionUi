@@ -22,8 +22,14 @@ Examples:
 Checks:
   1. transition=morph is set (slides 2+)
   2. Scene actors exist with same names as slide 1
-  3. No non-scene shapes with x < 36cm that appear to be old content
-  4. At least 6 shapes have changed position/size vs previous slide
+  3. No non-scene shapes with text from previous slide at x < 35cm (unghosted content)
+  4. At least 3 scene actors have changed (x/y/width/height/rotation) vs previous slide
+
+Known limitation for Check 3:
+  If you intentionally want the same text on multiple slides (e.g., persistent footer),
+  the script will flag it as unghosted. In this case, either:
+  - Add the footer as a scene actor (with !! prefix), or
+  - Accept the warning and proceed (validation will fail, but you can continue manually)
 
 Exit codes:
   0 = All checks passed
@@ -125,8 +131,8 @@ if [ "$SLIDE_NUM" -gt 1 ]; then
   UNGHOSTED=()
   while IFS= read -r prev_text; do
     [ -z "$prev_text" ] && continue
-    # Search for this text on current slide
-    MATCHING_SHAPES=$(echo "$SLIDE_DATA" | grep "text=\"$prev_text\"" | grep -v 'name="!!' | while read -r line; do
+    # Search for this text on current slide (use -F for literal string matching)
+    MATCHING_SHAPES=$(echo "$SLIDE_DATA" | grep -F "text=\"$prev_text\"" | grep -v 'name="!!' | while read -r line; do
       X_VAL=$(echo "$line" | grep -oP 'x="\K[^"]+' || echo "")
       if [ -n "$X_VAL" ]; then
         X_NUM=$(echo "$X_VAL" | sed 's/cm$//')
@@ -154,6 +160,10 @@ if [ "$SLIDE_NUM" -gt 1 ]; then
       SHAPE_IDX=$(echo "$entry" | cut -d'|' -f1)
       echo "   officecli set \"$FILE\" \"/slide[$SLIDE_NUM]/shape[$SHAPE_IDX]\" --prop x=36cm"
     done
+    echo ""
+    echo "   💡 If this is intentional (e.g., persistent footer/header across all slides):"
+    echo "      - Option 1: Convert to scene actor with !! prefix (recommended for Morph)"
+    echo "      - Option 2: Proceed anyway (accept this warning and continue manually)"
     exit 1
   else
     echo "✅ Check 3/4: No unghosted content from previous slide detected"
@@ -162,8 +172,8 @@ else
   echo "⏭️  Check 3/4: Skipped (slide 1 has no previous slide)"
 fi
 
-# Check 4: Scene actor changes (heuristic — just verify some actors are not at default positions)
-# This is a basic check; a full diff would require comparing with previous slide
+# Check 4: Scene actor changes (verify spatial differentiation vs previous slide)
+# Check x, y, width, height, rotation for each actor
 ACTOR_CHANGES=0
 if [ -n "$SCENE_ACTORS" ] && [ "$SLIDE_NUM" -gt 1 ]; then
   # Get previous slide data
@@ -171,20 +181,33 @@ if [ -n "$SCENE_ACTORS" ] && [ "$SLIDE_NUM" -gt 1 ]; then
 
   IFS=',' read -ra ACTORS <<< "$SCENE_ACTORS"
   for actor in "${ACTORS[@]}"; do
-    # Get current position
-    CURR_X=$(echo "$SLIDE_DATA" | grep "name=\"!!$actor\"" | grep -oP 'x="\K[^"]+' | head -1 || echo "")
-    PREV_X=$(echo "$PREV_SLIDE_DATA" | grep "name=\"!!$actor\"" | grep -oP 'x="\K[^"]+' | head -1 || echo "")
+    # Extract current and previous attributes
+    CURR_LINE=$(echo "$SLIDE_DATA" | grep "name=\"!!$actor\"" | head -1)
+    PREV_LINE=$(echo "$PREV_SLIDE_DATA" | grep "name=\"!!$actor\"" | head -1)
 
-    if [ -n "$CURR_X" ] && [ -n "$PREV_X" ] && [ "$CURR_X" != "$PREV_X" ]; then
-      ACTOR_CHANGES=$((ACTOR_CHANGES + 1))
+    if [ -n "$CURR_LINE" ] && [ -n "$PREV_LINE" ]; then
+      # Check if any spatial property changed (x, y, width, height, rotation)
+      CHANGED=false
+      for prop in x y width height rotation; do
+        CURR_VAL=$(echo "$CURR_LINE" | grep -oP "$prop=\"\K[^\"]+")
+        PREV_VAL=$(echo "$PREV_LINE" | grep -oP "$prop=\"\K[^\"]+")
+        if [ "$CURR_VAL" != "$PREV_VAL" ]; then
+          CHANGED=true
+          break
+        fi
+      done
+
+      if [ "$CHANGED" = true ]; then
+        ACTOR_CHANGES=$((ACTOR_CHANGES + 1))
+      fi
     fi
   done
 
   if [ $ACTOR_CHANGES -ge 3 ]; then
-    echo "✅ Check 4/4: At least $ACTOR_CHANGES scene actors changed position"
+    echo "✅ Check 4/4: $ACTOR_CHANGES scene actors changed (x/y/width/height/rotation)"
   else
-    echo "⚠️  Check 4/4: Only $ACTOR_CHANGES scene actors changed position (recommend >= 3 for noticeable morph)"
-    echo "   Suggestion: Adjust more scene actors to create spatial differentiation"
+    echo "⚠️  Check 4/4: Only $ACTOR_CHANGES scene actors changed (recommend >= 3 for noticeable morph)"
+    echo "   Suggestion: Adjust more scene actors (position/size/rotation) to create spatial differentiation"
   fi
 else
   echo "⏭️  Check 4/4: Skipped (slide 1 or no scene actors)"
