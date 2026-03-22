@@ -113,38 +113,53 @@ else
   echo "⏭️  Check 2/4: Skipped (no scene actors provided)"
 fi
 
-# Check 3: Detect shapes with x < 36cm that might be unghosted content
-# This is a heuristic: shapes with x < 35cm and text content are likely content actors
-VISIBLE_SHAPES=$(echo "$SLIDE_DATA" | grep -E 'shape\[[0-9]+\]' | grep -v 'name="!!' | grep 'text=' | while read -r line; do
-  # Extract x coordinate
-  X_VAL=$(echo "$line" | grep -oP 'x="\K[^"]+' || echo "")
-  if [ -n "$X_VAL" ]; then
-    # Convert to numeric (remove 'cm' suffix)
-    X_NUM=$(echo "$X_VAL" | sed 's/cm$//')
-    # Check if x < 35cm (allowing some margin)
-    if awk "BEGIN {exit !($X_NUM < 35)}"; then
-      # Extract shape index
-      SHAPE_IDX=$(echo "$line" | grep -oP 'shape\[\K[0-9]+')
-      # Extract text preview
-      TEXT_PREVIEW=$(echo "$line" | grep -oP 'text="\K[^"]{0,40}')
-      echo "shape[$SHAPE_IDX]: x=${X_VAL}, text=\"${TEXT_PREVIEW}...\""
-    fi
-  fi
-done)
+# Check 3: Detect shapes with x < 36cm that might be unghosted content from previous slide
+# Strategy: Compare text content with previous slide to identify likely unghosted shapes
+if [ "$SLIDE_NUM" -gt 1 ]; then
+  PREV_SLIDE_DATA=$(officecli get "$FILE" "/slide[$((SLIDE_NUM-1))]" --depth 1 2>&1 || echo "")
 
-if [ -n "$VISIBLE_SHAPES" ]; then
-  SHAPE_COUNT=$(echo "$VISIBLE_SHAPES" | wc -l | tr -d ' ')
-  echo "⚠️  Check 3/4: Found $SHAPE_COUNT non-scene shape(s) with x < 35cm and text content:"
-  echo "$VISIBLE_SHAPES" | sed 's/^/   /'
-  echo ""
-  echo "   If these are from the previous slide, ghost them:"
-  while IFS= read -r shape_line; do
-    SHAPE_IDX=$(echo "$shape_line" | grep -oP 'shape\[\K[0-9]+')
-    echo "   officecli set \"$FILE\" \"/slide[$SLIDE_NUM]/shape[$SHAPE_IDX]\" --prop x=36cm"
-  done <<< "$VISIBLE_SHAPES"
-  exit 1
+  # Get all text content from previous slide (non-scene actors only)
+  PREV_TEXTS=$(echo "$PREV_SLIDE_DATA" | grep -E 'shape\[[0-9]+\]' | grep -v 'name="!!' | grep -oP 'text="\K[^"]+' | sort -u || echo "")
+
+  # Find shapes on current slide that have matching text from previous slide AND x < 35cm
+  UNGHOSTED=()
+  while IFS= read -r prev_text; do
+    [ -z "$prev_text" ] && continue
+    # Search for this text on current slide
+    MATCHING_SHAPES=$(echo "$SLIDE_DATA" | grep "text=\"$prev_text\"" | grep -v 'name="!!' | while read -r line; do
+      X_VAL=$(echo "$line" | grep -oP 'x="\K[^"]+' || echo "")
+      if [ -n "$X_VAL" ]; then
+        X_NUM=$(echo "$X_VAL" | sed 's/cm$//')
+        if awk "BEGIN {exit !($X_NUM < 35)}"; then
+          SHAPE_IDX=$(echo "$line" | grep -oP 'shape\[\K[0-9]+')
+          echo "$SHAPE_IDX|$X_VAL|$prev_text"
+        fi
+      fi
+    done)
+
+    [ -n "$MATCHING_SHAPES" ] && UNGHOSTED+=("$MATCHING_SHAPES")
+  done <<< "$PREV_TEXTS"
+
+  if [ ${#UNGHOSTED[@]} -gt 0 ]; then
+    echo "❌ Check 3/4: Found ${#UNGHOSTED[@]} shape(s) with text from previous slide that are NOT ghosted:"
+    for entry in "${UNGHOSTED[@]}"; do
+      SHAPE_IDX=$(echo "$entry" | cut -d'|' -f1)
+      X_VAL=$(echo "$entry" | cut -d'|' -f2)
+      TEXT=$(echo "$entry" | cut -d'|' -f3 | head -c 40)
+      echo "   shape[$SHAPE_IDX]: x=${X_VAL}, text=\"${TEXT}...\" (same text as previous slide)"
+    done
+    echo ""
+    echo "   These shapes MUST be ghosted to prevent text overlap:"
+    for entry in "${UNGHOSTED[@]}"; do
+      SHAPE_IDX=$(echo "$entry" | cut -d'|' -f1)
+      echo "   officecli set \"$FILE\" \"/slide[$SLIDE_NUM]/shape[$SHAPE_IDX]\" --prop x=36cm"
+    done
+    exit 1
+  else
+    echo "✅ Check 3/4: No unghosted content from previous slide detected"
+  fi
 else
-  echo "✅ Check 3/4: No unghosted content detected (all text shapes are either scene actors or x >= 35cm)"
+  echo "⏭️  Check 3/4: Skipped (slide 1 has no previous slide)"
 fi
 
 # Check 4: Scene actor changes (heuristic — just verify some actors are not at default positions)

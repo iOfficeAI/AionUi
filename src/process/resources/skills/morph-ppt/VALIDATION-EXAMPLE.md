@@ -154,12 +154,21 @@ bash src/process/resources/skills/morph-ppt/validate-morph.sh demo.pptx 3 "dot-m
 - Agent clones slide 2 → slide 3 (carries the overlap forward)
 - By slide 6, you have 5 layers of overlapping text
 
-**With validation script**:
-- Agent creates slide 2
-- Validation detects unghosted content immediately
-- Agent fixes: `officecli set demo.pptx '/slide[2]/shape[7]' --prop x=36cm`
+**With validation script (smart detection)**:
+- Agent creates slide 2, adds new content "Key Benefits"
+- Validation compares text with slide 1, finds "Demo Presentation" (old title) still at x=4cm
+- Script detects: "shape[7] has same text as previous slide and x < 35cm → unghosted"
+- Script does NOT flag shape[8] ("Key Benefits") because it's new text not from previous slide
+- Agent fixes only the real issue: `officecli set demo.pptx '/slide[2]/shape[7]' --prop x=36cm`
 - Validation passes → proceed to slide 3
-- Problem caught early, no compounding across slides
+- Problem caught early, no compounding across slides, no false positives
+
+**Detection Logic**:
+The script compares text content between adjacent slides. A shape is flagged as unghosted ONLY if:
+1. It has the same text as a shape from the previous slide (non-scene actor)
+2. AND x < 35cm (not ghosted)
+
+This prevents false positives — newly added content is never flagged.
 
 ---
 
@@ -182,6 +191,16 @@ bash src/process/resources/skills/morph-ppt/validate-morph.sh demo.pptx 2
 ```
 
 The script will attempt to auto-detect scene actors from slide 1 (by finding shapes with names starting with `!!`).
+
+**Q: Will the script flag my newly added content as "unghosted"?**
+
+A: No. The script uses smart detection — it compares text content with the previous slide. Only shapes that have **the same text as the previous slide** AND x < 35cm are flagged. Newly added content with different text is never flagged as unghosted.
+
+**Q: What if I intentionally want to keep text from the previous slide visible?**
+
+A: The script will flag it as unghosted (since same text + x < 35cm). If this is intentional, you can:
+1. Change the text slightly (e.g., "Slide 1: Introduction" → "Slide 2: Introduction")
+2. Or ignore the validation error and proceed (though this breaks the Morph convention)
 
 **Q: Validation passed, but the PPT still has issues?**
 
