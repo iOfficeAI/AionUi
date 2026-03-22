@@ -46,12 +46,12 @@ The Agent uses this table to quickly select a reference style based on the topic
 
 ## Warm Palette (warm)
 
-| Directory                | Style Name         | Best For                                                        | Mood                          |
-| ------------------------ | ------------------ | --------------------------------------------------------------- | ----------------------------- |
-| warm--earth-organic      | Earth & Sage       | Eco-friendly, sustainability, organic brands                    | Warm, sincere, natural        |
-| warm--minimal-brand      | Minimal Brand      | Brand introductions, product launches, premium brand showcases  | Warm, refined, minimalist     |
-| warm--brand-refresh      | Brand Refresh      | Brand launches, corporate image updates, creative proposals     | Fashionable, colorful, modern |
-| warm--creative-marketing | Creative Marketing | Marketing campaigns, ad creatives, poster-style PPTs            | Bold, impactful, expressive   |
+| Directory                | Style Name         | Best For                                                         | Mood                          |
+| ------------------------ | ------------------ | ---------------------------------------------------------------- | ----------------------------- |
+| warm--earth-organic      | Earth & Sage       | Eco-friendly, sustainability, organic brands                     | Warm, sincere, natural        |
+| warm--minimal-brand      | Minimal Brand      | Brand introductions, product launches, premium brand showcases   | Warm, refined, minimalist     |
+| warm--brand-refresh      | Brand Refresh      | Brand launches, corporate image updates, creative proposals      | Fashionable, colorful, modern |
+| warm--creative-marketing | Creative Marketing | Marketing campaigns, ad creatives, poster-style PPTs             | Bold, impactful, expressive   |
 | warm--playful-organic    | Playful Organic    | Lifestyle, pet/animal topics, children's education, storytelling | Warm, playful, friendly       |
 
 ## Vivid Palette (vivid)
@@ -79,18 +79,18 @@ The Agent uses this table to quickly select a reference style based on the topic
 
 ## Quick Lookup by Use Case
 
-| Use Case                                 | Recommended Styles                                                                            |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| **Tech / AI / SaaS**                     | dark--tech-cosmos, dark--cyber-future, light--isometric-clean                                 |
-| **Investment / Pitch / Fundraising**     | dark--investor-pitch, dark--premium-navy, light--project-proposal                             |
-| **Corporate / Business / Reports**       | light--minimal-corporate, light--minimal-product, dark--premium-navy                          |
-| **Brand / Launch / Marketing**           | warm--brand-refresh, warm--creative-marketing, vivid--playful-marketing, warm--minimal-brand  |
-| **Design / Architecture / Art**          | bw--swiss-bauhaus, bw--brutalist-raw, dark--architectural-plan, mixed--duotone-split          |
-| **Education / Training / Courseware**    | light--training-interactive, warm--playful-organic, vivid--candy-stripe                       |
-| **Keynotes / Launch Events / Galas**     | dark--spotlight-stage, dark--liquid-flow                                                      |
-| **Developer / Technical**                | dark--cyber-future, dark--blueprint-grid, dark--tech-cosmos                                   |
-| **Eco / Nature / Organic**               | warm--earth-organic, warm--minimal-brand, light--spring-launch                                |
-| **Cultural Creative / Magazine / Story** | dark--editorial-story, light--watercolor-wash, light--bold-type                               |
-| **Sci-Fi / Space / Futuristic**          | dark--space-odyssey, dark--cosmic-neon, dark--cyber-future                                    |
-| **Luxury / Premium**                     | dark--luxury-minimal, dark--premium-navy, warm--minimal-brand                                 |
-| **Productivity / Motivation**            | dark--neon-productivity, dark--cyber-future                                                   |
+| Use Case                                 | Recommended Styles                                                                           |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Tech / AI / SaaS**                     | dark--tech-cosmos, dark--cyber-future, light--isometric-clean                                |
+| **Investment / Pitch / Fundraising**     | dark--investor-pitch, dark--premium-navy, light--project-proposal                            |
+| **Corporate / Business / Reports**       | light--minimal-corporate, light--minimal-product, dark--premium-navy                         |
+| **Brand / Launch / Marketing**           | warm--brand-refresh, warm--creative-marketing, vivid--playful-marketing, warm--minimal-brand |
+| **Design / Architecture / Art**          | bw--swiss-bauhaus, bw--brutalist-raw, dark--architectural-plan, mixed--duotone-split         |
+| **Education / Training / Courseware**    | light--training-interactive, warm--playful-organic, vivid--candy-stripe                      |
+| **Keynotes / Launch Events / Galas**     | dark--spotlight-stage, dark--liquid-flow                                                     |
+| **Developer / Technical**                | dark--cyber-future, dark--blueprint-grid, dark--tech-cosmos                                  |
+| **Eco / Nature / Organic**               | warm--earth-organic, warm--minimal-brand, light--spring-launch                               |
+| **Cultural Creative / Magazine / Story** | dark--editorial-story, light--watercolor-wash, light--bold-type                              |
+| **Sci-Fi / Space / Futuristic**          | dark--space-odyssey, dark--cosmic-neon, dark--cyber-future                                   |
+| **Luxury / Premium**                     | dark--luxury-minimal, dark--premium-navy, warm--minimal-brand                                |
+| **Productivity / Motivation**            | dark--neon-productivity, dark--cyber-future                                                  |
