@@ -403,7 +403,11 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    officecli set <topic-name>.pptx '/slide[N]/shape[1]' --prop x=20cm --prop width=12cm
    ```
 
-   **→ Run Per-Slide Checklist → fix if needed → next slide**
+   **→ MANDATORY: Run validation script → fix if failed → next slide**
+
+   ```bash
+   bash src/process/resources/skills/morph-ppt/validate-morph.sh <topic-name>.pptx N "dot-main,line-top,slash-accent"
+   ```
 
 4. **Validate**
 
@@ -412,18 +416,24 @@ The following capabilities can be used as needed. For detailed syntax, see `refe
    officecli view outline <topic-name>.pptx
    ```
 
-### Per-Slide Morph Checklist (run after EVERY slide)
+### Per-Slide Validation (automated via script)
 
-After creating/adjusting each slide, verify ALL of the following:
+**Use the validation script instead of manual checklist:**
 
-- [ ] `transition=morph` is set (slides 2+)
-- [ ] All scene actors exist with same names as slide 1
-- [ ] **Previous slide's content actors are ghosted** (`x=36cm`) — if any remain visible, old text overlaps new content
-- [ ] This slide's new content is added and positioned correctly
-- [ ] At least 6 actors have visible changes vs. the previous slide (scene actors moved/resized)
-- [ ] Text color contrasts with background
+```bash
+bash src/process/resources/skills/morph-ppt/validate-morph.sh <file.pptx> <slide-num> "actor1,actor2,..."
+```
 
-**If any item fails → fix immediately before moving to the next slide.**
+The script automatically checks:
+
+- ✅ `transition=morph` is set (slides 2+)
+- ✅ All scene actors exist with same names as slide 1
+- ✅ **No unghosted content** (detects shapes with x < 35cm and text that aren't scene actors)
+- ✅ At least 3 scene actors changed position vs. previous slide
+
+**If validation fails → the script shows exact fix commands → apply them → re-run → proceed.**
+
+This catches the #1 defect (text overlap from unghosted content) before it compounds across multiple slides.
 
 ---
 

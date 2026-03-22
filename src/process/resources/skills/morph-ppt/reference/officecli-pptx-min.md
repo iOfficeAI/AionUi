@@ -214,7 +214,12 @@ When a command fails:
    | Shape not where expected | Run `get` to verify current indices after add/remove |
    | File locked | Close PPT in PowerPoint/WPS before running commands |
 
-5. **Still stuck?** Generate HTML preview to debug visually:
+5. **Morph-specific issue?** Run the validation script to check for unghosted content:
+   ```bash
+   bash src/process/resources/skills/morph-ppt/validate-morph.sh deck.pptx 3 "actor1,actor2"
+   ```
+
+6. **Still stuck?** Generate HTML preview to debug visually:
    ```bash
    officecli view deck.pptx html   # Opens in browser with live preview
    ```

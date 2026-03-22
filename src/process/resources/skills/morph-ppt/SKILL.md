@@ -109,7 +109,7 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 
 **Generation Requirements**:
 
-- **Generate slide by slide**: Clone previous slide → adjust with `set` commands → run checklist → next slide
+- **Generate slide by slide**: Clone previous slide → adjust with `set` commands → **run validation script** → next slide
 - Comply with the coordinate system, font, and Actor system specifications
 - Use individual `officecli set` commands (NOT batch JSON — it causes boolean/escaping errors)
 - **Before writing build.sh**: Read the "Shell Script Rules" section in `reference/officecli-pptx-min.md` to avoid parsing errors
@@ -124,7 +124,16 @@ Do all of the following in a single pass, writing results into **one `brief.md` 
 
 See `reference/pptx-design.md`, section "Generation Strategy"
 
-**Per-Slide Self-Check**: After EVERY slide, run the checklist in `reference/pptx-design.md` → "Per-Slide Morph Checklist". Fix any failures before moving on.
+**Per-Slide Validation (MANDATORY during development)**: After EVERY slide, run `validate-morph.sh`:
+
+```bash
+bash src/process/resources/skills/morph-ppt/validate-morph.sh <file.pptx> <slide-number> "actor1,actor2,..."
+```
+
+- **If validation fails → fix immediately before next slide**
+- **Do NOT skip this step** — it catches unghosted content that causes text overlap (the #1 defect)
+- Script checks: transition=morph, scene actors exist, no unghosted content (x < 36cm), spatial changes
+- **Note**: Validation is for interactive development only — do NOT add it to build.sh (build.sh is a clean build script)
 
 **Output Artifacts**:
 
@@ -189,6 +198,7 @@ Wait for user feedback and respond promptly.
 - `reference/pptx-design.md` — Coordinate system, fonts, Actor system, Morph constraints, slide types, style quick reference
 - `reference/officecli-pptx-min.md` — officecli command syntax
 - `reference/styles/<style-name>/style.md` — Full design reference (read on demand)
+- `VALIDATION-EXAMPLE.md` — Complete workflow example showing how to use the validation script during PPT generation
 
 ---
 
