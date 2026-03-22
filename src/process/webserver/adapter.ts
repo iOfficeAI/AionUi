@@ -40,6 +40,8 @@ export function initWebAdapter(wss: WebSocketServer): void {
     const emitter = getBridgeEmitter();
     if (emitter) {
       emitter.emit(name, data);
+    } else {
+      console.warn("[adapter] Bridge emitter not set, message dropped:", name);
     }
   });
 }

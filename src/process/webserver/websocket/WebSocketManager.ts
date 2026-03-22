@@ -43,16 +43,30 @@ export class WebSocketManager {
     onMessage: (name: string, data: any, ws: WebSocket) => void,
   ): void {
     this.wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
+      // Buffer messages that arrive before async auth completes so they are
+      // not lost due to the race between ws.on("message") registration and
+      // the await below.
+      const pendingMessages: Buffer[] = [];
+      const bufferMessage = (raw: Buffer) => pendingMessages.push(raw);
+      ws.on("message", bufferMessage);
+
       const token = TokenMiddleware.extractWebSocketToken(req);
 
       if (!(await this.validateConnection(ws, token))) {
+        ws.off("message", bufferMessage);
         return;
       }
 
+      ws.off("message", bufferMessage);
       this.addClient(ws, token!);
       this.setupMessageHandler(ws, onMessage);
       this.setupCloseHandler(ws);
       this.setupErrorHandler(ws);
+
+      // Replay any messages that arrived during auth validation
+      for (const raw of pendingMessages) {
+        ws.emit("message", raw, false);
+      }
 
       console.log("[WebSocketManager] Client connected");
     });

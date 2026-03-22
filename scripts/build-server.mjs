@@ -44,7 +44,7 @@ await build({
   // tsconfig provides path alias resolution (@/*, @process/*, etc.)
   tsconfig: 'tsconfig.json',
   // Native addons (.node binaries) cannot be bundled — keep as runtime require()
-  external: ['bun:sqlite', 'keytar', 'node-pty'],
+  external: ['bun:sqlite', 'keytar', 'node-pty', 'ws'],
   plugins: [wasmStubPlugin],
   // Inject CJS compatibility shims so bundled code that uses __dirname,
   // __filename, or eval('require') continues to work in the ESM output.

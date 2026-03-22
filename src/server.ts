@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   await initStorage();
 
   // Register all non-Electron bridge handlers
-  initBridgeStandalone();
+  await initBridgeStandalone();
 
   // Start the WebServer
   const instance = await startWebServerWithInstance(PORT, ALLOW_REMOTE);
