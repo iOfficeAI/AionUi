@@ -363,4 +363,3 @@ echo '[
 officecli validate morph-templates/01-mono-line/template.pptx
 
 officecli view morph-templates/01-mono-line/template.pptx outline
-

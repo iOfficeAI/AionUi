@@ -114,19 +114,19 @@ officecli set "$OUTPUT" '/slide[2]' --name="s1-subtitle" --prop x=36cm --prop y=
 officecli set "$OUTPUT" '/slide[2]' --name="s1-desc" --prop x=36cm --prop y=4cm
 
 # Move Scene actors around
-officecli set "$OUTPUT" '/slide[2]' --name="scene-circle" 
+officecli set "$OUTPUT" '/slide[2]' --name="scene-circle"
   --prop x=4cm --prop y=2cm --prop width=25cm --prop height=25cm --prop opacity=0.08
-officecli set "$OUTPUT" '/slide[2]' --name="scene-slash" 
+officecli set "$OUTPUT" '/slide[2]' --name="scene-slash"
   --prop x=24cm --prop y=2cm --prop rotation=45
-officecli set "$OUTPUT" '/slide[2]' --name="scene-line-top" 
+officecli set "$OUTPUT" '/slide[2]' --name="scene-line-top"
   --prop x=11cm --prop y=4cm --prop width=12cm
-officecli set "$OUTPUT" '/slide[2]' --name="scene-box" 
+officecli set "$OUTPUT" '/slide[2]' --name="scene-box"
   --prop x=4cm --prop y=14cm --prop rotation=15
 
 # Bring S2 content in
-officecli set "$OUTPUT" '/slide[2]' --name="s2-statement" 
+officecli set "$OUTPUT" '/slide[2]' --name="s2-statement"
   --prop x=3cm --prop y=6cm
-officecli set "$OUTPUT" '/slide[2]' --name="s2-desc" 
+officecli set "$OUTPUT" '/slide[2]' --name="s2-desc"
   --prop x=7cm --prop y=11cm
 
 # --- SLIDE 3 (Pillars) ---
@@ -138,43 +138,43 @@ officecli set "$OUTPUT" '/slide[3]' --name="s2-statement" --prop x=36cm --prop y
 officecli set "$OUTPUT" '/slide[3]' --name="s2-desc" --prop x=36cm --prop y=4cm
 
 # Scene actors change
-officecli set "$OUTPUT" '/slide[3]' --name="scene-circle" 
+officecli set "$OUTPUT" '/slide[3]' --name="scene-circle"
   --prop x=2cm --prop y=-5cm --prop width=30cm --prop height=30cm --prop opacity=0.05
-officecli set "$OUTPUT" '/slide[3]' --name="scene-slash" 
+officecli set "$OUTPUT" '/slide[3]' --name="scene-slash"
   --prop x=2cm --prop y=2cm --prop rotation=90
-officecli set "$OUTPUT" '/slide[3]' --name="scene-box" 
+officecli set "$OUTPUT" '/slide[3]' --name="scene-box"
   --prop x=28cm --prop y=2cm --prop rotation=90
 
 # Bring S3 header
-officecli set "$OUTPUT" '/slide[3]' --name="s3-header" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-header"
   --prop x=2cm --prop y=1.5cm
 
 # Bring S3 Pillars in
-officecli set "$OUTPUT" '/slide[3]' --name="s3-card-1" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-card-1"
   --prop x=2cm --prop y=5cm --prop opacity=0.12 --prop animation=fade-entrance-300-with
-officecli set "$OUTPUT" '/slide[3]' --name="s3-title-1" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-title-1"
   --prop text="① 狭义相对论" --prop x=2.5cm --prop y=6cm --prop opacity=1 --prop animation=fade-entrance-400-with
-officecli set "$OUTPUT" '/slide[3]' --name="s3-desc-1" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-desc-1"
   --prop text="速度越快，时间越慢。
-光速旅行是通往未来的单程票。" 
+光速旅行是通往未来的单程票。"
   --prop x=2.5cm --prop y=8cm --prop opacity=1 --prop animation=fade-entrance-500-with
 
-officecli set "$OUTPUT" '/slide[3]' --name="s3-card-2" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-card-2"
   --prop x=12.5cm --prop y=5cm --prop opacity=0.12 --prop animation=fade-entrance-300-with
-officecli set "$OUTPUT" '/slide[3]' --name="s3-title-2" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-title-2"
   --prop text="② 广义相对论" --prop x=13cm --prop y=6cm --prop opacity=1 --prop animation=fade-entrance-400-with
-officecli set "$OUTPUT" '/slide[3]' --name="s3-desc-2" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-desc-2"
   --prop text="引力扭曲时空。
-黑洞边缘或虫洞可能是穿越时空的捷径。" 
+黑洞边缘或虫洞可能是穿越时空的捷径。"
   --prop x=13cm --prop y=8cm --prop opacity=1 --prop animation=fade-entrance-500-with
 
-officecli set "$OUTPUT" '/slide[3]' --name="s3-card-3" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-card-3"
   --prop x=23cm --prop y=5cm --prop opacity=0.12 --prop animation=fade-entrance-300-with
-officecli set "$OUTPUT" '/slide[3]' --name="s3-title-3" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-title-3"
   --prop text="③ 量子纠缠" --prop x=23.5cm --prop y=6cm --prop opacity=1 --prop animation=fade-entrance-400-with
-officecli set "$OUTPUT" '/slide[3]' --name="s3-desc-3" 
+officecli set "$OUTPUT" '/slide[3]' --name="s3-desc-3"
   --prop text="微观层面的超距作用，
-为超越光速的信息传输提供遐想。" 
+为超越光速的信息传输提供遐想。"
   --prop x=23.5cm --prop y=8cm --prop opacity=1 --prop animation=fade-entrance-500-with
 
 # --- SLIDE 4 (Evidence) ---
@@ -194,19 +194,19 @@ officecli set "$OUTPUT" '/slide[4]' --name="s3-title-3" --prop x=36cm --prop opa
 officecli set "$OUTPUT" '/slide[4]' --name="s3-desc-3" --prop x=36cm --prop opacity=0
 
 # Scene actors change
-officecli set "$OUTPUT" '/slide[4]' --name="scene-circle" 
+officecli set "$OUTPUT" '/slide[4]' --name="scene-circle"
   --prop x=18cm --prop y=0cm --prop width=20cm --prop height=20cm --prop opacity=0.1
-officecli set "$OUTPUT" '/slide[4]' --name="scene-slash" 
+officecli set "$OUTPUT" '/slide[4]' --name="scene-slash"
   --prop x=5cm --prop y=12cm --prop rotation=135
-officecli set "$OUTPUT" '/slide[4]' --name="scene-box" 
+officecli set "$OUTPUT" '/slide[4]' --name="scene-box"
   --prop x=2cm --prop y=5cm --prop rotation=180
 
 # Bring S4 evidence in
-officecli set "$OUTPUT" '/slide[4]' --name="s4-data-bg" 
+officecli set "$OUTPUT" '/slide[4]' --name="s4-data-bg"
   --prop x=2cm --prop y=4cm --prop opacity=0.2
-officecli set "$OUTPUT" '/slide[4]' --name="s4-data-num" 
+officecli set "$OUTPUT" '/slide[4]' --name="s4-data-num"
   --prop x=2cm --prop y=6cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[4]' --name="s4-data-desc" 
+officecli set "$OUTPUT" '/slide[4]' --name="s4-data-desc"
   --prop x=2cm --prop y=9cm --prop opacity=1
 
 # --- SLIDE 5 (Timeline) ---
@@ -219,45 +219,45 @@ officecli set "$OUTPUT" '/slide[5]' --name="s4-data-num" --prop x=36cm --prop op
 officecli set "$OUTPUT" '/slide[5]' --name="s4-data-desc" --prop x=36cm --prop opacity=0
 
 # Scene actors change
-officecli set "$OUTPUT" '/slide[5]' --name="scene-circle" 
+officecli set "$OUTPUT" '/slide[5]' --name="scene-circle"
   --prop x=0cm --prop y=0cm --prop width=10cm --prop height=10cm --prop opacity=0.15
-officecli set "$OUTPUT" '/slide[5]' --name="scene-line-top" 
+officecli set "$OUTPUT" '/slide[5]' --name="scene-line-top"
   --prop x=4cm --prop y=8.5cm --prop width=26cm --prop height=0.2cm --prop opacity=0.3
-officecli set "$OUTPUT" '/slide[5]' --name="scene-box" 
+officecli set "$OUTPUT" '/slide[5]' --name="scene-box"
   --prop x=15cm --prop y=6cm --prop width=4cm --prop height=4cm --prop rotation=0
 
 # Bring S5 timeline in
-officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-1" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-1"
   --prop x=5cm --prop y=8cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-year-1" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-year-1"
   --prop text="20世纪" --prop x=2.5cm --prop y=6cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-1" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-1"
   --prop text="理论奠基
 相对论与量子力学" --prop x=2.5cm --prop y=9.5cm --prop opacity=1
 
-officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-2" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-2"
   --prop x=12cm --prop y=8cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-year-2" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-year-2"
   --prop text="21世纪" --prop x=9.5cm --prop y=6cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-2" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-2"
   --prop text="实证阶段
 微观粒子验证
 时间膨胀" --prop x=9.5cm --prop y=9.5cm --prop opacity=1
 
-officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-3" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-3"
   --prop x=19cm --prop y=8cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-year-3" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-year-3"
   --prop text="22世纪" --prop x=16.5cm --prop y=6cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-3" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-3"
   --prop text="初步探索
 光帆飞行器达到
 20%光速" --prop x=16.5cm --prop y=9.5cm --prop opacity=1
 
-officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-4" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-dot-4"
   --prop x=26cm --prop y=8cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-year-4" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-year-4"
   --prop text="23世纪" --prop x=23.5cm --prop y=6cm --prop opacity=1
-officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-4" 
+officecli set "$OUTPUT" '/slide[5]' --name="s5-desc-4"
   --prop text="深空航行
 搭乘亚光速飞船
 跨越星际" --prop x=23.5cm --prop y=9.5cm --prop opacity=1
@@ -274,17 +274,17 @@ for j in 1 2 3 4; do
 done
 
 # Scene actors change
-officecli set "$OUTPUT" '/slide[6]' --name="scene-circle" 
+officecli set "$OUTPUT" '/slide[6]' --name="scene-circle"
   --prop x=9.5cm --prop y=2cm --prop width=15cm --prop height=15cm --prop opacity=0.2
-officecli set "$OUTPUT" '/slide[6]' --name="scene-slash" 
+officecli set "$OUTPUT" '/slide[6]' --name="scene-slash"
   --prop x=28cm --prop y=12cm --prop rotation=180
-officecli set "$OUTPUT" '/slide[6]' --name="scene-line-top" 
+officecli set "$OUTPUT" '/slide[6]' --name="scene-line-top"
   --prop x=12cm --prop y=14cm --prop width=10cm
 
 # Bring CTA in
-officecli set "$OUTPUT" '/slide[6]' --name="s6-cta-title" 
+officecli set "$OUTPUT" '/slide[6]' --name="s6-cta-title"
   --prop x=4.5cm --prop y=7cm
-officecli set "$OUTPUT" '/slide[6]' --name="s6-cta-desc" 
+officecli set "$OUTPUT" '/slide[6]' --name="s6-cta-desc"
   --prop x=4.5cm --prop y=10cm
 
 echo "Validation..."
