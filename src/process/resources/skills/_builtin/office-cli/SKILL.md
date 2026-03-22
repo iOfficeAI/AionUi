@@ -100,6 +100,7 @@ Replace `pptx` with `docx` or `xlsx`. Available commands: `view`, `get`, `query`
 ## Quick Start
 
 **PPT:**
+
 ```bash
 officecli create slides.pptx
 officecli add slides.pptx / --type slide --prop title="Q4 Report" --prop background=1A1A2E
@@ -109,6 +110,7 @@ officecli view slides.pptx html    # NEW: Preview in browser
 ```
 
 **Word:**
+
 ```bash
 officecli create report.docx
 officecli add report.docx /body --type paragraph --prop text="Executive Summary" --prop style=Heading1
@@ -116,6 +118,7 @@ officecli add report.docx /body --type paragraph --prop text="Revenue increased 
 ```
 
 **Excel:**
+
 ```bash
 officecli create data.xlsx
 officecli set data.xlsx /Sheet1/A1 --prop value="Name" --prop bold=true
@@ -150,14 +153,14 @@ officecli validate <file>             # Validate against OpenXML schema
 
 ### view modes
 
-| Mode | Description | Useful flags |
-|------|-------------|-------------|
-| `outline` | Document structure | |
-| `stats` | Statistics (pages, words, shapes) | |
-| `issues` | Formatting/content/structure problems | `--type format\|content\|structure`, `--limit N` |
-| `text` | Plain text extraction | `--start N --end N`, `--max-lines N` |
-| `annotated` | Text with formatting annotations | |
-| `html` | HTML preview (PPT only, 1.0.14+) | Auto-opens in browser |
+| Mode        | Description                           | Useful flags                                     |
+| ----------- | ------------------------------------- | ------------------------------------------------ |
+| `outline`   | Document structure                    |                                                  |
+| `stats`     | Statistics (pages, words, shapes)     |                                                  |
+| `issues`    | Formatting/content/structure problems | `--type format\|content\|structure`, `--limit N` |
+| `text`      | Plain text extraction                 | `--start N --end N`, `--max-lines N`             |
+| `annotated` | Text with formatting annotations      |                                                  |
+| `html`      | HTML preview (PPT only, 1.0.14+)      | Auto-opens in browser                            |
 
 ### get
 
@@ -170,6 +173,7 @@ officecli get data.xlsx '/Sheet1/B2' --json
 ```
 
 **To discover available paths**, run:
+
 ```bash
 officecli docx get    # Shows all document paths
 officecli xlsx get    # Shows all workbook paths
@@ -207,6 +211,7 @@ officecli set <file> <path> --prop key=value [--prop ...]
 **Any XML attribute is settable** via element path (found via `get --depth N`) — even attributes not currently present.
 
 **To discover available properties**, run:
+
 ```bash
 officecli <format> set                # See all settable elements
 officecli <format> set <element>      # See all properties for ONE element
@@ -215,11 +220,11 @@ officecli <format> set <element.prop> # See format details for ONE property
 
 **Value formats:**
 
-| Type | Format | Examples |
-|------|--------|---------|
-| Colors | Hex, named, RGB, theme | `FF0000`, `red`, `rgb(255,0,0)`, `accent1`..`accent6` |
-| Spacing | Unit-qualified | `12pt`, `0.5cm`, `1.5x`, `150%` |
-| Dimensions | EMU or suffixed | `914400`, `2.54cm`, `1in`, `72pt`, `96px` |
+| Type       | Format                 | Examples                                              |
+| ---------- | ---------------------- | ----------------------------------------------------- |
+| Colors     | Hex, named, RGB, theme | `FF0000`, `red`, `rgb(255,0,0)`, `accent1`..`accent6` |
+| Spacing    | Unit-qualified         | `12pt`, `0.5cm`, `1.5x`, `150%`                       |
+| Dimensions | EMU or suffixed        | `914400`, `2.54cm`, `1in`, `72pt`, `96px`             |
 
 ### add — add elements or clone
 
@@ -230,15 +235,16 @@ officecli add <file> <parent> --from <path> [--index N]    # clone existing elem
 
 **Element types (with aliases):**
 
-| Format | Types |
-|--------|-------|
+| Format   | Types                                                                                                                                                                                                 |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **pptx** | slide, shape (textbox), picture (image/img), chart, table, row (tr), connector (connection/line), group, video (audio/media), equation (formula/math), notes, paragraph (para), run, zoom (slidezoom) |
-| **docx** | paragraph (para), run, table, row (tr), cell (td), image (picture/img), header, footer, section, bookmark, comment, footnote, endnote |
-| **xlsx** | sheet, row, cell, chart, image (picture), comment, hyperlink |
+| **docx** | paragraph (para), run, table, row (tr), cell (td), image (picture/img), header, footer, section, bookmark, comment, footnote, endnote                                                                 |
+| **xlsx** | sheet, row, cell, chart, image (picture), comment, hyperlink                                                                                                                                          |
 
 **Clone:** `officecli add <file> / --from /slide[1]` — copies with all cross-part relationships.
 
 **To discover available element types and their properties**, run:
+
 ```bash
 officecli <format> add    # Shows all addable types with example syntax
 ```
@@ -279,6 +285,7 @@ officecli add-part <file> <parent>                   # create new document part 
 **raw-set actions:** `append`, `prepend`, `insertbefore`, `insertafter`, `replace`, `remove`, `setattr`.
 
 **To discover available parts**, run:
+
 ```bash
 officecli <format> raw    # Shows available parts per format
 ```
@@ -287,14 +294,14 @@ officecli <format> raw    # Shows available parts per format
 
 ## Common Pitfalls
 
-| Pitfall | Correct Approach |
-|---------|-----------------|
-| `--name "foo"` | ❌ Use `--prop name="foo"` — all attributes go through `--prop` |
-| `x=-3cm` | ❌ Negative coordinates not supported. Use `x=0cm` or `x=36cm` |
-| `/shape[myname]` | ❌ Name indexing not supported. Use numeric index: `/shape[3]` |
-| Guessing property names | ❌ Run `officecli <format> set <element>` to see exact names |
-| Modifying an open file | ❌ Close the file in PowerPoint/WPS first |
-| `\n` in shell strings | ❌ Use `\\n` for newlines in `--prop text="..."` |
+| Pitfall                 | Correct Approach                                                |
+| ----------------------- | --------------------------------------------------------------- |
+| `--name "foo"`          | ❌ Use `--prop name="foo"` — all attributes go through `--prop` |
+| `x=-3cm`                | ❌ Negative coordinates not supported. Use `x=0cm` or `x=36cm`  |
+| `/shape[myname]`        | ❌ Name indexing not supported. Use numeric index: `/shape[3]`  |
+| Guessing property names | ❌ Run `officecli <format> set <element>` to see exact names    |
+| Modifying an open file  | ❌ Close the file in PowerPoint/WPS first                       |
+| `\n` in shell strings   | ❌ Use `\\n` for newlines in `--prop text="..."`                |
 
 ---
 

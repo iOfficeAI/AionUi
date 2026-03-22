@@ -28,20 +28,20 @@ Goal: **Dynamic and beautiful** — not "static layout first, animation later," 
 
 ### Style Quick Reference (choose by use case, no need to read files)
 
-| Use Case                    | Recommended Styles (directory names)                                                            |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| **Tech / AI / SaaS**        | `dark--tech-cosmos`, `dark--cyber-future`, `light--isometric-clean`                             |
-| **Investment / Pitch**      | `dark--investor-pitch`, `dark--premium-navy`, `light--project-proposal`                         |
-| **Corporate / Reports**     | `light--minimal-corporate`, `light--minimal-product`, `dark--premium-navy`                      |
-| **Brand / Marketing**       | `warm--brand-refresh`, `warm--creative-marketing`, `vivid--playful-marketing`, `warm--minimal-brand` |
-| **Design / Architecture**   | `bw--swiss-bauhaus`, `dark--architectural-plan`, `mixed--duotone-split`                         |
-| **Education / Training**    | `light--training-interactive`, `warm--playful-organic`, `vivid--candy-stripe`                   |
-| **Keynotes / Events**       | `dark--spotlight-stage`, `dark--liquid-flow`                                                    |
-| **Developer / Technical**   | `dark--cyber-future`, `dark--blueprint-grid`, `dark--tech-cosmos`                               |
-| **Eco / Nature**            | `warm--earth-organic`, `warm--minimal-brand`, `light--spring-launch`                            |
-| **Sci-Fi / Space**          | `dark--space-odyssey`, `dark--cosmic-neon`, `dark--cyber-future`                                |
-| **Luxury / Premium**        | `dark--luxury-minimal`, `dark--premium-navy`, `warm--minimal-brand`                             |
-| **Productivity / Motivation** | `dark--neon-productivity`, `dark--cyber-future`                                               |
+| Use Case                      | Recommended Styles (directory names)                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Tech / AI / SaaS**          | `dark--tech-cosmos`, `dark--cyber-future`, `light--isometric-clean`                                  |
+| **Investment / Pitch**        | `dark--investor-pitch`, `dark--premium-navy`, `light--project-proposal`                              |
+| **Corporate / Reports**       | `light--minimal-corporate`, `light--minimal-product`, `dark--premium-navy`                           |
+| **Brand / Marketing**         | `warm--brand-refresh`, `warm--creative-marketing`, `vivid--playful-marketing`, `warm--minimal-brand` |
+| **Design / Architecture**     | `bw--swiss-bauhaus`, `dark--architectural-plan`, `mixed--duotone-split`                              |
+| **Education / Training**      | `light--training-interactive`, `warm--playful-organic`, `vivid--candy-stripe`                        |
+| **Keynotes / Events**         | `dark--spotlight-stage`, `dark--liquid-flow`                                                         |
+| **Developer / Technical**     | `dark--cyber-future`, `dark--blueprint-grid`, `dark--tech-cosmos`                                    |
+| **Eco / Nature**              | `warm--earth-organic`, `warm--minimal-brand`, `light--spring-launch`                                 |
+| **Sci-Fi / Space**            | `dark--space-odyssey`, `dark--cosmic-neon`, `dark--cyber-future`                                     |
+| **Luxury / Premium**          | `dark--luxury-minimal`, `dark--premium-navy`, `warm--minimal-brand`                                  |
+| **Productivity / Motivation** | `dark--neon-productivity`, `dark--cyber-future`                                                      |
 
 **When to read full style files**: Only when the user requests a specific style, or you need deep design inspiration. Read `reference/styles/<dir>/style.md` for philosophy; skim `build.sh` for technique reference (2-3 pages enough).
 
@@ -169,16 +169,17 @@ Decision:
 
 ### Two Types of Actors
 
-| Type | Lifecycle | Purpose |
-| --- | --- | --- |
+| Type             | Lifecycle                                                      | Purpose                                                          |
+| ---------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
 | **Scene actors** | Persist across all slides (defined on slide 1, cloned forward) | Geometric decoration — create smooth Morph motion between slides |
-| **Content** | Added fresh on each slide | Titles, text, numbers, cards — changes every slide |
+| **Content**      | Added fresh on each slide                                      | Titles, text, numbers, cards — changes every slide               |
 
 ### Scene Actors (6-8 per deck)
 
 Scene actors are the engine of Morph animation. They have **fixed names** and appear on every slide — only their properties change (position, size, rotation, color, opacity).
 
 **Setup**:
+
 - Define all scene actors on slide 1 with named identifiers (e.g., `name="dot-main"`, `name="line-top"`)
 - officecli automatically adds the `!!` prefix for Morph pairing — just use plain names
 - Mix sizes: large (5-8cm) + medium (2-4cm) + small accents (1-2cm)
@@ -186,12 +187,14 @@ Scene actors are the engine of Morph animation. They have **fixed names** and ap
 - Decorative opacity: <= 0.12 so they don't obscure content
 
 **How Morph pairing works**:
+
 - PowerPoint matches shapes by **name** across adjacent slides
 - Same name + different properties = smooth animated transition
 - To hide a scene actor on a slide, move it off-screen: `x=36cm` (ghost position, right of canvas)
 - To bring it back, move it to a visible position on the next slide
 
 **Example** — 3 scene actors across 3 slides:
+
 ```
 Slide 1: dot-main (x=2cm, y=3cm), line-top (x=5cm, y=1cm), slash-accent (x=10cm, rotation=30)
 Slide 2: dot-main (x=8cm, y=10cm), line-top (x=15cm, y=5cm), slash-accent (x=20cm, rotation=60)
