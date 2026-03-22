@@ -58,13 +58,26 @@ See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflo
 
 ## Code Quality
 
-Run these after every edit — all three are enforced in CI and block merges:
+**During development** — auto-fix as you edit:
 
 ```bash
-bun run lint:fix       # after editing .ts / .tsx (oxlint)
-bun run format         # after editing .ts / .tsx / .css / .json / .md (oxfmt)
+bun run lint:fix       # auto-fix lint issues in .ts / .tsx (oxlint)
+bun run format         # auto-format .ts / .tsx / .css / .json / .md (oxfmt)
 bunx tsc --noEmit      # verify no type errors
 ```
+
+**Before every PR** — run the full CI check locally to catch everything CI catches (end-of-file, trailing whitespace, all file types):
+
+```bash
+# One-time setup
+npm install -g @j178/prek
+
+# Replicate exact CI check (read-only — does not auto-fix)
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+> Note: `prek` uses `lint` (check only) and `format:check` (check only) — it will fail if there are issues but won't fix them.
+> If prek reports formatting or lint issues, run the auto-fix commands above first, then re-run prek to verify.
 
 Common Oxfmt rules (Prettier-compatible, avoid a fix pass):
 
