@@ -71,7 +71,7 @@ def ghost(name):
 ALL_ACTORS = [
     "!!deco-line", "!!brand-title", "!!brand-sub",
     "!!statement-main", "!!statement-sub",
-    "!!pillar-title", 
+    "!!pillar-title",
     "!!box1-line", "!!box1-title", "!!box1-desc",
     "!!box2-line", "!!box2-title", "!!box2-desc",
     "!!box3-line", "!!box3-title", "!!box3-desc",
@@ -159,4 +159,3 @@ cat commands.json | officecli batch "AURA_COFFEE.pptx"
 # 4. Clean up
 rm commands.json
 echo "Build complete."
-

@@ -200,4 +200,3 @@ DECK="morph-templates/05-premium-navy/template.pptx" && echo '[
 DECK="morph-templates/05-premium-navy/template.pptx" && officecli validate "$DECK"
 
 DECK="morph-templates/05-premium-navy/template.pptx" && officecli view "$DECK" outline
-
