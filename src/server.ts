@@ -48,6 +48,29 @@ const shutdown = (signal: string) => {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
+// bun run on macOS does not reliably deliver SIGINT to child-process JS handlers.
+// As a guaranteed fallback: put stdin into raw mode and detect Ctrl+C (byte 0x03)
+// directly. This works regardless of process-group topology or bun version.
+// Only active in interactive sessions (stdin is a TTY); daemon/service mode
+// (non-TTY stdin) uses only the signal handlers above.
+if (process.stdin.isTTY) {
+  process.stdin.setRawMode(true);
+  // Restore terminal to cooked mode on exit so the parent shell is not broken
+  process.on("exit", () => {
+    try {
+      process.stdin.setRawMode(false);
+    } catch {
+      // ignore — stdin may already be closed
+    }
+  });
+  process.stdin.on("data", (chunk: Buffer) => {
+    if (chunk[0] === 0x03) {
+      // ETX (ASCII 3) = Ctrl+C in raw mode
+      shutdown("Ctrl+C");
+    }
+  });
+}
+
 async function main(): Promise<void> {
   // Initialize storage (respects DATA_DIR env var)
   await initStorage();
