@@ -21,7 +21,10 @@ interface UseWorkspaceEventsOptions {
   setSelected: React.Dispatch<React.SetStateAction<string[]>>;
   setExpandedKeys: React.Dispatch<React.SetStateAction<string[]>>;
   setTreeKey: React.Dispatch<React.SetStateAction<number>>;
-  selectedNodeRef: React.MutableRefObject<{ relativePath: string; fullPath: string } | null>;
+  selectedNodeRef: React.MutableRefObject<{
+    relativePath: string;
+    fullPath: string;
+  } | null>;
   selectedKeysRef: React.MutableRefObject<string[]>;
 
   // Dependencies from useWorkspaceModals
@@ -89,11 +92,19 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Throttled refresh - prevent rapid workspace refreshes during agent tool calls
    */
   const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef(false);
   const throttledRefresh = useCallback(() => {
-    if (throttleTimerRef.current) return;
+    if (throttleTimerRef.current) {
+      pendingRef.current = true; // Mark pending so trailing refresh fires after window
+      return;
+    }
     refreshWorkspace();
     throttleTimerRef.current = setTimeout(() => {
       throttleTimerRef.current = null;
+      if (pendingRef.current) {
+        pendingRef.current = false;
+        refreshWorkspace(); // Fire trailing refresh for any calls missed during throttle window
+      }
     }, 2000);
   }, [refreshWorkspace]);
 
@@ -153,7 +164,14 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    */
   useAddEventListener(
     `${eventPrefix}.selected.file`,
-    (items: Array<{ path: string; name: string; isFile: boolean; relativePath?: string }>) => {
+    (
+      items: Array<{
+        path: string;
+        name: string;
+        isFile: boolean;
+        relativePath?: string;
+      }>
+    ) => {
       // Extract relative paths from items, filter out files (only keep folders in tree selection)
       // 从 items 中提取相对路径，过滤掉文件（树选中状态只保留文件夹）
       const newKeys = items.filter((item) => !item.isFile && item.relativePath).map((item) => item.relativePath!);

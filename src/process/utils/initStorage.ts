@@ -469,44 +469,43 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     // 复制规则文件 / Copy rule files
     const hasRuleFiles = Object.keys(preset.ruleFiles).length > 0;
     if (hasRuleFiles) {
-      for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
-        try {
-          const sourceRulesPath = path.join(presetRulesDir, ruleFile);
-          // 目标文件名格式：{assistantId}.{locale}.md
-          // Target file name format: {assistantId}.{locale}.md
-          const targetFileName = `${assistantId}.${locale}.md`;
-          const targetPath = path.join(assistantsDir, targetFileName);
+      await Promise.all(
+        Object.entries(preset.ruleFiles).map(async ([locale, ruleFile]) => {
+          try {
+            const sourceRulesPath = path.join(presetRulesDir, ruleFile);
+            // 目标文件名格式：{assistantId}.{locale}.md
+            // Target file name format: {assistantId}.{locale}.md
+            const targetFileName = `${assistantId}.${locale}.md`;
+            const targetPath = path.join(assistantsDir, targetFileName);
 
-          // 检查源文件是否存在 / Check if source file exists
-          if (!existsSync(sourceRulesPath)) {
-            console.warn(`[AionUi] Source rule file not found: ${sourceRulesPath}`);
-            continue;
+            // 检查源文件是否存在 / Check if source file exists
+            if (!existsSync(sourceRulesPath)) {
+              console.warn(`[AionUi] Source rule file not found: ${sourceRulesPath}`);
+              return;
+            }
+
+            // 内置助手规则文件始终强制覆盖，确保用户获得最新版本
+            // Always overwrite builtin assistant rule files to ensure users get the latest version
+            let content = await fs.readFile(sourceRulesPath, 'utf-8');
+            // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+            // Replace relative paths with absolute paths so AI can find scripts correctly
+            content = content.replace(/skills\//g, userSkillsDir + '/');
+            await fs.writeFile(targetPath, content, 'utf-8');
+          } catch (error) {
+            // 忽略缺失的语言文件 / Ignore missing locale files
+            console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
           }
-
-          // 内置助手规则文件始终强制覆盖，确保用户获得最新版本
-          // Always overwrite builtin assistant rule files to ensure users get the latest version
-          let content = await fs.readFile(sourceRulesPath, 'utf-8');
-          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
-          // Replace relative paths with absolute paths so AI can find scripts correctly
-          content = content.replace(/skills\//g, userSkillsDir + '/');
-          await fs.writeFile(targetPath, content, 'utf-8');
-        } catch (error) {
-          // 忽略缺失的语言文件 / Ignore missing locale files
-          console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
-        }
-      }
+        })
+      );
     } else {
       // 如果助手没有 ruleFiles 配置，删除旧的 rules 缓存文件
       // If assistant has no ruleFiles config, delete old rules cache files
       const rulesFilePattern = new RegExp(`^${assistantId}\\..*\\.md$`);
       try {
         const files = readdirSync(assistantsDir);
-        for (const file of files) {
-          if (rulesFilePattern.test(file)) {
-            const filePath = path.join(assistantsDir, file);
-            await fs.unlink(filePath);
-          }
-        }
+        await Promise.all(
+          files.filter((file) => rulesFilePattern.test(file)).map((file) => fs.unlink(path.join(assistantsDir, file)))
+        );
       } catch (error) {
         // 忽略删除失败 / Ignore deletion failure
       }
@@ -514,32 +513,34 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
     // 复制技能文件 / Copy skill files (if preset has skills)
     if (preset.skillFiles) {
-      for (const [locale, skillFile] of Object.entries(preset.skillFiles)) {
-        try {
-          const sourceSkillsPath = path.join(presetSkillsDir, skillFile);
-          // 目标文件名格式：{assistantId}-skills.{locale}.md
-          // Target file name format: {assistantId}-skills.{locale}.md
-          const targetFileName = `${assistantId}-skills.${locale}.md`;
-          const targetPath = path.join(assistantsDir, targetFileName);
+      await Promise.all(
+        Object.entries(preset.skillFiles).map(async ([locale, skillFile]) => {
+          try {
+            const sourceSkillsPath = path.join(presetSkillsDir, skillFile);
+            // 目标文件名格式：{assistantId}-skills.{locale}.md
+            // Target file name format: {assistantId}-skills.{locale}.md
+            const targetFileName = `${assistantId}-skills.${locale}.md`;
+            const targetPath = path.join(assistantsDir, targetFileName);
 
-          // 检查源文件是否存在 / Check if source file exists
-          if (!existsSync(sourceSkillsPath)) {
-            console.warn(`[AionUi] Source skill file not found: ${sourceSkillsPath}`);
-            continue;
+            // 检查源文件是否存在 / Check if source file exists
+            if (!existsSync(sourceSkillsPath)) {
+              console.warn(`[AionUi] Source skill file not found: ${sourceSkillsPath}`);
+              return;
+            }
+
+            // 内置助手技能文件始终强制覆盖，确保用户获得最新版本
+            // Always overwrite builtin assistant skill files to ensure users get the latest version
+            let content = await fs.readFile(sourceSkillsPath, 'utf-8');
+            // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+            // Replace relative paths with absolute paths so AI can find scripts correctly
+            content = content.replace(/skills\//g, userSkillsDir + '/');
+            await fs.writeFile(targetPath, content, 'utf-8');
+          } catch (error) {
+            // 忽略缺失的技能文件 / Ignore missing skill files
+            console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
           }
-
-          // 内置助手技能文件始终强制覆盖，确保用户获得最新版本
-          // Always overwrite builtin assistant skill files to ensure users get the latest version
-          let content = await fs.readFile(sourceSkillsPath, 'utf-8');
-          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
-          // Replace relative paths with absolute paths so AI can find scripts correctly
-          content = content.replace(/skills\//g, userSkillsDir + '/');
-          await fs.writeFile(targetPath, content, 'utf-8');
-        } catch (error) {
-          // 忽略缺失的技能文件 / Ignore missing skill files
-          console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
-        }
-      }
+        })
+      );
     } else {
       // 如果助手没有 skillFiles 配置，删除旧的 skills 缓存文件
       // If assistant has no skillFiles config, delete old skills cache files
@@ -548,12 +549,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       const skillsFilePattern = new RegExp(`^${assistantId}-skills\\..*\\.md$`);
       try {
         const files = readdirSync(assistantsDir);
-        for (const file of files) {
-          if (skillsFilePattern.test(file)) {
-            const filePath = path.join(assistantsDir, file);
-            await fs.unlink(filePath);
-          }
-        }
+        await Promise.all(
+          files.filter((file) => skillsFilePattern.test(file)).map((file) => fs.unlink(path.join(assistantsDir, file)))
+        );
       } catch (error) {
         // 忽略删除失败 / Ignore deletion failure
       }

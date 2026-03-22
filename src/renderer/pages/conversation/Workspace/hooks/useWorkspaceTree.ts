@@ -71,25 +71,14 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
   const loadWorkspace = useCallback(
     (path: string, search?: string) => {
       const seq = ++loadSeqRef.current;
-      console.warn('[WS_DEBUG] loadWorkspace called', { seq, path, workspace, conversation_id, search });
       setLoadingHandler(true);
       return ipcBridge.conversation.getWorkspace
         .invoke({ path, workspace, conversation_id, search: search || '' })
         .then((res) => {
-          const childCount = res?.[0]?.children?.length ?? 0;
-          console.warn('[WS_DEBUG] getWorkspace returned', {
-            seq,
-            current: loadSeqRef.current,
-            resLength: res?.length,
-            childCount,
-            rootName: res?.[0]?.name,
-          });
-
           // Ignore stale responses from aborted requests:
           // The backend aborts previous getWorkspace calls, returning [].
           // Only apply the result from the latest request.
           if (seq !== loadSeqRef.current) {
-            console.warn('[WS_DEBUG] ignoring stale response', { seq, current: loadSeqRef.current });
             return res;
           }
 
