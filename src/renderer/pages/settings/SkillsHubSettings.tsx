@@ -219,7 +219,7 @@ const SkillsHubSettings: React.FC = () => {
                   <div className='flex flex-col'>
                     <div className='flex items-center gap-10px mb-8px'>
                       <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
-                        {t('settings.skillsHub.discoveredTitle', { defaultValue: '发现外部技能' })}
+                        {t('settings.skillsHub.discoveredTitle', { defaultValue: 'Discovered External Skills' })}
                       </span>
                       <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
                         {totalExternal}
@@ -234,7 +234,7 @@ const SkillsHubSettings: React.FC = () => {
                     </div>
                     <Typography.Text className='text-13px text-t-secondary block max-w-xl leading-relaxed'>
                       {t('settings.skillsHub.discoveryAlert', {
-                        defaultValue: '检测到来自 CLI 工具的技能。导入后即可在 AionUi 中使用。',
+                        defaultValue: 'Detected skills from your CLI tools. Import them to use in AionUi.',
                       })}
                     </Typography.Text>
                   </div>
@@ -297,7 +297,7 @@ const SkillsHubSettings: React.FC = () => {
                         className='flex items-center gap-6px text-13px font-medium text-primary-6 hover:text-primary-5 transition-colors bg-transparent border-none outline-none cursor-pointer whitespace-nowrap'
                         onClick={() => void handleImportAll(activeSource.skills)}
                       >
-                        {t('settings.skillsHub.importAll', { defaultValue: '全部导入' })}
+                        {t('settings.skillsHub.importAll', { defaultValue: 'Import All' })}
                       </button>
                     </div>
 
@@ -337,14 +337,14 @@ const SkillsHubSettings: React.FC = () => {
                               }}
                               className='rd-[100px] shadow-sm px-16px'
                             >
-                              {t('common.import', { defaultValue: '导入' })}
+                              {t('common.import', { defaultValue: 'Import' })}
                             </Button>
                           </div>
                         </div>
                       ))}
                       {filteredExternalSkills.length === 0 && (
                         <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed'>
-                          {t('settings.skillsHub.noSearchResults', { defaultValue: '未找到相关技能' })}
+                          {t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills found' })}
                         </div>
                       )}
                     </div>
@@ -359,7 +359,7 @@ const SkillsHubSettings: React.FC = () => {
               <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-16px mb-24px relative z-10'>
                 <div className='flex items-center gap-10px shrink-0'>
                   <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
-                    {t('settings.skillsHub.mySkillsTitle', { defaultValue: '我的技能' })}
+                    {t('settings.skillsHub.mySkillsTitle', { defaultValue: 'My Skills' })}
                   </span>
                   <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
                     {availableSkills.length}
@@ -368,7 +368,7 @@ const SkillsHubSettings: React.FC = () => {
                     className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
                     onClick={async () => {
                       await fetchData();
-                      Message.success(t('common.refreshSuccess', { defaultValue: '已刷新' }));
+                      Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
                     }}
                     title={t('common.refresh', { defaultValue: 'Refresh' })}
                   >
@@ -396,7 +396,7 @@ const SkillsHubSettings: React.FC = () => {
                   >
                     <FolderOpen size={15} className='text-t-secondary' />
                     <span className='text-13px font-medium'>
-                      {t('settings.skillsHub.manualImport', { defaultValue: '从文件夹导入' })}
+                      {t('settings.skillsHub.manualImport', { defaultValue: 'Import from Folder' })}
                     </span>
                   </button>
                 </div>
@@ -432,11 +432,11 @@ const SkillsHubSettings: React.FC = () => {
                           <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
                           {skill.isCustom ? (
                             <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
-                              {t('settings.skillsHub.custom', { defaultValue: '自定义' })}
+                              {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
                             </span>
                           ) : (
                             <span className='bg-[rgba(var(--blue-6),0.08)] text-blue-6 border border-[rgba(var(--blue-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
-                              {t('settings.skillsHub.builtin', { defaultValue: '内置' })}
+                              {t('settings.skillsHub.builtin', { defaultValue: 'Built-in' })}
                             </span>
                           )}
                         </div>
@@ -483,12 +483,12 @@ const SkillsHubSettings: React.FC = () => {
                                         hide();
                                         if (result.success) {
                                           Message.success(
-                                            t('settings.skillsHub.exportSuccess', { defaultValue: '导出成功' })
+                                            t('settings.skillsHub.exportSuccess', { defaultValue: 'Skill exported successfully' })
                                           );
                                         } else {
                                           Message.error(
                                             result.msg ||
-                                              t('settings.skillsHub.exportFailed', { defaultValue: '导出失败' })
+                                              t('settings.skillsHub.exportFailed', { defaultValue: 'Failed to export skill' })
                                           );
                                         }
                                       } catch (error) {
@@ -507,10 +507,10 @@ const SkillsHubSettings: React.FC = () => {
                           >
                             <button
                               className='p-8px hover:bg-fill-2 text-t-tertiary hover:text-t-secondary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
-                              title={t('settings.skillsHub.exportTo', { defaultValue: '导出到...' })}
+                              title={t('settings.skillsHub.exportTo', { defaultValue: 'Export To...' })}
                             >
                               <span className='text-12px font-medium'>
-                                {t('settings.skillsHub.exportTo', { defaultValue: '导出' })}
+                                {t('settings.skillsHub.exportTo', { defaultValue: 'Export' })}
                               </span>
                             </button>
                           </Dropdown>
@@ -520,16 +520,16 @@ const SkillsHubSettings: React.FC = () => {
                             className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
                             onClick={() => {
                               Modal.confirm({
-                                title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: '确认删除技能' }),
+                                title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
                                 content: t('settings.skillsHub.deleteConfirmContent', {
                                   name: skill.name,
-                                  defaultValue: `确定要删除 "${skill.name}" 吗？`,
+                                  defaultValue: `Are you sure you want to delete "${skill.name}"?`,
                                 }),
                                 okButtonProps: { status: 'danger' },
                                 onOk: () => void handleDelete(skill.name),
                               });
                             }}
-                            title={t('common.delete', { defaultValue: '删除' })}
+                            title={t('common.delete', { defaultValue: 'Delete' })}
                           >
                             <Delete size={16} />
                           </button>
@@ -541,8 +541,8 @@ const SkillsHubSettings: React.FC = () => {
               ) : (
                 <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed relative z-10'>
                   {loading
-                    ? t('common.loading', { defaultValue: '加载中...' })
-                    : t('settings.skillsHub.noSkills', { defaultValue: '未找到技能。导入一些来开始使用吧。' })}
+                    ? t('common.loading', { defaultValue: 'Please wait...' })
+                    : t('settings.skillsHub.noSkills', { defaultValue: 'No skills found. Import some to get started.' })}
                 </div>
               )}
             </div>
@@ -552,7 +552,7 @@ const SkillsHubSettings: React.FC = () => {
               <Info size={18} className='text-primary-6 mt-2px shrink-0' />
               <div className='flex flex-col gap-4px'>
                 <span className='font-bold text-t-primary text-14px'>
-                  {t('settings.skillsHub.tipTitle', { defaultValue: '使用贴士：' })}
+                  {t('settings.skillsHub.tipTitle', { defaultValue: 'Usage Tip:' })}
                 </span>
                 <span className='text-13px leading-relaxed'>{t('settings.skillsHub.tipContent')}</span>
               </div>
@@ -563,7 +563,7 @@ const SkillsHubSettings: React.FC = () => {
 
       {/* Add Custom External Path Modal */}
       <Modal
-        title={t('settings.skillsHub.addCustomPath', { defaultValue: '添加自定义技能路径' })}
+        title={t('settings.skillsHub.addCustomPath', { defaultValue: 'Add Custom Skill Path' })}
         visible={showAddPathModal}
         onCancel={() => {
           setShowAddPathModal(false);
@@ -571,8 +571,8 @@ const SkillsHubSettings: React.FC = () => {
           setCustomPathValue('');
         }}
         onOk={() => void handleAddCustomPath()}
-        okText={t('common.confirm', { defaultValue: '确认' })}
-        cancelText={t('common.cancel', { defaultValue: '取消' })}
+        okText={t('common.confirm', { defaultValue: 'Confirm' })}
+        cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
         okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
         autoFocus={false}
         focusLock
@@ -580,10 +580,10 @@ const SkillsHubSettings: React.FC = () => {
         <div className='flex flex-col gap-16px'>
           <div>
             <div className='text-13px font-medium text-t-primary mb-8px'>
-              {t('common.name', { defaultValue: '名称' })}
+              {t('common.name', { defaultValue: 'Name' })}
             </div>
             <Input
-              placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: '例：我的自定义技能' })}
+              placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: 'e.g. My Custom Skills' })}
               value={customPathName}
               onChange={(v) => setCustomPathName(v)}
               className='rd-6px'
@@ -591,12 +591,12 @@ const SkillsHubSettings: React.FC = () => {
           </div>
           <div>
             <div className='text-13px font-medium text-t-primary mb-8px'>
-              {t('settings.skillsHub.customPathLabel', { defaultValue: '技能目录路径' })}
+              {t('settings.skillsHub.customPathLabel', { defaultValue: 'Skill Directory Path' })}
             </div>
             <div className='flex gap-8px'>
               <Input
                 placeholder={t('settings.skillsHub.customPathPlaceholder', {
-                  defaultValue: '例：C:\\Users\\me\\.mytools\\skills',
+                  defaultValue: 'e.g. C:\\Users\\me\\.mytools\\skills',
                 })}
                 value={customPathValue}
                 onChange={(v) => setCustomPathValue(v)}
