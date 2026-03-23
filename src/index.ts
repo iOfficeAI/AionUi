@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// configureChromium sets app name (dev isolation) and Chromium flags — must run before
+// ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
+import './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
 
 Sentry.init({
@@ -11,8 +14,6 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-// configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
-import './process/utils/configureChromium';
 import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
@@ -537,13 +538,17 @@ const handleAppReady = async (): Promise<void> => {
 
   // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
   powerMonitor.on('resume', () => {
-    console.log('[App] System resumed from sleep, triggering cron recovery');
+    try {
+      console.log('[App] System resumed from sleep, triggering cron recovery');
+    } catch {
+      // Console write may fail with EIO when PTY is broken after sleep
+    }
     import('@process/services/cron/cronServiceSingleton')
       .then(({ cronService }) => {
         void cronService.handleSystemResume();
       })
-      .catch((error) => {
-        console.error('[App] Failed to handle system resume for cron:', error);
+      .catch(() => {
+        // Cron recovery is best-effort after system resume
       });
   });
 };

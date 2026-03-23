@@ -100,5 +100,11 @@
     "inspectElement": "요소 검사",
     "inspectElementEnable": "요소 검사기 활성화",
     "inspectElementDisable": "요소 검사기 비활성화"
+  },
+  "ppt": {
+    "loading": "PPT 미리보기 시작 중...",
+    "installing": "미리보기 구성 요소 설치 중...",
+    "startFailed": "PPT 미리보기 시작 실패",
+    "installHint": "officecli가 설치되어 있는지 확인하세요: npm run postinstall"
   }
 }

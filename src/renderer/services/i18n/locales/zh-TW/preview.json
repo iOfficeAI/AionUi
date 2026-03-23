@@ -100,5 +100,11 @@
     "inspectElement": "檢查元素",
     "inspectElementEnable": "啟用元素檢查",
     "inspectElementDisable": "停用元素檢查"
+  },
+  "ppt": {
+    "loading": "正在啟動 PPT 預覽...",
+    "installing": "正在安裝預覽元件...",
+    "startFailed": "啟動 PPT 預覽失敗",
+    "installHint": "請確認已安裝 officecli：npm run postinstall"
   }
 }

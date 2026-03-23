@@ -326,9 +326,14 @@ export function initFsBridge(): void {
 
   // 通过桥接层拉取远程图片并转成 base64 / Fetch remote image via bridge and return base64
   ipcBridge.fs.fetchRemoteImage.provider(async ({ url }) => {
-    const { buffer, contentType } = await downloadRemoteBuffer(url);
-    const base64 = buffer.toString('base64');
-    return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    try {
+      const { buffer, contentType } = await downloadRemoteBuffer(url);
+      const base64 = buffer.toString('base64');
+      return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    } catch (error) {
+      console.warn('[fsBridge] Failed to fetch remote image:', (error as Error).message);
+      return '';
+    }
   });
 
   // 创建临时文件 / Create temporary file on disk
@@ -374,6 +379,11 @@ export function initFsBridge(): void {
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {
+      // Return null for missing files (e.g., cleaned-up temp workspaces)
+      // instead of throwing, to avoid unhandled promise rejections (Fixes ELECTRON-6W)
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error('Failed to read file:', error);
       throw error;
     }
@@ -387,6 +397,9 @@ export function initFsBridge(): void {
       // Convert Node.js Buffer to ArrayBuffer
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error('Failed to read file buffer:', error);
       throw error;
     }
@@ -561,6 +574,8 @@ export function initFsBridge(): void {
       if (isCanceled()) {
         throw new Error('Zip export canceled');
       }
+      // Ensure parent directory exists before writing (may be deleted by OneDrive sync, etc.)
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, zipBuffer);
       return true;
     } catch (error) {
@@ -743,7 +758,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('rules', fileName);
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -753,7 +768,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('skills', fileName);
     } catch (error) {
       console.error('Failed to read builtin skill:', error);
-      throw error;
+      return '';
     }
   });
 
