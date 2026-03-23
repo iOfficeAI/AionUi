@@ -47,38 +47,157 @@ Ask only when topic is unclear, otherwise proceed directly.
 
 ### Phase 2: Plan the Story
 
-**Output**: `brief.md` with:
-- Context (topic, audience, purpose, narrative)
-- Outline (conclusion + slide-by-slide summary)
-- Page briefs (objective, content, page type, transitions)
+**FIRST: Read the thinking framework**
 
-**Thinking framework**: `reference/decision-rules.md`
+→ Open and read `reference/decision-rules.md` — it provides the structured approach for planning compelling presentations (Pyramid Principle, SCQA, page types).
+
+**Then create `brief.md`** with:
+- **Context**: Topic, audience, purpose, narrative structure (SCQA or Problem-Solution)
+- **Outline**: Conclusion first + slide-by-slide summary
+- **Page briefs**: For each slide:
+  - Objective (what should this slide achieve?)
+  - Content (specific text/data to include)
+  - Page type (title | evidence | transition | conclusion)
+  - Design notes (visual emphasis, scene actor behavior)
 
 ---
 
 ### Phase 3: Design and Generate
 
-**Pattern**:
-1. Create deck, add Slide 1 with background
-2. Define 6-8 scene actors with `!!` prefix names
-3. Add Slide 1 content
-4. For each subsequent slide:
-   - Clone previous slide
-   - Set `transition=morph`
-   - Ghost previous content (`x=36cm`)
-   - Add new content
-   - Adjust scene actor positions
+**Before generation starts, always remind the user:**
+- The PPT file may be rewritten multiple times during build.
+- Please do **not** open the target PPT while generation is running, to avoid file lock / write conflicts.
+- Use clear, direct language and make this a concrete warning, not an optional suggestion.
+
+**FIRST: Ensure latest officecli version**
+
+Follow the installation check in `reference/officecli-pptx-min.md` section 0 (checks version and upgrades only if needed).
+
+**IMPORTANT: Use morph-helpers for reliable workflow**
+
+Generate a bash script that uses `reference/morph-helpers.sh` — this provides helper functions with built-in verification.
+
+**Shape naming rules (for best results)**:
+
+Use these naming patterns for clear code and reliable verification:
+
+1. **Scene actors** (persistent across slides):
+   - Format: `'!!actor-name'` (double `!!` prefix, single quotes required)
+   - Examples: `'!!ring-1'`, `'!!dot-accent'`, `'!!line-top'`
+   - Behavior: Modify position/size/color, NEVER ghost
+
+2. **Content shapes** (unique per slide):
+   - Format: `'#sN-description'` (single quotes required)
+   - Pattern: `#` + `s` + slide_number + `-` + description
+   - Examples: `'#s1-title'`, `'#s2-card1'`, `'#s3-stats'`
+   - Behavior: Ghost (x=36cm) when moving to next slide
+
+**Why single quotes?** Shell treats `!` and `#` as special characters. Single quotes prevent this: `'#s1-title'`
+
+**Why this naming matters:**
+- ✅ **Better detection**: Primary method (`#sN-` pattern matching) is fastest and most accurate
+- ✅ **Readable code**: Anyone can tell `#s1-title` is slide 1's title
+- ✅ **Easy debugging**: `grep "#s1-"` finds all slide 1 content quickly
+- ⚠️ **Backup detection exists**: Even without `#` prefix, duplicate text detection will catch most issues (but has edge cases)
+
+**Bottom line**: Follow these patterns in your code examples, and verification will work smoothly.
+
+**Then proceed with pattern**:
+
+```bash
+#!/bin/bash
+set -e
+
+# Load helper functions (provides morph_clone_slide, morph_ghost_content, morph_verify_slide)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/morph-helpers.sh"
+
+OUTPUT="deck.pptx"
+officecli create "$OUTPUT"
+
+# ============ SLIDE 1 ============
+echo "Building Slide 1..."
+officecli add "$OUTPUT" '/' --type slide
+officecli set "$OUTPUT" '/slide[1]' --prop background=1A1A2E
+
+# Scene actors (!!-prefixed, will persist and morph across slides)
+officecli add "$OUTPUT" '/slide[1]' --type shape --prop 'name=!!ring-1' --prop preset=ellipse --prop fill=E94560 --prop opacity=0.3 --prop x=5cm --prop y=3cm --prop width=8cm --prop height=8cm
+officecli add "$OUTPUT" '/slide[1]' --type shape --prop 'name=!!dot-accent' --prop preset=ellipse --prop fill=0F3460 --prop x=28cm --prop y=15cm --prop width=1cm --prop height=1cm
+
+# Content shapes (#s1- prefix, will be ghosted on next slide)
+# ⚠️ Use generous width (25-30cm for titles) to avoid text wrapping!
+officecli add "$OUTPUT" '/slide[1]' --type shape --prop 'name=#s1-title' --prop text="Main Title" --prop font="Arial Black" --prop size=64 --prop bold=true --prop color=FFFFFF --prop x=10cm --prop y=8cm --prop width=28cm --prop height=3cm --prop fill=none
+
+# ============ SLIDE 2 ============
+echo "Building Slide 2..."
+
+# Use helper: automatically clone + set transition + list shapes + verify
+morph_clone_slide "$OUTPUT" 1 2
+
+# Use helper: ghost all content from slide 1 (shape indices 3 = #s1-title)
+morph_ghost_content "$OUTPUT" 2 3
+
+# Add new content for slide 2
+officecli add "$OUTPUT" '/slide[2]' --type shape --prop 'name=#s2-title' --prop text="Second Slide" --prop font="Arial Black" --prop size=64 --prop bold=true --prop color=FFFFFF --prop x=10cm --prop y=8cm --prop width=28cm --prop height=3cm --prop fill=none
+
+# Adjust scene actors to create motion
+officecli set "$OUTPUT" '/slide[2]/shape[1]' --prop x=15cm --prop y=5cm  # !!ring-1 moves
+officecli set "$OUTPUT" '/slide[2]/shape[2]' --prop x=5cm --prop y=10cm  # !!dot-accent moves
+
+# Use helper: verify slide is correct (transition + ghosting)
+morph_verify_slide "$OUTPUT" 2
+
+# ============ SLIDE 3 ============
+echo "Building Slide 3..."
+
+morph_clone_slide "$OUTPUT" 2 3
+morph_ghost_content "$OUTPUT" 3 4  # Ghost #s2-title (now at index 4)
+
+officecli add "$OUTPUT" '/slide[3]' --type shape --prop 'name=#s3-title' --prop text="Third Slide" --prop font="Arial Black" --prop size=64 --prop bold=true --prop color=FFFFFF --prop x=10cm --prop y=8cm --prop width=28cm --prop height=3cm --prop fill=none
+
+officecli set "$OUTPUT" '/slide[3]/shape[1]' --prop x=25cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[3]/shape[2]' --prop x=10cm --prop y=5cm
+
+morph_verify_slide "$OUTPUT" 3
+
+# ============ FINAL VERIFICATION ============
+echo ""
+echo "========================================="
+morph_final_check "$OUTPUT"
+
+echo ""
+echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
+```
+
+**Key advantages of using helpers:**
+- ✅ **Fewer steps**: `morph_clone_slide` = clone + transition + list + verify (4 steps → 1 function)
+- ✅ **Instant feedback**: Each helper shows ✅ or ❌ immediately
+- ✅ **Can't forget**: Transition and verification are automatic
+- ✅ **Clear errors**: If something is wrong, you'll know exactly what and where
+- ✅ **Dual detection**: Catches unghosted content by both naming pattern AND duplicate text detection
+  - Even if you forget `#` prefix, duplicate detection will still catch the problem!
 
 **Essential rules:**
-- Scene actors must have identical `!!` names across all slides
-- Slides 2+ must have `transition=morph`
-- Ghost before adding new content
-- Create spatial variety between adjacent slides
+- **Naming**: Scene actors use `!!` prefix, content uses `#sN-` prefix (best practice for verification and readability)
+- **Transition**: Every slide after the first MUST have `transition=morph` (without this, no animation!)
+- **Ghosting**: Before adding new slide content, ghost ALL previous content shapes to `x=36cm` (don't delete)
+- **Motion**: Adjust scene actor (`!!-*`) positions between slides for animation
+- **Variety**: Create spatial variety between adjacent slides
+- **Text Width**: Use generous widths to prevent text wrapping:
+  - Centered titles (64-72pt): **28-30cm width**
+  - Centered subtitles (28-40pt): **25-28cm width**
+  - Left-aligned titles: **20-25cm width**
+  - Body text: 8-12cm (single-column), 16-18cm (double-column)
+  - **When in doubt, make it wider!** See `reference/pptx-design.md` for details
 
 **Design resources:**
-- `reference/pptx-design.md` — Aesthetics, typography, color, page types
+- `reference/pptx-design.md` — Aesthetics, typography, color, page types, how to learn from styles
 - `reference/officecli-pptx-min.md` — Command syntax
-- `reference/styles/<name>/` — 30+ style examples
+- `reference/styles/<name>/` — 47 visual style examples (27 with working implementations, 20 design-only)
+  - **Optional inspiration sources** — reference for colors, layouts, animation patterns
+  - You can create original designs, follow user specifications, or adapt style patterns
+  - Implemented styles (`build.sh` available) can be referenced for code patterns
+  - Design-only styles (`style.md` only) provide visual inspiration
 
 ---
 
@@ -86,14 +205,64 @@ Ask only when topic is unclear, otherwise proceed directly.
 
 **Outputs** (3 files):
 1. `<topic>.pptx`
-2. `build.sh` (complete, re-runnable)
+2. Build script (complete, re-runnable — bash/python/powershell/etc.)
 3. `brief.md`
 
-**Quick check**:
+**Verification** (your build script already includes this):
+
+If you used `morph-helpers.sh`, verification is already done! The build script calls `morph_verify_slide` and `morph_final_check` automatically.
+
+Just validate the final structure:
+
 ```bash
 officecli validate <file>.pptx
-officecli view outline <file>.pptx
+officecli view <file>.pptx outline
 ```
+
+**If verification fails**, see Troubleshooting section below.
+
+**Final delivery message requirements:**
+- Tell the user the deck with polished Morph animations is ready.
+- Explicitly recommend opening the generated PPT now to preview the motion effects.
+- Use affirmative wording (e.g., "ready now", "open it now to preview the animation quality").
+
+---
+
+### Troubleshooting
+
+**If `morph_verify_slide` or `morph_final_check` reports issues:**
+
+1. **Missing transition**:
+   ```bash
+   # Check which slides are missing transition
+   officecli get <file>.pptx '/slide[2]' --json | grep transition
+   officecli get <file>.pptx '/slide[3]' --json | grep transition
+   # Expected: "transition": "morph"
+
+   # Fix:
+   officecli set <file>.pptx '/slide[2]' --prop transition=morph
+   ```
+
+2. **Unghosted content**:
+   ```bash
+   # Find unghosted shapes manually
+   for slide in 2 3 4 5 6; do
+       echo "Slide $slide:"
+       officecli get <file>.pptx "/slide[$slide]" --depth 1 | grep -E "#s[0-9]"
+   done
+   # If you see shapes like "#s1-title" on slide 2 (not at x=36cm), they should be ghosted
+
+   # Fix:
+   officecli set <file>.pptx '/slide[N]/shape[X]' --prop x=36cm
+   ```
+
+3. **Visual issues**:
+   ```bash
+   # Open HTML preview to debug layout
+   officecli view <file>.pptx html
+   ```
+
+**Note**: Scene actors (`!!`-prefixed) should appear on all slides — that's normal. Only content shapes (`#sN-` prefix) need ghosting.
 
 ---
 
@@ -108,10 +277,10 @@ Ask user for feedback, support quick adjustments.
 - `reference/decision-rules.md` — Planning logic, Pyramid Principle
 - `reference/pptx-design.md` — Design principles, page types, style guide
 - `reference/officecli-pptx-min.md` — Tool syntax
-- `reference/styles/` — 30+ visual style examples
+- `reference/styles/` — 47 visual style examples (optional inspiration)
 
 ---
 
-**First time?** Read "Understanding Morph" above, skim one style reference, then generate. You'll learn by doing.
+**First time?** Read "Understanding Morph" above. Styles are available for inspiration if needed, but you can create original designs or follow user specifications. Always use `morph-helpers.sh` workflow. You'll learn by doing.
 
 **Trust yourself.** You have vision, design sense, and the ability to iterate. These tools enable you — your creativity makes it excellent.

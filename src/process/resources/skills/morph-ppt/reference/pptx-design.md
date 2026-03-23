@@ -9,6 +9,49 @@ description: Design principles and aesthetics for Morph PPTs
 
 ---
 
+## 0) How to Learn from Style Examples
+
+The `styles/` directory contains **47 visual style examples**:
+- ✅ **27 with working implementations** (`style.md` + `build.sh` + `.pptx`)
+- 📖 **20 with design docs only** (`style.md`)
+
+### Step 1: Read `style.md` for Design Concepts
+
+**Every style has `style.md`** — start here to understand:
+1. **Color palette** — Which colors work together and why?
+2. **Scene actors** — Which shapes morph across slides (`!!` prefix)?
+3. **Visual hierarchy** — How does spacing/opacity create depth?
+4. **Animation flow** — How do shapes transform slide-to-slide?
+
+### Step 2: Study `build.sh` for Implementation (When Available)
+
+**27 styles have working scripts** — use them to see:
+- How design concepts become code
+- Exact color values and coordinates
+- Scene actor morphing patterns
+- Slide structure and content organization
+
+**How to use:** Read → Reference patterns → Adapt to your content (don't copy verbatim)
+
+### Step 3: Implement Your Own Way
+
+Use the clone + ghost + add workflow from `SKILL.md` Phase 3. Apply what you learned:
+- Define persistent scene actors with `!!` prefix
+- Create slide-specific content with `#sN-` prefix
+- Build color hierarchy that serves your content
+- Make morphing meaningful (8cm+ moves, dramatic transforms)
+
+**Key mindset:** "What makes this design effective?" not "How do I copy this code?"
+
+### When You Need Quick Inspiration
+
+- **Colors** → Browse any `style.md` for palettes
+- **Animation** → Check working examples (`build.sh`) to see scene actor morphing
+- **Layout** → Study implemented styles for card/text arrangements
+- **Mood match** → Pick category (dark/light/warm/vivid/bw) that fits your topic
+
+---
+
 ## 1) Canvas & Coordinates
 
 - **Canvas**: 16:9 (33.87cm × 19.05cm)
@@ -37,11 +80,22 @@ description: Design principles and aesthetics for Morph PPTs
 
 ### Text Width Guidelines
 
-- **Centered titles (64-72pt)**: 28cm width (safe for 10-12 characters)
-- **Left-aligned titles**: 20cm width
-- **Body text / cards**: Single-column 8cm, double-column 16cm
+**CRITICAL: Always make text boxes wider than you think necessary. Wrapping breaks visual hierarchy.**
 
-**Rule of thumb**: When in doubt, make text boxes wider. Wrapping causes more problems than extra whitespace.
+| Content Type | Minimum Width | Best Practice |
+|--------------|---------------|---------------|
+| **Centered titles (64-72pt)** | 28cm | Use 28-30cm for 10-15 char titles, 25cm for hero statements |
+| **Centered subtitles (28-40pt)** | 25cm | Always use 25-28cm to avoid mid-word breaks |
+| **Left-aligned titles** | 20cm | Use 20-25cm depending on content length |
+| **Body text / cards** | 8cm (single) | Single-column 8-12cm, double-column 16-18cm |
+
+**Common mistakes to avoid**:
+- ❌ Using 10-15cm for long centered subtitles → causes awkward line breaks
+- ❌ Tight text boxes that "just fit" the text → one extra character breaks layout
+- ✅ Always add 3-5cm extra width for centered text
+- ✅ Test with slightly longer text in your mind
+
+**Rule of thumb**: When in doubt, make text boxes wider. Extra whitespace is better than wrapped text overlapping other elements.
 
 ---
 
@@ -87,20 +141,33 @@ Background → Decorative Shapes → Content (text/data)
 
 ### Palette Selection
 
-**If you can create a unique palette** → create freely based on topic mood
+**Create unique palettes based on topic mood** — there are no universal formulas.
 
-**If unsure** → study a specific style in `reference/styles/` to learn color relationships
+**Study examples** → `reference/styles/` has **47 diverse styles** across categories:
+- `dark--*` (17 styles): Professional, tech, luxury, cosmic themes
+- `light--*` (10 styles): Corporate, product, training, clean themes
+- `warm--*` (11 styles): Organic, creative, editorial, playful themes
+- `bw--*` (4 styles): Minimal, brutalist, swiss, geometric themes
+- `vivid--*` (4 styles): Bold, energetic, candy, electric themes
+- `mixed--*` (4 styles): Duotone, spectral, chromatic, bauhaus themes
 
-**Avoid generic AIGC palettes**:
-- ❌ Dark blue + cyan + purple + gradient circles (cookie-cutter)
-- ✅ Study real styles, or create truly unique combinations
+**Style availability:**
+- ✅ **27 styles with working implementations** (have `build.sh` + `.pptx`)
+- 📖 **20 styles with design docs only** (have `style.md` for inspiration)
 
-**Inspiration** (not formulas):
-- Eco themes → greens, earth tones, warm neutrals
-- Tech themes → dark + neon, white + gray, orange + black
-- Finance → gold, dark blue + white, black + red
-- Education → warm orange/yellow, pastels, blue + white
-- Luxury → black + gold, navy + white, monochrome + accent
+**Selection principles**:
+1. **Match topic mood** → Let content dictate colors, not AI habits
+2. **Vary by project** → Avoid reusing recent styles
+3. **Mix categories** → Combine dark/light/warm elements freely
+4. **Prefer unexpected fits** → Organic style for tech topic? Why not, if it works
+5. **Reference implementations when available** → Working examples show proven patterns
+
+**Examples by mood** (adapt freely, don't copy verbatim):
+- Bold/High-contrast → bw--brutalist-raw, vivid--energy-neon, dark--diagonal-cut
+- Calm/Muted → warm--earth-organic, dark--sage-grain, light--watercolor-wash
+- Premium/Luxury → dark--luxury-minimal, dark--obsidian-amber, bw--swiss-system
+- Playful/Creative → vivid--candy-stripe, warm--playful-organic, mixed--bauhaus-blocks
+- Tech/Modern → dark--cyber-future, light--glassmorphism-vc, mixed--spectral-grid
 
 ---
 
@@ -117,12 +184,33 @@ Define 6-8 actors on Slide 1:
 
 **Shape types**: ellipse, rect, roundRect, triangle, diamond, star5, hexagon
 
-**Naming**: Use `!!` prefix for Morph pairing
-```bash
---prop 'name=!!dot-main'    # Quotes prevent shell ! escaping
---prop 'name=!!line-top'
---prop 'name=!!slash-accent'
-```
+**Naming conventions (recommended for best results)**:
+
+1. **Scene actors** (persistent shapes):
+   ```bash
+   --prop 'name=!!dot-main'    # Single quotes prevent shell ! escaping
+   --prop 'name=!!line-top'
+   --prop 'name=!!slash-accent'
+   ```
+   - Pattern: `!!` prefix (double exclamation)
+   - These shapes persist and morph across all slides
+
+2. **Content shapes** (unique per slide):
+   ```bash
+   --prop 'name=#s1-title'      # Format: # + s + slide_number + - + description
+   --prop 'name=#s2-card1'
+   --prop 'name=#s3-stats'
+   ```
+   - Pattern: `#sN-` prefix (where N = slide number)
+   - These shapes are ghosted when moving to next slide
+
+**Benefits of following these patterns:**
+- Primary verification (pattern matching) is fastest and catches all cases
+- Code is self-documenting: `#s2-card1` clearly means slide 2's first card
+- Easy to debug: search for `#s1-` to find all slide 1 content
+- Backup verification (duplicate detection) exists but has edge cases
+
+**Note**: Always use single quotes to prevent shell interpretation of special characters.
 
 ### How Morph Pairing Works
 
@@ -153,6 +241,13 @@ On subsequent slides:
 ### Content (added fresh per slide)
 
 Content (titles, body text, numbers, cards) is added fresh on each slide with `officecli add`. Since text changes every slide, Morph just cross-fades it — no benefit from same-name pairing.
+
+**Critical workflow**:
+1. Clone previous slide → inherited content has old slide's prefix (e.g., `#s1-title`)
+2. Ghost inherited content → move all `#s(N-1)-*` shapes to `x=36cm`
+3. Add new content → with current slide's prefix (e.g., `#s2-title`)
+
+**Why ghosting matters**: Without ghosting old content, slides accumulate shapes, causing visual overlap and confusion.
 
 ### Coordinate Notes
 
@@ -190,59 +285,70 @@ Mix these to create rhythm. Each serves a different narrative purpose:
 
 ## 6) Style References
 
-Explore `reference/styles/` for inspiration. Each folder contains design philosophy and implementation.
+Explore `reference/styles/` for inspiration. Each folder contains:
+- **`style.md`** (all 47 styles) — Design philosophy, color palettes, layout concepts
+- **`build.sh` + `.pptx`** (27 styles) — Working implementation you can reference
+
+**Legend:**
+- ✅ = Has working implementation (`build.sh` + `.pptx`)
+- 📖 = Design documentation only (`style.md`)
 
 ### Quick Reference by Use Case
 
 | Use Case | Recommended Styles | Visual Features |
 | --- | --- | --- |
-| **Tech / AI / SaaS** | `dark--tech-cosmos` | Deep blue/purple bg + neon blue dots + grid lines |
-| | `dark--cyber-future` | Black bg + cyan/magenta gradients + sharp geometric lines |
-| | `light--isometric-clean` | White bg + isometric 3D shapes + soft shadows |
-| | `light--firmwise-saas` | Light blue-grey + electric purple + clean minimal |
-| | `light--fluid-gradient` | Smooth gradients + ray fans + halftone dots |
-| | `mixed--chromatic-aberration` | CRT RGB split effect + cyan/pink offset layers |
-| **Investment / Pitch** | `dark--investor-pitch` | Dark blue + gold accents + data charts |
-| | `dark--premium-navy` | Navy blue + white/gold + minimal design |
-| | `light--project-proposal` | White bg + blue/orange accents + professional |
-| | `light--glassmorphism-vc` | Sky blue + 3D spheres + frosted glass cards |
-| | `dark--obsidian-amber` | Near-black + amber glows + ghost percentages |
-| **Corporate / Reports** | `light--minimal-corporate` | White bg + blue/gray tones + clean grid layout |
-| | `light--minimal-product` | Off-white bg + single brand color + generous whitespace |
-| | `vivid--pink-editorial` | Pink-purple gradient + massive bold numbers (200pt) |
-| | `warm--sunset-mosaic` | Rect grid + sunset gradient circle + corporate palette |
-| | `warm--coral-culture` | Blue-to-coral gradient + vertical bar clusters |
-| **Brand / Marketing** | `warm--brand-refresh` | Warm orange/coral + rounded shapes + energetic |
-| | `warm--creative-marketing` | Warm tones + organic shapes + playful |
-| | `vivid--playful-marketing` | Multi-color bright palette + fun geometry |
-| | `vivid--bauhaus-electric` | Electric blue + acid lime + bold geometric rects |
-| **Design / Architecture** | `bw--swiss-bauhaus` | Black/white + bold sans-serif + geometric grid |
-| | `dark--architectural-plan` | Dark bg + white lines + blueprint aesthetic |
-| | `dark--midnight-blueprint` | Navy gradient + ghost numbers + textFill fade |
-| | `mixed--bauhaus-blocks` | Bauhaus color blocks + stacked circles + flat colors |
-| | `dark--aurora-softedge` | Aurora colors + layered soft-edge ellipses |
-| | `warm--monument-editorial` | Warm paper + terracotta + pure typography |
-| **Education / Training** | `light--training-interactive` | White/light blue + icons + friendly rounded shapes |
-| | `warm--playful-organic` | Warm pastels + organic curves + soft |
-| | `warm--bloom-academy` | Organic blob ellipses + layered soft-edge |
-| **Keynotes / Events** | `dark--spotlight-stage` | Black bg + single spotlight circle + dramatic |
-| | `dark--liquid-flow` | Dark bg + flowing gradient shapes + smooth |
-| | `vivid--energy-neon` | Light grey + neon green blocks + editorial |
-| **Developer / Technical** | `dark--cyber-future` | Black + cyan/magenta + code/terminal aesthetic |
-| | `dark--blueprint-grid` | Dark navy + white grid lines + technical drawings |
-| **Eco / Nature** | `warm--earth-organic` | Earth tones (brown/green) + organic textures |
-| | `light--spring-launch` | Pastel greens/yellows + fresh and bright |
-| | `warm--vital-bloom` | Starburst rays + organic blob ellipses |
-| **Sci-Fi / Space** | `dark--space-odyssey` | Deep space black + galaxy gradients + stars |
-| | `dark--cosmic-neon` | Black + neon purple/pink + cosmic particles |
-| **Luxury / Premium** | `dark--luxury-minimal` | Black + gold lines + ultra-minimal + premium |
-| | `dark--premium-navy` | Navy + white/gold + sophisticated |
-| | `dark--velvet-rose` | Deep plum + ghost letterforms + gold textFill fade |
-| **Productivity / Motivation** | `dark--neon-productivity` | Black + bright neon accents + bold energy |
-| **Creative Agency** | `dark--sage-grain` | Dark sage-grey + grain texture + white cards |
-| | `mixed--spectral-grid` | Indigo + amber/lime/coral + gradient ray-fan |
-| **Finance** | `dark--obsidian-amber` | Near-black + amber glows + ghost numbers |
-| | `bw--swiss-system` | Pure white + ink black + fire red + Swiss design |
+| **Tech / AI / SaaS** | ✅ `dark--cyber-future` | Black bg + cyan/magenta gradients + sharp geometric lines |
+| | ✅ `light--isometric-clean` | White bg + isometric 3D shapes + soft shadows |
+| | 📖 `light--firmwise-saas` | Light blue-grey + electric purple + clean minimal |
+| | 📖 `light--fluid-gradient` | Smooth gradients + ray fans + halftone dots |
+| | 📖 `mixed--chromatic-aberration` | CRT RGB split effect + cyan/pink offset layers |
+| **Investment / Pitch** | ✅ `dark--investor-pitch` | Dark blue + gold accents + data charts |
+| | ✅ `dark--premium-navy` | Navy blue + white/gold + minimal design |
+| | 📖 `light--project-proposal` | White bg + blue/orange accents + professional |
+| | 📖 `light--glassmorphism-vc` | Sky blue + 3D spheres + frosted glass cards |
+| | 📖 `dark--obsidian-amber` | Near-black + amber glows + ghost percentages |
+| **Corporate / Reports** | 📖 `light--minimal-corporate` | White bg + blue/gray tones + clean grid layout |
+| | ✅ `light--minimal-product` | Off-white bg + single brand color + generous whitespace |
+| | 📖 `vivid--pink-editorial` | Pink-purple gradient + massive bold numbers (200pt) |
+| | 📖 `warm--sunset-mosaic` | Rect grid + sunset gradient circle + corporate palette |
+| | 📖 `warm--coral-culture` | Blue-to-coral gradient + vertical bar clusters |
+| **Brand / Marketing** | ✅ `warm--brand-refresh` | Warm orange/coral + rounded shapes + energetic |
+| | ✅ `vivid--playful-marketing` | Multi-color bright palette + fun geometry |
+| | 📖 `vivid--bauhaus-electric` | Electric blue + acid lime + bold geometric rects |
+| **Design / Architecture** | ✅ `bw--swiss-bauhaus` | Black/white + bold sans-serif + geometric grid |
+| | ✅ `dark--architectural-plan` | Dark bg + white lines + blueprint aesthetic |
+| | ✅ `dark--editorial-story` | Editorial magazine layout with story sections |
+| | 📖 `dark--midnight-blueprint` | Navy gradient + ghost numbers + textFill fade |
+| | 📖 `mixed--bauhaus-blocks` | Bauhaus color blocks + stacked circles + flat colors |
+| | 📖 `dark--aurora-softedge` | Aurora colors + layered soft-edge ellipses |
+| | 📖 `warm--monument-editorial` | Warm paper + terracotta + pure typography |
+| **Education / Training** | 📖 `light--training-interactive` | White/light blue + icons + friendly rounded shapes |
+| | ✅ `warm--playful-organic` | Warm pastels + organic curves + soft |
+| | 📖 `warm--bloom-academy` | Organic blob ellipses + layered soft-edge |
+| **Keynotes / Events** | ✅ `dark--spotlight-stage` | Black bg + single spotlight circle + dramatic |
+| | ✅ `dark--liquid-flow` | Dark bg + flowing gradient shapes + smooth |
+| | 📖 `vivid--energy-neon` | Light grey + neon green blocks + editorial |
+| **Developer / Technical** | ✅ `dark--cyber-future` | Black + cyan/magenta + code/terminal aesthetic |
+| | ✅ `dark--blueprint-grid` | Dark navy + white grid lines + technical drawings |
+| | ✅ `dark--diagonal-cut` | Diagonal split with contrasting colors |
+| **Eco / Nature** | ✅ `warm--earth-organic` | Earth tones (brown/green) + organic textures |
+| | 📖 `light--spring-launch` | Pastel greens/yellows + fresh and bright |
+| | 📖 `warm--vital-bloom` | Starburst rays + organic blob ellipses |
+| **Sci-Fi / Space** | ✅ `dark--space-odyssey` | Deep space black + galaxy gradients + stars |
+| | ✅ `dark--cosmic-neon` | Black + neon purple/pink + cosmic particles |
+| **Luxury / Premium** | ✅ `dark--luxury-minimal` | Black + gold lines + ultra-minimal + premium |
+| | ✅ `dark--premium-navy` | Navy + white/gold + sophisticated |
+| | 📖 `dark--velvet-rose` | Deep plum + ghost letterforms + gold textFill fade |
+| **Productivity / Motivation** | ✅ `dark--neon-productivity` | Black + bright neon accents + bold energy |
+| **Creative Agency** | 📖 `dark--sage-grain` | Dark sage-grey + grain texture + white cards |
+| | 📖 `mixed--spectral-grid` | Indigo + amber/lime/coral + gradient ray-fan |
+| | ✅ `dark--circle-digital` | Digital agency with circular motifs |
+| **Minimal / Typography** | ✅ `light--bold-type` | Typography-driven with bold letterforms |
+| | ✅ `bw--brutalist-raw` | Raw brutalist black & white |
+| | ✅ `bw--mono-line` | Monochrome line design |
+| **Data Visualization** | ✅ `mixed--duotone-split` | Duotone color split with data focus |
+| | ✅ `light--watercolor-wash` | Soft watercolor aesthetics |
+| **Vibrant / Energetic** | ✅ `vivid--candy-stripe` | Candy-colored stripes and shapes |
 
 **Remember**: These are inspiration, not templates. Create freely based on your topic's unique character.
 

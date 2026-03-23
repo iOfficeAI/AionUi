@@ -1,131 +1,385 @@
 #!/bin/bash
 set -e
 
-# Generate Python script
-cat << 'PYEOF' > build_internal.py
-import json
-import os
-import subprocess
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/dark__cosmic_neon.pptx"
 
-file_name = "Time_Travel.pptx"
+echo "Building: dark--cosmic-neon (Cosmic Neon Sci-Fi)"
+rm -f "$OUTPUT"
+officecli create "$OUTPUT"
 
-def run_batch(name, batch_data):
-    with open(f"{name}.json", "w", encoding="utf-8") as f:
-        json.dump(batch_data, f)
-    subprocess.run(f"cat {name}.json | officecli batch {file_name}", shell=True, check=True)
+# Colors
+BG=050510
+PURPLE=8A2BE2
+CYAN=00FFFF
+CARD=111122
+WHITE=FFFFFF
+GRAY1=AAAAAA
+GRAY2=CCCCCC
 
-subprocess.run(["officecli", "create", file_name], check=True)
-subprocess.run(["officecli", "add", file_name, "/", "--type", "slide", "--prop", "layout=blank", "--prop", "background=050510"], check=True)
+# Off-canvas position for hidden elements
+OFFSCREEN=36cm
 
-slide1 = [
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!bg-glow1","preset":"ellipse","fill":"8A2BE2","opacity":"0.15","x":"0cm","y":"0cm","width":"15cm","height":"15cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!bg-glow2","preset":"ellipse","fill":"00FFFF","opacity":"0.15","x":"18cm","y":"4cm","width":"15cm","height":"15cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!ring","preset":"donut","fill":"none","line":"00FFFF","lineWidth":"2","x":"25cm","y":"2cm","width":"5cm","height":"5cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!line-top","preset":"rect","fill":"8A2BE2","x":"4cm","y":"2cm","width":"8cm","height":"0.1cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!star1","preset":"star5","fill":"00FFFF","opacity":"0.5","x":"3cm","y":"15cm","width":"1cm","height":"1cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!star2","preset":"star5","fill":"8A2BE2","opacity":"0.5","x":"30cm","y":"12cm","width":"1.5cm","height":"1.5cm"}},
+# ============================================
+# SLIDE 1 - HERO
+# ============================================
+echo "Building Slide 1: Hero..."
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!hero-title","text":"穿越时空：科学还是幻想？","x":"4cm","y":"7cm","width":"26cm","height":"3cm","font":"思源黑体","size":"56","color":"FFFFFF","bold":"true","align":"center"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!hero-sub","text":"从爱因斯坦的相对论到现代量子物理的探索之旅","x":"4cm","y":"10.5cm","width":"26cm","height":"2cm","font":"思源黑体","size":"24","color":"AAAAAA","align":"center"}},
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!statement-text","text":"时间并非绝对的流逝，\n而是一种可以被弯曲的维度。","x":"36cm","y":"0cm","width":"30cm","height":"6cm","font":"思源黑体","size":"44","color":"FFFFFF","bold":"true","align":"center","lineSpacing":"1.5"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!statement-sub","text":"根据广义相对论，引力越强，时间流逝越慢。我们每个人都已经是时间旅行者，只不过只能以每秒一秒的速度走向未来。","x":"36cm","y":"1cm","width":"26cm","height":"4cm","font":"思源黑体","size":"20","color":"AAAAAA","align":"center"}},
+# Scene actors: neon glows
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!bg-glow1' \
+  --prop preset=ellipse \
+  --prop fill=$PURPLE \
+  --prop opacity=0.15 \
+  --prop x=0cm --prop y=0cm --prop width=15cm --prop height=15cm
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-title","text":"物理学中的三种时间旅行可能","x":"36cm","y":"2cm","width":"20cm","height":"2cm","font":"思源黑体","size":"36","color":"FFFFFF","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-1-bg","preset":"roundRect","fill":"111122","opacity":"0.6","x":"36cm","y":"3cm","width":"9cm","height":"11cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-1-title","text":"虫洞理论","x":"36cm","y":"4cm","width":"7cm","height":"1.5cm","font":"思源黑体","size":"28","color":"00FFFF","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-1-desc","text":"连接宇宙中两个遥远时空点的捷径，理论上可以实现瞬间跨越，如爱因斯坦-罗森桥。","x":"36cm","y":"5cm","width":"7cm","height":"6cm","font":"思源黑体","size":"18","color":"CCCCCC","lineSpacing":"1.3"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-2-bg","preset":"roundRect","fill":"111122","opacity":"0.6","x":"36cm","y":"6cm","width":"9cm","height":"11cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-2-title","text":"光速飞行","x":"36cm","y":"7cm","width":"7cm","height":"1.5cm","font":"思源黑体","size":"28","color":"00FFFF","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-2-desc","text":"当物体运动速度接近光速时，自身时间会显著变慢，从而穿越到相对的未来（双生子佯谬）。","x":"36cm","y":"8cm","width":"7cm","height":"6cm","font":"思源黑体","size":"18","color":"CCCCCC","lineSpacing":"1.3"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-3-bg","preset":"roundRect","fill":"111122","opacity":"0.6","x":"36cm","y":"9cm","width":"9cm","height":"11cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-3-title","text":"宇宙弦","x":"36cm","y":"10cm","width":"7cm","height":"1.5cm","font":"思源黑体","size":"28","color":"00FFFF","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!pillar-3-desc","text":"假设存在的高密度能量细丝，其强大的引力场可能导致时空闭合，形成时间循环。","x":"36cm","y":"11cm","width":"7cm","height":"6cm","font":"思源黑体","size":"18","color":"CCCCCC","lineSpacing":"1.3"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!bg-glow2' \
+  --prop preset=ellipse \
+  --prop fill=$CYAN \
+  --prop opacity=0.15 \
+  --prop x=18cm --prop y=4cm --prop width=15cm --prop height=15cm
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-title","text":"时间膨胀的真实观测数据","x":"36cm","y":"12cm","width":"20cm","height":"2cm","font":"思源黑体","size":"36","color":"FFFFFF","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-data","text":"38 微秒","x":"36cm","y":"13cm","width":"12cm","height":"4cm","font":"Montserrat","size":"80","color":"00FFFF","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!evi-desc","text":"GPS卫星每天必须调整38微秒的时钟误差。由于卫星在太空中受到的引力较小且运动速度快，其时间流逝速度与地面不同。如果不修正，GPS定位每天会产生10公里的误差。","x":"36cm","y":"14cm","width":"15cm","height":"8cm","font":"思源黑体","size":"22","color":"CCCCCC","lineSpacing":"1.5"}},
+# Scene actors: decorative elements
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!ring' \
+  --prop preset=donut \
+  --prop fill=none \
+  --prop line=$CYAN \
+  --prop lineWidth=2 \
+  --prop x=25cm --prop y=2cm --prop width=5cm --prop height=5cm
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!cta-title","text":"未来，我们会在过去相遇吗？","x":"36cm","y":"15cm","width":"26cm","height":"3cm","font":"思源黑体","size":"52","color":"FFFFFF","bold":"true","align":"center"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"!!cta-sub","text":"保持对宇宙的敬畏与好奇","x":"36cm","y":"16cm","width":"26cm","height":"2cm","font":"思源黑体","size":"24","color":"00FFFF","align":"center"}}
-]
-run_batch("slide1", slide1)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!line-top' \
+  --prop preset=rect \
+  --prop fill=$PURPLE \
+  --prop x=4cm --prop y=2cm --prop width=8cm --prop height=0.1cm
 
-slide2 = [
-  {"command":"add","parent":"/","from":"/slide[1]","type":"slide"},
-  {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[2]/shape[1]","props":{"x":"10cm","y":"2cm","width":"14cm","height":"14cm"}},
-  {"command":"set","path":"/slide[2]/shape[2]","props":{"x":"5cm","y":"5cm","width":"10cm","height":"10cm"}},
-  {"command":"set","path":"/slide[2]/shape[3]","props":{"x":"15cm","y":"10cm","width":"8cm","height":"8cm"}},
-  {"command":"set","path":"/slide[2]/shape[4]","props":{"x":"12cm","y":"15cm","width":"10cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[2]/shape[5]","props":{"x":"28cm","y":"4cm"}},
-  {"command":"set","path":"/slide[2]/shape[6]","props":{"x":"5cm","y":"10cm"}},
-  {"command":"set","path":"/slide[2]/shape[7]","props":{"x":"36cm","y":"0cm"}},
-  {"command":"set","path":"/slide[2]/shape[8]","props":{"x":"36cm","y":"1cm"}},
-  {"command":"set","path":"/slide[2]/shape[9]","props":{"x":"2cm","y":"6cm"}},
-  {"command":"set","path":"/slide[2]/shape[10]","props":{"x":"4cm","y":"13cm"}}
-]
-run_batch("slide2", slide2)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!star1' \
+  --prop preset=star5 \
+  --prop fill=$CYAN \
+  --prop opacity=0.5 \
+  --prop x=3cm --prop y=15cm --prop width=1cm --prop height=1cm
 
-slide3 = [
-  {"command":"add","parent":"/","from":"/slide[1]","type":"slide"},
-  {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[3]/shape[1]","props":{"x":"0cm","y":"12cm","width":"10cm","height":"10cm"}},
-  {"command":"set","path":"/slide[3]/shape[2]","props":{"x":"23cm","y":"0cm","width":"12cm","height":"12cm"}},
-  {"command":"set","path":"/slide[3]/shape[3]","props":{"x":"30cm","y":"15cm","width":"3cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[4]","props":{"x":"2cm","y":"2cm","width":"5cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[5]","props":{"x":"20cm","y":"2cm"}},
-  {"command":"set","path":"/slide[3]/shape[6]","props":{"x":"10cm","y":"17cm"}},
-  {"command":"set","path":"/slide[3]/shape[7]","props":{"x":"36cm","y":"0cm"}},
-  {"command":"set","path":"/slide[3]/shape[8]","props":{"x":"36cm","y":"1cm"}},
-  {"command":"set","path":"/slide[3]/shape[9]","props":{"x":"36cm","y":"2cm"}},
-  {"command":"set","path":"/slide[3]/shape[10]","props":{"x":"36cm","y":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[11]","props":{"x":"2cm","y":"1.5cm"}},
-  {"command":"set","path":"/slide[3]/shape[12]","props":{"x":"2cm","y":"5cm"}},
-  {"command":"set","path":"/slide[3]/shape[13]","props":{"x":"3cm","y":"6cm"}},
-  {"command":"set","path":"/slide[3]/shape[14]","props":{"x":"3cm","y":"8cm"}},
-  {"command":"set","path":"/slide[3]/shape[15]","props":{"x":"12.5cm","y":"5cm"}},
-  {"command":"set","path":"/slide[3]/shape[16]","props":{"x":"13.5cm","y":"6cm"}},
-  {"command":"set","path":"/slide[3]/shape[17]","props":{"x":"13.5cm","y":"8cm"}},
-  {"command":"set","path":"/slide[3]/shape[18]","props":{"x":"23cm","y":"5cm"}},
-  {"command":"set","path":"/slide[3]/shape[19]","props":{"x":"24cm","y":"6cm"}},
-  {"command":"set","path":"/slide[3]/shape[20]","props":{"x":"24cm","y":"8cm"}}
-]
-run_batch("slide3", slide3)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!star2' \
+  --prop preset=star5 \
+  --prop fill=$PURPLE \
+  --prop opacity=0.5 \
+  --prop x=30cm --prop y=12cm --prop width=1.5cm --prop height=1.5cm
 
-slide4 = [
-  {"command":"add","parent":"/","from":"/slide[1]","type":"slide"},
-  {"command":"set","path":"/slide[4]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[4]/shape[1]","props":{"x":"2cm","y":"4cm","width":"12cm","height":"12cm","fill":"111122","opacity":"0.6"}},
-  {"command":"set","path":"/slide[4]/shape[2]","props":{"x":"16cm","y":"5cm","width":"16cm","height":"10cm","opacity":"0.1"}},
-  {"command":"set","path":"/slide[4]/shape[3]","props":{"x":"5cm","y":"5cm","width":"6cm","height":"6cm"}},
-  {"command":"set","path":"/slide[4]/shape[4]","props":{"x":"15cm","y":"8cm","width":"15cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[5]","props":{"x":"30cm","y":"3cm"}},
-  {"command":"set","path":"/slide[4]/shape[6]","props":{"x":"8cm","y":"16cm"}},
-  {"command":"set","path":"/slide[4]/shape[7]","props":{"x":"36cm","y":"0cm"}},
-  {"command":"set","path":"/slide[4]/shape[8]","props":{"x":"36cm","y":"1cm"}},
-  {"command":"set","path":"/slide[4]/shape[21]","props":{"x":"2cm","y":"1.5cm"}},
-  {"command":"set","path":"/slide[4]/shape[22]","props":{"x":"4cm","y":"8cm"}},
-  {"command":"set","path":"/slide[4]/shape[23]","props":{"x":"16cm","y":"7cm"}}
-]
-run_batch("slide4", slide4)
+# Content: hero title (visible on slide 1)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-title' \
+  --prop text="穿越时空：科学还是幻想？" \
+  --prop font="Arial" \
+  --prop size=56 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=7cm --prop width=26cm --prop height=3cm
 
-slide5 = [
-  {"command":"add","parent":"/","from":"/slide[1]","type":"slide"},
-  {"command":"set","path":"/slide[5]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[5]/shape[1]","props":{"x":"0cm","y":"0cm","width":"15cm","height":"15cm","fill":"8A2BE2","opacity":"0.15"}},
-  {"command":"set","path":"/slide[5]/shape[2]","props":{"x":"18cm","y":"4cm","width":"15cm","height":"15cm"}},
-  {"command":"set","path":"/slide[5]/shape[3]","props":{"x":"25cm","y":"2cm","width":"5cm","height":"5cm"}},
-  {"command":"set","path":"/slide[5]/shape[4]","props":{"x":"13cm","y":"16cm","width":"8cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[5]","props":{"x":"6cm","y":"5cm"}},
-  {"command":"set","path":"/slide[5]/shape[6]","props":{"x":"28cm","y":"15cm"}},
-  {"command":"set","path":"/slide[5]/shape[7]","props":{"x":"36cm","y":"0cm"}},
-  {"command":"set","path":"/slide[5]/shape[8]","props":{"x":"36cm","y":"1cm"}},
-  {"command":"set","path":"/slide[5]/shape[24]","props":{"x":"4cm","y":"7cm"}},
-  {"command":"set","path":"/slide[5]/shape[25]","props":{"x":"4cm","y":"11cm"}}
-]
-run_batch("slide5", slide5)
-PYEOF
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-subtitle' \
+  --prop text="从爱因斯坦的相对论到现代量子物理的探索之旅" \
+  --prop font="Arial" \
+  --prop size=24 \
+  --prop color=$GRAY1 \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=10.5cm --prop width=26cm --prop height=2cm
 
-python3 build_internal.py
-rm build_internal.py slide1.json slide2.json slide3.json slide4.json slide5.json
+# Pre-create hidden content for other slides
+# Statement text (for slide 2)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!statement-text' \
+  --prop text="时间并非绝对的流逝，\n而是一种可以被弯曲的维度。" \
+  --prop font="Arial" \
+  --prop size=44 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop align=center \
+  --prop lineSpacing=1.5 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=0cm --prop width=30cm --prop height=6cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!statement-sub' \
+  --prop text="根据广义相对论，引力越强，时间流逝越慢。我们每个人都已经是时间旅行者，只不过只能以每秒一秒的速度走向未来。" \
+  --prop font="Arial" \
+  --prop size=20 \
+  --prop color=$GRAY1 \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=1cm --prop width=26cm --prop height=4cm
+
+# Pillar elements (for slide 3)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-title' \
+  --prop text="物理学中的三种时间旅行可能" \
+  --prop font="Arial" \
+  --prop size=36 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=2cm --prop width=20cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-1-bg' \
+  --prop preset=roundRect \
+  --prop fill=$CARD \
+  --prop opacity=0.6 \
+  --prop x=${OFFSCREEN} --prop y=3cm --prop width=9cm --prop height=11cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-1-title' \
+  --prop text="虫洞理论" \
+  --prop font="Arial" \
+  --prop size=28 \
+  --prop bold=true \
+  --prop color=$CYAN \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=4cm --prop width=7cm --prop height=1.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-1-desc' \
+  --prop text="连接宇宙中两个遥远时空点的捷径，理论上可以实现瞬间跨越，如爱因斯坦-罗森桥。" \
+  --prop font="Arial" \
+  --prop size=18 \
+  --prop color=$GRAY2 \
+  --prop lineSpacing=1.3 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=5cm --prop width=7cm --prop height=6cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-2-bg' \
+  --prop preset=roundRect \
+  --prop fill=$CARD \
+  --prop opacity=0.6 \
+  --prop x=${OFFSCREEN} --prop y=6cm --prop width=9cm --prop height=11cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-2-title' \
+  --prop text="光速飞行" \
+  --prop font="Arial" \
+  --prop size=28 \
+  --prop bold=true \
+  --prop color=$CYAN \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=7cm --prop width=7cm --prop height=1.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-2-desc' \
+  --prop text="当物体运动速度接近光速时，自身时间会显著变慢，从而穿越到相对的未来（双生子佯谬）。" \
+  --prop font="Arial" \
+  --prop size=18 \
+  --prop color=$GRAY2 \
+  --prop lineSpacing=1.3 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=8cm --prop width=7cm --prop height=6cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-3-bg' \
+  --prop preset=roundRect \
+  --prop fill=$CARD \
+  --prop opacity=0.6 \
+  --prop x=${OFFSCREEN} --prop y=9cm --prop width=9cm --prop height=11cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-3-title' \
+  --prop text="宇宙弦" \
+  --prop font="Arial" \
+  --prop size=28 \
+  --prop bold=true \
+  --prop color=$CYAN \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=10cm --prop width=7cm --prop height=1.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-3-desc' \
+  --prop text="假设存在的高密度能量细丝，其强大的引力场可能导致时空闭合，形成时间循环。" \
+  --prop font="Arial" \
+  --prop size=18 \
+  --prop color=$GRAY2 \
+  --prop lineSpacing=1.3 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=11cm --prop width=7cm --prop height=6cm
+
+# Evidence elements (for slide 4)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!evi-title' \
+  --prop text="时间膨胀的真实观测数据" \
+  --prop font="Arial" \
+  --prop size=36 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=12cm --prop width=20cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!evi-data' \
+  --prop text="38 微秒" \
+  --prop font="Montserrat" \
+  --prop size=80 \
+  --prop bold=true \
+  --prop color=$CYAN \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=13cm --prop width=12cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!evi-desc' \
+  --prop text="GPS卫星每天必须调整38微秒的时钟误差。由于卫星在太空中受到的引力较小且运动速度快，其时间流逝速度与地面不同。如果不修正，GPS定位每天会产生10公里的误差。" \
+  --prop font="Arial" \
+  --prop size=22 \
+  --prop color=$GRAY2 \
+  --prop lineSpacing=1.5 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=14cm --prop width=15cm --prop height=8cm
+
+# CTA elements (for slide 5)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-title' \
+  --prop text="未来，我们会在过去相遇吗？" \
+  --prop font="Arial" \
+  --prop size=52 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=15cm --prop width=26cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-sub' \
+  --prop text="保持对宇宙的敬畏与好奇" \
+  --prop font="Arial" \
+  --prop size=24 \
+  --prop color=$CYAN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=16cm --prop width=26cm --prop height=2cm
+
+# ============================================
+# SLIDE 2 - STATEMENT
+# ============================================
+echo "Building Slide 2: Statement..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[2]' --prop transition=morph
+
+# Move scene actors
+officecli set "$OUTPUT" '/slide[2]/shape[1]' --prop x=10cm --prop y=2cm --prop width=14cm --prop height=14cm
+officecli set "$OUTPUT" '/slide[2]/shape[2]' --prop x=5cm --prop y=5cm --prop width=10cm --prop height=10cm
+officecli set "$OUTPUT" '/slide[2]/shape[3]' --prop x=15cm --prop y=10cm --prop width=8cm --prop height=8cm
+officecli set "$OUTPUT" '/slide[2]/shape[4]' --prop x=12cm --prop y=15cm --prop width=10cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[2]/shape[5]' --prop x=28cm --prop y=4cm
+officecli set "$OUTPUT" '/slide[2]/shape[6]' --prop x=5cm --prop y=10cm
+
+# Hide hero content
+officecli set "$OUTPUT" '/slide[2]/shape[7]' --prop x=${OFFSCREEN} --prop y=0cm
+officecli set "$OUTPUT" '/slide[2]/shape[8]' --prop x=${OFFSCREEN} --prop y=1cm
+
+# Show statement content
+officecli set "$OUTPUT" '/slide[2]/shape[9]' --prop x=2cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[2]/shape[10]' --prop x=4cm --prop y=13cm
+
+# ============================================
+# SLIDE 3 - PILLARS
+# ============================================
+echo "Building Slide 3: Pillars..."
+
+officecli add "$OUTPUT" '/' --from '/slide[2]'
+officecli set "$OUTPUT" '/slide[3]' --prop transition=morph
+
+# Move scene actors
+officecli set "$OUTPUT" '/slide[3]/shape[1]' --prop x=0cm --prop y=12cm --prop width=10cm --prop height=10cm
+officecli set "$OUTPUT" '/slide[3]/shape[2]' --prop x=23cm --prop y=0cm --prop width=12cm --prop height=12cm
+officecli set "$OUTPUT" '/slide[3]/shape[3]' --prop x=30cm --prop y=15cm --prop width=3cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[4]' --prop x=2cm --prop y=2cm --prop width=5cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[3]/shape[5]' --prop x=20cm --prop y=2cm
+officecli set "$OUTPUT" '/slide[3]/shape[6]' --prop x=10cm --prop y=17cm
+
+# Hide statement content
+officecli set "$OUTPUT" '/slide[3]/shape[9]' --prop x=${OFFSCREEN} --prop y=0cm
+officecli set "$OUTPUT" '/slide[3]/shape[10]' --prop x=${OFFSCREEN} --prop y=1cm
+
+# Show pillar content
+officecli set "$OUTPUT" '/slide[3]/shape[11]' --prop x=2cm --prop y=1.5cm
+officecli set "$OUTPUT" '/slide[3]/shape[12]' --prop x=2cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[3]/shape[13]' --prop x=3cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[3]/shape[14]' --prop x=3cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[3]/shape[15]' --prop x=12.5cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[3]/shape[16]' --prop x=13.5cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[3]/shape[17]' --prop x=13.5cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[3]/shape[18]' --prop x=23cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[3]/shape[19]' --prop x=24cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[3]/shape[20]' --prop x=24cm --prop y=8cm
+
+# ============================================
+# SLIDE 4 - EVIDENCE
+# ============================================
+echo "Building Slide 4: Evidence..."
+
+officecli add "$OUTPUT" '/' --from '/slide[3]'
+officecli set "$OUTPUT" '/slide[4]' --prop transition=morph
+
+# Move scene actors
+officecli set "$OUTPUT" '/slide[4]/shape[1]' --prop x=2cm --prop y=4cm --prop width=12cm --prop height=12cm --prop fill=$CARD --prop opacity=0.6
+officecli set "$OUTPUT" '/slide[4]/shape[2]' --prop x=16cm --prop y=5cm --prop width=16cm --prop height=10cm --prop opacity=0.1
+officecli set "$OUTPUT" '/slide[4]/shape[3]' --prop x=5cm --prop y=5cm --prop width=6cm --prop height=6cm
+officecli set "$OUTPUT" '/slide[4]/shape[4]' --prop x=15cm --prop y=8cm --prop width=15cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[4]/shape[5]' --prop x=30cm --prop y=3cm
+officecli set "$OUTPUT" '/slide[4]/shape[6]' --prop x=8cm --prop y=16cm
+
+# Hide pillar content
+officecli set "$OUTPUT" '/slide[4]/shape[11]' --prop x=${OFFSCREEN} --prop y=0cm
+officecli set "$OUTPUT" '/slide[4]/shape[12]' --prop x=${OFFSCREEN} --prop y=1cm
+officecli set "$OUTPUT" '/slide[4]/shape[13]' --prop x=${OFFSCREEN} --prop y=2cm
+officecli set "$OUTPUT" '/slide[4]/shape[14]' --prop x=${OFFSCREEN} --prop y=3cm
+officecli set "$OUTPUT" '/slide[4]/shape[15]' --prop x=${OFFSCREEN} --prop y=4cm
+officecli set "$OUTPUT" '/slide[4]/shape[16]' --prop x=${OFFSCREEN} --prop y=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[17]' --prop x=${OFFSCREEN} --prop y=6cm
+officecli set "$OUTPUT" '/slide[4]/shape[18]' --prop x=${OFFSCREEN} --prop y=7cm
+officecli set "$OUTPUT" '/slide[4]/shape[19]' --prop x=${OFFSCREEN} --prop y=8cm
+officecli set "$OUTPUT" '/slide[4]/shape[20]' --prop x=${OFFSCREEN} --prop y=9cm
+
+# Show evidence content
+officecli set "$OUTPUT" '/slide[4]/shape[21]' --prop x=2cm --prop y=1.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[22]' --prop x=4cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[4]/shape[23]' --prop x=16cm --prop y=7cm
+
+# ============================================
+# SLIDE 5 - CTA
+# ============================================
+echo "Building Slide 5: CTA..."
+
+officecli add "$OUTPUT" '/' --from '/slide[4]'
+officecli set "$OUTPUT" '/slide[5]' --prop transition=morph
+
+# Move scene actors back to original-ish positions
+officecli set "$OUTPUT" '/slide[5]/shape[1]' --prop x=0cm --prop y=0cm --prop width=15cm --prop height=15cm --prop fill=$PURPLE --prop opacity=0.15
+officecli set "$OUTPUT" '/slide[5]/shape[2]' --prop x=18cm --prop y=4cm --prop width=15cm --prop height=15cm
+officecli set "$OUTPUT" '/slide[5]/shape[3]' --prop x=25cm --prop y=2cm --prop width=5cm --prop height=5cm
+officecli set "$OUTPUT" '/slide[5]/shape[4]' --prop x=13cm --prop y=16cm --prop width=8cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[5]/shape[5]' --prop x=6cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[5]/shape[6]' --prop x=28cm --prop y=15cm
+
+# Hide evidence content
+officecli set "$OUTPUT" '/slide[5]/shape[21]' --prop x=${OFFSCREEN} --prop y=0cm
+officecli set "$OUTPUT" '/slide[5]/shape[22]' --prop x=${OFFSCREEN} --prop y=1cm
+officecli set "$OUTPUT" '/slide[5]/shape[23]' --prop x=${OFFSCREEN} --prop y=2cm
+
+# Show CTA content
+officecli set "$OUTPUT" '/slide[5]/shape[24]' --prop x=4cm --prop y=7cm
+officecli set "$OUTPUT" '/slide[5]/shape[25]' --prop x=4cm --prop y=11cm
+
+# ============================================
+# FINAL VALIDATION
+# ============================================
+officecli validate "$OUTPUT"
+officecli view "$OUTPUT" outline
+
+echo "✅ Build complete: $OUTPUT"

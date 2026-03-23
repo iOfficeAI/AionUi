@@ -1,12 +1,19 @@
 # Style Index
 
-The Agent uses this table to quickly select a reference style based on the topic. After selecting, read `<directory>/style.md` to understand the design philosophy; read `build.sh` when you need an implementation reference.
+This index contains **47 visual style examples** to inspire your PPT designs:
+- ✅ **27 styles with working implementations** — have `build.sh` + `.pptx` files you can study
+- 📖 **20 styles with design docs only** — have `style.md` for visual inspiration
 
-**Important Notice**:
+**How to use:**
+- **Styles are optional** — use for inspiration when you need ideas for colors, layouts, or animations
+- You can create **original designs**, follow **user specifications**, or **adapt style patterns**
+- After selecting a style from the table below, read `<directory>/style.md` to understand the design philosophy
+- For styles with `build.sh`, you can study the implementation patterns (but don't copy verbatim)
 
-- The build.sh scripts in these styles are **for reference of design techniques only** (color schemes, shapes, Morph choreography)
-- Some scripts have text overlap, layout misalignment, and other typesetting issues -- **do not copy coordinates and dimensions verbatim**
-- When generating, you must follow the design principles in `pptx-design.md` (text readability, spacing, alignment, etc.)
+**Important:**
+- The build.sh scripts are **for reference of design techniques only** (color schemes, shapes, Morph choreography)
+- Some scripts have text overlap or layout issues — **do not copy coordinates and dimensions verbatim**
+- When generating, follow the design principles in `pptx-design.md` (text readability, spacing, alignment)
 - **Learn the approach, do not copy the code**
 
 ---

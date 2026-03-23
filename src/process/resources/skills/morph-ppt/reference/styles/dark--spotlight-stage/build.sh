@@ -15,8 +15,8 @@ set -e
 #   S4 (18,3) -> S5 (2,2): 16.0cm
 # ============================================================
 
-DECK="morph-templates/v8-showcase/S18-spotlight-stage/template.pptx"
-cd /Users/veryliu/Documents/GitHub/OfficeCli
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DECK="$SCRIPT_DIR/dark__spotlight_stage.pptx"
 
 # Clean & create
 rm -f "$DECK"
