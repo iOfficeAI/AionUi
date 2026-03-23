@@ -20,11 +20,11 @@ The SDK provides: `login()` for QR-code-based authentication, and `start(agent)`
 
 ```
 src/process/channels/plugins/weixin/
-├── WeixinPlugin.ts         # BasePlugin subclass + Promise bridge
-├── WeixinAdapter.ts        # ChatRequest/Response <-> IUnified* conversion
-├── WeixinLogin.ts          # QR code login (independent HTTP implementation)
-├── WeixinLoginHandler.ts   # Main process IPC handler for login flow
-└── index.ts                # Exports
+├── WeixinPlugin.ts       # BasePlugin subclass + Promise bridge
+├── WeixinAdapter.ts      # ChatRequest/Response <-> IUnified* conversion
+├── WeixinLogin.ts        # QR code login (independent HTTP implementation)
+├── WeixinLoginHandler.ts # IPC handler class (instantiated by src/process/ipc/ setup)
+└── index.ts              # Exports
 ```
 
 ### Data Flow
@@ -76,7 +76,7 @@ Extends `BasePlugin`. Implements the `Agent` interface internally as a Promise b
 | `onInitialize(config)` | Validate `accountId` + `botToken` in credentials |
 | `onStart()` | Create `AbortController`; set `_stopping = false`; call `start(agent, { accountId, abortSignal })` |
 | `onStop()` | (1) Set `_stopping = true`; (2) Reject all pending responses with `Error('Plugin stopped')`; (3) Call `abortController.abort()` |
-| `sendMessage(chatId, msg)` | Record `chatId` as initial placeholder key; return `"weixin_pending_{chatId}"` |
+| `async sendMessage(chatId, msg): Promise<string>` | Record `chatId` as initial placeholder key; return `"weixin_pending_{chatId}"` (satisfies `BasePlugin.sendMessage: Promise<string>` override) |
 | `editMessage(chatId, msgId, msg)` | Accumulate text; resolve Promise on `replyMarkup` flag (`msgId` ignored — see note below) |
 | `getActiveUserCount()` | Return size of active users Set |
 | `getBotInfo()` | Return `{ id: accountId, displayName: 'Aion Assistant' }` |
@@ -188,7 +188,7 @@ Renderer                  WeixinLoginHandler (main process)   WeChat Server
 
 ### WeixinLoginHandler
 
-Main process IPC handler. Registered in `src/process/ipc/` alongside other channel IPC handlers.
+Main process IPC handler class. The file lives in `src/process/channels/plugins/weixin/WeixinLoginHandler.ts` and is instantiated and registered from the main IPC setup in `src/process/ipc/` alongside other channel IPC handlers.
 
 Registers the following IPC channels on the `ipcMain`:
 
