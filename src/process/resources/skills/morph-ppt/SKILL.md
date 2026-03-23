@@ -191,13 +191,9 @@ echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
   - **When in doubt, make it wider!** See `reference/pptx-design.md` for details
 
 **Design resources:**
-- `reference/pptx-design.md` — Aesthetics, typography, color, page types, how to learn from styles
+- `reference/pptx-design.md` — Design principles (Canvas, Fonts, Colors, Scene Actors, Page Types, Style References)
 - `reference/officecli-pptx-min.md` — Command syntax
-- `reference/styles/<name>/` — 47 visual style examples (27 with working implementations, 20 design-only)
-  - **Optional inspiration sources** — reference for colors, layouts, animation patterns
-  - You can create original designs, follow user specifications, or adapt style patterns
-  - Implemented styles (`build.sh` available) can be referenced for code patterns
-  - Design-only styles (`style.md` only) provide visual inspiration
+- `reference/styles/<name>/` — Visual style examples (optional inspiration, browse by use case in `styles/INDEX.md`)
 
 ---
 
@@ -275,12 +271,12 @@ Ask user for feedback, support quick adjustments.
 ## References
 
 - `reference/decision-rules.md` — Planning logic, Pyramid Principle
-- `reference/pptx-design.md` — Design principles, page types, style guide
+- `reference/pptx-design.md` — Design principles (Canvas, Fonts, Colors, Scene Actors, Page Types)
 - `reference/officecli-pptx-min.md` — Tool syntax
-- `reference/styles/` — 47 visual style examples (optional inspiration)
+- `reference/styles/INDEX.md` — Visual style examples organized by use case
 
 ---
 
-**First time?** Read "Understanding Morph" above. Styles are available for inspiration if needed, but you can create original designs or follow user specifications. Always use `morph-helpers.sh` workflow. You'll learn by doing.
+**First time?** Read "Understanding Morph" above, skim one style reference for inspiration, then generate. Always use `morph-helpers.sh` workflow. You'll learn by doing.
 
 **Trust yourself.** You have vision, design sense, and the ability to iterate. These tools enable you — your creativity makes it excellent.

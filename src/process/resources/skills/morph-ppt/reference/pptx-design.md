@@ -9,49 +9,6 @@ description: Design principles and aesthetics for Morph PPTs
 
 ---
 
-## 0) How to Learn from Style Examples
-
-The `styles/` directory contains **47 visual style examples**:
-- ✅ **27 with working implementations** (`style.md` + `build.sh` + `.pptx`)
-- 📖 **20 with design docs only** (`style.md`)
-
-### Step 1: Read `style.md` for Design Concepts
-
-**Every style has `style.md`** — start here to understand:
-1. **Color palette** — Which colors work together and why?
-2. **Scene actors** — Which shapes morph across slides (`!!` prefix)?
-3. **Visual hierarchy** — How does spacing/opacity create depth?
-4. **Animation flow** — How do shapes transform slide-to-slide?
-
-### Step 2: Study `build.sh` for Implementation (When Available)
-
-**27 styles have working scripts** — use them to see:
-- How design concepts become code
-- Exact color values and coordinates
-- Scene actor morphing patterns
-- Slide structure and content organization
-
-**How to use:** Read → Reference patterns → Adapt to your content (don't copy verbatim)
-
-### Step 3: Implement Your Own Way
-
-Use the clone + ghost + add workflow from `SKILL.md` Phase 3. Apply what you learned:
-- Define persistent scene actors with `!!` prefix
-- Create slide-specific content with `#sN-` prefix
-- Build color hierarchy that serves your content
-- Make morphing meaningful (8cm+ moves, dramatic transforms)
-
-**Key mindset:** "What makes this design effective?" not "How do I copy this code?"
-
-### When You Need Quick Inspiration
-
-- **Colors** → Browse any `style.md` for palettes
-- **Animation** → Check working examples (`build.sh`) to see scene actor morphing
-- **Layout** → Study implemented styles for card/text arrangements
-- **Mood match** → Pick category (dark/light/warm/vivid/bw) that fits your topic
-
----
-
 ## 1) Canvas & Coordinates
 
 - **Canvas**: 16:9 (33.87cm × 19.05cm)
@@ -143,31 +100,7 @@ Background → Decorative Shapes → Content (text/data)
 
 **Create unique palettes based on topic mood** — there are no universal formulas.
 
-**Study examples** → `reference/styles/` has **47 diverse styles** across categories:
-- `dark--*` (17 styles): Professional, tech, luxury, cosmic themes
-- `light--*` (10 styles): Corporate, product, training, clean themes
-- `warm--*` (11 styles): Organic, creative, editorial, playful themes
-- `bw--*` (4 styles): Minimal, brutalist, swiss, geometric themes
-- `vivid--*` (4 styles): Bold, energetic, candy, electric themes
-- `mixed--*` (4 styles): Duotone, spectral, chromatic, bauhaus themes
-
-**Style availability:**
-- ✅ **27 styles with working implementations** (have `build.sh` + `.pptx`)
-- 📖 **20 styles with design docs only** (have `style.md` for inspiration)
-
-**Selection principles**:
-1. **Match topic mood** → Let content dictate colors, not AI habits
-2. **Vary by project** → Avoid reusing recent styles
-3. **Mix categories** → Combine dark/light/warm elements freely
-4. **Prefer unexpected fits** → Organic style for tech topic? Why not, if it works
-5. **Reference implementations when available** → Working examples show proven patterns
-
-**Examples by mood** (adapt freely, don't copy verbatim):
-- Bold/High-contrast → bw--brutalist-raw, vivid--energy-neon, dark--diagonal-cut
-- Calm/Muted → warm--earth-organic, dark--sage-grain, light--watercolor-wash
-- Premium/Luxury → dark--luxury-minimal, dark--obsidian-amber, bw--swiss-system
-- Playful/Creative → vivid--candy-stripe, warm--playful-organic, mixed--bauhaus-blocks
-- Tech/Modern → dark--cyber-future, light--glassmorphism-vc, mixed--spectral-grid
+**Need inspiration?** Browse `reference/styles/` for color combinations across different moods (dark, light, warm, vivid, bw, mixed).
 
 ---
 
@@ -285,72 +218,7 @@ Mix these to create rhythm. Each serves a different narrative purpose:
 
 ## 6) Style References
 
-Explore `reference/styles/` for inspiration. Each folder contains:
-- **`style.md`** (all 47 styles) — Design philosophy, color palettes, layout concepts
-- **`build.sh` + `.pptx`** (27 styles) — Working implementation you can reference
-
-**Legend:**
-- ✅ = Has working implementation (`build.sh` + `.pptx`)
-- 📖 = Design documentation only (`style.md`)
-
-### Quick Reference by Use Case
-
-| Use Case | Recommended Styles | Visual Features |
-| --- | --- | --- |
-| **Tech / AI / SaaS** | ✅ `dark--cyber-future` | Black bg + cyan/magenta gradients + sharp geometric lines |
-| | ✅ `light--isometric-clean` | White bg + isometric 3D shapes + soft shadows |
-| | 📖 `light--firmwise-saas` | Light blue-grey + electric purple + clean minimal |
-| | 📖 `light--fluid-gradient` | Smooth gradients + ray fans + halftone dots |
-| | 📖 `mixed--chromatic-aberration` | CRT RGB split effect + cyan/pink offset layers |
-| **Investment / Pitch** | ✅ `dark--investor-pitch` | Dark blue + gold accents + data charts |
-| | ✅ `dark--premium-navy` | Navy blue + white/gold + minimal design |
-| | 📖 `light--project-proposal` | White bg + blue/orange accents + professional |
-| | 📖 `light--glassmorphism-vc` | Sky blue + 3D spheres + frosted glass cards |
-| | 📖 `dark--obsidian-amber` | Near-black + amber glows + ghost percentages |
-| **Corporate / Reports** | 📖 `light--minimal-corporate` | White bg + blue/gray tones + clean grid layout |
-| | ✅ `light--minimal-product` | Off-white bg + single brand color + generous whitespace |
-| | 📖 `vivid--pink-editorial` | Pink-purple gradient + massive bold numbers (200pt) |
-| | 📖 `warm--sunset-mosaic` | Rect grid + sunset gradient circle + corporate palette |
-| | 📖 `warm--coral-culture` | Blue-to-coral gradient + vertical bar clusters |
-| **Brand / Marketing** | ✅ `warm--brand-refresh` | Warm orange/coral + rounded shapes + energetic |
-| | ✅ `vivid--playful-marketing` | Multi-color bright palette + fun geometry |
-| | 📖 `vivid--bauhaus-electric` | Electric blue + acid lime + bold geometric rects |
-| **Design / Architecture** | ✅ `bw--swiss-bauhaus` | Black/white + bold sans-serif + geometric grid |
-| | ✅ `dark--architectural-plan` | Dark bg + white lines + blueprint aesthetic |
-| | ✅ `dark--editorial-story` | Editorial magazine layout with story sections |
-| | 📖 `dark--midnight-blueprint` | Navy gradient + ghost numbers + textFill fade |
-| | 📖 `mixed--bauhaus-blocks` | Bauhaus color blocks + stacked circles + flat colors |
-| | 📖 `dark--aurora-softedge` | Aurora colors + layered soft-edge ellipses |
-| | 📖 `warm--monument-editorial` | Warm paper + terracotta + pure typography |
-| **Education / Training** | 📖 `light--training-interactive` | White/light blue + icons + friendly rounded shapes |
-| | ✅ `warm--playful-organic` | Warm pastels + organic curves + soft |
-| | 📖 `warm--bloom-academy` | Organic blob ellipses + layered soft-edge |
-| **Keynotes / Events** | ✅ `dark--spotlight-stage` | Black bg + single spotlight circle + dramatic |
-| | ✅ `dark--liquid-flow` | Dark bg + flowing gradient shapes + smooth |
-| | 📖 `vivid--energy-neon` | Light grey + neon green blocks + editorial |
-| **Developer / Technical** | ✅ `dark--cyber-future` | Black + cyan/magenta + code/terminal aesthetic |
-| | ✅ `dark--blueprint-grid` | Dark navy + white grid lines + technical drawings |
-| | ✅ `dark--diagonal-cut` | Diagonal split with contrasting colors |
-| **Eco / Nature** | ✅ `warm--earth-organic` | Earth tones (brown/green) + organic textures |
-| | 📖 `light--spring-launch` | Pastel greens/yellows + fresh and bright |
-| | 📖 `warm--vital-bloom` | Starburst rays + organic blob ellipses |
-| **Sci-Fi / Space** | ✅ `dark--space-odyssey` | Deep space black + galaxy gradients + stars |
-| | ✅ `dark--cosmic-neon` | Black + neon purple/pink + cosmic particles |
-| **Luxury / Premium** | ✅ `dark--luxury-minimal` | Black + gold lines + ultra-minimal + premium |
-| | ✅ `dark--premium-navy` | Navy + white/gold + sophisticated |
-| | 📖 `dark--velvet-rose` | Deep plum + ghost letterforms + gold textFill fade |
-| **Productivity / Motivation** | ✅ `dark--neon-productivity` | Black + bright neon accents + bold energy |
-| **Creative Agency** | 📖 `dark--sage-grain` | Dark sage-grey + grain texture + white cards |
-| | 📖 `mixed--spectral-grid` | Indigo + amber/lime/coral + gradient ray-fan |
-| | ✅ `dark--circle-digital` | Digital agency with circular motifs |
-| **Minimal / Typography** | ✅ `light--bold-type` | Typography-driven with bold letterforms |
-| | ✅ `bw--brutalist-raw` | Raw brutalist black & white |
-| | ✅ `bw--mono-line` | Monochrome line design |
-| **Data Visualization** | ✅ `mixed--duotone-split` | Duotone color split with data focus |
-| | ✅ `light--watercolor-wash` | Soft watercolor aesthetics |
-| **Vibrant / Energetic** | ✅ `vivid--candy-stripe` | Candy-colored stripes and shapes |
-
-**Remember**: These are inspiration, not templates. Create freely based on your topic's unique character.
+Browse `reference/styles/` for design inspiration. See `reference/styles/INDEX.md` for a complete catalog organized by use case.
 
 ---
 
