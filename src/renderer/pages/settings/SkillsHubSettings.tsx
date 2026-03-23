@@ -52,6 +52,11 @@ const SkillsHubSettings: React.FC = () => {
   const [customPathValue, setCustomPathValue] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  /** Filter external sources to only those with importable skills */
+  const filterImportableSources = (sources: ExternalSource[]) => sources.filter((s) => s.skills.length > 0);
+
+  const importSources = useMemo(() => filterImportableSources(externalSources), [externalSources]);
+
   const filteredSkills = useMemo(() => {
     if (!searchQuery.trim()) return availableSkills;
     const lowerQuery = searchQuery.toLowerCase();
@@ -70,8 +75,9 @@ const SkillsHubSettings: React.FC = () => {
       const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
       if (external.success && external.data) {
         setExternalSources(external.data);
-        if (external.data.length > 0 && !activeSourceTab) {
-          setActiveSourceTab(external.data[0].source);
+        const importable = external.data.filter((s) => s.skills.length > 0);
+        if (importable.length > 0 && !activeSourceTab) {
+          setActiveSourceTab(importable[0].source);
         }
       }
 
@@ -161,8 +167,9 @@ const SkillsHubSettings: React.FC = () => {
       const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
       if (external.success && external.data) {
         setExternalSources(external.data);
-        if (external.data.length > 0 && !external.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(external.data[0].source);
+        const importable = external.data.filter((s) => s.skills.length > 0);
+        if (importable.length > 0 && !importable.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(importable[0].source);
         }
       }
       Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
@@ -193,8 +200,8 @@ const SkillsHubSettings: React.FC = () => {
     }
   }, [customPathName, customPathValue, handleRefreshExternal]);
 
-  const totalExternal = externalSources.reduce((sum, src) => sum + src.skills.length, 0);
-  const activeSource = externalSources.find((s) => s.source === activeSourceTab);
+  const totalExternal = importSources.reduce((sum, src) => sum + src.skills.length, 0);
+  const activeSource = importSources.find((s) => s.source === activeSourceTab);
 
   const filteredExternalSkills = useMemo(() => {
     if (!activeSource) return [];
@@ -256,7 +263,7 @@ const SkillsHubSettings: React.FC = () => {
 
                 {/* Toolbar (Tabs) */}
                 <div className='flex flex-wrap items-center gap-8px mb-20px relative z-10 w-full'>
-                  {externalSources.map((source) => {
+                  {importSources.map((source) => {
                     const isActive = activeSourceTab === source.source;
                     return (
                       <button

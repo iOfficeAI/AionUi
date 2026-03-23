@@ -351,6 +351,10 @@ describe('fsBridge skills functionality', () => {
       mockFsStore[workBase] = { isDirectory: true };
       mockFsStore[path.join(workBase, 'custom_external_skill_paths.json')] = { isDirectory: false }; // Let it use mockCustomExternalPaths
 
+      // Parent directories must exist for detection (builtin checks parent, custom checks path itself)
+      mockFsStore[path.resolve('/mock/home/.gemini')] = { isDirectory: true };
+      mockFsStore[customSrcPath] = { isDirectory: true };
+
       const yamlDirect1 = `---\nname: DirectGemini\ndescription: direct gemini skill\n---`;
       const yamlNested1 = `---\nname: NestedGemini\n---`;
       const yamlCustom = `---\nname: CustomExtSkill\n---`;
@@ -400,6 +404,43 @@ describe('fsBridge skills functionality', () => {
       expect(customGroup).toBeDefined();
       expect(customGroup.skills).toHaveLength(1);
       expect(customGroup.skills[0].name).toBe('CustomExtSkill');
+    });
+
+    it('should include installed CLIs with empty skills directories', async () => {
+      const codexParent = path.resolve('/mock/home/.codex');
+      const codexSkills = path.resolve('/mock/home/.codex/skills');
+      mockFsStore[codexParent] = { isDirectory: true };
+      mockFsStore[codexSkills] = { isDirectory: true };
+      // No skill entries inside
+
+      const workBase = path.resolve('/mock/work');
+      mockFsStore[workBase] = { isDirectory: true };
+
+      const handler = await getProvider('detectAndCountExternalSkills');
+      const result = await handler();
+
+      expect(result.success).toBe(true);
+      const codexGroup = result.data.find((d: any) => d.source === 'codex');
+      expect(codexGroup).toBeDefined();
+      expect(codexGroup.name).toBe('Codex');
+      expect(codexGroup.skills).toHaveLength(0);
+    });
+
+    it('should include CLI when parent dir exists but skills/ does not', async () => {
+      const geminiParent = path.resolve('/mock/home/.gemini');
+      mockFsStore[geminiParent] = { isDirectory: true };
+      // No skills directory at all
+
+      const workBase = path.resolve('/mock/work');
+      mockFsStore[workBase] = { isDirectory: true };
+
+      const handler = await getProvider('detectAndCountExternalSkills');
+      const result = await handler();
+
+      expect(result.success).toBe(true);
+      const geminiGroup = result.data.find((d: any) => d.source === 'gemini');
+      expect(geminiGroup).toBeDefined();
+      expect(geminiGroup.skills).toHaveLength(0);
     });
   });
 

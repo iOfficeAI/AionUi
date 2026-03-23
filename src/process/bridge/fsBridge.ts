@@ -1200,6 +1200,7 @@ export function initFsBridge(): void {
         { name: 'Global Agents', path: path.join(homedir, '.agents', 'skills'), source: 'global-agents' },
         { name: 'Gemini CLI', path: path.join(homedir, '.gemini', 'skills'), source: 'gemini' },
         { name: 'Claude Code', path: path.join(homedir, '.claude', 'skills'), source: 'claude' },
+        { name: 'Codex', path: path.join(homedir, '.codex', 'skills'), source: 'codex' },
         { name: 'OpenCode', path: path.join(homedir, '.config', 'opencode', 'skills'), source: 'opencode' },
         { name: 'OpenCode (Alt)', path: path.join(homedir, '.opencode', 'skills'), source: 'opencode-alt' },
       ];
@@ -1219,10 +1220,22 @@ export function initFsBridge(): void {
       }> = [];
 
       for (const candidate of candidates) {
+        // For custom paths: check the path itself (user explicitly chose it)
+        // For builtin candidates: check parent directory (= CLI is installed)
+        const isCustom = candidate.source.startsWith('custom-');
+        const checkDir = isCustom ? candidate.path : path.dirname(candidate.path);
+        try {
+          await fs.access(checkDir);
+        } catch {
+          continue; // CLI not installed (or custom path invalid), skip
+        }
+
+        const skills: Array<{ name: string; description: string; path: string }> = [];
+
+        // Try to scan skills directory (may not exist for builtin candidates)
         try {
           await fs.access(candidate.path);
           const entries = await fs.readdir(candidate.path, { withFileTypes: true });
-          const skills: Array<{ name: string; description: string; path: string }> = [];
 
           for (const entry of entries) {
             if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
@@ -1272,13 +1285,12 @@ export function initFsBridge(): void {
               // No nested skills/ dir
             }
           }
-
-          if (skills.length > 0) {
-            results.push({ name: candidate.name, path: candidate.path, source: candidate.source, skills });
-          }
         } catch {
-          // Path doesn't exist
+          // skills/ dir doesn't exist — that's fine, just means no importable skills
         }
+
+        // Always include installed CLI, even with empty skills
+        results.push({ name: candidate.name, path: candidate.path, source: candidate.source, skills });
       }
 
       return {

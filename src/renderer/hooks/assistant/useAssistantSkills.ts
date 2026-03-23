@@ -55,9 +55,10 @@ export const useAssistantSkills = ({
     try {
       const response = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
       if (response.success && response.data) {
-        setExternalSources(response.data);
-        if (response.data.length > 0 && !response.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(response.data[0].source);
+        const importable = response.data.filter((s) => s.skills.length > 0);
+        setExternalSources(importable);
+        if (importable.length > 0 && !importable.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(importable[0].source);
         }
       }
     } catch (error) {
