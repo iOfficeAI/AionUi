@@ -1,7 +1,7 @@
 # WeChat (Weixin) Plugin Design
 
 **Date:** 2026-03-23
-**Status:** Approved
+**Status:** Approved (v2 — post-review fixes)
 **Scope:** `src/process/channels/plugins/weixin/`
 
 ---
@@ -20,10 +20,11 @@ The SDK provides: `login()` for QR-code-based authentication, and `start(agent)`
 
 ```
 src/process/channels/plugins/weixin/
-├── WeixinPlugin.ts    # BasePlugin subclass + Promise bridge
-├── WeixinAdapter.ts   # ChatRequest/Response <-> IUnified* conversion
-├── WeixinLogin.ts     # QR code login (independent HTTP implementation)
-└── index.ts           # Exports
+├── WeixinPlugin.ts         # BasePlugin subclass + Promise bridge
+├── WeixinAdapter.ts        # ChatRequest/Response <-> IUnified* conversion
+├── WeixinLogin.ts          # QR code login (independent HTTP implementation)
+├── WeixinLoginHandler.ts   # Main process IPC handler for login flow
+└── index.ts                # Exports
 ```
 
 ### Data Flow
@@ -72,14 +73,17 @@ Extends `BasePlugin`. Implements the `Agent` interface internally as a Promise b
 
 | Method | Behavior |
 |--------|----------|
-| `onInitialize(config)` | Validate accountId + botToken credentials |
-| `onStart()` | Create AbortController; call `start(agent, { accountId, abortSignal })` |
-| `onStop()` | Call `abortController.abort()`; reject all pending responses |
-| `sendMessage(chatId, msg)` | Record initial placeholder; return `"weixin_pending_{chatId}"` |
-| `editMessage(chatId, msgId, msg)` | Accumulate text; resolve Promise on `replyMarkup` flag |
+| `onInitialize(config)` | Validate `accountId` + `botToken` in credentials |
+| `onStart()` | Create `AbortController`; set `_stopping = false`; call `start(agent, { accountId, abortSignal })` |
+| `onStop()` | (1) Set `_stopping = true`; (2) Reject all pending responses with `Error('Plugin stopped')`; (3) Call `abortController.abort()` |
+| `sendMessage(chatId, msg)` | Record `chatId` as initial placeholder key; return `"weixin_pending_{chatId}"` |
+| `editMessage(chatId, msgId, msg)` | Accumulate text; resolve Promise on `replyMarkup` flag (`msgId` ignored — see note below) |
 | `getActiveUserCount()` | Return size of active users Set |
-| `getBotInfo()` | Return `{ displayName: 'Aion Assistant' }` |
-| `testConnection()` | Verify local credential file exists; no network call |
+| `getBotInfo()` | Return `{ id: accountId, displayName: 'Aion Assistant' }` |
+
+**`static async testConnection(accountId: string, botToken?: string)`** — static override of `BasePlugin.testConnection`. Verifies local credential file exists at `~/.openclaw/openclaw-weixin/accounts/<accountId>.json` and that it contains a valid token. No network call.
+
+> Note on `msgId` in `editMessage`: WeChat does not support message editing. The `pendingResponses` map is keyed by `chatId` (= WeChat user ID), not `msgId`. The `msgId` parameter is intentionally ignored.
 
 ### Promise Bridge
 
@@ -92,51 +96,58 @@ interface PendingResponse {
   timer: NodeJS.Timeout          // 5-minute timeout
 }
 
-// Map keyed by conversationId (= WeChat user ID = chatId)
+// Map keyed by chatId (= WeChat conversationId = user ID)
 pendingResponses: Map<string, PendingResponse>
+
+// Prevents new entries after onStop() is called
+_stopping: boolean
 ```
+
+**Concurrent request handling:** If `agent.chat(request)` is called while a `PendingResponse` already exists for the same `conversationId` (user sends a second message before AI responds), the existing entry is rejected with `Error('superseded')` and a new entry is created. This ensures the latest user message always gets processed.
 
 **Resolution flow:**
 
-1. `agent.chat(request)` called → create `PendingResponse`, call `emitMessage()`, suspend Promise
-2. `sendMessage(chatId, msg)` → record messageId (placeholder), do NOT resolve yet
-3. `editMessage(chatId, msgId, msg)` → accumulate `msg.text`; if `msg.media` present, store it
-4. `editMessage` with `msg.replyMarkup` set → `resolve({ text: accumulatedText, media: mediaResponse })`
-5. Timeout (5 min) → `reject(new Error('Response timeout'))`; SDK built-in error-notice notifies user
-
-**chatId mapping:** WeChat `conversationId` is the WeChat user ID. It maps directly to `chatId` with no encoding (unlike DingTalk's `user:xxx` / `group:xxx` format).
+1. `agent.chat(request)` called:
+   - If `_stopping` → immediately reject with `Error('Plugin stopped')`
+   - If existing pending for `conversationId` → reject old with `Error('superseded')`, clear its timer
+   - Create new `PendingResponse`, set 5-minute timer, call `emitMessage()`, suspend Promise
+2. `sendMessage(chatId, msg)` → record placeholder, return `"weixin_pending_{chatId}"` (do NOT resolve)
+3. `editMessage(chatId, msgId, msg)` → accumulate `msg.text`; if `msg.type === 'image'` or `msg.type === 'file'`, store media; if `msg.replyMarkup` set → resolve and clear timer
+4. Timeout → `reject(new Error('Response timeout'))`; SDK built-in error-notice notifies user
 
 ### WeixinAdapter
 
 Stateless conversion functions.
 
-**Inbound:** `toUnifiedIncomingMessage(request: ChatRequest, platform: 'weixin'): IUnifiedIncomingMessage`
+**Inbound:** `toUnifiedIncomingMessage(request: ChatRequest): IUnifiedIncomingMessage`
 
-| ChatRequest field | IUnifiedIncomingMessage field |
-|-------------------|-------------------------------|
-| `conversationId` | `id`, `chatId`, `user.id` |
-| `text` | `content.text` |
-| `media.type` | `content.type` (`image→photo`, `audio→audio`, `video→video`, `file→document`) |
-| `media.filePath` | `content.attachments[0].fileId` (local decrypted path) |
-| `media.mimeType` | `content.attachments[0].mimeType` |
-| `media.fileName` | `content.attachments[0].fileName` |
+| ChatRequest field | IUnifiedIncomingMessage field | Notes |
+|-------------------|-------------------------------|-------|
+| `conversationId` | `id`, `chatId`, `user.id` | WeChat user ID |
+| `conversationId` (last 6 chars) | `user.displayName` | Fallback if no name available |
+| `text` | `content.text` | |
+| `media.type` | `content.type` | `image→photo`, `audio→audio`, `video→video`, `file→document` |
+| `media.filePath` | `content.attachments[0].fileId` | Local decrypted path (SDK handles download+decrypt) |
+| `media.mimeType` | `content.attachments[0].mimeType` | |
+| `media.fileName` | `content.attachments[0].fileName` | File attachments only |
+| `Date.now()` | `timestamp` | SDK `ChatRequest` has no timestamp field |
+| `'weixin'` | `platform` | |
 
-Note: SDK automatically downloads, decrypts, and transcodes media (silk→wav for audio) before calling `agent.chat()`. No additional media processing needed.
+Note: SDK automatically downloads, decrypts, and transcodes media (silk→wav for audio) before calling `agent.chat()`. No additional media processing needed in the adapter.
 
 **Outbound:** `toChatResponse(message: IUnifiedOutgoingMessage): ChatResponse`
 
-| IUnifiedOutgoingMessage field | ChatResponse field |
-|-------------------------------|-------------------|
-| `text` | `text` (Markdown auto-converted to plain text by SDK) |
-| `media.url` | `media.url` (local path or HTTPS URL) |
-| `media.type` | `media.type` (`photo→image`, `document→file`) |
-| `media.fileName` | `media.fileName` |
-| `buttons` / `replyMarkup` | Ignored (iLink Bot does not support interactive cards) |
+| IUnifiedOutgoingMessage | ChatResponse | Notes |
+|-------------------------|--------------|-------|
+| `text` | `text` | Markdown auto-converted to plain text by SDK |
+| `type === 'image'` + `imageUrl` | `media: { type: 'image', url: imageUrl }` | |
+| `type === 'file'` + `fileUrl` + `fileName` | `media: { type: 'file', url: fileUrl, fileName }` | |
+| `buttons` / `replyMarkup` | Ignored | iLink Bot does not support interactive cards |
 
 **Media type support:**
 
-| AionUi unified type | WeChat SDK type | Notes |
-|--------------------|-----------------|-------|
+| AionUi unified type | WeChat SDK type | Direction |
+|--------------------|-----------------|-----------|
 | `photo` | `image` | Receive + send |
 | `audio` | — | Receive only (SDK transcodes silk→wav); cannot send |
 | `video` | `video` | Receive + send |
@@ -153,7 +164,7 @@ Independent HTTP implementation for the QR-code login flow. Does NOT use SDK's `
 **Login sequence:**
 
 ```
-Renderer                  Main Process (WeixinLogin)         WeChat Server
+Renderer                  WeixinLoginHandler (main process)   WeChat Server
    │                               │                               │
    │── "weixin:login:start" ──→    │                               │
    │                     POST get_bot_qrcode ──────────────────→   │
@@ -175,6 +186,21 @@ Renderer                  Main Process (WeixinLogin)         WeChat Server
 
 **QR code expiry:** On `expired` status, re-fetch QR code (max 3 retries, matching SDK behavior).
 
+### WeixinLoginHandler
+
+Main process IPC handler. Registered in `src/process/ipc/` alongside other channel IPC handlers.
+
+Registers the following IPC channels on the `ipcMain`:
+
+| Channel | Direction | Description |
+|---------|-----------|-------------|
+| `weixin:login:start` | renderer → main | Trigger login; returns `accountId` on success |
+| `weixin:login:qr` | main → renderer | Push QR code URL to UI |
+| `weixin:login:scanned` | main → renderer | Notify QR code scanned |
+| `weixin:login:done` | main → renderer | Notify login complete with `accountId` |
+
+Exposed to renderer via `src/preload.ts` under a `weixin` namespace, consistent with the existing IPC bridge pattern.
+
 ---
 
 ## Type Changes
@@ -182,11 +208,14 @@ Renderer                  Main Process (WeixinLogin)         WeChat Server
 ### `src/process/channels/types.ts`
 
 ```typescript
-// Add 'weixin' to built-in plugin types
+// 1. Add 'weixin' to built-in plugin types
 export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin'
 
-// Add weixin case to hasPluginCredentials()
+// 2. Add weixin case to hasPluginCredentials()
 if (type === 'weixin') return !!(credentials.accountId && credentials.botToken)
+
+// 3. Add weixin to shortPlatform mapping (used in conversation name formatting)
+const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding', weixin: 'wx' }
 ```
 
 No new fields needed in `IPluginCredentials` — the existing index signature `[key: string]: string | ...` covers `accountId`, `botToken`, and `baseUrl`.
@@ -206,7 +235,8 @@ export * from './weixin/WeixinAdapter'
 | Scenario | Handling |
 |----------|----------|
 | Response timeout (5 min) | Reject pending Promise; SDK error-notice sends user-facing error message |
-| `onStop()` called with pending responses | Reject all pending Promises with `Error('Plugin stopped')` |
+| User sends 2nd message before AI responds | Reject old Promise with `Error('superseded')`; process new message |
+| `onStop()` called with pending responses | (1) Set `_stopping`; (2) Reject all pending; (3) Abort SDK |
 | SDK long-poll failure | SDK handles internally (retry with backoff, session guard) |
 | Login QR expired | Re-fetch QR code, update UI (max 3 retries) |
 | Invalid credentials on start | Throw in `onStart()` → plugin enters `error` status |
