@@ -82,6 +82,7 @@
         "turndown": "^7.2.2",
         "turndown-plugin-gfm": "^1.0.2",
         "web-tree-sitter": "^0.25.10",
+        "weixin-agent-sdk": "^0.1.0",
         "ws": "^8.18.3",
         "xlsx-republish": "^0.20.3",
         "zod": "^3.25.76",
@@ -3548,6 +3549,8 @@
     "webidl-conversions": ["webidl-conversions@8.0.1", "", {}, "sha512-BMhLD/Sw+GbJC21C/UgyaZX41nPt8bUTg+jWyDeg7e7YN4xOM05YPSIXceACnXVtqyEw/LMClUQMtMZ+PGGpqQ=="],
 
     "webpack-virtual-modules": ["webpack-virtual-modules@0.6.2", "", {}, "sha512-66/V2i5hQanC51vBQKPH4aI8NMAcBW59FVBs+rC7eGHupMyfn34q7rZIE+ETlJ+XTevqfUhVVBgSUNSW2flEUQ=="],
+
+    "weixin-agent-sdk": ["weixin-agent-sdk@0.1.0", "", { "dependencies": { "qrcode-terminal": "0.12.0" } }, "sha512-w/EVit3HlL2wvZ9wPTS6EFJOHMZRqt3HBKxh1/JRTTvb7Qfv8cvR9p4aWB+w5gR1Lf5TOyAxXGdP861ik7VRSQ=="],
 
     "whatwg-mimetype": ["whatwg-mimetype@5.0.0", "", {}, "sha512-sXcNcHOC51uPGF0P/D4NVtrkjSU2fNsm9iog4ZvZJsL3rjoDAzXZhkm2MWt1y+PUdggKAYVoMAIYcs78wJ51Cw=="],
 
