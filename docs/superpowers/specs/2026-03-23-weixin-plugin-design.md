@@ -61,25 +61,26 @@ Extends `BasePlugin`. Implements the `Agent` interface internally as a Promise b
 **Type:** `'weixin'`
 
 **Credentials:**
+
 ```typescript
 {
-  accountId: string   // logged-in account ID, passed to SDK start()
-  botToken: string    // iLink Bot token (used by SDK internally)
-  baseUrl: string     // API base URL, default: https://ilinkai.weixin.qq.com
+  accountId: string; // logged-in account ID, passed to SDK start()
+  botToken: string; // iLink Bot token (used by SDK internally)
+  baseUrl: string; // API base URL, default: https://ilinkai.weixin.qq.com
 }
 ```
 
 **Lifecycle:**
 
-| Method | Behavior |
-|--------|----------|
-| `onInitialize(config)` | Validate `accountId` + `botToken` in credentials |
-| `onStart()` | Create `AbortController`; set `_stopping = false`; call `start(agent, { accountId, abortSignal })` |
-| `onStop()` | (1) Set `_stopping = true`; (2) Reject all pending responses with `Error('Plugin stopped')`; (3) Call `abortController.abort()` |
+| Method                                            | Behavior                                                                                                                                      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onInitialize(config)`                            | Validate `accountId` + `botToken` in credentials                                                                                              |
+| `onStart()`                                       | Create `AbortController`; set `_stopping = false`; call `start(agent, { accountId, abortSignal })`                                            |
+| `onStop()`                                        | (1) Set `_stopping = true`; (2) Reject all pending responses with `Error('Plugin stopped')`; (3) Call `abortController.abort()`               |
 | `async sendMessage(chatId, msg): Promise<string>` | Record `chatId` as initial placeholder key; return `"weixin_pending_{chatId}"` (satisfies `BasePlugin.sendMessage: Promise<string>` override) |
-| `editMessage(chatId, msgId, msg)` | Accumulate text; resolve Promise on `replyMarkup` flag (`msgId` ignored — see note below) |
-| `getActiveUserCount()` | Return size of active users Set |
-| `getBotInfo()` | Return `{ id: accountId, displayName: 'Aion Assistant' }` |
+| `editMessage(chatId, msgId, msg)`                 | Accumulate text; resolve Promise on `replyMarkup` flag (`msgId` ignored — see note below)                                                     |
+| `getActiveUserCount()`                            | Return size of active users Set                                                                                                               |
+| `getBotInfo()`                                    | Return `{ id: accountId, displayName: 'Aion Assistant' }`                                                                                     |
 
 **`static async testConnection(accountId: string, botToken?: string)`** — static override of `BasePlugin.testConnection`. Verifies local credential file exists at `~/.openclaw/openclaw-weixin/accounts/<accountId>.json` and that it contains a valid token. No network call.
 
@@ -89,18 +90,18 @@ Extends `BasePlugin`. Implements the `Agent` interface internally as a Promise b
 
 ```typescript
 interface PendingResponse {
-  resolve: (response: ChatResponse) => void
-  reject: (error: Error) => void
-  accumulatedText: string        // collects streaming text chunks
-  mediaResponse?: ChatResponse['media']
-  timer: NodeJS.Timeout          // 5-minute timeout
+  resolve: (response: ChatResponse) => void;
+  reject: (error: Error) => void;
+  accumulatedText: string; // collects streaming text chunks
+  mediaResponse?: ChatResponse['media'];
+  timer: NodeJS.Timeout; // 5-minute timeout
 }
 
 // Map keyed by chatId (= WeChat conversationId = user ID)
-pendingResponses: Map<string, PendingResponse>
+pendingResponses: Map<string, PendingResponse>;
 
 // Prevents new entries after onStop() is called
-_stopping: boolean
+_stopping: boolean;
 ```
 
 **Concurrent request handling:** If `agent.chat(request)` is called while a `PendingResponse` already exists for the same `conversationId` (user sends a second message before AI responds), the existing entry is rejected with `Error('superseded')` and a new entry is created. This ensures the latest user message always gets processed.
@@ -121,43 +122,44 @@ Stateless conversion functions.
 
 **Inbound:** `toUnifiedIncomingMessage(request: ChatRequest): IUnifiedIncomingMessage`
 
-| ChatRequest field | IUnifiedIncomingMessage field | Notes |
-|-------------------|-------------------------------|-------|
-| `conversationId` | `id`, `chatId`, `user.id` | WeChat user ID |
-| `conversationId` (last 6 chars) | `user.displayName` | Fallback if no name available |
-| `text` | `content.text` | |
-| `media.type` | `content.type` | `image→photo`, `audio→audio`, `video→video`, `file→document` |
-| `media.filePath` | `content.attachments[0].fileId` | Local decrypted path (SDK handles download+decrypt) |
-| `media.mimeType` | `content.attachments[0].mimeType` | |
-| `media.fileName` | `content.attachments[0].fileName` | File attachments only |
-| `Date.now()` | `timestamp` | SDK `ChatRequest` has no timestamp field |
-| `'weixin'` | `platform` | |
+| ChatRequest field               | IUnifiedIncomingMessage field     | Notes                                                        |
+| ------------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| `conversationId`                | `id`, `chatId`, `user.id`         | WeChat user ID                                               |
+| `conversationId` (last 6 chars) | `user.displayName`                | Fallback if no name available                                |
+| `text`                          | `content.text`                    |                                                              |
+| `media.type`                    | `content.type`                    | `image→photo`, `audio→audio`, `video→video`, `file→document` |
+| `media.filePath`                | `content.attachments[0].fileId`   | Local decrypted path (SDK handles download+decrypt)          |
+| `media.mimeType`                | `content.attachments[0].mimeType` |                                                              |
+| `media.fileName`                | `content.attachments[0].fileName` | File attachments only                                        |
+| `Date.now()`                    | `timestamp`                       | SDK `ChatRequest` has no timestamp field                     |
+| `'weixin'`                      | `platform`                        |                                                              |
 
 Note: SDK automatically downloads, decrypts, and transcodes media (silk→wav for audio) before calling `agent.chat()`. No additional media processing needed in the adapter.
 
 **Outbound:** `toChatResponse(message: IUnifiedOutgoingMessage): ChatResponse`
 
-| IUnifiedOutgoingMessage | ChatResponse | Notes |
-|-------------------------|--------------|-------|
-| `text` | `text` | Markdown auto-converted to plain text by SDK |
-| `type === 'image'` + `imageUrl` | `media: { type: 'image', url: imageUrl }` | |
-| `type === 'file'` + `fileUrl` + `fileName` | `media: { type: 'file', url: fileUrl, fileName }` | |
-| `buttons` / `replyMarkup` | Ignored | iLink Bot does not support interactive cards |
+| IUnifiedOutgoingMessage                    | ChatResponse                                      | Notes                                        |
+| ------------------------------------------ | ------------------------------------------------- | -------------------------------------------- |
+| `text`                                     | `text`                                            | Markdown auto-converted to plain text by SDK |
+| `type === 'image'` + `imageUrl`            | `media: { type: 'image', url: imageUrl }`         |                                              |
+| `type === 'file'` + `fileUrl` + `fileName` | `media: { type: 'file', url: fileUrl, fileName }` |                                              |
+| `buttons` / `replyMarkup`                  | Ignored                                           | iLink Bot does not support interactive cards |
 
 **Media type support:**
 
-| AionUi unified type | WeChat SDK type | Direction |
-|--------------------|-----------------|-----------|
-| `photo` | `image` | Receive + send |
-| `audio` | — | Receive only (SDK transcodes silk→wav); cannot send |
-| `video` | `video` | Receive + send |
-| `document` | `file` | Receive + send |
+| AionUi unified type | WeChat SDK type | Direction                                           |
+| ------------------- | --------------- | --------------------------------------------------- |
+| `photo`             | `image`         | Receive + send                                      |
+| `audio`             | —               | Receive only (SDK transcodes silk→wav); cannot send |
+| `video`             | `video`         | Receive + send                                      |
+| `document`          | `file`          | Receive + send                                      |
 
 ### WeixinLogin
 
 Independent HTTP implementation for the QR-code login flow. Does NOT use SDK's `login()` (which only supports terminal output). Calls two WeChat API endpoints directly.
 
 **Endpoints used:**
+
 - `POST ilink/bot/get_bot_qrcode` → `{ qrcode_url, ticket }`
 - `POST ilink/bot/get_qrcode_status` → `{ status: 'wait' | 'scaned' | 'expired' | 'confirmed', botToken?, baseUrl? }`
 
@@ -192,12 +194,12 @@ Main process IPC handler class. The file lives in `src/process/channels/plugins/
 
 Registers the following IPC channels on the `ipcMain`:
 
-| Channel | Direction | Description |
-|---------|-----------|-------------|
-| `weixin:login:start` | renderer → main | Trigger login; returns `accountId` on success |
-| `weixin:login:qr` | main → renderer | Push QR code URL to UI |
-| `weixin:login:scanned` | main → renderer | Notify QR code scanned |
-| `weixin:login:done` | main → renderer | Notify login complete with `accountId` |
+| Channel                | Direction       | Description                                   |
+| ---------------------- | --------------- | --------------------------------------------- |
+| `weixin:login:start`   | renderer → main | Trigger login; returns `accountId` on success |
+| `weixin:login:qr`      | main → renderer | Push QR code URL to UI                        |
+| `weixin:login:scanned` | main → renderer | Notify QR code scanned                        |
+| `weixin:login:done`    | main → renderer | Notify login complete with `accountId`        |
 
 Exposed to renderer via `src/preload.ts` under a `weixin` namespace, consistent with the existing IPC bridge pattern.
 
@@ -209,13 +211,13 @@ Exposed to renderer via `src/preload.ts` under a `weixin` namespace, consistent 
 
 ```typescript
 // 1. Add 'weixin' to built-in plugin types
-export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin'
+export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin';
 
 // 2. Add weixin case to hasPluginCredentials()
-if (type === 'weixin') return !!(credentials.accountId && credentials.botToken)
+if (type === 'weixin') return !!(credentials.accountId && credentials.botToken);
 
 // 3. Add weixin to shortPlatform mapping (used in conversation name formatting)
-const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding', weixin: 'wx' }
+const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding', weixin: 'wx' };
 ```
 
 No new fields needed in `IPluginCredentials` — the existing index signature `[key: string]: string | ...` covers `accountId`, `botToken`, and `baseUrl`.
@@ -224,22 +226,22 @@ No new fields needed in `IPluginCredentials` — the existing index signature `[
 
 ```typescript
 // Add WeChat plugin exports
-export { WeixinPlugin } from './weixin/WeixinPlugin'
-export * from './weixin/WeixinAdapter'
+export { WeixinPlugin } from './weixin/WeixinPlugin';
+export * from './weixin/WeixinAdapter';
 ```
 
 ---
 
 ## Error Handling
 
-| Scenario | Handling |
-|----------|----------|
-| Response timeout (5 min) | Reject pending Promise; SDK error-notice sends user-facing error message |
-| User sends 2nd message before AI responds | Reject old Promise with `Error('superseded')`; process new message |
-| `onStop()` called with pending responses | (1) Set `_stopping`; (2) Reject all pending; (3) Abort SDK |
-| SDK long-poll failure | SDK handles internally (retry with backoff, session guard) |
-| Login QR expired | Re-fetch QR code, update UI (max 3 retries) |
-| Invalid credentials on start | Throw in `onStart()` → plugin enters `error` status |
+| Scenario                                  | Handling                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------ |
+| Response timeout (5 min)                  | Reject pending Promise; SDK error-notice sends user-facing error message |
+| User sends 2nd message before AI responds | Reject old Promise with `Error('superseded')`; process new message       |
+| `onStop()` called with pending responses  | (1) Set `_stopping`; (2) Reject all pending; (3) Abort SDK               |
+| SDK long-poll failure                     | SDK handles internally (retry with backoff, session guard)               |
+| Login QR expired                          | Re-fetch QR code, update UI (max 3 retries)                              |
+| Invalid credentials on start              | Throw in `onStart()` → plugin enters `error` status                      |
 
 ---
 

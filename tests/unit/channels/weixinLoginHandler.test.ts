@@ -1,18 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock WeixinLogin before importing WeixinLoginHandler
 let mockStartLoginFn = vi.fn();
-vi.mock("@process/channels/plugins/weixin/WeixinLogin", () => ({
+vi.mock('@process/channels/plugins/weixin/WeixinLogin', () => ({
   startLogin: (...args: unknown[]) => mockStartLoginFn(...args),
 }));
 
 async function loadHandlerClass() {
   vi.resetModules();
-  vi.doMock("@process/channels/plugins/weixin/WeixinLogin", () => ({
+  vi.doMock('@process/channels/plugins/weixin/WeixinLogin', () => ({
     startLogin: (...args: unknown[]) => mockStartLoginFn(...args),
   }));
-  const mod =
-    await import("@process/channels/plugins/weixin/WeixinLoginHandler");
+  const mod = await import('@process/channels/plugins/weixin/WeixinLoginHandler');
   return mod.WeixinLoginHandler;
 }
 
@@ -22,58 +21,46 @@ function makeMockWindow() {
   };
 }
 
-describe("WeixinLoginHandler", () => {
+describe('WeixinLoginHandler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("calls startLogin and resolves when onDone fires", async () => {
+  it('calls startLogin and resolves when onDone fires', async () => {
     const WeixinLoginHandler = await loadHandlerClass();
     const win = makeMockWindow();
     const handler = new WeixinLoginHandler(() => win as never);
 
     mockStartLoginFn = vi.fn(({ onDone }: { onDone: (r: unknown) => void }) => {
-      setTimeout(
-        () =>
-          onDone({ accountId: "u1", botToken: "tok", baseUrl: "https://x" }),
-        0,
-      );
+      setTimeout(() => onDone({ accountId: 'u1', botToken: 'tok', baseUrl: 'https://x' }), 0);
       return { abort: vi.fn() };
     });
 
     const result = await handler.startLogin();
-    expect(result.accountId).toBe("u1");
-    expect(result.botToken).toBe("tok");
+    expect(result.accountId).toBe('u1');
+    expect(result.botToken).toBe('tok');
   });
 
-  it("sends weixin:login:qr event to renderer on onQR", async () => {
+  it('sends weixin:login:qr event to renderer on onQR', async () => {
     const WeixinLoginHandler = await loadHandlerClass();
     const win = makeMockWindow();
     const handler = new WeixinLoginHandler(() => win as never);
 
-    mockStartLoginFn = vi.fn(
-      ({
-        onQR,
-        onDone,
-      }: {
-        onQR: (url: string) => void;
-        onDone: (r: unknown) => void;
-      }) => {
-        setTimeout(() => {
-          onQR("https://qr.example.com/abc");
-          onDone({ accountId: "u1", botToken: "tok", baseUrl: "https://x" });
-        }, 0);
-        return { abort: vi.fn() };
-      },
-    );
+    mockStartLoginFn = vi.fn(({ onQR, onDone }: { onQR: (url: string) => void; onDone: (r: unknown) => void }) => {
+      setTimeout(() => {
+        onQR('https://qr.example.com/abc');
+        onDone({ accountId: 'u1', botToken: 'tok', baseUrl: 'https://x' });
+      }, 0);
+      return { abort: vi.fn() };
+    });
 
     await handler.startLogin();
-    expect(win.webContents.send).toHaveBeenCalledWith("weixin:login:qr", {
-      qrcodeUrl: "https://qr.example.com/abc",
+    expect(win.webContents.send).toHaveBeenCalledWith('weixin:login:qr', {
+      qrcodeUrl: 'https://qr.example.com/abc',
     });
   });
 
-  it("abort() cancels in-progress login", async () => {
+  it('abort() cancels in-progress login', async () => {
     const WeixinLoginHandler = await loadHandlerClass();
     const win = makeMockWindow();
     const handler = new WeixinLoginHandler(() => win as never);
@@ -87,7 +74,7 @@ describe("WeixinLoginHandler", () => {
     expect(mockAbort).toHaveBeenCalledTimes(1);
   });
 
-  it("cancels previous login when startLogin is called twice", async () => {
+  it('cancels previous login when startLogin is called twice', async () => {
     const WeixinLoginHandler = await loadHandlerClass();
     const win = makeMockWindow();
     const handler = new WeixinLoginHandler(() => win as never);
@@ -98,11 +85,7 @@ describe("WeixinLoginHandler", () => {
     mockStartLoginFn = vi.fn(({ onDone }: { onDone: (r: unknown) => void }) => {
       callCount++;
       if (callCount === 2) {
-        setTimeout(
-          () =>
-            onDone({ accountId: "u2", botToken: "tok2", baseUrl: "https://x" }),
-          0,
-        );
+        setTimeout(() => onDone({ accountId: 'u2', botToken: 'tok2', baseUrl: 'https://x' }), 0);
       }
       return { abort: firstAbort };
     });

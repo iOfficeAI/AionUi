@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { contextBridge, ipcRenderer, webUtils } from "electron";
-import { ADAPTER_BRIDGE_EVENT_KEY } from "./common/adapter/constant";
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { ADAPTER_BRIDGE_EVENT_KEY } from './common/adapter/constant';
 
 /**
  * @description 注入到renderer进程中, 用于与main进程通信
  * */
-contextBridge.exposeInMainWorld("electronAPI", {
+contextBridge.exposeInMainWorld('electronAPI', {
   emit: (name: string, data: any) => {
     return ipcRenderer
       .invoke(
@@ -18,10 +18,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
         JSON.stringify({
           name: name,
           data: data,
-        }),
+        })
       )
       .catch((error) => {
-        console.error("IPC invoke error:", error);
+        console.error('IPC invoke error:', error);
         throw error;
       });
   },
@@ -37,43 +37,40 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
-  webuiResetPassword: () => ipcRenderer.invoke("webui-direct-reset-password"),
-  webuiGetStatus: () => ipcRenderer.invoke("webui-direct-get-status"),
+  webuiResetPassword: () => ipcRenderer.invoke('webui-direct-reset-password'),
+  webuiGetStatus: () => ipcRenderer.invoke('webui-direct-get-status'),
   // 修改密码不需要当前密码 / Change password without current password
-  webuiChangePassword: (newPassword: string) =>
-    ipcRenderer.invoke("webui-direct-change-password", { newPassword }),
-  webuiChangeUsername: (newUsername: string) =>
-    ipcRenderer.invoke("webui-direct-change-username", { newUsername }),
+  webuiChangePassword: (newPassword: string) => ipcRenderer.invoke('webui-direct-change-password', { newPassword }),
+  webuiChangeUsername: (newUsername: string) => ipcRenderer.invoke('webui-direct-change-username', { newUsername }),
   // 生��二维码 token / Generate QR token
-  webuiGenerateQRToken: () =>
-    ipcRenderer.invoke("webui-direct-generate-qr-token"),
+  webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
   // WeChat login IPC
-  weixinLoginStart: () => ipcRenderer.invoke("weixin:login:start"),
+  weixinLoginStart: () => ipcRenderer.invoke('weixin:login:start'),
   weixinLoginOnQR: (callback: (data: { qrcodeUrl: string }) => void) => {
     const h = (_event: unknown, data: { qrcodeUrl: string }) => callback(data);
-    ipcRenderer.on("weixin:login:qr", h);
-    return () => ipcRenderer.off("weixin:login:qr", h);
+    ipcRenderer.on('weixin:login:qr', h);
+    return () => ipcRenderer.off('weixin:login:qr', h);
   },
   weixinLoginOnScanned: (callback: () => void) => {
     const h = () => callback();
-    ipcRenderer.on("weixin:login:scanned", h);
-    return () => ipcRenderer.off("weixin:login:scanned", h);
+    ipcRenderer.on('weixin:login:scanned', h);
+    return () => ipcRenderer.off('weixin:login:scanned', h);
   },
   weixinLoginOnDone: (callback: (data: { accountId: string }) => void) => {
     const h = (_event: unknown, data: { accountId: string }) => callback(data);
-    ipcRenderer.on("weixin:login:done", h);
-    return () => ipcRenderer.off("weixin:login:done", h);
+    ipcRenderer.on('weixin:login:done', h);
+    return () => ipcRenderer.off('weixin:login:done', h);
   },
 });
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events
 const trayEvents = [
-  "tray:navigate-to-guid",
-  "tray:navigate-to-conversation",
-  "tray:open-about",
-  "tray:pause-all-tasks",
-  "tray:check-update",
+  'tray:navigate-to-guid',
+  'tray:navigate-to-conversation',
+  'tray:open-about',
+  'tray:pause-all-tasks',
+  'tray:check-update',
 ];
 
 for (const channel of trayEvents) {

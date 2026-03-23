@@ -18,7 +18,7 @@ export function initWeixinLoginBridge(): void {
       return await handler!.startLogin();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(message);
+      throw new Error(message, { cause: error });
     }
   });
 }

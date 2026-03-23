@@ -14,30 +14,31 @@
 
 ## File Map
 
-| File | Action | Responsibility |
-|------|--------|---------------|
-| `src/process/channels/plugins/weixin/WeixinAdapter.ts` | Create | Stateless conversion: `ChatRequest` ↔ `IUnified*` |
-| `src/process/channels/plugins/weixin/WeixinLogin.ts` | Create | HTTP QR-code login flow (two endpoints) |
-| `src/process/channels/plugins/weixin/WeixinPlugin.ts` | Create | `BasePlugin` subclass + Promise bridge |
-| `src/process/channels/plugins/weixin/WeixinLoginHandler.ts` | Create | Electron IPC handler for login events |
-| `src/process/channels/plugins/weixin/index.ts` | Create | Re-exports for the weixin module |
-| `src/process/channels/types.ts` | Modify | Add `'weixin'` to `BuiltinPluginType`, `hasPluginCredentials`, `shortPlatform` |
-| `src/process/channels/plugins/index.ts` | Modify | Export `WeixinPlugin` and adapter |
-| `src/process/channels/index.ts` | Modify | Export `WeixinPlugin` |
-| `src/process/channels/core/ChannelManager.ts` | Modify | `registerPlugin('weixin', WeixinPlugin)` |
-| `src/process/bridge/weixinLoginBridge.ts` | Create | `initWeixinLoginBridge()` — registers `ipcMain` handlers |
-| `src/process/bridge/index.ts` | Modify | Import, call, and re-export `initWeixinLoginBridge` |
-| `src/preload.ts` | Modify | Expose `weixin:login:*` IPC to renderer (insert before closing `});` at line 47) |
-| `tests/unit/channels/weixinAdapter.test.ts` | Create | Unit tests for adapter functions |
-| `tests/unit/channels/weixinLogin.test.ts` | Create | Unit tests for QR login state machine |
-| `tests/unit/channels/weixinPlugin.test.ts` | Create | Unit tests for plugin lifecycle + Promise bridge |
-| `tests/unit/channels/weixinLoginHandler.test.ts` | Create | Unit tests for IPC handler |
+| File                                                        | Action | Responsibility                                                                   |
+| ----------------------------------------------------------- | ------ | -------------------------------------------------------------------------------- |
+| `src/process/channels/plugins/weixin/WeixinAdapter.ts`      | Create | Stateless conversion: `ChatRequest` ↔ `IUnified*`                                |
+| `src/process/channels/plugins/weixin/WeixinLogin.ts`        | Create | HTTP QR-code login flow (two endpoints)                                          |
+| `src/process/channels/plugins/weixin/WeixinPlugin.ts`       | Create | `BasePlugin` subclass + Promise bridge                                           |
+| `src/process/channels/plugins/weixin/WeixinLoginHandler.ts` | Create | Electron IPC handler for login events                                            |
+| `src/process/channels/plugins/weixin/index.ts`              | Create | Re-exports for the weixin module                                                 |
+| `src/process/channels/types.ts`                             | Modify | Add `'weixin'` to `BuiltinPluginType`, `hasPluginCredentials`, `shortPlatform`   |
+| `src/process/channels/plugins/index.ts`                     | Modify | Export `WeixinPlugin` and adapter                                                |
+| `src/process/channels/index.ts`                             | Modify | Export `WeixinPlugin`                                                            |
+| `src/process/channels/core/ChannelManager.ts`               | Modify | `registerPlugin('weixin', WeixinPlugin)`                                         |
+| `src/process/bridge/weixinLoginBridge.ts`                   | Create | `initWeixinLoginBridge()` — registers `ipcMain` handlers                         |
+| `src/process/bridge/index.ts`                               | Modify | Import, call, and re-export `initWeixinLoginBridge`                              |
+| `src/preload.ts`                                            | Modify | Expose `weixin:login:*` IPC to renderer (insert before closing `});` at line 47) |
+| `tests/unit/channels/weixinAdapter.test.ts`                 | Create | Unit tests for adapter functions                                                 |
+| `tests/unit/channels/weixinLogin.test.ts`                   | Create | Unit tests for QR login state machine                                            |
+| `tests/unit/channels/weixinPlugin.test.ts`                  | Create | Unit tests for plugin lifecycle + Promise bridge                                 |
+| `tests/unit/channels/weixinLoginHandler.test.ts`            | Create | Unit tests for IPC handler                                                       |
 
 ---
 
 ## Task 1: Install SDK Dependency
 
 **Files:**
+
 - Modify: `package.json` (via bun)
 
 - [ ] **Step 1: Install weixin-agent-sdk**
@@ -68,15 +69,19 @@ git commit -m "chore: add weixin-agent-sdk dependency"
 ## Task 2: Update Channel Types
 
 **Files:**
+
 - Modify: `src/process/channels/types.ts`
 
 - [ ] **Step 1: Add `'weixin'` to `BuiltinPluginType`**
 
 In `src/process/channels/types.ts`, find:
+
 ```typescript
 export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk';
 ```
+
 Replace with:
+
 ```typescript
 export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'dingtalk' | 'weixin';
 ```
@@ -84,23 +89,29 @@ export type BuiltinPluginType = 'telegram' | 'slack' | 'discord' | 'lark' | 'din
 - [ ] **Step 2: Add weixin case to `hasPluginCredentials`**
 
 In `src/process/channels/types.ts`, inside `hasPluginCredentials`, after:
+
 ```typescript
-  if (type === 'telegram') return !!credentials.token;
+if (type === 'telegram') return !!credentials.token;
 ```
+
 and **before** the fallback `return Object.values(...)` line, insert:
+
 ```typescript
-  if (type === 'weixin') return !!(credentials.accountId && credentials.botToken);
+if (type === 'weixin') return !!(credentials.accountId && credentials.botToken);
 ```
 
 - [ ] **Step 3: Add `'wx'` to `shortPlatform` local variable**
 
 Inside the `getChannelConversationName` function body (around line 564), find the local variable:
+
 ```typescript
-  const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding' };
+const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding' };
 ```
+
 Replace with:
+
 ```typescript
-  const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding', weixin: 'wx' };
+const shortPlatform: Record<string, string> = { telegram: 'tg', dingtalk: 'ding', weixin: 'wx' };
 ```
 
 - [ ] **Step 4: Verify no type errors**
@@ -123,6 +134,7 @@ git commit -m "feat(weixin): add weixin to BuiltinPluginType and hasPluginCreden
 ## Task 3: WeixinAdapter (TDD)
 
 **Files:**
+
 - Create: `src/process/channels/plugins/weixin/WeixinAdapter.ts`
 - Create: `tests/unit/channels/weixinAdapter.test.ts`
 
@@ -389,6 +401,7 @@ git commit -m "feat(weixin): add WeixinAdapter with message format conversion"
 ## Task 4: WeixinLogin (TDD — QR Login State Machine)
 
 **Files:**
+
 - Create: `src/process/channels/plugins/weixin/WeixinLogin.ts`
 - Create: `tests/unit/channels/weixinLogin.test.ts`
 
@@ -627,11 +640,7 @@ async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Pro
 
 type PollResult = 'expired' | 'aborted' | { accountId: string; botToken: string; baseUrl: string };
 
-async function pollQRStatus(
-  ticket: string,
-  callbacks: LoginCallbacks,
-  signal: AbortSignal
-): Promise<PollResult> {
+async function pollQRStatus(ticket: string, callbacks: LoginCallbacks, signal: AbortSignal): Promise<PollResult> {
   while (!signal.aborted) {
     const result = await post<{
       status: 'wait' | 'scaned' | 'expired' | 'confirmed';
@@ -736,6 +745,7 @@ git commit -m "feat(weixin): add WeixinLogin QR-code login flow with tests"
 ## Task 5: WeixinPlugin (TDD — Promise Bridge)
 
 **Files:**
+
 - Create: `src/process/channels/plugins/weixin/WeixinPlugin.ts`
 - Create: `tests/unit/channels/weixinPlugin.test.ts`
 
@@ -1107,18 +1117,9 @@ export class WeixinPlugin extends BasePlugin {
 
   // ==================== Static ====================
 
-  static async testConnection(
-    accountId: string,
-    _botToken?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  static async testConnection(accountId: string, _botToken?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const accountFile = path.join(
-        os.homedir(),
-        '.openclaw',
-        'openclaw-weixin',
-        'accounts',
-        `${accountId}.json`
-      );
+      const accountFile = path.join(os.homedir(), '.openclaw', 'openclaw-weixin', 'accounts', `${accountId}.json`);
       const raw = fs.readFileSync(accountFile, 'utf-8');
       const data = JSON.parse(raw) as { token?: string };
       if (!data.token) {
@@ -1152,6 +1153,7 @@ git commit -m "feat(weixin): add WeixinPlugin with Promise bridge"
 ## Task 6: WeixinLoginHandler + IPC Bridge (TDD)
 
 **Files:**
+
 - Create: `src/process/channels/plugins/weixin/WeixinLoginHandler.ts`
 - Create: `src/process/bridge/weixinLoginBridge.ts`
 - Create: `tests/unit/channels/weixinLoginHandler.test.ts`
@@ -1368,16 +1370,19 @@ export function initWeixinLoginBridge(): void {
 - [ ] **Step 6: Register bridge in `src/process/bridge/index.ts`**
 
 Add import after the existing imports (around line 37, after `initExtensionsBridge`):
+
 ```typescript
 import { initWeixinLoginBridge } from './weixinLoginBridge';
 ```
 
 In `initAllBridges` function, after `initStarOfficeBridge();` (line 76), add:
+
 ```typescript
-  initWeixinLoginBridge();
+initWeixinLoginBridge();
 ```
 
 Add `initWeixinLoginBridge` to the named re-export object (lines 98–118):
+
 ```typescript
   initWeixinLoginBridge,
 ```
@@ -1385,12 +1390,14 @@ Add `initWeixinLoginBridge` to the named re-export object (lines 98–118):
 - [ ] **Step 7: Update `src/preload.ts` — expose weixin IPC to renderer**
 
 In `src/preload.ts`, find the closing of the `contextBridge.exposeInMainWorld` block. The file currently ends the object at:
+
 ```typescript
   webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
 });
 ```
 
 Insert the following **before** the `});` line:
+
 ```typescript
   // WeChat login IPC
   weixinLoginStart: () => ipcRenderer.invoke('weixin:login:start'),
@@ -1435,6 +1442,7 @@ git commit -m "feat(weixin): add WeixinLoginHandler, IPC bridge, and preload bin
 ## Task 7: Wire Plugin Into Channel System
 
 **Files:**
+
 - Create: `src/process/channels/plugins/weixin/index.ts`
 - Modify: `src/process/channels/plugins/index.ts`
 - Modify: `src/process/channels/index.ts`

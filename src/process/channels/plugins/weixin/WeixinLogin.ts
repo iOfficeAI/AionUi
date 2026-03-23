@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import https from "https";
+import https from 'https';
 
-const DEFAULT_BASE_URL = "https://ilinkai.weixin.qq.com";
+const DEFAULT_BASE_URL = 'https://ilinkai.weixin.qq.com';
 const POLL_TIMEOUT_MS = 35_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_QR_RETRIES = 3;
@@ -14,11 +14,7 @@ const MAX_QR_RETRIES = 3;
 export interface LoginCallbacks {
   onQR: (qrcodeUrl: string) => void;
   onScanned: () => void;
-  onDone: (result: {
-    accountId: string;
-    botToken: string;
-    baseUrl: string;
-  }) => void;
+  onDone: (result: { accountId: string; botToken: string; baseUrl: string }) => void;
   onError: (error: Error) => void;
 }
 
@@ -35,19 +31,14 @@ export function startLogin(callbacks: LoginCallbacks): LoginHandle {
 
   void runLoginFlow(callbacks, abortController.signal).catch((error) => {
     if (!abortController.signal.aborted) {
-      callbacks.onError(
-        error instanceof Error ? error : new Error(String(error)),
-      );
+      callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   });
 
   return { abort: () => abortController.abort() };
 }
 
-async function runLoginFlow(
-  callbacks: LoginCallbacks,
-  signal: AbortSignal,
-): Promise<void> {
+async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Promise<void> {
   let qrRetries = 0;
 
   while (qrRetries < MAX_QR_RETRIES) {
@@ -55,64 +46,49 @@ async function runLoginFlow(
 
     const qrResult = await post<{ qrcode_url: string; ticket: string }>(
       DEFAULT_BASE_URL,
-      "ilink/bot/get_bot_qrcode",
+      'ilink/bot/get_bot_qrcode',
       {},
-      signal,
+      signal
     );
     callbacks.onQR(qrResult.qrcode_url);
 
     const pollResult = await pollQRStatus(qrResult.ticket, callbacks, signal);
 
-    if (pollResult === "expired") {
+    if (pollResult === 'expired') {
       qrRetries++;
       continue;
     }
-    if (pollResult === "aborted") return;
+    if (pollResult === 'aborted') return;
 
-    callbacks.onDone(
-      pollResult as { accountId: string; botToken: string; baseUrl: string },
-    );
+    callbacks.onDone(pollResult as { accountId: string; botToken: string; baseUrl: string });
     return;
   }
 
-  callbacks.onError(new Error("QR code expired too many times"));
+  callbacks.onError(new Error('QR code expired too many times'));
 }
 
-type PollResult =
-  | "expired"
-  | "aborted"
-  | { accountId: string; botToken: string; baseUrl: string };
+type PollResult = 'expired' | 'aborted' | { accountId: string; botToken: string; baseUrl: string };
 
-async function pollQRStatus(
-  ticket: string,
-  callbacks: LoginCallbacks,
-  signal: AbortSignal,
-): Promise<PollResult> {
+async function pollQRStatus(ticket: string, callbacks: LoginCallbacks, signal: AbortSignal): Promise<PollResult> {
   while (!signal.aborted) {
     const result = await post<{
-      status: "wait" | "scaned" | "expired" | "confirmed";
+      status: 'wait' | 'scaned' | 'expired' | 'confirmed';
       botToken?: string;
       baseUrl?: string;
       userId?: string;
-    }>(
-      DEFAULT_BASE_URL,
-      "ilink/bot/get_qrcode_status",
-      { ticket },
-      signal,
-      POLL_TIMEOUT_MS,
-    );
+    }>(DEFAULT_BASE_URL, 'ilink/bot/get_qrcode_status', { ticket }, signal, POLL_TIMEOUT_MS);
 
     switch (result.status) {
-      case "wait":
+      case 'wait':
         break;
-      case "scaned":
+      case 'scaned':
         callbacks.onScanned();
         break;
-      case "expired":
-        return "expired";
-      case "confirmed":
+      case 'expired':
+        return 'expired';
+      case 'confirmed':
         if (!result.botToken || !result.userId) {
-          throw new Error("Missing botToken or userId in confirmed response");
+          throw new Error('Missing botToken or userId in confirmed response');
         }
         return {
           accountId: result.userId,
@@ -122,7 +98,7 @@ async function pollQRStatus(
     }
   }
 
-  return "aborted";
+  return 'aborted';
 }
 
 function post<T>(
@@ -130,11 +106,11 @@ function post<T>(
   path: string,
   body: Record<string, unknown>,
   signal: AbortSignal,
-  timeoutMs: number = REQUEST_TIMEOUT_MS,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
-      reject(new Error("Aborted"));
+      reject(new Error('Aborted'));
       return;
     }
 
@@ -144,19 +120,19 @@ function post<T>(
       hostname: url.hostname,
       port: url.port || 443,
       path: url.pathname,
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(data).toString(),
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data).toString(),
       },
     };
 
     const req = https.request(options, (res) => {
-      let raw = "";
-      res.on("data", (chunk) => {
+      let raw = '';
+      res.on('data', (chunk) => {
         raw += chunk;
       });
-      res.on("end", () => {
+      res.on('end', () => {
         try {
           resolve(JSON.parse(raw) as T);
         } catch {
@@ -165,17 +141,16 @@ function post<T>(
       });
     });
 
-    req.on("error", reject);
+    req.on('error', reject);
     req.setTimeout(timeoutMs, () => {
-      if (typeof req.destroy === "function")
-        req.destroy(new Error(`Timeout: ${path}`));
+      if (typeof req.destroy === 'function') req.destroy(new Error(`Timeout: ${path}`));
     });
 
     const onAbort = () => {
-      if (typeof req.destroy === "function") req.destroy(new Error("Aborted"));
+      if (typeof req.destroy === 'function') req.destroy(new Error('Aborted'));
     };
-    signal.addEventListener("abort", onAbort, { once: true });
-    req.on("close", () => signal.removeEventListener("abort", onAbort));
+    signal.addEventListener('abort', onAbort, { once: true });
+    req.on('close', () => signal.removeEventListener('abort', onAbort));
 
     req.write(data);
     req.end();

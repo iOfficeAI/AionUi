@@ -14,6 +14,7 @@ import { PairingService } from '../pairing/PairingService';
 import { DingTalkPlugin } from '../plugins/dingtalk/DingTalkPlugin';
 import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
+import { WeixinPlugin } from '../plugins/weixin/WeixinPlugin';
 import { isBuiltinChannelPlatform, resolveChannelConvType } from '../types';
 import type { ChannelPlatform, IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
@@ -50,6 +51,7 @@ export class ChannelManager {
     registerPlugin('telegram', TelegramPlugin);
     registerPlugin('lark', LarkPlugin);
     registerPlugin('dingtalk', DingTalkPlugin);
+    registerPlugin('weixin', WeixinPlugin);
   }
 
   /**
@@ -398,7 +400,10 @@ export class ChannelManager {
       const appId = extraConfig?.appId;
       const appSecret = extraConfig?.appSecret;
       if (!appId || !appSecret) {
-        return { success: false, error: 'App ID and App Secret are required for Lark' };
+        return {
+          success: false,
+          error: 'App ID and App Secret are required for Lark',
+        };
       }
       const result = await LarkPlugin.testConnection(appId, appSecret);
       return {
@@ -412,7 +417,10 @@ export class ChannelManager {
       const clientId = extraConfig?.appId; // Reuse appId field for clientId
       const clientSecret = extraConfig?.appSecret; // Reuse appSecret field for clientSecret
       if (!clientId || !clientSecret) {
-        return { success: false, error: 'Client ID and Client Secret are required for DingTalk' };
+        return {
+          success: false,
+          error: 'Client ID and Client Secret are required for DingTalk',
+        };
       }
       const result = await DingTalkPlugin.testConnection(clientId, clientSecret);
       return {
