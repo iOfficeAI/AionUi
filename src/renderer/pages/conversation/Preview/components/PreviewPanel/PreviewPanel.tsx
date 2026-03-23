@@ -21,6 +21,7 @@ import MarkdownEditor from '../editors/MarkdownEditor';
 import MarkdownPreview from '../viewers/MarkdownViewer';
 import PDFPreview from '../viewers/PDFViewer';
 import OfficeDocPreview from '../viewers/OfficeDocViewer';
+import PptViewer from '../viewers/PptViewer';
 import TextEditor from '../editors/TextEditor';
 import URLViewer from '../viewers/URLViewer';
 import {
@@ -614,7 +615,7 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'pdf') {
       return <PDFPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'ppt') {
-      return <OfficeDocPreview filePath={metadata?.filePath} content={content} docType='ppt' />;
+      return <PptViewer filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'word') {
       return <OfficeDocPreview filePath={metadata?.filePath} content={content} docType='word' />;
     } else if (contentType === 'excel') {

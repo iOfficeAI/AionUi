@@ -100,5 +100,11 @@
     "inspectElement": "要素を検証",
     "inspectElementEnable": "要素インスペクターを有効化",
     "inspectElementDisable": "要素インスペクターを無効化"
+  },
+  "ppt": {
+    "loading": "PPTプレビューを起動中...",
+    "installing": "プレビューコンポーネントをインストール中...",
+    "startFailed": "PPTプレビューの起動に失敗しました",
+    "installHint": "officecliがインストールされていることを確認してください: npm run postinstall"
   }
 }
