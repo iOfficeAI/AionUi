@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// configureChromium sets app name (dev isolation) and Chromium flags — must run before
+// ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
+import './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
 
 Sentry.init({
@@ -11,8 +14,6 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-// configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
-import './process/utils/configureChromium';
 import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
