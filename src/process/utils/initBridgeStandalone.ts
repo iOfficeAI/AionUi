@@ -6,10 +6,9 @@
 
 /**
  * Bridge initialiser for standalone (no-Electron) mode.
- * Skips 10 Electron-only bridges:
- *   dialogBridge, shellBridge, fsBridge, applicationBridge,
- *   windowControlsBridge, updateBridge, webuiBridge, notificationBridge,
- *   cronBridge, mcpBridge
+ * Skips Electron-only bridges:
+ *   dialogBridge, shellBridge, applicationBridge (partial — core handlers in applicationBridgeCore),
+ *   windowControlsBridge, updateBridge, webuiBridge
  */
 import { logger } from "@office-ai/platform";
 import { acpDetector } from "@process/agent/acp/AcpDetector";
@@ -31,6 +30,9 @@ import { initGeminiConversationBridge } from "@process/bridge/geminiConversation
 import { initModelBridge } from "@process/bridge/modelBridge";
 import { initPreviewHistoryBridge } from "@process/bridge/previewHistoryBridge";
 import { initStarOfficeBridge } from "@process/bridge/starOfficeBridge";
+import { initCronBridge } from "@process/bridge/cronBridge";
+import { initMcpBridge } from "@process/bridge/mcpBridge";
+import { initNotificationBridge } from "@process/bridge/notificationBridge";
 import { initSystemSettingsBridge } from "@process/bridge/systemSettingsBridge";
 import { initTaskBridge } from "@process/bridge/taskBridge";
 
@@ -41,8 +43,8 @@ export async function initBridgeStandalone(): Promise<void> {
   const conversationService = new ConversationServiceImpl(repo);
   const channelRepo = new SqliteChannelRepository();
 
-  // Skipped (Electron-only): dialogBridge, shellBridge, fsBridge, applicationBridge,
-  // windowControlsBridge, updateBridge, webuiBridge, notificationBridge, cronBridge, mcpBridge
+  // Skipped (Electron-only): dialogBridge, shellBridge, applicationBridge (partial — see applicationBridgeCore),
+  // windowControlsBridge, updateBridge, webuiBridge
 
   initFileWatchBridge();
   initConversationBridge(conversationService, workerTaskManager);
@@ -58,6 +60,9 @@ export async function initBridgeStandalone(): Promise<void> {
   initDatabaseBridge(repo);
   initExtensionsBridge(repo, workerTaskManager);
   initSystemSettingsBridge();
+  initCronBridge();
+  initMcpBridge();
+  initNotificationBridge();
   initTaskBridge(workerTaskManager);
   initStarOfficeBridge();
 
