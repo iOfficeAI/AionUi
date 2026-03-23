@@ -525,6 +525,22 @@ describe('fsBridge skills functionality', () => {
     });
   });
 
+  describe('readBuiltinRule ENOENT handling (Fixes ELECTRON-68)', () => {
+    it('returns empty string when builtin rule file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinRule');
+      const result = await handler({ fileName: 'nonexistent-rule.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('readBuiltinSkill ENOENT handling', () => {
+    it('returns empty string when builtin skill file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinSkill');
+      const result = await handler({ fileName: 'nonexistent-skill.md' });
+      expect(result).toBe('');
+    });
+  });
+
   describe('fetchRemoteImage — error handling', () => {
     it('returns empty string for disallowed host instead of throwing', async () => {
       const handler = await getProvider('fetchRemoteImage');
