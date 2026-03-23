@@ -326,9 +326,14 @@ export function initFsBridge(): void {
 
   // 通过桥接层拉取远程图片并转成 base64 / Fetch remote image via bridge and return base64
   ipcBridge.fs.fetchRemoteImage.provider(async ({ url }) => {
-    const { buffer, contentType } = await downloadRemoteBuffer(url);
-    const base64 = buffer.toString('base64');
-    return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    try {
+      const { buffer, contentType } = await downloadRemoteBuffer(url);
+      const base64 = buffer.toString('base64');
+      return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    } catch (error) {
+      console.warn('[fsBridge] Failed to fetch remote image:', (error as Error).message);
+      return '';
+    }
   });
 
   // 创建临时文件 / Create temporary file on disk
