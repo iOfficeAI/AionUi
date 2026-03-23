@@ -46,7 +46,10 @@ export interface SkillIndex {
  * 解析 SKILL.md 的 frontmatter
  * Parse frontmatter from SKILL.md
  */
-function parseFrontmatter(content: string): { name?: string; description?: string } {
+function parseFrontmatter(content: string): {
+  name?: string;
+  description?: string;
+} {
   const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
   if (!frontmatterMatch) {
     return {};
@@ -409,12 +412,14 @@ export class AcpSkillManager {
    * Includes builtin skills + optional skills
    */
   getSkillsIndex(): SkillIndex[] {
-    // 合并内置 skills、用户 skills、可选 skills 和扩展 skills
-    // Merge builtin, user, optional, and extension skills
+    // Priority: optional (user-selected) > user-installed (Skills Hub) > builtin (auto-injected) > extension
+    // Optional skills come first (explicitly configured for this assistant — highest priority),
+    // then user-installed skills (imported via Skills Hub, available to all agents).
     const allSkills: SkillIndex[] = [];
 
-    // 内置 skills 优先 / Builtin skills first
-    for (const skill of this.builtinSkills.values()) {
+    // 可选 skills 优先（为此助手显式配置，最高优先级）
+    // Optional skills first (explicitly configured for this assistant — highest priority)
+    for (const skill of this.skills.values()) {
       allSkills.push({
         name: skill.name,
         description: skill.description,
@@ -429,8 +434,8 @@ export class AcpSkillManager {
       });
     }
 
-    // 然后是可选 skills / Then optional skills
-    for (const skill of this.skills.values()) {
+    // 然后是内置 skills / Then builtin skills
+    for (const skill of this.builtinSkills.values()) {
       allSkills.push({
         name: skill.name,
         description: skill.description,
@@ -469,20 +474,22 @@ export class AcpSkillManager {
 
   /**
    * 按名称获取单个 skill 的完整内容（按需加载）
-   * 先查找内置 skills，再查找可选 skills
+   * 优先级：可选（用户配置）> 内置 > 扩展
    * Get full content of a skill by name (on-demand loading)
-   * Search builtin skills first, then optional skills
+   * Priority: optional (user-configured) > builtin > extension
    */
   async getSkill(name: string): Promise<SkillDefinition | null> {
-    // 先查找内置 skills / Search builtin skills first
-    let skill = this.builtinSkills.get(name);
+    // Priority: optional > user-installed > builtin > extension
+    // 优先查找可选 skills（用户为此助手显式配置）
+    // Check optional skills first (explicitly configured for this assistant)
+    let skill = this.skills.get(name);
     // 再查找用户安装的 skills / Then search user-installed skills
     if (!skill) {
       skill = this.userSkills.get(name);
     }
-    // 再查找可选 skills / Then search optional skills
+    // 再查找内置 skills / Then search builtin skills
     if (!skill) {
-      skill = this.skills.get(name);
+      skill = this.builtinSkills.get(name);
     }
     // 最后查找扩展 skills / Then search extension skills
     if (!skill) {

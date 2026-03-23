@@ -574,6 +574,8 @@ export function initFsBridge(): void {
       if (isCanceled()) {
         throw new Error('Zip export canceled');
       }
+      // Ensure parent directory exists before writing (may be deleted by OneDrive sync, etc.)
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, zipBuffer);
       return true;
     } catch (error) {
@@ -756,7 +758,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('rules', fileName);
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -766,7 +768,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('skills', fileName);
     } catch (error) {
       console.error('Failed to read builtin skill:', error);
-      throw error;
+      return '';
     }
   });
 

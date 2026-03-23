@@ -137,6 +137,15 @@ describe('fsBridge skills functionality', () => {
       };
     });
 
+    // Mock jszip
+    vi.doMock('jszip', () => {
+      class MockJSZip {
+        file = vi.fn();
+        generateAsync = vi.fn(async () => Buffer.from('fake-zip-content'));
+      }
+      return { default: MockJSZip };
+    });
+
     // Mock initStorage
     vi.doMock('@process/utils/initStorage', () => ({
       getSystemDir: vi.fn(() => ({
@@ -522,6 +531,40 @@ describe('fsBridge skills functionality', () => {
 
       expect(result.success).toBe(false);
       expect(result.msg).toContain('security check failed');
+    });
+  });
+
+  describe('createZip ensures parent directory exists (Fixes ELECTRON-66)', () => {
+    it('creates parent directory before writing zip file', async () => {
+      const handler = await getProvider('createZip');
+      const exportDir = path.resolve('/mock/export/subdir');
+      const zipPath = path.join(exportDir, 'batch-export-test.zip');
+
+      const result = await handler({
+        path: zipPath,
+        files: [{ name: 'test.txt', content: 'hello' }],
+        requestId: 'test-req-1',
+      });
+
+      expect(result).toBe(true);
+      // Verify parent directory was created
+      expect(mockFsStore[exportDir]).toBeDefined();
+    });
+  });
+
+  describe('readBuiltinRule ENOENT handling (Fixes ELECTRON-68)', () => {
+    it('returns empty string when builtin rule file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinRule');
+      const result = await handler({ fileName: 'nonexistent-rule.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('readBuiltinSkill ENOENT handling', () => {
+    it('returns empty string when builtin skill file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinSkill');
+      const result = await handler({ fileName: 'nonexistent-skill.md' });
+      expect(result).toBe('');
     });
   });
 

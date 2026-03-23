@@ -199,10 +199,10 @@ describe('AcpSkillManager - User Skills Discovery', () => {
     expect(names).toContain('builtin-skill');
     expect(names).toContain('user-skill');
 
-    // Builtin should appear before user skill
-    const builtinIdx = names.indexOf('builtin-skill');
+    // User skill should appear before builtin (priority: optional > user > builtin > extension)
     const userIdx = names.indexOf('user-skill');
-    expect(builtinIdx).toBeLessThan(userIdx);
+    const builtinIdx = names.indexOf('builtin-skill');
+    expect(userIdx).toBeLessThan(builtinIdx);
   });
 
   it('hasSkill() finds user-installed skills', async () => {
