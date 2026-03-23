@@ -103,6 +103,7 @@
   },
   "ppt": {
     "loading": "Starting PPT preview...",
+    "installing": "Installing preview component...",
     "startFailed": "Failed to start PPT preview",
     "installHint": "Make sure officecli is installed: npm run postinstall"
   }

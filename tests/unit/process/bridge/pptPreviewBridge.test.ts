@@ -10,7 +10,14 @@ import type { ChildProcess } from 'node:child_process';
 import type { Server, Socket } from 'node:net';
 
 // Mock electron
-vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
+vi.mock('electron', () => ({
+  app: {
+    isPackaged: false,
+    setName: vi.fn(),
+    setPath: vi.fn(),
+    getPath: vi.fn((name: string) => (name === 'appData' ? '/tmp' : '/tmp')),
+  },
+}));
 
 // Mock net module - callbacks fire synchronously for predictable test timing
 const mockSockets: Socket[] = [];
@@ -82,6 +89,7 @@ vi.mock('@/common', () => ({
     pptPreview: {
       start: makeChannel('start'),
       stop: makeChannel('stop'),
+      status: makeChannel('status'),
     },
   },
 }));
@@ -210,13 +218,16 @@ describe('pptPreviewBridge', () => {
     expect(child2.kill).not.toHaveBeenCalled();
   });
 
-  it('stop handler kills the session for specified file', async () => {
+  it('stop handler kills the session for specified file after delay', async () => {
     const child = createMockChild();
     mockSpawn.mockReturnValue(child);
 
     await startAndResolve('/path/to/test.pptx', child);
     await handlers['stop']({ filePath: '/path/to/test.pptx' });
 
+    // Stop uses a 500ms delayed kill for Strict Mode re-mount tolerance
+    expect(child.kill).not.toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 600));
     expect(child.kill).toHaveBeenCalled();
   });
 
@@ -233,6 +244,7 @@ describe('pptPreviewBridge', () => {
     await startAndResolve('/path/to/file2.pptx', child2);
 
     await handlers['stop']({ filePath: '/path/to/file1.pptx' });
+    await new Promise((r) => setTimeout(r, 600));
 
     expect(child1.kill).toHaveBeenCalled();
     expect(child2.kill).not.toHaveBeenCalled();

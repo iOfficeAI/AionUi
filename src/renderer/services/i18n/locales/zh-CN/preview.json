@@ -103,6 +103,7 @@
   },
   "ppt": {
     "loading": "正在启动 PPT 预览...",
+    "installing": "正在安装预览组件...",
     "startFailed": "启动 PPT 预览失败",
     "installHint": "请确保已安装 officecli：npm run postinstall"
   }

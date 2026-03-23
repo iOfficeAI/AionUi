@@ -560,6 +560,9 @@ export const document = {
 export const pptPreview = {
   start: bridge.buildProvider<{ url: string }, { filePath: string }>('ppt-preview.start'),
   stop: bridge.buildProvider<void, { filePath: string }>('ppt-preview.stop'),
+  status: bridge.buildEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>(
+    'ppt-preview.status'
+  ),
 };
 
 // Deep link protocol handling / 深度链接协议处理

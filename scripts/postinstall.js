@@ -8,64 +8,6 @@ const { execSync } = require('child_process');
 // Note: web-tree-sitter is now a direct dependency in package.json
 // No need for symlinks or copying - npm will install it directly to node_modules
 
-function getLatestOfficecliVersion() {
-  try {
-    const url = 'https://github.com/iOfficeAI/OfficeCli/releases/latest';
-    const effective = execSync(`curl -fsSL -o /dev/null -w "%{url_effective}" ${url}`, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 10000,
-    }).trim();
-    // URL ends with /tag/v1.0.17 — extract version without "v" prefix
-    const tag = effective.split('/').pop();
-    return tag ? tag.replace(/^v/, '') : null;
-  } catch {
-    return null;
-  }
-}
-
-function installOfficecli() {
-  if (process.platform === 'win32') {
-    execSync('powershell -Command "irm https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.ps1 | iex"', {
-      stdio: 'inherit',
-    });
-  } else {
-    execSync('curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash', {
-      stdio: 'inherit',
-    });
-  }
-}
-
-function ensureOfficecli() {
-  let localVersion;
-  try {
-    localVersion = execSync('officecli --version', { encoding: 'utf8', stdio: 'pipe' }).trim();
-  } catch {
-    localVersion = null;
-  }
-
-  if (localVersion) {
-    const remoteVersion = getLatestOfficecliVersion();
-    if (!remoteVersion) {
-      console.log(`officecli installed (${localVersion}), skipped update check (network unavailable)`);
-      return;
-    }
-    if (remoteVersion === localVersion) {
-      console.log(`officecli is up to date (${localVersion})`);
-      return;
-    }
-    console.log(`officecli update available: ${localVersion} → ${remoteVersion}, upgrading...`);
-  } else {
-    console.log('officecli not found, installing...');
-  }
-
-  try {
-    installOfficecli();
-  } catch (e) {
-    console.warn('Failed to install officecli:', e.message);
-  }
-}
-
 function runPostInstall() {
   try {
     // Check if we're in a CI environment
@@ -90,9 +32,6 @@ function runPostInstall() {
         },
       });
     }
-
-    // Ensure officecli is available (needed for PPT preview)
-    ensureOfficecli();
   } catch (e) {
     console.error('Postinstall failed:', e.message);
     // Don't exit with error code to avoid breaking installation

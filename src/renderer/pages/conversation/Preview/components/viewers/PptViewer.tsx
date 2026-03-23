@@ -26,6 +26,7 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
   const { t } = useTranslation();
   const [watchUrl, setWatchUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<'starting' | 'installing'>('starting');
   const [error, setError] = useState<string | null>(null);
   const filePathRef = useRef(filePath);
 
@@ -40,11 +41,20 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
 
     let cancelled = false;
 
+    const unsubStatus = ipcBridge.pptPreview.status.on((evt) => {
+      if (cancelled) return;
+      if (evt.state === 'installing') setStatus('installing');
+      else if (evt.state === 'starting') setStatus('starting');
+    });
+
     const start = async () => {
       setLoading(true);
+      setStatus('starting');
       setError(null);
       try {
         const { url } = await ipcBridge.pptPreview.start.invoke({ filePath });
+        // Small delay to ensure watch HTTP server is fully ready for webview
+        await new Promise((r) => setTimeout(r, 300));
         if (!cancelled) {
           setWatchUrl(url);
           setLoading(false);
@@ -62,6 +72,7 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
 
     return () => {
       cancelled = true;
+      unsubStatus();
       if (filePathRef.current) {
         ipcBridge.pptPreview.stop.invoke({ filePath: filePathRef.current }).catch(() => {});
       }
@@ -73,7 +84,9 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
       <div className='h-full w-full flex items-center justify-center bg-bg-1'>
         <div className='flex flex-col items-center gap-12px'>
           <Spin size={32} />
-          <span className='text-13px text-t-secondary'>{t('preview.ppt.loading')}</span>
+          <span className='text-13px text-t-secondary'>
+            {status === 'installing' ? t('preview.ppt.installing') : t('preview.ppt.loading')}
+          </span>
         </div>
       </div>
     );

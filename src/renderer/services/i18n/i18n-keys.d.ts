@@ -673,6 +673,7 @@ export type I18nKey =
   | 'preview.pdf.title'
   | 'preview.pdf.unableDisplay'
   | 'preview.ppt.installHint'
+  | 'preview.ppt.installing'
   | 'preview.ppt.loading'
   | 'preview.ppt.startFailed'
   | 'preview.pptOpenFile'
