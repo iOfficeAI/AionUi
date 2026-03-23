@@ -174,12 +174,13 @@ export function initConversationBridge(
   ipcBridge.conversation.createWithConversation.provider(
     async ({ conversation, sourceConversationId, migrateCron }) => {
       try {
-        void workerTaskManager.getOrBuildTask(conversation.id);
-
         const result = await conversationService.createWithMigration({
           conversation,
           sourceConversationId,
           migrateCron,
+        });
+        workerTaskManager.getOrBuildTask(result.id).catch((err) => {
+          console.warn('[conversationBridge] Failed to pre-warm task after migration:', err);
         });
         emitConversationListChanged(result, 'created');
         if (sourceConversationId) {
