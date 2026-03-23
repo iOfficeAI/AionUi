@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUT="注意力预算-把手机时间变成创造时间.pptx"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUT="$SCRIPT_DIR/dark__neon_productivity.pptx"
+
+echo "Building: dark--neon-productivity (注意力预算)"
 
 rm -f "$OUT"
 
@@ -280,3 +283,10 @@ cat <<'JSON' | officecli batch "$OUT"
   {"command":"set","path":"/slide[7]/shape[56]","props":{"x":"3.2cm","y":"16.6cm"}}
 ]
 JSON
+
+
+# Validate
+echo "Validating..."
+bash "$(dirname "$0")/../../morph-helpers.sh" validate "$OUT"
+
+echo "✅ Build complete: $OUT"

@@ -2,8 +2,8 @@
 set +H
 set -e
 
-CWD="/Users/visher/Library/Application Support/AionUI/aionui/claude-temp-1773991108310"
-F="$CWD/digital_agency.pptx"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+F="$SCRIPT_DIR/dark__circle_digital.pptx"
 
 # ── Design Tokens ──────────────────────────────────────────
 BG="0D0E11"       # near-black
@@ -117,7 +117,7 @@ echo "  S1: Title..."
 sl --prop background=$BG
 
 # Hero organic oval RIGHT — large, colorful leaf
-circ '/slide[1]' '!!circ-a' 18.5 -1.5 21.0 $C_LEAF "[ Image ]"
+circ '/slide[1]' '!!circ-a' 18.5 0 21.0 $C_LEAF "[ Image ]"
 
 # Small green ring overlay on hero
 a '/slide[1]' --prop preset=ellipse \

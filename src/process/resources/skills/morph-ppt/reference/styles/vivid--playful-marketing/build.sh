@@ -9,8 +9,10 @@
 # --------------------------------------------
 
 set -e
-OUTPUT="template.pptx"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/vivid__playful_marketing.pptx"
 echo "Creating $OUTPUT ..."
+rm -f "$OUTPUT"
 officecli create "$OUTPUT"
 
 # 添加6个幻灯片
@@ -240,7 +242,7 @@ echo "Building Slide 5..."
 officecli add "$OUTPUT" '/slide[5]' --type shape --prop preset=rect --prop fill=FFE66D --prop x=0cm --prop y=0cm --prop width=4cm --prop height=19.05cm
 
 # 大引号背景 (内容区)
-officecli add "$OUTPUT" '/slide[5]' --type shape --prop text=""" --prop font="Georgia" --prop size=180 --prop color=FF6B6B --prop opacity=0.12 --prop align=left --prop x=5cm --prop y=1cm --prop width=10cm --prop height=8cm --prop fill=none
+officecli add "$OUTPUT" '/slide[5]' --type shape --prop text="[QUOTE]" --prop font="Georgia" --prop size=180 --prop color=FF6B6B --prop opacity=0.12 --prop align=left --prop x=5cm --prop y=1cm --prop width=10cm --prop height=8cm --prop fill=none
 
 # 左侧装饰圆点 (手动定义3个)
 officecli add "$OUTPUT" '/slide[5]' --type shape --prop preset=ellipse --prop fill=FF6B6B --prop opacity=0.2 --prop x=1cm --prop y=5cm --prop width=0.5cm --prop height=0.5cm
@@ -342,4 +344,4 @@ done
 
 echo "Validating..."
 officecli validate "$OUTPUT"
-echo "✅ Complete: $OUTPUT"
+echo "[OK] Complete: $OUTPUT"

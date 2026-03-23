@@ -5,12 +5,11 @@ set -e
 # Typography-driven design — HUGE text IS the visual element
 # Inspired by FONIAS / editorial magazine layouts
 
-DECK="morph-templates/08-bold-type/template.pptx"
-
-mkdir -p /Users/veryliu/Documents/GitHub/OfficeCli/morph-templates/08-bold-type
-officecli --version
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DECK="$SCRIPT_DIR/light__bold_type.pptx"
 
 # Create deck + Slide 1 (blank, light warm gray background)
+rm -f "$DECK"
 officecli create "$DECK" && \
 officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=F2F2F2
 

@@ -2,8 +2,8 @@
 set +H
 set -e
 
-CWD="/Users/visher/Library/Application Support/AionUI/aionui/claude-temp-1773991108310"
-F="$CWD/arch_bp_v2.pptx"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+F="$SCRIPT_DIR/dark__architectural_plan.pptx"
 
 # ── Design Tokens ──────────────────────────────────────────
 WHITE="FFFFFF"
