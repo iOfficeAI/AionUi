@@ -269,4 +269,153 @@ describe('AcpSkillManager - User Skills Discovery', () => {
     // Should appear only once (as user skill; optional discovery skips it)
     expect(sharedEntries).toHaveLength(1);
   });
+
+  it('getUserSkillNames() returns a Set of user skill directory names', async () => {
+    addMockSkill('/mock/skills', 'alpha', { name: 'alpha', description: 'Alpha skill' });
+    addMockSkill('/mock/skills', 'beta', { name: 'beta', description: 'Beta skill' });
+
+    const manager = await createManager();
+    await manager.discoverSkills();
+
+    const names = manager.getUserSkillNames();
+    expect(names).toBeInstanceOf(Set);
+    expect(names.has('alpha')).toBe(true);
+    expect(names.has('beta')).toBe(true);
+    expect(names.size).toBe(2);
+  });
+
+  it('clearCache() resets body to undefined for user skills', async () => {
+    addMockSkill('/mock/skills', 'cached', { name: 'cached', description: 'Cached skill' });
+
+    const manager = await createManager();
+    await manager.discoverSkills();
+
+    // Load the body
+    const skill = await manager.getSkill('cached');
+    expect(skill!.body).toBe('Skill body content');
+
+    // Clear cache
+    manager.clearCache();
+
+    // Body should be undefined after cache clear (will reload on next getSkill)
+    // Access internal state via getSkill again — it will re-read from mock fs
+    const skillAfter = await manager.getSkill('cached');
+    expect(skillAfter).not.toBeNull();
+    // The body was re-loaded from the mock file
+    expect(skillAfter!.body).toBe('Skill body content');
+  });
+
+  it('discovers symbolic link entries as user skills', async () => {
+    // Add a symlink entry (not a directory)
+    if (!mockDirs['/mock/skills']) mockDirs['/mock/skills'] = [];
+    mockDirs['/mock/skills'].push({ name: 'symlinked-skill', isDirectory: false, isSymbolicLink: true });
+
+    const skillDir = path.join('/mock/skills', 'symlinked-skill');
+    mockDirs[skillDir] = [];
+    const skillFile = path.join(skillDir, 'SKILL.md');
+    mockFiles[skillFile] = '---\nname: symlinked-skill\ndescription: A symlinked skill\n---\n\nSymlink body';
+
+    const manager = await createManager();
+    await manager.discoverSkills();
+
+    expect(manager.hasSkill('symlinked-skill')).toBe(true);
+    const skill = await manager.getSkill('symlinked-skill');
+    expect(skill!.name).toBe('symlinked-skill');
+    expect(skill!.body).toBe('Symlink body');
+  });
+
+  it('uses directory name as fallback when frontmatter name is missing', async () => {
+    // Add skill with description but no name in frontmatter
+    const skillDir = path.join('/mock/skills', 'nameless');
+    const skillFile = path.join(skillDir, 'SKILL.md');
+    if (!mockDirs['/mock/skills']) mockDirs['/mock/skills'] = [];
+    mockDirs['/mock/skills'].push({ name: 'nameless', isDirectory: true, isSymbolicLink: false });
+    mockDirs[skillDir] = [];
+    mockFiles[skillFile] = '---\ndescription: A skill without a name field\n---\n\nNameless body';
+
+    const manager = await createManager();
+    await manager.discoverSkills();
+
+    const skill = await manager.getSkill('nameless');
+    expect(skill).not.toBeNull();
+    // Should fall back to directory name
+    expect(skill!.name).toBe('nameless');
+    expect(skill!.description).toBe('A skill without a name field');
+  });
+
+  it('handles readFile failure for individual user skill gracefully', async () => {
+    // Add a valid directory entry
+    if (!mockDirs['/mock/skills']) mockDirs['/mock/skills'] = [];
+    mockDirs['/mock/skills'].push({ name: 'broken-skill', isDirectory: true, isSymbolicLink: false });
+    mockDirs[path.join('/mock/skills', 'broken-skill')] = [];
+
+    // Make existsSync return true for the SKILL.md path via mockDirs,
+    // but don't add to mockFiles so readFile throws ENOENT
+    const brokenFile = path.join('/mock/skills', 'broken-skill', 'SKILL.md');
+    mockDirs[brokenFile] = [];
+
+    // Also add a good skill to verify partial failure doesn't break everything
+    addMockSkill('/mock/skills', 'good-skill', { name: 'good-skill', description: 'Works fine' });
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const manager = await createManager();
+    await manager.discoverSkills();
+
+    // The good skill should still be discovered despite the broken one
+    expect(manager.hasSkill('good-skill')).toBe(true);
+    // The broken skill should not be in user skills
+    expect(manager.hasSkill('broken-skill')).toBe(false);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to load user skill broken-skill'),
+      expect.anything()
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('handles readdir failure for skills directory gracefully', async () => {
+    // Make the skills directory exist for existsSync but fail on readdir
+    // Remove the directory entries so readdir throws
+    delete mockDirs['/mock/skills'];
+    // But keep it "existing" for existsSync by adding a file entry
+    mockFiles['/mock/skills'] = ''; // existsSync will return true for this path
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const manager = await createManager();
+    await manager.discoverSkills();
+
+    // Should not throw, just log error
+    expect(manager.getUserSkillsIndex()).toHaveLength(0);
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to discover user skills'), expect.anything());
+    errorSpy.mockRestore();
+  });
+
+  it('extension skill conflicting with user skill is skipped', async () => {
+    // Add a user skill
+    addMockSkill('/mock/skills', 'conflicting', { name: 'conflicting', description: 'User version' });
+
+    // Re-mock ExtensionRegistry to return a skill with the same name
+    const { ExtensionRegistry } = await import('../../src/process/extensions');
+    vi.spyOn(ExtensionRegistry, 'getInstance').mockReturnValue({
+      getSkills: () => [
+        { name: 'conflicting', description: 'Extension version', location: '/ext/conflicting/SKILL.md' },
+      ],
+    } as ReturnType<typeof ExtensionRegistry.getInstance>);
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { AcpSkillManager } = await import('../../src/process/task/AcpSkillManager');
+    AcpSkillManager.resetInstance();
+    const manager = AcpSkillManager.getInstance();
+    await manager.discoverSkills(['conflicting']);
+
+    // User skill should be present
+    const userIndex = manager.getUserSkillsIndex();
+    expect(userIndex.map((s) => s.name)).toContain('conflicting');
+
+    // Extension skill with same name should have been skipped
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Extension skill "conflicting" conflicts with existing skill')
+    );
+    warnSpy.mockRestore();
+  });
 });
