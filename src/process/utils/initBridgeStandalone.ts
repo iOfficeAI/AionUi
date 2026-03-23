@@ -30,6 +30,7 @@ import { initGeminiConversationBridge } from "@process/bridge/geminiConversation
 import { initModelBridge } from "@process/bridge/modelBridge";
 import { initPreviewHistoryBridge } from "@process/bridge/previewHistoryBridge";
 import { initStarOfficeBridge } from "@process/bridge/starOfficeBridge";
+import { initApplicationBridgeCore } from "@process/bridge/applicationBridgeCore";
 import { initCronBridge } from "@process/bridge/cronBridge";
 import { initFsBridge } from "@process/bridge/fsBridge";
 import { initMcpBridge } from "@process/bridge/mcpBridge";
@@ -47,6 +48,7 @@ export async function initBridgeStandalone(): Promise<void> {
   // Skipped (Electron-only): dialogBridge, shellBridge, applicationBridge (partial — see applicationBridgeCore),
   // windowControlsBridge, updateBridge, webuiBridge
 
+  initApplicationBridgeCore();
   initFileWatchBridge();
   initFsBridge();
   initConversationBridge(conversationService, workerTaskManager);

@@ -4,14 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { BrowserWindow } from 'electron';
-import { app } from 'electron';
-import { ipcBridge } from '@/common';
-import { getSystemDir, ProcessEnv } from '@process/utils/initStorage';
-import { copyDirectoryRecursively } from '@process/utils';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
-import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
-import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
+import type { BrowserWindow } from "electron";
+import { app } from "electron";
+import { ipcBridge } from "@/common";
+import type { IWorkerTaskManager } from "@process/task/IWorkerTaskManager";
+import { getZoomFactor, setZoomFactor } from "@process/utils/zoom";
+import {
+  getCdpStatus,
+  updateCdpConfig,
+} from "@process/utils/configureChromium";
+import { initApplicationBridgeCore } from "./applicationBridgeCore";
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -19,7 +21,12 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
   mainWindowRef = win;
 }
 
-export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): void {
+export function initApplicationBridge(
+  workerTaskManager: IWorkerTaskManager,
+): void {
+  // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
+  initApplicationBridgeCore();
+
   ipcBridge.application.restart.provider(() => {
     // 清理所有工作进程
     workerTaskManager.clear();
@@ -27,27 +34,6 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
     app.relaunch();
     app.exit(0);
     return Promise.resolve();
-  });
-
-  ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) => {
-    try {
-      const oldDir = getSystemDir();
-      if (oldDir.cacheDir !== cacheDir) {
-        await copyDirectoryRecursively(oldDir.cacheDir, cacheDir);
-      }
-      await ProcessEnv.set('aionui.dir', { cacheDir, workDir });
-      return { success: true };
-    } catch (e) {
-      return { success: false, msg: e.message || e.toString() };
-    }
-  });
-
-  ipcBridge.application.systemInfo.provider(() => {
-    return Promise.resolve(getSystemDir());
-  });
-
-  ipcBridge.application.getPath.provider(({ name }) => {
-    return Promise.resolve(app.getPath(name));
   });
 
   ipcBridge.application.isDevToolsOpened.provider(() => {
@@ -68,15 +54,15 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
       } else {
         return new Promise((resolve) => {
           const onOpened = () => {
-            win.webContents.off('devtools-opened', onOpened);
+            win.webContents.off("devtools-opened", onOpened);
             resolve(true);
           };
 
-          win.webContents.once('devtools-opened', onOpened);
+          win.webContents.once("devtools-opened", onOpened);
           win.webContents.openDevTools();
 
           setTimeout(() => {
-            win.webContents.off('devtools-opened', onOpened);
+            win.webContents.off("devtools-opened", onOpened);
             if (win.isDestroyed()) {
               resolve(false);
               return;
@@ -89,7 +75,9 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
     return Promise.resolve(false);
   });
 
-  ipcBridge.application.getZoomFactor.provider(() => Promise.resolve(getZoomFactor()));
+  ipcBridge.application.getZoomFactor.provider(() =>
+    Promise.resolve(getZoomFactor()),
+  );
 
   ipcBridge.application.setZoomFactor.provider(({ factor }) => {
     return Promise.resolve(setZoomFactor(factor));
