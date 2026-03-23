@@ -374,6 +374,11 @@ export function initFsBridge(): void {
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {
+      // Return null for missing files (e.g., cleaned-up temp workspaces)
+      // instead of throwing, to avoid unhandled promise rejections (Fixes ELECTRON-6W)
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error('Failed to read file:', error);
       throw error;
     }
@@ -387,6 +392,9 @@ export function initFsBridge(): void {
       // Convert Node.js Buffer to ArrayBuffer
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error('Failed to read file buffer:', error);
       throw error;
     }
