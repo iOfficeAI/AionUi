@@ -56,23 +56,15 @@ export interface ElectronBridgeAPI {
   webuiResetPassword?: () => Promise<WebUIResetPasswordResult>;
   webuiGetStatus?: () => Promise<WebUIGetStatusResult>;
   // 修改密码（不需要当前密码）/ Change password (no current password required)
-  webuiChangePassword?: (
-    newPassword: string,
-  ) => Promise<WebUIChangePasswordResult>;
-  webuiChangeUsername?: (
-    newUsername: string,
-  ) => Promise<WebUIChangeUsernameResult>;
+  webuiChangePassword?: (newPassword: string) => Promise<WebUIChangePasswordResult>;
+  webuiChangeUsername?: (newUsername: string) => Promise<WebUIChangeUsernameResult>;
   // 生成二维��� token / Generate QR token
   webuiGenerateQRToken?: () => Promise<WebUIGenerateQRTokenResult>;
   // WeChat QR-code login / 微信二维码登录
   weixinLoginStart?: () => Promise<{ accountId: string; botToken: string }>;
-  weixinLoginOnQR?: (
-    callback: (data: { qrcodeUrl: string }) => void,
-  ) => () => void;
+  weixinLoginOnQR?: (callback: (data: { qrcodeUrl: string }) => void) => () => void;
   weixinLoginOnScanned?: (callback: () => void) => () => void;
-  weixinLoginOnDone?: (
-    callback: (data: { accountId: string }) => void,
-  ) => () => void;
+  weixinLoginOnDone?: (callback: (data: { accountId: string }) => void) => () => void;
 }
 
 declare global {

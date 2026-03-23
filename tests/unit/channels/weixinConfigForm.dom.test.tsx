@@ -65,9 +65,7 @@ describe('WeixinConfigForm', () => {
   });
 
   it('renders login button in idle state', () => {
-    render(
-      <WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />
-    );
+    render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
     expect(screen.getByText('扫码登录')).toBeTruthy();
   });
 
@@ -75,9 +73,7 @@ describe('WeixinConfigForm', () => {
     // weixinLoginStart never resolves in this test — stays in loading
     mockWeixinLoginStart.mockReturnValue(new Promise(() => {}));
 
-    render(
-      <WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />
-    );
+    render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
       fireEvent.click(screen.getByText('扫码登录'));
@@ -96,9 +92,7 @@ describe('WeixinConfigForm', () => {
     });
     mockWeixinLoginStart.mockReturnValue(new Promise(() => {}));
 
-    render(
-      <WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />
-    );
+    render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
     await act(async () => {
       fireEvent.click(screen.getByText('扫码登录'));
@@ -117,17 +111,27 @@ describe('WeixinConfigForm', () => {
     let qrCallback: ((data: { qrcodeUrl: string }) => void) | null = null;
     let scannedCallback: (() => void) | null = null;
 
-    mockWeixinLoginOnQR.mockImplementation((cb: any) => { qrCallback = cb; return vi.fn(); });
-    mockWeixinLoginOnScanned.mockImplementation((cb: any) => { scannedCallback = cb; return vi.fn(); });
+    mockWeixinLoginOnQR.mockImplementation((cb: any) => {
+      qrCallback = cb;
+      return vi.fn();
+    });
+    mockWeixinLoginOnScanned.mockImplementation((cb: any) => {
+      scannedCallback = cb;
+      return vi.fn();
+    });
     mockWeixinLoginStart.mockReturnValue(new Promise(() => {}));
 
-    render(
-      <WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />
-    );
+    render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
-    await act(async () => { fireEvent.click(screen.getByText('扫码登录')); });
-    await act(async () => { qrCallback?.({ qrcodeUrl: 'https://example.com/qr.png' }); });
-    await act(async () => { scannedCallback?.(); });
+    await act(async () => {
+      fireEvent.click(screen.getByText('扫码登录'));
+    });
+    await act(async () => {
+      qrCallback?.({ qrcodeUrl: 'https://example.com/qr.png' });
+    });
+    await act(async () => {
+      scannedCallback?.();
+    });
 
     expect(screen.getByText('已扫码，等待确认...')).toBeTruthy();
   });
@@ -144,7 +148,11 @@ describe('WeixinConfigForm', () => {
     };
 
     render(
-      <WeixinConfigForm pluginStatus={pluginStatus as any} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />
+      <WeixinConfigForm
+        pluginStatus={pluginStatus as any}
+        modelSelection={noopModelSelection}
+        onStatusChange={vi.fn()}
+      />
     );
 
     expect(screen.getByText('已连接')).toBeTruthy();
