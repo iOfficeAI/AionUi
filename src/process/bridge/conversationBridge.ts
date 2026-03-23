@@ -164,7 +164,8 @@ export function initConversationBridge(
   ipcBridge.conversation.createWithConversation.provider(
     async ({ conversation, sourceConversationId, migrateCron }) => {
       try {
-        void workerTaskManager.getOrBuildTask(conversation.id);
+        // Pre-build task; conversation may not be persisted yet — ignore if not found
+        workerTaskManager.getOrBuildTask(conversation.id).catch(() => {});
 
         const result = await conversationService.createWithMigration({
           conversation,
