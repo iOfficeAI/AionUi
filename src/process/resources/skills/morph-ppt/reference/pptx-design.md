@@ -138,6 +138,7 @@ Define 6-8 actors on Slide 1:
    - These shapes persist and morph across all slides
 
 2. **Content shapes** (unique per slide):
+
    ```bash
    --prop 'name=#s1-title'      # Format: # + s + slide_number + - + description
    --prop 'name=#s2-card1'
