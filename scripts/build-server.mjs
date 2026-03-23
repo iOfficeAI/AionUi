@@ -16,7 +16,7 @@
  */
 
 import { build } from 'esbuild'
-import { copyFileSync, mkdirSync } from 'fs'
+import { copyFileSync, mkdirSync, cpSync, existsSync } from 'fs'
 import { join, basename, resolve } from 'path'
 
 // Copy tree-sitter WASM files to dist-server/wasm/ so worker processes can load
@@ -28,6 +28,13 @@ const wasmSources = [
 mkdirSync('dist-server/wasm', { recursive: true })
 for (const src of wasmSources) {
   copyFileSync(src, join('dist-server/wasm', basename(src)))
+}
+
+// Copy built-in skills to dist-server/skills/ so standalone mode can initialize
+// them into the user config directory on first startup.
+const skillsSrc = resolve('src/process/resources/skills')
+if (existsSync(skillsSrc)) {
+  cpSync(skillsSrc, resolve('dist-server/skills'), { recursive: true })
 }
 
 // Stub out Vite-specific .wasm?binary imports for the main server entry —

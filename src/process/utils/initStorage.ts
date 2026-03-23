@@ -494,7 +494,22 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     (preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0,
   );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir("rules") : "";
-  const builtinSkillsDir = resolveBuiltinDir("src/skills");
+  // resolveBuiltinDir("src/skills") works for packaged Electron (viteStaticCopy outputs to
+  // skills/ which matches after stripping "src/"), but in development and standalone server
+  // mode the actual source path is src/process/resources/skills/ or dist-server/skills/.
+  let builtinSkillsDir = resolveBuiltinDir("src/skills");
+  if (!existsSync(builtinSkillsDir)) {
+    const skillsFallbacks = [
+      // Development: actual source directory (src/skills is a non-existent alias)
+      path.join(process.cwd(), "src", "process", "resources", "skills"),
+      // Standalone production: bundled alongside server binary by build-server.mjs
+      path.join(__dirname, "skills"),
+      path.join(__dirname, "..", "skills"),
+      path.join(process.cwd(), "dist-server", "skills"),
+    ];
+    const found = skillsFallbacks.find((d) => existsSync(d));
+    if (found) builtinSkillsDir = found;
+  }
   const userSkillsDir = getSkillsDir();
 
   // 复制技能脚本目录到用户配置目录
