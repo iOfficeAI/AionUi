@@ -756,7 +756,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('rules', fileName);
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -766,7 +766,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('skills', fileName);
     } catch (error) {
       console.error('Failed to read builtin skill:', error);
-      throw error;
+      return '';
     }
   });
 
