@@ -4,25 +4,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/common/types/acpTypes';
-import { storage } from '@office-ai/platform';
+import type {
+  AcpBackend,
+  AcpBackendAll,
+  AcpBackendConfig,
+} from "@/common/types/acpTypes";
+import { storage } from "@office-ai/platform";
 
 /**
  * @description 聊天相关的存储
  */
-export const ChatStorage = storage.buildStorage<IChatConversationRefer>('agent.chat');
+export const ChatStorage =
+  storage.buildStorage<IChatConversationRefer>("agent.chat");
 
 // 聊天消息存储
-export const ChatMessageStorage = storage.buildStorage('agent.chat.message');
+export const ChatMessageStorage = storage.buildStorage("agent.chat.message");
 
 // 系统配置存储
-export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.config');
+export const ConfigStorage =
+  storage.buildStorage<IConfigStorageRefer>("agent.config");
 
 // 系统环境变量存储
-export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
+export const EnvStorage = storage.buildStorage<IEnvStorageRefer>("agent.env");
 
 export interface IConfigStorageRefer {
-  'gemini.config': {
+  "gemini.config": {
     authType: string;
     proxy: string;
     GOOGLE_GEMINI_BASE_URL?: string;
@@ -34,11 +40,11 @@ export interface IConfigStorageRefer {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
   };
-  'codex.config'?: {
+  "codex.config"?: {
     cliPath?: string;
     yoloMode?: boolean;
   };
-  'acp.config': {
+  "acp.config": {
     [backend in AcpBackend]?: {
       authMethodId?: string;
       authToken?: string;
@@ -51,87 +57,101 @@ export interface IConfigStorageRefer {
       preferredModelId?: string;
     };
   };
-  'acp.customAgents'?: AcpBackendConfig[];
+  "acp.customAgents"?: AcpBackendConfig[];
   // Cached model lists per ACP backend for Guid page pre-selection
-  'acp.cachedModels'?: Record<string, import('@/common/types/acpTypes').AcpModelInfo>;
-  'model.config': IProvider[];
-  'mcp.config': IMcpServer[];
-  'mcp.agentInstallStatus': Record<string, string[]>;
+  "acp.cachedModels"?: Record<
+    string,
+    import("@/common/types/acpTypes").AcpModelInfo
+  >;
+  "model.config": IProvider[];
+  "mcp.config": IMcpServer[];
+  "mcp.agentInstallStatus": Record<string, string[]>;
   language: string;
   theme: string;
   colorScheme: string;
   /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
-  'webui.desktop.enabled'?: boolean;
+  "webui.desktop.enabled"?: boolean;
   /** 桌面模式下是否允许远程访问 / Allow remote access in desktop mode */
-  'webui.desktop.allowRemote'?: boolean;
+  "webui.desktop.allowRemote"?: boolean;
   /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
-  'webui.desktop.port'?: number;
+  "webui.desktop.port"?: number;
   customCss: string; // 自定义 CSS 样式
-  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
-  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
-  'gemini.defaultModel': string | { id: string; useModel: string };
-  'tools.imageGenerationModel': TProviderWithModel & {
+  "css.themes": ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
+  "css.activeThemeId": string; // 当前激活的主题 ID / Currently active theme ID
+  "gemini.defaultModel": string | { id: string; useModel: string };
+  "tools.imageGenerationModel": TProviderWithModel & {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;
   };
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
-  'workspace.pasteConfirm'?: boolean;
+  "workspace.pasteConfirm"?: boolean;
   // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
-  'guid.lastSelectedAgent'?: string;
+  "guid.lastSelectedAgent"?: string;
   // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
-  'migration.assistantEnabledFixed'?: boolean;
+  "migration.assistantEnabledFixed"?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
   /** @deprecated Use migration.builtinDefaultSkillsAdded_v2 instead */
-  'migration.coworkDefaultSkillsAdded'?: boolean;
+  "migration.coworkDefaultSkillsAdded"?: boolean;
   // 迁移标记：为所有内置助手添加默认启用的 skills / Migration flag: add default enabled skills for all builtin assistants
-  'migration.builtinDefaultSkillsAdded_v2'?: boolean;
+  "migration.builtinDefaultSkillsAdded_v2"?: boolean;
   // 迁移标记：为所有内置助手添加 promptsI18n / Migration flag: add promptsI18n for all builtin assistants
-  'migration.promptsI18nAdded'?: boolean;
+  "migration.promptsI18nAdded"?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
-  'system.closeToTray'?: boolean;
+  "system.closeToTray"?: boolean;
   // 任务完成时显示系统通知 / Show system notification when task completes
-  'system.notificationEnabled'?: boolean;
+  "system.notificationEnabled"?: boolean;
   // 定时任务完成时显示系统通知 / Show system notification when scheduled task completes
-  'system.cronNotificationEnabled'?: boolean;
+  "system.cronNotificationEnabled"?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
-  'assistant.telegram.defaultModel'?: {
+  "assistant.telegram.defaultModel"?: {
     id: string;
     useModel: string;
   };
   // Telegram assistant agent selection / Telegram 助手所使用的 Agent
-  'assistant.telegram.agent'?: {
+  "assistant.telegram.agent"?: {
     backend: AcpBackendAll;
     customAgentId?: string;
     name?: string;
   };
   // Lark assistant default model / Lark 助手默认模型
-  'assistant.lark.defaultModel'?: {
+  "assistant.lark.defaultModel"?: {
     id: string;
     useModel: string;
   };
   // Lark assistant agent selection / Lark 助手所使用的 Agent
-  'assistant.lark.agent'?: {
+  "assistant.lark.agent"?: {
     backend: AcpBackendAll;
     customAgentId?: string;
     name?: string;
   };
   // DingTalk assistant default model / DingTalk 助手默认模型
-  'assistant.dingtalk.defaultModel'?: {
+  "assistant.dingtalk.defaultModel"?: {
     id: string;
     useModel: string;
   };
   // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
-  'assistant.dingtalk.agent'?: {
+  "assistant.dingtalk.agent"?: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  };
+  // WeChat assistant default model / WeChat 助手默认模型
+  "assistant.weixin.defaultModel"?: {
+    id: string;
+    useModel: string;
+  };
+  // WeChat assistant agent selection / WeChat 助手所使用的 Agent
+  "assistant.weixin.agent"?: {
     backend: AcpBackendAll;
     customAgentId?: string;
     name?: string;
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
-  'skillsMarket.enabled'?: boolean;
+  "skillsMarket.enabled"?: boolean;
 }
 
 export interface IEnvStorageRefer {
-  'aionui.dir': {
+  "aionui.dir": {
     workDir: string;
     cacheDir: string;
   };
@@ -141,7 +161,12 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | (string & {});
+export type ConversationSource =
+  | "aionui"
+  | "telegram"
+  | "lark"
+  | "dingtalk"
+  | (string & {});
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -152,7 +177,7 @@ interface IChatConversation<T, Extra> {
   type: T;
   extra: Extra;
   model: TProviderWithModel;
-  status?: 'pending' | 'running' | 'finished' | undefined;
+  status?: "pending" | "running" | "finished" | undefined;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
@@ -166,11 +191,11 @@ export interface TokenUsageData {
 
 export type TChatConversation =
   | IChatConversation<
-      'gemini',
+      "gemini",
       {
         workspace: string;
         customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
-        webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
+        webSearchEngine?: "google" | "default"; // 搜索引擎配置
         lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
         contextFileName?: string;
         contextContent?: string;
@@ -192,7 +217,7 @@ export type TChatConversation =
     >
   | Omit<
       IChatConversation<
-        'acp',
+        "acp",
         {
           workspace?: string;
           backend: AcpBackend;
@@ -225,16 +250,16 @@ export type TChatConversation =
           isHealthCheck?: boolean;
         }
       >,
-      'model'
+      "model"
     >
   | Omit<
       IChatConversation<
-        'codex',
+        "codex",
         {
           workspace?: string;
           cliPath?: string;
           customWorkspace?: boolean;
-          sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
+          sandboxMode?: "read-only" | "workspace-write" | "danger-full-access"; // Codex sandbox permission mode
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
           /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
           enabledSkills?: string[];
@@ -252,11 +277,11 @@ export type TChatConversation =
           isHealthCheck?: boolean;
         }
       >,
-      'model'
+      "model"
     >
   | Omit<
       IChatConversation<
-        'openclaw-gateway',
+        "openclaw-gateway",
         {
           workspace?: string;
           backend?: AcpBackendAll;
@@ -295,11 +320,11 @@ export type TChatConversation =
           isHealthCheck?: boolean;
         }
       >,
-      'model'
+      "model"
     >
   | Omit<
       IChatConversation<
-        'nanobot',
+        "nanobot",
         {
           workspace?: string;
           customWorkspace?: boolean;
@@ -315,23 +340,23 @@ export type TChatConversation =
           isHealthCheck?: boolean;
         }
       >,
-      'model'
+      "model"
     >;
 
 export type IChatConversationRefer = {
-  'chat.history': TChatConversation[];
+  "chat.history": TChatConversation[];
 };
 
 export type ModelType =
-  | 'text' // 文本对话
-  | 'vision' // 视觉理解
-  | 'function_calling' // 工具调用
-  | 'image_generation' // 图像生成
-  | 'web_search' // 网络搜索
-  | 'reasoning' // 推理模型
-  | 'embedding' // 嵌入模型
-  | 'rerank' // 重排序模型
-  | 'excludeFromPrimary'; // 排除：不适合作为主力模型
+  | "text" // 文本对话
+  | "vision" // 视觉理解
+  | "function_calling" // 工具调用
+  | "image_generation" // 图像生成
+  | "web_search" // 网络搜索
+  | "reasoning" // 推理模型
+  | "embedding" // 嵌入模型
+  | "rerank" // 重排序模型
+  | "excludeFromPrimary"; // 排除：不适合作为主力模型
 
 export type ModelCapability = {
   type: ModelType;
@@ -369,7 +394,7 @@ export interface IProvider {
    * Only used when platform is 'bedrock'
    */
   bedrockConfig?: {
-    authMethod: 'accessKey' | 'profile';
+    authMethod: "accessKey" | "profile";
     region: string;
     // For access key method
     accessKeyId?: string;
@@ -394,7 +419,7 @@ export interface IProvider {
   modelHealth?: Record<
     string,
     {
-      status: 'unknown' | 'healthy' | 'unhealthy';
+      status: "unknown" | "healthy" | "unhealthy";
       lastCheck?: number; // 时间戳 / timestamp
       latency?: number; // 延迟时间（毫秒）/ latency in milliseconds
       error?: string; // 错误信息 / error message
@@ -402,32 +427,34 @@ export interface IProvider {
   >;
 }
 
-export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
+export type TProviderWithModel = Omit<IProvider, "model"> & {
+  useModel: string;
+};
 
 // MCP Server Configuration Types
-export type McpTransportType = 'stdio' | 'sse' | 'http';
+export type McpTransportType = "stdio" | "sse" | "http";
 
 export interface IMcpServerTransportStdio {
-  type: 'stdio';
+  type: "stdio";
   command: string;
   args?: string[];
   env?: Record<string, string>;
 }
 
 export interface IMcpServerTransportSSE {
-  type: 'sse';
+  type: "sse";
   url: string;
   headers?: Record<string, string>;
 }
 
 export interface IMcpServerTransportHTTP {
-  type: 'http';
+  type: "http";
   url: string;
   headers?: Record<string, string>;
 }
 
 export interface IMcpServerTransportStreamableHTTP {
-  type: 'streamable_http';
+  type: "streamable_http";
   url: string;
   headers?: Record<string, string>;
 }
@@ -445,7 +472,7 @@ export interface IMcpServer {
   enabled: boolean; // 是否已安装到 CLI agents（控制 Switch 状态）
   transport: IMcpServerTransport;
   tools?: IMcpTool[];
-  status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 连接状态（同时表示服务可用性）
+  status?: "connected" | "disconnected" | "error" | "testing"; // 连接状态（同时表示服务可用性）
   lastConnected?: number;
   createdAt: number;
   updatedAt: number;
@@ -455,7 +482,7 @@ export interface IMcpServer {
 }
 
 /** Stable ID for the built-in image generation MCP server */
-export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
+export const BUILTIN_IMAGE_GEN_ID = "builtin-image-gen";
 
 export interface IMcpTool {
   name: string;
