@@ -89,7 +89,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
     });
 
     it('should register handlers when initUpdateBridge is called', async () => {
-      const { initUpdateBridge } = await import('@/process/bridge/updateBridge');
+      const { initUpdateBridge } = await import('@process/bridge/updateBridge');
 
       // Should not throw
       expect(() => initUpdateBridge()).not.toThrow();
@@ -98,7 +98,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
 
   describe('createAutoUpdateStatusBroadcast', () => {
     it('should create a pure emitter callback that emits via ipcBridge', async () => {
-      const { createAutoUpdateStatusBroadcast } = await import('@/process/bridge/updateBridge');
+      const { createAutoUpdateStatusBroadcast } = await import('@process/bridge/updateBridge');
       const { ipcBridge } = await import('@/common');
 
       // No window argument needed — pure emitter
@@ -110,7 +110,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
     });
 
     it('should forward all status fields correctly', async () => {
-      const { createAutoUpdateStatusBroadcast } = await import('@/process/bridge/updateBridge');
+      const { createAutoUpdateStatusBroadcast } = await import('@process/bridge/updateBridge');
       const { ipcBridge } = await import('@/common');
 
       const broadcast = createAutoUpdateStatusBroadcast();
@@ -129,7 +129,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
 
   describe('Auto-Update Check Handler', () => {
     it('should return error when service not initialized', async () => {
-      const { initUpdateBridge } = await import('@/process/bridge/updateBridge');
+      const { initUpdateBridge } = await import('@process/bridge/updateBridge');
       const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
 
       // Reset service to ensure not initialized
@@ -145,7 +145,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
     });
 
     it('should set allowPrerelease before checking', async () => {
-      const { initUpdateBridge } = await import('@/process/bridge/updateBridge');
+      const { initUpdateBridge } = await import('@process/bridge/updateBridge');
       const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
       const { ipcBridge } = await import('@/common');
 
@@ -171,7 +171,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
 
   describe('Auto-Update Download Handler', () => {
     it('should return error when service not initialized', async () => {
-      const { initUpdateBridge } = await import('@/process/bridge/updateBridge');
+      const { initUpdateBridge } = await import('@process/bridge/updateBridge');
       const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
 
       autoUpdaterService.resetForTest();
@@ -209,7 +209,7 @@ describe('Auto-Update IPC Bridge Integration', () => {
       //   initUpdateBridge() registers IPC handlers
       //   autoUpdaterService.initialize(createAutoUpdateStatusBroadcast()) wires the emitter
       //   triggering an autoUpdater event causes ipcBridge.autoUpdate.status.emit to be called
-      const { initUpdateBridge, createAutoUpdateStatusBroadcast } = await import('@/process/bridge/updateBridge');
+      const { initUpdateBridge, createAutoUpdateStatusBroadcast } = await import('@process/bridge/updateBridge');
       const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
       const { ipcBridge } = await import('@/common');
 

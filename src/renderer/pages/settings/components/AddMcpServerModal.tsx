@@ -1,5 +1,5 @@
-import type { IMcpServer } from '@/common/storage';
-import { acpConversation } from '@/common/ipcBridge';
+import type { IMcpServer } from '@/common/config/storage';
+import { acpConversation } from '@/common/adapter/ipcBridge';
 import React, { useEffect, useState } from 'react';
 import JsonImportModal from './JsonImportModal';
 import OneClickImportModal from './OneClickImportModal';

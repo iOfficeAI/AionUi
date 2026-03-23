@@ -22,7 +22,19 @@ body {
   padding: 0;
   background: transparent;
   color: var(--text);
-  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    'Noto Sans',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif;
 }
 
 .office-app {
@@ -123,12 +135,43 @@ button.ghost {
   color: #b8c1ea;
 }
 
-.z-idle { left: 10px; top: 10px; width: 38%; height: 35%; }
-.z-writing { left: 10px; bottom: 10px; width: 38%; height: 35%; }
-.z-researching { left: 42%; top: 10px; width: 27%; height: 35%; }
-.z-executing { left: 42%; bottom: 10px; width: 27%; height: 35%; }
-.z-syncing { right: 10px; top: 10px; width: 28%; height: 35%; }
-.z-error { right: 10px; bottom: 10px; width: 28%; height: 35%; border-color: #81505f; }
+.z-idle {
+  left: 10px;
+  top: 10px;
+  width: 38%;
+  height: 35%;
+}
+.z-writing {
+  left: 10px;
+  bottom: 10px;
+  width: 38%;
+  height: 35%;
+}
+.z-researching {
+  left: 42%;
+  top: 10px;
+  width: 27%;
+  height: 35%;
+}
+.z-executing {
+  left: 42%;
+  bottom: 10px;
+  width: 27%;
+  height: 35%;
+}
+.z-syncing {
+  right: 10px;
+  top: 10px;
+  width: 28%;
+  height: 35%;
+}
+.z-error {
+  right: 10px;
+  bottom: 10px;
+  width: 28%;
+  height: 35%;
+  border-color: #81505f;
+}
 
 #agent-layer {
   position: absolute;
@@ -140,7 +183,7 @@ button.ghost {
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
@@ -153,18 +196,30 @@ button.ghost {
   white-space: nowrap;
   font-size: 10px;
   color: #dbe2ff;
-  background: rgba(10,12,20,0.72);
+  background: rgba(10, 12, 20, 0.72);
   border: 1px solid rgba(109, 123, 255, 0.45);
   border-radius: 6px;
   padding: 2px 5px;
 }
 
-.agent.state-idle { background: #7a87a9; }
-.agent.state-writing { background: var(--ok); }
-.agent.state-researching { background: #66b7ff; }
-.agent.state-executing { background: var(--warn); }
-.agent.state-syncing { background: var(--accent); }
-.agent.state-error { background: var(--bad); }
+.agent.state-idle {
+  background: #7a87a9;
+}
+.agent.state-writing {
+  background: var(--ok);
+}
+.agent.state-researching {
+  background: #66b7ff;
+}
+.agent.state-executing {
+  background: var(--warn);
+}
+.agent.state-syncing {
+  background: var(--accent);
+}
+.agent.state-error {
+  background: var(--bad);
+}
 
 .sidebar {
   background: var(--panel);

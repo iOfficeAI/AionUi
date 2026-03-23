@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { NanobotAgent, type NanobotAgentConfig } from '@/agent/nanobot';
+import { NanobotAgent, type NanobotAgentConfig } from '@process/agent/nanobot';
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { TMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 
 export interface NanoBotAgentManagerData {
   conversation_id: string;
@@ -24,14 +25,13 @@ export interface NanoBotAgentManagerData {
 }
 
 class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
-  workspace?: string;
   agent!: NanobotAgent;
   bootstrap: Promise<NanobotAgent>;
 
   constructor(data: NanoBotAgentManagerData) {
-    super('nanobot', data);
+    super('nanobot', data, new IpcAgentEventEmitter());
     this.conversation_id = data.conversation_id;
-    this.workspace = data.workspace;
+    this.workspace = data.workspace ?? '';
 
     this.bootstrap = this.initAgent(data);
   }

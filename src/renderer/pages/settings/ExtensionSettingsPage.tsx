@@ -7,9 +7,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/ipcBridge';
-import { useExtI18n } from '@/renderer/hooks/useExtI18n';
-import WebviewHost from '@/renderer/components/WebviewHost';
+import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
+import WebviewHost from '@/renderer/components/media/WebviewHost';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 

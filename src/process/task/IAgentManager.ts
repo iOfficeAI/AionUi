@@ -1,0 +1,26 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// src/process/task/IAgentManager.ts
+
+import type { IConfirmation } from '@/common/chat/chatLib';
+import type { AgentType, AgentStatus } from './agentTypes';
+
+export interface IAgentManager {
+  readonly type: AgentType;
+  /**
+   * readonly on interface; the implementation class mutates its own this.status.
+   */
+  readonly status: AgentStatus | undefined;
+  readonly workspace: string;
+  readonly conversation_id: string;
+
+  sendMessage(data: unknown): Promise<void>;
+  stop(): Promise<void>;
+  confirm(msgId: string, callId: string, data: unknown): void;
+  getConfirmations(): IConfirmation[];
+  kill(): void;
+}

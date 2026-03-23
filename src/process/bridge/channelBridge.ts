@@ -4,21 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { channel } from '@/common/ipcBridge';
-import { getDatabase } from '@/process/database';
-import { getChannelManager } from '@/channels/core/ChannelManager';
-import { getPairingService } from '@/channels/pairing/PairingService';
-import { ExtensionRegistry } from '@/extensions';
-import { toAssetUrl } from '@/extensions/assetProtocol';
+import { channel } from '@/common/adapter/ipcBridge';
+import { getChannelManager } from '@process/channels/core/ChannelManager';
+import { getPairingService } from '@process/channels/pairing/PairingService';
+import { ExtensionRegistry } from '@process/extensions';
+import { toAssetUrl } from '@process/extensions/protocol/assetProtocol';
 import * as path from 'path';
-import type { IChannelPluginStatus, IChannelUser, IChannelPairingRequest, IChannelSession } from '@/channels/types';
-import { hasPluginCredentials, rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
+import type {
+  IChannelPluginStatus,
+  IChannelUser,
+  IChannelPairingRequest,
+  IChannelSession,
+} from '@process/channels/types';
+import { hasPluginCredentials } from '@process/channels/types';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
 
 /**
  * Initialize Channel IPC Bridge
  * Handles communication between renderer (Settings UI) and main process (Channel system)
  */
-export function initChannelBridge(): void {
+export function initChannelBridge(channelRepo: IChannelRepository): void {
   console.log('[ChannelBridge] Initializing...');
 
   // ==================== Plugin Management ====================
@@ -30,13 +35,9 @@ export function initChannelBridge(): void {
     try {
       const BUILTIN_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 
-      let dbPlugins: import('@/channels/types').IChannelPluginConfig[] = [];
+      let dbPlugins: import('@process/channels/types').IChannelPluginConfig[] = [];
       try {
-        const db = getDatabase();
-        const result = db.getChannelPlugins();
-        if (result.success && Array.isArray(result.data)) {
-          dbPlugins = result.data;
-        }
+        dbPlugins = channelRepo.getChannelPlugins();
       } catch (dbError) {
         console.warn('[ChannelBridge] getChannelPlugins failed, proceeding with builtin-only list:', dbError);
       }
@@ -225,14 +226,8 @@ export function initChannelBridge(): void {
    */
   channel.getPendingPairings.provider(async () => {
     try {
-      const db = getDatabase();
-      const result = db.getPendingPairingRequests();
-
-      if (!result.success || !result.data) {
-        return { success: false, msg: result.error };
-      }
-
-      return { success: true, data: result.data };
+      const data = channelRepo.getPendingPairingRequests();
+      return { success: true, data };
     } catch (error: any) {
       console.error('[ChannelBridge] getPendingPairings error:', error);
       return { success: false, msg: error.message };
@@ -288,14 +283,8 @@ export function initChannelBridge(): void {
    */
   channel.getAuthorizedUsers.provider(async () => {
     try {
-      const db = getDatabase();
-      const result = db.getChannelUsers();
-
-      if (!result.success || !result.data) {
-        return { success: false, msg: result.error };
-      }
-
-      return { success: true, data: result.data };
+      const data = channelRepo.getChannelUsers();
+      return { success: true, data };
     } catch (error: any) {
       console.error('[ChannelBridge] getAuthorizedUsers error:', error);
       return { success: false, msg: error.message };
@@ -307,15 +296,8 @@ export function initChannelBridge(): void {
    */
   channel.revokeUser.provider(async ({ userId }) => {
     try {
-      const db = getDatabase();
-
       // Delete user (cascades to sessions)
-      const result = db.deleteChannelUser(userId);
-
-      if (!result.success) {
-        return { success: false, msg: result.error };
-      }
-
+      channelRepo.deleteChannelUser(userId);
       console.log(`[ChannelBridge] Revoked user ${userId}`);
       return { success: true };
     } catch (error: any) {
@@ -331,14 +313,8 @@ export function initChannelBridge(): void {
    */
   channel.getActiveSessions.provider(async () => {
     try {
-      const db = getDatabase();
-      const result = db.getChannelSessions();
-
-      if (!result.success || !result.data) {
-        return { success: false, msg: result.error };
-      }
-
-      return { success: true, data: result.data };
+      const data = channelRepo.getChannelSessions();
+      return { success: true, data };
     } catch (error: any) {
       console.error('[ChannelBridge] getActiveSessions error:', error);
       return { success: false, msg: error.message };

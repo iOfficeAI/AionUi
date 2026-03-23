@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import WorkerManage from '../WorkerManage';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 // Gemini confirmMessage provider (for 'input.confirm.message' channel)
 // Handles MCP tool confirmation including "always allow" options
-export function initGeminiConversationBridge(): void {
+export function initGeminiConversationBridge(workerTaskManager: IWorkerTaskManager): void {
   ipcBridge.geminiConversation.confirmMessage.provider(async ({ conversation_id, msg_id, confirmKey, callId }) => {
-    const task = WorkerManage.getTaskById(conversation_id);
+    const task = workerTaskManager.getTask(conversation_id);
     if (!task) {
       return { success: false, msg: 'conversation not found' };
     }

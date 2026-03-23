@@ -56,7 +56,9 @@ describe('fsBridge skills functionality', () => {
               }
               throw new Error(`EISDIR: illegal operation on a directory, read '${fp}'`);
             }
-            throw new Error(`ENOENT: no such file or directory, open '${fp}'`);
+            const err = new Error(`ENOENT: no such file or directory, open '${fp}'`) as NodeJS.ErrnoException;
+            err.code = 'ENOENT';
+            throw err;
           }),
           writeFile: vi.fn(async (filePath: string, content: string) => {
             const fp = resolvePath(filePath);
@@ -135,8 +137,17 @@ describe('fsBridge skills functionality', () => {
       };
     });
 
+    // Mock jszip
+    vi.doMock('jszip', () => {
+      class MockJSZip {
+        file = vi.fn();
+        generateAsync = vi.fn(async () => Buffer.from('fake-zip-content'));
+      }
+      return { default: MockJSZip };
+    });
+
     // Mock initStorage
-    vi.doMock('@/process/initStorage', () => ({
+    vi.doMock('@process/utils/initStorage', () => ({
       getSystemDir: vi.fn(() => ({
         cacheDir: '/mock/cache',
         workDir: '/mock/work',
@@ -202,6 +213,8 @@ describe('fsBridge skills functionality', () => {
             getCustomExternalPaths: createCommandMock('get-custom-external-paths'),
             addCustomExternalPath: createCommandMock('add-custom-external-path'),
             removeCustomExternalPath: createCommandMock('remove-custom-external-path'),
+            enableSkillsMarket: createCommandMock('enable-skills-market'),
+            disableSkillsMarket: createCommandMock('disable-skills-market'),
           },
           fileStream: {
             contentUpdate: { emit: vi.fn() },
@@ -218,7 +231,7 @@ describe('fsBridge skills functionality', () => {
 
   // Helper macro to fetch the actual implemented provider endpoint
   const getProvider = async (channel: string) => {
-    const mod = await import('@/process/bridge/fsBridge');
+    const mod = await import('@process/bridge/fsBridge');
     mod.initFsBridge();
     const ipcMod = await import('@/common');
     // Type assertion hack, accessing the internal registered function logic
@@ -255,6 +268,29 @@ describe('fsBridge skills functionality', () => {
     }
     throw new Error(`Provider ${channel} not found in registered mocks`);
   };
+
+  describe('readFile ENOENT handling (Fixes ELECTRON-6W)', () => {
+    it('returns null when file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readFile');
+      const result = await handler({ path: '/nonexistent/gemini-temp-123/README.md' });
+      expect(result).toBeNull();
+    });
+
+    it('still throws for non-ENOENT errors (e.g., EISDIR)', async () => {
+      // Create a directory entry so readFile throws EISDIR
+      mockFsStore[path.resolve('/mock/some-dir')] = { isDirectory: true };
+      const handler = await getProvider('readFile');
+      await expect(handler({ path: '/mock/some-dir' })).rejects.toThrow('EISDIR');
+    });
+  });
+
+  describe('readFileBuffer ENOENT handling', () => {
+    it('returns null when file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readFileBuffer');
+      const result = await handler({ path: '/nonexistent/temp-workspace/file.bin' });
+      expect(result).toBeNull();
+    });
+  });
 
   describe('listAvailableSkills', () => {
     it('should correctly parse SKILL.md and distinguish builtin vs custom', async () => {
@@ -495,6 +531,55 @@ describe('fsBridge skills functionality', () => {
 
       expect(result.success).toBe(false);
       expect(result.msg).toContain('security check failed');
+    });
+  });
+
+  describe('createZip ensures parent directory exists (Fixes ELECTRON-66)', () => {
+    it('creates parent directory before writing zip file', async () => {
+      const handler = await getProvider('createZip');
+      const exportDir = path.resolve('/mock/export/subdir');
+      const zipPath = path.join(exportDir, 'batch-export-test.zip');
+
+      const result = await handler({
+        path: zipPath,
+        files: [{ name: 'test.txt', content: 'hello' }],
+        requestId: 'test-req-1',
+      });
+
+      expect(result).toBe(true);
+      // Verify parent directory was created
+      expect(mockFsStore[exportDir]).toBeDefined();
+    });
+  });
+
+  describe('readBuiltinRule ENOENT handling (Fixes ELECTRON-68)', () => {
+    it('returns empty string when builtin rule file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinRule');
+      const result = await handler({ fileName: 'nonexistent-rule.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('readBuiltinSkill ENOENT handling', () => {
+    it('returns empty string when builtin skill file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinSkill');
+      const result = await handler({ fileName: 'nonexistent-skill.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('fetchRemoteImage — error handling', () => {
+    it('returns empty string for disallowed host instead of throwing', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      // URL with a host not in the allowlist triggers Promise.reject inside downloadRemoteBuffer
+      const result = await handler({ url: 'https://evil.com/malicious.png' });
+      expect(result).toBe('');
+    });
+
+    it('returns empty string for unsupported protocol', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      const result = await handler({ url: 'ftp://github.com/image.png' });
+      expect(result).toBe('');
     });
   });
 

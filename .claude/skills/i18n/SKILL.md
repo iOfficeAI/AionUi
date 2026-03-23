@@ -2,8 +2,8 @@
 name: i18n
 description: |
   Internationalization (i18n) workflow and standards for managing translations.
-  Use when: (1) Adding new user-facing text, (2) Creating new components with text, (3) Reviewing code for i18n compliance.
-  Features: Key naming conventions, sync checking, hardcoded string detection, translation workflow.
+  Use when: (1) Adding new user-facing text, (2) Creating new components with user-facing text,
+  (3) Reviewing code for i18n compliance, (4) Adding a new translation module.
 ---
 
 # i18n Skill
@@ -12,70 +12,75 @@ Standards and workflow for internationalization. All user-visible text must use 
 
 **Announce at start:** "I'm using i18n skill to ensure proper internationalization."
 
+## IMPORTANT: Read Config First
+
+Before doing any i18n work, **always read `src/common/config/i18n-config.json`** to get the current list of supported languages and modules. Never assume a fixed number — languages and modules may have been added or removed since this skill was written.
+
+```bash
+cat src/common/config/i18n-config.json
+```
+
+This file is the **single source of truth**. All scripts, runtime code, and this workflow depend on it.
+
 ## File Structure
 
 ```
+src/common/config/i18n-config.json              # Single source of truth: languages, modules
 src/renderer/i18n/
-├── index.ts              # i18next configuration
+├── index.ts                             # i18next configuration
+├── i18n-keys.d.ts                       # AUTO-GENERATED — do not edit manually
 └── locales/
-    ├── en-US.json        # English (primary)
-    ├── zh-CN.json        # Simplified Chinese
-    ├── zh-TW.json        # Traditional Chinese
-    ├── ja-JP.json        # Japanese
-    └── ko-KR.json        # Korean
+    ├── <lang>/                          # One directory per language in i18n-config.json
+    │   ├── index.ts                     # Barrel import for all modules
+    │   ├── common.json                  # One JSON per module in i18n-config.json
+    │   ├── conversation.json
+    │   └── ...
+    └── ...
 ```
 
-## Key Naming Convention
+### Key Facts
 
-**IMPORTANT**: New i18n keys MUST use flat dot-notation format.
+- **Reference language**: defined by `referenceLanguage` in `i18n-config.json` (currently `en-US`)
+- **Supported languages**: defined by `supportedLanguages` array — read the file to get the current list
+- **Modules**: defined by `modules` array — read the file to get the current list
 
-Format: `<module>.<feature>.<detail>`
+## Key Structure
 
-### Rules
+Keys use **namespaced dot notation** in code: `t('module.key')` or `t('module.nested.key')`.
 
-| Level   | Description            | Examples                                 |
-| ------- | ---------------------- | ---------------------------------------- |
-| Module  | Page or major feature  | `cron`, `chat`, `settings`, `auth`       |
-| Feature | Specific functionality | `form`, `list`, `modal`, `sidebar`       |
-| Detail  | Specific text purpose  | `title`, `placeholder`, `label`, `empty` |
-
-### Examples
-
-```
-✓ cron.form.title
-✓ cron.form.namePlaceholder
-✓ cron.list.emptyState
-✓ settings.llm.apiKeyRequired
-
-✗ cronFormTitle           (missing dots)
-✗ CRON.FORM.TITLE         (wrong case)
-```
-
-### Flat vs Nested Structure
+Inside each module JSON file, keys can be **flat or nested**:
 
 ```json
-// ✅ GOOD - flat structure (use for NEW keys)
+// common.json — flat keys
 {
-  "cron.form.title": "Create Scheduled Task",
-  "cron.form.nameLabel": "Task Name",
-  "cron.list.empty": "No scheduled tasks"
+  "send": "Send",
+  "cancel": "Cancel",
+  "copySuccess": "Copied"
 }
 
-// ❌ AVOID - nested structure (legacy only, do not add new)
+// cron.json — nested keys
 {
-  "cron": {
-    "form": {
-      "title": "..."
-    }
+  "scheduledTasks": "Scheduled Tasks",
+  "status": {
+    "active": "Active",
+    "paused": "Paused"
   }
 }
 ```
 
-**Rationale:**
+In code:
 
-- Flat keys are searchable in codebase (see `t('cron.form.title')`, search directly)
-- Easier to verify sync across locale files
-- Avoids deep nesting confusion
+```typescript
+t('common.send'); // flat key in common.json
+t('cron.status.active'); // nested key in cron.json
+```
+
+### Key Naming Rules
+
+- Use **camelCase** for key names: `copySuccess`, `scheduledTasks`
+- Group related keys with nesting: `status.active`, `actions.pause`
+- Reusable text goes in `common.json`: save, cancel, delete, confirm, etc.
+- Feature-specific text goes in the corresponding module
 
 ### Common Suffixes
 
@@ -84,88 +89,62 @@ Format: `<module>.<feature>.<detail>`
 | `title`             | Section/page titles  |
 | `placeholder`       | Input placeholders   |
 | `label`             | Form labels          |
-| `button` / `action` | Button text          |
 | `success` / `error` | Status messages      |
 | `confirm`           | Confirmation dialogs |
 | `empty`             | Empty state messages |
-| `loading`           | Loading states       |
 | `tooltip`           | Tooltip text         |
 
-### Shared Keys
+## Adding New Text — Workflow
 
-Use `common.*` for reusable text:
+### Step 1: Read `src/common/config/i18n-config.json`
 
-```json
-{
-  "common.save": "Save",
-  "common.cancel": "Cancel",
-  "common.confirm": "Confirm",
-  "common.delete": "Delete",
-  "common.loading": "Loading..."
-}
-```
+Get the current language list and module list. Do not skip this step.
 
-## Adding New Text Workflow
+### Step 2: Check Existing Keys
 
-### Step 1: Check Existing Keys
-
-Before adding new key, search for similar existing keys:
+Before adding a new key, search for similar existing keys:
 
 ```bash
-grep -r "keyword" src/renderer/i18n/locales/
+grep -r "keyword" src/renderer/i18n/locales/en-US/
 ```
 
-### Step 2: Add to ALL Locale Files
+Reuse `common.*` keys when possible.
 
-**CRITICAL:** Must add to all 5 files simultaneously.
+### Step 3: Choose the Right Module
 
-```bash
-# Files to update:
-src/renderer/i18n/locales/en-US.json   # English text
-src/renderer/i18n/locales/zh-CN.json   # Simplified Chinese
-src/renderer/i18n/locales/zh-TW.json   # Traditional Chinese
-src/renderer/i18n/locales/ja-JP.json   # Japanese
-src/renderer/i18n/locales/ko-KR.json   # Korean
-```
+Match the module to the feature area. If no module fits, consider whether a new module is needed (see "Adding a New Module" below).
 
-### Step 3: Use in Component
+### Step 4: Add to ALL Locale Directories
+
+**CRITICAL:** Every new key must be added to **every** locale directory listed in `supportedLanguages`. Write the reference language first, then all others.
+
+### Step 5: Use in Component
 
 ```tsx
 import { useTranslation } from 'react-i18next';
 
 function MyComponent() {
   const { t } = useTranslation();
-
-  return <button>{t('module.feature.action')}</button>;
+  return <button>{t('common.save')}</button>;
 }
 ```
 
-### Step 4: Verify Sync
-
-After adding, verify all files have the new keys.
-
-## Sync Checking
-
-### Before Commit
-
-Always verify key sync across all locale files:
+### Step 6: Regenerate Types and Validate
 
 ```bash
-# Quick check - compare line counts (rough indicator)
-wc -l src/renderer/i18n/locales/*.json
-
-# Check for flat keys diff between en-US and zh-CN
-diff <(grep -oE '"[a-zA-Z0-9_.]+":' src/renderer/i18n/locales/en-US.json | sort -u) \
-     <(grep -oE '"[a-zA-Z0-9_.]+":' src/renderer/i18n/locales/zh-CN.json | sort -u)
+bun run i18n:types          # Regenerate i18n-keys.d.ts
+node scripts/check-i18n.js  # Validate completeness
 ```
 
-### Fix Sync Issues
+**Both commands must pass before committing.**
 
-If keys are out of sync:
+## Adding a New Module
 
-1. Identify missing keys from diff output
-2. Add missing keys to appropriate files
-3. Re-run diff to verify
+1. Add module name to `src/common/config/i18n-config.json` → `modules` array
+2. Create `<module>.json` in **every** locale directory (read `supportedLanguages` to know which)
+3. Add import + export in each locale's `index.ts`
+4. Run `bun run i18n:types` to regenerate type definitions
+5. Run `node scripts/check-i18n.js` to validate
 
 ## Hardcoded String Detection
 
@@ -174,48 +153,22 @@ If keys are out of sync:
 Never use hardcoded Chinese/English text in JSX:
 
 ```tsx
-// ❌ BAD
+// Bad
 <span>重命名</span>
 <span>Delete</span>
-<button title="更多操作">...</button>
 {name || '新对话'}
 
-// ✅ GOOD
+// Good
 <span>{t('common.rename')}</span>
 <span>{t('common.delete')}</span>
-<button title={t('common.moreActions')}>...</button>
-{name || t('chat.newConversation')}
+{name || t('conversation.newConversation')}
 ```
 
 ### Exceptions
 
-Comments and internal logs are allowed:
-
-```tsx
-// This is a comment, Chinese is OK
-console.log('Debug info'); // OK for logs
-```
-
-## zh-TW Maintenance
-
-### Auto-conversion Safe
-
-Most terms can be auto-converted from zh-CN:
-
-- 设置 → 設置
-- 删除 → 刪除
-- 确认 → 確認
-
-### Manual Adjustment Required
-
-Some terms need manual review:
-
-| zh-CN | zh-TW | Notes          |
-| ----- | ----- | -------------- |
-| 视频  | 影片  | Different term |
-| 软件  | 軟體  | Different term |
-| 信息  | 訊息  | Different term |
-| 默认  | 預設  | Different term |
+- Code comments (any language OK)
+- `console.log()` / debug output
+- Internal string constants not shown to users
 
 ## Interpolation
 
@@ -223,14 +176,13 @@ Some terms need manual review:
 
 ```json
 {
-  "greeting": "Hello, {{name}}!",
-  "itemCount": "{{count}} items"
+  "taskCount": "{{count}} task(s)",
+  "greeting": "Hello, {{name}}!"
 }
 ```
 
 ```tsx
-t('greeting', { name: 'User' });
-t('itemCount', { count: 5 });
+t('cron.taskCount', { count: 5 });
 ```
 
 ### HTML in Translations
@@ -245,23 +197,36 @@ import { Trans } from 'react-i18next';
 </Trans>;
 ```
 
+## zh-TW Maintenance
+
+Most terms can be auto-converted from zh-CN, but some need manual review:
+
+| zh-CN | zh-TW | Notes          |
+| ----- | ----- | -------------- |
+| 视频  | 影片  | Different term |
+| 软件  | 軟體  | Different term |
+| 信息  | 訊息  | Different term |
+| 默认  | 預設  | Different term |
+
 ## Quick Checklist
 
 Before submitting code with new text:
 
+- [ ] Read `src/common/config/i18n-config.json` to get current languages and modules
 - [ ] All user-visible text uses `t()` function
-- [ ] New keys use flat `module.feature.detail` format
-- [ ] New keys added to ALL 5 locale files
+- [ ] New keys added to **every** locale directory in `supportedLanguages`
 - [ ] No hardcoded Chinese/English in JSX
 - [ ] zh-TW reviewed for term differences
-- [ ] ja-JP and ko-KR translations added (or marked TODO)
+- [ ] `bun run i18n:types` ran (regenerate type definitions)
+- [ ] `node scripts/check-i18n.js` passed (no errors)
 
 ## Common Mistakes
 
-| Mistake                        | Correct                          |
-| ------------------------------ | -------------------------------- |
-| Adding key to only one file    | Add to all 5 files               |
-| Using nested structure for new | Use flat `module.feature.detail` |
-| Using `t("New Chat")`          | Define key: `t("chat.new")`      |
-| Inline Chinese in JSX          | Use `t()` with defined key       |
-| Forgetting interpolation       | Use `{{variable}}` syntax        |
+| Mistake                                        | Correct                                              |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| Assuming a fixed number of languages           | Always read `i18n-config.json` first                 |
+| Adding key to only some locales                | Add to **every** locale in `supportedLanguages`      |
+| Editing `i18n-keys.d.ts` manually              | Run `bun run i18n:types` to generate                 |
+| Using `t("New Chat")`                          | Define key: `t("conversation.newChat")`              |
+| Not updating `i18n-config.json` for new module | Update config first, then create files               |
+| Adding module JSON but not updating `index.ts` | Must add import + export in each locale's `index.ts` |

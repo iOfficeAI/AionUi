@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { acpDetector } from '@/agent/acp/AcpDetector';
+import { acpDetector } from '@process/agent/acp/AcpDetector';
+import type { IChannelRepository } from '@process/services/database/IChannelRepository';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import type { IConversationService } from '@process/services/IConversationService';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
@@ -32,36 +36,43 @@ import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 
+export interface BridgeDependencies {
+  conversationService: IConversationService;
+  conversationRepo: IConversationRepository;
+  workerTaskManager: IWorkerTaskManager;
+  channelRepo: IChannelRepository;
+}
+
 /**
  * 初始化所有IPC桥接模块
  */
-export function initAllBridges(): void {
+export function initAllBridges(deps: BridgeDependencies): void {
   initDialogBridge();
   initShellBridge();
   initFsBridge();
   initFileWatchBridge();
-  initConversationBridge();
-  initApplicationBridge();
-  initGeminiConversationBridge();
+  initConversationBridge(deps.conversationService, deps.workerTaskManager);
+  initApplicationBridge(deps.workerTaskManager);
+  initGeminiConversationBridge(deps.workerTaskManager);
   // 额外的 Gemini 辅助桥（订阅检测等）需要在对话桥初始化后可用 / extra helpers after core bridges
   initGeminiBridge();
   initBedrockBridge();
-  initAcpConversationBridge();
+  initAcpConversationBridge(deps.workerTaskManager);
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
-  initDatabaseBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
-  initChannelBridge();
+  initChannelBridge(deps.channelRepo);
+  initDatabaseBridge(deps.conversationRepo);
+  initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
-  initTaskBridge();
-  initExtensionsBridge();
+  initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
 }
 

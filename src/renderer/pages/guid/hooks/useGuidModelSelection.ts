@@ -5,10 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { ConfigStorage } from '@/common/storage';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
+import { ConfigStorage } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
+import { useGeminiGoogleAuthModels } from '@/renderer/hooks/agent/useGeminiGoogleAuthModels';
 import { hasAvailableModels } from '../utils/modelUtils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';

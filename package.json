@@ -1,20 +1,22 @@
 {
   "name": "AionUi",
-  "productName": "AionUi",
-  "version": "1.8.28",
+  "version": "1.8.32",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
-  "main": "./out/main/index.js",
-  "engines": {
-    "node": ">=22 <25"
+  "keywords": [],
+  "license": "Apache-2.0",
+  "author": {
+    "name": "AionUi",
+    "email": "service@aionui.com"
   },
+  "main": "./out/main/index.js",
   "scripts": {
     "start": "electron-vite dev",
     "cli": "electron-vite dev",
-    "webui": "bun run cli -- --webui",
-    "webui:remote": "bun run cli -- --webui --remote",
-    "webui:prod": "cross-env NODE_ENV=production bun run cli -- --webui",
-    "webui:prod:remote": "cross-env NODE_ENV=production bun run cli -- --webui --remote",
-    "resetpass": "bun run cli -- --resetpass",
+    "webui": "rm -rf out/renderer && electron-vite dev -- --webui",
+    "webui:remote": "rm -rf out/renderer && electron-vite dev -- --webui --remote",
+    "webui:prod": "cross-env NODE_ENV=production electron-vite dev -- --webui",
+    "webui:prod:remote": "cross-env NODE_ENV=production electron-vite dev -- --webui --remote",
+    "resetpass": "electron-vite dev -- --resetpass",
     "package": "electron-vite build",
     "make": "electron-vite build",
     "dist": "node scripts/build-with-builder.js",
@@ -29,10 +31,10 @@
     "build-win:arm64": "node scripts/build-with-builder.js arm64 --win --arm64",
     "build-win:x64": "node scripts/build-with-builder.js x64 --win --x64",
     "build": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
-    "lint": "eslint --quiet --ext .ts,.tsx .",
-    "lint:fix": "eslint --ext .ts,.tsx . --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "i18n:types": "node scripts/generate-i18n-types.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -48,59 +50,8 @@
     "debug:custom-agent": "bunx tsx scripts/debug-custom-agent.ts",
     "test:e2e": "playwright test --config playwright.config.ts",
     "prepare": "husky",
-    "postinstall": "node scripts/postinstall.js"
-  },
-  "keywords": [],
-  "author": {
-    "name": "AionUi",
-    "email": "service@aionui.com"
-  },
-  "license": "Apache-2.0",
-  "devDependencies": {
-    "@electron/fuses": "^1.8.0",
-    "@electron/notarize": "^3.1.0",
-    "@playwright/test": "^1.58.2",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/cookie-parser": "^1.4.9",
-    "@types/cors": "^2.8.19",
-    "@types/html-to-text": "^9.0.4",
-    "@types/node": "^24.3.1",
-    "@types/qrcode-terminal": "^0.12.0",
-    "@types/react-dom": "^19.1.6",
-    "@types/react-syntax-highlighter": "^15.5.13",
-    "@types/semver": "^7.7.1",
-    "@types/turndown": "^5.0.6",
-    "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@vitest/coverage-v8": "^4.0.18",
-    "cross-env": "^7.0.3",
-    "dotenv": "^17.2.1",
-    "electron": "^37.3.1",
-    "electron-builder": "^26.6.0",
-    "electron-vite": "^5.0.0",
-    "esbuild": "^0.25.11",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-prettier": "^5.5.4",
-    "husky": "^9.1.7",
-    "jest": "^30.1.3",
-    "jest-diff": "^30.0.4",
-    "jsdom": "^28.1.0",
-    "lint-staged": "^16.2.7",
-    "patch-package": "^8.0.0",
-    "prettier": "^3.6.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "unocss": "^66.3.3",
-    "unocss-preset-extra": "^1.0.0",
-    "vite": "^6.4.1",
-    "vite-plugin-static-copy": "^3.2.0",
-    "vitest": "^4.0.18"
+    "postinstall": "node scripts/postinstall.js",
+    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -119,8 +70,9 @@
     "@larksuiteoapi/node-sdk": "^1.58.0",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
-    "@office-ai/aioncli-core": "^0.30.0",
+    "@office-ai/aioncli-core": "^0.30.1",
     "@office-ai/platform": "^0.3.16",
+    "@sentry/electron": "^7.10.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@uiw/codemirror-extensions-langs": "^4.25.1",
@@ -150,6 +102,7 @@
     "jsonwebtoken": "^9.0.2",
     "katex": "^0.16.22",
     "mammoth": "^1.11.0",
+    "multer": "^2.1.1",
     "officeparser": "^5.2.2",
     "openai": "^5.12.2",
     "pptx2json": "^0.0.10",
@@ -182,44 +135,92 @@
     "xlsx-republish": "^0.20.3",
     "zod": "^3.25.76"
   },
+  "devDependencies": {
+    "@electron/fuses": "^1.8.0",
+    "@electron/notarize": "^3.1.0",
+    "@playwright/test": "^1.58.2",
+    "@sentry/vite-plugin": "^5.1.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie": "^1.0.0",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/html-to-text": "^9.0.4",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^24.3.1",
+    "@types/qrcode-terminal": "^0.12.0",
+    "@types/react-dom": "^19.1.6",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/semver": "^7.7.1",
+    "@types/turndown": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^4.0.18",
+    "cross-env": "^7.0.3",
+    "dotenv": "^17.2.1",
+    "electron": "^37.3.1",
+    "electron-builder": "^26.6.0",
+    "electron-vite": "^5.0.0",
+    "esbuild": "^0.25.11",
+    "husky": "^9.1.7",
+    "jest": "^30.1.3",
+    "jest-diff": "^30.0.4",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.2.7",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "patch-package": "^8.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "unocss": "^66.3.3",
+    "unocss-preset-extra": "^1.0.0",
+    "vite": "^6.4.1",
+    "vite-plugin-static-copy": "^3.2.0",
+    "vitest": "^4.0.18"
+  },
   "optionalDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.46.2",
     "electron-winstaller": "^5.4.0"
   },
-  "electronRebuild": {
-    "electronVersion": "^37.3.1"
-  },
   "resolutions": {
-    "tmp": "^0.2.5",
     "body-parser": "^2.2.1",
-    "node-forge": "^1.3.2",
-    "mdast-util-to-hast": "^13.2.1",
+    "hono": "^4.11.7",
     "jws": "4.0.1",
     "lodash-es": "^4.17.23",
+    "mdast-util-to-hast": "^13.2.1",
+    "node-forge": "^1.3.2",
     "tar": "^7.5.7",
-    "hono": "^4.11.7"
+    "tmp": "^0.2.5"
   },
   "overrides": {
-    "tmp": "^0.2.5",
     "body-parser": "^2.2.1",
-    "node-forge": "^1.3.2",
-    "mdast-util-to-hast": "^13.2.1",
+    "hono": "^4.11.7",
     "jws@<4": "3.2.3",
     "jws@>=4": "4.0.1",
     "lodash-es": "^4.17.23",
+    "mdast-util-to-hast": "^13.2.1",
+    "node-forge": "^1.3.2",
     "tar": "^7.5.7",
-    "hono": "^4.11.7"
+    "tmp": "^0.2.5"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
+      "oxlint --fix",
+      "oxfmt"
     ],
-    "*.{json,css,md}": [
-      "prettier --write"
+    "*.{json,css,md,yaml,yml,toml}": [
+      "oxfmt"
     ]
+  },
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "electronRebuild": {
+    "electronVersion": "^37.3.1"
   },
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
-  }
+  },
+  "productName": "AionUi"
 }

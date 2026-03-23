@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '../../common';
+import { ipcBridge } from '@/common';
 
 const STAR_OFFICE_SCAN_RADIUS = 24;
 const STAR_OFFICE_SCAN_CONCURRENCY = 6;

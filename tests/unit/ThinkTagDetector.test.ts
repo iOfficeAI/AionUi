@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { hasThinkTags, stripThinkTags, extractThinkContent } from '@/process/task/ThinkTagDetector';
+import { hasThinkTags, stripThinkTags, extractThinkContent } from '@process/task/ThinkTagDetector';
 
 describe('ThinkTagDetector', () => {
   describe('hasThinkTags', () => {

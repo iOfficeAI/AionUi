@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
-import type { IConfirmation } from '@/common/chatLib';
-import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
+import type { IConfirmation } from '@/common/chat/chatLib';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { Divider, Typography } from '@arco-design/web-react';
 import type { PropsWithChildren } from 'react';
 import React, { useCallback, useEffect, useState } from 'react';

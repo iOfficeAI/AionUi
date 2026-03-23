@@ -1,11 +1,15 @@
-import type { IProvider } from '@/common/storage';
-import ModalHOC from '@/renderer/utils/ModalHOC';
+import type { IProvider } from '@/common/config/storage';
+import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Button, Select, Tag } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useModeModeList from '../../../hooks/useModeModeList';
-import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS, detectNewApiProtocol } from '@/renderer/config/modelPlatforms';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
+import {
+  isNewApiPlatform,
+  NEW_API_PROTOCOL_OPTIONS,
+  detectNewApiProtocol,
+} from '@/renderer/utils/model/modelPlatforms';
 
 const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(
   ({ modalProps, data, onSubmit, modalCtrl }) => {
@@ -33,7 +37,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
 
       // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
       if (isNewApi) {
-        updatedData.modelProtocols = { ...(data?.modelProtocols || {}), [model]: modelProtocol };
+        updatedData.modelProtocols = { ...data?.modelProtocols, [model]: modelProtocol };
       }
 
       onSubmit(updatedData);

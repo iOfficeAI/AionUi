@@ -1,48 +1,32 @@
 # OSS PR
 
-Smart commit + PR workflow for open source projects: auto-create prefixed branch when on main/master, then open a pull request.
+Commit + PR workflow for open source contributions: auto-creates a user-prefixed branch when on main/master, then delegates to the `commit` and `pr` skills.
 
-## Instructions
+## Steps
 
-Help me commit the current changes and open a PR. Follow these steps:
+### Step 1 — Resolve Branch
 
-1. **Gather info** (run these commands first):
-   - `git branch --show-current` — determine current branch
-   - `git status --short` — see changed files
-   - `git config user.name` — get branch prefix
+```bash
+git branch --show-current
+git config user.name
+```
 
-2. **Determine branch prefix**:
-   - Use `git config user.name` — convert to lowercase and replace spaces with hyphens (e.g. "John Doe" → "john-doe")
-   - If not available, ask the user to provide a prefix
+- Convert `user.name` to lowercase, replace spaces with hyphens → `{prefix}` (e.g. "John Doe" → `john-doe`)
+- If `user.name` is unavailable, ask the user to provide a prefix
 
-3. **Check current branch**:
-   - If on `main` or `master` → Ask for a new branch name, auto-prefix with `{prefix}/`, create and switch to it, then commit
-   - If NOT on `main`/`master` → Commit directly on current branch
+**If on `main` or `master`:**
 
-4. **Branch naming suggestions** (for reference when on main/master):
-   - `feat/xxx` — new feature
-   - `fix/xxx` — bug fix
-   - `refactor/xxx` — refactoring
-   - `chore/xxx` — maintenance
+- Run `git diff HEAD --stat` and `git status` to inspect the staged/unstaged changes
+- Based on the actual changes, generate **1–2 recommended branch names** following `<type>/<short-description>` convention (e.g. `feat/dark-mode`, `fix/login-crash`)
+- Present them as a numbered list and ask the user to pick one or provide their own
+- Create and switch: `git checkout -b {prefix}/{branch-name}` (e.g. `john-doe/feat/dark-mode`)
 
-   Example: user inputs "feat/dark-mode" → branch name `{prefix}/feat/dark-mode`
+**If already on a feature branch:** proceed as-is.
 
-5. **Commit workflow**:
-   - Run `git status` and `git diff` to understand the changes
-   - Generate commit message in English using conventional commits format
-   - **Important**: Do NOT include `Co-authored-by` or any AI attribution in the commit message
+### Step 2 — Commit
 
-6. **Push & create PR**:
-   - Push the branch with `git push -u origin <branch>`
-   - Run `git log main..HEAD --oneline` and `git diff main...HEAD` to understand all changes
-   - Create PR with `gh pr create`, title under 70 characters
-   - PR body format:
-     ```
-     ## Summary
-     <1-3 bullet points>
+Follow the `commit` skill in full (quality checks, grouping, format, approval).
 
-     ## Test plan
-     <bulleted checklist of what to verify>
-     ```
-   - **Important**: Do NOT include any AI-generated signatures or tool attributions in the PR body
-   - Return the PR URL when done
+### Step 3 — Open PR
+
+Follow the `pr` skill — **skip** the issue association step (do NOT create or link an issue), proceed directly to push and PR creation.

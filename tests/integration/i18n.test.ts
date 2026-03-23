@@ -4,10 +4,10 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import i18nConfig from '../../src/shared/i18n-config.json';
+import i18nConfig from '../../src/common/config/i18n-config.json';
 
 // Test constants using __dirname-relative paths
-const LOCALES_DIR = path.resolve(__dirname, '../../src/renderer/i18n/locales');
+const LOCALES_DIR = path.resolve(__dirname, '../../src/renderer/services/i18n/locales');
 const SUPPORTED_LANGUAGES = i18nConfig.supportedLanguages;
 const REQUIRED_MODULES = i18nConfig.modules;
 
@@ -124,21 +124,21 @@ describe('i18n Modular Structure Tests', () => {
 
 describe('i18n Configuration Tests', () => {
   it('index.ts should exist', () => {
-    const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
+    const indexFile = path.resolve(__dirname, '../../src/renderer/services/i18n/index.ts');
     expect(fs.existsSync(indexFile)).toBe(true);
   });
 
   it('index.ts should use shared i18n module and re-export supportedLanguages', () => {
-    const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
+    const indexFile = path.resolve(__dirname, '../../src/renderer/services/i18n/index.ts');
     const content = fs.readFileSync(indexFile, 'utf-8');
 
     // Config is now consumed via @/common/i18n (single source of truth)
-    expect(content).toContain('@/common/i18n');
+    expect(content).toContain('@/common/config/i18n');
     expect(content).toMatch(/export\s+.*supportedLanguages/);
   });
 
   it('index.ts should export changeLanguage function', () => {
-    const indexFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
+    const indexFile = path.resolve(__dirname, '../../src/renderer/services/i18n/index.ts');
     const content = fs.readFileSync(indexFile, 'utf-8');
 
     expect(content).toContain('export async function changeLanguage');
@@ -146,8 +146,8 @@ describe('i18n Configuration Tests', () => {
 });
 
 describe('i18n Build Safety Tests', () => {
-  const mainI18nFile = path.resolve(__dirname, '../../src/process/i18n/index.ts');
-  const rendererI18nFile = path.resolve(__dirname, '../../src/renderer/i18n/index.ts');
+  const mainI18nFile = path.resolve(__dirname, '../../src/process/services/i18n/index.ts');
+  const rendererI18nFile = path.resolve(__dirname, '../../src/renderer/services/i18n/index.ts');
 
   it('main process i18n should NOT use fs.readFile for locale loading', () => {
     const content = fs.readFileSync(mainI18nFile, 'utf-8');
@@ -168,7 +168,7 @@ describe('i18n Build Safety Tests', () => {
   it('main process i18n should use static imports for locale data', () => {
     const content = fs.readFileSync(mainI18nFile, 'utf-8');
     // Verify it imports from locale index files (static import)
-    expect(content).toMatch(/import\s+\w+\s+from\s+['"]@renderer\/i18n\/locales\//);
+    expect(content).toMatch(/import\s+\w+\s+from\s+['"]@renderer\/services\/i18n\/locales\//);
   });
 
   it('main process i18n should NOT import node:fs', () => {
@@ -179,12 +179,12 @@ describe('i18n Build Safety Tests', () => {
 
   it('main process i18n should use shared utility functions', () => {
     const content = fs.readFileSync(mainI18nFile, 'utf-8');
-    expect(content).toContain('@/common/i18n');
+    expect(content).toContain('@/common/config/i18n');
   });
 
   it('renderer i18n should use shared utility functions', () => {
     const content = fs.readFileSync(rendererI18nFile, 'utf-8');
-    expect(content).toContain('@/common/i18n');
+    expect(content).toContain('@/common/config/i18n');
   });
 
   it('renderer i18n should synchronously load fallback locale to prevent FOUC', () => {
@@ -228,8 +228,8 @@ describe('i18n Build Safety Tests', () => {
     // Check known files that previously had hardcoded strings
     const filesToCheck = [
       path.resolve(__dirname, '../../src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'),
-      path.resolve(__dirname, '../../src/renderer/pages/conversation/preview/components/viewers/URLViewer.tsx'),
-      path.resolve(__dirname, '../../src/renderer/pages/conversation/workspace/index.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/Preview/components/viewers/URLViewer.tsx'),
+      path.resolve(__dirname, '../../src/renderer/pages/conversation/Workspace/index.tsx'),
     ];
 
     const hardcodedPatterns = [

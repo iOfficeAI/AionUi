@@ -44,7 +44,7 @@ test.describe('ACP Agent', () => {
   test('can see agent backend names', async ({ page }) => {
     await goToGuid(page);
 
-    const knownBackends = ['claude', 'gemini', 'qwen', 'opencode', 'codex', 'iflow'];
+    const knownBackends = new Set(['claude', 'gemini', 'qwen', 'opencode', 'codex', 'iflow']);
     const pills = page.locator(AGENT_PILL);
     await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
@@ -55,7 +55,7 @@ test.describe('ACP Agent', () => {
       if (backend) backends.push(backend);
     }
 
-    expect(backends.some((backend) => knownBackends.includes(backend))).toBeTruthy();
+    expect(backends.some((backend) => knownBackends.has(backend))).toBeTruthy();
   });
 
   test('clicking an agent pill selects it', async ({ page }) => {

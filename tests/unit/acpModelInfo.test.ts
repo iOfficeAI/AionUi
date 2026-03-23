@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from '../../src/agent/acp/modelInfo';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '../../src/process/agent/acp/modelInfo';
 import type { AcpSessionConfigOption, AcpSessionModels } from '../../src/types/acpTypes';
 
 describe('buildAcpModelInfo', () => {

@@ -1,35 +1,35 @@
-import type { IProvider } from '@/common/storage';
-import ModalHOC from '@/renderer/utils/ModalHOC';
+import type { IProvider } from '@/common/config/storage';
+import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select } from '@arco-design/web-react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
 import { LinkCloud } from '@icon-park/react';
 import { ipcBridge } from '@/common';
-import useModeModeList from '../../../hooks/useModeModeList';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 
 // Provider Logo imports
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import OpenAILogo from '@/renderer/assets/logos/openai.svg';
-import AnthropicLogo from '@/renderer/assets/logos/anthropic.svg';
-import BedrockLogo from '@/renderer/assets/logos/bedrock.svg';
-import DeepSeekLogo from '@/renderer/assets/logos/deepseek.svg';
-import OpenRouterLogo from '@/renderer/assets/logos/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.png';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import ZhipuLogo from '@/renderer/assets/logos/zhipu.svg';
-import XaiLogo from '@/renderer/assets/logos/xai.svg';
-import VolcengineLogo from '@/renderer/assets/logos/volcengine.svg';
-import BaiduLogo from '@/renderer/assets/logos/baidu.svg';
-import TencentLogo from '@/renderer/assets/logos/tencent.svg';
-import LingyiLogo from '@/renderer/assets/logos/lingyiwanwu.svg';
-import PoeLogo from '@/renderer/assets/logos/poe.svg';
-import ModelScopeLogo from '@/renderer/assets/logos/modelscope.svg';
-import InfiniAILogo from '@/renderer/assets/logos/infiniai.svg';
-import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
-import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
-import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
+import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
+import OpenAILogo from '@/renderer/assets/logos/ai-major/openai.svg';
+import AnthropicLogo from '@/renderer/assets/logos/ai-major/anthropic.svg';
+import BedrockLogo from '@/renderer/assets/logos/ai-cloud/bedrock.svg';
+import DeepSeekLogo from '@/renderer/assets/logos/ai-major/deepseek.svg';
+import OpenRouterLogo from '@/renderer/assets/logos/ai-cloud/openrouter.svg';
+import SiliconFlowLogo from '@/renderer/assets/logos/ai-cloud/siliconflow.png';
+import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
+import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
+import ZhipuLogo from '@/renderer/assets/logos/ai-china/zhipu.svg';
+import XaiLogo from '@/renderer/assets/logos/ai-major/xai.svg';
+import VolcengineLogo from '@/renderer/assets/logos/ai-china/volcengine.svg';
+import BaiduLogo from '@/renderer/assets/logos/ai-china/baidu.svg';
+import TencentLogo from '@/renderer/assets/logos/ai-china/tencent.svg';
+import LingyiLogo from '@/renderer/assets/logos/ai-china/lingyiwanwu.svg';
+import PoeLogo from '@/renderer/assets/logos/ai-cloud/poe.svg';
+import ModelScopeLogo from '@/renderer/assets/logos/ai-cloud/modelscope.svg';
+import InfiniAILogo from '@/renderer/assets/logos/ai-cloud/infiniai.svg';
+import CtyunLogo from '@/renderer/assets/logos/ai-cloud/ctyun.svg';
+import StepFunLogo from '@/renderer/assets/logos/ai-china/stepfun.svg';
+import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
 
 /**
  * 供应商配置（包含名称、URL、Logo）
@@ -148,7 +148,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         onOk={async () => {
           const values = await form.validate();
           const updatedProvider: IProvider = {
-            ...(data || {}),
+            ...data,
             ...values,
             // Ensure model is always an array
             model: Array.isArray(values.model) ? values.model : [values.model],

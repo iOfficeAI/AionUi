@@ -5,7 +5,7 @@
  */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { ADAPTER_BRIDGE_EVENT_KEY } from './adapter/constant';
+import { ADAPTER_BRIDGE_EVENT_KEY } from './common/adapter/constant';
 
 /**
  * @description 注入到renderer进程中, 用于与main进程通信

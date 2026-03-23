@@ -2,7 +2,12 @@ const { Arch } = require('builder-util');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { normalizeArch, rebuildSingleModule, verifyModuleBinary, getModulesToRebuild } = require('./rebuildNativeModules');
+const {
+  normalizeArch,
+  rebuildSingleModule,
+  verifyModuleBinary,
+  getModulesToRebuild,
+} = require('./rebuildNativeModules');
 
 /**
  * afterPack hook for electron-builder
@@ -142,7 +147,10 @@ module.exports = async function afterPack(context) {
           }
         }
         // Handle regular packages
-        else if (module.includes(`-${wrongArchSuffix}`) || module.includes(`-${electronPlatformName}-${wrongArchSuffix}`)) {
+        else if (
+          module.includes(`-${wrongArchSuffix}`) ||
+          module.includes(`-${electronPlatformName}-${wrongArchSuffix}`)
+        ) {
           if (fs.existsSync(modulePath) && fs.statSync(modulePath).isDirectory()) {
             fs.rmSync(modulePath, { recursive: true, force: true });
             console.log(`   ✓ Removed ${module}`);

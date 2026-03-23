@@ -157,7 +157,7 @@ describe('getEnhancedEnv', () => {
     expect(typeof result.PATH).toBe('string');
     // Spot-check: no undefined string values were injected
     for (const [k, v] of Object.entries(result)) {
-      (expect(typeof v).toBe('string'), `key ${k} has non-string value`);
+      expect(typeof v).toBe('string');
     }
   });
 });
@@ -390,6 +390,79 @@ describe('getEnhancedEnv Windows extra paths (cross-platform mock)', () => {
 
     // execFileSync should NOT be called on Windows (shell env loading is skipped)
     expect(execFileSync).not.toHaveBeenCalled();
+  });
+});
+
+describe('resolveNpxPath', () => {
+  const originalPlatform = process.platform;
+
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
+  });
+
+  it('verifies Windows npx via the bundled npm entrypoint JS', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi
+      .fn()
+      .mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`)
+      .mockReturnValueOnce('10.9.0\n');
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn(() => true),
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxPath } = await import('@process/utils/shellEnv');
+    const result = resolveNpxPath({ PATH: '/tooling' });
+    const npxCandidate = path.join('/tooling', 'npx.cmd');
+    const npxCliJs = path.join('/tooling', 'node_modules', 'npm', 'bin', 'npx-cli.js');
+
+    expect(result).toBe(npxCandidate);
+    expect(execFileSync).toHaveBeenNthCalledWith(
+      2,
+      path.join('/tooling', 'node.exe'),
+      [npxCliJs, '--version'],
+      expect.objectContaining({
+        env: { PATH: '/tooling' },
+        windowsHide: true,
+      })
+    );
+  });
+
+  it('falls back to PATH lookup when bundled npm scripts are missing on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+
+    const execFileSync = vi.fn().mockReturnValueOnce(`${path.join('/tooling', 'node.exe')}\n`);
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => target === path.join('/tooling', 'npx.cmd')),
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync,
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxPath } = await import('@process/utils/shellEnv');
+
+    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('npx.cmd');
   });
 });
 

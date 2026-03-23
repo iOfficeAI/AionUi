@@ -5,17 +5,16 @@
  */
 
 import { resolveLocaleKey } from '@/common/utils';
-import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton, AssistantsSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
-import MentionDropdown from './components/MentionDropdown';
-import MentionSelectorBadge from './components/MentionSelectorBadge';
+import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
 import QuickActionButtons from './components/QuickActionButtons';
 import SkillsMarketBanner from './components/SkillsMarketBanner';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';

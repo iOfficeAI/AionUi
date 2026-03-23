@@ -1,17 +1,17 @@
-import type { IProvider } from '@/common/storage';
+import type { IProvider } from '@/common/config/storage';
+import type { ProtocolDetectionResponse, ProtocolType } from '@/common/utils/protocolDetector';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
-import ModalHOC from '@/renderer/utils/ModalHOC';
+import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { Form, Input, Message, Select } from '@arco-design/web-react';
-import { LinkCloud, Edit, Search } from '@icon-park/react';
+import { LinkCloud, Edit, Search, Loading } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useModeModeList from '../../../hooks/useModeModeList';
-import useProtocolDetection from '../../../hooks/useProtocolDetection';
+import useModeModeList from '@renderer/hooks/agent/useModeModeList';
+import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
-import ProtocolDetectionStatus from './ProtocolDetectionStatus';
 import {
   MODEL_PLATFORMS,
   NEW_API_PROTOCOL_OPTIONS,
@@ -21,8 +21,159 @@ import {
   isGeminiPlatform,
   isNewApiPlatform,
   type PlatformConfig,
-} from '@/renderer/config/modelPlatforms';
-import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/useDeepLink';
+} from '@/renderer/utils/model/modelPlatforms';
+import type { DeepLinkAddProviderDetail } from '@/renderer/hooks/system/useDeepLink';
+
+/**
+ * Protocol icon configurations
+ */
+const PROTOCOL_ICONS: Record<ProtocolType, { color: string; bgColor: string }> = {
+  openai: { color: '#10A37F', bgColor: 'rgba(16, 163, 127, 0.1)' },
+  gemini: { color: '#4285F4', bgColor: 'rgba(66, 133, 244, 0.1)' },
+  anthropic: { color: '#D97757', bgColor: 'rgba(217, 119, 87, 0.1)' },
+  unknown: { color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.1)' },
+};
+
+/**
+ * Get translated suggestion message
+ */
+const getSuggestionMessage = (
+  suggestion: ProtocolDetectionResponse['suggestion'],
+  t: (key: string, params?: Record<string, string>) => string
+): string => {
+  if (!suggestion) return '';
+
+  // Use i18n key for translation if available
+  if (suggestion.i18nKey) {
+    const translated = t(suggestion.i18nKey, suggestion.i18nParams);
+    // If translation result equals the key, translation failed, fallback to message
+    if (translated !== suggestion.i18nKey) {
+      return translated;
+    }
+  }
+
+  // Fallback to original message
+  return suggestion.message;
+};
+
+/**
+ * Protocol Detection Status Component
+ * Display protocol detection status, result, and suggestions
+ */
+interface ProtocolDetectionStatusProps {
+  /** Whether detecting */
+  isDetecting: boolean;
+  /** Detection result */
+  result: ProtocolDetectionResponse | null;
+  /** Currently selected platform */
+  currentPlatform?: string;
+  /** Switch platform callback */
+  onSwitchPlatform?: (platform: string) => void;
+}
+
+const ProtocolDetectionStatus: React.FC<ProtocolDetectionStatusProps> = ({
+  isDetecting,
+  result,
+  currentPlatform,
+  onSwitchPlatform,
+}) => {
+  const { t } = useTranslation();
+
+  // Detecting
+  if (isDetecting) {
+    return (
+      <div className='flex items-center gap-6px text-12px text-t-secondary py-4px'>
+        <Loading theme='outline' size={14} className='animate-spin' />
+        <span>{t('settings.protocolDetecting')}</span>
+      </div>
+    );
+  }
+
+  // No detection result
+  if (!result) {
+    return null;
+  }
+
+  const { protocol, success, suggestion, multiKeyResult } = result;
+  const iconConfig = PROTOCOL_ICONS[protocol] || PROTOCOL_ICONS.unknown;
+
+  // Detection successful
+  if (success && suggestion) {
+    const showSwitchButton =
+      suggestion.type === 'switch_platform' &&
+      suggestion.suggestedPlatform &&
+      suggestion.suggestedPlatform !== currentPlatform;
+
+    return (
+      <div className='flex flex-col gap-4px py-4px'>
+        <div className='flex items-start gap-8px text-12px'>
+          <div className='flex items-center gap-6px flex-1 min-w-0'>
+            <div
+              className='flex items-center justify-center w-16px h-16px rounded-4px shrink-0'
+              style={{
+                backgroundColor: iconConfig.bgColor,
+              }}
+            >
+              <span
+                className='text-10px font-medium'
+                style={{
+                  color: iconConfig.color,
+                }}
+              >
+                {protocol === 'openai' ? 'O' : protocol === 'gemini' ? 'G' : protocol === 'anthropic' ? 'A' : '?'}
+              </span>
+            </div>
+            <span className='text-t-secondary truncate'>{getSuggestionMessage(suggestion, t)}</span>
+          </div>
+
+          {showSwitchButton && onSwitchPlatform && (
+            <button
+              type='button'
+              className='shrink-0 px-8px py-2px rounded-4px text-11px font-medium transition-colors'
+              style={{
+                backgroundColor: iconConfig.bgColor,
+                color: iconConfig.color,
+              }}
+              onClick={() => onSwitchPlatform(suggestion.suggestedPlatform!)}
+            >
+              {t('settings.switchPlatform')}
+            </button>
+          )}
+        </div>
+
+        {/* Multi-key test result */}
+        {multiKeyResult && multiKeyResult.total > 1 && (
+          <div className='flex items-center gap-6px text-11px text-t-tertiary pl-22px'>
+            <span>
+              {multiKeyResult.invalid === 0
+                ? t('settings.multiKeyAllValid', { total: String(multiKeyResult.total) })
+                : multiKeyResult.valid === 0
+                  ? t('settings.multiKeyAllInvalid', { total: String(multiKeyResult.total) })
+                  : t('settings.multiKeyPartialValid', {
+                      valid: String(multiKeyResult.valid),
+                      invalid: String(multiKeyResult.invalid),
+                    })}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Detection failed
+  if (!success && result.error) {
+    return (
+      <div className='flex items-center gap-6px text-12px text-warning py-4px'>
+        <div className='flex items-center justify-center w-16px h-16px rounded-4px bg-warning/10 shrink-0'>
+          <span className='text-10px font-medium'>!</span>
+        </div>
+        <span className='truncate'>{suggestion ? getSuggestionMessage(suggestion, t) : result.error}</span>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 /**
  * 供应商 Logo 组件

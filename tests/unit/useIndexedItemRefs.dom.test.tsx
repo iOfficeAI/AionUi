@@ -7,7 +7,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { useIndexedItemRefs } from '../../src/renderer/components/useIndexedItemRefs';
+import { useIndexedItemRefs } from '../../src/renderer/hooks/ui/useIndexedItemRefs';
 
 describe('useIndexedItemRefs', () => {
   it('trims refs when item count shrinks', () => {

@@ -1,7 +1,7 @@
 name: ✨ Feature Request
 description: Suggest an idea for AionUi
-title: "[Feature]: "
-labels: ["enhancement"]
+title: '[Feature]: '
+labels: ['enhancement']
 body:
   - type: textarea
     id: feature_description

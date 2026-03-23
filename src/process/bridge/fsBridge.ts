@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -12,16 +12,16 @@ import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
 import JSZip from 'jszip';
-import { ipcBridge } from '../../common';
-import { getSystemDir, getAssistantsDir } from '../initStorage';
-import { readDirectoryRecursive } from '../utils';
+import { ipcBridge } from '@/common';
+import { getSystemDir, getAssistantsDir } from '@process/utils/initStorage';
+import { readDirectoryRecursive } from '@process/utils';
 
 // ============================================================================
 // Helper functions for builtin resource directory resolution
 // 内置资源目录解析辅助函数
 // ============================================================================
 
-type ResourceType = 'rules' | 'skills';
+type ResourceType = 'rules' | 'skills' | 'assistant';
 
 /**
  * Find the builtin resource directory (rules or skills)
@@ -37,8 +37,10 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
     // asarUnpack 会将文件解压到 app.asar.unpacked 目录
     const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
     const candidates = [
-      path.join(unpackedPath, resourceType), // Unpacked location (preferred)
+      path.join(unpackedPath, resourceType), // Unpacked location (preferred, from viteStaticCopy)
+      path.join(unpackedPath, 'src', resourceType), // Unpacked from src/ (direct inclusion)
       path.join(appPath, resourceType), // Fallback to asar path
+      path.join(appPath, 'src', resourceType), // Fallback to asar src/ path
     ];
     for (const candidate of candidates) {
       try {
@@ -53,11 +55,17 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
   }
   // Development: try multiple paths
   const appPath = app.getAppPath();
+  // skills/ and assistant/ live under src/process/resources/ in dev mode
+  const devDir =
+    resourceType === 'skills' || resourceType === 'assistant' ? `src/process/resources/${resourceType}` : resourceType;
   const candidates = [
+    path.join(appPath, devDir),
+    path.join(appPath, '..', devDir),
+    path.join(appPath, '..', '..', devDir),
+    path.join(appPath, '..', '..', '..', devDir),
+    // Fallback to legacy location (for production builds via viteStaticCopy)
     path.join(appPath, resourceType),
     path.join(appPath, '..', resourceType),
-    path.join(appPath, '..', '..', resourceType),
-    path.join(appPath, '..', '..', '..', resourceType),
   ];
   for (const candidate of candidates) {
     try {
@@ -204,8 +212,13 @@ export function initFsBridge(): void {
   const canceledZipRequests = new Set<string>();
 
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
-    const tree = await readDirectoryRecursive(dir);
-    return tree ? [tree] : [];
+    try {
+      const tree = await readDirectoryRecursive(dir);
+      return tree ? [tree] : [];
+    } catch (error) {
+      console.error('[fsBridge] Failed to read directory:', dir, error);
+      return [];
+    }
   });
 
   ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
@@ -313,9 +326,14 @@ export function initFsBridge(): void {
 
   // 通过桥接层拉取远程图片并转成 base64 / Fetch remote image via bridge and return base64
   ipcBridge.fs.fetchRemoteImage.provider(async ({ url }) => {
-    const { buffer, contentType } = await downloadRemoteBuffer(url);
-    const base64 = buffer.toString('base64');
-    return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    try {
+      const { buffer, contentType } = await downloadRemoteBuffer(url);
+      const base64 = buffer.toString('base64');
+      return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    } catch (error) {
+      console.warn('[fsBridge] Failed to fetch remote image:', (error as Error).message);
+      return '';
+    }
   });
 
   // 创建临时文件 / Create temporary file on disk
@@ -361,6 +379,11 @@ export function initFsBridge(): void {
       const content = await fs.readFile(filePath, 'utf-8');
       return content;
     } catch (error) {
+      // Return null for missing files (e.g., cleaned-up temp workspaces)
+      // instead of throwing, to avoid unhandled promise rejections (Fixes ELECTRON-6W)
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error('Failed to read file:', error);
       throw error;
     }
@@ -374,6 +397,9 @@ export function initFsBridge(): void {
       // Convert Node.js Buffer to ArrayBuffer
       return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        return null;
+      }
       console.error('Failed to read file buffer:', error);
       throw error;
     }
@@ -521,7 +547,7 @@ export function initFsBridge(): void {
           const isTypedArrayLike = keys.length > 0 && keys.every((key) => /^\d+$/.test(key));
           if (isTypedArrayLike) {
             const values = keys
-              .sort((a, b) => Number(a) - Number(b))
+              .toSorted((a, b) => Number(a) - Number(b))
               .map((key) => {
                 const value = objectLike[key];
                 return typeof value === 'number' ? value : Number(value ?? 0);
@@ -548,6 +574,8 @@ export function initFsBridge(): void {
       if (isCanceled()) {
         throw new Error('Zip export canceled');
       }
+      // Ensure parent directory exists before writing (may be deleted by OneDrive sync, etc.)
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, zipBuffer);
       return true;
     } catch (error) {
@@ -576,8 +604,16 @@ export function initFsBridge(): void {
         lastModified: stats.mtime.getTime(),
       };
     } catch (error) {
-      console.error('Failed to get file metadata:', error);
-      throw error;
+      // Return empty metadata instead of throwing to avoid unhandled rejection
+      // (bridge provider callbacks have no .catch handler)
+      console.error('[fsBridge] Failed to get file metadata:', filePath, error);
+      return {
+        name: path.basename(filePath),
+        path: filePath,
+        size: -1,
+        type: '',
+        lastModified: 0,
+      };
     }
   });
 
@@ -722,7 +758,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('rules', fileName);
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -732,7 +768,7 @@ export function initFsBridge(): void {
       return await readBuiltinResource('skills', fileName);
     } catch (error) {
       console.error('Failed to read builtin skill:', error);
-      throw error;
+      return '';
     }
   });
 
@@ -950,9 +986,13 @@ export function initFsBridge(): void {
 
       try {
         await fs.access(targetDir);
+        // Skill already exists in user directory, treat as success (skip copy)
+        // 用户目录已存在同名 skill，视为成功（跳过复制）
+        console.log(`[fsBridge] Skill "${skillName}" already exists in user skills, skipping import`);
         return {
-          success: false,
-          msg: `Skill "${skillName}" already exists in user skills`,
+          success: true,
+          data: { skillName },
+          msg: `Skill "${skillName}" already exists`,
         };
       } catch {
         // User skill doesn't exist
@@ -1375,7 +1415,7 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../initStorage');
+      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
@@ -1385,7 +1425,7 @@ export function initFsBridge(): void {
       await fs.writeFile(path.join(skillDir, 'SKILL.md'), content, 'utf-8');
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../task/AcpSkillManager');
+      const { AcpSkillManager } = await import('@process/task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill enabled' };
@@ -1401,12 +1441,12 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('../initStorage');
+      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
-      const { AcpSkillManager } = await import('../task/AcpSkillManager');
+      const { AcpSkillManager } = await import('@process/task/AcpSkillManager');
       AcpSkillManager.resetInstance();
 
       return { success: true, msg: 'Skills Market skill disabled' };

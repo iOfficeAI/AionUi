@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { convertLatexDelimiters } from '@/renderer/utils/latexDelimiters';
+import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 
 describe('convertLatexDelimiters', () => {
   describe('block math \\[...\\]', () => {

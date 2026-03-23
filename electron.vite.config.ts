@@ -1,5 +1,6 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import { resolve } from 'path';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
@@ -38,12 +39,27 @@ const mainAliases = {
   '@common': resolve('src/common'),
   '@renderer': resolve('src/renderer'),
   '@process': resolve('src/process'),
-  '@worker': resolve('src/worker'),
-  '@xterm/headless': resolve('src/shims/xterm-headless.ts'),
+  '@worker': resolve('src/process/worker'),
+  '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
 };
 
 export default defineConfig(({ mode }) => {
   const isDevelopment = mode === 'development';
+  const enableSentrySourceMaps = !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
+
+  const sentryPluginOptions = {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    sourcemaps: {
+      filesToDeleteAfterUpload: ['./out/**/*.map'],
+      rewriteSources: (source: string) => {
+        // Normalize Windows backslashes and strip leading relative prefixes
+        // so Sentry paths match the GitHub repo structure (e.g. src/process/...)
+        return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
+      },
+    },
+  };
 
   return {
     main: {
@@ -56,18 +72,19 @@ export default defineConfig(({ mode }) => {
               viteStaticCopy({
                 structured: false,
                 targets: [
-                  { src: 'skills/**', dest: 'skills' },
+                  { src: 'src/process/resources/skills/**', dest: 'skills' },
                   { src: 'rules/**', dest: 'rules' },
-                  { src: 'assistant/**', dest: 'assistant' },
+                  { src: 'src/process/resources/assistant/**', dest: 'assistant' },
                   { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
                 ],
               }),
             ]
           : []),
+        ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
       ],
       resolve: { alias: mainAliases, extensions: ['.ts', '.tsx', '.js', '.json'] },
       build: {
-        sourcemap: false,
+        sourcemap: enableSentrySourceMaps ? 'hidden' : false,
         reportCompressedSize: false,
         rollupOptions: {
           input: {
@@ -75,11 +92,13 @@ export default defineConfig(({ mode }) => {
             // Worker entry files are output alongside index.js in out/main/.
             // BaseAgentManager.resolveWorkerDir() handles the case where code
             // splitting places it in a chunks/ subdirectory.
-            gemini: resolve('src/worker/gemini.ts'),
-            acp: resolve('src/worker/acp.ts'),
-            codex: resolve('src/worker/codex.ts'),
-            'openclaw-gateway': resolve('src/worker/openclaw-gateway.ts'),
-            nanobot: resolve('src/worker/nanobot.ts'),
+            gemini: resolve('src/process/worker/gemini.ts'),
+            acp: resolve('src/process/worker/acp.ts'),
+            codex: resolve('src/process/worker/codex.ts'),
+            'openclaw-gateway': resolve('src/process/worker/openclaw-gateway.ts'),
+            nanobot: resolve('src/process/worker/nanobot.ts'),
+            // Built-in MCP server entry points
+            'builtin-mcp-image-gen': resolve('src/process/resources/builtinMcp/imageGenServer.ts'),
           },
           onwarn(warning, warn) {
             if (warning.code === 'EVAL') return;
@@ -87,7 +106,10 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      define: { 'process.env.env': JSON.stringify(process.env.env) },
+      define: {
+        'process.env.env': JSON.stringify(process.env.env),
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+      },
     },
 
     preload: {
@@ -124,17 +146,21 @@ export default defineConfig(({ mode }) => {
           '@common': resolve('src/common'),
           '@renderer': resolve('src/renderer'),
           '@process': resolve('src/process'),
-          '@worker': resolve('src/worker'),
+          '@worker': resolve('src/process/worker'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
         dedupe: ['react', 'react-dom', 'react-router-dom'],
       },
-      plugins: [UnoCSS(unoConfig), iconParkPlugin()],
+      plugins: [
+        UnoCSS(unoConfig),
+        iconParkPlugin(),
+        ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
+      ],
       build: {
         target: 'es2022',
-        sourcemap: isDevelopment,
+        sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
         minify: !isDevelopment,
         reportCompressedSize: false,
         chunkSizeWarningLimit: 1500,
@@ -180,6 +206,7 @@ export default defineConfig(({ mode }) => {
       },
       define: {
         'process.env.env': JSON.stringify(process.env.env),
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
         global: 'globalThis',
       },
       optimizeDeps: {

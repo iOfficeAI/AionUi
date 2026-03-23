@@ -1,10 +1,10 @@
-import type { IMcpServer, IMcpTool } from '@/common/storage';
-import { acpConversation, mcpService } from '@/common/ipcBridge';
+import type { IMcpServer, IMcpTool } from '@/common/config/storage';
+import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import { Button, Select, Spin } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { iconColors } from '@/renderer/styles/colors';
 import AionSteps from '@/renderer/components/base/AionSteps';
 import AionModal from '@/renderer/components/base/AionModal';
 
