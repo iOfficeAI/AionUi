@@ -31,6 +31,7 @@ import { initModelBridge } from "@process/bridge/modelBridge";
 import { initPreviewHistoryBridge } from "@process/bridge/previewHistoryBridge";
 import { initStarOfficeBridge } from "@process/bridge/starOfficeBridge";
 import { initCronBridge } from "@process/bridge/cronBridge";
+import { initFsBridge } from "@process/bridge/fsBridge";
 import { initMcpBridge } from "@process/bridge/mcpBridge";
 import { initNotificationBridge } from "@process/bridge/notificationBridge";
 import { initSystemSettingsBridge } from "@process/bridge/systemSettingsBridge";
@@ -47,6 +48,7 @@ export async function initBridgeStandalone(): Promise<void> {
   // windowControlsBridge, updateBridge, webuiBridge
 
   initFileWatchBridge();
+  initFsBridge();
   initConversationBridge(conversationService, workerTaskManager);
   initGeminiConversationBridge(workerTaskManager);
   initGeminiBridge();
