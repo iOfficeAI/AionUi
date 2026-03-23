@@ -8,6 +8,29 @@ const { execSync } = require('child_process');
 // Note: web-tree-sitter is now a direct dependency in package.json
 // No need for symlinks or copying - npm will install it directly to node_modules
 
+function ensureOfficecli() {
+  try {
+    execSync('officecli --version', { stdio: 'pipe' });
+    console.log('officecli is already installed');
+  } catch {
+    console.log('officecli not found, installing...');
+    try {
+      if (process.platform === 'win32') {
+        execSync(
+          'powershell -Command "irm https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.ps1 | iex"',
+          { stdio: 'inherit' }
+        );
+      } else {
+        execSync('curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash', {
+          stdio: 'inherit',
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to install officecli:', e.message);
+    }
+  }
+}
+
 function runPostInstall() {
   try {
     // Check if we're in a CI environment
@@ -32,6 +55,9 @@ function runPostInstall() {
         },
       });
     }
+
+    // Ensure officecli is available (needed for PPT preview)
+    ensureOfficecli();
   } catch (e) {
     console.error('Postinstall failed:', e.message);
     // Don't exit with error code to avoid breaking installation

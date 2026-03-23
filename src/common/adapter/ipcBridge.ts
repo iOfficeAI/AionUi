@@ -556,6 +556,12 @@ export const document = {
   >('document.convert'),
 };
 
+// PPT preview via officecli watch
+export const pptPreview = {
+  start: bridge.buildProvider<{ url: string }, { filePath: string }>('ppt-preview.start'),
+  stop: bridge.buildProvider<void, { filePath: string }>('ppt-preview.stop'),
+};
+
 // Deep link protocol handling / 深度链接协议处理
 export const deepLink = {
   /** Emitted when app is opened via aionui:// protocol URL */

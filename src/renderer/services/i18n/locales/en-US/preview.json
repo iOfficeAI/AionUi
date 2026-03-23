@@ -100,5 +100,10 @@
     "inspectElement": "Inspect element",
     "inspectElementEnable": "Enable element inspector",
     "inspectElementDisable": "Disable element inspector"
+  },
+  "ppt": {
+    "loading": "Starting PPT preview...",
+    "startFailed": "Failed to start PPT preview",
+    "installHint": "Make sure officecli is installed: npm run postinstall"
   }
 }
