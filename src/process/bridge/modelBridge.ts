@@ -107,6 +107,8 @@ export function initModelBridge(): void {
       console.log('Using MiniMax model list (text models only)');
       const minimaxModels = [
         // Text/Chat Models - For conversational AI use
+        'MiniMax-M2.7',
+        'MiniMax-M2.5',
         'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
         'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)
         'MiniMax-M2', // 200k context, 128k output - Complex reasoning & function calling
