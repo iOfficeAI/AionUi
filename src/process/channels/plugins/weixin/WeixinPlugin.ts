@@ -4,15 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { start } from 'weixin-agent-sdk';
-import type { Agent, ChatRequest, ChatResponse } from 'weixin-agent-sdk';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import { start } from "weixin-agent-sdk";
+import type { Agent, ChatRequest, ChatResponse } from "weixin-agent-sdk";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
-import type { IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
-import { BasePlugin } from '../BasePlugin';
-import { toUnifiedIncomingMessage, toChatResponse } from './WeixinAdapter';
+import type {
+  IChannelPluginConfig,
+  IUnifiedOutgoingMessage,
+  PluginType,
+} from "../../types";
+import { BasePlugin } from "../BasePlugin";
+import { toUnifiedIncomingMessage, toChatResponse } from "./WeixinAdapter";
 
 const RESPONSE_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -20,15 +24,15 @@ interface PendingResponse {
   resolve: (response: ChatResponse) => void;
   reject: (error: Error) => void;
   accumulatedText: string;
-  mediaResponse?: ChatResponse['media'];
+  mediaResponse?: ChatResponse["media"];
   timer: ReturnType<typeof setTimeout>;
 }
 
 export class WeixinPlugin extends BasePlugin {
-  readonly type: PluginType = 'weixin';
+  readonly type: PluginType = "weixin";
 
-  private accountId = '';
-  private botToken = '';
+  private accountId = "";
+  private botToken = "";
   private abortController: AbortController | null = null;
   private _stopping = false;
   private pendingResponses = new Map<string, PendingResponse>();
@@ -39,7 +43,7 @@ export class WeixinPlugin extends BasePlugin {
   protected async onInitialize(config: IChannelPluginConfig): Promise<void> {
     const { accountId, botToken } = config.credentials ?? {};
     if (!accountId || !botToken) {
-      throw new Error('WeChat accountId and botToken are required');
+      throw new Error("WeChat accountId and botToken are required");
     }
     this.accountId = accountId as string;
     this.botToken = botToken as string;
@@ -53,11 +57,13 @@ export class WeixinPlugin extends BasePlugin {
 
     void start(agent, {
       accountId: this.accountId,
-      botToken: this.botToken,
       abortSignal: this.abortController.signal,
     }).catch((error: unknown) => {
       if (!this.abortController?.signal.aborted) {
-        this.setStatus('error', error instanceof Error ? error.message : String(error));
+        this.setStatus(
+          "error",
+          error instanceof Error ? error.message : String(error),
+        );
       }
     });
   }
@@ -67,7 +73,7 @@ export class WeixinPlugin extends BasePlugin {
 
     for (const [chatId, pending] of this.pendingResponses.entries()) {
       clearTimeout(pending.timer);
-      pending.reject(new Error('Plugin stopped'));
+      pending.reject(new Error("Plugin stopped"));
       this.pendingResponses.delete(chatId);
     }
 
@@ -78,11 +84,18 @@ export class WeixinPlugin extends BasePlugin {
 
   // ==================== BasePlugin interface ====================
 
-  async sendMessage(chatId: string, _message: IUnifiedOutgoingMessage): Promise<string> {
+  async sendMessage(
+    chatId: string,
+    _message: IUnifiedOutgoingMessage,
+  ): Promise<string> {
     return `weixin_pending_${chatId}`;
   }
 
-  async editMessage(chatId: string, _messageId: string, message: IUnifiedOutgoingMessage): Promise<void> {
+  async editMessage(
+    chatId: string,
+    _messageId: string,
+    message: IUnifiedOutgoingMessage,
+  ): Promise<void> {
     const pending = this.pendingResponses.get(chatId);
     if (!pending) return;
 
@@ -90,7 +103,7 @@ export class WeixinPlugin extends BasePlugin {
       pending.accumulatedText = message.text;
     }
 
-    if (message.type === 'image' || message.type === 'file') {
+    if (message.type === "image" || message.type === "file") {
       pending.mediaResponse = toChatResponse(message).media;
     }
 
@@ -109,14 +122,14 @@ export class WeixinPlugin extends BasePlugin {
   }
 
   getBotInfo(): { username?: string; displayName?: string } | null {
-    return { displayName: 'Aion Assistant' };
+    return { displayName: "Aion Assistant" };
   }
 
   // ==================== Promise bridge ====================
 
   private handleChat(request: ChatRequest): Promise<ChatResponse> {
     if (this._stopping) {
-      return Promise.reject(new Error('Plugin stopped'));
+      return Promise.reject(new Error("Plugin stopped"));
     }
 
     const { conversationId } = request;
@@ -125,20 +138,20 @@ export class WeixinPlugin extends BasePlugin {
     const existing = this.pendingResponses.get(conversationId);
     if (existing) {
       clearTimeout(existing.timer);
-      existing.reject(new Error('superseded'));
+      existing.reject(new Error("superseded"));
       this.pendingResponses.delete(conversationId);
     }
 
     return new Promise<ChatResponse>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pendingResponses.delete(conversationId);
-        reject(new Error('Response timeout'));
+        reject(new Error("Response timeout"));
       }, RESPONSE_TIMEOUT_MS);
 
       this.pendingResponses.set(conversationId, {
         resolve,
         reject,
-        accumulatedText: '',
+        accumulatedText: "",
         timer,
       });
 
@@ -155,24 +168,27 @@ export class WeixinPlugin extends BasePlugin {
 
   static async testConnection(
     accountId: string,
-    _botToken?: string
+    _botToken?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const accountFile = path.join(
         os.homedir(),
-        '.openclaw',
-        'openclaw-weixin',
-        'accounts',
-        `${accountId}.json`
+        ".openclaw",
+        "openclaw-weixin",
+        "accounts",
+        `${accountId}.json`,
       );
-      const raw = fs.readFileSync(accountFile, 'utf-8');
+      const raw = fs.readFileSync(accountFile, "utf-8");
       const data = JSON.parse(raw) as { token?: string };
       if (!data.token) {
-        return { success: false, error: 'No token in credential file' };
+        return { success: false, error: "No token in credential file" };
       }
       return { success: true };
     } catch {
-      return { success: false, error: `Credential file not found for accountId: ${accountId}` };
+      return {
+        success: false,
+        error: `Credential file not found for accountId: ${accountId}`,
+      };
     }
   }
 }
