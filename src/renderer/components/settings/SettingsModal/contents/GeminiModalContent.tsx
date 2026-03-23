@@ -81,6 +81,14 @@ const GeminiModalContent: React.FC = () => {
       });
   };
 
+  // Track mount state to guard async message calls
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Auto-save logic
   const readyRef = useRef(false);
   const saveTimerRef = useRef<number | undefined>(undefined);
@@ -201,7 +209,7 @@ const GeminiModalContent: React.FC = () => {
                             .then((result) => {
                               if (result.success) {
                                 loadGoogleAuthStatus(form.getFieldValue('proxy'));
-                                if (result.data?.account) {
+                                if (result.data?.account && isMountedRef.current) {
                                   message.success(
                                     t('settings.googleLoginSuccess', { defaultValue: 'Successfully logged in' })
                                   );
@@ -212,14 +220,16 @@ const GeminiModalContent: React.FC = () => {
                                 const errorMsg =
                                   result.msg ||
                                   t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' });
-                                message.error(errorMsg);
+                                if (isMountedRef.current) message.error(errorMsg);
                                 console.error('[GoogleAuth] Login failed:', result.msg);
                               }
                             })
                             .catch((error) => {
-                              message.error(
-                                t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' })
-                              );
+                              if (isMountedRef.current) {
+                                message.error(
+                                  t('settings.googleLoginFailed', { defaultValue: 'Login failed. Please try again.' })
+                                );
+                              }
                               console.error('Failed to login to Google:', error);
                             })
                             .finally(() => {
