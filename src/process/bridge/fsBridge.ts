@@ -574,6 +574,8 @@ export function initFsBridge(): void {
       if (isCanceled()) {
         throw new Error('Zip export canceled');
       }
+      // Ensure parent directory exists before writing (may be deleted by OneDrive sync, etc.)
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, zipBuffer);
       return true;
     } catch (error) {
