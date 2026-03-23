@@ -165,12 +165,13 @@ export class GeminiAgentManager extends BaseAgentManager<
         // Skills are symlinked into .gemini/skills/ and discovered natively by SkillManager
         // No prompt injection needed -> native mechanisms handle everything
 
-        // Merge builtin skill names into enabledSkills for the worker's skill discovery
-        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
+        // Merge builtin + user-installed skill names into enabledSkills for the worker's skill discovery
+        // 将内置 + 用户安装的 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
         const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
-        const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
+        const userSkillNames = skillManager.getUserSkillsIndex().map((s) => s.name);
+        const allEnabledSkills = [...new Set([...builtinSkillNames, ...userSkillNames, ...(this.enabledSkills || [])])];
 
         // Determine yoloMode from legacy config (SecurityModalContent)
         const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;

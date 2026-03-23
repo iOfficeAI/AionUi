@@ -85,9 +85,10 @@ function extractBody(content: string): string {
  * 使用单例模式避免重复文件系统扫描
  * Uses singleton pattern to avoid repeated filesystem scans
  *
- * 支持两类 skills:
+ * 支持三类 skills:
  * - 内置 skills (_builtin/): 所有场景自动注入
- * - 可选 skills: 通过 enabledSkills 参数控制
+ * - 用户安装 skills (config/skills/): 通过 Skills Hub 导入，所有 agent 自动可用
+ * - 可选 skills: 通过 enabledSkills 参数控制（仅限扩展贡献的 skills）
  */
 export class AcpSkillManager {
   private static instance: AcpSkillManager | null = null;
@@ -95,12 +96,15 @@ export class AcpSkillManager {
 
   private skills: Map<string, SkillDefinition> = new Map();
   private builtinSkills: Map<string, SkillDefinition> = new Map();
+  /** User-installed skills from userData/config/skills/ (auto-available to all agents) */
+  private userSkills: Map<string, SkillDefinition> = new Map();
   /** Extension-contributed skills loaded from ExtensionRegistry */
   private extensionSkills: Map<string, SkillDefinition> = new Map();
   private skillsDir: string;
   private builtinSkillsDir: string;
   private initialized: boolean = false;
   private builtinInitialized: boolean = false;
+  private userSkillsInitialized: boolean = false;
   private extensionInitialized: boolean = false;
 
   constructor(skillsDir?: string) {
@@ -189,6 +193,84 @@ export class AcpSkillManager {
   }
 
   /**
+   * 发现用户安装的 skills（通过 Skills Hub 导入到 userData/config/skills/ 的技能）
+   * 这些 skills 对所有 agent 自动可用，不受 enabledSkills 白名单限制
+   *
+   * Discover user-installed skills (imported via Skills Hub to userData/config/skills/)
+   * These skills are auto-available to all agents, not gated by enabledSkills whitelist
+   */
+  async discoverUserSkills(): Promise<void> {
+    if (this.userSkillsInitialized) return;
+
+    const skillsDir = this.skillsDir;
+    if (!existsSync(skillsDir)) {
+      this.userSkillsInitialized = true;
+      return;
+    }
+
+    try {
+      const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+
+        const skillName = entry.name;
+
+        // Skip builtin skills directory
+        if (skillName === '_builtin') continue;
+
+        // Skip if already registered as builtin
+        if (this.builtinSkills.has(skillName)) continue;
+
+        const skillFile = path.join(skillsDir, skillName, 'SKILL.md');
+        if (!existsSync(skillFile)) continue;
+
+        try {
+          const content = await fs.readFile(skillFile, 'utf-8');
+          const { name, description } = parseFrontmatter(content);
+
+          const skillDef: SkillDefinition = {
+            name: name || skillName,
+            description: description || `Skill: ${skillName}`,
+            location: skillFile,
+          };
+
+          this.userSkills.set(skillName, skillDef);
+        } catch (error) {
+          console.warn(`[AcpSkillManager] Failed to load user skill ${skillName}:`, error);
+        }
+      }
+
+      if (this.userSkills.size > 0) {
+        console.log(`[AcpSkillManager] Discovered ${this.userSkills.size} user-installed skills`);
+      }
+    } catch (error) {
+      console.error(`[AcpSkillManager] Failed to discover user skills:`, error);
+    }
+
+    this.userSkillsInitialized = true;
+  }
+
+  /**
+   * 获取用户安装 skills 的索引
+   * Get index of user-installed skills only
+   */
+  getUserSkillsIndex(): SkillIndex[] {
+    return Array.from(this.userSkills.values()).map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+    }));
+  }
+
+  /**
+   * 获取用户安装 skills 的名称集合
+   * Get set of user-installed skill names
+   */
+  getUserSkillNames(): Set<string> {
+    return new Set(this.userSkills.keys());
+  }
+
+  /**
    * 从 ExtensionRegistry 加载扩展贡献的 skills
    * Load extension-contributed skills from ExtensionRegistry
    *
@@ -215,8 +297,8 @@ export class AcpSkillManager {
           continue;
         }
 
-        // 避免与内置/可选 skills 冲突 / Avoid conflicts with builtin/optional skills
-        if (this.builtinSkills.has(extSkill.name) || this.skills.has(extSkill.name)) {
+        // 避免与内置/用户/可选 skills 冲突 / Avoid conflicts with builtin/user/optional skills
+        if (this.builtinSkills.has(extSkill.name) || this.userSkills.has(extSkill.name) || this.skills.has(extSkill.name)) {
           console.warn(`[AcpSkillManager] Extension skill "${extSkill.name}" conflicts with existing skill, skipping`);
           continue;
         }
@@ -248,13 +330,19 @@ export class AcpSkillManager {
     // 始终先加载内置 skills / Always load builtin skills first
     await this.discoverBuiltinSkills();
 
+    // 始终加载用户安装的 skills（通过 Skills Hub 导入的，所有 agent 可用）
+    // Always load user-installed skills (imported via Skills Hub, available to all agents)
+    await this.discoverUserSkills();
+
     // 加载扩展贡献的 skills / Load extension-contributed skills
     await this.discoverExtensionSkills(enabledSkills);
 
     if (this.initialized) return;
 
-    // 未指定 enabledSkills 时不加载任何可选 skills（非 preset agent 场景）
-    // Skip all optional skills when enabledSkills is not specified (non-preset agent)
+    // 未指定 enabledSkills 时不加载额外的可选 skills
+    // Skip additional optional skills when enabledSkills is not specified
+    // 注意：用户安装的 skills 已在上方加载，不受此限制
+    // Note: user-installed skills are already loaded above, not affected by this gate
     if (!enabledSkills || enabledSkills.length === 0) {
       this.initialized = true;
       return;
@@ -277,6 +365,9 @@ export class AcpSkillManager {
 
         // 跳过内置 skills 目录 / Skip builtin skills directory
         if (skillName === '_builtin') continue;
+
+        // 跳过已作为用户 skill 加载的 / Skip already loaded as user skill
+        if (this.userSkills.has(skillName)) continue;
 
         // 只加载启用的 skills / Only load enabled skills
         if (!enabledSkills.includes(skillName)) {
@@ -318,12 +409,20 @@ export class AcpSkillManager {
    * Includes builtin skills + optional skills
    */
   getSkillsIndex(): SkillIndex[] {
-    // 合并内置 skills、可选 skills 和扩展 skills
-    // Merge builtin, optional, and extension skills
+    // 合并内置 skills、用户 skills、可选 skills 和扩展 skills
+    // Merge builtin, user, optional, and extension skills
     const allSkills: SkillIndex[] = [];
 
     // 内置 skills 优先 / Builtin skills first
     for (const skill of this.builtinSkills.values()) {
+      allSkills.push({
+        name: skill.name,
+        description: skill.description,
+      });
+    }
+
+    // 然后是用户安装的 skills / Then user-installed skills
+    for (const skill of this.userSkills.values()) {
       allSkills.push({
         name: skill.name,
         description: skill.description,
@@ -365,7 +464,7 @@ export class AcpSkillManager {
    * Check if there are any skills (builtin or optional)
    */
   hasAnySkills(): boolean {
-    return this.builtinSkills.size > 0 || this.skills.size > 0 || this.extensionSkills.size > 0;
+    return this.builtinSkills.size > 0 || this.userSkills.size > 0 || this.skills.size > 0 || this.extensionSkills.size > 0;
   }
 
   /**
@@ -377,6 +476,10 @@ export class AcpSkillManager {
   async getSkill(name: string): Promise<SkillDefinition | null> {
     // 先查找内置 skills / Search builtin skills first
     let skill = this.builtinSkills.get(name);
+    // 再查找用户安装的 skills / Then search user-installed skills
+    if (!skill) {
+      skill = this.userSkills.get(name);
+    }
     // 再查找可选 skills / Then search optional skills
     if (!skill) {
       skill = this.skills.get(name);
@@ -421,7 +524,7 @@ export class AcpSkillManager {
    * Check if a skill exists (including builtin and optional)
    */
   hasSkill(name: string): boolean {
-    return this.builtinSkills.has(name) || this.skills.has(name) || this.extensionSkills.has(name);
+    return this.builtinSkills.has(name) || this.userSkills.has(name) || this.skills.has(name) || this.extensionSkills.has(name);
   }
 
   /**
@@ -430,6 +533,9 @@ export class AcpSkillManager {
    */
   clearCache(): void {
     for (const skill of this.builtinSkills.values()) {
+      skill.body = undefined;
+    }
+    for (const skill of this.userSkills.values()) {
       skill.body = undefined;
     }
     for (const skill of this.skills.values()) {
