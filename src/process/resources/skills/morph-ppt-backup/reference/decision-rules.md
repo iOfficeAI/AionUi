@@ -98,6 +98,7 @@ Style direction: ... [provided / inferred based on topic + mood, not habit]
 ```
 
 **Style selection principles**:
+
 1. **Match topic mood** → Corporate ≠ playful, tech ≠ organic (unless intentionally contrasting)
 2. **Vary by project** → Browse `reference/styles/` directory, avoid repeating recent styles
 3. **Consider 6 categories** → dark (16), light (10), warm (11), bw (5), vivid (6), mixed (7)

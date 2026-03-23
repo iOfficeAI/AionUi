@@ -1,6 +1,7 @@
 # Glassmorphism VC — Investment Fund
 
 ## Style Overview
+
 Sky blue background with 3D gradient spheres and frosted glass roundRect cards. Modern glassmorphism aesthetic.
 
 - **Scenario**: VC funds, investment decks, fintech, startup pitches
@@ -8,6 +9,7 @@ Sky blue background with 3D gradient spheres and frosted glass roundRect cards. 
 - **Tone**: Light blue with gradient spheres
 
 ## Design Techniques
+
 - Glassmorphism cards (semi-transparent roundRect)
 - 3D gradient spheres
 - Stacked sphere clusters
@@ -15,4 +17,5 @@ Sky blue background with 3D gradient spheres and frosted glass roundRect cards. 
 - Frosted glass effect
 
 ## Reference Script
+
 Complete build script available in `build.py`.

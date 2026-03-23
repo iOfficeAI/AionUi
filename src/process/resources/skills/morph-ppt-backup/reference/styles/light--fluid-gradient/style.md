@@ -1,6 +1,7 @@
 # Fluid Gradient — Tech Product
 
 ## Style Overview
+
 Smooth gradient backgrounds with fan of rotated rays, halftone dots, and orbital ellipses. Modern tech aesthetic.
 
 - **Scenario**: AI/tech products, SaaS platforms, modern software
@@ -8,6 +9,7 @@ Smooth gradient backgrounds with fan of rotated rays, halftone dots, and orbital
 - **Tone**: Gradient backgrounds with bright accents
 
 ## Design Techniques
+
 - Gradient backgrounds
 - Rotated thin rects (ray fan)
 - Dot-grid halftone
@@ -15,4 +17,5 @@ Smooth gradient backgrounds with fan of rotated rays, halftone dots, and orbital
 - !!orb (bright ellipse) travels
 
 ## Reference Script
+
 Complete build script available in `build.py`.

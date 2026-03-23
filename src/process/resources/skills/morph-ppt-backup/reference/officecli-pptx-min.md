@@ -200,6 +200,7 @@ officecli get deck.pptx '/slide[1]' --depth 1
 Reason: Morph requires careful step-by-step control that's hard to debug in JSON.
 
 If you must use batch mode for non-Morph tasks:
+
 - **Booleans as strings:** `{"props":{"bold":"true"}}` not `{"bold":true}`
 - **Escape quotes:** `{"props":{"text":"It\\'s working"}}`
 
@@ -238,6 +239,7 @@ When a command fails:
    | File locked | Close PPT in PowerPoint/WPS before running commands |
 
 5. **Morph-specific issue?** Run the validation script to check for unghosted content:
+
    ```bash
    bash src/process/resources/skills/morph-ppt/validate-morph.sh deck.pptx 3 "actor1,actor2"
    ```

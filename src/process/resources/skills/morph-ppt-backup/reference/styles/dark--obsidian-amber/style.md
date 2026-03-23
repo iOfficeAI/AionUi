@@ -1,6 +1,7 @@
 # Obsidian Amber — Dark Finance
 
 ## Style Overview
+
 Near-black background with amber corner glows and huge ghost percentage numbers. TextFill titles fade white-to-amber. Finance and investment theme.
 
 - **Scenario**: Finance, investment, luxury services, premium consulting
@@ -8,6 +9,7 @@ Near-black background with amber corner glows and huge ghost percentage numbers.
 - **Tone**: Near-black with amber accents
 
 ## Design Techniques
+
 - Huge ghost percentage numbers
 - TextFill gradient (white → amber)
 - Amber corner glows
@@ -15,4 +17,5 @@ Near-black background with amber corner glows and huge ghost percentage numbers.
 - Split warm/cold panels
 
 ## Reference Script
+
 Complete build script available in `build.py`.
