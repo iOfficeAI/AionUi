@@ -29,6 +29,7 @@ Result: Circle smoothly moves and grows
 ```
 
 **Three core concepts:**
+
 - **Scene Actors**: Persistent shapes with `!!` prefix that evolve across slides
 - **Ghosting**: Move shapes to `x=36cm` (off-screen) instead of deleting
 - **Content**: Text/data added fresh per slide, previous content ghosted first
@@ -48,6 +49,7 @@ Ask only when topic is unclear, otherwise proceed directly.
 ### Phase 2: Plan the Story
 
 **Output**: `brief.md` with:
+
 - Context (topic, audience, purpose, narrative)
 - Outline (conclusion + slide-by-slide summary)
 - Page briefs (objective, content, page type, transitions)
@@ -86,6 +88,7 @@ Reason: Morph workflow requires careful step-by-step control (clone → set tran
 2. Define 6-8 scene actors with `'!!name'` prefix
 3. Add Slide 1 content with `'#s1-...'` prefix
 4. For each subsequent slide (example for Slide 2):
+
    ```bash
    # Clone previous slide
    officecli add deck.pptx '/' --from '/slide[1]'
@@ -112,6 +115,7 @@ Reason: Morph workflow requires careful step-by-step control (clone → set tran
    Repeat for slides 3, 4, 5...
 
 **Essential rules:**
+
 - **Naming**: Scene actors use `!!` prefix, content uses `#sN-` prefix (enables easy ghosting)
 - **Transition**: Every slide after the first MUST have `transition=morph` (without this, no animation!)
 - **Ghosting**: Before adding new slide content, ghost ALL `#s(N-1)-*` shapes to `x=36cm` (don't delete)
@@ -119,6 +123,7 @@ Reason: Morph workflow requires careful step-by-step control (clone → set tran
 - **Variety**: Create spatial variety between adjacent slides
 
 **Design resources:**
+
 - `reference/pptx-design.md` — Aesthetics, typography, color, page types, how to learn from styles
 - `reference/officecli-pptx-min.md` — Command syntax
 - `reference/styles/<name>/` — 55+ visual style examples
@@ -128,11 +133,13 @@ Reason: Morph workflow requires careful step-by-step control (clone → set tran
 ### Phase 4: Deliver
 
 **Outputs** (3 files):
+
 1. `<topic>.pptx`
 2. Build script (complete, re-runnable — bash/python/powershell/etc.)
 3. `brief.md`
 
 **Quick check**:
+
 ```bash
 # Validate structure
 officecli validate <file>.pptx

@@ -165,11 +165,13 @@ officecli get deck.pptx '/slide[1]' --depth 1
 `transition=morph` creates smooth animations by **matching shapes by name** across adjacent slides.
 
 **How it works:**
+
 1. Adjacent slides must have shapes with **identical names** for morphing
 2. PowerPoint matches by name and animates position/size/color changes
 3. If names don't match → only fade in/out (no morph effect)
 
 **Morph variants:**
+
 ```bash
 --prop transition=morph          # Match by object (default)
 --prop transition=morph-byWord   # Word-by-word text animation
@@ -191,6 +193,7 @@ officecli get deck.pptx '/slide[1]' --depth 1
 Reason: Morph requires careful step-by-step control that's hard to debug in JSON.
 
 If you must use batch mode for non-Morph tasks:
+
 - **Booleans as strings:** `{"props":{"bold":"true"}}` not `{"bold":true}`
 - **Escape quotes:** `{"props":{"text":"It\\'s working"}}`
 

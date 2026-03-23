@@ -29,6 +29,7 @@ Result: Circle smoothly moves and grows
 ```
 
 **Three core concepts:**
+
 - **Scene Actors**: Persistent shapes with `!!` prefix that evolve across slides
 - **Ghosting**: Move shapes to `x=36cm` (off-screen) instead of deleting
 - **Content**: Text/data added fresh per slide, previous content ghosted first
@@ -52,6 +53,7 @@ Ask only when topic is unclear, otherwise proceed directly.
 → Open and read `reference/decision-rules.md` — it provides the structured approach for planning compelling presentations (Pyramid Principle, SCQA, page types).
 
 **Then create `brief.md`** with:
+
 - **Context**: Topic, audience, purpose, narrative structure (SCQA or Problem-Solution)
 - **Outline**: Conclusion first + slide-by-slide summary
 - **Page briefs**: For each slide:
@@ -65,6 +67,7 @@ Ask only when topic is unclear, otherwise proceed directly.
 ### Phase 3: Design and Generate
 
 **Before generation starts, always remind the user:**
+
 - The PPT file may be rewritten multiple times during build.
 - Please do **not** open the target PPT while generation is running, to avoid file lock / write conflicts.
 - Use clear, direct language and make this a concrete warning, not an optional suggestion.
@@ -95,6 +98,7 @@ Use these naming patterns for clear code and reliable verification:
 **Why single quotes?** Shell treats `!` and `#` as special characters. Single quotes prevent this: `'#s1-title'`
 
 **Why this naming matters:**
+
 - ✅ **Better detection**: Primary method (`#sN-` pattern matching) is fastest and most accurate
 - ✅ **Readable code**: Anyone can tell `#s1-title` is slide 1's title
 - ✅ **Easy debugging**: `grep "#s1-"` finds all slide 1 content quickly
@@ -170,6 +174,7 @@ echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
 ```
 
 **Key advantages of using helpers:**
+
 - ✅ **Fewer steps**: `morph_clone_slide` = clone + transition + list + verify (4 steps → 1 function)
 - ✅ **Instant feedback**: Each helper shows ✅ or ❌ immediately
 - ✅ **Can't forget**: Transition and verification are automatic
@@ -178,6 +183,7 @@ echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
   - Even if you forget `#` prefix, duplicate detection will still catch the problem!
 
 **Essential rules:**
+
 - **Naming**: Scene actors use `!!` prefix, content uses `#sN-` prefix (best practice for verification and readability)
 - **Transition**: Every slide after the first MUST have `transition=morph` (without this, no animation!)
 - **Ghosting**: Before adding new slide content, ghost ALL previous content shapes to `x=36cm` (don't delete)
@@ -191,6 +197,7 @@ echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
   - **When in doubt, make it wider!** See `reference/pptx-design.md` for details
 
 **Design resources:**
+
 - `reference/pptx-design.md` — Design principles (Canvas, Fonts, Colors, Scene Actors, Page Types, Style References)
 - `reference/officecli-pptx-min.md` — Command syntax
 - `reference/styles/<name>/` — Visual style examples (optional inspiration, browse by use case in `styles/INDEX.md`)
@@ -200,6 +207,7 @@ echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
 ### Phase 4: Deliver
 
 **Outputs** (3 files):
+
 1. `<topic>.pptx`
 2. Build script (complete, re-runnable — bash/python/powershell/etc.)
 3. `brief.md`
@@ -218,6 +226,7 @@ officecli view <file>.pptx outline
 **If verification fails**, see Troubleshooting section below.
 
 **Final delivery message requirements:**
+
 - Tell the user the deck with polished Morph animations is ready.
 - Explicitly recommend opening the generated PPT now to preview the motion effects.
 - Use affirmative wording (e.g., "ready now", "open it now to preview the animation quality").
@@ -229,6 +238,7 @@ officecli view <file>.pptx outline
 **If `morph_verify_slide` or `morph_final_check` reports issues:**
 
 1. **Missing transition**:
+
    ```bash
    # Check which slides are missing transition
    officecli get <file>.pptx '/slide[2]' --json | grep transition
@@ -240,6 +250,7 @@ officecli view <file>.pptx outline
    ```
 
 2. **Unghosted content**:
+
    ```bash
    # Find unghosted shapes manually
    for slide in 2 3 4 5 6; do
