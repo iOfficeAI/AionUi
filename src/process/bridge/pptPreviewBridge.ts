@@ -85,7 +85,6 @@ function killSession(filePath: string): void {
     session.aborted = true;
     session.process.kill();
     sessions.delete(filePath);
-    console.log('[pptPreview] Killed session for:', filePath);
   }
 }
 
@@ -105,7 +104,11 @@ function checkForUpdate(): void {
   } catch {}
 
   try {
-    const localVersion = execSync('officecli --version', { encoding: 'utf8', stdio: 'pipe', timeout: 10000 }).trim();
+    const localVersion = execSync('officecli --version', {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      timeout: 10000,
+    }).trim();
     const latestUrl = 'https://github.com/iOfficeAI/OfficeCli/releases/latest';
     const effective = execSync(`curl -fsSL -o /dev/null -w "%{url_effective}" ${latestUrl}`, {
       encoding: 'utf8',
@@ -114,7 +117,6 @@ function checkForUpdate(): void {
     }).trim();
     const remoteVersion = effective.split('/').pop()?.replace(/^v/, '') ?? '';
     if (remoteVersion && remoteVersion !== localVersion) {
-      console.log(`[pptPreview] Update available: ${localVersion} → ${remoteVersion}, upgrading...`);
       installOfficecli();
     }
   } catch {
@@ -127,7 +129,6 @@ function checkForUpdate(): void {
  */
 function installOfficecli(): boolean {
   try {
-    console.log('[pptPreview] officecli not found, installing...');
     ipcBridge.pptPreview.status.emit({ state: 'installing' });
     if (process.platform === 'win32') {
       execSync(
@@ -142,7 +143,6 @@ function installOfficecli(): boolean {
         execSync('xattr -cr ~/.local/bin/officecli && codesign -s - --force ~/.local/bin/officecli', { stdio: 'pipe' });
       } catch {}
     }
-    console.log('[pptPreview] officecli installed successfully');
     return true;
   } catch (e) {
     console.error('[pptPreview] Failed to install officecli:', e);
@@ -174,7 +174,6 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
   const existing = sessions.get(filePath);
   if (existing && !existing.aborted && existing.process.exitCode === null) {
     const url = `http://localhost:${existing.port}`;
-    console.log('[pptPreview] Reusing existing session:', url);
     return url;
   }
 
@@ -182,8 +181,6 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
   killSession(filePath);
 
   const port = await findFreePort();
-  console.log('[pptPreview] Got free port:', port);
-  console.log('[pptPreview] Spawning: officecli watch', filePath, '--port', port);
 
   ipcBridge.pptPreview.status.emit({ state: 'starting' });
 
@@ -215,8 +212,6 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
 
     child.stdout?.on('data', (data: Buffer) => {
       const text = data.toString();
-      console.log('[pptPreview] stdout:', text.trim());
-
       if (!settled && text.includes('Watch:')) {
         // Check if session was aborted while we waited for stdout
         if (session.aborted) {
@@ -233,7 +228,6 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
             if (!settled) {
               settled = true;
               clearTimeout(timeout);
-              console.log('[pptPreview] start resolved:', url);
               resolve(url);
             }
           })
@@ -265,7 +259,6 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
     });
 
     child.on('exit', (code, signal) => {
-      console.log('[pptPreview] process exited: code=', code, 'signal=', signal);
       sessions.delete(filePath);
       if (session.aborted) {
         settle();
@@ -287,13 +280,10 @@ export function stopAllWatchSessions(): void {
 }
 
 export function initPptPreviewBridge(): void {
-  console.log('[pptPreview] Bridge initialized');
-
   // Background update check (non-blocking, at most once per day)
   setTimeout(() => checkForUpdate(), 5000);
 
   ipcBridge.pptPreview.start.provider(async ({ filePath }) => {
-    console.log('[pptPreview] start requested:', filePath);
     try {
       const url = await startWatch(filePath);
       return { url };
@@ -307,7 +297,6 @@ export function initPptPreviewBridge(): void {
     try {
       filePath = fs.realpathSync(filePath);
     } catch {}
-    console.log('[pptPreview] stop requested:', filePath);
     // Delay kill to allow Strict Mode re-mount to reuse the session
     const timer = setTimeout(() => {
       pendingKills.delete(filePath);
