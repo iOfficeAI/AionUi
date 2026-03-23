@@ -1,0 +1,388 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { IChannelPluginStatus } from "@process/channels/types";
+import { acpConversation, channel } from "@/common/adapter/ipcBridge";
+import { ConfigStorage } from "@/common/config/storage";
+import GeminiModelSelector from "@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector";
+import type { GeminiModelSelection } from "@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection";
+import type { AcpBackendAll } from "@/common/types/acpTypes";
+import { Button, Dropdown, Menu, Message, Spin } from "@arco-design/web-react";
+import { CheckOne, Down } from "@icon-park/react";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+
+type LoginState =
+  | "idle"
+  | "loading_qr"
+  | "showing_qr"
+  | "scanned"
+  | "connected";
+
+/**
+ * Preference row component (local, mirrors other config forms)
+ */
+const PreferenceRow: React.FC<{
+  label: string;
+  description?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ label, description, children }) => (
+  <div className="flex items-center justify-between gap-24px py-12px">
+    <div className="flex-1">
+      <span className="text-14px text-t-primary">{label}</span>
+      {description && (
+        <div className="text-12px text-t-tertiary mt-2px">{description}</div>
+      )}
+    </div>
+    <div className="flex items-center">{children}</div>
+  </div>
+);
+
+interface WeixinConfigFormProps {
+  pluginStatus: IChannelPluginStatus | null;
+  modelSelection: GeminiModelSelection;
+  onStatusChange: (status: IChannelPluginStatus | null) => void;
+}
+
+const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({
+  pluginStatus,
+  modelSelection,
+  onStatusChange,
+}) => {
+  const { t } = useTranslation();
+
+  const [loginState, setLoginState] = useState<LoginState>(
+    pluginStatus?.hasToken ? "connected" : "idle",
+  );
+  const [qrcodeUrl, setQrcodeUrl] = useState<string | null>(null);
+
+  // Agent selection
+  const [availableAgents, setAvailableAgents] = useState<
+    Array<{ backend: AcpBackendAll; name: string; customAgentId?: string }>
+  >([]);
+  const [selectedAgent, setSelectedAgent] = useState<{
+    backend: AcpBackendAll;
+    name?: string;
+    customAgentId?: string;
+  }>({ backend: "gemini" });
+
+  // Sync connected state when pluginStatus changes externally
+  useEffect(() => {
+    if (pluginStatus?.hasToken && loginState === "idle") {
+      setLoginState("connected");
+    }
+  }, [pluginStatus, loginState]);
+
+  // Load agents + saved selection
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [agentsResp, saved] = await Promise.all([
+          acpConversation.getAvailableAgents.invoke(),
+          ConfigStorage.get("assistant.weixin.agent"),
+        ]);
+        if (agentsResp.success && agentsResp.data) {
+          setAvailableAgents(
+            agentsResp.data
+              .filter((a) => !a.isPreset)
+              .map((a) => ({
+                backend: a.backend,
+                name: a.name,
+                customAgentId: a.customAgentId,
+              })),
+          );
+        }
+        if (
+          saved &&
+          typeof saved === "object" &&
+          "backend" in saved &&
+          typeof (saved as any).backend === "string"
+        ) {
+          setSelectedAgent({
+            backend: (saved as any).backend as AcpBackendAll,
+            customAgentId: (saved as any).customAgentId,
+            name: (saved as any).name,
+          });
+        }
+      } catch (error) {
+        console.error("[WeixinConfig] Failed to load agents:", error);
+      }
+    };
+    void load();
+  }, []);
+
+  const persistSelectedAgent = async (agent: {
+    backend: AcpBackendAll;
+    customAgentId?: string;
+    name?: string;
+  }) => {
+    try {
+      await ConfigStorage.set("assistant.weixin.agent", agent);
+      await channel.syncChannelSettings
+        .invoke({ platform: "weixin", agent })
+        .catch((err) =>
+          console.warn("[WeixinConfig] syncChannelSettings failed:", err),
+        );
+      Message.success(
+        t("settings.assistant.agentSwitched", "Agent switched successfully"),
+      );
+    } catch (error) {
+      console.error("[WeixinConfig] Failed to save agent:", error);
+      Message.error(t("common.saveFailed", "Failed to save"));
+    }
+  };
+
+  const handleLogin = async () => {
+    setLoginState("loading_qr");
+    setQrcodeUrl(null);
+
+    const unsubQR =
+      window.electronAPI?.weixinLoginOnQR?.(
+        ({ qrcodeUrl: url }: { qrcodeUrl: string }) => {
+          setQrcodeUrl(url);
+          setLoginState("showing_qr");
+        },
+      ) ?? (() => {});
+    const unsubScanned =
+      window.electronAPI?.weixinLoginOnScanned?.(() => {
+        setLoginState("scanned");
+      }) ?? (() => {});
+    const unsubDone =
+      window.electronAPI?.weixinLoginOnDone?.(() => {
+        // credentials come from the Promise resolve — not this event
+      }) ?? (() => {});
+
+    try {
+      const result = await window.electronAPI?.weixinLoginStart?.();
+      const { accountId, botToken } = result as {
+        accountId: string;
+        botToken: string;
+      };
+
+      // Auto-enable the plugin with obtained credentials
+      const enableResult = await channel.enablePlugin.invoke({
+        pluginId: "weixin_default",
+        config: { accountId, botToken },
+      });
+
+      if (enableResult.success) {
+        Message.success(
+          t("settings.weixin.pluginEnabled", "WeChat channel enabled"),
+        );
+        const statusResult = await channel.getPluginStatus.invoke();
+        if (statusResult.success && statusResult.data) {
+          const weixinPlugin = statusResult.data.find(
+            (p) => p.type === "weixin",
+          );
+          onStatusChange(weixinPlugin || null);
+        }
+        setLoginState("connected");
+      } else {
+        Message.error(
+          enableResult.msg ||
+            t("settings.weixin.enableFailed", "Failed to enable WeChat plugin"),
+        );
+        setLoginState("idle");
+      }
+    } catch (error: any) {
+      const msg: string = error?.message || "";
+      if (
+        msg.toLowerCase().includes("expired") ||
+        msg.toLowerCase().includes("too many")
+      ) {
+        Message.warning(
+          t(
+            "settings.weixin.loginExpired",
+            "QR code expired, please try again",
+          ),
+        );
+      } else if (msg !== "Aborted") {
+        Message.error(t("settings.weixin.loginError", "WeChat login failed"));
+      }
+      setLoginState("idle");
+      setQrcodeUrl(null);
+    } finally {
+      unsubQR();
+      unsubScanned();
+      unsubDone();
+    }
+  };
+
+  const isGeminiAgent = selectedAgent.backend === "gemini";
+  const agentOptions: Array<{
+    backend: AcpBackendAll;
+    name: string;
+    customAgentId?: string;
+  }> =
+    availableAgents.length > 0
+      ? availableAgents
+      : [{ backend: "gemini", name: "Gemini CLI" }];
+
+  const renderLoginArea = () => {
+    if (loginState === "connected" || pluginStatus?.hasToken) {
+      return (
+        <div className="flex items-center gap-8px">
+          <CheckOne theme="filled" size={16} className="text-green-500" />
+          <span className="text-14px text-t-primary">
+            {t("settings.weixin.connected", "已连接")}
+          </span>
+          {pluginStatus?.botUsername && (
+            <span className="text-12px text-t-tertiary">
+              ({pluginStatus.botUsername})
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    if (loginState === "showing_qr" || loginState === "scanned") {
+      return (
+        <div className="flex flex-col items-center gap-8px">
+          {qrcodeUrl && (
+            <img
+              src={qrcodeUrl}
+              alt="WeChat QR code"
+              className="w-160px h-160px rd-8px"
+            />
+          )}
+          {loginState === "scanned" ? (
+            <div className="flex items-center gap-6px text-13px text-t-secondary">
+              <Spin size={14} />
+              <span>{t("settings.weixin.scanned", "已扫码，等待确认...")}</span>
+            </div>
+          ) : (
+            <span className="text-13px text-t-secondary">
+              {t("settings.weixin.scanPrompt", "请用微信扫描二维码")}
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    // idle or loading_qr
+    return (
+      <Button
+        type="primary"
+        loading={loginState === "loading_qr"}
+        onClick={() => {
+          void handleLogin();
+        }}
+      >
+        {t("settings.weixin.loginButton", "扫码登录")}
+      </Button>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-24px">
+      {/* Login / connection status */}
+      <PreferenceRow
+        label={t("settings.weixin.accountId", "账号 ID")}
+        description={
+          loginState === "idle" || loginState === "loading_qr"
+            ? t("settings.weixin.scanPrompt", "请用微信扫描二维码")
+            : undefined
+        }
+      >
+        {renderLoginArea()}
+      </PreferenceRow>
+
+      {/* Agent Selection */}
+      <PreferenceRow
+        label={t("settings.weixin.agent", "对话Agent")}
+        description={t(
+          "settings.weixin.agentDesc",
+          "Used for WeChat conversations",
+        )}
+      >
+        <Dropdown
+          trigger="click"
+          position="br"
+          droplist={
+            <Menu
+              selectedKeys={[
+                selectedAgent.customAgentId
+                  ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                  : selectedAgent.backend,
+              ]}
+            >
+              {agentOptions.map((a) => {
+                const key = a.customAgentId
+                  ? `${a.backend}|${a.customAgentId}`
+                  : a.backend;
+                return (
+                  <Menu.Item
+                    key={key}
+                    onClick={() => {
+                      const currentKey = selectedAgent.customAgentId
+                        ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                        : selectedAgent.backend;
+                      if (key === currentKey) return;
+                      const next = {
+                        backend: a.backend,
+                        customAgentId: a.customAgentId,
+                        name: a.name,
+                      };
+                      setSelectedAgent(next);
+                      void persistSelectedAgent(next);
+                    }}
+                  >
+                    {a.name}
+                  </Menu.Item>
+                );
+              })}
+            </Menu>
+          }
+        >
+          <Button
+            type="secondary"
+            className="min-w-160px flex items-center justify-between gap-8px"
+          >
+            <span className="truncate">
+              {selectedAgent.name ||
+                availableAgents.find(
+                  (a) =>
+                    (a.customAgentId
+                      ? `${a.backend}|${a.customAgentId}`
+                      : a.backend) ===
+                    (selectedAgent.customAgentId
+                      ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                      : selectedAgent.backend),
+                )?.name ||
+                selectedAgent.backend}
+            </span>
+            <Down theme="outline" size={14} />
+          </Button>
+        </Dropdown>
+      </PreferenceRow>
+
+      {/* Default Model Selection */}
+      <PreferenceRow
+        label={t("settings.assistant.defaultModel", "对话模型")}
+        description={t(
+          "settings.weixin.defaultModelDesc",
+          "用于Agent对话时调用",
+        )}
+      >
+        <GeminiModelSelector
+          selection={isGeminiAgent ? modelSelection : undefined}
+          disabled={!isGeminiAgent}
+          label={
+            !isGeminiAgent
+              ? t(
+                  "settings.assistant.autoFollowCliModel",
+                  "自动跟随CLI运行时的模型",
+                )
+              : undefined
+          }
+          variant="settings"
+        />
+      </PreferenceRow>
+    </div>
+  );
+};
+
+export default WeixinConfigForm;
