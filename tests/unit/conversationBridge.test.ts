@@ -169,4 +169,27 @@ describe('conversationBridge', () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe('createWithConversation — getOrBuildTask rejection', () => {
+    it('does not produce unhandled rejection when getOrBuildTask fails', async () => {
+      const conversation = makeConversation('new-id');
+      vi.mocked(service.createWithMigration).mockResolvedValue(conversation);
+
+      // getOrBuildTask rejects (conversation not yet persisted — race condition)
+      const rejectingTaskManager = makeTaskManager({
+        getOrBuildTask: vi.fn().mockRejectedValue(new Error('Conversation not found: new-id')),
+      });
+      initConversationBridge(service, rejectingTaskManager);
+
+      // Should complete without throwing / unhandled rejection
+      const result = await handlers['createWithConversation']({
+        conversation,
+        sourceConversationId: undefined,
+        migrateCron: false,
+      });
+
+      expect(result).toEqual(conversation);
+      expect(rejectingTaskManager.getOrBuildTask).toHaveBeenCalledWith('new-id');
+    });
+  });
 });
