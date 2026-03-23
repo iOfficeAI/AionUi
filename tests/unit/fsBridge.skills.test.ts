@@ -500,6 +500,21 @@ describe('fsBridge skills functionality', () => {
     });
   });
 
+  describe('fetchRemoteImage — error handling', () => {
+    it('returns empty string for disallowed host instead of throwing', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      // URL with a host not in the allowlist triggers Promise.reject inside downloadRemoteBuffer
+      const result = await handler({ url: 'https://evil.com/malicious.png' });
+      expect(result).toBe('');
+    });
+
+    it('returns empty string for unsupported protocol', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      const result = await handler({ url: 'ftp://github.com/image.png' });
+      expect(result).toBe('');
+    });
+  });
+
   describe('scanForSkills', () => {
     it('should find skills nested in subdirectories or directly at the root', async () => {
       const scanDir = path.resolve('/mock/scan/dir');
