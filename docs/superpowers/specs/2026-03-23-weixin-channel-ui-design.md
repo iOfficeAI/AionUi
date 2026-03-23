@@ -11,18 +11,18 @@ WeChat differs from all other channels in one key way: authentication is QR-code
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/common/config/storage.ts` | Add `assistant.weixin.defaultModel` and `assistant.weixin.agent` storage keys |
-| `src/process/channels/types.ts` | Add `'weixin'` to `ChannelPlatform` type; update `isBuiltinChannelPlatform` guard to include `'weixin'` |
-| `src/process/channels/core/ChannelManager.ts` | Widen `builtinPlatform` type annotation on line ~518 to include `'weixin'` |
-| `src/process/channels/actions/SystemActions.ts` | Add `'weixin'` branch to: (1) `getChannelDefaultModel` saved model ternary, (2) `handleSessionNew` source ternary, (3) `handleSessionNew` saved agent ternary |
+| File                                                                                       | Change                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/common/config/storage.ts`                                                             | Add `assistant.weixin.defaultModel` and `assistant.weixin.agent` storage keys                                                                                                                                                                                   |
+| `src/process/channels/types.ts`                                                            | Add `'weixin'` to `ChannelPlatform` type; update `isBuiltinChannelPlatform` guard to include `'weixin'`                                                                                                                                                         |
+| `src/process/channels/core/ChannelManager.ts`                                              | Widen `builtinPlatform` type annotation on line ~518 to include `'weixin'`                                                                                                                                                                                      |
+| `src/process/channels/actions/SystemActions.ts`                                            | Add `'weixin'` branch to: (1) `getChannelDefaultModel` saved model ternary, (2) `handleSessionNew` source ternary, (3) `handleSessionNew` saved agent ternary                                                                                                   |
 | `src/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent.tsx` | Register WeChat channel; add to `BUILTIN_CHANNEL_TYPES`; add to `ChannelModelConfigKey`; add weixin branch in `pluginStatusChanged` listener; add weixin extraction in `loadPluginStatus`; wire toggle handler; update `useChannelModelSelection` platform cast |
 
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
+| File                                                                                    | Purpose                      |
+| --------------------------------------------------------------------------------------- | ---------------------------- |
 | `src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm.tsx` | WeChat config form component |
 
 ---
@@ -50,6 +50,7 @@ idle
 ```
 
 States:
+
 - `idle`: show "扫码登录" button
 - `loading_qr`: button shows loading spinner (waiting for QR URL)
 - `showing_qr`: render `<img src={qrcodeUrl}>` inline; show "请用微信扫描二维码"
@@ -74,6 +75,7 @@ The event listeners (`weixinLoginOnQR`, `weixinLoginOnScanned`) are used only fo
 ### Auto-enable after Login
 
 After `weixinLoginStart()` resolves with `{ accountId, botToken }`:
+
 1. Call `channel.enablePlugin.invoke({ pluginId: 'weixin_default', config: { accountId, botToken } })`
 2. Refresh plugin status via `channel.getPluginStatus.invoke()`
 3. Call `onStatusChange` with the updated weixin plugin status
@@ -86,10 +88,10 @@ After this flow completes, `weixinPluginStatus.hasToken` will be `true`. Subsequ
 All available via `window.electronAPI` (already in `preload.ts`):
 
 ```typescript
-window.electronAPI.weixinLoginStart()         // Promise<{ accountId, botToken, baseUrl }>
-window.electronAPI.weixinLoginOnQR(cb)        // subscribe to QR URL; returns unsubscribe fn
-window.electronAPI.weixinLoginOnScanned(cb)   // subscribe to scan event; returns unsubscribe fn
-window.electronAPI.weixinLoginOnDone(cb)      // subscribe to done (for UI only, not credentials)
+window.electronAPI.weixinLoginStart(); // Promise<{ accountId, botToken, baseUrl }>
+window.electronAPI.weixinLoginOnQR(cb); // subscribe to QR URL; returns unsubscribe fn
+window.electronAPI.weixinLoginOnScanned(cb); // subscribe to scan event; returns unsubscribe fn
+window.electronAPI.weixinLoginOnDone(cb); // subscribe to done (for UI only, not credentials)
 ```
 
 All subscriptions must be cleaned up in `useEffect` return callbacks.
@@ -329,13 +331,7 @@ const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtal
 
 // After
 const source =
-  platform === 'lark'
-    ? 'lark'
-    : platform === 'dingtalk'
-      ? 'dingtalk'
-      : platform === 'weixin'
-        ? 'weixin'
-        : 'telegram';
+  platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : platform === 'weixin' ? 'weixin' : 'telegram';
 ```
 
 **3. `handleSessionNew` — saved agent lookup (lines ~176–180):**
@@ -364,25 +360,25 @@ savedAgent = await (platform === 'lark'
 
 All new keys follow existing `settings.channels.*` and `settings.weixin.*` namespaces. Default values are inline via `t('key', 'default')`.
 
-| Key | Default value |
-|-----|---------------|
-| `settings.channels.weixinTitle` | `WeChat` |
-| `settings.channels.weixinDesc` | `Chat with AionUi assistant via WeChat` |
-| `settings.weixin.loginButton` | `扫码登录` |
-| `settings.weixin.scanPrompt` | `请用微信扫描二维码` |
-| `settings.weixin.scanned` | `已扫码，等待确认...` |
-| `settings.weixin.connected` | `已连接` |
-| `settings.weixin.accountId` | `账号 ID` |
-| `settings.weixin.pluginEnabled` | `WeChat channel enabled` |
-| `settings.weixin.pluginDisabled` | `WeChat channel disabled` |
-| `settings.weixin.disableFailed` | `Failed to disable WeChat plugin` |
-| `settings.weixin.enableFailed` | `Failed to enable WeChat plugin` |
-| `settings.weixin.loginRequired` | `Please login with WeChat QR code first` |
-| `settings.weixin.loginError` | `WeChat login failed` |
-| `settings.weixin.loginExpired` | `QR code expired, please try again` |
-| `settings.weixin.agent` | `对话Agent` |
-| `settings.weixin.agentDesc` | `Used for WeChat conversations` |
-| `settings.weixin.defaultModelDesc` | `用于Agent对话时调用` |
+| Key                                | Default value                            |
+| ---------------------------------- | ---------------------------------------- |
+| `settings.channels.weixinTitle`    | `WeChat`                                 |
+| `settings.channels.weixinDesc`     | `Chat with AionUi assistant via WeChat`  |
+| `settings.weixin.loginButton`      | `扫码登录`                               |
+| `settings.weixin.scanPrompt`       | `请用微信扫描二维码`                     |
+| `settings.weixin.scanned`          | `已扫码，等待确认...`                    |
+| `settings.weixin.connected`        | `已连接`                                 |
+| `settings.weixin.accountId`        | `账号 ID`                                |
+| `settings.weixin.pluginEnabled`    | `WeChat channel enabled`                 |
+| `settings.weixin.pluginDisabled`   | `WeChat channel disabled`                |
+| `settings.weixin.disableFailed`    | `Failed to disable WeChat plugin`        |
+| `settings.weixin.enableFailed`     | `Failed to enable WeChat plugin`         |
+| `settings.weixin.loginRequired`    | `Please login with WeChat QR code first` |
+| `settings.weixin.loginError`       | `WeChat login failed`                    |
+| `settings.weixin.loginExpired`     | `QR code expired, please try again`      |
+| `settings.weixin.agent`            | `对话Agent`                              |
+| `settings.weixin.agentDesc`        | `Used for WeChat conversations`          |
+| `settings.weixin.defaultModelDesc` | `用于Agent对话时调用`                    |
 
 ---
 

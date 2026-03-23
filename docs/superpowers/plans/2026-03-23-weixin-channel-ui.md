@@ -12,16 +12,16 @@
 
 ## File Map
 
-| Action | Path | Responsibility |
-|--------|------|----------------|
-| Modify | `src/common/config/storage.ts` | Add `assistant.weixin.defaultModel` and `assistant.weixin.agent` types |
-| Modify | `src/process/channels/types.ts` | Extend `ChannelPlatform` and `isBuiltinChannelPlatform` |
-| Modify | `src/process/channels/core/ChannelManager.ts` | Widen `builtinPlatform` type annotation at line 518 |
-| Modify | `src/process/channels/actions/SystemActions.ts` | Add `weixin` branch to three ternary chains |
-| Create | `src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm.tsx` | QR login state machine + Agent + Model selectors |
-| Modify | `src/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent.tsx` | Register weixin channel, state, toggle handler, listener |
-| Create | `tests/unit/channels/weixinSystemActions.test.ts` | Unit tests for SystemActions weixin branches |
-| Create | `tests/unit/channels/weixinConfigForm.dom.test.tsx` | DOM tests for WeixinConfigForm states |
+| Action | Path                                                                                       | Responsibility                                                         |
+| ------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Modify | `src/common/config/storage.ts`                                                             | Add `assistant.weixin.defaultModel` and `assistant.weixin.agent` types |
+| Modify | `src/process/channels/types.ts`                                                            | Extend `ChannelPlatform` and `isBuiltinChannelPlatform`                |
+| Modify | `src/process/channels/core/ChannelManager.ts`                                              | Widen `builtinPlatform` type annotation at line 518                    |
+| Modify | `src/process/channels/actions/SystemActions.ts`                                            | Add `weixin` branch to three ternary chains                            |
+| Create | `src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm.tsx`    | QR login state machine + Agent + Model selectors                       |
+| Modify | `src/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent.tsx` | Register weixin channel, state, toggle handler, listener               |
+| Create | `tests/unit/channels/weixinSystemActions.test.ts`                                          | Unit tests for SystemActions weixin branches                           |
+| Create | `tests/unit/channels/weixinConfigForm.dom.test.tsx`                                        | DOM tests for WeixinConfigForm states                                  |
 
 ---
 
@@ -30,11 +30,13 @@
 **Why first:** The `useChannelModelSelection` cast in `ChannelModalContent` derives `agentKey` as a template literal from the platform cast. `ConfigStorage.get(agentKey)` type-checks only after `'assistant.weixin.agent'` is declared in `IConfigStorageRefer`. This change is foundational and must land before Task 4.
 
 **Files:**
+
 - Modify: `src/common/config/storage.ts`
 
 - [ ] **Step 1: Open storage.ts and locate the dingtalk agent key (around line 128)**
 
 Look for:
+
 ```typescript
   // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
   'assistant.dingtalk.agent'?: {
@@ -65,6 +67,7 @@ Look for:
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 4: Commit**
@@ -79,16 +82,20 @@ git commit -m "feat(weixin): add assistant.weixin storage keys"
 ### Task 2: Extend process-side types and ChannelManager
 
 **Files:**
+
 - Modify: `src/process/channels/types.ts` (lines 522, 528–529)
 - Modify: `src/process/channels/core/ChannelManager.ts` (line 518)
 
 - [ ] **Step 1: Update ChannelPlatform type in types.ts**
 
 Find:
+
 ```typescript
 export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | (string & {});
 ```
+
 Replace with:
+
 ```typescript
 export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | (string & {});
 ```
@@ -96,12 +103,15 @@ export type ChannelPlatform = 'telegram' | 'lark' | 'dingtalk' | 'weixin' | (str
 - [ ] **Step 2: Update isBuiltinChannelPlatform guard in types.ts**
 
 Find:
+
 ```typescript
 export function isBuiltinChannelPlatform(value: string): value is 'telegram' | 'lark' | 'dingtalk' {
   return value === 'telegram' || value === 'lark' || value === 'dingtalk';
 }
 ```
+
 Replace with:
+
 ```typescript
 export function isBuiltinChannelPlatform(value: string): value is 'telegram' | 'lark' | 'dingtalk' | 'weixin' {
   return value === 'telegram' || value === 'lark' || value === 'dingtalk' || value === 'weixin';
@@ -111,12 +121,15 @@ export function isBuiltinChannelPlatform(value: string): value is 'telegram' | '
 - [ ] **Step 3: Widen builtinPlatform annotation in ChannelManager.ts**
 
 Find (line ~518):
+
 ```typescript
-          const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' = platform;
+const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' = platform;
 ```
+
 Replace with:
+
 ```typescript
-          const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' | 'weixin' = platform;
+const builtinPlatform: 'telegram' | 'lark' | 'dingtalk' | 'weixin' = platform;
 ```
 
 - [ ] **Step 4: Verify TypeScript compiles**
@@ -124,6 +137,7 @@ Replace with:
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 5: Commit**
@@ -140,12 +154,14 @@ git commit -m "feat(weixin): extend ChannelPlatform type and isBuiltinChannelPla
 Three ternary chains in `src/process/channels/actions/SystemActions.ts` need a `weixin` branch inserted before the final `telegram` fallback.
 
 **Files:**
+
 - Modify: `src/process/channels/actions/SystemActions.ts`
 - Create: `tests/unit/channels/weixinSystemActions.test.ts`
 
 - [ ] **Step 1: Write the failing tests**
 
 **Important context before writing tests:**
+
 - `getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel>` — takes **one** argument
 - `'weixin'` is already in `BuiltinPluginType` in `types.ts` so no type change needed for `PluginType`
 - `handleSessionNew` is not directly exported; test the ternary chains indirectly by calling them, or test the module's exported getChannelDefaultModel only
@@ -184,9 +200,7 @@ describe('SystemActions weixin platform handling', () => {
   });
 
   it('getChannelDefaultModel reads assistant.weixin.defaultModel for weixin platform', async () => {
-    const { getChannelDefaultModel } = await import(
-      '@process/channels/actions/SystemActions'
-    );
+    const { getChannelDefaultModel } = await import('@process/channels/actions/SystemActions');
 
     mockGet.mockImplementation((key: string) => {
       if (key === 'assistant.weixin.defaultModel') return Promise.resolve({ id: 'p1', useModel: 'gemini-2.0-flash' });
@@ -206,9 +220,7 @@ describe('SystemActions weixin platform handling', () => {
 
   it('getChannelDefaultModel still reads assistant.telegram.defaultModel for telegram', async () => {
     vi.resetModules();
-    const { getChannelDefaultModel } = await import(
-      '@process/channels/actions/SystemActions'
-    );
+    const { getChannelDefaultModel } = await import('@process/channels/actions/SystemActions');
 
     mockGet.mockResolvedValue(undefined);
     try {
@@ -227,68 +239,72 @@ describe('SystemActions weixin platform handling', () => {
 ```bash
 bun run test --reporter=verbose tests/unit/channels/weixinSystemActions.test.ts
 ```
+
 Expected: FAIL (weixin calls telegram key before the ternary is updated)
 
 - [ ] **Step 3: Update getChannelDefaultModel ternary in SystemActions.ts**
 
 Find (lines ~68–73):
+
 ```typescript
-    const savedModel =
-      platform === 'lark'
-        ? await ProcessConfig.get('assistant.lark.defaultModel')
-        : platform === 'dingtalk'
-          ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
-          : await ProcessConfig.get('assistant.telegram.defaultModel');
+const savedModel =
+  platform === 'lark'
+    ? await ProcessConfig.get('assistant.lark.defaultModel')
+    : platform === 'dingtalk'
+      ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
+      : await ProcessConfig.get('assistant.telegram.defaultModel');
 ```
+
 Replace with:
+
 ```typescript
-    const savedModel =
-      platform === 'lark'
-        ? await ProcessConfig.get('assistant.lark.defaultModel')
-        : platform === 'dingtalk'
-          ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
-          : platform === 'weixin'
-            ? await ProcessConfig.get('assistant.weixin.defaultModel')
-            : await ProcessConfig.get('assistant.telegram.defaultModel');
+const savedModel =
+  platform === 'lark'
+    ? await ProcessConfig.get('assistant.lark.defaultModel')
+    : platform === 'dingtalk'
+      ? await ProcessConfig.get('assistant.dingtalk.defaultModel')
+      : platform === 'weixin'
+        ? await ProcessConfig.get('assistant.weixin.defaultModel')
+        : await ProcessConfig.get('assistant.telegram.defaultModel');
 ```
 
 - [ ] **Step 4: Update handleSessionNew source ternary (line ~171)**
 
 Find:
+
 ```typescript
-  const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
+const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
 ```
+
 Replace with:
+
 ```typescript
-  const source =
-    platform === 'lark'
-      ? 'lark'
-      : platform === 'dingtalk'
-        ? 'dingtalk'
-        : platform === 'weixin'
-          ? 'weixin'
-          : 'telegram';
+const source =
+  platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : platform === 'weixin' ? 'weixin' : 'telegram';
 ```
 
 - [ ] **Step 5: Update handleSessionNew savedAgent ternary (lines ~176–180)**
 
 Find:
+
 ```typescript
-    savedAgent = await (platform === 'lark'
-      ? ProcessConfig.get('assistant.lark.agent')
-      : platform === 'dingtalk'
-        ? ProcessConfig.get('assistant.dingtalk.agent')
-        : ProcessConfig.get('assistant.telegram.agent'));
+savedAgent = await (platform === 'lark'
+  ? ProcessConfig.get('assistant.lark.agent')
+  : platform === 'dingtalk'
+    ? ProcessConfig.get('assistant.dingtalk.agent')
+    : ProcessConfig.get('assistant.telegram.agent'));
 ```
+
 Replace with:
+
 ```typescript
-    savedAgent = await (platform === 'lark'
-      ? ProcessConfig.get('assistant.lark.agent')
-      : platform === 'dingtalk'
-        ? ProcessConfig.get('assistant.dingtalk.agent')
-        : platform === 'weixin'
-          ? ProcessConfig.get('assistant.weixin.agent')
-          : ProcessConfig.get('assistant.telegram.agent'));
+savedAgent = await (platform === 'lark'
+  ? ProcessConfig.get('assistant.lark.agent')
+  : platform === 'dingtalk'
+    ? ProcessConfig.get('assistant.dingtalk.agent')
+    : platform === 'weixin'
+      ? ProcessConfig.get('assistant.weixin.agent')
+      : ProcessConfig.get('assistant.telegram.agent'));
 ```
 
 - [ ] **Step 6: Run the test to confirm it passes**
@@ -296,6 +312,7 @@ Replace with:
 ```bash
 bun run test --reporter=verbose tests/unit/channels/weixinSystemActions.test.ts
 ```
+
 Expected: PASS
 
 - [ ] **Step 7: Run the full test suite to catch regressions**
@@ -303,6 +320,7 @@ Expected: PASS
 ```bash
 bun run test
 ```
+
 Expected: all existing tests still pass
 
 - [ ] **Step 8: Verify TypeScript**
@@ -310,6 +328,7 @@ Expected: all existing tests still pass
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 9: Commit**
@@ -324,6 +343,7 @@ git commit -m "feat(weixin): add weixin branches to SystemActions ternary chains
 ### Task 4: Create WeixinConfigForm component
 
 **Files:**
+
 - Create: `src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm.tsx`
 - Create: `tests/unit/channels/weixinConfigForm.dom.test.tsx`
 
@@ -493,6 +513,7 @@ describe('WeixinConfigForm', () => {
 ```bash
 bun run test --reporter=verbose tests/unit/channels/weixinConfigForm.dom.test.tsx
 ```
+
 Expected: FAIL (module not found)
 
 - [ ] **Step 3: Create WeixinConfigForm.tsx**
@@ -808,6 +829,7 @@ export default WeixinConfigForm;
 ```bash
 bun run test --reporter=verbose tests/unit/channels/weixinConfigForm.dom.test.tsx
 ```
+
 Expected: PASS
 
 - [ ] **Step 5: Run the full test suite**
@@ -815,6 +837,7 @@ Expected: PASS
 ```bash
 bun run test
 ```
+
 Expected: all tests pass
 
 - [ ] **Step 6: TypeScript check**
@@ -822,6 +845,7 @@ Expected: all tests pass
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 7: Commit**
@@ -837,6 +861,7 @@ git commit -m "feat(weixin): add WeixinConfigForm with QR login state machine"
 ### Task 5: Register WeChat channel in ChannelModalContent
 
 **Files:**
+
 - Modify: `src/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent.tsx`
 
 This task has 8 separate surgical edits. Make them in the order listed to avoid conflicts.
@@ -844,12 +869,15 @@ This task has 8 separate surgical edits. Make them in the order listed to avoid 
 - [ ] **Step 1: Add WeixinConfigForm import**
 
 Find the existing import block near the top:
+
 ```typescript
 import DingTalkConfigForm from './DingTalkConfigForm';
 import LarkConfigForm from './LarkConfigForm';
 import TelegramConfigForm from './TelegramConfigForm';
 ```
+
 Add after:
+
 ```typescript
 import WeixinConfigForm from './WeixinConfigForm';
 ```
@@ -857,10 +885,13 @@ import WeixinConfigForm from './WeixinConfigForm';
 - [ ] **Step 2: Add 'weixin' to BUILTIN_CHANNEL_TYPES**
 
 Find:
+
 ```typescript
 const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'slack', 'discord']);
 ```
+
 Replace with:
+
 ```typescript
 const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'slack', 'discord']);
 ```
@@ -868,13 +899,16 @@ const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin',
 - [ ] **Step 3: Add 'assistant.weixin.defaultModel' to ChannelModelConfigKey**
 
 Find:
+
 ```typescript
 type ChannelModelConfigKey =
   | 'assistant.telegram.defaultModel'
   | 'assistant.lark.defaultModel'
   | 'assistant.dingtalk.defaultModel';
 ```
+
 Replace with:
+
 ```typescript
 type ChannelModelConfigKey =
   | 'assistant.telegram.defaultModel'
@@ -886,88 +920,100 @@ type ChannelModelConfigKey =
 - [ ] **Step 4: Widen platform cast in useChannelModelSelection.onSelectModel**
 
 Find:
+
 ```typescript
-        const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
-          | 'telegram'
-          | 'lark'
-          | 'dingtalk';
+const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as 'telegram' | 'lark' | 'dingtalk';
 ```
+
 Replace with:
+
 ```typescript
-        const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
-          | 'telegram'
-          | 'lark'
-          | 'dingtalk'
-          | 'weixin';
+const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
+  | 'telegram'
+  | 'lark'
+  | 'dingtalk'
+  | 'weixin';
 ```
 
 - [ ] **Step 5: Add weixin plugin state variables**
 
 Find:
+
 ```typescript
-  const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
-  const [enableLoading, setEnableLoading] = useState(false);
-  const [larkEnableLoading, setLarkEnableLoading] = useState(false);
-  const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
+const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
+const [enableLoading, setEnableLoading] = useState(false);
+const [larkEnableLoading, setLarkEnableLoading] = useState(false);
+const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
 ```
+
 Replace with:
+
 ```typescript
-  const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
-  const [weixinPluginStatus, setWeixinPluginStatus] = useState<IChannelPluginStatus | null>(null);
-  const [enableLoading, setEnableLoading] = useState(false);
-  const [larkEnableLoading, setLarkEnableLoading] = useState(false);
-  const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
-  const [weixinEnableLoading, setWeixinEnableLoading] = useState(false);
+const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
+const [weixinPluginStatus, setWeixinPluginStatus] = useState<IChannelPluginStatus | null>(null);
+const [enableLoading, setEnableLoading] = useState(false);
+const [larkEnableLoading, setLarkEnableLoading] = useState(false);
+const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
+const [weixinEnableLoading, setWeixinEnableLoading] = useState(false);
 ```
 
 - [ ] **Step 6: Add weixin model selection**
 
 Find:
+
 ```typescript
-  const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
-  const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
-  const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
+const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
+const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
+const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
 ```
+
 Replace with:
+
 ```typescript
-  const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
-  const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
-  const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
-  const weixinModelSelection = useChannelModelSelection('assistant.weixin.defaultModel');
+const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
+const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
+const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
+const weixinModelSelection = useChannelModelSelection('assistant.weixin.defaultModel');
 ```
 
 - [ ] **Step 7: Extract weixin plugin in loadPluginStatus**
 
 Find:
-```typescript
-        const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
-        const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
 
-        setPluginStatus(telegramPlugin || null);
-        setLarkPluginStatus(larkPlugin || null);
-        setDingtalkPluginStatus(dingtalkPlugin || null);
+```typescript
+const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
+const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
+
+setPluginStatus(telegramPlugin || null);
+setLarkPluginStatus(larkPlugin || null);
+setDingtalkPluginStatus(dingtalkPlugin || null);
 ```
-Replace with:
-```typescript
-        const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
-        const weixinPlugin = result.data.find((p) => p.type === 'weixin');
-        const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
 
-        setPluginStatus(telegramPlugin || null);
-        setLarkPluginStatus(larkPlugin || null);
-        setDingtalkPluginStatus(dingtalkPlugin || null);
-        setWeixinPluginStatus(weixinPlugin || null);
+Replace with:
+
+```typescript
+const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
+const weixinPlugin = result.data.find((p) => p.type === 'weixin');
+const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
+
+setPluginStatus(telegramPlugin || null);
+setLarkPluginStatus(larkPlugin || null);
+setDingtalkPluginStatus(dingtalkPlugin || null);
+setWeixinPluginStatus(weixinPlugin || null);
 ```
 
 - [ ] **Step 8: Add weixin branch in pluginStatusChanged listener**
 
 Find this exact block (the dingtalk + extension sequence):
+
 ```typescript
       } else if (status.type === 'dingtalk') {
         setDingtalkPluginStatus(status);
       } else if (!BUILTIN_CHANNEL_TYPES.has(status.type)) {
 ```
+
 Replace with:
+
 ```typescript
       } else if (status.type === 'dingtalk') {
         setDingtalkPluginStatus(status);
@@ -979,25 +1025,28 @@ Replace with:
 - [ ] **Step 9: Add weixin to collapseKeys default**
 
 Find:
+
 ```typescript
-  const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
-    telegram: true, // Default to collapsed
-    slack: true,
-    discord: true,
-    lark: true,
-    dingtalk: true,
-  });
+const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
+  telegram: true, // Default to collapsed
+  slack: true,
+  discord: true,
+  lark: true,
+  dingtalk: true,
+});
 ```
+
 Replace with:
+
 ```typescript
-  const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
-    telegram: true, // Default to collapsed
-    slack: true,
-    discord: true,
-    lark: true,
-    dingtalk: true,
-    weixin: true,
-  });
+const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
+  telegram: true, // Default to collapsed
+  slack: true,
+  discord: true,
+  lark: true,
+  dingtalk: true,
+  weixin: true,
+});
 ```
 
 - [ ] **Step 10: Add handleToggleWeixinPlugin function**
@@ -1005,45 +1054,47 @@ Replace with:
 Find the end of `handleToggleDingtalkPlugin` (the closing `};` after the `finally` block), then insert immediately after:
 
 ```typescript
-  // Enable/Disable WeChat plugin
-  const handleToggleWeixinPlugin = async (enabled: boolean) => {
-    setWeixinEnableLoading(true);
-    try {
-      if (enabled) {
-        if (!weixinPluginStatus?.hasToken) {
-          Message.warning(t('settings.weixin.loginRequired', 'Please login with WeChat QR code first'));
-          return;
-        }
-        const result = await channel.enablePlugin.invoke({ pluginId: 'weixin_default', config: {} });
-        if (result.success) {
-          Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.weixin.enableFailed', 'Failed to enable WeChat plugin'));
-        }
-      } else {
-        const result = await channel.disablePlugin.invoke({ pluginId: 'weixin_default' });
-        if (result.success) {
-          Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.weixin.disableFailed', 'Failed to disable WeChat plugin'));
-        }
+// Enable/Disable WeChat plugin
+const handleToggleWeixinPlugin = async (enabled: boolean) => {
+  setWeixinEnableLoading(true);
+  try {
+    if (enabled) {
+      if (!weixinPluginStatus?.hasToken) {
+        Message.warning(t('settings.weixin.loginRequired', 'Please login with WeChat QR code first'));
+        return;
       }
-    } catch (error: any) {
-      Message.error(error.message);
-    } finally {
-      setWeixinEnableLoading(false);
+      const result = await channel.enablePlugin.invoke({ pluginId: 'weixin_default', config: {} });
+      if (result.success) {
+        Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
+        await loadPluginStatus();
+      } else {
+        Message.error(result.msg || t('settings.weixin.enableFailed', 'Failed to enable WeChat plugin'));
+      }
+    } else {
+      const result = await channel.disablePlugin.invoke({ pluginId: 'weixin_default' });
+      if (result.success) {
+        Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
+        await loadPluginStatus();
+      } else {
+        Message.error(result.msg || t('settings.weixin.disableFailed', 'Failed to disable WeChat plugin'));
+      }
     }
-  };
+  } catch (error: any) {
+    Message.error(error.message);
+  } finally {
+    setWeixinEnableLoading(false);
+  }
+};
 ```
 
 - [ ] **Step 11: Add weixinChannel config in the channels useMemo**
 
 Find:
+
 ```typescript
     const dingtalkChannel: ChannelConfig = {
 ```
+
 Insert this block **after** the closing `};` of `dingtalkChannel` (before `const extensionChannels`):
 
 ```typescript
@@ -1069,23 +1120,29 @@ Insert this block **after** the closing `};` of `dingtalkChannel` (before `const
 - [ ] **Step 12: Add weixinChannel to the return array**
 
 Find:
+
 ```typescript
-    return [telegramChannel, larkChannel, dingtalkChannel, ...extensionChannels, ...comingSoonChannels];
+return [telegramChannel, larkChannel, dingtalkChannel, ...extensionChannels, ...comingSoonChannels];
 ```
+
 Replace with:
+
 ```typescript
-    return [telegramChannel, larkChannel, dingtalkChannel, weixinChannel, ...extensionChannels, ...comingSoonChannels];
+return [telegramChannel, larkChannel, dingtalkChannel, weixinChannel, ...extensionChannels, ...comingSoonChannels];
 ```
 
 - [ ] **Step 13: Add weixinChannel to useMemo deps**
 
 Find the deps array of the channels useMemo. It currently ends with:
+
 ```typescript
     dingtalkEnableLoading,
     renderExtensionConfigForm,
     t,
 ```
+
 Add `weixinPluginStatus`, `weixinEnableLoading`, `weixinModelSelection` to it:
+
 ```typescript
     dingtalkEnableLoading,
     weixinPluginStatus,
@@ -1098,12 +1155,15 @@ Add `weixinPluginStatus`, `weixinEnableLoading`, `weixinModelSelection` to it:
 - [ ] **Step 14: Register weixin in getToggleHandler**
 
 Find:
+
 ```typescript
-    if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
+if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
 ```
+
 Add immediately after:
+
 ```typescript
-    if (channelId === 'weixin') return handleToggleWeixinPlugin;
+if (channelId === 'weixin') return handleToggleWeixinPlugin;
 ```
 
 - [ ] **Step 15: TypeScript check**
@@ -1111,6 +1171,7 @@ Add immediately after:
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Step 16: Run full test suite**
@@ -1118,6 +1179,7 @@ Expected: no errors
 ```bash
 bun run test
 ```
+
 Expected: all tests pass
 
 - [ ] **Step 17: Lint and format**
@@ -1142,6 +1204,7 @@ git commit -m "feat(weixin): register WeChat channel in ChannelModalContent"
 ```bash
 bun run test
 ```
+
 Expected: all tests pass
 
 - [ ] **Run TypeScript check**
@@ -1149,11 +1212,13 @@ Expected: all tests pass
 ```bash
 bunx tsc --noEmit
 ```
+
 Expected: no errors
 
 - [ ] **Manual smoke test**
 
 Launch the app and open Settings → Channels. Verify:
+
 1. WeChat card appears after DingTalk with no "即将上线" badge
 2. Expanding the card shows "扫码登录" button
 3. Toggle is disabled when `hasToken` is false (no credentials)
@@ -1163,10 +1228,10 @@ Launch the app and open Settings → Channels. Verify:
 
 ## Quick Reference
 
-| Command | Purpose |
-|---------|---------|
-| `bun run test` | Run all tests |
+| Command                                  | Purpose              |
+| ---------------------------------------- | -------------------- |
+| `bun run test`                           | Run all tests        |
 | `bun run test --reporter=verbose <file>` | Run single test file |
-| `bunx tsc --noEmit` | Type check only |
-| `bun run lint:fix` | Auto-fix lint issues |
-| `bun run format` | Auto-format code |
+| `bunx tsc --noEmit`                      | Type check only      |
+| `bun run lint:fix`                       | Auto-fix lint issues |
+| `bun run format`                         | Auto-format code     |
