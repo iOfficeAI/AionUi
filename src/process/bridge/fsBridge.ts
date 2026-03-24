@@ -762,8 +762,10 @@ export function initFsBridge(): void {
     }
   });
 
-  // 读取内置 skills 文件 / Read built-in skills file from app resources
+  // [Deprecated] Use SkillRepository.get() via skill.* IPC channels instead.
+  // Read built-in skills file from app resources
   ipcBridge.fs.readBuiltinSkill.provider(async ({ fileName }) => {
+    console.warn('[Deprecated] read-builtin-skill — use skill.repository.get via SkillRepository instead');
     try {
       return await readBuiltinResource('skills', fileName);
     } catch (error) {
@@ -812,8 +814,10 @@ export function initFsBridge(): void {
     return deleteAssistantResource('skills', new RegExp(`^${assistantId}-skills\\..*\\.md$`));
   });
 
-  // 获取可用 skills 列表 / List available skills from both builtin and user directories
+  // [Deprecated] Use SkillRepository.list() via skill.* IPC channels instead.
+  // List available skills from both builtin and user directories
   ipcBridge.fs.listAvailableSkills.provider(async () => {
+    console.warn('[Deprecated] list-available-skills — use SkillRepository.list() instead');
     try {
       const skills: Array<{ name: string; description: string; location: string; isCustom: boolean }> = [];
 
@@ -949,8 +953,10 @@ export function initFsBridge(): void {
     }
   });
 
-  // 导入 skill 目录 / Import skill directory
+  // [Deprecated] Use SkillRepository.add() via skill.* IPC channels instead.
+  // Import skill directory
   ipcBridge.fs.importSkill.provider(async ({ skillPath }) => {
+    console.warn('[Deprecated] import-skill — use SkillRepository.add() instead');
     try {
       // 验证 SKILL.md 文件存在 / Verify SKILL.md file exists
       const skillMdPath = path.join(skillPath, 'SKILL.md');
@@ -1295,8 +1301,10 @@ export function initFsBridge(): void {
     }
   });
 
-  // 符号链接方式导入 skill / Import skill via symlink
+  // [Deprecated] Use SkillRepository.add() via skill.* IPC channels instead.
+  // Import skill via symlink
   ipcBridge.fs.importSkillWithSymlink.provider(async ({ skillPath }) => {
+    console.warn('[Deprecated] import-skill-with-symlink — use SkillRepository.add() instead');
     try {
       const skillMdPath = path.join(skillPath, 'SKILL.md');
       try {
@@ -1337,8 +1345,10 @@ export function initFsBridge(): void {
     }
   });
 
-  // 删除自定义 skill / Delete a user custom skill
+  // [Deprecated] Use SkillRepository.remove() via skill.* IPC channels instead.
+  // Delete a user custom skill
   ipcBridge.fs.deleteSkill.provider(async ({ skillName }) => {
+    console.warn('[Deprecated] delete-skill — use SkillRepository.remove() instead');
     try {
       const userSkillsDir = getUserSkillsDir();
       const skillDir = path.join(userSkillsDir, skillName);
@@ -1412,8 +1422,10 @@ export function initFsBridge(): void {
     }
   });
 
+  // [Deprecated] Use GlobalSkillConfigStore via skill.set-global-enabled IPC channel instead.
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
+    console.warn('[Deprecated] enable-skills-market — use skill.set-global-enabled instead');
     try {
       const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
@@ -1438,8 +1450,10 @@ export function initFsBridge(): void {
     }
   });
 
+  // [Deprecated] Use GlobalSkillConfigStore via skill.set-global-enabled IPC channel instead.
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
+    console.warn('[Deprecated] disable-skills-market — use skill.set-global-enabled instead');
     try {
       const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
       const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');

@@ -14,6 +14,8 @@ import { ProcessConfig, getSkillsDir } from '@process/utils/initStorage';
 import { ExtensionRegistry } from '@process/extensions';
 import { buildSystemInstructionsWithSkillsIndex } from './agentUtils';
 import { detectSkillLoadRequest, AcpSkillManager, buildSkillContentText } from './AcpSkillManager';
+// [Phase 4] SkillInjector (from @process/skills) — new unified skill injection path.
+// TODO(skill-redesign): Replace AcpSkillManager usage with SkillInjector (Pathway 1 + 3)
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType, getOauthInfoWithCache, Storage } from '@office-ai/aioncli-core';
@@ -166,7 +168,12 @@ export class GeminiAgentManager extends BaseAgentManager<
         // No prompt injection needed -> native mechanisms handle everything
 
         // Merge builtin skill names into enabledSkills for the worker's skill discovery
-        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
+        // [Phase 4] New path via SkillInjector (Pathway 1 — Content Injection + Pathway 3 — Workspace Symlink):
+        //   const injector = SkillInjector.getInstance();
+        //   const effective = await injector.computeEffectiveSkills(assistantSkillConfig, configDir);
+        //   const allEnabledSkills = injector.getEffectiveSkillNames(effective);
+        //   await injector.setupWorkspaceSymlinks(this.workspace, effective, skillsDir, { backend: 'gemini' });
+        // Legacy path (kept for backward compatibility during transition):
         const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
         await skillManager.discoverSkills(this.enabledSkills);
         const builtinSkillNames = skillManager.getBuiltinSkillsIndex().map((s) => s.name);
@@ -693,6 +700,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       const collectedResponses: string[] = [];
 
       // Detect [LOAD_SKILL: ...] requests and load skill content on demand
+      // [Phase 4] New path: const content = await SkillInjector.getInstance().loadSkillsOnDemand(skillRequests);
+      // Legacy path (kept for backward compatibility during transition):
       if (textContent) {
         const skillRequests = detectSkillLoadRequest(textContent);
         if (skillRequests.length > 0) {

@@ -36,6 +36,7 @@ import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initExtensionsBridge } from './extensionsBridge';
+import { initSkillBridge } from './skillBridge';
 
 export interface BridgeDependencies {
   conversationService: IConversationService;
@@ -76,6 +77,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initNotificationBridge();
   initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
+  initSkillBridge();
 }
 
 /**
@@ -104,6 +106,7 @@ export {
   initDocumentBridge,
   initExtensionsBridge,
   initFsBridge,
+  initSkillBridge,
   initGeminiBridge,
   initGeminiConversationBridge,
   initMcpBridge,

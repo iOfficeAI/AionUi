@@ -23,6 +23,9 @@ import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
+// [Phase 4] SkillInjector (from @process/skills) — new unified skill injection path.
+// TODO(skill-redesign): Replace prepareFirstMessageWithSkillsIndex with SkillInjector.prepareFirstMessageWithIndex
+
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
@@ -594,8 +597,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
         }
 
-        // 首条消息时注入预设规则和 skills 索引（来自智能助手配置）
         // Inject preset context and skills INDEX on first message (from smart assistant config)
+        // [Phase 4] New path via SkillInjector (Pathway 2 — Index Injection):
+        //   const injector = SkillInjector.getInstance();
+        //   const effective = await injector.computeEffectiveSkills(assistantSkillConfig, configDir);
+        //   contentToSend = injector.prepareFirstMessageWithIndex(
+        //     contentToSend, effective, skillsDir, builtinSkillsDir, this.options.presetContext
+        //   );
+        // Legacy path (kept for backward compatibility during transition):
         if (this.isFirstMessage) {
           contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
             presetContext: this.options.presetContext,

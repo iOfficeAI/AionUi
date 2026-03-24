@@ -1047,3 +1047,25 @@ export const channel = {
   ),
   userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
 };
+
+// Skill repository & global config API / 技能仓库与全局配置接口
+export const skill = {
+  /** Get the full GlobalSkillConfig map (enabled/disabled per skill name). */
+  getGlobalConfig: bridge.buildProvider<import('@process/skills/types').GlobalSkillConfig, void>(
+    'skill.get-global-config'
+  ),
+
+  /** Toggle a skill's global enabled state. */
+  setGlobalEnabled: bridge.buildProvider<IBridgeResponse, { skillName: string; enabled: boolean }>(
+    'skill.set-global-enabled'
+  ),
+
+  /**
+   * Compute the effective skill set for a given per-assistant config.
+   * Returns the filtered + sorted SkillEntry list the assistant will see at runtime.
+   */
+  computeEffective: bridge.buildProvider<
+    import('@process/skills/types').EffectiveSkills,
+    { assistantConfig: import('@process/skills/types').AssistantSkillConfig }
+  >('skill.compute-effective'),
+};
