@@ -43,6 +43,43 @@ export class WeixinPlugin extends BasePlugin {
     }
     this.accountId = accountId as string;
     this.botToken = botToken as string;
+
+    // The SDK reads credentials from ~/.openclaw/openclaw-weixin/accounts/<id>.json.
+    // Write the file here so start() can authenticate without running the terminal login.
+    const stateDir =
+      process.env['OPENCLAW_STATE_DIR']?.trim() ||
+      process.env['CLAWDBOT_STATE_DIR']?.trim() ||
+      path.join(os.homedir(), '.openclaw');
+    const accountsDir = path.join(stateDir, 'openclaw-weixin', 'accounts');
+    fs.mkdirSync(accountsDir, { recursive: true });
+
+    const accountFile = path.join(accountsDir, `${this.accountId}.json`);
+    let existing: Record<string, unknown> = {};
+    try {
+      existing = JSON.parse(fs.readFileSync(accountFile, 'utf-8')) as Record<string, unknown>;
+    } catch {
+      // file may not exist yet
+    }
+    fs.writeFileSync(
+      accountFile,
+      JSON.stringify({ ...existing, token: this.botToken, updatedAt: Date.now() }, null, 2),
+      'utf-8'
+    );
+
+    // Keep the account index up-to-date so the SDK can list registered accounts.
+    const indexFile = path.join(stateDir, 'openclaw-weixin', 'accounts.json');
+    let ids: string[] = [];
+    try {
+      ids = JSON.parse(fs.readFileSync(indexFile, 'utf-8')) as string[];
+    } catch {
+      // index may not exist yet
+    }
+    if (!ids.includes(this.accountId)) {
+      ids = [this.accountId, ...ids.filter((id) => id !== this.accountId)];
+      fs.writeFileSync(indexFile, JSON.stringify(ids, null, 2), 'utf-8');
+    }
+
+    console.log(`[WeixinPlugin] credential file written for accountId=${this.accountId}`);
   }
 
   protected async onStart(): Promise<void> {

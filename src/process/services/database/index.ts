@@ -1059,6 +1059,7 @@ export class AionUIDatabase {
         INSERT INTO assistant_plugins (id, type, name, enabled, config, status, last_connected, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
+          type = excluded.type,
           name = excluded.name,
           enabled = excluded.enabled,
           config = excluded.config,

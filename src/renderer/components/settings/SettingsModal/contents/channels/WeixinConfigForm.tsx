@@ -44,7 +44,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   const { t } = useTranslation();
 
   const [loginState, setLoginState] = useState<LoginState>(pluginStatus?.hasToken ? 'connected' : 'idle');
-  const [qrcodeUrl, setQrcodeUrl] = useState<string | null>(null);
+  const [qrcodeDataUrl, setQrcodeDataUrl] = useState<string | null>(null);
 
   // Agent selection
   const [availableAgents, setAvailableAgents] = useState<
@@ -111,11 +111,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const handleLogin = async () => {
     setLoginState('loading_qr');
-    setQrcodeUrl(null);
+    setQrcodeDataUrl(null);
 
     const unsubQR =
-      window.electronAPI?.weixinLoginOnQR?.(({ qrcodeUrl: url }: { qrcodeUrl: string }) => {
-        setQrcodeUrl(url);
+      window.electronAPI?.weixinLoginOnQR?.(({ qrcodeUrl: dataUrl }: { qrcodeUrl: string }) => {
+        setQrcodeDataUrl(dataUrl);
         setLoginState('showing_qr');
       }) ?? (() => {});
     const unsubScanned =
@@ -160,7 +160,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         Message.error(t('settings.weixin.loginError', 'WeChat login failed'));
       }
       setLoginState('idle');
-      setQrcodeUrl(null);
+      setQrcodeDataUrl(null);
     } finally {
       unsubQR();
       unsubScanned();
@@ -189,7 +189,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     if (loginState === 'showing_qr' || loginState === 'scanned') {
       return (
         <div className='flex flex-col items-center gap-8px'>
-          {qrcodeUrl && <img src={qrcodeUrl} alt='WeChat QR code' className='w-160px h-160px rd-8px' />}
+          {qrcodeDataUrl && <img src={qrcodeDataUrl} alt='WeChat QR code' className='w-160px h-160px rd-8px' />}
           {loginState === 'scanned' ? (
             <div className='flex items-center gap-6px text-13px text-t-secondary'>
               <Spin size={14} />
