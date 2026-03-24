@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -31,20 +31,18 @@ export default function ConnectScreen() {
   const router = useRouter();
   const tint = useThemeColor({}, 'tint');
   const background = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
 
   const [permission, requestPermission] = useCameraPermissions();
   const [isVerifying, setIsVerifying] = useState(false);
+  const [mode, setMode] = useState<'scan' | 'paste'>('scan');
+  const [pasteUrl, setPasteUrl] = useState('');
   const scannedRef = useRef(false);
 
-  const handleBarCodeScanned = async (result: BarcodeScanningResult) => {
-    if (scannedRef.current) return;
-    scannedRef.current = true;
-
-    const parsed = parseQrLoginUrl(result.data);
+  const connectWithUrl = async (url: string, onInvalid: () => void) => {
+    const parsed = parseQrLoginUrl(url);
     if (!parsed) {
-      Alert.alert(t('common.error'), t('connect.invalidQRCode'), [
-        { text: t('common.ok'), onPress: () => (scannedRef.current = false) },
-      ]);
+      Alert.alert(t('common.error'), t('connect.invalidURL'), [{ text: t('common.ok'), onPress: onInvalid }]);
       return;
     }
 
@@ -82,10 +80,20 @@ export default function ConnectScreen() {
       router.replace('/(tabs)/chat');
     } catch (e: any) {
       const msg = e.message === 'auth_failed' ? t('connect.invalidToken') : t('connect.connectionFailed');
-      Alert.alert(t('common.error'), msg, [{ text: t('common.ok'), onPress: () => (scannedRef.current = false) }]);
+      Alert.alert(t('common.error'), msg, [{ text: t('common.ok'), onPress: onInvalid }]);
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleBarCodeScanned = async (result: BarcodeScanningResult) => {
+    if (scannedRef.current) return;
+    scannedRef.current = true;
+    await connectWithUrl(result.data, () => (scannedRef.current = false));
+  };
+
+  const handlePasteConnect = () => {
+    connectWithUrl(pasteUrl.trim(), () => {});
   };
 
   // Still loading permission status
@@ -112,6 +120,50 @@ export default function ConnectScreen() {
     );
   }
 
+  // Paste link mode
+  if (mode === 'paste') {
+    return (
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={[styles.container, styles.center]}>
+          <ThemedText type='title' style={styles.permissionTitle}>
+            {t('connect.pasteLink')}
+          </ThemedText>
+          <ThemedText style={styles.permissionMessage}>{t('connect.pasteLinkHint')}</ThemedText>
+
+          <TextInput
+            style={[styles.urlInput, { color: textColor, borderColor: tint }]}
+            placeholder={t('connect.urlPlaceholder')}
+            placeholderTextColor='#999'
+            value={pasteUrl}
+            onChangeText={setPasteUrl}
+            autoCapitalize='none'
+            autoCorrect={false}
+            selectTextOnFocus
+          />
+
+          <TouchableOpacity
+            style={[styles.permissionButton, { backgroundColor: tint, opacity: pasteUrl.trim() ? 1 : 0.5 }]}
+            onPress={handlePasteConnect}
+            disabled={!pasteUrl.trim() || isVerifying}
+          >
+            {isVerifying ? (
+              <ActivityIndicator color='#fff' />
+            ) : (
+              <ThemedText style={styles.permissionButtonText}>{t('connect.connect')}</ThemedText>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.switchModeButton} onPress={() => setMode('scan')}>
+            <ThemedText style={{ color: tint }}>{t('connect.scanTitle')}</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
+
   // Permission granted — show scanner
   return (
     <View style={[styles.container, { backgroundColor: background }]}>
@@ -134,6 +186,13 @@ export default function ConnectScreen() {
           <ThemedText style={styles.scanTitle}>{t('connect.scanTitle')}</ThemedText>
           <ThemedText style={styles.scanHint}>{t('connect.scanHint')}</ThemedText>
         </View>
+      </View>
+
+      {/* Switch to paste mode */}
+      <View style={styles.pasteLinkContainer}>
+        <TouchableOpacity style={[styles.pasteLinkButton, { backgroundColor: 'rgba(255,255,255,0.9)' }]} onPress={() => setMode('paste')}>
+          <ThemedText style={[styles.pasteLinkText, { color: '#333' }]}>{t('connect.pasteLink')}</ThemedText>
+        </TouchableOpacity>
       </View>
 
       {/* Verifying indicator */}
@@ -230,6 +289,34 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     color: '#fff',
     fontSize: 17,
+    fontWeight: '600',
+  },
+  urlInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 20,
+  },
+  switchModeButton: {
+    marginTop: 20,
+    padding: 10,
+  },
+  pasteLinkContainer: {
+    position: 'absolute',
+    bottom: 60,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  pasteLinkButton: {
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+  },
+  pasteLinkText: {
+    fontSize: 15,
     fontWeight: '600',
   },
 });

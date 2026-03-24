@@ -24,7 +24,12 @@
     "verifying": "Verifying...",
     "connectionFailed": "Connection failed",
     "invalidToken": "Invalid or expired token",
-    "disconnected": "Disconnected from server"
+    "disconnected": "Disconnected from server",
+    "pasteLink": "Paste Link",
+    "pasteLinkHint": "Paste the QR code link from desktop",
+    "urlPlaceholder": "Paste QR login URL here",
+    "connect": "Connect",
+    "invalidURL": "Invalid URL. Please paste the QR login link from AionUi desktop."
   },
   "tabs": {
     "chat": "Chat",

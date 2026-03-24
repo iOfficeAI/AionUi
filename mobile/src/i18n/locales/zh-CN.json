@@ -24,7 +24,12 @@
     "verifying": "验证中...",
     "connectionFailed": "连接失败",
     "invalidToken": "Token 无效或已过期",
-    "disconnected": "已断开与服务器的连接"
+    "disconnected": "已断开与服务器的连接",
+    "pasteLink": "粘贴链接",
+    "pasteLinkHint": "从桌面端复制二维码链接粘贴到此处",
+    "urlPlaceholder": "粘贴二维码登录链接",
+    "connect": "连接",
+    "invalidURL": "链接无效，请粘贴 AionUi 桌面端生成的二维码链接。"
   },
   "tabs": {
     "chat": "聊天",
