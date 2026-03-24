@@ -48,6 +48,7 @@ const STORAGE_PATH = {
   env: '.aionui-env',
   assistants: 'assistants',
   skills: 'skills',
+  builtinSkills: 'builtin-skills',
 };
 
 const getHomePage = getConfigPath;
@@ -367,12 +368,19 @@ const getSkillsDir = () => {
 };
 
 /**
- * 获取内置技能目录路径（_builtin 子目录）
- * Get builtin skills directory path (_builtin subdirectory)
- * Skills in this directory are automatically injected for ALL agents and scenarios
+ * Get the directory where bundled skills are copied to (config/builtin-skills/).
+ * This directory is fully managed by the app — synced on every startup.
  */
-const getBuiltinSkillsDir = () => {
-  return path.join(getSkillsDir(), '_builtin');
+const getBuiltinSkillsCopyDir = () => {
+  return path.join(cacheDir, STORAGE_PATH.builtinSkills);
+};
+
+/**
+ * Get the auto-enabled builtin skills directory (_builtin subdirectory).
+ * Skills in this directory are automatically injected for ALL agents and scenarios.
+ */
+const getAutoSkillsDir = () => {
+  return path.join(getBuiltinSkillsCopyDir(), '_builtin');
 };
 
 /**
@@ -400,14 +408,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         path.join(appPath, prodPath), // asar path
       ];
     } else {
-      // In dev, viteStaticCopy doesn't run; resolve source paths directly
-      candidates = [
-        path.join(appPath, dirPath),
-        path.join(appPath, '..', dirPath),
-        path.join(appPath, '..', '..', dirPath),
-        path.join(appPath, '..', '..', '..', dirPath),
-        path.join(process.cwd(), dirPath),
-      ];
+      // In dev, viteStaticCopy doesn't run; resolve source paths directly.
+      // appPath is the project root, so a single join is sufficient.
+      candidates = [path.join(appPath, dirPath)];
     }
 
     for (const candidate of candidates) {
@@ -425,25 +428,40 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
   const builtinSkillsDir = resolveBuiltinDir('src/process/resources/skills');
+  const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
   const userSkillsDir = getSkillsDir();
 
-  // 复制技能脚本目录到用户配置目录
-  // Copy skills scripts directory to user config directory
+  // Sync builtin skills to a dedicated directory (config/builtin-skills/).
+  // This directory is fully managed by the app: overwrite existing, remove stale.
+  // User-custom skills live in config/skills/ and are never touched.
   if (existsSync(builtinSkillsDir)) {
     try {
-      // 确保用户技能目录存在
-      if (!existsSync(userSkillsDir)) {
-        mkdirSync(userSkillsDir);
+      if (!existsSync(builtinSkillsCopyDir)) {
+        mkdirSync(builtinSkillsCopyDir);
       }
-      // 复制内置技能到用户目录（强制覆盖，确保用户拿到最新版本）
-      // Bundled skills are always overwritten to ensure users get the latest version.
-      // User-custom skills are not in the source directory, so they won't be affected.
-      await copyDirectoryRecursively(builtinSkillsDir, userSkillsDir, {
+      await copyDirectoryRecursively(builtinSkillsDir, builtinSkillsCopyDir, {
         overwrite: true,
       });
+      // Remove stale: entries in dest that no longer exist in source
+      const srcNames = new Set(
+        readdirSync(builtinSkillsDir, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => e.name)
+      );
+      for (const entry of readdirSync(builtinSkillsCopyDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (!srcNames.has(entry.name)) {
+          await fs.rm(path.join(builtinSkillsCopyDir, entry.name), { recursive: true, force: true });
+        }
+      }
     } catch (error) {
-      console.warn(`[AionUi] Failed to copy skills directory:`, error);
+      console.warn(`[AionUi] Failed to sync builtin skills directory:`, error);
     }
+  }
+
+  // Ensure user skills directory exists
+  if (!existsSync(userSkillsDir)) {
+    mkdirSync(userSkillsDir);
   }
 
   // 确保助手目录存在 / Ensure assistants directory exists
@@ -1025,7 +1043,14 @@ export const getSystemDir = () => {
  * 获取助手规则目录路径（供其他模块使用）
  * Get assistant rules directory path (for use by other modules)
  */
-export { getAssistantsDir, getSkillsDir, getBuiltinSkillsDir, BUILTIN_IMAGE_GEN_ID, getBuiltinMcpScriptPath };
+export {
+  getAssistantsDir,
+  getSkillsDir,
+  getBuiltinSkillsCopyDir,
+  getAutoSkillsDir,
+  BUILTIN_IMAGE_GEN_ID,
+  getBuiltinMcpScriptPath,
+};
 
 /**
  * Skills 内容缓存，避免重复从文件系统读取
@@ -1053,15 +1078,15 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
   }
 
   const skillsDir = getSkillsDir();
-  const builtinSkillsDir = getBuiltinSkillsDir();
+  const builtinSkillsDir = getAutoSkillsDir();
   const skillContents: string[] = [];
 
   for (const skillName of enabledSkills) {
-    // 优先尝试内置 skills 目录：_builtin/{skillName}/SKILL.md
-    // First try builtin skills directory: _builtin/{skillName}/SKILL.md
+    // 1. Auto-enabled builtin: builtin-skills/_builtin/{skillName}/SKILL.md
     const builtinSkillFile = path.join(builtinSkillsDir, skillName, 'SKILL.md');
-    // 然后尝试目录结构：{skillName}/SKILL.md（与 aioncli-core 的 loadSkillsFromDir 一致）
-    // Then try directory structure: {skillName}/SKILL.md (consistent with aioncli-core's loadSkillsFromDir)
+    // 2. Bundled skill: builtin-skills/{skillName}/SKILL.md
+    const bundledSkillFile = path.join(getBuiltinSkillsCopyDir(), skillName, 'SKILL.md');
+    // 3. User custom: skills/{skillName}/SKILL.md
     const skillDirFile = path.join(skillsDir, skillName, 'SKILL.md');
     // 向后兼容：扁平结构 {skillName}.md
     // Backward compatible: flat structure {skillName}.md
@@ -1072,6 +1097,8 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
 
       if (existsSync(builtinSkillFile)) {
         content = await fs.readFile(builtinSkillFile, 'utf-8');
+      } else if (existsSync(bundledSkillFile)) {
+        content = await fs.readFile(bundledSkillFile, 'utf-8');
       } else if (existsSync(skillDirFile)) {
         content = await fs.readFile(skillDirFile, 'utf-8');
       } else if (existsSync(skillFlatFile)) {

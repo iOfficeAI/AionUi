@@ -13,7 +13,7 @@ import http from 'node:http';
 import { app } from 'electron';
 import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
-import { getSystemDir, getAssistantsDir } from '@process/utils/initStorage';
+import { getSystemDir, getAssistantsDir, getBuiltinSkillsCopyDir } from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
 
 // ============================================================================
@@ -37,10 +37,8 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
     // asarUnpack 会将文件解压到 app.asar.unpacked 目录
     const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
     const candidates = [
-      path.join(unpackedPath, resourceType), // Unpacked location (preferred, from viteStaticCopy)
-      path.join(unpackedPath, 'src', resourceType), // Unpacked from src/ (direct inclusion)
-      path.join(appPath, resourceType), // Fallback to asar path
-      path.join(appPath, 'src', resourceType), // Fallback to asar src/ path
+      path.join(unpackedPath, resourceType), // asarUnpack extracted path (preferred)
+      path.join(appPath, resourceType), // asar path
     ];
     for (const candidate of candidates) {
       try {
@@ -53,29 +51,11 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
     console.warn(`[fsBridge] Could not find builtin ${resourceType} directory, tried:`, candidates);
     return candidates[0]; // Default to unpacked path
   }
-  // Development: try multiple paths
+  // Development: appPath is the project root, resolve source paths directly.
   const appPath = app.getAppPath();
-  // skills/ and assistant/ live under src/process/resources/ in dev mode
   const devDir =
     resourceType === 'skills' || resourceType === 'assistant' ? `src/process/resources/${resourceType}` : resourceType;
-  const candidates = [
-    path.join(appPath, devDir),
-    path.join(appPath, '..', devDir),
-    path.join(appPath, '..', '..', devDir),
-    path.join(appPath, '..', '..', '..', devDir),
-    // Fallback to legacy location (for production builds via viteStaticCopy)
-    path.join(appPath, resourceType),
-    path.join(appPath, '..', resourceType),
-  ];
-  for (const candidate of candidates) {
-    try {
-      await fs.access(candidate);
-      return candidate;
-    } catch {
-      // Try next path
-    }
-  }
-  return candidates[0]; // Default fallback
+  return path.join(appPath, devDir);
 }
 
 /**
@@ -858,8 +838,8 @@ export function initFsBridge(): void {
         }
       };
 
-      // 读取内置 skills (isCustom: false)
-      const builtinSkillsDir = await findBuiltinResourceDir('skills');
+      // Read builtin skills from the dedicated builtin-skills/ directory (isCustom: false)
+      const builtinSkillsDir = getBuiltinSkillsCopyDir();
       const builtinCountBefore = skills.length;
       await readSkillsFromDir(builtinSkillsDir, false);
       const builtinCount = skills.length - builtinCountBefore;
@@ -870,30 +850,19 @@ export function initFsBridge(): void {
       await readSkillsFromDir(userSkillsDir, true);
       const userCount = skills.length - userCountBefore;
 
-      // 去重：如果 custom skill 和 builtin skill 同名，只保留 builtin
-      // Deduplicate: if custom and builtin skills have same name, keep only builtin
+      // Deduplicate: if a custom skill has the same name as a builtin, keep builtin
       const skillMap = new Map<string, { name: string; description: string; location: string; isCustom: boolean }>();
       for (const skill of skills) {
         const existing = skillMap.get(skill.name);
-        // 如果已存在且当前是 builtin，或者不存在，则添加/更新
-        // Add/update if: already exists and current is builtin, or doesn't exist yet
         if (!existing || !skill.isCustom) {
           skillMap.set(skill.name, skill);
         }
       }
-      const deduplicatedSkills = Array.from(skillMap.values());
+      const result = Array.from(skillMap.values());
 
-      console.log(
-        `[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`
-      );
-      console.log(`  - Builtin skills (${builtinCount}): ${builtinSkillsDir}`);
-      console.log(`  - User skills (${userCount}): ${userSkillsDir}`);
-      console.log(
-        `  - Skills breakdown:`,
-        deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', ')
-      );
+      console.log(`[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, custom=${userCount}`);
 
-      return deduplicatedSkills;
+      return result;
     } catch (error) {
       console.error('[fsBridge] Failed to list available skills:', error);
       return [];
@@ -980,9 +949,8 @@ export function initFsBridge(): void {
       const userSkillsDir = getUserSkillsDir();
       const targetDir = path.join(userSkillsDir, skillName);
 
-      // 检查是否已存在同名 skill（同时检查内置和用户目录）/ Check if skill already exists in both builtin and user directories
-      const builtinSkillsDir = await findBuiltinResourceDir('skills');
-      const builtinTargetDir = path.join(builtinSkillsDir, skillName);
+      // Check if skill already exists in both builtin and user directories
+      const builtinTargetDir = path.join(getBuiltinSkillsCopyDir(), skillName);
 
       try {
         await fs.access(targetDir);
@@ -1377,7 +1345,7 @@ export function initFsBridge(): void {
   ipcBridge.fs.getSkillPaths.provider(async () => {
     return {
       userSkillsDir: getUserSkillsDir(),
-      builtinSkillsDir: await findBuiltinResourceDir('skills'),
+      builtinSkillsDir: getBuiltinSkillsCopyDir(),
     };
   });
 
@@ -1415,8 +1383,8 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
-      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      const { getAutoSkillsDir } = await import('@process/utils/initStorage');
+      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
       // Copy the bundled SKILL.md (concise entry-point version)
@@ -1441,8 +1409,8 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
-      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      const { getAutoSkillsDir } = await import('@process/utils/initStorage');
+      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills

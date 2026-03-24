@@ -15,7 +15,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
-import { getSkillsDir, getBuiltinSkillsDir } from '@process/utils/initStorage';
+import { getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir } from '@process/utils/initStorage';
 import { ExtensionRegistry } from '@process/extensions';
 
 /**
@@ -97,18 +97,18 @@ export class AcpSkillManager {
   private static instanceKey: string | null = null;
 
   private skills: Map<string, SkillDefinition> = new Map();
-  private builtinSkills: Map<string, SkillDefinition> = new Map();
+  private autoSkills: Map<string, SkillDefinition> = new Map();
   /** Extension-contributed skills loaded from ExtensionRegistry */
   private extensionSkills: Map<string, SkillDefinition> = new Map();
   private skillsDir: string;
-  private builtinSkillsDir: string;
+  private autoSkillsDir: string;
   private initialized: boolean = false;
-  private builtinInitialized: boolean = false;
+  private autoInitialized: boolean = false;
   private extensionInitialized: boolean = false;
 
   constructor(skillsDir?: string) {
     this.skillsDir = skillsDir || getSkillsDir();
-    this.builtinSkillsDir = getBuiltinSkillsDir();
+    this.autoSkillsDir = getAutoSkillsDir();
   }
 
   /**
@@ -146,13 +146,13 @@ export class AcpSkillManager {
    * 初始化：发现并加载内置 skills 的索引（所有场景自动注入）
    * Initialize: discover and load index of builtin skills (auto-injected for all scenarios)
    */
-  async discoverBuiltinSkills(): Promise<void> {
-    if (this.builtinInitialized) return;
+  async discoverAutoSkills(): Promise<void> {
+    if (this.autoInitialized) return;
 
-    const builtinDir = this.builtinSkillsDir;
+    const builtinDir = this.autoSkillsDir;
     if (!existsSync(builtinDir)) {
       console.log(`[AcpSkillManager] Builtin skills directory not found: ${builtinDir}`);
-      this.builtinInitialized = true;
+      this.autoInitialized = true;
       return;
     }
 
@@ -177,18 +177,18 @@ export class AcpSkillManager {
             // body 不在这里加载，按需获取
           };
 
-          this.builtinSkills.set(skillName, skillDef);
+          this.autoSkills.set(skillName, skillDef);
         } catch (error) {
           console.warn(`[AcpSkillManager] Failed to load builtin skill ${skillName}:`, error);
         }
       }
 
-      console.log(`[AcpSkillManager] Discovered ${this.builtinSkills.size} builtin skills`);
+      console.log(`[AcpSkillManager] Discovered ${this.autoSkills.size} builtin skills`);
     } catch (error) {
       console.error(`[AcpSkillManager] Failed to discover builtin skills:`, error);
     }
 
-    this.builtinInitialized = true;
+    this.autoInitialized = true;
   }
 
   /**
@@ -219,7 +219,7 @@ export class AcpSkillManager {
         }
 
         // 避免与内置/可选 skills 冲突 / Avoid conflicts with builtin/optional skills
-        if (this.builtinSkills.has(extSkill.name) || this.skills.has(extSkill.name)) {
+        if (this.autoSkills.has(extSkill.name) || this.skills.has(extSkill.name)) {
           console.warn(`[AcpSkillManager] Extension skill "${extSkill.name}" conflicts with existing skill, skipping`);
           continue;
         }
@@ -249,7 +249,7 @@ export class AcpSkillManager {
    */
   async discoverSkills(enabledSkills?: string[]): Promise<void> {
     // 始终先加载内置 skills / Always load builtin skills first
-    await this.discoverBuiltinSkills();
+    await this.discoverAutoSkills();
 
     // 加载扩展贡献的 skills / Load extension-contributed skills
     await this.discoverExtensionSkills(enabledSkills);
@@ -263,53 +263,51 @@ export class AcpSkillManager {
       return;
     }
 
-    const skillsDir = this.skillsDir;
-    if (!existsSync(skillsDir)) {
-      console.warn(`[AcpSkillManager] Skills directory not found: ${skillsDir}`);
-      this.initialized = true;
-      return;
-    }
+    // Scan both builtin-skills/ (bundled, non-_builtin) and skills/ (user custom)
+    const dirsToScan = [getBuiltinSkillsCopyDir(), this.skillsDir];
 
-    try {
-      const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+    for (const dir of dirsToScan) {
+      if (!existsSync(dir)) continue;
 
-      for (const entry of entries) {
-        if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
 
-        const skillName = entry.name;
+        for (const entry of entries) {
+          if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
 
-        // 跳过内置 skills 目录 / Skip builtin skills directory
-        if (skillName === '_builtin') continue;
+          const skillName = entry.name;
 
-        // 只加载启用的 skills / Only load enabled skills
-        if (!enabledSkills.includes(skillName)) {
-          continue;
+          // Skip _builtin directory (handled by discoverAutoSkills)
+          if (skillName === '_builtin') continue;
+
+          // Only load enabled skills
+          if (!enabledSkills.includes(skillName)) continue;
+
+          // Skip if already discovered (builtin-skills/ takes precedence)
+          if (this.skills.has(skillName)) continue;
+
+          const skillFile = path.join(dir, skillName, 'SKILL.md');
+          if (!existsSync(skillFile)) continue;
+
+          try {
+            const content = await fs.readFile(skillFile, 'utf-8');
+            const { name, description } = parseFrontmatter(content);
+
+            this.skills.set(skillName, {
+              name: name || skillName,
+              description: description || `Skill: ${skillName}`,
+              location: skillFile,
+            });
+          } catch (error) {
+            console.warn(`[AcpSkillManager] Failed to load skill ${skillName}:`, error);
+          }
         }
-
-        const skillFile = path.join(skillsDir, skillName, 'SKILL.md');
-        if (!existsSync(skillFile)) continue;
-
-        try {
-          const content = await fs.readFile(skillFile, 'utf-8');
-          const { name, description } = parseFrontmatter(content);
-
-          const skillDef: SkillDefinition = {
-            name: name || skillName,
-            description: description || `Skill: ${skillName}`,
-            location: skillFile,
-            // body 不在这里加载，按需获取
-          };
-
-          this.skills.set(skillName, skillDef);
-        } catch (error) {
-          console.warn(`[AcpSkillManager] Failed to load skill ${skillName}:`, error);
-        }
+      } catch (error) {
+        console.error(`[AcpSkillManager] Failed to discover skills in ${dir}:`, error);
       }
-
-      console.log(`[AcpSkillManager] Discovered ${this.skills.size} optional skills`);
-    } catch (error) {
-      console.error(`[AcpSkillManager] Failed to discover skills:`, error);
     }
+
+    console.log(`[AcpSkillManager] Discovered ${this.skills.size} optional skills`);
 
     this.initialized = true;
   }
@@ -335,7 +333,7 @@ export class AcpSkillManager {
     }
 
     // 然后是内置 skills / Then builtin skills
-    for (const skill of this.builtinSkills.values()) {
+    for (const skill of this.autoSkills.values()) {
       allSkills.push({
         name: skill.name,
         description: skill.description,
@@ -358,7 +356,7 @@ export class AcpSkillManager {
    * Get index of builtin skills only
    */
   getBuiltinSkillsIndex(): SkillIndex[] {
-    return Array.from(this.builtinSkills.values()).map((skill) => ({
+    return Array.from(this.autoSkills.values()).map((skill) => ({
       name: skill.name,
       description: skill.description,
     }));
@@ -369,7 +367,7 @@ export class AcpSkillManager {
    * Check if there are any skills (builtin or optional)
    */
   hasAnySkills(): boolean {
-    return this.builtinSkills.size > 0 || this.skills.size > 0 || this.extensionSkills.size > 0;
+    return this.autoSkills.size > 0 || this.skills.size > 0 || this.extensionSkills.size > 0;
   }
 
   /**
@@ -384,7 +382,7 @@ export class AcpSkillManager {
     let skill = this.skills.get(name);
     // 再查找内置 skills / Then search builtin skills
     if (!skill) {
-      skill = this.builtinSkills.get(name);
+      skill = this.autoSkills.get(name);
     }
     // 最后查找扩展 skills / Then search extension skills
     if (!skill) {
@@ -426,7 +424,7 @@ export class AcpSkillManager {
    * Check if a skill exists (including builtin and optional)
    */
   hasSkill(name: string): boolean {
-    return this.builtinSkills.has(name) || this.skills.has(name) || this.extensionSkills.has(name);
+    return this.autoSkills.has(name) || this.skills.has(name) || this.extensionSkills.has(name);
   }
 
   /**
@@ -434,7 +432,7 @@ export class AcpSkillManager {
    * Clear cached body content (for refresh)
    */
   clearCache(): void {
-    for (const skill of this.builtinSkills.values()) {
+    for (const skill of this.autoSkills.values()) {
       skill.body = undefined;
     }
     for (const skill of this.skills.values()) {
