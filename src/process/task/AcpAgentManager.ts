@@ -23,11 +23,16 @@ import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
 import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
-// [Phase 4] SkillInjector (from @process/skills) — new unified skill injection path.
-// TODO(skill-redesign): Replace prepareFirstMessageWithSkillsIndex with SkillInjector.prepareFirstMessageWithIndex
+import { SkillInjector } from '@process/skills/SkillInjector';
+import { normalizeSkillConfig } from '@process/skills/normalize';
+import { getSkillsDir, getBuiltinSkillsDir, getSystemDir } from '@process/utils/initStorage';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const ACP_PERF_LOG = process.env.ACP_PERF === '1';
+
+/** Feature flag for new SkillInjector-based skill injection (Phase 4). */
+// TODO: Enable after migration is verified
+const USE_NEW_SKILL_SYSTEM = false;
 
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
@@ -598,18 +603,31 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
 
         // Inject preset context and skills INDEX on first message (from smart assistant config)
-        // [Phase 4] New path via SkillInjector (Pathway 2 — Index Injection):
-        //   const injector = SkillInjector.getInstance();
-        //   const effective = await injector.computeEffectiveSkills(assistantSkillConfig, configDir);
-        //   contentToSend = injector.prepareFirstMessageWithIndex(
-        //     contentToSend, effective, skillsDir, builtinSkillsDir, this.options.presetContext
-        //   );
-        // Legacy path (kept for backward compatibility during transition):
         if (this.isFirstMessage) {
-          contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
-            presetContext: this.options.presetContext,
-            enabledSkills: this.options.enabledSkills,
-          });
+          if (USE_NEW_SKILL_SYSTEM) {
+            // New path via SkillInjector (Pathway 2 — Index Injection)
+            const injector = SkillInjector.getInstance();
+            const assistantSkillConfig = normalizeSkillConfig({
+              enabledSkills: this.options.enabledSkills,
+            });
+            const configDir = getSystemDir().cacheDir;
+            const effective = await injector.computeEffectiveSkills(assistantSkillConfig, configDir);
+            const skillsDir = getSkillsDir();
+            const builtinSkillsDir = getBuiltinSkillsDir();
+            contentToSend = injector.prepareFirstMessageWithIndex(
+              contentToSend,
+              effective,
+              skillsDir,
+              builtinSkillsDir,
+              this.options.presetContext
+            );
+          } else {
+            // TODO: Remove AcpSkillManager fallback after migration is verified
+            contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
+              presetContext: this.options.presetContext,
+              enabledSkills: this.options.enabledSkills,
+            });
+          }
         }
 
         const agentSendStart = Date.now();

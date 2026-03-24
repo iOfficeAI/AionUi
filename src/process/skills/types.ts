@@ -202,3 +202,11 @@ export type HealthCheckResult = {
   error: number;
   missing: number;
 };
+
+/**
+ * Type guard: true when skill originates from Skills Market (skills.aionui.com).
+ * Use this instead of manually checking source + origin fields.
+ */
+export function isMarketSkill(entry: SkillEntry): boolean {
+  return entry.source === 'remote' && entry.metadata.origin === 'skills-market';
+}

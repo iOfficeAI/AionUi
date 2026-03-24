@@ -18,8 +18,10 @@ export type {
   PersistedSkillRegistry,
   HealthCheckResult,
 } from './types';
+export { isMarketSkill } from './types';
 export { SkillRepository } from './SkillRepository';
 export { GlobalSkillConfigStore } from './GlobalSkillConfigStore';
 export { SkillInjector } from './SkillInjector';
 export { normalizeSkillConfig } from './normalize';
 export { runPhase1Migration, needsPhase1Migration } from './migration';
+export { WatchedImportBridge } from './WatchedImportBridge';

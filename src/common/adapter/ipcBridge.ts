@@ -1068,4 +1068,43 @@ export const skill = {
     import('@process/skills/types').EffectiveSkills,
     { assistantConfig: import('@process/skills/types').AssistantSkillConfig }
   >('skill.compute-effective'),
+
+  /** List all skills in the repository, optionally filtered. */
+  repositoryList: bridge.buildProvider<
+    import('@process/skills/types').SkillEntry[],
+    import('@process/skills/types').SkillFilter | undefined
+  >('skill.repository.list'),
+
+  /** Get a single skill entry by name. Returns null if not found. */
+  repositoryGet: bridge.buildProvider<
+    import('@process/skills/types').SkillEntry | null,
+    { name: string }
+  >('skill.repository.get'),
+
+  /** Register a skill into the repository. Returns the entry, or null if rejected. */
+  repositoryAdd: bridge.buildProvider<
+    import('@process/skills/types').SkillEntry | null,
+    {
+      skillPath: string;
+      mode: import('@process/skills/types').SkillSource;
+      origin?: import('@process/skills/types').SkillMetadata['origin'];
+      market?: import('@process/skills/types').SkillMarketMeta;
+      autoEnable?: boolean;
+    }
+  >('skill.repository.add'),
+
+  /** Remove a skill from the repository. Returns true if removed. */
+  repositoryRemove: bridge.buildProvider<boolean, { name: string }>('skill.repository.remove'),
+
+  /** Get the per-assistant skill override config. Returns default if not set. */
+  assistantConfigGet: bridge.buildProvider<
+    import('@process/skills/types').AssistantSkillConfig,
+    { assistantId: string }
+  >('skill.assistant-config.get'),
+
+  /** Persist the per-assistant skill override config. */
+  assistantConfigUpdate: bridge.buildProvider<
+    IBridgeResponse,
+    { assistantId: string; config: import('@process/skills/types').AssistantSkillConfig }
+  >('skill.assistant-config.update'),
 };
