@@ -271,6 +271,19 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
 }
 
 /**
+ * Check if a port belongs to an active PPT preview session.
+ * Used by the web server proxy route to validate proxy targets.
+ */
+export function isActivePreviewPort(port: number): boolean {
+  for (const [, session] of sessions) {
+    if (session.port === port && !session.aborted && session.process.exitCode === null) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Stop all running watch processes (called on app shutdown).
  */
 export function stopAllWatchSessions(): void {

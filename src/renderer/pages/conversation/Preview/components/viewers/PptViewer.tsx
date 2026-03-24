@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
 import { Spin } from '@arco-design/web-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -56,7 +57,15 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
         // Small delay to ensure watch HTTP server is fully ready for webview
         await new Promise((r) => setTimeout(r, 300));
         if (!cancelled) {
-          setWatchUrl(url);
+          // In Electron, use the direct localhost URL.
+          // In server (web) mode, route through the web server proxy so the
+          // client browser can reach the officecli watch server.
+          let resolvedUrl = url;
+          if (!isElectronDesktop()) {
+            const port = new URL(url).port;
+            resolvedUrl = `/api/ppt-proxy/${port}/`;
+          }
+          setWatchUrl(resolvedUrl);
           setLoading(false);
         }
       } catch (err) {
@@ -105,7 +114,12 @@ const PptViewer: React.FC<PptViewerProps> = ({ filePath }) => {
 
   if (!watchUrl) return null;
 
-  return <WebviewHost url={watchUrl} className='bg-bg-1' />;
+  // Electron: use <webview> via WebviewHost for full Electron integration.
+  // Web server mode: use <iframe> since <webview> is Electron-only.
+  if (isElectronDesktop()) {
+    return <WebviewHost url={watchUrl} className='bg-bg-1' />;
+  }
+  return <iframe src={watchUrl} className='w-full h-full border-0 bg-bg-1' title='PPT Preview' />;
 };
 
 export default PptViewer;
