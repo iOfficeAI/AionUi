@@ -464,12 +464,15 @@ export function registerApiRoutes(app: Express): void {
       }
     }
 
+    const PROXY_TIMEOUT_MS = 30_000;
+
     const options: http.RequestOptions = {
       hostname: '127.0.0.1',
       port,
       path: subPath + query,
       method: req.method,
       headers: proxyHeaders,
+      timeout: PROXY_TIMEOUT_MS,
     };
 
     const proxyReq = http.request(options, (proxyRes) => {
@@ -512,7 +515,7 @@ export function registerApiRoutes(app: Express): void {
   location.assign=function(u){_a(rw(u));};location.replace=function(u){_r(rw(u));};
   var _ps=history.pushState.bind(history),_rs=history.replaceState.bind(history);
   history.pushState=function(s,t,u){_ps(s,t,u?rw(u):u);};history.replaceState=function(s,t,u){_rs(s,t,u?rw(u):u);};
-  try{Object.defineProperty(location,'href',{get:function(){return location.pathname+location.search+location.hash;},set:function(v){_a(rw(v));},configurable:true});}catch(e){}
+  try{Object.defineProperty(location,'href',{set:function(v){_a(rw(v));},configurable:true});}catch(e){}
   document.addEventListener('click',function(e){var t=e.target;while(t&&t.tagName!=='A')t=t.parentElement;if(t&&t.tagName==='A'){var h=t.getAttribute('href');if(h&&(h[0]==='/'&&h[1]!=='/'&&!h.startsWith(b))){e.preventDefault();_a(b+h);}}},true);
 })('${proxyBase}');
 </script>`;
@@ -538,8 +541,17 @@ export function registerApiRoutes(app: Express): void {
       } else {
         res.removeHeader('X-Frame-Options');
         res.writeHead(statusCode, responseHeaders);
+        proxyRes.on('error', () => {
+          // headers already sent via writeHead — can't change status, just destroy
+          res.destroy();
+        });
         proxyRes.pipe(res, { end: true });
       }
+    });
+
+    proxyReq.on('timeout', () => {
+      proxyReq.destroy();
+      if (!res.headersSent) res.status(504).json({ message: 'PPT preview proxy timeout' });
     });
 
     proxyReq.on('error', () => {
