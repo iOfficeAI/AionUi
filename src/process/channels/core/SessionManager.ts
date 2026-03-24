@@ -33,8 +33,8 @@ export class SessionManager {
   /**
    * Load active sessions from database into memory
    */
-  private loadActiveSessions(): void {
-    const db = getDatabase();
+  private async loadActiveSessions(): Promise<void> {
+    const db = await getDatabase();
     const result = db.getChannelSessions();
 
     if (result.success && result.data) {
@@ -55,8 +55,12 @@ export class SessionManager {
   /**
    * Get session by platform user (lookup user first, then get session)
    */
-  getSessionByPlatformUser(platformUserId: string, platformType: PluginType, chatId?: string): IChannelSession | null {
-    const db = getDatabase();
+  async getSessionByPlatformUser(
+    platformUserId: string,
+    platformType: PluginType,
+    chatId?: string
+  ): Promise<IChannelSession | null> {
+    const db = await getDatabase();
     const userResult = db.getChannelUserByPlatform(platformUserId, platformType);
 
     if (!userResult.success || !userResult.data) {
@@ -70,27 +74,27 @@ export class SessionManager {
    * Create a new session for a user
    * This will clear any existing session for the same user+chat combo
    */
-  createSession(
+  async createSession(
     user: IChannelUser,
     agentType: ChannelAgentType = 'gemini',
     workspace?: string,
     chatId?: string
-  ): IChannelSession {
+  ): Promise<IChannelSession> {
     // Generate a new conversationId
-    return this.createSessionWithConversation(user, uuid(), agentType, workspace, chatId);
+    return await this.createSessionWithConversation(user, uuid(), agentType, workspace, chatId);
   }
 
   /**
    * Create a new session with a specific conversation ID
    */
-  createSessionWithConversation(
+  async createSessionWithConversation(
     user: IChannelUser,
     conversationId: string,
     agentType: ChannelAgentType = 'gemini',
     workspace?: string,
     chatId?: string
-  ): IChannelSession {
-    const db = getDatabase();
+  ): Promise<IChannelSession> {
+    const db = await getDatabase();
     const key = this.buildKey(user.id, chatId);
 
     // Clear existing session if any
@@ -127,8 +131,8 @@ export class SessionManager {
   /**
    * Update session's conversation ID (after creating a conversation)
    */
-  updateSessionConversation(sessionId: string, conversationId: string): boolean {
-    const db = getDatabase();
+  async updateSessionConversation(sessionId: string, conversationId: string): Promise<boolean> {
+    const db = await getDatabase();
 
     // Find session by ID and its key
     let foundKey: string | null = null;
@@ -163,7 +167,7 @@ export class SessionManager {
   /**
    * Update session's last activity timestamp
    */
-  updateSessionActivity(userId: string, chatId?: string): void {
+  async updateSessionActivity(userId: string, chatId?: string): Promise<void> {
     const key = this.buildKey(userId, chatId);
     const session = this.activeSessions.get(key);
     if (!session) return;
@@ -172,21 +176,21 @@ export class SessionManager {
     const updated: IChannelSession = { ...session, lastActivity: Date.now() };
     this.activeSessions.set(key, updated);
 
-    const db = getDatabase();
+    const db = await getDatabase();
     db.upsertChannelSession(updated);
   }
 
   /**
    * Clear session for a user (e.g., when user clicks "New Session")
    */
-  clearSession(userId: string, chatId?: string): boolean {
+  async clearSession(userId: string, chatId?: string): Promise<boolean> {
     const key = this.buildKey(userId, chatId);
     const session = this.activeSessions.get(key);
     if (!session) {
       return false;
     }
 
-    const db = getDatabase();
+    const db = await getDatabase();
     db.deleteChannelSession(session.id);
     this.activeSessions.delete(key);
 
@@ -197,8 +201,8 @@ export class SessionManager {
    * Clear all sessions from both in-memory cache and database.
    * Used when channel settings change to force session re-evaluation on next message.
    */
-  clearAllSessions(): number {
-    const db = getDatabase();
+  async clearAllSessions(): Promise<number> {
+    const db = await getDatabase();
     let cleared = 0;
     for (const [key, session] of this.activeSessions.entries()) {
       db.deleteChannelSession(session.id);
@@ -212,8 +216,8 @@ export class SessionManager {
    * Clear session by conversation ID
    * Used when a conversation is deleted from AionUI
    */
-  clearSessionByConversationId(conversationId: string): IChannelSession | null {
-    const db = getDatabase();
+  async clearSessionByConversationId(conversationId: string): Promise<IChannelSession | null> {
+    const db = await getDatabase();
 
     // Find session with this conversation ID
     let foundSession: IChannelSession | null = null;
@@ -255,8 +259,8 @@ export class SessionManager {
   /**
    * Cleanup stale sessions (e.g., inactive for more than 24 hours)
    */
-  cleanupStaleSessions(maxAgeMs: number = 24 * 60 * 60 * 1000): number {
-    const db = getDatabase();
+  async cleanupStaleSessions(maxAgeMs: number = 24 * 60 * 60 * 1000): Promise<number> {
+    const db = await getDatabase();
     const now = Date.now();
     let cleaned = 0;
 

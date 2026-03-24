@@ -58,8 +58,8 @@ export const UserRepository = {
    * Check if any users exist in the system
    * @returns 是否存在用户 / Whether users exist
    */
-  hasUsers(): boolean {
-    const db = getDatabase();
+  async hasUsers(): Promise<boolean> {
+    const db = await getDatabase();
     const result = db.hasUsers();
     if (!result.success) {
       throw new Error(result.error || 'Failed to check users');
@@ -69,8 +69,8 @@ export const UserRepository = {
     return Boolean(result.data);
   },
 
-  getSystemUser(): AuthUser | null {
-    const db = getDatabase();
+  async getSystemUser(): Promise<AuthUser | null> {
+    const db = await getDatabase();
     const system = db.getSystemUser();
     if (!system) {
       return null;
@@ -78,8 +78,8 @@ export const UserRepository = {
     return mapUser(system);
   },
 
-  setSystemUserCredentials(username: string, passwordHash: string): void {
-    const db = getDatabase();
+  async setSystemUserCredentials(username: string, passwordHash: string): Promise<void> {
+    const db = await getDatabase();
     db.setSystemUserCredentials(username, passwordHash);
   },
 
@@ -90,8 +90,8 @@ export const UserRepository = {
    * @param passwordHash - 密码哈希 / Password hash
    * @returns 创建的用户 / Created user
    */
-  createUser(username: string, passwordHash: string): AuthUser {
-    const db = getDatabase();
+  async createUser(username: string, passwordHash: string): Promise<AuthUser> {
+    const db = await getDatabase();
     const result = db.createUser(username, undefined, passwordHash);
     const user = unwrap(result, 'Failed to create user');
     return mapUser(user);
@@ -103,8 +103,8 @@ export const UserRepository = {
    * @param username - 用户名 / Username
    * @returns 用户对象或 null / User object or null
    */
-  findByUsername(username: string): AuthUser | null {
-    const db = getDatabase();
+  async findByUsername(username: string): Promise<AuthUser | null> {
+    const db = await getDatabase();
     const result = db.getUserByUsername(username);
     if (!result.success || !result.data) {
       return null;
@@ -118,8 +118,8 @@ export const UserRepository = {
    * @param id - 用户 ID / User ID
    * @returns 用户对象或 null / User object or null
    */
-  findById(id: string): AuthUser | null {
-    const db = getDatabase();
+  async findById(id: string): Promise<AuthUser | null> {
+    const db = await getDatabase();
     const result = db.getUser(id);
     if (!result.success || !result.data) {
       return null;
@@ -132,8 +132,8 @@ export const UserRepository = {
    * Get list of all users
    * @returns 用户数组 / Array of users
    */
-  listUsers(): AuthUser[] {
-    const db = getDatabase();
+  async listUsers(): Promise<AuthUser[]> {
+    const db = await getDatabase();
     const result = db.getAllUsers();
     if (!result.success || !result.data) {
       return [];
@@ -146,8 +146,8 @@ export const UserRepository = {
    * Count total number of users
    * @returns 用户数量 / Number of users
    */
-  countUsers(): number {
-    const db = getDatabase();
+  async countUsers(): Promise<number> {
+    const db = await getDatabase();
     const result = db.getUserCount();
     if (!result.success) {
       throw new Error(result.error || 'Failed to count users');
@@ -161,16 +161,16 @@ export const UserRepository = {
    * @param userId - 用户 ID / User ID
    * @param passwordHash - 新的密码哈希 / New password hash
    */
-  updatePassword(userId: string, passwordHash: string): void {
-    const db = getDatabase();
+  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+    const db = await getDatabase();
     const result = db.updateUserPassword(userId, passwordHash);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update user password');
     }
   },
 
-  updateUsername(userId: string, username: string): void {
-    const db = getDatabase();
+  async updateUsername(userId: string, username: string): Promise<void> {
+    const db = await getDatabase();
     const result = db.updateUserUsername(userId, username);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update username');
@@ -182,8 +182,8 @@ export const UserRepository = {
    * Update user's last login time
    * @param userId - 用户 ID / User ID
    */
-  updateLastLogin(userId: string): void {
-    const db = getDatabase();
+  async updateLastLogin(userId: string): Promise<void> {
+    const db = await getDatabase();
     const result = db.updateUserLastLogin(userId);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update last login');
@@ -196,8 +196,8 @@ export const UserRepository = {
    * @param userId - 用户 ID / User ID
    * @param jwtSecret - JWT secret 字符串 / JWT secret string
    */
-  updateJwtSecret(userId: string, jwtSecret: string): void {
-    const db = getDatabase();
+  async updateJwtSecret(userId: string, jwtSecret: string): Promise<void> {
+    const db = await getDatabase();
     const result = db.updateUserJwtSecret(userId, jwtSecret);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update JWT secret');

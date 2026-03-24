@@ -4,13 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { BrowserWindow } from 'electron';
-import { app, Menu, nativeImage, Tray } from 'electron';
+import type { BrowserWindow, Tray as TrayInstance } from 'electron';
+import {
+  electronApp as app,
+  electronMenu as Menu,
+  electronNativeImage as nativeImage,
+  electronTray as Tray,
+} from '@/common/electronSafe';
 import * as path from 'path';
 import i18n from '@process/services/i18n';
 import { workerTaskManager } from '../task/workerTaskManagerSingleton';
 
-let tray: Tray | null = null;
+let tray: TrayInstance | null = null;
 let closeToTrayEnabled = false;
 let isQuitting = false;
 let mainWindowRef: BrowserWindow | null = null;
@@ -51,11 +56,12 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
       const { getDatabase } = await import('@process/services/database');
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getUserConversations(undefined, 0, 5);
-      return (result.data || [])
-        .slice(0, 5)
-        .map((conv) => ({ id: conv.id, title: conv.name || i18n.t('common.tray.untitled') }));
+      return (result.data || []).slice(0, 5).map((conv) => ({
+        id: conv.id,
+        title: conv.name || i18n.t('common.tray.untitled'),
+      }));
     } catch {
       return [];
     }
@@ -125,7 +131,9 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
         label: displayTitle,
         click: () => {
           showAndFocus();
-          mainWindowRef?.webContents.send('tray:navigate-to-conversation', { conversationId: conv.id });
+          mainWindowRef?.webContents.send('tray:navigate-to-conversation', {
+            conversationId: conv.id,
+          });
         },
       });
     }

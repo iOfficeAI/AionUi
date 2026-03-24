@@ -15,10 +15,6 @@ describe('mainWindowLifecycle', () => {
       setApplicationMainWindow: vi.fn(),
     }));
 
-    vi.doMock('@process/bridge/notificationBridge', () => ({
-      setMainWindow: vi.fn(),
-    }));
-
     vi.doMock('@process/utils/deepLink', () => ({
       setDeepLinkMainWindow: vi.fn(),
     }));
@@ -31,7 +27,6 @@ describe('mainWindowLifecycle', () => {
   it('should bind the same window to all main-window consumers', async () => {
     const window = {} as Electron.BrowserWindow;
     const { setApplicationMainWindow } = await import('@process/bridge/applicationBridge');
-    const { setMainWindow } = await import('@process/bridge/notificationBridge');
     const { setDeepLinkMainWindow } = await import('@process/utils/deepLink');
     const { setTrayMainWindow } = await import('@process/utils/tray');
     const { bindMainWindowReferences } = await import('@process/utils/mainWindowLifecycle');
@@ -41,7 +36,6 @@ describe('mainWindowLifecycle', () => {
     expect(setTrayMainWindow).toHaveBeenCalledWith(window);
     expect(setDeepLinkMainWindow).toHaveBeenCalledWith(window);
     expect(setApplicationMainWindow).toHaveBeenCalledWith(window);
-    expect(setMainWindow).toHaveBeenCalledWith(window);
   });
 
   it('should show and focus the current main window instead of recreating it', async () => {

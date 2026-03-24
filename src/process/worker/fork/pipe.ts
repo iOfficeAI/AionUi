@@ -67,20 +67,29 @@ export class Pipe {
   isClose = false;
   constructor(master = false) {
     if (!master) {
-      // 接受主进程消息
-      if (process.parentPort) {
-        process.parentPort.on('message', (event) => {
-          const { type, data, pipeId } = event.data || {};
-          // console.log("--------------->from main message", event.data);
-          if (type) {
-            const deferred = this.deferred(pipeId);
-            if (pipeId) {
-              deferred.pipe(this.call.bind(this)).catch((error: Error) => {
-                console.error('Failed to pipe deferred call:', error);
-              });
-            }
-            this.emit(type, data, deferred);
+      // Handle message from main process
+      const handleMessage = (msgData: any) => {
+        const { type, data, pipeId } = msgData || {};
+        if (type) {
+          const deferred = this.deferred(pipeId);
+          if (pipeId) {
+            deferred.pipe(this.call.bind(this)).catch((error: Error) => {
+              console.error('Failed to pipe deferred call:', error);
+            });
           }
+          this.emit(type, data, deferred);
+        }
+      };
+
+      if (process.parentPort) {
+        // Electron utility process: message is wrapped in a MessageEvent
+        process.parentPort.on('message', (event) => {
+          handleMessage(event.data);
+        });
+      } else {
+        // Node.js child_process.fork: message is the data directly
+        process.on('message', (message) => {
+          handleMessage(message);
         });
       }
     }
@@ -127,15 +136,16 @@ export class Pipe {
       console.log('---主进程已关闭', name, '执行失败！!');
       return;
     }
-    if (!process.parentPort?.postMessage) {
+    const msg = { type: name, data: data, ...extPrams };
+    if (process.parentPort?.postMessage) {
+      // Electron utility process
+      process.parentPort.postMessage(msg);
+    } else if (process.send) {
+      // Node.js child_process.fork
+      process.send(msg);
+    } else {
       console.error('---非子线程，无法使用主线程事件机制');
-      return;
     }
-    process.parentPort.postMessage({
-      type: name,
-      data: data,
-      ...extPrams,
-    });
   }
   // 向主线程发起通知,并建立响应机制
   callPromise<T = any>(name: string, data: any) {

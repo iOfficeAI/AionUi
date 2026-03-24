@@ -11,15 +11,16 @@ import * as path from 'path';
 import os from 'os';
 
 // ============ Environment Separation ============
-// MUST be the very first code to run: set app name AND userData path before any getPath() call.
+// MUST be the very first code to run: set app name before any getPath() call.
 // In development, use 'AionUi-Dev' so userData is isolated from the production install.
-// 开发模式下设置独立 app 名称和数据目录，与正式版隔离，允许同时运行。
-// 注意：app.setName 仅改显示名称，不影响 getPath('userData')。
-// 必须用 app.setPath('userData', ...) 才能真正隔离数据目录。
+// 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
+// 这必须在所有其他代码之前执行，因为 getPath('userData') 会锁定当前的 app 名称
 if (!app.isPackaged) {
   app.setName('AionUi-Dev');
-  const devUserData = path.join(app.getPath('appData'), 'AionUi-Dev');
-  app.setPath('userData', devUserData);
+  // In Electron 28+, setName alone no longer updates userData path on macOS.
+  // Explicitly override userData to the AionUi-Dev directory.
+  const appSupportDir = path.dirname(app.getPath('userData'));
+  app.setPath('userData', path.join(appSupportDir, 'AionUi-Dev'));
 }
 
 // Configure Chromium command-line flags for WebUI and CLI modes

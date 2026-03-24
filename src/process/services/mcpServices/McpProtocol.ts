@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 import { promises as fs } from 'fs';
 import { safeExec } from '@process/utils/safeExec';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
@@ -174,10 +174,16 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         case 'streamable_http':
           return this.testStreamableHttpConnection(transport);
         default:
-          return Promise.resolve({ success: false, error: 'Unsupported transport type' });
+          return Promise.resolve({
+            success: false,
+            error: 'Unsupported transport type',
+          });
       }
     } catch (error) {
-      return Promise.resolve({ success: false, error: error instanceof Error ? error.message : String(error) });
+      return Promise.resolve({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -200,7 +206,11 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       // Use enhanced env (includes shell PATH) instead of bare process.env
       // so CLI tools installed via nvm/fnm/volta are discoverable in packaged mode
-      const enhancedEnv = { ...getEnhancedEnv(transport.env), TERM: 'dumb', NO_COLOR: '1' };
+      const enhancedEnv = {
+        ...getEnhancedEnv(transport.env),
+        TERM: 'dumb',
+        NO_COLOR: '1',
+      };
       // Resolve bare 'npx' to a modern npx to avoid old standalone npx (pre npm 7)
       const command = transport.command === 'npx' ? resolveNpxPath(enhancedEnv) : transport.command;
 
@@ -218,8 +228,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 创建 MCP 客户端
       mcpClient = new Client(
         {
-          name: app.getName(),
-          version: app.getVersion(),
+          name: getPlatformServices().paths.getName(),
+          version: getPlatformServices().paths.getVersion(),
         },
         {
           capabilities: {
@@ -359,8 +369,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 创建 MCP 客户端
       mcpClient = new Client(
         {
-          name: app.getName(),
-          version: app.getVersion(),
+          name: getPlatformServices().paths.getName(),
+          version: getPlatformServices().paths.getVersion(),
         },
         {
           capabilities: {
@@ -436,8 +446,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
               tools: {},
             },
             clientInfo: {
-              name: app.getName(),
-              version: app.getVersion(),
+              name: getPlatformServices().paths.getName(),
+              version: getPlatformServices().paths.getVersion(),
             },
           },
         }),
@@ -458,7 +468,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       }
 
       if (!initResponse.ok) {
-        return { success: false, error: `HTTP ${initResponse.status}: ${initResponse.statusText}` };
+        return {
+          success: false,
+          error: `HTTP ${initResponse.status}: ${initResponse.statusText}`,
+        };
       }
 
       // If server responds with SSE, delegate to StreamableHTTPClientTransport
@@ -469,7 +482,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       const initResult = await initResponse.json();
       if (initResult.error) {
-        return { success: false, error: initResult.error.message || 'Initialize failed' };
+        return {
+          success: false,
+          error: initResult.error.message || 'Initialize failed',
+        };
       }
 
       const toolsResponse = await fetch(transport.url, {
@@ -487,12 +503,20 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       });
 
       if (!toolsResponse.ok) {
-        return { success: true, tools: [], error: `Could not fetch tools: HTTP ${toolsResponse.status}` };
+        return {
+          success: true,
+          tools: [],
+          error: `Could not fetch tools: HTTP ${toolsResponse.status}`,
+        };
       }
 
       const toolsResult = await toolsResponse.json();
       if (toolsResult.error) {
-        return { success: true, tools: [], error: toolsResult.error.message || 'Tools list failed' };
+        return {
+          success: true,
+          tools: [],
+          error: toolsResult.error.message || 'Tools list failed',
+        };
       }
 
       const tools = toolsResult.result?.tools || [];
@@ -504,7 +528,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         })),
       };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   }
 
@@ -531,8 +558,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 创建 MCP 客户端
       mcpClient = new Client(
         {
-          name: app.getName(),
-          version: app.getVersion(),
+          name: getPlatformServices().paths.getName(),
+          version: getPlatformServices().paths.getVersion(),
         },
         {
           capabilities: {

@@ -263,7 +263,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
             type: 'user_content',
             conversation_id: this.conversation_id,
             msg_id: data.msg_id,
-            data: { content: userMessage.content.content, cronMeta: data.cronMeta },
+            data: {
+              content: userMessage.content.content,
+              cronMeta: data.cronMeta,
+            },
           };
           ipcBridge.codexConversation.responseStream.emit(userResponseMessage);
         }
@@ -382,9 +385,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     return { success: true, data: { mode: this.currentMode } };
   }
 
-  private saveSessionMode(mode: string): void {
+  private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'codex') {
         const conversation = result.data;
@@ -392,7 +395,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       console.error('[CodexAgentManager] Failed to save session mode:', error);
@@ -487,7 +492,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     switch (error.type) {
       case 'cloudflare_blocked':
-        userMessage = i18n.t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
+        userMessage = i18n.t('codex.network.cloudflare_blocked_title', {
+          service: 'Codex',
+        });
         recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', {
           returnObjects: true,
         }) as string[];
@@ -507,7 +514,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       default:
         userMessage = i18n.t('codex.network.unknown_error_title');
-        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
+        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', {
+          returnObjects: true,
+        }) as string[];
     }
 
     const detailedMessage = `${userMessage}\n\n${i18n.t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${i18n.t('codex.network.technical_info')}\n- ${i18n.t('codex.network.error_type')}：${error.type}\n- ${i18n.t('codex.network.retry_count')}：${error.retryCount}\n- ${i18n.t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;

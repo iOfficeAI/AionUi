@@ -24,6 +24,53 @@ Located in `src/process/webserver/`.
 - JWT authentication for remote access
 - Enables network clients to access the agent UI remotely (not just local Electron window)
 
+## Run Modes
+
+AionUi can run in four modes. The WebSocket channel is the browser-side equivalent of
+Electron IPC — both transports reach the same bridge handlers and services.
+
+```
+start / cli  (Electron desktop)
+┌─────────────────────────────────────────────────────┐
+│  Electron window          Browser (optional WebUI)  │
+│      │                          │                   │
+│      │ IPC                      │ WebSocket         │
+│      ▼                          ▼                   │
+│       bridge handlers / services / DB               │
+└─────────────────────────────────────────────────────┘
+
+webui  (Electron, no window)
+┌─────────────────────────────────────────────────────┐
+│  (no Electron window)     Browser                   │
+│                                  │                  │
+│                                  │ WebSocket        │
+│                                  ▼                  │
+│       bridge handlers / services / DB               │
+│       + full Electron API (fsBridge, cronBridge,    │
+│         mcpBridge, notificationBridge …)            │
+└─────────────────────────────────────────────────────┘
+
+server  (pure Node.js, no Electron)
+┌─────────────────────────────────────────────────────┐
+│  (no Electron window)     Browser                   │
+│                                  │                  │
+│                                  │ WebSocket        │
+│                                  ▼                  │
+│       bridge handlers / services / DB               │
+│       (10 Electron-only bridges unavailable:        │
+│        fsBridge, cronBridge, mcpBridge,             │
+│        dialogBridge, shellBridge, applicationBridge,│
+│        windowControlsBridge, updateBridge,          │
+│        webuiBridge, notificationBridge)             │
+└─────────────────────────────────────────────────────┘
+```
+
+Authentication flow (WebUI / server modes):
+
+1. `POST /login` → JWT token
+2. Connect WebSocket with token (verified on handshake)
+3. All bridge calls travel over the WebSocket connection
+
 ## Cron System
 
 Located in `src/process/services/cron/`.

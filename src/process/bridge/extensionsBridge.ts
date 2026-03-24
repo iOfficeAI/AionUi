@@ -29,8 +29,8 @@ const makeGetActivitySnapshot =
     }
 
     activitySnapshotInFlight = Promise.resolve()
-      .then(() => {
-        const snapshot = builder.build();
+      .then(async () => {
+        const snapshot = await builder.build();
         activitySnapshotCache = snapshot;
         activitySnapshotCachedAt = Date.now();
         return snapshot;
@@ -203,10 +203,16 @@ export function initExtensionsBridge(repo: IConversationRepository, taskManager:
       if (success) {
         ipcBridge.extensions.stateChanged.emit({ name, enabled: true });
       }
-      return { success, msg: success ? undefined : `Failed to enable "${name}"` };
+      return {
+        success,
+        msg: success ? undefined : `Failed to enable "${name}"`,
+      };
     } catch (error) {
       console.error(`[Extensions] Failed to enable "${name}":`, error);
-      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
     }
   });
 
@@ -216,12 +222,22 @@ export function initExtensionsBridge(repo: IConversationRepository, taskManager:
       const registry = ExtensionRegistry.getInstance();
       const success = await registry.disableExtension(name, reason);
       if (success) {
-        ipcBridge.extensions.stateChanged.emit({ name, enabled: false, reason });
+        ipcBridge.extensions.stateChanged.emit({
+          name,
+          enabled: false,
+          reason,
+        });
       }
-      return { success, msg: success ? undefined : `Failed to disable "${name}"` };
+      return {
+        success,
+        msg: success ? undefined : `Failed to disable "${name}"`,
+      };
     } catch (error) {
       console.error(`[Extensions] Failed to disable "${name}":`, error);
-      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
     }
   });
 

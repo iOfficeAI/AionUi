@@ -22,5 +22,15 @@
       "@worker/*": ["./src/process/worker/*"]
     }
   },
-  "include": ["src/**/*", "uno.config.ts", "electron.vite.config.ts", "playwright.config.ts", "src/renderer/types.d.ts"]
+  "include": [
+    "src/**/*",
+    "uno.config.ts",
+    "electron.vite.config.ts",
+    "playwright.config.ts",
+    "src/renderer/types.d.ts"
+  ],
+  "exclude": [
+    "src/process/services/database/drivers/BunSqliteDriver.ts",
+    "src/process/services/database/drivers/BunSqliteDriver.bun.test.ts"
+  ]
 }

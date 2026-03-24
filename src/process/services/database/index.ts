@@ -5,8 +5,8 @@
  */
 
 import { ensureDirectory, getDataPath } from '@process/utils';
-import type Database from 'better-sqlite3';
-import BetterSqlite3 from 'better-sqlite3';
+import type { ISqliteDriver } from './drivers/ISqliteDriver';
+import { createDriver } from './drivers/createDriver';
 import fs from 'fs';
 import path from 'path';
 import { runMigrations as executeMigrations } from './migrations';
@@ -79,64 +79,58 @@ const extractSearchPreviewText = (rawContent: string): string => {
 
 /**
  * Main database class for AionUi
- * Uses better-sqlite3 for fast, synchronous SQLite operations
+ * Uses a pluggable ISqliteDriver for SQLite operations
  */
 export class AionUIDatabase {
-  private db: Database.Database;
+  private db: ISqliteDriver;
   private readonly defaultUserId = 'system_default_user';
   private readonly systemPasswordPlaceholder = '';
 
-  constructor() {
-    const finalPath = path.join(getDataPath(), 'aionui.db');
-    console.log(`[Database] Initializing database at: ${finalPath}`);
+  private constructor(db: ISqliteDriver) {
+    this.db = db;
+  }
 
-    const dir = path.dirname(finalPath);
+  /**
+   * Create a new AionUIDatabase instance with corruption recovery.
+   * This is the only way to obtain an instance — the constructor is private.
+   */
+  static async create(dbPath: string): Promise<AionUIDatabase> {
+    const dir = path.dirname(dbPath);
     ensureDirectory(dir);
 
+    // Attempt normal initialization
     try {
-      this.db = new BetterSqlite3(finalPath);
-      this.initialize();
+      const driver = await createDriver(dbPath);
+      const instance = new AionUIDatabase(driver);
+      instance.initialize();
+      return instance;
     } catch (error) {
       console.error('[Database] Failed to initialize, attempting recovery...', error);
-      // 尝试恢复：关闭并重新创建数据库
-      // Try to recover by closing and recreating database
-      try {
-        if (this.db) {
-          this.db.close();
-        }
-      } catch (e) {
-        // 忽略关闭错误
-        // Ignore close errors
-      }
-
-      // 备份损坏的数据库文件
-      // Backup corrupted database file
-      if (fs.existsSync(finalPath)) {
-        const backupPath = `${finalPath}.backup.${Date.now()}`;
-        try {
-          fs.renameSync(finalPath, backupPath);
-          console.log(`[Database] Backed up corrupted database to: ${backupPath}`);
-        } catch (e) {
-          console.error('[Database] Failed to backup corrupted database:', e);
-          // 备份失败则尝试直接删除
-          // If backup fails, try to delete instead
-          try {
-            fs.unlinkSync(finalPath);
-            console.log(`[Database] Deleted corrupted database file`);
-          } catch (e2) {
-            console.error('[Database] Failed to delete corrupted database:', e2);
-            throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + finalPath, {
-              cause: e2,
-            });
-          }
-        }
-      }
-
-      // 使用新数据库文件重试
-      // Retry with fresh database file
-      this.db = new BetterSqlite3(finalPath);
-      this.initialize();
     }
+
+    // Recovery: backup corrupted file and start fresh
+    if (fs.existsSync(dbPath)) {
+      const backupPath = `${dbPath}.backup.${Date.now()}`;
+      try {
+        fs.renameSync(dbPath, backupPath);
+        console.log(`[Database] Backed up corrupted database to: ${backupPath}`);
+      } catch {
+        try {
+          fs.unlinkSync(dbPath);
+          console.log('[Database] Deleted corrupted database file');
+        } catch (e2) {
+          throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + dbPath, {
+            cause: e2,
+          });
+        }
+      }
+    }
+
+    // Retry with fresh file
+    const driver = await createDriver(dbPath);
+    const instance = new AionUIDatabase(driver);
+    instance.initialize();
+    return instance;
   }
 
   private initialize(): void {
@@ -1397,19 +1391,24 @@ export class AionUIDatabase {
   }
 }
 
-// Export singleton instance
-let dbInstance: AionUIDatabase | null = null;
+// Async singleton with Promise cache
+let dbInstancePromise: Promise<AionUIDatabase> | null = null;
 
-export function getDatabase(): AionUIDatabase {
-  if (!dbInstance) {
-    dbInstance = new AionUIDatabase();
+function resolveDbPath(): string {
+  return path.join(getDataPath(), 'aionui.db');
+}
+
+export function getDatabase(): Promise<AionUIDatabase> {
+  if (!dbInstancePromise) {
+    dbInstancePromise = AionUIDatabase.create(resolveDbPath());
   }
-  return dbInstance;
+  return dbInstancePromise;
 }
 
 export function closeDatabase(): void {
-  if (dbInstance) {
-    dbInstance.close();
-    dbInstance = null;
+  if (dbInstancePromise) {
+    // Best-effort close: ignore errors during shutdown
+    dbInstancePromise.then((db) => db.close()).catch(() => {});
+    dbInstancePromise = null;
   }
 }

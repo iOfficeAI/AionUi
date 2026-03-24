@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import cookie from 'cookie';
+import * as cookie from 'cookie';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@process/webserver/config/constants';
 
 // Read cookie by name in browser environment
@@ -50,7 +50,9 @@ export function withCsrfHeader(headers: HeadersInit = {}): HeadersInit {
   }
 
   if (typeof headers === 'object' && headers !== null) {
-    const plainHeaders: Record<string, string> = { ...(headers as Record<string, string>) };
+    const plainHeaders: Record<string, string> = {
+      ...(headers as Record<string, string>),
+    };
     plainHeaders[CSRF_HEADER_NAME] = token;
     return plainHeaders;
   }
