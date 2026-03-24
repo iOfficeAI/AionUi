@@ -203,11 +203,9 @@ asarUnpack:
   # tree-sitter WASM files need to be unpacked for fs.readFile access
   - '**/node_modules/web-tree-sitter/**/*'
   - '**/node_modules/tree-sitter-bash/**/*'
-  # Builtin resources need to be unpacked for fs.readdir with withFileTypes
-  # viteStaticCopy outputs to out/main/skills/ — the from/to mapping in files:
-  # remaps them to root-level skills/ and assistant/ inside the asar.
-  - 'skills/**/*'
-  - 'assistant/**/*'
+  # skills/ and assistant/ no longer need asarUnpack:
+  # initStorage copies them from asar to config/builtin-skills/ and config/assistants/
+  # at startup, so all runtime reads go through the user directory, not asar.
   # Builtin MCP server scripts must be unpacked so external node processes can execute them
   - 'out/main/builtin-mcp-image-gen.js'
 

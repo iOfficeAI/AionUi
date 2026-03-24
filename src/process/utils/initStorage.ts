@@ -392,24 +392,19 @@ const getAutoSkillsDir = () => {
 const initBuiltinAssistantRules = async (): Promise<void> => {
   const assistantsDir = getAssistantsDir();
 
-  // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
-  // In development, use project root. In production, use app.getAppPath()
-  // When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
-  // 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
+  // In development, use project root. In production, use app.getAppPath().
+  // viteStaticCopy maps src/process/resources/* to root-level dirs in the asar.
+  // 开发模式下使用项目根目录，生产模式下 viteStaticCopy 将资源映射到 asar 根级目录。
   const resolveBuiltinDir = (dirPath: string): string => {
     const platform = getPlatformServices().paths;
     const appPath = platform.getAppPath()!;
     let candidates: string[];
     if (platform.isPackaged()) {
       // In production, viteStaticCopy maps src/process/resources/* to root-level dirs in the asar.
-      // asarUnpack extracts matching paths to app.asar.unpacked for fs.readdir with withFileTypes.
-      const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
+      // skills/ and assistant/ are read from asar at startup and copied to user config dirs.
       const RESOURCES_PREFIX = 'src/process/resources/';
       const prodPath = dirPath.startsWith(RESOURCES_PREFIX) ? dirPath.slice(RESOURCES_PREFIX.length) : dirPath;
-      candidates = [
-        path.join(unpackedPath, prodPath), // asarUnpack extracted path (preferred)
-        path.join(appPath, prodPath), // asar path
-      ];
+      candidates = [path.join(appPath, prodPath)];
     } else {
       // In dev, viteStaticCopy doesn't run; resolve source paths directly.
       // appPath is the project root, so a single join is sufficient.
