@@ -438,14 +438,15 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    // Initialize ACP detector BEFORE creating the window to prevent a race
-    // condition where the renderer fetches getAvailableAgents before detection
-    // finishes, caching an empty result via SWR.
-    await initializeAcpDetector();
-    mark('initializeAcpDetector');
-
     createWindow();
     mark('createWindow');
+
+    // Run ACP detection in parallel with renderer loading.
+    // By the time React mounts and calls getAvailableAgents (~300ms+),
+    // detection (~700ms) is usually already done.
+    initializeAcpDetector()
+      .then(() => mark('initializeAcpDetector'))
+      .catch((error) => console.error('[ACP] Detection failed:', error));
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
