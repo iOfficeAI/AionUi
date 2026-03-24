@@ -71,9 +71,11 @@ function loadShellEnvironment(): Record<string, string> {
       console.warn('[ShellEnv] SHELL is not an absolute path, skipping shell env loading:', shell);
       return cachedShellEnv;
     }
-    // Use -i (interactive) and -l (login) to load all shell configs
-    // including .bashrc, .zshrc, .bash_profile, .zprofile, etc.
-    const output = execFileSync(shell, ['-i', '-l', '-c', 'env'], {
+    // Use -l (login) to load login shell configs (.bash_profile, .zprofile, etc.)
+    // NOTE: Do NOT use -i (interactive) — interactive shells call tcsetpgrp() to
+    // grab the terminal foreground process group and do not restore it on exit,
+    // which prevents Ctrl+C from delivering SIGINT to the server process.
+    const output = execFileSync(shell, ['-l', '-c', 'env'], {
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -137,7 +139,7 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
     const output = await new Promise<string>((resolve, reject) => {
       execFile(
         shell,
-        ['-i', '-l', '-c', 'env'],
+        ['-l', '-c', 'env'],
         {
           encoding: 'utf-8',
           timeout: 5000,
@@ -320,7 +322,10 @@ export function findSuitableNodeBin(minMajor: number, minMinor: number): string 
 
   // nvm: ~/.nvm/versions/node/v20.10.0/bin/
   const nvmDir = process.env.NVM_DIR || path.join(homeDir, '.nvm');
-  searchPaths.push({ base: path.join(nvmDir, 'versions', 'node'), binSuffix: 'bin' });
+  searchPaths.push({
+    base: path.join(nvmDir, 'versions', 'node'),
+    binSuffix: 'bin',
+  });
 
   // fnm (macOS): ~/Library/Application Support/fnm/node-versions/v20.10.0/installation/bin/
   // fnm (Linux): ~/.local/share/fnm/node-versions/v20.10.0/installation/bin/
@@ -337,9 +342,17 @@ export function findSuitableNodeBin(minMajor: number, minMinor: number): string 
   }
 
   // volta: ~/.volta/tools/image/node/20.10.0/bin/
-  searchPaths.push({ base: path.join(homeDir, '.volta', 'tools', 'image', 'node'), binSuffix: 'bin' });
+  searchPaths.push({
+    base: path.join(homeDir, '.volta', 'tools', 'image', 'node'),
+    binSuffix: 'bin',
+  });
 
-  const candidates: Array<{ major: number; minor: number; patch: number; binDir: string }> = [];
+  const candidates: Array<{
+    major: number;
+    minor: number;
+    patch: number;
+    binDir: string;
+  }> = [];
 
   for (const { base, binSuffix } of searchPaths) {
     try {
@@ -406,7 +419,10 @@ function parseEnvOutput(output: string): Record<string, string> {
   return result;
 }
 
-export function getWindowsShellExecutionOptions(): { shell?: boolean; windowsHide?: boolean } {
+export function getWindowsShellExecutionOptions(): {
+  shell?: boolean;
+  windowsHide?: boolean;
+} {
   return process.platform === 'win32' ? { shell: true, windowsHide: true } : {};
 }
 
@@ -492,7 +508,7 @@ export function loadFullShellEnvironment(): Record<string, string> {
     const shell = process.env.SHELL || '/bin/bash';
     if (!path.isAbsolute(shell)) return cachedFullShellEnv;
 
-    const output = execFileSync(shell, ['-i', '-l', '-c', 'env'], {
+    const output = execFileSync(shell, ['-l', '-c', 'env'], {
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],

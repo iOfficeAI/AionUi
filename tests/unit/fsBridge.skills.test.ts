@@ -155,6 +155,7 @@ describe('fsBridge skills functionality', () => {
         arch: 'x64',
       })),
       getAssistantsDir: vi.fn(() => '/mock/userData/assistants'),
+      getSkillsDir: vi.fn(() => '/mock/userData/config/skills'),
       getBuiltinSkillsCopyDir: vi.fn(() => path.resolve('/mock/userData/builtin-skills')),
       ProcessEnv: { set: vi.fn() },
     }));

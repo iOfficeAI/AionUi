@@ -7,7 +7,7 @@
 import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 import { application } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
@@ -26,10 +26,12 @@ import {
   getConfigPath,
   getDataPath,
   getTempPath,
+  hasElectronAppPath,
   verifyDirectoryFiles,
 } from './utils';
 import { getDatabase } from '../services/database/export';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import { migrateFromElectronConfig, importConfigFromFile } from './configMigration';
 import {
   BUILTIN_IMAGE_GEN_ID,
   BUILTIN_IMAGE_GEN_LEGACY_NAMES,
@@ -395,9 +397,10 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   // When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
   // 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
   const resolveBuiltinDir = (dirPath: string): string => {
-    const appPath = app.getAppPath();
+    const platform = getPlatformServices().paths;
+    const appPath = platform.getAppPath()!;
     let candidates: string[];
-    if (app.isPackaged) {
+    if (platform.isPackaged()) {
       // In production, viteStaticCopy maps src/process/resources/* to root-level dirs in the asar.
       // asarUnpack extracts matching paths to app.asar.unpacked for fs.readdir with withFileTypes.
       const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
@@ -427,7 +430,20 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     (preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0
   );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
-  const builtinSkillsDir = resolveBuiltinDir('src/process/resources/skills');
+  // resolveBuiltinDir("src/process/resources/skills") works for packaged Electron
+  // (viteStaticCopy outputs to skills/ which matches after stripping the prefix),
+  // but in standalone server mode the actual path differs.
+  let builtinSkillsDir = resolveBuiltinDir('src/process/resources/skills');
+  if (!existsSync(builtinSkillsDir)) {
+    const skillsFallbacks = [
+      // Standalone production: bundled alongside server binary by build-server.mjs
+      path.join(__dirname, 'skills'),
+      path.join(__dirname, '..', 'skills'),
+      path.join(process.cwd(), 'dist-server', 'skills'),
+    ];
+    const found = skillsFallbacks.find((d) => existsSync(d));
+    if (found) builtinSkillsDir = found;
+  }
   const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
   const userSkillsDir = getSkillsDir();
 
@@ -480,43 +496,44 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     // 复制规则文件 / Copy rule files
     const hasRuleFiles = Object.keys(preset.ruleFiles).length > 0;
     if (hasRuleFiles) {
-      await Promise.all(
-        Object.entries(preset.ruleFiles).map(async ([locale, ruleFile]) => {
-          try {
-            const sourceRulesPath = path.join(presetRulesDir, ruleFile);
-            // 目标文件名格式：{assistantId}.{locale}.md
-            // Target file name format: {assistantId}.{locale}.md
-            const targetFileName = `${assistantId}.${locale}.md`;
-            const targetPath = path.join(assistantsDir, targetFileName);
+      for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
+        try {
+          const sourceRulesPath = path.join(presetRulesDir, ruleFile);
+          // 目标文件名格式：{assistantId}.{locale}.md
+          // Target file name format: {assistantId}.{locale}.md
+          const targetFileName = `${assistantId}.${locale}.md`;
+          const targetPath = path.join(assistantsDir, targetFileName);
 
-            // 检查源文件是否存在 / Check if source file exists
-            if (!existsSync(sourceRulesPath)) {
-              console.warn(`[AionUi] Source rule file not found: ${sourceRulesPath}`);
-              return;
-            }
-
-            // 内置助手规则文件始终强制覆盖，确保用户获得最新版本
-            // Always overwrite builtin assistant rule files to ensure users get the latest version
-            let content = await fs.readFile(sourceRulesPath, 'utf-8');
-            // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
-            // Replace relative paths with absolute paths so AI can find scripts correctly
-            content = content.replace(/skills\//g, userSkillsDir + '/');
-            await fs.writeFile(targetPath, content, 'utf-8');
-          } catch (error) {
-            // 忽略缺失的语言文件 / Ignore missing locale files
-            console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
+          // 检查源文件是否存在 / Check if source file exists
+          if (!existsSync(sourceRulesPath)) {
+            console.warn(`[AionUi] Source rule file not found: ${sourceRulesPath}`);
+            continue;
           }
-        })
-      );
+
+          // 内置助手规则文件始终强制覆盖，确保用户获得最新版本
+          // Always overwrite builtin assistant rule files to ensure users get the latest version
+          let content = await fs.readFile(sourceRulesPath, 'utf-8');
+          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+          // Replace relative paths with absolute paths so AI can find scripts correctly
+          content = content.replace(/skills\//g, userSkillsDir + '/');
+          await fs.writeFile(targetPath, content, 'utf-8');
+        } catch (error) {
+          // 忽略缺失的语言文件 / Ignore missing locale files
+          console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
+        }
+      }
     } else {
       // 如果助手没有 ruleFiles 配置，删除旧的 rules 缓存文件
       // If assistant has no ruleFiles config, delete old rules cache files
       const rulesFilePattern = new RegExp(`^${assistantId}\\..*\\.md$`);
       try {
         const files = readdirSync(assistantsDir);
-        await Promise.all(
-          files.filter((file) => rulesFilePattern.test(file)).map((file) => fs.unlink(path.join(assistantsDir, file)))
-        );
+        for (const file of files) {
+          if (rulesFilePattern.test(file)) {
+            const filePath = path.join(assistantsDir, file);
+            await fs.unlink(filePath);
+          }
+        }
       } catch (error) {
         // 忽略删除失败 / Ignore deletion failure
       }
@@ -524,34 +541,32 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
     // 复制技能文件 / Copy skill files (if preset has skills)
     if (preset.skillFiles) {
-      await Promise.all(
-        Object.entries(preset.skillFiles).map(async ([locale, skillFile]) => {
-          try {
-            const sourceSkillsPath = path.join(presetSkillsDir, skillFile);
-            // 目标文件名格式：{assistantId}-skills.{locale}.md
-            // Target file name format: {assistantId}-skills.{locale}.md
-            const targetFileName = `${assistantId}-skills.${locale}.md`;
-            const targetPath = path.join(assistantsDir, targetFileName);
+      for (const [locale, skillFile] of Object.entries(preset.skillFiles)) {
+        try {
+          const sourceSkillsPath = path.join(presetSkillsDir, skillFile);
+          // 目标文件名格式：{assistantId}-skills.{locale}.md
+          // Target file name format: {assistantId}-skills.{locale}.md
+          const targetFileName = `${assistantId}-skills.${locale}.md`;
+          const targetPath = path.join(assistantsDir, targetFileName);
 
-            // 检查源文件是否存在 / Check if source file exists
-            if (!existsSync(sourceSkillsPath)) {
-              console.warn(`[AionUi] Source skill file not found: ${sourceSkillsPath}`);
-              return;
-            }
-
-            // 内置助手技能文件始终强制覆盖，确保用户获得最新版本
-            // Always overwrite builtin assistant skill files to ensure users get the latest version
-            let content = await fs.readFile(sourceSkillsPath, 'utf-8');
-            // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
-            // Replace relative paths with absolute paths so AI can find scripts correctly
-            content = content.replace(/skills\//g, userSkillsDir + '/');
-            await fs.writeFile(targetPath, content, 'utf-8');
-          } catch (error) {
-            // 忽略缺失的技能文件 / Ignore missing skill files
-            console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
+          // 检查源文件是否存在 / Check if source file exists
+          if (!existsSync(sourceSkillsPath)) {
+            console.warn(`[AionUi] Source skill file not found: ${sourceSkillsPath}`);
+            continue;
           }
-        })
-      );
+
+          // 内置助手技能文件始终强制覆盖，确保用户获得最新版本
+          // Always overwrite builtin assistant skill files to ensure users get the latest version
+          let content = await fs.readFile(sourceSkillsPath, 'utf-8');
+          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+          // Replace relative paths with absolute paths so AI can find scripts correctly
+          content = content.replace(/skills\//g, userSkillsDir + '/');
+          await fs.writeFile(targetPath, content, 'utf-8');
+        } catch (error) {
+          // 忽略缺失的技能文件 / Ignore missing skill files
+          console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
+        }
+      }
     } else {
       // 如果助手没有 skillFiles 配置，删除旧的 skills 缓存文件
       // If assistant has no skillFiles config, delete old skills cache files
@@ -560,9 +575,12 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       const skillsFilePattern = new RegExp(`^${assistantId}-skills\\..*\\.md$`);
       try {
         const files = readdirSync(assistantsDir);
-        await Promise.all(
-          files.filter((file) => skillsFilePattern.test(file)).map((file) => fs.unlink(path.join(assistantsDir, file)))
-        );
+        for (const file of files) {
+          if (skillsFilePattern.test(file)) {
+            const filePath = path.join(assistantsDir, file);
+            await fs.unlink(filePath);
+          }
+        }
       } catch (error) {
         // 忽略删除失败 / Ignore deletion failure
       }
@@ -650,7 +668,7 @@ const getBuiltinMcpBaseDir = (): string => {
   const baseDir = path.basename(mainModuleDir) === 'chunks' ? path.dirname(mainModuleDir) : mainModuleDir;
   // In packaged mode the main bundle lives inside app.asar, but external node
   // processes cannot read files from ASAR archives. Redirect to the unpacked copy.
-  if (app.isPackaged) {
+  if (getPlatformServices().paths.isPackaged()) {
     return baseDir.replace('app.asar', 'app.asar.unpacked');
   }
   return baseDir;
@@ -800,9 +818,9 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
  * 启动时清理异常遗留的健康检测临时会话
  * Cleanup orphaned health-check temporary conversations on startup
  */
-const cleanupOrphanedHealthCheckConversations = () => {
+const cleanupOrphanedHealthCheckConversations = async () => {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
     const pageSize = 1000;
     const idsToDelete: string[] = [];
     let page = 0;
@@ -856,6 +874,23 @@ const initStorage = async () => {
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
   mark('3. storage interceptors');
+
+  // Config migration only makes sense in standalone server mode (not inside Electron itself)
+  if (!hasElectronAppPath()) {
+    // Migrate config from Electron desktop app (once, after storage is ready)
+    await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
+
+    // Manual import from specified path (if env var present)
+    const importFrom = process.env.IMPORT_CONFIG_FROM;
+    if (importFrom) {
+      const overwrite = process.env.IMPORT_CONFIG_OVERWRITE === 'true';
+      await importConfigFromFile(
+        importFrom,
+        overwrite,
+        configFile as unknown as Parameters<typeof importConfigFromFile>[2]
+      );
+    }
+  }
 
   // 4. 初始化 MCP 配置（为所有用户提供默认配置）
   try {
@@ -1003,16 +1038,18 @@ const initStorage = async () => {
 
   // 6. 初始化数据库（better-sqlite3）
   try {
-    getDatabase();
-    cleanupOrphanedHealthCheckConversations();
+    await getDatabase();
+    await cleanupOrphanedHealthCheckConversations();
   } catch (error) {
     console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
   }
   mark('6. database');
 
-  application.systemInfo.provider(() => {
-    return Promise.resolve(getSystemDir());
-  });
+  if (hasElectronAppPath()) {
+    application.systemInfo.provider(() => {
+      return Promise.resolve(getSystemDir());
+    });
+  }
   mark('done');
 };
 
@@ -1026,7 +1063,7 @@ export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
   // electron-log writes to the platform-standard logs directory
-  const logDir = path.join(app.getPath('logs'));
+  const logDir = getPlatformServices().paths.getLogsDir();
 
   return {
     cacheDir: cacheDir,

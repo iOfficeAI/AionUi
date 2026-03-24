@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type Database from 'better-sqlite3';
+import type { ISqliteDriver } from './drivers/ISqliteDriver';
 
 /**
  * Migration script definition
@@ -12,8 +12,8 @@ import type Database from 'better-sqlite3';
 export interface IMigration {
   version: number; // Target version after this migration
   name: string; // Migration name for logging
-  up: (db: Database.Database) => void; // Upgrade script
-  down: (db: Database.Database) => void; // Downgrade script (for rollback)
+  up: (db: ISqliteDriver) => void; // Upgrade script
+  down: (db: ISqliteDriver) => void; // Downgrade script (for rollback)
 }
 
 /**
@@ -29,11 +29,9 @@ const migration_v1: IMigration = {
   },
   down: (db) => {
     // Drop all tables (only core tables now)
-    db.exec(`
-      DROP TABLE IF EXISTS messages;
-      DROP TABLE IF EXISTS conversations;
-      DROP TABLE IF EXISTS users;
-    `);
+    db.exec('DROP TABLE IF EXISTS messages');
+    db.exec('DROP TABLE IF EXISTS conversations');
+    db.exec('DROP TABLE IF EXISTS users');
     console.log('[Migration v1] Rolled back: All tables dropped');
   },
 };
@@ -46,27 +44,18 @@ const migration_v2: IMigration = {
   version: 2,
   name: 'Add performance indexes',
   up: (db) => {
-    db.exec(`
-      -- Add composite index for conversation messages lookup
-      CREATE INDEX IF NOT EXISTS idx_messages_conv_created_desc
-        ON messages(conversation_id, created_at DESC);
-
-      -- Add index for message search by type
-      CREATE INDEX IF NOT EXISTS idx_messages_type_created
-        ON messages(type, created_at DESC);
-
-      -- Add index for user conversations lookup
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_type
-        ON conversations(user_id, type);
-    `);
+    // Add composite index for conversation messages lookup
+    db.exec('CREATE INDEX IF NOT EXISTS idx_messages_conv_created_desc ON messages(conversation_id, created_at DESC)');
+    // Add index for message search by type
+    db.exec('CREATE INDEX IF NOT EXISTS idx_messages_type_created ON messages(type, created_at DESC)');
+    // Add index for user conversations lookup
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_type ON conversations(user_id, type)');
     console.log('[Migration v2] Added performance indexes');
   },
   down: (db) => {
-    db.exec(`
-      DROP INDEX IF EXISTS idx_messages_conv_created_desc;
-      DROP INDEX IF EXISTS idx_messages_type_created;
-      DROP INDEX IF EXISTS idx_conversations_user_type;
-    `);
+    db.exec('DROP INDEX IF EXISTS idx_messages_conv_created_desc');
+    db.exec('DROP INDEX IF EXISTS idx_messages_type_created');
+    db.exec('DROP INDEX IF EXISTS idx_conversations_user_type');
     console.log('[Migration v2] Rolled back: Removed performance indexes');
   },
 };
@@ -86,9 +75,7 @@ const migration_v3: IMigration = {
   },
   down: (db) => {
     // Clean up FTS table if it exists from older versions
-    db.exec(`
-      DROP TABLE IF EXISTS messages_fts;
-    `);
+    db.exec('DROP TABLE IF EXISTS messages_fts');
     console.log('[Migration v3] Rolled back: Removed full-text search');
   },
 };
@@ -117,9 +104,7 @@ const migration_v5: IMigration = {
   name: 'Remove FTS table',
   up: (db) => {
     // Remove FTS table created by old v3 migration
-    db.exec(`
-      DROP TABLE IF EXISTS messages_fts;
-    `);
+    db.exec('DROP TABLE IF EXISTS messages_fts');
     console.log('[Migration v5] Removed FTS table (cleanup for FTS removal)');
   },
   down: (_db) => {
@@ -142,7 +127,7 @@ const migration_v6: IMigration = {
 
     if (!hasJwtSecret) {
       // Add jwt_secret column to users table
-      db.exec(`ALTER TABLE users ADD COLUMN jwt_secret TEXT;`);
+      db.exec('ALTER TABLE users ADD COLUMN jwt_secret TEXT');
       console.log('[Migration v6] Added jwt_secret column to users table');
     } else {
       console.log('[Migration v6] jwt_secret column already exists, skipping');
@@ -150,13 +135,13 @@ const migration_v6: IMigration = {
   },
   down: (db) => {
     // SQLite doesn't support DROP COLUMN directly, need to recreate table
-    db.exec(`
-      CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users;
-      DROP TABLE users;
-      ALTER TABLE users_backup RENAME TO users;
-      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-    `);
+    db.exec(
+      'CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users'
+    );
+    db.exec('DROP TABLE users');
+    db.exec('ALTER TABLE users_backup RENAME TO users');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
     console.log('[Migration v6] Rolled back: Removed jwt_secret column from users table');
   },
 };
@@ -170,8 +155,7 @@ const migration_v7: IMigration = {
   name: 'Add Personal Assistant tables',
   up: (db) => {
     // Assistant plugins configuration
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_plugins (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord')),
         name TEXT NOT NULL,
@@ -181,15 +165,12 @@ const migration_v7: IMigration = {
         last_connected INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
-    `);
+      )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled)');
 
     // Authorized users whitelist
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_users (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_users (
         id TEXT PRIMARY KEY,
         platform_user_id TEXT NOT NULL,
         platform_type TEXT NOT NULL,
@@ -198,14 +179,13 @@ const migration_v7: IMigration = {
         last_active INTEGER,
         session_id TEXT,
         UNIQUE(platform_user_id, platform_type)
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, platform_user_id);
-    `);
+      )`);
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, platform_user_id)'
+    );
 
     // User sessions
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_sessions (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_sessions (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         agent_type TEXT NOT NULL CHECK(agent_type IN ('gemini', 'acp', 'codex')),
@@ -215,15 +195,12 @@ const migration_v7: IMigration = {
         last_activity INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES assistant_users(id) ON DELETE CASCADE,
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_user ON assistant_sessions(user_id);
-      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_conversation ON assistant_sessions(conversation_id);
-    `);
+      )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_sessions_user ON assistant_sessions(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_sessions_conversation ON assistant_sessions(conversation_id)');
 
     // Pending pairing requests
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_pairing_codes (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_pairing_codes (
         code TEXT PRIMARY KEY,
         platform_user_id TEXT NOT NULL,
         platform_type TEXT NOT NULL,
@@ -231,53 +208,42 @@ const migration_v7: IMigration = {
         requested_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'expired'))
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_expires ON assistant_pairing_codes(expires_at);
-      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_status ON assistant_pairing_codes(status);
-    `);
+      )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_pairing_expires ON assistant_pairing_codes(expires_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_pairing_status ON assistant_pairing_codes(status)');
 
     console.log('[Migration v7] Added Personal Assistant tables');
   },
   down: (db) => {
-    db.exec(`
-      DROP TABLE IF EXISTS assistant_pairing_codes;
-      DROP TABLE IF EXISTS assistant_sessions;
-      DROP TABLE IF EXISTS assistant_users;
-      DROP TABLE IF EXISTS assistant_plugins;
-    `);
+    db.exec('DROP TABLE IF EXISTS assistant_pairing_codes');
+    db.exec('DROP TABLE IF EXISTS assistant_sessions');
+    db.exec('DROP TABLE IF EXISTS assistant_users');
+    db.exec('DROP TABLE IF EXISTS assistant_plugins');
     console.log('[Migration v7] Rolled back: Removed Personal Assistant tables');
   },
 };
 
 /**
  * Migration v7 -> v8: Add source column to conversations table
- * 为 conversations 表添加 source 列，标识会话来源
  */
 const migration_v8: IMigration = {
   version: 8,
   name: 'Add source column to conversations',
   up: (db) => {
     // Add source column to conversations table
-    db.exec(`
-      ALTER TABLE conversations ADD COLUMN source TEXT CHECK(source IN ('aionui', 'telegram'));
-    `);
+    db.exec(`ALTER TABLE conversations ADD COLUMN source TEXT CHECK(source IN ('aionui', 'telegram'))`);
 
     // Create index for efficient source-based queries
-    db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v8] Added source column to conversations table');
   },
   down: (db) => {
     // SQLite doesn't support DROP COLUMN directly, need to recreate table
     // For simplicity, just drop the indexes (column will remain)
-    db.exec(`
-      DROP INDEX IF EXISTS idx_conversations_source;
-      DROP INDEX IF EXISTS idx_conversations_source_updated;
-    `);
+    db.exec('DROP INDEX IF EXISTS idx_conversations_source');
+    db.exec('DROP INDEX IF EXISTS idx_conversations_source_updated');
     console.log('[Migration v8] Rolled back: Removed source indexes');
   },
 };
@@ -289,8 +255,7 @@ const migration_v9: IMigration = {
   version: 9,
   name: 'Add cron_jobs table',
   up: (db) => {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS cron_jobs (
+    db.exec(`CREATE TABLE IF NOT EXISTS cron_jobs (
         -- Basic info
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -321,33 +286,26 @@ const migration_v9: IMigration = {
         run_count INTEGER DEFAULT 0,
         retry_count INTEGER DEFAULT 0,
         max_retries INTEGER DEFAULT 3
-      );
-
-      -- Index for querying jobs by conversation (frontend management)
-      CREATE INDEX IF NOT EXISTS idx_cron_jobs_conversation ON cron_jobs(conversation_id);
-
-      -- Index for scheduler to find next jobs to run
-      CREATE INDEX IF NOT EXISTS idx_cron_jobs_next_run ON cron_jobs(next_run_at) WHERE enabled = 1;
-
-      -- Index for querying by agent type (if needed)
-      CREATE INDEX IF NOT EXISTS idx_cron_jobs_agent_type ON cron_jobs(agent_type);
-    `);
+      )`);
+    // Index for querying jobs by conversation (frontend management)
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cron_jobs_conversation ON cron_jobs(conversation_id)');
+    // Index for scheduler to find next jobs to run
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cron_jobs_next_run ON cron_jobs(next_run_at) WHERE enabled = 1');
+    // Index for querying by agent type (if needed)
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cron_jobs_agent_type ON cron_jobs(agent_type)');
     console.log('[Migration v9] Added cron_jobs table');
   },
   down: (db) => {
-    db.exec(`
-      DROP INDEX IF EXISTS idx_cron_jobs_agent_type;
-      DROP INDEX IF EXISTS idx_cron_jobs_next_run;
-      DROP INDEX IF EXISTS idx_cron_jobs_conversation;
-      DROP TABLE IF EXISTS cron_jobs;
-    `);
+    db.exec('DROP INDEX IF EXISTS idx_cron_jobs_agent_type');
+    db.exec('DROP INDEX IF EXISTS idx_cron_jobs_next_run');
+    db.exec('DROP INDEX IF EXISTS idx_cron_jobs_conversation');
+    db.exec('DROP TABLE IF EXISTS cron_jobs');
     console.log('[Migration v9] Rolled back: Removed cron_jobs table');
   },
 };
 
 /**
  * Migration v9 -> v10: Add 'lark' to assistant_plugins type constraint
- * 为 assistant_plugins 表的 type 约束添加 'lark' 类型
  */
 const migration_v10: IMigration = {
   version: 10,
@@ -355,9 +313,7 @@ const migration_v10: IMigration = {
   up: (db) => {
     // SQLite doesn't support ALTER TABLE to modify CHECK constraints
     // We need to recreate the table with the new constraint
-    db.exec(`
-      -- Create new table with updated constraint
-      CREATE TABLE IF NOT EXISTS assistant_plugins_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins_new (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord', 'lark')),
         name TEXT NOT NULL,
@@ -367,28 +323,18 @@ const migration_v10: IMigration = {
         last_connected INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      );
-
-      -- Copy data from old table (if exists)
-      INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins;
-
-      -- Drop old table
-      DROP TABLE IF EXISTS assistant_plugins;
-
-      -- Rename new table
-      ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins;
-
-      -- Recreate indexes
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
-    `);
+      )`);
+    db.exec('INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins');
+    db.exec('DROP TABLE IF EXISTS assistant_plugins');
+    db.exec('ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled)');
 
     console.log('[Migration v10] Added lark to assistant_plugins type constraint');
   },
   down: (db) => {
     // Rollback: recreate table without lark type (data with lark type will be lost)
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_plugins_old (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins_old (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord')),
         name TEXT NOT NULL,
@@ -398,24 +344,18 @@ const migration_v10: IMigration = {
         last_connected INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      );
-
-      INSERT OR IGNORE INTO assistant_plugins_old SELECT * FROM assistant_plugins WHERE type != 'lark';
-
-      DROP TABLE IF EXISTS assistant_plugins;
-
-      ALTER TABLE assistant_plugins_old RENAME TO assistant_plugins;
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
-    `);
+      )`);
+    db.exec(`INSERT OR IGNORE INTO assistant_plugins_old SELECT * FROM assistant_plugins WHERE type != 'lark'`);
+    db.exec('DROP TABLE IF EXISTS assistant_plugins');
+    db.exec('ALTER TABLE assistant_plugins_old RENAME TO assistant_plugins');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled)');
     console.log('[Migration v10] Rolled back: Removed lark from assistant_plugins type constraint');
   },
 };
 
 /**
  * Migration v10 -> v11: Add 'openclaw-gateway' to conversations type constraint
- * 为 conversations 表的 type 约束添加 'openclaw-gateway' 类型
  */
 const migration_v11: IMigration = {
   version: 11,
@@ -427,12 +367,9 @@ const migration_v11: IMigration = {
     // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
 
     // Clean up any invalid source values before copying
-    db.exec(`
-      UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram');
-    `);
+    db.exec(`UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram')`);
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -444,24 +381,17 @@ const migration_v11: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      -- Use explicit columns (ALTER TABLE ADD COLUMN appends at the end,
-      -- so column order in the old table may differ from the new table)
-      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_new RENAME TO conversations;
-
-      -- Recreate indexes
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v11] Added openclaw-gateway to conversations type constraint');
   },
@@ -469,8 +399,7 @@ const migration_v11: IMigration = {
     // Rollback: recreate table without openclaw-gateway type
     // (data with openclaw-gateway type will be lost)
     // NOTE: foreign_keys is disabled by the migration runner before the transaction.
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_rollback (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_rollback (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -482,21 +411,17 @@ const migration_v11: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations WHERE type != 'openclaw-gateway';
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_rollback RENAME TO conversations;
-
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations WHERE type != 'openclaw-gateway'`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_rollback RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v11] Rolled back: Removed openclaw-gateway from conversations type constraint');
   },
@@ -515,12 +440,11 @@ const migration_v12: IMigration = {
     // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
 
     // Clean up any invalid source values before copying
-    db.exec(`
-      UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark');
-    `);
+    db.exec(
+      `UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark')`
+    );
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -532,24 +456,17 @@ const migration_v12: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      -- Use explicit columns (ALTER TABLE ADD COLUMN appends at the end,
-      -- so column order in the old table may differ from the new table)
-      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_new RENAME TO conversations;
-
-      -- Recreate indexes
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v12] Added lark to conversations source constraint');
   },
@@ -558,12 +475,9 @@ const migration_v12: IMigration = {
     // NOTE: foreign_keys is disabled by the migration runner before the transaction.
 
     // Clean up lark source values before copying to table with stricter constraint
-    db.exec(`
-      UPDATE conversations SET source = NULL WHERE source = 'lark';
-    `);
+    db.exec(`UPDATE conversations SET source = NULL WHERE source = 'lark'`);
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_rollback (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_rollback (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -575,21 +489,17 @@ const migration_v12: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_rollback RENAME TO conversations;
-
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_rollback RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v12] Rolled back: Removed lark from conversations source constraint');
   },
@@ -607,8 +517,7 @@ const migration_v13: IMigration = {
     // NOTE: The migration runner disables foreign_keys before the transaction,
     // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -620,22 +529,17 @@ const migration_v13: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_new RENAME TO conversations;
-
-      -- Recreate indexes
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v13] Added nanobot to conversations type constraint');
   },
@@ -644,12 +548,9 @@ const migration_v13: IMigration = {
     // NOTE: foreign_keys is disabled by the migration runner before the transaction.
 
     // Remove nanobot conversations before copying to table with stricter constraint
-    db.exec(`
-      DELETE FROM conversations WHERE type = 'nanobot';
-    `);
+    db.exec(`DELETE FROM conversations WHERE type = 'nanobot'`);
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_rollback (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_rollback (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -661,21 +562,17 @@ const migration_v13: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_rollback RENAME TO conversations;
-
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_rollback RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v13] Rolled back: Removed nanobot from conversations type constraint');
   },
@@ -689,8 +586,7 @@ const migration_v14: IMigration = {
   name: 'Add dingtalk to assistant_plugins type and conversations source constraints',
   up: (db) => {
     // 1. Recreate assistant_plugins with 'dingtalk' in type constraint
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_plugins_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins_new (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord', 'lark', 'dingtalk')),
         name TEXT NOT NULL,
@@ -700,27 +596,21 @@ const migration_v14: IMigration = {
         last_connected INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      );
-
-      INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins;
-
-      DROP TABLE IF EXISTS assistant_plugins;
-
-      ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins;
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
-    `);
+      )`);
+    db.exec('INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins');
+    db.exec('DROP TABLE IF EXISTS assistant_plugins');
+    db.exec('ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled)');
 
     // 2. Recreate conversations with 'dingtalk' in source constraint
     // NOTE: The migration runner disables foreign_keys before the transaction,
     // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
-    db.exec(`
-      UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark', 'dingtalk');
-    `);
+    db.exec(
+      `UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram', 'lark', 'dingtalk')`
+    );
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -733,39 +623,34 @@ const migration_v14: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, NULL, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_new RENAME TO conversations;
-
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, NULL, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
 
     // 3. Add chat_id to assistant_sessions for per-chat session isolation
     const sessTableInfo = db.prepare('PRAGMA table_info(assistant_sessions)').all() as Array<{ name: string }>;
     if (!sessTableInfo.some((col) => col.name === 'chat_id')) {
-      db.exec(`ALTER TABLE assistant_sessions ADD COLUMN chat_id TEXT;`);
+      db.exec('ALTER TABLE assistant_sessions ADD COLUMN chat_id TEXT');
     }
 
     console.log('[Migration v14] Added dingtalk support and channel_chat_id for per-chat isolation');
   },
   down: (db) => {
     // Rollback assistant_plugins: remove 'dingtalk'
-    db.exec(`
-      DELETE FROM assistant_plugins WHERE type = 'dingtalk';
-    `);
+    db.exec(`DELETE FROM assistant_plugins WHERE type = 'dingtalk'`);
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_plugins_old (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins_old (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord', 'lark')),
         name TEXT NOT NULL,
@@ -775,25 +660,17 @@ const migration_v14: IMigration = {
         last_connected INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      );
-
-      INSERT OR IGNORE INTO assistant_plugins_old SELECT * FROM assistant_plugins WHERE type != 'dingtalk';
-
-      DROP TABLE IF EXISTS assistant_plugins;
-
-      ALTER TABLE assistant_plugins_old RENAME TO assistant_plugins;
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
-    `);
+      )`);
+    db.exec(`INSERT OR IGNORE INTO assistant_plugins_old SELECT * FROM assistant_plugins WHERE type != 'dingtalk'`);
+    db.exec('DROP TABLE IF EXISTS assistant_plugins');
+    db.exec('ALTER TABLE assistant_plugins_old RENAME TO assistant_plugins');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled)');
 
     // Rollback conversations: remove 'dingtalk' from source
-    db.exec(`
-      UPDATE conversations SET source = NULL WHERE source = 'dingtalk';
-    `);
+    db.exec(`UPDATE conversations SET source = NULL WHERE source = 'dingtalk'`);
 
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_rollback (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_rollback (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -805,21 +682,17 @@ const migration_v14: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_rollback RENAME TO conversations;
-
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_rollback RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
 
     console.log('[Migration v14] Rolled back: Removed dingtalk and channel_chat_id');
   },
@@ -837,8 +710,7 @@ const migration_v15: IMigration = {
   name: 'Remove strict constraints for extension channels',
   up: (db) => {
     // 1. Recreate assistant_plugins without strict type constraint
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS assistant_plugins_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS assistant_plugins_new (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL, -- Removed CHECK constraint
         name TEXT NOT NULL,
@@ -848,19 +720,15 @@ const migration_v15: IMigration = {
         last_connected INTEGER,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      );
-
-      INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins;
-      DROP TABLE IF EXISTS assistant_plugins;
-      ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins;
-
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
-      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
-    `);
+      )`);
+    db.exec('INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins');
+    db.exec('DROP TABLE IF EXISTS assistant_plugins');
+    db.exec('ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled)');
 
     // 2. Recreate conversations without strict source constraint
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS conversations_new (
+    db.exec(`CREATE TABLE IF NOT EXISTS conversations_new (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -873,26 +741,24 @@ const migration_v15: IMigration = {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
-      SELECT id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at FROM conversations;
-
-      DROP TABLE conversations;
-      ALTER TABLE conversations_new RENAME TO conversations;
-
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
-      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
-      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
-      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC);
-    `);
+      )`);
+    db.exec(`INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, channel_chat_id, created_at, updated_at FROM conversations`);
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE conversations_new RENAME TO conversations');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
+    );
 
     console.log('[Migration v15] Removed strict constraints for extension channels');
   },
-  down: (db) => {
+  down: (_db) => {
     // Cannot safely rollback if there are custom types/sources in the database.
     // For now, we just log a warning and do nothing, or we could delete them.
     console.warn('[Migration v15] Rollback skipped to prevent data loss of extension channels.');
@@ -930,7 +796,7 @@ export function getMigrationsToRollback(fromVersion: number, toVersion: number):
 /**
  * Run migrations in a transaction
  */
-export function runMigrations(db: Database.Database, fromVersion: number, toVersion: number): void {
+export function runMigrations(db: ISqliteDriver, fromVersion: number, toVersion: number): void {
   if (fromVersion === toVersion) {
     console.log('[Migrations] Already at target version');
     return;
@@ -993,7 +859,7 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
  * Rollback migrations (for testing/emergency use)
  * WARNING: This can cause data loss!
  */
-export function rollbackMigrations(db: Database.Database, fromVersion: number, toVersion: number): void {
+export function rollbackMigrations(db: ISqliteDriver, fromVersion: number, toVersion: number): void {
   if (fromVersion <= toVersion) {
     throw new Error('[Migrations] Cannot rollback to a higher or equal version');
   }
@@ -1048,9 +914,7 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
  * Get migration history
  * Now simplified - just returns the current version
  */
-export function getMigrationHistory(
-  db: Database.Database
-): Array<{ version: number; name: string; timestamp: number }> {
+export function getMigrationHistory(db: ISqliteDriver): Array<{ version: number; name: string; timestamp: number }> {
   const currentVersion = db.pragma('user_version', { simple: true }) as number;
 
   // Return a simple array with just the current version
@@ -1067,7 +931,7 @@ export function getMigrationHistory(
  * Check if a specific migration has been applied
  * Now simplified - checks if current version >= target version
  */
-export function isMigrationApplied(db: Database.Database, version: number): boolean {
+export function isMigrationApplied(db: ISqliteDriver, version: number): boolean {
   const currentVersion = db.pragma('user_version', { simple: true }) as number;
   return currentVersion >= version;
 }

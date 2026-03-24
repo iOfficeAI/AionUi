@@ -117,11 +117,11 @@ export class StreamingMessageBuffer {
    * @param messageId - 合并消息唯一消息 ID
    * @param clearBuffer - 是否清理缓冲区（默认 false）
    */
-  private flushBuffer(id: string, messageId: string, clearBuffer = false): void {
+  private async flushBuffer(id: string, messageId: string, clearBuffer = false): Promise<void> {
     const buffer = this.buffers.get(messageId);
     if (!buffer) return;
 
-    const db = getDatabase();
+    const db = await getDatabase();
 
     try {
       const message: TMessage = {

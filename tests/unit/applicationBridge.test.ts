@@ -245,6 +245,20 @@ describe('CDP configuration functions', () => {
       },
     }));
 
+    vi.doMock('@process/utils/initStorage', () => ({
+      getSystemDir: vi.fn(() => ({
+        cacheDir: '/mock/cache',
+        workDir: '/mock/work',
+        platform: 'win32',
+        arch: 'x64',
+      })),
+      ProcessEnv: { set: vi.fn() },
+    }));
+
+    vi.doMock('@process/utils', () => ({
+      copyDirectoryRecursively: vi.fn(),
+    }));
+
     vi.resetModules();
     const { initApplicationBridge } = await import('../../src/process/bridge/applicationBridge');
     const taskMgr = makeTaskManager();

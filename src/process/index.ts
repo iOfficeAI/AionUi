@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import '@/common/platform/register-electron';
+// configureChromium sets app name (dev isolation) and Chromium flags — must run before other modules
+import '@process/utils/configureChromium';
+
 import { app } from 'electron';
 
 // Force node-gyp-build to skip build/ directory and use prebuilds/ only in production

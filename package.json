@@ -51,7 +51,14 @@
     "test:e2e": "playwright test --config playwright.config.ts",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
-    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts"
+    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts",
+    "test:bun": "bun test src/process/services/database/drivers/*.bun.test.ts",
+    "server:start": "NODE_ENV=development bun dist-server/server.mjs",
+    "server:start:remote": "NODE_ENV=development ALLOW_REMOTE=true bun dist-server/server.mjs",
+    "server:start:prod": "NODE_ENV=production bun dist-server/server.mjs",
+    "server:start:prod:remote": "NODE_ENV=production ALLOW_REMOTE=true bun dist-server/server.mjs",
+    "build:renderer:web": "bunx vite build --config vite.renderer.config.ts",
+    "build:server": "node scripts/build-server.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -172,6 +179,7 @@
     "oxlint": "^1.56.0",
     "patch-package": "^8.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.1",
     "typescript": "^5.8.3",
     "unocss": "^66.3.3",
     "unocss-preset-extra": "^1.0.0",

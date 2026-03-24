@@ -2,11 +2,21 @@ import { describe, it, expect, vi } from 'vitest';
 import type { IAgentEventEmitter } from '../../src/process/task/IAgentEventEmitter';
 import type { IAgentManager } from '../../src/process/task/IAgentManager';
 
-vi.mock('electron', () => ({
-  app: { isPackaged: false, getPath: vi.fn(() => '/tmp') },
-  utilityProcess: { fork: vi.fn(() => ({ on: vi.fn(), postMessage: vi.fn(), kill: vi.fn() })) },
+vi.mock('@/common/platform', () => ({
+  getPlatformServices: () => ({
+    paths: { isPackaged: () => false, getAppPath: () => null },
+    worker: {
+      fork: vi.fn(() => ({
+        on: vi.fn().mockReturnThis(),
+        postMessage: vi.fn(),
+        kill: vi.fn(),
+      })),
+    },
+  }),
 }));
-vi.mock('../../src/process/utils/shellEnv', () => ({ getEnhancedEnv: vi.fn(() => ({})) }));
+vi.mock('../../src/process/utils/shellEnv', () => ({
+  getEnhancedEnv: vi.fn(() => ({})),
+}));
 
 function makeMockEmitter(): IAgentEventEmitter {
   return {
@@ -84,7 +94,11 @@ describe('BaseAgentManager with injected emitter', () => {
     const { agent } = makeAgent('acp', { yoloMode: true });
     agent.mockPostMessage();
     const confirmSpy = vi.spyOn(agent, 'confirm');
-    agent.testAdd({ id: 'conf1', callId: 'call1', options: [{ value: 'proceed' }] });
+    agent.testAdd({
+      id: 'conf1',
+      callId: 'call1',
+      options: [{ value: 'proceed' }],
+    });
     // Confirmation should NOT be added to the list
     expect(agent.getConfirmations()).toHaveLength(0);
     // After the 50 ms delay, confirm should be called
@@ -146,7 +160,10 @@ describe('BaseAgentManager with injected emitter', () => {
     const { agent } = makeAgent('acp');
     const spy = vi.spyOn(agent as any, 'postMessagePromise').mockResolvedValue(undefined);
     await agent.sendMessage({ content: 'hello', msg_id: 'm1' });
-    expect(spy).toHaveBeenCalledWith('send.message', { content: 'hello', msg_id: 'm1' });
+    expect(spy).toHaveBeenCalledWith('send.message', {
+      content: 'hello',
+      msg_id: 'm1',
+    });
   });
 
   it('sendMessage() works for nanobot agent type', async () => {

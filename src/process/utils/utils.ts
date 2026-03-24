@@ -5,34 +5,25 @@
  */
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 import { getEnvAwareName } from '@/common/config/appEnv';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { getSystemDir } from './initStorage';
-
-const hasElectronAppPath = (): boolean => {
-  return typeof app?.getPath === 'function';
+export const hasElectronAppPath = (): boolean => {
+  return typeof process.versions.electron === 'string';
 };
 
 const getElectronPathOrFallback = (name: 'temp' | 'home' | 'userData'): string => {
-  if (hasElectronAppPath()) {
-    try {
-      return app.getPath(name);
-    } catch (_error) {
-      // Fall through to deterministic filesystem paths for tests and non-Electron environments.
-    }
-  }
-
+  const paths = getPlatformServices().paths;
   switch (name) {
     case 'temp':
-      return os.tmpdir();
+      return paths.getTempDir();
     case 'home':
-      return os.homedir();
+      return paths.getHomeDir();
     case 'userData':
-      return path.join(os.tmpdir(), getEnvAwareName('aionui-user-data'));
+      return paths.getDataDir();
   }
 };
 
@@ -51,8 +42,9 @@ export const getTempPath = () => {
  * CLI 工具如 Qwen 无法正确处理路径中的空格。
  */
 const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
-  // Only needed on macOS where Application Support has a space
-  if (process.platform !== 'darwin' || !hasElectronAppPath()) {
+  // Only needed when the platform explicitly requires CLI-safe symlinks
+  // (Electron on macOS, where userData lives under "Application Support" which contains spaces)
+  if (!getPlatformServices().paths.needsCliSafeSymlinks()) {
     return targetPath;
   }
 
@@ -352,11 +344,15 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
   }
 }
 
-export const copyFilesToDirectory = async (dir: string, files?: string[], skipCleanup = false): Promise<string[]> => {
+export const copyFilesToDirectory = async (
+  dir: string,
+  files?: string[],
+  skipCleanup = false,
+  cacheDir?: string
+): Promise<string[]> => {
   if (!files) return [];
 
-  const { cacheDir } = getSystemDir();
-  const tempDir = path.join(cacheDir, 'temp');
+  const tempDir = cacheDir ? path.join(cacheDir, 'temp') : null;
   const copiedFiles: string[] = [];
   const resolvedDir = path.resolve(dir);
 
@@ -405,7 +401,7 @@ export const copyFilesToDirectory = async (dir: string, files?: string[], skipCl
     }
 
     // 如果是临时文件，复制完成后删除
-    if (absoluteFilePath.startsWith(tempDir) && !skipCleanup) {
+    if (tempDir && absoluteFilePath.startsWith(tempDir) && !skipCleanup) {
       try {
         await fs.unlink(absoluteFilePath);
       } catch (error) {

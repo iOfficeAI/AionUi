@@ -5,12 +5,14 @@
  */
 
 import type { WebSocketServer } from 'ws';
-import { registerWebSocketBroadcaster, getBridgeEmitter } from '@/common/adapter/main';
+import { registerWebSocketBroadcaster, getBridgeEmitter } from '@/common/adapter/registry';
 import { WebSocketManager } from './websocket/WebSocketManager';
 
 // 存储取消注册函数，用于服务器停止时清理
 // Store unregister function for cleanup when server stops
 let unregisterBroadcaster: (() => void) | null = null;
+// Module-level reference so cleanupWebAdapter can destroy the heartbeat timer
+let wsManagerInstance: WebSocketManager | null = null;
 
 /**
  * 初始化 Web 适配器 - 建立 WebSocket 与 bridge 的通信桥梁
@@ -23,6 +25,7 @@ let unregisterBroadcaster: (() => void) | null = null;
  */
 export function initWebAdapter(wss: WebSocketServer): void {
   const wsManager = new WebSocketManager(wss);
+  wsManagerInstance = wsManager;
   wsManager.initialize();
 
   // 注册 WebSocket 广播函数到主适配器
@@ -37,6 +40,8 @@ export function initWebAdapter(wss: WebSocketServer): void {
     const emitter = getBridgeEmitter();
     if (emitter) {
       emitter.emit(name, data);
+    } else {
+      console.warn('[adapter] Bridge emitter not set, message dropped:', name);
     }
   });
 }
@@ -49,5 +54,11 @@ export function cleanupWebAdapter(): void {
   if (unregisterBroadcaster) {
     unregisterBroadcaster();
     unregisterBroadcaster = null;
+  }
+  // Destroy the WebSocket manager to clear the heartbeat setInterval,
+  // which would otherwise keep the event loop alive after shutdown.
+  if (wsManagerInstance) {
+    wsManagerInstance.destroy();
+    wsManagerInstance = null;
   }
 }

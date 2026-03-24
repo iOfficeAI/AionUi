@@ -124,7 +124,12 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     if (msg.type === 'acp_permission') {
       const permissionData = msg.data as {
         sessionId: string;
-        toolCall: { toolCallId: string; title?: string; kind?: string; rawInput?: Record<string, unknown> };
+        toolCall: {
+          toolCallId: string;
+          title?: string;
+          kind?: string;
+          rawInput?: Record<string, unknown>;
+        };
         options: Array<{ optionId: string; name: string; kind: string }>;
       };
 
@@ -165,9 +170,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
    * Persist the resolved session key to the database for resume support.
    * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
    */
-  private saveSessionKey(sessionKey: string): void {
+  private async saveSessionKey(sessionKey: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'openclaw-gateway') {
         const conversation = result.data;
@@ -175,7 +180,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
           ...conversation.extra,
           sessionKey,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       console.error('[OpenClawAgentManager] Failed to save session key:', error);

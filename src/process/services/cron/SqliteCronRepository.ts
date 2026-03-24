@@ -9,35 +9,35 @@ import type { ICronRepository } from './ICronRepository';
 
 /** Thin delegation wrapper around the CronStore singleton. */
 export class SqliteCronRepository implements ICronRepository {
-  insert(job: CronJob): void {
-    cronStore.insert(job);
+  async insert(job: CronJob): Promise<void> {
+    await cronStore.insert(job);
   }
 
-  update(jobId: string, updates: Partial<CronJob>): void {
-    cronStore.update(jobId, updates);
+  async update(jobId: string, updates: Partial<CronJob>): Promise<void> {
+    await cronStore.update(jobId, updates);
   }
 
-  delete(jobId: string): void {
-    cronStore.delete(jobId);
+  async delete(jobId: string): Promise<void> {
+    await cronStore.delete(jobId);
   }
 
-  getById(jobId: string): CronJob | null {
+  async getById(jobId: string): Promise<CronJob | null> {
     return cronStore.getById(jobId);
   }
 
-  listAll(): CronJob[] {
+  async listAll(): Promise<CronJob[]> {
     return cronStore.listAll();
   }
 
-  listEnabled(): CronJob[] {
+  async listEnabled(): Promise<CronJob[]> {
     return cronStore.listEnabled();
   }
 
-  listByConversation(conversationId: string): CronJob[] {
+  async listByConversation(conversationId: string): Promise<CronJob[]> {
     return cronStore.listByConversation(conversationId);
   }
 
-  deleteByConversation(conversationId: string): number {
+  async deleteByConversation(conversationId: string): Promise<number> {
     return cronStore.deleteByConversation(conversationId);
   }
 }

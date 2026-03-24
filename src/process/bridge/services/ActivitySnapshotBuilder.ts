@@ -64,7 +64,11 @@ const toEventText = (message: TMessage): { kind: 'status' | 'tool' | 'message'; 
   const at = Number(message.createdAt || Date.now());
   if (message.type === 'agent_status') {
     const content = (message.content || {}) as { status?: string };
-    return { kind: 'status', text: `状态: ${String(content.status || 'unknown')}`, at };
+    return {
+      kind: 'status',
+      text: `状态: ${String(content.status || 'unknown')}`,
+      at,
+    };
   }
 
   if (
@@ -101,10 +105,9 @@ export class ActivitySnapshotBuilder {
     private readonly taskManager: IWorkerTaskManager
   ) {}
 
-  build(): IExtensionAgentActivitySnapshot {
-    const conversations = this.repo
-      .getUserConversations(undefined, 0, 10000)
-      .data.filter((conv) => !conv.extra?.isHealthCheck);
+  async build(): Promise<IExtensionAgentActivitySnapshot> {
+    const conversationsResult = await this.repo.getUserConversations(undefined, 0, 10000);
+    const conversations = conversationsResult.data.filter((conv) => !conv.extra?.isHealthCheck);
 
     const byAgent = new Map<string, IExtensionAgentActivityItem>();
     let runningConversations = 0;
@@ -117,10 +120,19 @@ export class ActivitySnapshotBuilder {
         runningConversations += 1;
       }
 
-      const recentMessages = this.repo.getMessages(conversation.id, 0, 20, 'DESC').data;
+      const recentMessagesResult = await this.repo.getMessages(conversation.id, 0, 20, 'DESC');
+      const recentMessages = recentMessagesResult.data;
       const events = recentMessages
         .map((m) => toEventText(m))
-        .filter((e): e is { kind: 'status' | 'tool' | 'message'; text: string; at: number } => Boolean(e))
+        .filter(
+          (
+            e
+          ): e is {
+            kind: 'status' | 'tool' | 'message';
+            text: string;
+            at: number;
+          } => Boolean(e)
+        )
         .slice(0, 6)
         .map(
           (e): IExtensionAgentActivityEvent => ({

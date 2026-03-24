@@ -223,7 +223,7 @@ function CodeBlock(props: CodeBlockProps) {
                   style={{ cursor: 'pointer' }}
                   fill='var(--text-secondary)'
                   onClick={() => setFlow(true)}
-                  title={t('common.collapse', '收起')}
+                  title={t('common.collapse', 'Collapse')}
                 />
               </div>
             </>

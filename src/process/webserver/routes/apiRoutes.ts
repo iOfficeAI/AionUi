@@ -60,12 +60,12 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   return normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`);
 }
 
-export function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): string {
+export async function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): Promise<string> {
   if (!conversationId) {
     throw new Error('Missing conversation id');
   }
 
-  const db = getDatabase();
+  const db = await getDatabase();
   const result = db.getConversation(conversationId);
   const conversationWorkspace = result.data?.extra?.workspace;
   if (!result.success || !conversationWorkspace) {
@@ -255,7 +255,9 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
  * Register API routes
  */
 export function registerApiRoutes(app: Express): void {
-  const validateApiAccess = TokenMiddleware.validateToken({ responseType: 'json' });
+  const validateApiAccess = TokenMiddleware.validateToken({
+    responseType: 'json',
+  });
 
   /**
    * 目录 API - Directory API
@@ -282,7 +284,10 @@ export function registerApiRoutes(app: Express): void {
     (req: Request, res: Response, next: NextFunction) => {
       upload.single('file')(req, res, (err: unknown) => {
         if (err && typeof err === 'object' && 'code' in err && (err as { code: string }).code === 'LIMIT_FILE_SIZE') {
-          res.status(413).json({ success: false, msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)` });
+          res.status(413).json({
+            success: false,
+            msg: `File too large (max ${MAX_UPLOAD_SIZE / 1024 / 1024}MB)`,
+          });
           return;
         }
         if (err) {
@@ -307,7 +312,7 @@ export function registerApiRoutes(app: Express): void {
         if (conversationId) {
           let workspace: string;
           try {
-            workspace = resolveUploadWorkspace(conversationId, requestedWorkspace);
+            workspace = await resolveUploadWorkspace(conversationId, requestedWorkspace);
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Invalid upload workspace';
             const statusCode =
@@ -319,7 +324,10 @@ export function registerApiRoutes(app: Express): void {
           await fsPromises.mkdir(uploadDir, { recursive: true });
         } else {
           if (requestedWorkspace) {
-            res.status(403).json({ success: false, msg: 'Workspace uploads require conversation id' });
+            res.status(403).json({
+              success: false,
+              msg: 'Workspace uploads require conversation id',
+            });
             return;
           }
           uploadDir = await getTempUploadDir();
@@ -360,7 +368,10 @@ export function registerApiRoutes(app: Express): void {
         });
       } catch (error) {
         console.error('[API] Upload file error:', error);
-        res.status(500).json({ success: false, msg: error instanceof Error ? error.message : 'Failed to upload file' });
+        res.status(500).json({
+          success: false,
+          msg: error instanceof Error ? error.message : 'Failed to upload file',
+        });
       }
     }
   );
@@ -387,7 +398,9 @@ export function registerApiRoutes(app: Express): void {
     );
 
     if (!matchingRoot) {
-      return res.status(403).json({ message: 'Access denied: path is outside extension directories' });
+      return res.status(403).json({
+        message: 'Access denied: path is outside extension directories',
+      });
     }
 
     // Reconstruct path from the trusted root so CodeQL can verify no path traversal occurs.
@@ -395,7 +408,9 @@ export function registerApiRoutes(app: Express): void {
     // confirms containment; path.join() re-anchors to the trusted base.
     const relativePath = path.relative(matchingRoot, normalizedPath);
     if (relativePath.startsWith('..')) {
-      return res.status(403).json({ message: 'Access denied: path is outside extension directories' });
+      return res.status(403).json({
+        message: 'Access denied: path is outside extension directories',
+      });
     }
 
     const safePath = path.join(matchingRoot, relativePath);

@@ -25,10 +25,10 @@ describe('resolveUploadWorkspace', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getDatabase).mockReturnValue({ getConversation } as never);
+    vi.mocked(getDatabase).mockResolvedValue({ getConversation } as never);
   });
 
-  it('returns the stored conversation workspace when requested workspace matches', () => {
+  it('returns the stored conversation workspace when requested workspace matches', async () => {
     getConversation.mockReturnValue({
       success: true,
       data: {
@@ -38,13 +38,13 @@ describe('resolveUploadWorkspace', () => {
       },
     });
 
-    const resolved = resolveUploadWorkspace('conv-1', '/tmp/aion/workspace-1');
+    const resolved = await resolveUploadWorkspace('conv-1', '/tmp/aion/workspace-1');
 
     expect(resolved).toBe(path.resolve('/tmp/aion/workspace-1'));
     expect(getConversation).toHaveBeenCalledWith('conv-1');
   });
 
-  it('allows uploads without a requested workspace and still uses the stored conversation workspace', () => {
+  it('allows uploads without a requested workspace and still uses the stored conversation workspace', async () => {
     getConversation.mockReturnValue({
       success: true,
       data: {
@@ -54,10 +54,10 @@ describe('resolveUploadWorkspace', () => {
       },
     });
 
-    expect(resolveUploadWorkspace('conv-2')).toBe(path.resolve('/tmp/aion/workspace-2'));
+    await expect(resolveUploadWorkspace('conv-2')).resolves.toBe(path.resolve('/tmp/aion/workspace-2'));
   });
 
-  it('rejects uploads when the requested workspace does not match the conversation workspace', () => {
+  it('rejects uploads when the requested workspace does not match the conversation workspace', async () => {
     getConversation.mockReturnValue({
       success: true,
       data: {
@@ -67,10 +67,10 @@ describe('resolveUploadWorkspace', () => {
       },
     });
 
-    expect(() => resolveUploadWorkspace('conv-3', '/tmp/aion/other-workspace')).toThrow('Workspace mismatch');
+    await expect(resolveUploadWorkspace('conv-3', '/tmp/aion/other-workspace')).rejects.toThrow('Workspace mismatch');
   });
 
-  it('rejects uploads when the conversation has no workspace', () => {
+  it('rejects uploads when the conversation has no workspace', async () => {
     getConversation.mockReturnValue({
       success: true,
       data: {
@@ -78,6 +78,6 @@ describe('resolveUploadWorkspace', () => {
       },
     });
 
-    expect(() => resolveUploadWorkspace('conv-4')).toThrow('Conversation workspace not found');
+    await expect(resolveUploadWorkspace('conv-4')).rejects.toThrow('Conversation workspace not found');
   });
 });
