@@ -433,7 +433,7 @@ export function registerApiRoutes(app: Express): void {
    * Used by the web renderer to load PPT previews in an iframe.
    */
   app.use('/api/ppt-proxy/:port', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
-    const port = parseInt(req.params.port, 10);
+    const port = parseInt(req.params.port as string, 10);
     const isActive = !isNaN(port) && isActivePreviewPort(port);
     if (!isActive) {
       res.status(404).json({ message: 'PPT preview session not found' });
