@@ -238,6 +238,7 @@
   "webui.qrLoginHint": "Scan the QR code with your phone to log in automatically on mobile browser",
   "webui.qrExpires": "Expires at {{time}}",
   "webui.refreshQr": "Refresh QR Code",
+  "webui.copyQrLink": "Copy Link",
   "webui.qrGenerateFailed": "Failed to generate QR code",
   "webui.accountInfo": "Account Info",
   "webui.username": "Username",
