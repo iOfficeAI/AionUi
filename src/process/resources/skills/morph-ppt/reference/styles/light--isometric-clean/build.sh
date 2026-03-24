@@ -9,8 +9,8 @@ set -e
 # transition=morph on S2-S5.
 # ============================================================
 
-DECK="morph-templates/v8-showcase/S23-isometric-clean/template.pptx"
-cd /Users/veryliu/Documents/GitHub/OfficeCli
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DECK="$SCRIPT_DIR/light__isometric_clean.pptx"
 
 # Clean & create
 rm -f "$DECK"

@@ -40,17 +40,31 @@ export class WebSocketManager {
    * Setup connection handler
    */
   setupConnectionHandler(onMessage: (name: string, data: any, ws: WebSocket) => void): void {
-    this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
+      // Buffer messages that arrive before async auth completes so they are
+      // not lost due to the race between ws.on("message") registration and
+      // the await below.
+      const pendingMessages: Buffer[] = [];
+      const bufferMessage = (raw: Buffer) => pendingMessages.push(raw);
+      ws.on('message', bufferMessage);
+
       const token = TokenMiddleware.extractWebSocketToken(req);
 
-      if (!this.validateConnection(ws, token)) {
+      if (!(await this.validateConnection(ws, token))) {
+        ws.off('message', bufferMessage);
         return;
       }
 
+      ws.off('message', bufferMessage);
       this.addClient(ws, token!);
       this.setupMessageHandler(ws, onMessage);
       this.setupCloseHandler(ws);
       this.setupErrorHandler(ws);
+
+      // Replay any messages that arrived during auth validation
+      for (const raw of pendingMessages) {
+        ws.emit('message', raw, false);
+      }
 
       console.log('[WebSocketManager] Client connected');
     });
@@ -60,18 +74,23 @@ export class WebSocketManager {
    * 验证连接
    * Validate connection
    */
-  private validateConnection(ws: WebSocket, token: string | null): boolean {
+  private async validateConnection(ws: WebSocket, token: string | null): Promise<boolean> {
     if (!token) {
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'No token provided');
       return false;
     }
 
-    if (!TokenMiddleware.validateWebSocketToken(token)) {
+    if (!(await TokenMiddleware.validateWebSocketToken(token))) {
       // Send auth-expired before closing so the client can redirect to login
       // instead of entering an infinite reconnection loop.
       // This mirrors the behavior in checkClients() heartbeat check.
       try {
-        ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
+        ws.send(
+          JSON.stringify({
+            name: 'auth-expired',
+            data: { message: 'Token expired, please login again' },
+          })
+        );
       } catch {
         // Socket may not be ready for sending yet; close will still fire on client
       }
@@ -141,7 +160,12 @@ export class WebSocketManager {
     const isFileMode = properties && properties.includes('openFile') && !properties.includes('openDirectory');
 
     // Send file selection request to client with isFileMode flag
-    ws.send(JSON.stringify({ name: SHOW_OPEN_REQUEST_EVENT, data: { ...data, isFileMode } }));
+    ws.send(
+      JSON.stringify({
+        name: SHOW_OPEN_REQUEST_EVENT,
+        data: { ...data, isFileMode },
+      })
+    );
   }
 
   /**
@@ -191,7 +215,7 @@ export class WebSocketManager {
    * 检查所有客户端
    * Check all clients
    */
-  private checkClients(): void {
+  private async checkClients(): Promise<void> {
     const now = Date.now();
 
     for (const [ws, clientInfo] of this.clients) {
@@ -204,9 +228,14 @@ export class WebSocketManager {
       }
 
       // Validate if WebSocket token is still valid
-      if (!TokenMiddleware.validateWebSocketToken(clientInfo.token)) {
+      if (!(await TokenMiddleware.validateWebSocketToken(clientInfo.token))) {
         console.log('[WebSocketManager] Token expired, closing connection');
-        ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
+        ws.send(
+          JSON.stringify({
+            name: 'auth-expired',
+            data: { message: 'Token expired, please login again' },
+          })
+        );
         ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Token expired');
         this.clients.delete(ws);
         continue;

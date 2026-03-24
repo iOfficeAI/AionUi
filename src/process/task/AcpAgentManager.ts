@@ -568,7 +568,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
         try {
-          getDatabase().updateConversation(this.conversation_id, {});
+          (await getDatabase()).updateConversation(this.conversation_id, {});
         } catch {
           // Conversation might not exist in DB yet
         }
@@ -601,7 +601,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         }
 
         const agentSendStart = Date.now();
-        const result = await this.agent.sendMessage({ ...data, content: contentToSend });
+        const result = await this.agent.sendMessage({
+          ...data,
+          content: contentToSend,
+        });
         if (ACP_PERF_LOG)
           console.log(
             `[ACP-PERF] manager: agent.sendMessage completed ${Date.now() - agentSendStart}ms (total manager.sendMessage: ${Date.now() - managerSendStart}ms)`
@@ -894,7 +897,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         await this.initAgent(this.options);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        return { success: false, msg: `Agent initialization failed: ${errorMsg}` };
+        return {
+          success: false,
+          msg: `Agent initialization failed: ${errorMsg}`,
+        };
       }
     }
 
@@ -916,7 +922,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         void this.clearLegacyYoloConfig();
       }
     }
-    return { success: result.success, msg: result.error, data: { mode: this.currentMode } };
+    return {
+      success: result.success,
+      msg: result.error,
+      data: { mode: this.currentMode },
+    };
   }
 
   /** Check if a mode value represents YOLO mode for any backend */
@@ -948,9 +958,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save model ID to database for resume support.
    * 保存模型 ID 到数据库以支持恢复。
    */
-  private saveModelId(modelId: string): void {
+  private async saveModelId(modelId: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
@@ -958,7 +968,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           ...conversation.extra,
           currentModelId: modelId,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to save model ID', error);
@@ -969,9 +981,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save context usage to database for restore on page switch.
    * 保存上下文使用量到数据库，以便在页面切换时恢复。
    */
-  private saveContextUsage(usage: { used: number; size: number }): void {
+  private async saveContextUsage(usage: { used: number; size: number }): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
@@ -980,7 +992,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           lastTokenUsage: { totalTokens: usage.used },
           lastContextLimit: usage.size,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch {
       // Non-critical metadata, silently ignore errors
@@ -991,9 +1005,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save session mode to database for resume support.
    * 保存会话模式到数据库以支持恢复。
    */
-  private saveSessionMode(mode: string): void {
+  private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
@@ -1001,7 +1015,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           ...conversation.extra,
           sessionMode: mode,
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save session mode', error);
@@ -1094,9 +1110,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    * Save ACP session ID to database for resume support.
    * 保存 ACP session ID 到数据库以支持会话恢复。
    */
-  private saveAcpSessionId(sessionId: string): void {
+  private async saveAcpSessionId(sessionId: string): Promise<void> {
     try {
-      const db = getDatabase();
+      const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
@@ -1105,7 +1121,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           acpSessionId: sessionId,
           acpSessionUpdatedAt: Date.now(),
         };
-        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
         mainLog('[AcpAgentManager]', `Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
       }
     } catch (error) {

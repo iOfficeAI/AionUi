@@ -1,305 +1,463 @@
 #!/bin/bash
 set -e
 
-# Build script for 09-diagonal-cut
-# "Diagonal Cut" — bold diagonal slashes, KARBON/industrial inspired
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/dark__diagonal_cut.pptx"
 
-DECK="morph-templates/09-diagonal-cut/template.pptx"
-cd /Users/veryliu/Documents/GitHub/OfficeCli
+echo "Building: dark--diagonal-cut (Industrial Design)"
+rm -f "$OUTPUT"
+officecli create "$OUTPUT"
 
-# Clean start
-rm -f "$DECK"
-officecli create "$DECK"
+# Colors
+BG=1A1A1A
+ORANGE=FF6600
+YELLOW=FFCC00
+WHITE=FFFFFF
+GRAY=333333
+LIGHT_GRAY=CCCCCC
 
-# ============================================================
-# SLIDE 1 — Hero: "CUT THROUGH"
-# Layout: bold diagonal slashes radiating across canvas
-# ============================================================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=1A1A1A
+# Off-canvas position
+OFFSCREEN=36cm
 
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!slash-orange","preset":"rect","fill":"FF6600",
-    "x":"0cm","y":"2cm","width":"30cm","height":"6cm","rotation":"35","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!slash-white","preset":"rect","fill":"FFFFFF",
-    "x":"5cm","y":"8cm","width":"25cm","height":"4cm","rotation":"-30","opacity":"0.15"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!slash-yellow","preset":"rect","fill":"FFCC00",
-    "x":"18cm","y":"12cm","width":"20cm","height":"3cm","rotation":"40","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!slash-gray","preset":"rect","fill":"333333",
-    "x":"0cm","y":"10cm","width":"28cm","height":"5cm","rotation":"-35","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cut-line-1","preset":"rect","fill":"FF6600",
-    "x":"0cm","y":"6cm","width":"34cm","height":"0.15cm","rotation":"30","opacity":"1.0"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cut-line-2","preset":"rect","fill":"FFFFFF",
-    "x":"2cm","y":"14cm","width":"34cm","height":"0.1cm","rotation":"-25","opacity":"0.3"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!dot-orange","preset":"ellipse","fill":"FF6600",
-    "x":"29cm","y":"1cm","width":"3cm","height":"3cm","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!dot-yellow","preset":"ellipse","fill":"FFCC00",
-    "x":"1.2cm","y":"15cm","width":"2cm","height":"2cm","opacity":"0.8"}},
+# ============================================
+# SLIDE 1 - HERO
+# ============================================
+echo "Building Slide 1: Hero..."
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-title","text":"CUT THROUGH","font":"Segoe UI Black",
-    "size":"72","bold":"true","color":"FFFFFF",
-    "x":"2cm","y":"4.5cm","width":"26cm","height":"5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-subtitle","text":"Industrial Design Co.","font":"Segoe UI",
-    "size":"24","color":"CCCCCC",
-    "x":"2cm","y":"10cm","width":"20cm","height":"2.5cm","fill":"none"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
 
-# ============================================================
-# SLIDE 2 — Statement: "Precision Meets Power"
-# Slashes shift dramatically: rotation +20deg, position 8-12cm
-# ============================================================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=1A1A1A
+# Scene actors: diagonal slashes
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!slash-orange' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=0.9 \
+  --prop x=0cm --prop y=2cm --prop width=30cm --prop height=6cm --prop rotation=35
 
-echo '[
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!slash-orange","preset":"rect","fill":"FF6600",
-    "x":"8cm","y":"0cm","width":"30cm","height":"6cm","rotation":"55","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!slash-white","preset":"rect","fill":"FFFFFF",
-    "x":"0cm","y":"5cm","width":"25cm","height":"4cm","rotation":"-5","opacity":"0.15"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!slash-yellow","preset":"rect","fill":"FFCC00",
-    "x":"22cm","y":"14cm","width":"20cm","height":"3cm","rotation":"15","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!slash-gray","preset":"rect","fill":"333333",
-    "x":"10cm","y":"0cm","width":"28cm","height":"5cm","rotation":"-60","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!cut-line-1","preset":"rect","fill":"FF6600",
-    "x":"0cm","y":"12cm","width":"34cm","height":"0.15cm","rotation":"55","opacity":"1.0"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!cut-line-2","preset":"rect","fill":"FFFFFF",
-    "x":"6cm","y":"2cm","width":"34cm","height":"0.1cm","rotation":"-50","opacity":"0.3"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!dot-orange","preset":"ellipse","fill":"FF6600",
-    "x":"2cm","y":"14cm","width":"3cm","height":"3cm","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!dot-yellow","preset":"ellipse","fill":"FFCC00",
-    "x":"30cm","y":"2cm","width":"2cm","height":"2cm","opacity":"0.8"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!slash-white' \
+  --prop preset=rect \
+  --prop fill=$WHITE \
+  --prop opacity=0.15 \
+  --prop x=5cm --prop y=8cm --prop width=25cm --prop height=4cm --prop rotation=-30
 
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!hero-title","text":"Precision Meets Power","font":"Segoe UI Black",
-    "size":"64","bold":"true","color":"FFFFFF",
-    "x":"3cm","y":"5.5cm","width":"28cm","height":"5cm","fill":"none"}},
-  {"command":"set","path":"/slide[2]/shape[9]/paragraph[1]","props":{"align":"center"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!hero-subtitle","text":"Where engineering excellence meets bold design","font":"Segoe UI",
-    "size":"20","color":"CCCCCC",
-    "x":"5cm","y":"11cm","width":"24cm","height":"2cm","fill":"none"}},
-  {"command":"set","path":"/slide[2]/shape[10]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!slash-yellow' \
+  --prop preset=rect \
+  --prop fill=$YELLOW \
+  --prop opacity=0.85 \
+  --prop x=18cm --prop y=12cm --prop width=20cm --prop height=3cm --prop rotation=40
 
-# ============================================================
-# SLIDE 3 — Pillars: "Engineer / Design / Deliver"
-# Slashes morph into vertical column dividers (still angled)
-# ============================================================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=1A1A1A
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!slash-gray' \
+  --prop preset=rect \
+  --prop fill=$GRAY \
+  --prop opacity=0.7 \
+  --prop x=0cm --prop y=10cm --prop width=28cm --prop height=5cm --prop rotation=-35
 
-echo '[
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!slash-orange","preset":"rect","fill":"FF6600",
-    "x":"9cm","y":"0cm","width":"3cm","height":"24cm","rotation":"8","opacity":"0.12"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!slash-white","preset":"rect","fill":"FFFFFF",
-    "x":"20.5cm","y":"0cm","width":"3cm","height":"24cm","rotation":"-8","opacity":"0.08"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!slash-yellow","preset":"rect","fill":"FFCC00",
-    "x":"0cm","y":"0cm","width":"0.4cm","height":"19.05cm","rotation":"0","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!slash-gray","preset":"rect","fill":"333333",
-    "x":"0cm","y":"17cm","width":"33.87cm","height":"2.5cm","rotation":"-3","opacity":"0.5"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!cut-line-1","preset":"rect","fill":"FF6600",
-    "x":"0cm","y":"4.5cm","width":"33.87cm","height":"0.15cm","rotation":"2","opacity":"0.8"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!cut-line-2","preset":"rect","fill":"FFFFFF",
-    "x":"0cm","y":"16cm","width":"33.87cm","height":"0.1cm","rotation":"-1","opacity":"0.2"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!dot-orange","preset":"ellipse","fill":"FF6600",
-    "x":"31cm","y":"0.8cm","width":"2cm","height":"2cm","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!dot-yellow","preset":"ellipse","fill":"FFCC00",
-    "x":"16cm","y":"16.5cm","width":"1.5cm","height":"1.5cm","opacity":"0.7"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cut-line-1' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=1.0 \
+  --prop x=0cm --prop y=6cm --prop width=34cm --prop height=0.15cm --prop rotation=30
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!pillar-title","text":"What We Build","font":"Segoe UI Black",
-    "size":"40","bold":"true","color":"FFFFFF",
-    "x":"1.2cm","y":"0.8cm","width":"20cm","height":"3cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cut-line-2' \
+  --prop preset=rect \
+  --prop fill=$WHITE \
+  --prop opacity=0.3 \
+  --prop x=2cm --prop y=14cm --prop width=34cm --prop height=0.1cm --prop rotation=-25
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p1-num","text":"01","font":"Segoe UI Black",
-    "size":"48","color":"FF6600",
-    "x":"1.2cm","y":"5.5cm","width":"8cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p1-title","text":"Engineer","font":"Segoe UI Black",
-    "size":"28","color":"FFFFFF",
-    "x":"1.2cm","y":"8cm","width":"8cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p1-desc","text":"Structural integrity through precision engineering","font":"Segoe UI",
-    "size":"14","color":"CCCCCC",
-    "x":"1.2cm","y":"10cm","width":"8cm","height":"3cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!dot-orange' \
+  --prop preset=ellipse \
+  --prop fill=$ORANGE \
+  --prop opacity=0.9 \
+  --prop x=29cm --prop y=1cm --prop width=3cm --prop height=3cm
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p2-num","text":"02","font":"Segoe UI Black",
-    "size":"48","color":"FFCC00",
-    "x":"12.4cm","y":"5.5cm","width":"8cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p2-title","text":"Design","font":"Segoe UI Black",
-    "size":"28","color":"FFFFFF",
-    "x":"12.4cm","y":"8cm","width":"8cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p2-desc","text":"Bold aesthetics that command attention","font":"Segoe UI",
-    "size":"14","color":"CCCCCC",
-    "x":"12.4cm","y":"10cm","width":"8cm","height":"3cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!dot-yellow' \
+  --prop preset=ellipse \
+  --prop fill=$YELLOW \
+  --prop opacity=0.8 \
+  --prop x=1.2cm --prop y=15cm --prop width=2cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p3-num","text":"03","font":"Segoe UI Black",
-    "size":"48","color":"FFFFFF",
-    "x":"23.6cm","y":"5.5cm","width":"8cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p3-title","text":"Deliver","font":"Segoe UI Black",
-    "size":"28","color":"FFFFFF",
-    "x":"23.6cm","y":"8cm","width":"8cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!p3-desc","text":"On time, on spec, every single build","font":"Segoe UI",
-    "size":"14","color":"CCCCCC",
-    "x":"23.6cm","y":"10cm","width":"8cm","height":"3cm","fill":"none"}}
-]' | officecli batch "$DECK"
+# Slide 1 content
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-hero-title' \
+  --prop text='CUT THROUGH' \
+  --prop font='Segoe UI Black' \
+  --prop size=72 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=2cm --prop y=4.5cm --prop width=26cm --prop height=5cm
 
-# ============================================================
-# SLIDE 4 — Evidence: "500+ Units / 99.8% QC / 24/7 Ops"
-# Asymmetric layout: slashes frame data at angles
-# ============================================================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=1A1A1A
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-hero-subtitle' \
+  --prop text='Industrial Design Co.' \
+  --prop font='Segoe UI' \
+  --prop size=24 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=2cm --prop y=10cm --prop width=20cm --prop height=2.5cm
 
-echo '[
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!slash-orange","preset":"rect","fill":"FF6600",
-    "x":"0cm","y":"0cm","width":"30cm","height":"6cm","rotation":"-40","opacity":"0.5"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!slash-white","preset":"rect","fill":"FFFFFF",
-    "x":"16cm","y":"6cm","width":"25cm","height":"4cm","rotation":"45","opacity":"0.1"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!slash-yellow","preset":"rect","fill":"FFCC00",
-    "x":"20cm","y":"2cm","width":"20cm","height":"3cm","rotation":"-25","opacity":"0.45"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!slash-gray","preset":"rect","fill":"333333",
-    "x":"0cm","y":"14cm","width":"28cm","height":"5cm","rotation":"20","opacity":"0.6"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!cut-line-1","preset":"rect","fill":"FF6600",
-    "x":"2cm","y":"0cm","width":"34cm","height":"0.15cm","rotation":"-35","opacity":"1.0"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!cut-line-2","preset":"rect","fill":"FFFFFF",
-    "x":"0cm","y":"8cm","width":"34cm","height":"0.1cm","rotation":"40","opacity":"0.3"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!dot-orange","preset":"ellipse","fill":"FF6600",
-    "x":"14cm","y":"1cm","width":"3.5cm","height":"3.5cm","opacity":"0.8"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!dot-yellow","preset":"ellipse","fill":"FFCC00",
-    "x":"28cm","y":"15cm","width":"2.5cm","height":"2.5cm","opacity":"0.7"}},
+# Pre-create all other slide text content (off-canvas)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s2-title' \
+  --prop text='Precision Meets Power' \
+  --prop font='Segoe UI Black' \
+  --prop size=64 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5.5cm --prop width=28cm --prop height=5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!evidence-title","text":"Our Numbers","font":"Segoe UI Black",
-    "size":"40","bold":"true","color":"FFFFFF",
-    "x":"1.2cm","y":"1cm","width":"16cm","height":"3cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s2-subtitle' \
+  --prop text='Where engineering excellence meets bold design' \
+  --prop font='Segoe UI' \
+  --prop size=20 \
+  --prop color=$LIGHT_GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=11cm --prop width=24cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!ev1-num","text":"500+","font":"Segoe UI Black",
-    "size":"64","color":"FF6600",
-    "x":"1.2cm","y":"5cm","width":"14cm","height":"3.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!ev1-label","text":"Units Manufactured","font":"Segoe UI",
-    "size":"20","color":"CCCCCC",
-    "x":"1.2cm","y":"8.5cm","width":"14cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-pillar-title' \
+  --prop text='What We Build' \
+  --prop font='Segoe UI Black' \
+  --prop size=40 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=0.8cm --prop width=20cm --prop height=3cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!ev2-num","text":"99.8%","font":"Segoe UI Black",
-    "size":"64","color":"FFCC00",
-    "x":"19cm","y":"3cm","width":"14cm","height":"3.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!ev2-label","text":"Quality Control Pass Rate","font":"Segoe UI",
-    "size":"20","color":"CCCCCC",
-    "x":"19cm","y":"6.5cm","width":"14cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p1-num' \
+  --prop text='01' \
+  --prop font='Segoe UI Black' \
+  --prop size=48 \
+  --prop color=$ORANGE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5.5cm --prop width=8cm --prop height=2.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!ev3-num","text":"24/7","font":"Segoe UI Black",
-    "size":"64","color":"FFFFFF",
-    "x":"8cm","y":"12cm","width":"14cm","height":"3.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!ev3-label","text":"Operations Running","font":"Segoe UI",
-    "size":"20","color":"CCCCCC",
-    "x":"8cm","y":"15.5cm","width":"14cm","height":"2cm","fill":"none"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p1-title' \
+  --prop text='Engineer' \
+  --prop font='Segoe UI Black' \
+  --prop size=28 \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8cm --prop width=8cm --prop height=2cm
 
-# ============================================================
-# SLIDE 5 — CTA: "Build With Us"
-# Slashes return to bold scattered diagonal pattern
-# ============================================================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=1A1A1A
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p1-desc' \
+  --prop text='Structural integrity through precision engineering' \
+  --prop font='Segoe UI' \
+  --prop size=14 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10cm --prop width=8cm --prop height=3cm
 
-echo '[
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!slash-orange","preset":"rect","fill":"FF6600",
-    "x":"4cm","y":"6cm","width":"30cm","height":"6cm","rotation":"-35","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!slash-white","preset":"rect","fill":"FFFFFF",
-    "x":"0cm","y":"12cm","width":"25cm","height":"4cm","rotation":"30","opacity":"0.15"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!slash-yellow","preset":"rect","fill":"FFCC00",
-    "x":"0cm","y":"0cm","width":"20cm","height":"3cm","rotation":"-40","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!slash-gray","preset":"rect","fill":"333333",
-    "x":"12cm","y":"4cm","width":"28cm","height":"5cm","rotation":"35","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!cut-line-1","preset":"rect","fill":"FF6600",
-    "x":"0cm","y":"3cm","width":"34cm","height":"0.15cm","rotation":"-30","opacity":"1.0"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!cut-line-2","preset":"rect","fill":"FFFFFF",
-    "x":"0cm","y":"16cm","width":"34cm","height":"0.1cm","rotation":"25","opacity":"0.3"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!dot-orange","preset":"ellipse","fill":"FF6600",
-    "x":"1cm","y":"2cm","width":"3cm","height":"3cm","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!dot-yellow","preset":"ellipse","fill":"FFCC00",
-    "x":"30cm","y":"14cm","width":"2cm","height":"2cm","opacity":"0.8"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p2-num' \
+  --prop text='02' \
+  --prop font='Segoe UI Black' \
+  --prop size=48 \
+  --prop color=$YELLOW \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5.5cm --prop width=8cm --prop height=2.5cm
 
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!cta-title","text":"Build With Us","font":"Segoe UI Black",
-    "size":"72","bold":"true","color":"FFFFFF",
-    "x":"3cm","y":"4cm","width":"28cm","height":"5cm","fill":"none"}},
-  {"command":"set","path":"/slide[5]/shape[9]/paragraph[1]","props":{"align":"center"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!cta-contact","text":"contact@industrialdesign.co","font":"Segoe UI",
-    "size":"24","color":"FF6600",
-    "x":"3cm","y":"10cm","width":"28cm","height":"2cm","fill":"none"}},
-  {"command":"set","path":"/slide[5]/shape[10]/paragraph[1]","props":{"align":"center"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!cta-tagline","text":"Precision. Power. Performance.","font":"Segoe UI",
-    "size":"18","color":"CCCCCC",
-    "x":"3cm","y":"12.5cm","width":"28cm","height":"2cm","fill":"none"}},
-  {"command":"set","path":"/slide[5]/shape[11]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p2-title' \
+  --prop text='Design' \
+  --prop font='Segoe UI Black' \
+  --prop size=28 \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8cm --prop width=8cm --prop height=2cm
 
-# ============================================================
-# Set morph transitions on slides 2-5
-# ============================================================
-echo '[
-  {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[4]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[5]","props":{"transition":"morph"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p2-desc' \
+  --prop text='Bold aesthetics that command attention' \
+  --prop font='Segoe UI' \
+  --prop size=14 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10cm --prop width=8cm --prop height=3cm
 
-# ============================================================
-# Validate & inspect
-# ============================================================
-officecli validate "$DECK"
-officecli view "$DECK" outline
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p3-num' \
+  --prop text='03' \
+  --prop font='Segoe UI Black' \
+  --prop size=48 \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5.5cm --prop width=8cm --prop height=2.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p3-title' \
+  --prop text='Deliver' \
+  --prop font='Segoe UI Black' \
+  --prop size=28 \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8cm --prop width=8cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p3-desc' \
+  --prop text='On time, on spec, every single build' \
+  --prop font='Segoe UI' \
+  --prop size=14 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10cm --prop width=8cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-evidence-title' \
+  --prop text='Our Numbers' \
+  --prop font='Segoe UI Black' \
+  --prop size=40 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=1cm --prop width=16cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-ev1-num' \
+  --prop text='500+' \
+  --prop font='Segoe UI Black' \
+  --prop size=64 \
+  --prop color=$ORANGE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5cm --prop width=14cm --prop height=3.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-ev1-label' \
+  --prop text='Units Manufactured' \
+  --prop font='Segoe UI' \
+  --prop size=20 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8.5cm --prop width=14cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-ev2-num' \
+  --prop text='99.8%' \
+  --prop font='Segoe UI Black' \
+  --prop size=64 \
+  --prop color=$YELLOW \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=3cm --prop width=14cm --prop height=3.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-ev2-label' \
+  --prop text='Quality Control Pass Rate' \
+  --prop font='Segoe UI' \
+  --prop size=20 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=6.5cm --prop width=14cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-ev3-num' \
+  --prop text='24/7' \
+  --prop font='Segoe UI Black' \
+  --prop size=64 \
+  --prop color=$WHITE \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=12cm --prop width=14cm --prop height=3.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-ev3-label' \
+  --prop text='Operations Running' \
+  --prop font='Segoe UI' \
+  --prop size=20 \
+  --prop color=$LIGHT_GRAY \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=15.5cm --prop width=14cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s5-cta-title' \
+  --prop text='Build With Us' \
+  --prop font='Segoe UI Black' \
+  --prop size=72 \
+  --prop bold=true \
+  --prop color=$WHITE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=4cm --prop width=28cm --prop height=5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s5-cta-contact' \
+  --prop text='contact@industrialdesign.co' \
+  --prop font='Segoe UI' \
+  --prop size=24 \
+  --prop color=$ORANGE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10cm --prop width=28cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s5-cta-tagline' \
+  --prop text='Precision. Power. Performance.' \
+  --prop font='Segoe UI' \
+  --prop size=18 \
+  --prop color=$LIGHT_GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=12.5cm --prop width=28cm --prop height=2cm
+
+# ============================================
+# SLIDE 2 - STATEMENT
+# ============================================
+echo "Building Slide 2: Statement..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[2]' --prop transition=morph
+
+# Morph scene actors - dramatic shift
+officecli set "$OUTPUT" '/slide[2]/shape[1]' --prop x=8cm --prop y=0cm --prop rotation=55
+officecli set "$OUTPUT" '/slide[2]/shape[2]' --prop x=0cm --prop y=5cm --prop rotation=-5
+officecli set "$OUTPUT" '/slide[2]/shape[3]' --prop x=22cm --prop y=14cm --prop rotation=15
+officecli set "$OUTPUT" '/slide[2]/shape[4]' --prop x=10cm --prop y=0cm --prop rotation=-60
+officecli set "$OUTPUT" '/slide[2]/shape[5]' --prop x=0cm --prop y=12cm --prop rotation=55
+officecli set "$OUTPUT" '/slide[2]/shape[6]' --prop x=6cm --prop y=2cm --prop rotation=-50
+officecli set "$OUTPUT" '/slide[2]/shape[7]' --prop x=2cm --prop y=14cm
+officecli set "$OUTPUT" '/slide[2]/shape[8]' --prop x=30cm --prop y=2cm
+
+# Hide slide 1 content, show slide 2 content
+officecli set "$OUTPUT" '/slide[2]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[2]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[2]/shape[11]' --prop x=3cm --prop y=5.5cm
+officecli set "$OUTPUT" '/slide[2]/shape[12]' --prop x=5cm --prop y=11cm
+
+# ============================================
+# SLIDE 3 - PILLARS
+# ============================================
+echo "Building Slide 3: Pillars..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[3]' --prop transition=morph
+
+# Morph scene actors - become vertical dividers
+officecli set "$OUTPUT" '/slide[3]/shape[1]' --prop x=9cm --prop y=0cm --prop width=3cm --prop height=24cm --prop rotation=8 --prop opacity=0.12
+officecli set "$OUTPUT" '/slide[3]/shape[2]' --prop x=20.5cm --prop y=0cm --prop width=3cm --prop height=24cm --prop rotation=-8 --prop opacity=0.08
+officecli set "$OUTPUT" '/slide[3]/shape[3]' --prop x=0cm --prop y=0cm --prop width=0.4cm --prop height=19.05cm --prop rotation=0 --prop opacity=0.7
+officecli set "$OUTPUT" '/slide[3]/shape[4]' --prop x=0cm --prop y=17cm --prop width=33.87cm --prop height=2.5cm --prop rotation=-3 --prop opacity=0.5
+officecli set "$OUTPUT" '/slide[3]/shape[5]' --prop x=0cm --prop y=4.5cm --prop width=33.87cm --prop rotation=2 --prop opacity=0.8
+officecli set "$OUTPUT" '/slide[3]/shape[6]' --prop x=0cm --prop y=16cm --prop width=33.87cm --prop rotation=-1 --prop opacity=0.2
+officecli set "$OUTPUT" '/slide[3]/shape[7]' --prop x=31cm --prop y=0.8cm --prop width=2cm --prop height=2cm
+officecli set "$OUTPUT" '/slide[3]/shape[8]' --prop x=16cm --prop y=16.5cm --prop width=1.5cm --prop height=1.5cm --prop opacity=0.7
+
+# Hide previous content, show slide 3 content
+officecli set "$OUTPUT" '/slide[3]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[11]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[12]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[13]' --prop x=1.2cm --prop y=0.8cm
+officecli set "$OUTPUT" '/slide[3]/shape[14]' --prop x=1.2cm --prop y=5.5cm
+officecli set "$OUTPUT" '/slide[3]/shape[15]' --prop x=1.2cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[3]/shape[16]' --prop x=1.2cm --prop y=10cm
+officecli set "$OUTPUT" '/slide[3]/shape[17]' --prop x=12.4cm --prop y=5.5cm
+officecli set "$OUTPUT" '/slide[3]/shape[18]' --prop x=12.4cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[3]/shape[19]' --prop x=12.4cm --prop y=10cm
+officecli set "$OUTPUT" '/slide[3]/shape[20]' --prop x=23.6cm --prop y=5.5cm
+officecli set "$OUTPUT" '/slide[3]/shape[21]' --prop x=23.6cm --prop y=8cm
+officecli set "$OUTPUT" '/slide[3]/shape[22]' --prop x=23.6cm --prop y=10cm
+
+# ============================================
+# SLIDE 4 - EVIDENCE
+# ============================================
+echo "Building Slide 4: Evidence..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[4]' --prop transition=morph
+
+# Morph scene actors - asymmetric frame
+officecli set "$OUTPUT" '/slide[4]/shape[1]' --prop x=0cm --prop y=0cm --prop rotation=-40 --prop opacity=0.5
+officecli set "$OUTPUT" '/slide[4]/shape[2]' --prop x=16cm --prop y=6cm --prop rotation=45 --prop opacity=0.1
+officecli set "$OUTPUT" '/slide[4]/shape[3]' --prop x=20cm --prop y=2cm --prop rotation=-25 --prop opacity=0.45
+officecli set "$OUTPUT" '/slide[4]/shape[4]' --prop x=0cm --prop y=14cm --prop rotation=20 --prop opacity=0.6
+officecli set "$OUTPUT" '/slide[4]/shape[5]' --prop x=2cm --prop y=0cm --prop rotation=-35
+officecli set "$OUTPUT" '/slide[4]/shape[6]' --prop x=0cm --prop y=8cm --prop rotation=40
+officecli set "$OUTPUT" '/slide[4]/shape[7]' --prop x=14cm --prop y=1cm --prop width=3.5cm --prop height=3.5cm --prop opacity=0.8
+officecli set "$OUTPUT" '/slide[4]/shape[8]' --prop x=28cm --prop y=15cm --prop width=2.5cm --prop height=2.5cm --prop opacity=0.7
+
+# Hide previous content, show slide 4 content
+officecli set "$OUTPUT" '/slide[4]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[11]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[12]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[13]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[14]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[15]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[16]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[17]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[18]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[19]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[20]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[21]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[22]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[23]' --prop x=1.2cm --prop y=1cm
+officecli set "$OUTPUT" '/slide[4]/shape[24]' --prop x=1.2cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[25]' --prop x=1.2cm --prop y=8.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[26]' --prop x=19cm --prop y=3cm
+officecli set "$OUTPUT" '/slide[4]/shape[27]' --prop x=19cm --prop y=6.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[28]' --prop x=8cm --prop y=12cm
+officecli set "$OUTPUT" '/slide[4]/shape[29]' --prop x=8cm --prop y=15.5cm
+
+# ============================================
+# SLIDE 5 - CTA
+# ============================================
+echo "Building Slide 5: CTA..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[5]' --prop transition=morph
+
+# Morph scene actors - return to bold pattern
+officecli set "$OUTPUT" '/slide[5]/shape[1]' --prop x=4cm --prop y=6cm --prop rotation=-35 --prop opacity=0.9
+officecli set "$OUTPUT" '/slide[5]/shape[2]' --prop x=0cm --prop y=12cm --prop rotation=30 --prop opacity=0.15
+officecli set "$OUTPUT" '/slide[5]/shape[3]' --prop x=0cm --prop y=0cm --prop rotation=-40 --prop opacity=0.85
+officecli set "$OUTPUT" '/slide[5]/shape[4]' --prop x=12cm --prop y=4cm --prop rotation=35 --prop opacity=0.7
+officecli set "$OUTPUT" '/slide[5]/shape[5]' --prop x=0cm --prop y=3cm --prop rotation=-30
+officecli set "$OUTPUT" '/slide[5]/shape[6]' --prop x=0cm --prop y=16cm --prop rotation=25
+officecli set "$OUTPUT" '/slide[5]/shape[7]' --prop x=1cm --prop y=2cm --prop width=3cm --prop height=3cm --prop opacity=0.9
+officecli set "$OUTPUT" '/slide[5]/shape[8]' --prop x=30cm --prop y=14cm --prop opacity=0.8
+
+# Hide previous content, show slide 5 content
+officecli set "$OUTPUT" '/slide[5]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[11]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[12]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[13]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[14]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[15]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[16]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[17]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[18]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[19]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[20]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[21]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[22]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[23]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[24]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[25]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[26]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[27]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[28]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[29]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[30]' --prop x=3cm --prop y=4cm
+officecli set "$OUTPUT" '/slide[5]/shape[31]' --prop x=3cm --prop y=10cm
+officecli set "$OUTPUT" '/slide[5]/shape[32]' --prop x=3cm --prop y=12.5cm
+
+# ============================================
+# VALIDATE & COMPLETE
+# ============================================
+echo "Validating..."
+bash "$(dirname "$0")/../../morph-helpers.sh" validate "$OUTPUT"
+
+echo "✅ Build complete: $OUTPUT"

@@ -148,7 +148,7 @@ export class PluginManager {
       this.pluginErrors.set(id, errorMsg);
 
       // Update database status to error
-      const db = getDatabase();
+      const db = await getDatabase();
       db.updateChannelPluginStatus(id, 'error');
 
       // Emit status change event with error
@@ -182,7 +182,7 @@ export class PluginManager {
       this.pluginErrors.set(id, errorMsg);
 
       // Update database status to error
-      const db = getDatabase();
+      const db = await getDatabase();
       db.updateChannelPluginStatus(id, 'error');
 
       // Emit status change event with error
@@ -195,7 +195,7 @@ export class PluginManager {
     this.plugins.set(id, plugin);
 
     // Update database status
-    const db = getDatabase();
+    const db = await getDatabase();
     db.updateChannelPluginStatus(id, 'running', Date.now());
 
     // Emit status change event
@@ -218,7 +218,7 @@ export class PluginManager {
     this.plugins.delete(pluginId);
 
     // Update database status
-    const db = getDatabase();
+    const db = await getDatabase();
     db.updateChannelPluginStatus(pluginId, 'stopped');
 
     // Emit status change event
@@ -237,8 +237,8 @@ export class PluginManager {
   /**
    * Get status for all plugins (for Settings UI)
    */
-  getPluginStatuses(): IChannelPluginStatus[] {
-    const db = getDatabase();
+  async getPluginStatuses(): Promise<IChannelPluginStatus[]> {
+    const db = await getDatabase();
     const result = db.getChannelPlugins();
 
     if (!result.success || !result.data) {
@@ -279,8 +279,8 @@ export class PluginManager {
   /**
    * Emit status change event to renderer
    */
-  private emitStatusChange(pluginId: string, _plugin: BasePlugin): void {
-    const db = getDatabase();
+  private async emitStatusChange(pluginId: string, _plugin: BasePlugin): Promise<void> {
+    const db = await getDatabase();
     const configResult = db.getChannelPlugin(pluginId);
 
     if (configResult.success && configResult.data) {

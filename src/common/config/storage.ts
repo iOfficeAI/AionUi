@@ -87,6 +87,8 @@ export interface IConfigStorageRefer {
   'migration.builtinDefaultSkillsAdded_v2'?: boolean;
   // 迁移标记：为所有内置助手添加 promptsI18n / Migration flag: add promptsI18n for all builtin assistants
   'migration.promptsI18nAdded'?: boolean;
+  /** Migration flag: Electron desktop config has been imported to server config */
+  'migration.electronConfigImported'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
   // 任务完成时显示系统通知 / Show system notification when task completes

@@ -4,11 +4,10 @@ set -e
 # Build script for 12-duotone-split
 # Duotone Split — bold two-color split screen with morph between different split ratios
 
-DECK="morph-templates/12-duotone-split/template.pptx"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DECK="$SCRIPT_DIR/mixed__duotone_split.pptx"
 
-cd /Users/veryliu/Documents/GitHub/OfficeCli
-
-officecli --version
+echo "Building: mixed--duotone-split (Duotone Split)"
 
 # Clean up if exists
 rm -f "$DECK"
@@ -267,5 +266,7 @@ echo '[
 ]' | officecli batch "$DECK"
 
 # Validate and review
-officecli validate "$DECK"
-officecli view "$DECK" outline
+echo "Validating..."
+bash "$(dirname "$0")/../../morph-helpers.sh" validate "$DECK"
+
+echo "✅ Build complete: $DECK"

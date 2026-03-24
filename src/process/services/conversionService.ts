@@ -7,7 +7,8 @@
 import type { ConversionResult, ExcelWorkbookData, PPTJsonData } from '@/common/types/conversion';
 import { DOMParser } from '@xmldom/xmldom';
 import { Document as DocxDocument, Packer, Paragraph, TextRun } from 'docx';
-import { BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
+import { electronBrowserWindow as BrowserWindowCtor } from '@/common/electronSafe';
 import fs from 'fs/promises';
 import mammoth from 'mammoth';
 import PPTX2Json from 'pptx2json';
@@ -38,7 +39,10 @@ class ConversionService {
       return { success: true, data: markdown };
     } catch (error) {
       console.error('[ConversionService] wordToMarkdown failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -76,7 +80,10 @@ class ConversionService {
       return { success: true };
     } catch (error) {
       console.error('[ConversionService] markdownToWord failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -104,7 +111,10 @@ class ConversionService {
       return { success: true, data: { sheets } };
     } catch (error) {
       console.error('[ConversionService] excelToJson failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -129,7 +139,10 @@ class ConversionService {
       return { success: true };
     } catch (error) {
       console.error('[ConversionService] jsonToExcel failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -201,16 +214,28 @@ class ConversionService {
       };
     } catch (error) {
       console.error('[ConversionService] pptToJson failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
   /**
    * 提取 Excel 中的图片资源，并且定位到对应单元格
    */
-  private async extractExcelImages(
-    buffer: Buffer
-  ): Promise<Record<string, { row: number; col: number; src: string; width?: number; height?: number }[]>> {
+  private async extractExcelImages(buffer: Buffer): Promise<
+    Record<
+      string,
+      {
+        row: number;
+        col: number;
+        src: string;
+        width?: number;
+        height?: number;
+      }[]
+    >
+  > {
     try {
       const fileMap = await this.loadExcelZipEntries(buffer);
       const workbookXml = fileMap.get('xl/workbook.xml');
@@ -241,7 +266,16 @@ class ConversionService {
       }
 
       const parser = new DOMParser();
-      const result: Record<string, { row: number; col: number; src: string; width?: number; height?: number }[]> = {};
+      const result: Record<
+        string,
+        {
+          row: number;
+          col: number;
+          src: string;
+          width?: number;
+          height?: number;
+        }[]
+      > = {};
 
       for (const sheetInfo of sheetInfos) {
         const sheetRelPath = this.getRelsPath(sheetInfo.path);
@@ -293,9 +327,13 @@ class ConversionService {
   /**
    * 解析 Drawing XML 中的图片锚点信息
    */
-  private parseDrawingAnchors(
-    doc: Document
-  ): Array<{ row: number; col: number; embedId: string; width?: number; height?: number }> {
+  private parseDrawingAnchors(doc: Document): Array<{
+    row: number;
+    col: number;
+    embedId: string;
+    width?: number;
+    height?: number;
+  }> {
     const anchors: Element[] = [];
     const anchorTags = [
       'xdr:twoCellAnchor',
@@ -319,7 +357,13 @@ class ConversionService {
     const colTags = ['xdr:col', 'col'];
     const sizeTags = ['xdr:ext', 'a:ext', 'ext'];
 
-    const entries: Array<{ row: number; col: number; embedId: string; width?: number; height?: number }> = [];
+    const entries: Array<{
+      row: number;
+      col: number;
+      embedId: string;
+      width?: number;
+      height?: number;
+    }> = [];
 
     anchors.forEach((anchor) => {
       const blip = this.findFirstChild(anchor, blipTags);
@@ -508,9 +552,15 @@ class ConversionService {
    * 使用隐藏的 BrowserWindow 进行渲染和打印
    */
   public async htmlToPdf(html: string, targetPath: string): Promise<ConversionResult<void>> {
+    if (!BrowserWindowCtor) {
+      return {
+        success: false,
+        error: 'PDF export is not available in standalone mode',
+      };
+    }
     let win: BrowserWindow | null = null;
     try {
-      win = new BrowserWindow({
+      win = new BrowserWindowCtor({
         show: false,
         webPreferences: {
           nodeIntegration: false,
@@ -545,7 +595,10 @@ class ConversionService {
       return { success: true };
     } catch (error) {
       console.error('[ConversionService] htmlToPdf failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     } finally {
       if (win) {
         win.close();
@@ -583,7 +636,10 @@ class ConversionService {
       return await this.htmlToPdf(html, targetPath);
     } catch (error) {
       console.error('[ConversionService] markdownToPdf failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 }

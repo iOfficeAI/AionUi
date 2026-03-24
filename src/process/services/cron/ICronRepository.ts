@@ -7,12 +7,12 @@
 import type { CronJob } from './CronStore';
 
 export interface ICronRepository {
-  insert(job: CronJob): void;
-  update(jobId: string, updates: Partial<CronJob>): void;
-  delete(jobId: string): void;
-  getById(jobId: string): CronJob | null;
-  listAll(): CronJob[];
-  listEnabled(): CronJob[];
-  listByConversation(conversationId: string): CronJob[];
-  deleteByConversation(conversationId: string): number;
+  insert(job: CronJob): Promise<void>;
+  update(jobId: string, updates: Partial<CronJob>): Promise<void>;
+  delete(jobId: string): Promise<void>;
+  getById(jobId: string): Promise<CronJob | null>;
+  listAll(): Promise<CronJob[]>;
+  listEnabled(): Promise<CronJob[]>;
+  listByConversation(conversationId: string): Promise<CronJob[]>;
+  deleteByConversation(conversationId: string): Promise<number>;
 }

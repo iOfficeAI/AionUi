@@ -1,365 +1,336 @@
 #!/bin/bash
 set -e
 
-# Build script for 01-mono-line
-# Auto-extracted from agent output
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/bw__mono_line.pptx"
 
-mkdir -p /Users/veryliu/Documents/GitHub/OfficeCli/morph-templates/01-mono-line
+echo "Building: bw--mono-line (Minimalist Lines)"
+rm -f "$OUTPUT"
+officecli create "$OUTPUT"
 
-officecli --version
+# Colors
+BG=FFFFFF
+BLACK=1A1A1A
+GRAY=C8C8C8
 
-officecli create morph-templates/01-mono-line/template.pptx && officecli add morph-templates/01-mono-line/template.pptx '/' --type slide --prop layout=blank --prop background=FFFFFF
+# Off-canvas position for hidden elements
+OFFSCREEN=36cm
 
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-h-top","preset":"rect","fill":"1A1A1A",
-    "x":"0cm","y":"1.5cm","width":"20cm","height":"0.05cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-h-mid","preset":"rect","fill":"C8C8C8",
-    "x":"10cm","y":"13cm","width":"15cm","height":"0.03cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-v-left","preset":"rect","fill":"1A1A1A",
-    "x":"2cm","y":"0cm","width":"0.05cm","height":"12cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-v-right","preset":"rect","fill":"C8C8C8",
-    "x":"30cm","y":"11cm","width":"0.03cm","height":"8cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!dot-accent-1","preset":"ellipse","fill":"1A1A1A",
-    "x":"28cm","y":"15cm","width":"1cm","height":"1cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!dot-accent-2","preset":"ellipse","fill":"C8C8C8",
-    "x":"31cm","y":"16cm","width":"0.8cm","height":"0.8cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-title","text":"Your Presentation Title","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"4cm","y":"5cm","width":"26cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-subtitle","text":"Subtitle goes here","font":"Segoe UI",
-    "size":"20","color":"C8C8C8",
-    "x":"4cm","y":"9.5cm","width":"20cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!statement-text","text":"The Big Idea","font":"Segoe UI Light",
-    "size":"64","color":"1A1A1A",
-    "x":"-3cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-1-num","text":"01","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"-3cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-1-title","text":"Strategy","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"-3cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-2-num","text":"02","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"10cm","y":"-3cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-2-title","text":"Design","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"22cm","y":"-3cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-3-num","text":"03","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-3-title","text":"Growth","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-1-num","text":"42%","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-1-label","text":"Efficiency Gain","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"-3cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-2-num","text":"3.2x","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"-3cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-2-label","text":"Growth Rate","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"-3cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-3-num","text":"98%","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"10cm","y":"-3cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-3-label","text":"Satisfaction","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"22cm","y":"-3cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-text","text":"Let'\''s Connect","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-sub","text":"hello@company.com","font":"Segoe UI",
-    "size":"18","color":"C8C8C8",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+# ============================================
+# SLIDE 1 - HERO
+# ============================================
+echo "Building Slide 1: Hero..."
 
-officecli view morph-templates/01-mono-line/template.pptx outline
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
 
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!statement-text","text":"The Big Idea","font":"Segoe UI Light",
-    "size":"64","color":"1A1A1A",
-    "x":"0cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-1-num","text":"01","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"0cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-1-title","text":"Strategy","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"0cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-2-num","text":"02","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"10cm","y":"0cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-2-title","text":"Design","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"22cm","y":"0cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-3-num","text":"03","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-3-title","text":"Growth","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-1-label","text":"Efficiency Gain","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"0cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-2-num","text":"3.2x","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"0cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-2-label","text":"Growth Rate","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"0cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-3-num","text":"98%","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"10cm","y":"0cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-3-label","text":"Satisfaction","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"22cm","y":"0cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-text","text":"Let'\''s Connect","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-sub","text":"hello@company.com","font":"Segoe UI",
-    "size":"18","color":"C8C8C8",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+# Scene actors: lines
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!line-h-top' \
+  --prop preset=rect \
+  --prop fill=$BLACK \
+  --prop x=0cm --prop y=1.5cm --prop width=20cm --prop height=0.05cm
 
-officecli view morph-templates/01-mono-line/template.pptx outline
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!line-h-mid' \
+  --prop preset=rect \
+  --prop fill=$GRAY \
+  --prop x=10cm --prop y=13cm --prop width=15cm --prop height=0.03cm
 
-rm morph-templates/01-mono-line/template.pptx && officecli create morph-templates/01-mono-line/template.pptx && officecli add morph-templates/01-mono-line/template.pptx '/' --type slide --prop layout=blank --prop background=FFFFFF
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!line-v-left' \
+  --prop preset=rect \
+  --prop fill=$BLACK \
+  --prop x=2cm --prop y=0cm --prop width=0.05cm --prop height=12cm
 
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-h-top","preset":"rect","fill":"1A1A1A",
-    "x":"0cm","y":"1.5cm","width":"20cm","height":"0.05cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-h-mid","preset":"rect","fill":"C8C8C8",
-    "x":"10cm","y":"13cm","width":"15cm","height":"0.03cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-v-left","preset":"rect","fill":"1A1A1A",
-    "x":"2cm","y":"0cm","width":"0.05cm","height":"12cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!line-v-right","preset":"rect","fill":"C8C8C8",
-    "x":"30cm","y":"11cm","width":"0.03cm","height":"8cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!dot-accent-1","preset":"ellipse","fill":"1A1A1A",
-    "x":"28cm","y":"15cm","width":"1cm","height":"1cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!dot-accent-2","preset":"ellipse","fill":"C8C8C8",
-    "x":"31cm","y":"16cm","width":"0.8cm","height":"0.8cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-title","text":"Your Presentation Title","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"4cm","y":"5cm","width":"26cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-subtitle","text":"Subtitle goes here","font":"Segoe UI",
-    "size":"20","color":"C8C8C8",
-    "x":"4cm","y":"9.5cm","width":"20cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!statement-text","text":"The Big Idea","font":"Segoe UI Light",
-    "size":"64","color":"1A1A1A",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-1-num","text":"01","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-1-title","text":"Strategy","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-2-num","text":"02","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"36cm","y":"4cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-2-title","text":"Design","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"36cm","y":"12cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-3-num","text":"03","font":"Segoe UI Light",
-    "size":"40","color":"C8C8C8",
-    "x":"36cm","y":"20cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pillar-3-title","text":"Growth","font":"Segoe UI Light",
-    "size":"28","color":"1A1A1A",
-    "x":"36cm","y":"6cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-1-num","text":"42%","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"14cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-1-label","text":"Efficiency Gain","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"36cm","y":"22cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-2-num","text":"3.2x","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"8cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-2-label","text":"Growth Rate","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"36cm","y":"16cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-3-num","text":"98%","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"24cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!metric-3-label","text":"Satisfaction","font":"Segoe UI",
-    "size":"16","color":"C8C8C8",
-    "x":"36cm","y":"0cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-text","text":"Let'\''s Connect","font":"Segoe UI Light",
-    "size":"54","color":"1A1A1A",
-    "x":"36cm","y":"18cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-sub","text":"hello@company.com","font":"Segoe UI",
-    "size":"18","color":"C8C8C8",
-    "x":"36cm","y":"26cm","width":"0.1cm","height":"0.1cm","fill":"none"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!line-v-right' \
+  --prop preset=rect \
+  --prop fill=$GRAY \
+  --prop x=30cm --prop y=11cm --prop width=0.03cm --prop height=8cm
 
-# Set alignment on hero title and subtitle
-echo '[
-  {"command":"set","path":"/slide[1]/shape[7]/paragraph[1]","props":{"align":"left"}},
-  {"command":"set","path":"/slide[1]/shape[8]/paragraph[1]","props":{"align":"left"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+# Scene actors: dots
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!dot-accent-1' \
+  --prop preset=ellipse \
+  --prop fill=$BLACK \
+  --prop x=28cm --prop y=15cm --prop width=1cm --prop height=1cm
 
-officecli add morph-templates/01-mono-line/template.pptx '/' --from '/slide[1]' && \
-officecli add morph-templates/01-mono-line/template.pptx '/' --from '/slide[1]' && \
-officecli add morph-templates/01-mono-line/template.pptx '/' --from '/slide[1]' && \
-officecli add morph-templates/01-mono-line/template.pptx '/' --from '/slide[1]'
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!dot-accent-2' \
+  --prop preset=ellipse \
+  --prop fill=$GRAY \
+  --prop x=31cm --prop y=16cm --prop width=0.8cm --prop height=0.8cm
 
-echo '[
-  {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[4]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[5]","props":{"transition":"morph"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+# Scene actors: all text elements (visible on slide 1, hidden on other slides initially)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!hero-title' \
+  --prop text="Your Presentation Title" \
+  --prop font="Segoe UI Light" \
+  --prop size=54 \
+  --prop color=$BLACK \
+  --prop x=4cm --prop y=5cm --prop width=26cm --prop height=4cm --prop fill=none
 
-echo '[
-  {"command":"set","path":"/slide[2]/shape[1]","props":{"x":"7cm","y":"9.5cm","width":"20cm","height":"0.05cm"}},
-  {"command":"set","path":"/slide[2]/shape[2]","props":{"x":"5cm","y":"9.5cm","width":"24cm","height":"0.03cm"}},
-  {"command":"set","path":"/slide[2]/shape[3]","props":{"x":"16.5cm","y":"3cm","width":"0.05cm","height":"13cm"}},
-  {"command":"set","path":"/slide[2]/shape[4]","props":{"x":"17.5cm","y":"4cm","width":"0.03cm","height":"11cm"}},
-  {"command":"set","path":"/slide[2]/shape[5]","props":{"x":"3cm","y":"9cm","width":"1cm","height":"1cm"}},
-  {"command":"set","path":"/slide[2]/shape[6]","props":{"x":"4.5cm","y":"10.5cm","width":"0.8cm","height":"0.8cm"}},
-  {"command":"set","path":"/slide[2]/shape[7]","props":{"x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[2]/shape[8]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[2]/shape[9]","props":{"x":"4cm","y":"5.5cm","width":"26cm","height":"5cm"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!hero-subtitle' \
+  --prop text="Subtitle goes here" \
+  --prop font="Segoe UI" \
+  --prop size=20 \
+  --prop color=$GRAY \
+  --prop x=4cm --prop y=9.5cm --prop width=20cm --prop height=2cm --prop fill=none
 
-echo '[
-  {"command":"set","path":"/slide[2]/shape[9]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+officecli set "$OUTPUT" '/slide[1]/shape[7]/paragraph[1]' --prop align=l
+officecli set "$OUTPUT" '/slide[1]/shape[8]/paragraph[1]' --prop align=l
 
-echo '[
-  {"command":"set","path":"/slide[3]/shape[1]","props":{"x":"1.2cm","y":"1.2cm","width":"31cm","height":"0.05cm"}},
-  {"command":"set","path":"/slide[3]/shape[2]","props":{"x":"1.2cm","y":"4.5cm","width":"31cm","height":"0.03cm"}},
-  {"command":"set","path":"/slide[3]/shape[3]","props":{"x":"11.5cm","y":"5cm","width":"0.05cm","height":"12cm"}},
-  {"command":"set","path":"/slide[3]/shape[4]","props":{"x":"22.5cm","y":"5cm","width":"0.03cm","height":"12cm"}},
-  {"command":"set","path":"/slide[3]/shape[5]","props":{"x":"5cm","y":"2.8cm","width":"1cm","height":"1cm"}},
-  {"command":"set","path":"/slide[3]/shape[6]","props":{"x":"16cm","y":"2.8cm","width":"0.8cm","height":"0.8cm"}},
-  {"command":"set","path":"/slide[3]/shape[7]","props":{"x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[8]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[9]","props":{"x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[10]","props":{"x":"2cm","y":"5.5cm","width":"8cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[11]","props":{"x":"2cm","y":"9cm","width":"8cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[12]","props":{"x":"13cm","y":"5.5cm","width":"8cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[13]","props":{"x":"13cm","y":"9cm","width":"8cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[14]","props":{"x":"24cm","y":"5.5cm","width":"8cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[15]","props":{"x":"24cm","y":"9cm","width":"8cm","height":"3cm"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+# Pre-create text elements for later slides (hidden off-canvas)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!statement-text' \
+  --prop text="The Big Idea" \
+  --prop font="Segoe UI Light" \
+  --prop size=64 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=2cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
 
-echo '[
-  {"command":"set","path":"/slide[4]/shape[1]","props":{"x":"1.2cm","y":"8cm","width":"31cm","height":"0.05cm"}},
-  {"command":"set","path":"/slide[4]/shape[2]","props":{"x":"20cm","y":"14cm","width":"12cm","height":"0.03cm"}},
-  {"command":"set","path":"/slide[4]/shape[3]","props":{"x":"19cm","y":"1cm","width":"0.05cm","height":"6cm"}},
-  {"command":"set","path":"/slide[4]/shape[4]","props":{"x":"32cm","y":"10cm","width":"0.03cm","height":"7cm"}},
-  {"command":"set","path":"/slide[4]/shape[5]","props":{"x":"2cm","y":"4cm","width":"1cm","height":"1cm"}},
-  {"command":"set","path":"/slide[4]/shape[6]","props":{"x":"13cm","y":"4cm","width":"0.8cm","height":"0.8cm"}},
-  {"command":"set","path":"/slide[4]/shape[7]","props":{"x":"36cm","y":"4cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[8]","props":{"x":"36cm","y":"12cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[9]","props":{"x":"36cm","y":"20cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[10]","props":{"x":"36cm","y":"6cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[11]","props":{"x":"36cm","y":"14cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[12]","props":{"x":"36cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[13]","props":{"x":"36cm","y":"0cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[14]","props":{"x":"36cm","y":"8cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[15]","props":{"x":"36cm","y":"16cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[4]/shape[16]","props":{"x":"3cm","y":"2cm","width":"14cm","height":"5cm"}},
-  {"command":"set","path":"/slide[4]/shape[17]","props":{"x":"3cm","y":"6cm","width":"14cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[18]","props":{"x":"3cm","y":"9cm","width":"14cm","height":"5cm"}},
-  {"command":"set","path":"/slide[4]/shape[19]","props":{"x":"3cm","y":"13cm","width":"14cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[20]","props":{"x":"20cm","y":"2cm","width":"12cm","height":"5cm"}},
-  {"command":"set","path":"/slide[4]/shape[21]","props":{"x":"20cm","y":"6cm","width":"12cm","height":"2cm"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-1-num' \
+  --prop text="01" \
+  --prop font="Segoe UI Light" \
+  --prop size=40 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=10cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
 
-echo '[
-  {"command":"set","path":"/slide[5]/shape[1]","props":{"x":"0cm","y":"0.8cm","width":"33.87cm","height":"0.05cm"}},
-  {"command":"set","path":"/slide[5]/shape[2]","props":{"x":"0cm","y":"18.2cm","width":"33.87cm","height":"0.03cm"}},
-  {"command":"set","path":"/slide[5]/shape[3]","props":{"x":"1.2cm","y":"0cm","width":"0.05cm","height":"19.05cm"}},
-  {"command":"set","path":"/slide[5]/shape[4]","props":{"x":"32.6cm","y":"0cm","width":"0.03cm","height":"19.05cm"}},
-  {"command":"set","path":"/slide[5]/shape[5]","props":{"x":"16cm","y":"13cm","width":"1cm","height":"1cm"}},
-  {"command":"set","path":"/slide[5]/shape[6]","props":{"x":"17.5cm","y":"13.5cm","width":"0.8cm","height":"0.8cm"}},
-  {"command":"set","path":"/slide[5]/shape[7]","props":{"x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[8]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[9]","props":{"x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[10]","props":{"x":"36cm","y":"4cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[11]","props":{"x":"36cm","y":"12cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[12]","props":{"x":"36cm","y":"20cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[13]","props":{"x":"36cm","y":"6cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[14]","props":{"x":"36cm","y":"14cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[15]","props":{"x":"36cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[16]","props":{"x":"36cm","y":"8cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[17]","props":{"x":"36cm","y":"16cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[18]","props":{"x":"36cm","y":"0cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[19]","props":{"x":"36cm","y":"24cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[20]","props":{"x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[21]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[22]","props":{"x":"5cm","y":"5cm","width":"24cm","height":"5cm"}},
-  {"command":"set","path":"/slide[5]/shape[23]","props":{"x":"8cm","y":"10.5cm","width":"18cm","height":"2cm"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-1-title' \
+  --prop text="Strategy" \
+  --prop font="Segoe UI Light" \
+  --prop size=28 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=17cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
 
-echo '[
-  {"command":"set","path":"/slide[5]/shape[22]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[5]/shape[23]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch morph-templates/01-mono-line/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-2-num' \
+  --prop text="02" \
+  --prop font="Segoe UI Light" \
+  --prop size=40 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=4cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
 
-officecli validate morph-templates/01-mono-line/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-2-title' \
+  --prop text="Design" \
+  --prop font="Segoe UI Light" \
+  --prop size=28 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=12cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
 
-officecli view morph-templates/01-mono-line/template.pptx outline
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-3-num' \
+  --prop text="03" \
+  --prop font="Segoe UI Light" \
+  --prop size=40 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=20cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pillar-3-title' \
+  --prop text="Growth" \
+  --prop font="Segoe UI Light" \
+  --prop size=28 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=6cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-1-num' \
+  --prop text="42%" \
+  --prop font="Segoe UI Light" \
+  --prop size=54 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=14cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-1-label' \
+  --prop text="Efficiency Gain" \
+  --prop font="Segoe UI" \
+  --prop size=16 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=22cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-2-num' \
+  --prop text="3.2x" \
+  --prop font="Segoe UI Light" \
+  --prop size=54 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=8cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-2-label' \
+  --prop text="Growth Rate" \
+  --prop font="Segoe UI" \
+  --prop size=16 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=16cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-3-num' \
+  --prop text="98%" \
+  --prop font="Segoe UI Light" \
+  --prop size=54 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=24cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-3-label' \
+  --prop text="Satisfaction" \
+  --prop font="Segoe UI" \
+  --prop size=16 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=0cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-text' \
+  --prop text="Let's Connect" \
+  --prop font="Segoe UI Light" \
+  --prop size=54 \
+  --prop color=$BLACK \
+  --prop x=${OFFSCREEN} --prop y=18cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-sub' \
+  --prop text="hello@company.com" \
+  --prop font="Segoe UI" \
+  --prop size=18 \
+  --prop color=$GRAY \
+  --prop x=${OFFSCREEN} --prop y=26cm --prop width=0.1cm --prop height=0.1cm --prop fill=none
+
+# ============================================
+# SLIDE 2 - STATEMENT
+# ============================================
+echo "Building Slide 2: Statement..."
+
+# Clone slide 1
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[2]' --prop transition=morph
+
+# Move lines to center intersection
+officecli set "$OUTPUT" '/slide[2]/shape[1]' --prop x=7cm --prop y=9.5cm --prop width=20cm --prop height=0.05cm
+officecli set "$OUTPUT" '/slide[2]/shape[2]' --prop x=5cm --prop y=9.5cm --prop width=24cm --prop height=0.03cm
+officecli set "$OUTPUT" '/slide[2]/shape[3]' --prop x=16.5cm --prop y=3cm --prop width=0.05cm --prop height=13cm
+officecli set "$OUTPUT" '/slide[2]/shape[4]' --prop x=17.5cm --prop y=4cm --prop width=0.03cm --prop height=11cm
+
+# Move dots
+officecli set "$OUTPUT" '/slide[2]/shape[5]' --prop x=3cm --prop y=9cm --prop width=1cm --prop height=1cm
+officecli set "$OUTPUT" '/slide[2]/shape[6]' --prop x=4.5cm --prop y=10.5cm --prop width=0.8cm --prop height=0.8cm
+
+# Hide slide 1 text (hero)
+officecli set "$OUTPUT" '/slide[2]/shape[7]' --prop x=${OFFSCREEN} --prop y=2cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[2]/shape[8]' --prop x=${OFFSCREEN} --prop y=10cm --prop width=0.1cm --prop height=0.1cm
+
+# Show statement text
+officecli set "$OUTPUT" '/slide[2]/shape[9]' --prop x=4cm --prop y=5.5cm --prop width=26cm --prop height=5cm
+officecli set "$OUTPUT" '/slide[2]/shape[9]/paragraph[1]' --prop align=center
+
+# ============================================
+# SLIDE 3 - THREE PILLARS
+# ============================================
+echo "Building Slide 3: Three Pillars..."
+
+# Clone slide 2
+officecli add "$OUTPUT" '/' --from '/slide[2]'
+officecli set "$OUTPUT" '/slide[3]' --prop transition=morph
+
+# Move lines to create column dividers
+officecli set "$OUTPUT" '/slide[3]/shape[1]' --prop x=1.2cm --prop y=1.2cm --prop width=31cm --prop height=0.05cm
+officecli set "$OUTPUT" '/slide[3]/shape[2]' --prop x=1.2cm --prop y=4.5cm --prop width=31cm --prop height=0.03cm
+officecli set "$OUTPUT" '/slide[3]/shape[3]' --prop x=11.5cm --prop y=5cm --prop width=0.05cm --prop height=12cm
+officecli set "$OUTPUT" '/slide[3]/shape[4]' --prop x=22.5cm --prop y=5cm --prop width=0.03cm --prop height=12cm
+
+# Move dots
+officecli set "$OUTPUT" '/slide[3]/shape[5]' --prop x=5cm --prop y=2.8cm --prop width=1cm --prop height=1cm
+officecli set "$OUTPUT" '/slide[3]/shape[6]' --prop x=16cm --prop y=2.8cm --prop width=0.8cm --prop height=0.8cm
+
+# Hide statement text
+officecli set "$OUTPUT" '/slide[3]/shape[9]' --prop x=${OFFSCREEN} --prop y=17cm --prop width=0.1cm --prop height=0.1cm
+
+# Show three pillars
+officecli set "$OUTPUT" '/slide[3]/shape[10]' --prop x=2cm --prop y=5.5cm --prop width=8cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[11]' --prop x=2cm --prop y=9cm --prop width=8cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[12]' --prop x=13cm --prop y=5.5cm --prop width=8cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[13]' --prop x=13cm --prop y=9cm --prop width=8cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[14]' --prop x=24cm --prop y=5.5cm --prop width=8cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[15]' --prop x=24cm --prop y=9cm --prop width=8cm --prop height=3cm
+
+# ============================================
+# SLIDE 4 - METRICS
+# ============================================
+echo "Building Slide 4: Metrics..."
+
+# Clone slide 3
+officecli add "$OUTPUT" '/' --from '/slide[3]'
+officecli set "$OUTPUT" '/slide[4]' --prop transition=morph
+
+# Move lines
+officecli set "$OUTPUT" '/slide[4]/shape[1]' --prop x=1.2cm --prop y=8cm --prop width=31cm --prop height=0.05cm
+officecli set "$OUTPUT" '/slide[4]/shape[2]' --prop x=20cm --prop y=14cm --prop width=12cm --prop height=0.03cm
+officecli set "$OUTPUT" '/slide[4]/shape[3]' --prop x=19cm --prop y=1cm --prop width=0.05cm --prop height=6cm
+officecli set "$OUTPUT" '/slide[4]/shape[4]' --prop x=32cm --prop y=10cm --prop width=0.03cm --prop height=7cm
+
+# Move dots
+officecli set "$OUTPUT" '/slide[4]/shape[5]' --prop x=2cm --prop y=4cm --prop width=1cm --prop height=1cm
+officecli set "$OUTPUT" '/slide[4]/shape[6]' --prop x=13cm --prop y=4cm --prop width=0.8cm --prop height=0.8cm
+
+# Hide pillars
+officecli set "$OUTPUT" '/slide[4]/shape[10]' --prop x=${OFFSCREEN} --prop y=6cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[4]/shape[11]' --prop x=${OFFSCREEN} --prop y=14cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[4]/shape[12]' --prop x=${OFFSCREEN} --prop y=22cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[4]/shape[13]' --prop x=${OFFSCREEN} --prop y=0cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[4]/shape[14]' --prop x=${OFFSCREEN} --prop y=8cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[4]/shape[15]' --prop x=${OFFSCREEN} --prop y=16cm --prop width=0.1cm --prop height=0.1cm
+
+# Show metrics
+officecli set "$OUTPUT" '/slide[4]/shape[16]' --prop x=3cm --prop y=2cm --prop width=14cm --prop height=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[17]' --prop x=3cm --prop y=6cm --prop width=14cm --prop height=2cm
+officecli set "$OUTPUT" '/slide[4]/shape[18]' --prop x=3cm --prop y=9cm --prop width=14cm --prop height=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[19]' --prop x=3cm --prop y=13cm --prop width=14cm --prop height=2cm
+officecli set "$OUTPUT" '/slide[4]/shape[20]' --prop x=20cm --prop y=2cm --prop width=12cm --prop height=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[21]' --prop x=20cm --prop y=6cm --prop width=12cm --prop height=2cm
+
+# ============================================
+# SLIDE 5 - CTA
+# ============================================
+echo "Building Slide 5: CTA..."
+
+# Clone slide 4
+officecli add "$OUTPUT" '/' --from '/slide[4]'
+officecli set "$OUTPUT" '/slide[5]' --prop transition=morph
+
+# Move lines to create border frame
+officecli set "$OUTPUT" '/slide[5]/shape[1]' --prop x=0cm --prop y=0.8cm --prop width=33.87cm --prop height=0.05cm
+officecli set "$OUTPUT" '/slide[5]/shape[2]' --prop x=0cm --prop y=18.2cm --prop width=33.87cm --prop height=0.03cm
+officecli set "$OUTPUT" '/slide[5]/shape[3]' --prop x=1.2cm --prop y=0cm --prop width=0.05cm --prop height=19.05cm
+officecli set "$OUTPUT" '/slide[5]/shape[4]' --prop x=32.6cm --prop y=0cm --prop width=0.03cm --prop height=19.05cm
+
+# Move dots to center
+officecli set "$OUTPUT" '/slide[5]/shape[5]' --prop x=16cm --prop y=13cm --prop width=1cm --prop height=1cm
+officecli set "$OUTPUT" '/slide[5]/shape[6]' --prop x=17.5cm --prop y=13.5cm --prop width=0.8cm --prop height=0.8cm
+
+# Hide metrics
+officecli set "$OUTPUT" '/slide[5]/shape[16]' --prop x=${OFFSCREEN} --prop y=8cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[5]/shape[17]' --prop x=${OFFSCREEN} --prop y=16cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[5]/shape[18]' --prop x=${OFFSCREEN} --prop y=0cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[5]/shape[19]' --prop x=${OFFSCREEN} --prop y=24cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[5]/shape[20]' --prop x=${OFFSCREEN} --prop y=2cm --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[5]/shape[21]' --prop x=${OFFSCREEN} --prop y=10cm --prop width=0.1cm --prop height=0.1cm
+
+# Show CTA
+officecli set "$OUTPUT" '/slide[5]/shape[22]' --prop x=5cm --prop y=5cm --prop width=24cm --prop height=5cm
+officecli set "$OUTPUT" '/slide[5]/shape[23]' --prop x=8cm --prop y=10.5cm --prop width=18cm --prop height=2cm
+officecli set "$OUTPUT" '/slide[5]/shape[22]/paragraph[1]' --prop align=center
+officecli set "$OUTPUT" '/slide[5]/shape[23]/paragraph[1]' --prop align=center
+
+# ============================================
+# FINAL VALIDATION
+# ============================================
+officecli validate "$OUTPUT"
+officecli view "$OUTPUT" outline
+
+echo "✅ Build complete: $OUTPUT"

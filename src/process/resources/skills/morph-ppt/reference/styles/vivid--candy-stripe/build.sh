@@ -1,285 +1,502 @@
 #!/bin/bash
 set -e
 
-# Build script for 10-candy-stripe — "Candy Stripe" morph template
-# Playful rainbow horizontal bands that slide, expand, compress across slides
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/vivid__candy_stripe.pptx"
 
-DECK="/Users/veryliu/Documents/GitHub/OfficeCli/morph-templates/10-candy-stripe/template.pptx"
+echo "Building: vivid--candy-stripe (Rainbow Candy Stripes)"
+rm -f "$OUTPUT"
+officecli create "$OUTPUT"
 
-officecli --version
+# Colors
+BG=FFFFFF
+RED=FF5252
+ORANGE=FF7B39
+YELLOW=FFD740
+GREEN=69F0AE
+BLUE=40C4FF
+PURPLE=7C4DFF
+BLACK=1A1A1A
+GRAY=555555
 
-# ============================================================
-# Step 1: Create file + 5 blank slides
-# ============================================================
-officecli create "$DECK"
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFFFF
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFFFF
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFFFF
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFFFF
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFFFF
+# ============================================
+# SLIDE 1 - HERO
+# ============================================
+echo "Building Slide 1: Hero..."
 
-# Set morph transitions on slides 2-5
-echo '[
-  {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[4]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[5]","props":{"transition":"morph"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
 
-# ============================================================
-# SLIDE 1 — Hero: "Color Your World"
-# Even rainbow stack — 6 full-width bands spread across the slide
-# Canvas: 33.87 x 19.05cm; bands at even vertical intervals
-# ============================================================
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stripe-red","preset":"rect","fill":"FF5252",
-    "x":"0cm","y":"0cm","width":"34cm","height":"2cm","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stripe-orange","preset":"rect","fill":"FF7B39",
-    "x":"0cm","y":"3.4cm","width":"34cm","height":"2cm","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stripe-yellow","preset":"rect","fill":"FFD740",
-    "x":"0cm","y":"6.8cm","width":"34cm","height":"2cm","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stripe-green","preset":"rect","fill":"69F0AE",
-    "x":"0cm","y":"10.2cm","width":"34cm","height":"2cm","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stripe-blue","preset":"rect","fill":"40C4FF",
-    "x":"0cm","y":"13.6cm","width":"34cm","height":"2cm","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stripe-purple","preset":"rect","fill":"7C4DFF",
-    "x":"0cm","y":"17cm","width":"34cm","height":"2cm","opacity":"0.85"}},
+# Scene actors: 6 rainbow stripes (evenly distributed)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stripe-red' \
+  --prop preset=rect \
+  --prop fill=$RED \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=0cm --prop width=34cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-title","text":"Color Your World","font":"Segoe UI Black",
-    "size":"64","bold":"true","color":"1A1A1A",
-    "x":"3cm","y":"5.5cm","width":"28cm","height":"4.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-sub","text":"Creative Festival 2026","font":"Segoe UI",
-    "size":"28","color":"555555",
-    "x":"3cm","y":"10.5cm","width":"28cm","height":"2.5cm","fill":"none"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stripe-orange' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=3.4cm --prop width=34cm --prop height=2cm
 
-# Center-align hero text
-echo '[
-  {"command":"set","path":"/slide[1]/shape[7]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[1]/shape[8]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stripe-yellow' \
+  --prop preset=rect \
+  --prop fill=$YELLOW \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=6.8cm --prop width=34cm --prop height=2cm
 
-# ============================================================
-# SLIDE 2 — Statement: "6 Days of Inspiration"
-# All stripes compress to top 4cm as colorful header bar
-# Each stripe: 0.5cm tall, stacked tightly at y=0..2.5
-# Content below in white space
-# ============================================================
-echo '[
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!stripe-red","preset":"rect","fill":"FF5252",
-    "x":"0cm","y":"0cm","width":"34cm","height":"0.5cm","opacity":"1"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!stripe-orange","preset":"rect","fill":"FF7B39",
-    "x":"0cm","y":"0.6cm","width":"34cm","height":"0.5cm","opacity":"1"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!stripe-yellow","preset":"rect","fill":"FFD740",
-    "x":"0cm","y":"1.2cm","width":"34cm","height":"0.5cm","opacity":"1"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!stripe-green","preset":"rect","fill":"69F0AE",
-    "x":"0cm","y":"1.8cm","width":"34cm","height":"0.5cm","opacity":"1"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!stripe-blue","preset":"rect","fill":"40C4FF",
-    "x":"0cm","y":"2.4cm","width":"34cm","height":"0.5cm","opacity":"1"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!stripe-purple","preset":"rect","fill":"7C4DFF",
-    "x":"0cm","y":"3cm","width":"34cm","height":"0.5cm","opacity":"1"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stripe-green' \
+  --prop preset=rect \
+  --prop fill=$GREEN \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=10.2cm --prop width=34cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!hero-title","text":"6 Days of Inspiration","font":"Segoe UI Black",
-    "size":"54","bold":"true","color":"1A1A1A",
-    "x":"3cm","y":"6cm","width":"28cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "name":"!!hero-sub","text":"Where creativity meets community","font":"Segoe UI",
-    "size":"24","color":"555555",
-    "x":"3cm","y":"10.5cm","width":"28cm","height":"2.5cm","fill":"none"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stripe-blue' \
+  --prop preset=rect \
+  --prop fill=$BLUE \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=13.6cm --prop width=34cm --prop height=2cm
 
-echo '[
-  {"command":"set","path":"/slide[2]/shape[7]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[2]/shape[8]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stripe-purple' \
+  --prop preset=rect \
+  --prop fill=$PURPLE \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=17cm --prop width=34cm --prop height=2cm
 
-# ============================================================
-# SLIDE 3 — Pillars: "Music / Art / Tech"
-# Stripes break into 3 vertical columns as card backgrounds
-# Red+orange form col1, yellow+green form col2, blue+purple form col3
-# ============================================================
-echo '[
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!stripe-red","preset":"rect","fill":"FF5252",
-    "x":"1.2cm","y":"4.5cm","width":"9.5cm","height":"13.5cm","opacity":"0.12"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!stripe-orange","preset":"rect","fill":"FF7B39",
-    "x":"1.2cm","y":"4.5cm","width":"9.5cm","height":"0.4cm","opacity":"0.8"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!stripe-yellow","preset":"rect","fill":"FFD740",
-    "x":"12.2cm","y":"4.5cm","width":"9.5cm","height":"13.5cm","opacity":"0.12"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!stripe-green","preset":"rect","fill":"69F0AE",
-    "x":"12.2cm","y":"4.5cm","width":"9.5cm","height":"0.4cm","opacity":"0.8"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!stripe-blue","preset":"rect","fill":"40C4FF",
-    "x":"23.2cm","y":"4.5cm","width":"9.5cm","height":"13.5cm","opacity":"0.12"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!stripe-purple","preset":"rect","fill":"7C4DFF",
-    "x":"23.2cm","y":"4.5cm","width":"9.5cm","height":"0.4cm","opacity":"0.8"}},
+# Content: hero text
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-title' \
+  --prop text="Color Your World" \
+  --prop font="Segoe UI Black" \
+  --prop size=64 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=5.5cm --prop width=28cm --prop height=4.5cm
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!hero-title","text":"What Awaits You","font":"Segoe UI Black",
-    "size":"40","bold":"true","color":"1A1A1A",
-    "x":"1.2cm","y":"0.8cm","width":"20cm","height":"3cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!hero-sub","text":"","font":"Segoe UI",
-    "size":"18","color":"555555",
-    "x":"36cm","y":"0.8cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-subtitle' \
+  --prop text="Creative Festival 2026" \
+  --prop font="Segoe UI" \
+  --prop size=28 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=10.5cm --prop width=28cm --prop height=2.5cm
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col1-num","text":"01","font":"Segoe UI Black","size":"48","color":"FF5252",
-    "x":"2.5cm","y":"5.5cm","width":"7cm","height":"3cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col1-title","text":"Music","font":"Segoe UI Black","size":"28","color":"1A1A1A",
-    "x":"2.5cm","y":"8.5cm","width":"7cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col1-desc","text":"Live performances from 80+ artists across every genre","font":"Segoe UI","size":"16","color":"555555",
-    "x":"2.5cm","y":"11cm","width":"7cm","height":"3cm","fill":"none"}},
+# ============================================
+# SLIDE 2 - STATEMENT
+# ============================================
+echo "Building Slide 2: Statement..."
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col2-num","text":"02","font":"Segoe UI Black","size":"48","color":"FFD740",
-    "x":"13.5cm","y":"5.5cm","width":"7cm","height":"3cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col2-title","text":"Art","font":"Segoe UI Black","size":"28","color":"1A1A1A",
-    "x":"13.5cm","y":"8.5cm","width":"7cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col2-desc","text":"Interactive installations and immersive galleries","font":"Segoe UI","size":"16","color":"555555",
-    "x":"13.5cm","y":"11cm","width":"7cm","height":"3cm","fill":"none"}},
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
+officecli set "$OUTPUT" '/slide[2]' --prop transition=morph
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col3-num","text":"03","font":"Segoe UI Black","size":"48","color":"40C4FF",
-    "x":"24.5cm","y":"5.5cm","width":"7cm","height":"3cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col3-title","text":"Tech","font":"Segoe UI Black","size":"28","color":"1A1A1A",
-    "x":"24.5cm","y":"8.5cm","width":"7cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "name":"!!col3-desc","text":"Cutting-edge demos and hands-on workshops","font":"Segoe UI","size":"16","color":"555555",
-    "x":"24.5cm","y":"11cm","width":"7cm","height":"3cm","fill":"none"}}
-]' | officecli batch "$DECK"
+# Compress all stripes to top (thin header bar)
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=!!stripe-red' \
+  --prop preset=rect \
+  --prop fill=$RED \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=0cm --prop width=34cm --prop height=0.5cm
 
-# ============================================================
-# SLIDE 4 — Evidence: "50K / 200 / 6"
-# Blue stripe expands huge (40% canvas) as data backdrop
-# Others shrink to edges
-# ============================================================
-echo '[
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stripe-red","preset":"rect","fill":"FF5252",
-    "x":"0cm","y":"0cm","width":"34cm","height":"0.3cm","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stripe-orange","preset":"rect","fill":"FF7B39",
-    "x":"0cm","y":"0.5cm","width":"34cm","height":"0.3cm","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stripe-yellow","preset":"rect","fill":"FFD740",
-    "x":"0cm","y":"18.2cm","width":"34cm","height":"0.3cm","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stripe-green","preset":"rect","fill":"69F0AE",
-    "x":"0cm","y":"18.6cm","width":"34cm","height":"0.3cm","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stripe-blue","preset":"rect","fill":"40C4FF",
-    "x":"0cm","y":"3cm","width":"34cm","height":"8cm","opacity":"0.5"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stripe-purple","preset":"rect","fill":"7C4DFF",
-    "x":"0cm","y":"11.2cm","width":"34cm","height":"0.3cm","opacity":"0.7"}},
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=!!stripe-orange' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=0.5cm --prop width=34cm --prop height=0.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!hero-title","text":"By The Numbers","font":"Segoe UI Black",
-    "size":"36","bold":"true","color":"1A1A1A",
-    "x":"1.2cm","y":"1.2cm","width":"15cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!hero-sub","text":"","font":"Segoe UI",
-    "size":"18","color":"555555",
-    "x":"36cm","y":"1.2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=!!stripe-yellow' \
+  --prop preset=rect \
+  --prop fill=$YELLOW \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=1cm --prop width=34cm --prop height=0.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stat1-num","text":"50K","font":"Segoe UI Black","size":"72","color":"FFFFFF",
-    "x":"2cm","y":"3.5cm","width":"9cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stat1-label","text":"Attendees","font":"Segoe UI","size":"20","color":"FFFFFF",
-    "x":"2cm","y":"7.5cm","width":"9cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=!!stripe-green' \
+  --prop preset=rect \
+  --prop fill=$GREEN \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=1.5cm --prop width=34cm --prop height=0.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stat2-num","text":"200","font":"Segoe UI Black","size":"72","color":"FFFFFF",
-    "x":"12.5cm","y":"3.5cm","width":"9cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stat2-label","text":"Speakers","font":"Segoe UI","size":"20","color":"FFFFFF",
-    "x":"12.5cm","y":"7.5cm","width":"9cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=!!stripe-blue' \
+  --prop preset=rect \
+  --prop fill=$BLUE \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=2cm --prop width=34cm --prop height=0.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stat3-num","text":"6","font":"Segoe UI Black","size":"72","color":"FFFFFF",
-    "x":"23cm","y":"3.5cm","width":"9cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!stat3-label","text":"Stages","font":"Segoe UI","size":"20","color":"FFFFFF",
-    "x":"23cm","y":"7.5cm","width":"9cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=!!stripe-purple' \
+  --prop preset=rect \
+  --prop fill=$PURPLE \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=2.5cm --prop width=34cm --prop height=0.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "name":"!!evidence-tagline","text":"The biggest creative festival in the region","font":"Segoe UI",
-    "size":"22","color":"555555",
-    "x":"3cm","y":"13cm","width":"28cm","height":"2.5cm","fill":"none"}}
-]' | officecli batch "$DECK"
+# Content
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=#s2-statement' \
+  --prop text="6 Days of Inspiration" \
+  --prop font="Segoe UI Black" \
+  --prop size=54 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=7cm --prop width=28cm --prop height=3.5cm
 
-echo '[
-  {"command":"set","path":"/slide[4]/shape[15]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/slide[2]' --type shape \
+  --prop 'name=#s2-desc' \
+  --prop text="Join artists, designers, and creators from around the world\nto celebrate the power of color and imagination." \
+  --prop font="Segoe UI" \
+  --prop size=20 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=11.5cm --prop width=28cm --prop height=3cm
 
-# ============================================================
-# SLIDE 5 — CTA: "Get Your Pass"
-# Stripes fan back to bottom in reverse order as colorful footer
-# Purple at top of footer, red at bottom — reversed rainbow
-# ============================================================
-echo '[
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!stripe-red","preset":"rect","fill":"FF5252",
-    "x":"0cm","y":"17cm","width":"34cm","height":"2cm","opacity":"0.9"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!stripe-orange","preset":"rect","fill":"FF7B39",
-    "x":"0cm","y":"15.5cm","width":"34cm","height":"1.4cm","opacity":"0.85"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!stripe-yellow","preset":"rect","fill":"FFD740",
-    "x":"0cm","y":"14.2cm","width":"34cm","height":"1.2cm","opacity":"0.8"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!stripe-green","preset":"rect","fill":"69F0AE",
-    "x":"0cm","y":"13cm","width":"34cm","height":"1cm","opacity":"0.75"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!stripe-blue","preset":"rect","fill":"40C4FF",
-    "x":"0cm","y":"12cm","width":"34cm","height":"0.8cm","opacity":"0.7"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!stripe-purple","preset":"rect","fill":"7C4DFF",
-    "x":"0cm","y":"11.2cm","width":"34cm","height":"0.6cm","opacity":"0.65"}},
+# ============================================
+# SLIDE 3 - PILLARS (3 columns)
+# ============================================
+echo "Building Slide 3: Pillars..."
 
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!hero-title","text":"Get Your Pass","font":"Segoe UI Black",
-    "size":"64","bold":"true","color":"1A1A1A",
-    "x":"3cm","y":"2cm","width":"28cm","height":"4.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "name":"!!hero-sub","text":"creativefestival2026.com","font":"Segoe UI",
-    "size":"24","color":"555555",
-    "x":"3cm","y":"7cm","width":"28cm","height":"2.5cm","fill":"none"}}
-]' | officecli batch "$DECK"
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
+officecli set "$OUTPUT" '/slide[3]' --prop transition=morph
 
-echo '[
-  {"command":"set","path":"/slide[5]/shape[7]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[5]/shape[8]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch "$DECK"
+# Stripes become card backgrounds (paired: red+orange, yellow+green, blue+purple)
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=!!stripe-red' \
+  --prop preset=rect \
+  --prop fill=$RED \
+  --prop opacity=0.12 \
+  --prop x=2cm --prop y=5cm --prop width=9cm --prop height=10cm
 
-# ============================================================
-# Validate & outline
-# ============================================================
-officecli validate "$DECK"
-officecli view "$DECK" outline
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=!!stripe-orange' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=0.12 \
+  --prop x=2cm --prop y=5cm --prop width=9cm --prop height=10cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=!!stripe-yellow' \
+  --prop preset=rect \
+  --prop fill=$YELLOW \
+  --prop opacity=0.12 \
+  --prop x=12.5cm --prop y=5cm --prop width=9cm --prop height=10cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=!!stripe-green' \
+  --prop preset=rect \
+  --prop fill=$GREEN \
+  --prop opacity=0.12 \
+  --prop x=12.5cm --prop y=5cm --prop width=9cm --prop height=10cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=!!stripe-blue' \
+  --prop preset=rect \
+  --prop fill=$BLUE \
+  --prop opacity=0.12 \
+  --prop x=23cm --prop y=5cm --prop width=9cm --prop height=10cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=!!stripe-purple' \
+  --prop preset=rect \
+  --prop fill=$PURPLE \
+  --prop opacity=0.12 \
+  --prop x=23cm --prop y=5cm --prop width=9cm --prop height=10cm
+
+# Content: title
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-title' \
+  --prop text="Three Themes" \
+  --prop font="Segoe UI Black" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=1.5cm --prop width=28cm --prop height=2.5cm
+
+# Column 1
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col1-num' \
+  --prop text="01" \
+  --prop font="Segoe UI Black" \
+  --prop size=40 \
+  --prop bold=true \
+  --prop color=$RED \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=6cm --prop width=7cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col1-title' \
+  --prop text="Color Theory" \
+  --prop font="Segoe UI Black" \
+  --prop size=24 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=8.5cm --prop width=7cm --prop height=1.5cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col1-desc' \
+  --prop text="Understanding harmony, contrast, and emotional impact of color combinations." \
+  --prop font="Segoe UI" \
+  --prop size=16 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=10.5cm --prop width=7cm --prop height=3cm
+
+# Column 2
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col2-num' \
+  --prop text="02" \
+  --prop font="Segoe UI Black" \
+  --prop size=40 \
+  --prop bold=true \
+  --prop color=$YELLOW \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=13.5cm --prop y=6cm --prop width=7cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col2-title' \
+  --prop text="Digital Art" \
+  --prop font="Segoe UI Black" \
+  --prop size=24 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=13.5cm --prop y=8.5cm --prop width=7cm --prop height=1.5cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col2-desc' \
+  --prop text="Exploring vibrant palettes in modern digital design and illustration." \
+  --prop font="Segoe UI" \
+  --prop size=16 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=13.5cm --prop y=10.5cm --prop width=7cm --prop height=3cm
+
+# Column 3
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col3-num' \
+  --prop text="03" \
+  --prop font="Segoe UI Black" \
+  --prop size=40 \
+  --prop bold=true \
+  --prop color=$BLUE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=24cm --prop y=6cm --prop width=7cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col3-title' \
+  --prop text="Brand Identity" \
+  --prop font="Segoe UI Black" \
+  --prop size=24 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=24cm --prop y=8.5cm --prop width=7cm --prop height=1.5cm
+
+officecli add "$OUTPUT" '/slide[3]' --type shape \
+  --prop 'name=#s3-col3-desc' \
+  --prop text="Creating memorable brands through strategic color selection." \
+  --prop font="Segoe UI" \
+  --prop size=16 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=24cm --prop y=10.5cm --prop width=7cm --prop height=3cm
+
+# ============================================
+# SLIDE 4 - EVIDENCE (data with blue background)
+# ============================================
+echo "Building Slide 4: Evidence..."
+
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
+officecli set "$OUTPUT" '/slide[4]' --prop transition=morph
+
+# Blue stripe expands as large background, others retreat to edges
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=!!stripe-red' \
+  --prop preset=rect \
+  --prop fill=$RED \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=0cm --prop width=34cm --prop height=0.3cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=!!stripe-orange' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=0.3cm --prop width=34cm --prop height=0.3cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=!!stripe-yellow' \
+  --prop preset=rect \
+  --prop fill=$YELLOW \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=0.6cm --prop width=34cm --prop height=0.3cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=!!stripe-green' \
+  --prop preset=rect \
+  --prop fill=$GREEN \
+  --prop opacity=0.3 \
+  --prop x=0cm --prop y=5cm --prop width=34cm --prop height=8cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=!!stripe-blue' \
+  --prop preset=rect \
+  --prop fill=$BLUE \
+  --prop opacity=0.3 \
+  --prop x=0cm --prop y=5cm --prop width=34cm --prop height=8cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=!!stripe-purple' \
+  --prop preset=rect \
+  --prop fill=$PURPLE \
+  --prop opacity=1 \
+  --prop x=0cm --prop y=18.5cm --prop width=34cm --prop height=0.3cm
+
+# Content
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=#s4-title' \
+  --prop text="By The Numbers" \
+  --prop font="Segoe UI Black" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=1.5cm --prop width=28cm --prop height=2.5cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=#s4-num' \
+  --prop text="12,000+" \
+  --prop font="Segoe UI Black" \
+  --prop size=72 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=7cm --prop width=28cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[4]' --type shape \
+  --prop 'name=#s4-label' \
+  --prop text="Creative Professionals Expected to Attend" \
+  --prop font="Segoe UI" \
+  --prop size=24 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=12cm --prop width=28cm --prop height=2cm
+
+# ============================================
+# SLIDE 5 - CTA (bottom rainbow footer)
+# ============================================
+echo "Building Slide 5: CTA..."
+
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
+officecli set "$OUTPUT" '/slide[5]' --prop transition=morph
+
+# All stripes gather at bottom (inverted rainbow footer)
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=!!stripe-red' \
+  --prop preset=rect \
+  --prop fill=$RED \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=12cm --prop width=34cm --prop height=1.2cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=!!stripe-orange' \
+  --prop preset=rect \
+  --prop fill=$ORANGE \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=13.2cm --prop width=34cm --prop height=1.2cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=!!stripe-yellow' \
+  --prop preset=rect \
+  --prop fill=$YELLOW \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=14.4cm --prop width=34cm --prop height=1.2cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=!!stripe-green' \
+  --prop preset=rect \
+  --prop fill=$GREEN \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=15.6cm --prop width=34cm --prop height=1.2cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=!!stripe-blue' \
+  --prop preset=rect \
+  --prop fill=$BLUE \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=16.8cm --prop width=34cm --prop height=1.2cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=!!stripe-purple' \
+  --prop preset=rect \
+  --prop fill=$PURPLE \
+  --prop opacity=0.85 \
+  --prop x=0cm --prop y=18cm --prop width=34cm --prop height=1.05cm
+
+# Content
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=#s5-title' \
+  --prop text="Join Us This Summer" \
+  --prop font="Segoe UI Black" \
+  --prop size=54 \
+  --prop bold=true \
+  --prop color=$BLACK \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=3cm --prop width=28cm --prop height=3.5cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=#s5-date' \
+  --prop text="June 15-20, 2026" \
+  --prop font="Segoe UI" \
+  --prop size=28 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=7.5cm --prop width=28cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[5]' --type shape \
+  --prop 'name=#s5-web' \
+  --prop text="creativefestival.com" \
+  --prop font="Segoe UI" \
+  --prop size=24 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=3cm --prop y=10cm --prop width=28cm --prop height=1.5cm
+
+# ============================================
+# FINAL VALIDATION
+# ============================================
+officecli validate "$OUTPUT"
+officecli view "$OUTPUT" outline
+
+echo "✅ Build complete: $OUTPUT"

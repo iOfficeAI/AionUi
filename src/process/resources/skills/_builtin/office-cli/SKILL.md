@@ -14,18 +14,30 @@ AI-friendly CLI for .docx, .xlsx, .pptx. Single binary, no dependencies, no Offi
 **Every time before using officecli, run this check:**
 
 ```bash
-# 1. Check if installed
+# Check if installed
 if ! command -v officecli &> /dev/null; then
+    echo "Installing officecli..."
     # macOS/Linux
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-    # Windows: irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
+    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash
+    # Windows: irm https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.ps1 | iex
+else
+    # Check if update needed
+    CURRENT=$(officecli --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    LATEST=$(curl -fsSL https://api.github.com/repos/iOfficeAI/OfficeCLI/releases/latest | grep '"tag_name"' | sed -E 's/.*"v?([0-9.]+)".*/\1/')
+
+    if [ "$CURRENT" != "$LATEST" ]; then
+        echo "Upgrading officecli $CURRENT → $LATEST..."
+        curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash
+    else
+        echo "officecli $CURRENT is up to date"
+    fi
 fi
 
-# 2. Verify version (should be >= 1.0.14 for HTML preview)
+# Verify version
 officecli --version
 ```
 
-**Why:** OfficeCli auto-updates daily, but ensure latest version before starting.
+**Why:** This ensures you have the latest features and bug fixes before starting work.
 
 ---
 

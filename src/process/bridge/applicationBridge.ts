@@ -7,11 +7,10 @@
 import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
-import { getSystemDir, ProcessEnv } from '@process/utils/initStorage';
-import { copyDirectoryRecursively } from '@process/utils';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
+import { initApplicationBridgeCore } from './applicationBridgeCore';
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -20,6 +19,9 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
 }
 
 export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): void {
+  // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
+  initApplicationBridgeCore();
+
   ipcBridge.application.restart.provider(() => {
     // 清理所有工作进程
     workerTaskManager.clear();
@@ -27,27 +29,6 @@ export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): vo
     app.relaunch();
     app.exit(0);
     return Promise.resolve();
-  });
-
-  ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) => {
-    try {
-      const oldDir = getSystemDir();
-      if (oldDir.cacheDir !== cacheDir) {
-        await copyDirectoryRecursively(oldDir.cacheDir, cacheDir);
-      }
-      await ProcessEnv.set('aionui.dir', { cacheDir, workDir });
-      return { success: true };
-    } catch (e) {
-      return { success: false, msg: e.message || e.toString() };
-    }
-  });
-
-  ipcBridge.application.systemInfo.provider(() => {
-    return Promise.resolve(getSystemDir());
-  });
-
-  ipcBridge.application.getPath.provider(({ name }) => {
-    return Promise.resolve(app.getPath(name));
   });
 
   ipcBridge.application.isDevToolsOpened.provider(() => {

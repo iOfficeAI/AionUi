@@ -137,6 +137,15 @@ describe('fsBridge skills functionality', () => {
       };
     });
 
+    // Mock jszip
+    vi.doMock('jszip', () => {
+      class MockJSZip {
+        file = vi.fn();
+        generateAsync = vi.fn(async () => Buffer.from('fake-zip-content'));
+      }
+      return { default: MockJSZip };
+    });
+
     // Mock initStorage
     vi.doMock('@process/utils/initStorage', () => ({
       getSystemDir: vi.fn(() => ({
@@ -146,6 +155,8 @@ describe('fsBridge skills functionality', () => {
         arch: 'x64',
       })),
       getAssistantsDir: vi.fn(() => '/mock/userData/assistants'),
+      getSkillsDir: vi.fn(() => '/mock/userData/config/skills'),
+      getBuiltinSkillsDir: vi.fn(() => '/mock/userData/config/skills/_builtin'),
       ProcessEnv: { set: vi.fn() },
     }));
 
@@ -286,7 +297,7 @@ describe('fsBridge skills functionality', () => {
   describe('listAvailableSkills', () => {
     it('should correctly parse SKILL.md and distinguish builtin vs custom', async () => {
       // Setup filesystem mock state
-      const builtinBase = path.resolve('/mock/appPath/skills');
+      const builtinBase = path.resolve('/mock/userData/config/skills/_builtin');
       const userBase = path.resolve('/mock/userData/config/skills');
 
       const yamlFrontmatterBuiltin = `---\nname: BuiltinTest\ndescription: 'A builtin test skill'\n---\n# Markdown content`;
@@ -522,6 +533,55 @@ describe('fsBridge skills functionality', () => {
 
       expect(result.success).toBe(false);
       expect(result.msg).toContain('security check failed');
+    });
+  });
+
+  describe('createZip ensures parent directory exists (Fixes ELECTRON-66)', () => {
+    it('creates parent directory before writing zip file', async () => {
+      const handler = await getProvider('createZip');
+      const exportDir = path.resolve('/mock/export/subdir');
+      const zipPath = path.join(exportDir, 'batch-export-test.zip');
+
+      const result = await handler({
+        path: zipPath,
+        files: [{ name: 'test.txt', content: 'hello' }],
+        requestId: 'test-req-1',
+      });
+
+      expect(result).toBe(true);
+      // Verify parent directory was created
+      expect(mockFsStore[exportDir]).toBeDefined();
+    });
+  });
+
+  describe('readBuiltinRule ENOENT handling (Fixes ELECTRON-68)', () => {
+    it('returns empty string when builtin rule file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinRule');
+      const result = await handler({ fileName: 'nonexistent-rule.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('readBuiltinSkill ENOENT handling', () => {
+    it('returns empty string when builtin skill file does not exist instead of throwing', async () => {
+      const handler = await getProvider('readBuiltinSkill');
+      const result = await handler({ fileName: 'nonexistent-skill.md' });
+      expect(result).toBe('');
+    });
+  });
+
+  describe('fetchRemoteImage — error handling', () => {
+    it('returns empty string for disallowed host instead of throwing', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      // URL with a host not in the allowlist triggers Promise.reject inside downloadRemoteBuffer
+      const result = await handler({ url: 'https://evil.com/malicious.png' });
+      expect(result).toBe('');
+    });
+
+    it('returns empty string for unsupported protocol', async () => {
+      const handler = await getProvider('fetchRemoteImage');
+      const result = await handler({ url: 'ftp://github.com/image.png' });
+      expect(result).toBe('');
     });
   });
 

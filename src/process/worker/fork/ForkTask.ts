@@ -11,38 +11,16 @@
  */
 
 import { uuid } from '@/renderer/utils/common';
-import type { UtilityProcess } from 'electron';
-import { app, utilityProcess } from 'electron';
+import { getPlatformServices } from '@/common/platform';
+import type { IWorkerProcess } from '@/common/platform';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import type { MainToWorkerMessage } from '../WorkerProtocol';
 import { Pipe } from './pipe';
 
-/**
- * 获取 worker 进程的工作目录
- * Get working directory for worker process
- *
- * 在打包环境中，需要指向 app.asar.unpacked 目录以便 aioncli-core 能找到 WASM 文件
- * In packaged environment, needs to point to app.asar.unpacked directory
- * so aioncli-core can find WASM files
- */
-function getWorkerCwd(): string {
-  if (app.isPackaged) {
-    // 打包环境: app.getAppPath() 返回 .../Resources/app.asar
-    // 我们需要 .../Resources/app.asar.unpacked 目录
-    // Packaged: app.getAppPath() returns .../Resources/app.asar
-    // We need the .../Resources/app.asar.unpacked directory
-    const appPath = app.getAppPath();
-    return appPath.replace('app.asar', 'app.asar.unpacked');
-  }
-  // 开发环境: 使用项目根目录
-  // Development: use project root directory
-  return process.cwd();
-}
-
 export class ForkTask<Data> extends Pipe {
   protected path = '';
   protected data: Data;
-  protected fcp: UtilityProcess | undefined;
+  protected fcp: IWorkerProcess | undefined;
   private killFn: () => void;
   private enableFork: boolean;
   constructor(path: string, data: Data, enableFork = true) {
@@ -63,21 +41,22 @@ export class ForkTask<Data> extends Pipe {
     process.off('exit', this.killFn);
   }
   protected init() {
-    // 传递 cwd 确保 worker 可以正确解析 node_modules 路径 (用于加载 WASM 文件等)
-    // Pass cwd to ensure worker can correctly resolve node_modules paths (for WASM files etc.)
-    const workerCwd = getWorkerCwd();
+    const platform = getPlatformServices();
+    // In packaged Electron builds, resolve to app.asar.unpacked for WASM files.
+    const workerCwd = platform.paths.isPackaged()
+      ? (platform.paths.getAppPath() ?? process.cwd()).replace('app.asar', 'app.asar.unpacked')
+      : process.cwd();
     // Pass enhanced shell environment so workers inherit the full PATH (nvm, npm globals, etc.)
     // This is critical for skills that depend on globally installed tools (node, npm, playwright, etc.)
     // Without this, workers only get Electron's limited env, missing paths set in .zshrc/.bashrc
     const workerEnv = getEnhancedEnv();
-    const fcp = utilityProcess.fork(this.path, [], {
+    const fcp = platform.worker.fork(this.path, [], {
       cwd: workerCwd,
       env: workerEnv,
     });
     // 接受子进程发送的消息
-    fcp.on('message', (e: IForkData) => {
-      // console.log("---------接受来子进程消息>", e);
-      // 接爱子进程消息
+    fcp.on('message', (...args: unknown[]) => {
+      const e = args[0] as IForkData;
       if (e.type === 'complete') {
         fcp.kill();
         this.emit('complete', e.data);
@@ -97,8 +76,8 @@ export class ForkTask<Data> extends Pipe {
         return this.emit(e.type, e.data, deferred);
       }
     });
-    fcp.on('error', (err) => {
-      this.emit('error', err);
+    fcp.on('error', (...args: unknown[]) => {
+      this.emit('error', args[0] as Error);
     });
     this.fcp = fcp;
   }

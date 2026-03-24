@@ -76,6 +76,13 @@ vi.mock('react-router-dom', async () => {
 
 import ConversationSearchPopover from '../../src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 
+const setElectronAPI = (value?: object) => {
+  Object.defineProperty(window, 'electronAPI', {
+    configurable: true,
+    value,
+  });
+};
+
 describe('ConversationSearchPopover', () => {
   beforeEach(() => {
     searchConversationMessagesInvoke.mockReset();
@@ -86,6 +93,7 @@ describe('ConversationSearchPopover', () => {
     blockMobileInputFocusMock.mockReset();
     blurActiveElementMock.mockReset();
     globalThis.localStorage?.clear?.();
+    setElectronAPI(undefined);
   });
 
   afterEach(() => {
@@ -181,5 +189,54 @@ describe('ConversationSearchPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'conversation.historySearch.tooltip' }));
 
     expect(screen.getByPlaceholderText('conversation.historySearch.placeholder')).toHaveValue('');
+  });
+
+  it('opens the modal on Cmd/Ctrl+Shift+F in desktop runtime', () => {
+    setElectronAPI({});
+
+    render(<ConversationSearchPopover />);
+
+    fireEvent.keyDown(document, { key: 'F', ctrlKey: true, shiftKey: true });
+
+    expect(screen.getByTestId('conversation-search-modal')).toBeInTheDocument();
+  });
+
+  it('ignores the shortcut outside desktop runtime', () => {
+    render(<ConversationSearchPopover />);
+
+    fireEvent.keyDown(document, { key: 'F', ctrlKey: true, shiftKey: true });
+
+    expect(screen.queryByTestId('conversation-search-modal')).not.toBeInTheDocument();
+  });
+
+  it('ignores composing and already-handled shortcuts', () => {
+    setElectronAPI({});
+
+    render(<ConversationSearchPopover />);
+
+    const composingEvent = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      shiftKey: true,
+      key: 'F',
+    });
+    Object.defineProperty(composingEvent, 'isComposing', {
+      configurable: true,
+      value: true,
+    });
+    document.dispatchEvent(composingEvent);
+
+    const handledEvent = new KeyboardEvent('keydown', {
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: true,
+      shiftKey: true,
+      key: 'F',
+    });
+    handledEvent.preventDefault();
+    document.dispatchEvent(handledEvent);
+
+    expect(screen.queryByTestId('conversation-search-modal')).not.toBeInTheDocument();
   });
 });

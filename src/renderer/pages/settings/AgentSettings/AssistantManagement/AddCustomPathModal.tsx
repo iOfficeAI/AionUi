@@ -30,12 +30,12 @@ const AddCustomPathModal: React.FC<AddCustomPathModalProps> = ({
 
   return (
     <Modal
-      title={t('settings.skillsHub.addCustomPath', { defaultValue: '添加自定义技能路径' })}
+      title={t('settings.skillsHub.addCustomPath', { defaultValue: 'Add Custom Skill Path' })}
       visible={visible}
       onCancel={onCancel}
       onOk={onOk}
-      okText={t('common.confirm', { defaultValue: '确认' })}
-      cancelText={t('common.cancel', { defaultValue: '取消' })}
+      okText={t('common.confirm', { defaultValue: 'Confirm' })}
+      cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
       okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
       autoFocus={false}
       focusLock
@@ -45,10 +45,10 @@ const AddCustomPathModal: React.FC<AddCustomPathModalProps> = ({
       <div className='flex flex-col gap-16px'>
         <div>
           <div className='text-13px font-medium text-t-primary mb-8px'>
-            {t('common.name', { defaultValue: '名称' })}
+            {t('common.name', { defaultValue: 'Name' })}
           </div>
           <Input
-            placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: '例：我的自定义技能' })}
+            placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: 'e.g. My Custom Skills' })}
             value={customPathName}
             onChange={(v) => setCustomPathName(v)}
             className='rd-6px'
@@ -56,12 +56,12 @@ const AddCustomPathModal: React.FC<AddCustomPathModalProps> = ({
         </div>
         <div>
           <div className='text-13px font-medium text-t-primary mb-8px'>
-            {t('settings.skillsHub.customPathLabel', { defaultValue: '技能目录路径' })}
+            {t('settings.skillsHub.customPathLabel', { defaultValue: 'Skill Directory Path' })}
           </div>
           <div className='flex gap-8px'>
             <Input
               placeholder={t('settings.skillsHub.customPathPlaceholder', {
-                defaultValue: '例：C:\\Users\\me\\.mytools\\skills',
+                defaultValue: 'e.g. C:\\Users\\me\\.mytools\\skills',
               })}
               value={customPathValue}
               onChange={(v) => setCustomPathValue(v)}

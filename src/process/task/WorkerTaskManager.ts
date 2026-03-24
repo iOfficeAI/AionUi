@@ -29,7 +29,7 @@ export class WorkerTaskManager implements IWorkerTaskManager {
       if (existing) return existing;
     }
 
-    const conversation = this.repo.getConversation(id);
+    const conversation = await this.repo.getConversation(id);
     if (conversation) return this._buildAndCache(conversation, options);
 
     return Promise.reject(new Error(`Conversation not found: ${id}`));

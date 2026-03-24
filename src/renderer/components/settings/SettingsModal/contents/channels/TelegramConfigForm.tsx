@@ -336,7 +336,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         <div className='flex items-center gap-8px'>
           {authorizedUsers.length > 0 ? (
             <Tooltip
-              content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}
+              content={t(
+                'settings.assistant.tokenLocked',
+                'Please close the Channel and delete all authorized users before modifying the configuration'
+              )}
             >
               <span>
                 <Input.Password
@@ -365,7 +368,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           )}
           {authorizedUsers.length > 0 ? (
             <Tooltip
-              content={t('settings.assistant.tokenLocked', '请先关闭 Channel 并删除所有已授权用户后，再尝试修改')}
+              content={t(
+                'settings.assistant.tokenLocked',
+                'Please close the Channel and delete all authorized users before modifying the configuration'
+              )}
             >
               <span>
                 <Button
@@ -452,13 +458,17 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
       {/* Default Model Selection */}
       <PreferenceRow
-        label={t('settings.assistant.defaultModel', '对话模型')}
-        description={t('settings.assistant.defaultModelDesc', '用于Agent对话时调用')}
+        label={t('settings.assistant.defaultModel', 'Default Model')}
+        description={t('settings.assistant.defaultModelDesc', 'Model used for Telegram conversations')}
       >
         <GeminiModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
-          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', '自动跟随CLI运行时的模型') : undefined}
+          label={
+            !isGeminiAgent
+              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
+              : undefined
+          }
           variant='settings'
         />
       </PreferenceRow>

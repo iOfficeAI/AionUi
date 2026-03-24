@@ -12,7 +12,7 @@ import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
 import { TokenUtils } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
-import { verifyQRTokenDirect } from '@process/bridge/webuiBridge';
+import { verifyQRTokenDirect } from '@process/bridge/webuiQR';
 
 /**
  * QR 登录页面 HTML（静态，不包含用户输入）
@@ -102,7 +102,7 @@ export function registerAuthRoutes(app: Express): void {
       const { username, password } = req.body;
 
       // Get user from database
-      const user = UserRepository.findByUsername(username);
+      const user = await UserRepository.findByUsername(username);
       if (!user) {
         // Use constant time verification to prevent timing attacks
         await AuthService.constantTimeVerify('dummy', 'dummy', true);
@@ -124,10 +124,10 @@ export function registerAuthRoutes(app: Express): void {
       }
 
       // Generate JWT token
-      const token = AuthService.generateToken(user);
+      const token = await AuthService.generateToken(user);
 
       // Update last login
-      UserRepository.updateLastLogin(user.id);
+      await UserRepository.updateLastLogin(user.id);
 
       // Set secure cookie（远程模式下启用 secure 标志）
       // Set secure cookie (enable secure flag in remote mode)
@@ -252,7 +252,7 @@ export function registerAuthRoutes(app: Express): void {
         }
 
         // Get current user
-        const user = UserRepository.findById(req.user!.id);
+        const user = await UserRepository.findById(req.user!.id);
         if (!user) {
           res.status(404).json({
             success: false,
@@ -275,8 +275,8 @@ export function registerAuthRoutes(app: Express): void {
         const newPasswordHash = await AuthService.hashPassword(newPassword);
 
         // Update password
-        UserRepository.updatePassword(user.id, newPasswordHash);
-        AuthService.invalidateAllTokens();
+        await UserRepository.updatePassword(user.id, newPasswordHash);
+        await AuthService.invalidateAllTokens();
 
         res.json({
           success: true,
@@ -339,7 +339,7 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Rate limit WebSocket token endpoint
   // 为 WebSocket token 端点添加速率限制
-  app.get('/api/ws-token', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response, next) => {
+  app.get('/api/ws-token', apiRateLimiter, authenticatedActionLimiter, async (req: Request, res: Response, next) => {
     try {
       const sessionToken = TokenUtils.extractFromRequest(req);
 
@@ -347,12 +347,12 @@ export function registerAuthRoutes(app: Express): void {
         return next(createAppError('Unauthorized: Invalid or missing session', 401, 'unauthorized'));
       }
 
-      const decoded = AuthService.verifyToken(sessionToken);
+      const decoded = await AuthService.verifyToken(sessionToken);
       if (!decoded) {
         return next(createAppError('Unauthorized: Invalid session token', 401, 'unauthorized'));
       }
 
-      const user = UserRepository.findById(decoded.userId);
+      const user = await UserRepository.findById(decoded.userId);
       if (!user) {
         return next(createAppError('Unauthorized: User not found', 401, 'unauthorized'));
       }

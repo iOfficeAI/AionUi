@@ -12,20 +12,20 @@ import type { IConversationRepository } from '@process/services/database/IConver
 
 export function initDatabaseBridge(repo: IConversationRepository): void {
   // Get conversation messages from database
-  ipcBridge.database.getConversationMessages.provider(({ conversation_id, page = 0, pageSize = 10000 }) => {
+  ipcBridge.database.getConversationMessages.provider(async ({ conversation_id, page = 0, pageSize = 10000 }) => {
     try {
-      const result = repo.getMessages(conversation_id, page, pageSize);
-      return Promise.resolve(result.data);
+      const result = await repo.getMessages(conversation_id, page, pageSize);
+      return result.data;
     } catch (error) {
       console.error('[DatabaseBridge] Error getting conversation messages:', error);
-      return Promise.resolve([]);
+      return [];
     }
   });
 
   // Get user conversations from database with lazy migration from file storage
   ipcBridge.database.getUserConversations.provider(async ({ page = 0, pageSize = 10000 }) => {
     try {
-      const result = repo.getUserConversations(undefined, page * pageSize, pageSize);
+      const result = await repo.getUserConversations(undefined, page * pageSize, pageSize);
       const dbConversations = result.data;
 
       // Try to get conversations from file storage
@@ -63,19 +63,19 @@ export function initDatabaseBridge(repo: IConversationRepository): void {
     }
   });
 
-  ipcBridge.database.searchConversationMessages.provider(({ keyword, page = 0, pageSize = 20 }) => {
+  ipcBridge.database.searchConversationMessages.provider(async ({ keyword, page = 0, pageSize = 20 }) => {
     try {
-      const result = repo.searchMessages(keyword, page, pageSize);
-      return Promise.resolve(result);
+      const result = await repo.searchMessages(keyword, page, pageSize);
+      return result;
     } catch (error) {
       console.error('[DatabaseBridge] Error searching conversation messages:', error);
-      return Promise.resolve({
+      return {
         items: [],
         total: 0,
         page,
         pageSize,
         hasMore: false,
-      });
+      };
     }
   });
 }

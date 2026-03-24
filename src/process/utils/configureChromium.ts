@@ -17,6 +17,10 @@ import os from 'os';
 // 这必须在所有其他代码之前执行，因为 getPath('userData') 会锁定当前的 app 名称
 if (!app.isPackaged) {
   app.setName('AionUi-Dev');
+  // In Electron 28+, setName alone no longer updates userData path on macOS.
+  // Explicitly override userData to the AionUi-Dev directory.
+  const appSupportDir = path.dirname(app.getPath('userData'));
+  app.setPath('userData', path.join(appSupportDir, 'AionUi-Dev'));
 }
 
 // Configure Chromium command-line flags for WebUI and CLI modes
