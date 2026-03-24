@@ -155,6 +155,8 @@ describe('fsBridge skills functionality', () => {
         arch: 'x64',
       })),
       getAssistantsDir: vi.fn(() => '/mock/userData/assistants'),
+      getSkillsDir: vi.fn(() => '/mock/userData/config/skills'),
+      getBuiltinSkillsCopyDir: vi.fn(() => path.resolve('/mock/userData/builtin-skills')),
       ProcessEnv: { set: vi.fn() },
     }));
 
@@ -295,7 +297,7 @@ describe('fsBridge skills functionality', () => {
   describe('listAvailableSkills', () => {
     it('should correctly parse SKILL.md and distinguish builtin vs custom', async () => {
       // Setup filesystem mock state
-      const builtinBase = path.resolve('/mock/appPath/skills');
+      const builtinBase = path.resolve('/mock/userData/builtin-skills');
       const userBase = path.resolve('/mock/userData/config/skills');
 
       const yamlFrontmatterBuiltin = `---\nname: BuiltinTest\ndescription: 'A builtin test skill'\n---\n# Markdown content`;

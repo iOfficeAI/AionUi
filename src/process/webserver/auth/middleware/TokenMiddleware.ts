@@ -6,7 +6,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import type { IncomingMessage } from 'http';
-import cookie from 'cookie';
+import * as cookie from 'cookie';
 import { AuthService } from '../service/AuthService';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
@@ -131,7 +131,7 @@ class ValidatorFactory {
 export const createAuthMiddleware = (type: 'json' | 'html' = 'json') => {
   const strategy = ValidatorFactory.create(type);
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // 1. 提取 token / Extract token
     const token = TokenExtractor.extract(req);
 
@@ -141,14 +141,14 @@ export const createAuthMiddleware = (type: 'json' | 'html' = 'json') => {
     }
 
     // 2. 验证 token / Verify token
-    const decoded = AuthService.verifyToken(token);
+    const decoded = await AuthService.verifyToken(token);
     if (!decoded) {
       strategy.handleUnauthorized(res);
       return;
     }
 
     // 3. 查找用户 / Find user
-    const user = UserRepository.findById(decoded.userId);
+    const user = await UserRepository.findById(decoded.userId);
     if (!user) {
       strategy.handleUnauthorized(res);
       return;
@@ -191,14 +191,14 @@ export const TokenMiddleware = {
   },
 
   /** 校验 token 是否有效 / Verify token validity */
-  isTokenValid(token: string | null): boolean {
-    return Boolean(token && AuthService.verifyToken(token));
+  async isTokenValid(token: string | null): Promise<boolean> {
+    return Boolean(token && (await AuthService.verifyToken(token)));
   },
 
   /** 返回认证中间件（默认为 JSON 响应）/ Return auth middleware (JSON response by default) */
   validateToken(options?: {
     responseType?: 'json' | 'html';
-  }): (req: Request, res: Response, next: NextFunction) => void {
+  }): (req: Request, res: Response, next: NextFunction) => Promise<void> {
     return createAuthMiddleware(options?.responseType ?? 'json');
   },
 
@@ -239,7 +239,7 @@ export const TokenMiddleware = {
   },
 
   /** 校验 WebSocket token 是否有效 / Validate WebSocket token */
-  validateWebSocketToken(token: string | null): boolean {
-    return Boolean(token && AuthService.verifyWebSocketToken(token));
+  async validateWebSocketToken(token: string | null): Promise<boolean> {
+    return Boolean(token && (await AuthService.verifyWebSocketToken(token)));
   },
 };

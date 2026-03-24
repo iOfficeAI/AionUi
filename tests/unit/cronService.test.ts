@@ -7,8 +7,15 @@ vi.mock('electron', () => ({
     getAppPath: vi.fn(() => '/mock/appPath'),
   },
   ipcMain: { handle: vi.fn(), on: vi.fn(), removeHandler: vi.fn() },
-  powerSaveBlocker: { start: vi.fn(() => 1), stop: vi.fn() },
   powerMonitor: { on: vi.fn() },
+}));
+vi.mock('@/common/platform', () => ({
+  getPlatformServices: () => ({
+    power: {
+      preventSleep: vi.fn(() => 1),
+      allowSleep: vi.fn(),
+    },
+  }),
 }));
 vi.mock('croner', () => ({
   Cron: vi.fn(() => ({ stop: vi.fn(), nextRun: vi.fn(() => null) })),
@@ -151,9 +158,9 @@ describe('CronService', () => {
     const job = makeJob({ id: 'valid' });
     vi.mocked(repo.listAll).mockReturnValue([job]);
     vi.mocked(repo.listEnabled).mockReturnValue([]);
-    vi.mocked(conversationRepo.getConversation).mockReturnValue({ id: 'conv-1' } as ReturnType<
-      IConversationRepository['getConversation']
-    >);
+    vi.mocked(conversationRepo.getConversation).mockReturnValue({
+      id: 'conv-1',
+    } as ReturnType<IConversationRepository['getConversation']>);
 
     await service.init();
 
@@ -228,7 +235,10 @@ describe('CronService', () => {
 
   it('executeJob calls executor.executeJob, updates job state, and emits completion', async () => {
     const job = makeJob({ id: 'j1' });
-    const updatedJob = makeJob({ id: 'j1', state: { runCount: 1, retryCount: 0, maxRetries: 3 } });
+    const updatedJob = makeJob({
+      id: 'j1',
+      state: { runCount: 1, retryCount: 0, maxRetries: 3 },
+    });
     vi.mocked(repo.listEnabled).mockReturnValue([job]);
     vi.mocked(repo.getById).mockReturnValue(updatedJob);
     vi.mocked(executor.isConversationBusy).mockReturnValue(false);
@@ -241,7 +251,9 @@ describe('CronService', () => {
     expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function));
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
-      expect.objectContaining({ state: expect.objectContaining({ lastStatus: 'ok' }) })
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'ok' }),
+      })
     );
     expect(emitter.emitJobUpdated).toHaveBeenCalledWith(updatedJob);
   });
@@ -259,12 +271,20 @@ describe('CronService', () => {
 
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
-      expect.objectContaining({ state: expect.objectContaining({ lastStatus: 'error', lastError: 'task not found' }) })
+      expect.objectContaining({
+        state: expect.objectContaining({
+          lastStatus: 'error',
+          lastError: 'task not found',
+        }),
+      })
     );
   });
 
   it('executeJob skips and stops retrying when conversation is busy beyond maxRetries', async () => {
-    const job = makeJob({ id: 'j1', state: { runCount: 0, retryCount: 0, maxRetries: 1 } });
+    const job = makeJob({
+      id: 'j1',
+      state: { runCount: 0, retryCount: 0, maxRetries: 1 },
+    });
     const skippedJob = makeJob({ id: 'j1' });
     vi.mocked(repo.listEnabled).mockReturnValue([job]);
     vi.mocked(repo.getById).mockReturnValue(skippedJob);
@@ -279,13 +299,18 @@ describe('CronService', () => {
     expect(executor.executeJob).not.toHaveBeenCalled();
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
-      expect.objectContaining({ state: expect.objectContaining({ lastStatus: 'skipped' }) })
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'skipped' }),
+      })
     );
     expect(emitter.emitJobUpdated).toHaveBeenCalledWith(skippedJob);
   });
 
   it('executeJob schedules a retry timer when conversation is busy within retry limit', async () => {
-    const job = makeJob({ id: 'j1', state: { runCount: 0, retryCount: 0, maxRetries: 3 } });
+    const job = makeJob({
+      id: 'j1',
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
+    });
     vi.mocked(repo.listEnabled).mockReturnValue([job]);
     vi.mocked(executor.isConversationBusy).mockReturnValue(true);
 
@@ -305,7 +330,15 @@ describe('CronService', () => {
     await service.init();
 
     const pastTime = Date.now() - 1000;
-    const job = makeJob({ id: 'j1', state: { runCount: 0, retryCount: 0, maxRetries: 3, nextRunAtMs: pastTime } });
+    const job = makeJob({
+      id: 'j1',
+      state: {
+        runCount: 0,
+        retryCount: 0,
+        maxRetries: 3,
+        nextRunAtMs: pastTime,
+      },
+    });
     vi.mocked(repo.listEnabled).mockReturnValue([job]);
     vi.mocked(repo.getById).mockReturnValue(job);
 
@@ -313,7 +346,9 @@ describe('CronService', () => {
 
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
-      expect.objectContaining({ state: expect.objectContaining({ lastStatus: 'missed' }) })
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'missed' }),
+      })
     );
     expect(emitter.emitJobUpdated).toHaveBeenCalledWith(job);
     const { addMessage } = await import('@process/utils/message');

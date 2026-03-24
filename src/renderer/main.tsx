@@ -5,9 +5,12 @@
  */
 
 // Sentry must be initialized first
-import * as Sentry from '@sentry/electron/renderer';
-
-Sentry.init();
+// Use electron-specific renderer package only inside Electron; fall back to the
+// browser SDK when running as a standalone web server (no window.electronAPI).
+if ((window as { electronAPI?: unknown }).electronAPI) {
+  // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
+  import('@sentry/electron/renderer').then((Sentry) => Sentry.init()).catch(() => {});
+}
 
 // Runtime patches must be imported early
 import './utils/ui/runtimePatches';
@@ -51,6 +54,7 @@ import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
+import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
 
 // Patch Korean locale with missing properties from English locale
@@ -108,7 +112,15 @@ const Main = () => {
     return null;
   }
 
-  return <Router layout={<Layout sider={<Sider />} />} />;
+  return (
+    <Router
+      layout={
+        <ConversationHistoryProvider>
+          <Layout sider={<Sider />} />
+        </ConversationHistoryProvider>
+      }
+    />
+  );
 };
 
 const App = HOC.Wrapper(Config)(Main);

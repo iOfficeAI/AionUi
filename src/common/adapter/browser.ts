@@ -106,7 +106,10 @@ if (win.electronAPI) {
       }
 
       try {
-        const payload = JSON.parse(event.data as string) as { name: string; data: unknown };
+        const payload = JSON.parse(event.data as string) as {
+          name: string;
+          data: unknown;
+        };
 
         // 处理服务端心跳 ping，立即回复 pong 以保持连接
         // Handle server heartbeat ping - respond with pong immediately to keep connection alive

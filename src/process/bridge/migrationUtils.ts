@@ -14,7 +14,7 @@ import { ProcessChatMessage } from '@process/utils/initStorage';
  */
 export async function migrateConversationToDatabase(conversation: TChatConversation): Promise<void> {
   try {
-    const db = getDatabase();
+    const db = await getDatabase();
 
     // Check if already in database
     const existing = db.getConversation(conversation.id);

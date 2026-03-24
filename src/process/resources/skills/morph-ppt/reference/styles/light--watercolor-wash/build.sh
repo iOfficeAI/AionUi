@@ -1,258 +1,486 @@
 #!/bin/bash
 set -e
 
-# ============================================================
-# S16 Watercolor Wash — AI Agent Platform 智能体平台发布
-# Style: S16 Watercolor Wash | BG=FFFDF7 | shapes=ellipse only | morph=slow drift 2-4cm | font=LXGW WenKai / Noto Serif
-# 5 slides: hero → statement → pillars → evidence → cta
-# Method A: independent per-slide construction. NO animations.
-# transition=morph on S2-S5.
-# ============================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/light__watercolor_wash.pptx"
 
-DECK="morph-templates/v8-showcase/S16-watercolor-wash/template.pptx"
-cd /Users/veryliu/Documents/GitHub/OfficeCli
+echo "Building: light--watercolor-wash (AI Agent Platform)"
+rm -f "$OUTPUT"
+officecli create "$OUTPUT"
 
-# Clean & create
-rm -f "$DECK"
-officecli create "$DECK"
+# Colors
+BG=FFFDF7
+BLUE=7AADCF
+ORANGE=E8A87C
+PURPLE=C5B3D1
+GREEN=9BC4A8
+PEACH=F2C0A2
+DARK_GREEN=5A7A6A
+BROWN=6A5A4A
+GRAY=8A7A6A
 
-# ===================== SLIDE 1: hero =====================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFDF7
+# Off-canvas position
+OFFSCREEN=36cm
 
-cat <<'BATCH' | officecli batch "$DECK"
-[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.08","rotation":"10",
-    "x":"0cm","y":"0cm","width":"18cm","height":"15cm","line":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "preset":"ellipse","fill":"E8A87C","opacity":"0.06","rotation":"-15",
-    "x":"20cm","y":"6cm","width":"16cm","height":"14cm","line":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "preset":"ellipse","fill":"C5B3D1","opacity":"0.10","rotation":"5",
-    "x":"10cm","y":"0cm","width":"14cm","height":"16cm","line":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "preset":"ellipse","fill":"9BC4A8","opacity":"0.05","rotation":"-8",
-    "x":"24cm","y":"0cm","width":"15cm","height":"12cm","line":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "preset":"ellipse","fill":"F2C0A2","opacity":"0.12","rotation":"20",
-    "x":"0cm","y":"10cm","width":"13cm","height":"17cm","line":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.07","rotation":"-12",
-    "x":"18cm","y":"8cm","width":"17cm","height":"13cm","line":"none"}},
+# ============================================
+# SLIDE 1 - HERO
+# ============================================
+echo "Building Slide 1: Hero..."
 
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "text":"AI Agent Platform","font":"LXGW WenKai",
-    "size":"56","bold":"true","color":"5A7A6A","align":"center",
-    "x":"4cm","y":"4cm","width":"26cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "text":"智能体平台发布","font":"LXGW WenKai",
-    "size":"36","bold":"true","color":"6A5A4A","align":"center",
-    "x":"4cm","y":"8.5cm","width":"26cm","height":"3cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "text":"让智能体为你工作","font":"Noto Serif",
-    "size":"18","color":"8A7A6A","align":"center",
-    "x":"4cm","y":"12cm","width":"26cm","height":"2cm","fill":"none"}}
-]
-BATCH
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
 
-# ===================== SLIDE 2: statement =====================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFDF7 --prop transition=morph
+# Scene actors: 6 watercolor ellipses
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!wash-1' \
+  --prop preset=ellipse \
+  --prop fill=$BLUE \
+  --prop opacity=0.08 \
+  --prop line=none \
+  --prop x=0cm --prop y=0cm --prop width=18cm --prop height=15cm --prop rotation=10
 
-cat <<'BATCH' | officecli batch "$DECK"
-[
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.09","rotation":"13",
-    "x":"3cm","y":"2cm","width":"18cm","height":"15cm","line":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "preset":"ellipse","fill":"E8A87C","opacity":"0.07","rotation":"-12",
-    "x":"16cm","y":"4cm","width":"16cm","height":"14cm","line":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "preset":"ellipse","fill":"C5B3D1","opacity":"0.08","rotation":"8",
-    "x":"12cm","y":"3cm","width":"14cm","height":"16cm","line":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "preset":"ellipse","fill":"9BC4A8","opacity":"0.06","rotation":"-5",
-    "x":"22cm","y":"2cm","width":"15cm","height":"12cm","line":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "preset":"ellipse","fill":"F2C0A2","opacity":"0.10","rotation":"18",
-    "x":"2cm","y":"8cm","width":"13cm","height":"17cm","line":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.06","rotation":"-10",
-    "x":"20cm","y":"10cm","width":"17cm","height":"13cm","line":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!wash-2' \
+  --prop preset=ellipse \
+  --prop fill=$ORANGE \
+  --prop opacity=0.06 \
+  --prop line=none \
+  --prop x=20cm --prop y=6cm --prop width=16cm --prop height=14cm --prop rotation=-15
 
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "text":"从自动化到自主化","font":"LXGW WenKai",
-    "size":"48","bold":"true","color":"5A7A6A","align":"center",
-    "x":"2cm","y":"5.5cm","width":"30cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[2]","type":"shape","props":{
-    "text":"AI Agent 正在重新定义人机协作的边界","font":"Noto Serif",
-    "size":"18","color":"8A7A6A","align":"center",
-    "x":"4cm","y":"10.5cm","width":"26cm","height":"2cm","fill":"none"}}
-]
-BATCH
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!wash-3' \
+  --prop preset=ellipse \
+  --prop fill=$PURPLE \
+  --prop opacity=0.10 \
+  --prop line=none \
+  --prop x=10cm --prop y=0cm --prop width=14cm --prop height=16cm --prop rotation=5
 
-# ===================== SLIDE 3: pillars =====================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFDF7 --prop transition=morph
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!wash-4' \
+  --prop preset=ellipse \
+  --prop fill=$GREEN \
+  --prop opacity=0.05 \
+  --prop line=none \
+  --prop x=24cm --prop y=0cm --prop width=15cm --prop height=12cm --prop rotation=-8
 
-cat <<'BATCH' | officecli batch "$DECK"
-[
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.10","rotation":"6",
-    "x":"0cm","y":"4cm","width":"13cm","height":"14cm","line":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "preset":"ellipse","fill":"E8A87C","opacity":"0.08","rotation":"-10",
-    "x":"10cm","y":"3cm","width":"14cm","height":"15cm","line":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "preset":"ellipse","fill":"C5B3D1","opacity":"0.09","rotation":"12",
-    "x":"22cm","y":"2cm","width":"13cm","height":"16cm","line":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "preset":"ellipse","fill":"9BC4A8","opacity":"0.05","rotation":"-3",
-    "x":"28cm","y":"14cm","width":"8cm","height":"8cm","line":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "preset":"ellipse","fill":"F2C0A2","opacity":"0.07","rotation":"15",
-    "x":"0cm","y":"14cm","width":"10cm","height":"8cm","line":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.04","rotation":"-7",
-    "x":"15cm","y":"12cm","width":"12cm","height":"10cm","line":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!wash-5' \
+  --prop preset=ellipse \
+  --prop fill=$PEACH \
+  --prop opacity=0.12 \
+  --prop line=none \
+  --prop x=0cm --prop y=10cm --prop width=13cm --prop height=17cm --prop rotation=20
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"三大核心能力","font":"LXGW WenKai",
-    "size":"36","bold":"true","color":"5A7A6A","align":"left",
-    "x":"1.2cm","y":"0.8cm","width":"20cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!wash-6' \
+  --prop preset=ellipse \
+  --prop fill=$BLUE \
+  --prop opacity=0.07 \
+  --prop line=none \
+  --prop x=18cm --prop y=8cm --prop width=17cm --prop height=13cm --prop rotation=-12
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"01","font":"LXGW WenKai",
-    "size":"44","bold":"true","color":"7AADCF","align":"center",
-    "x":"1.2cm","y":"3.8cm","width":"9cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"感知","font":"LXGW WenKai",
-    "size":"24","bold":"true","color":"5A7A6A","align":"center",
-    "x":"1.2cm","y":"6.2cm","width":"9cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"多模态输入理解\n实时环境感知","font":"Noto Serif",
-    "size":"16","color":"6A5A4A","align":"center",
-    "x":"1.2cm","y":"8.2cm","width":"9cm","height":"3cm","fill":"none"}},
+# Slide 1 text content
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-title' \
+  --prop text='AI Agent Platform' \
+  --prop font='LXGW WenKai' \
+  --prop size=56 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=4cm --prop width=26cm --prop height=4cm
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"02","font":"LXGW WenKai",
-    "size":"44","bold":"true","color":"E8A87C","align":"center",
-    "x":"12.5cm","y":"3.8cm","width":"9cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"推理","font":"LXGW WenKai",
-    "size":"24","bold":"true","color":"5A7A6A","align":"center",
-    "x":"12.5cm","y":"6.2cm","width":"9cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"链式思维规划\n动态策略生成","font":"Noto Serif",
-    "size":"16","color":"6A5A4A","align":"center",
-    "x":"12.5cm","y":"8.2cm","width":"9cm","height":"3cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-subtitle' \
+  --prop text='智能体平台发布' \
+  --prop font='LXGW WenKai' \
+  --prop size=36 \
+  --prop bold=true \
+  --prop color=$BROWN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=8.5cm --prop width=26cm --prop height=3cm
 
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"03","font":"LXGW WenKai",
-    "size":"44","bold":"true","color":"C5B3D1","align":"center",
-    "x":"23.8cm","y":"3.8cm","width":"9cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"执行","font":"LXGW WenKai",
-    "size":"24","bold":"true","color":"5A7A6A","align":"center",
-    "x":"23.8cm","y":"6.2cm","width":"9cm","height":"2cm","fill":"none"}},
-  {"command":"add","parent":"/slide[3]","type":"shape","props":{
-    "text":"工具调用编排\n闭环反馈迭代","font":"Noto Serif",
-    "size":"16","color":"6A5A4A","align":"center",
-    "x":"23.8cm","y":"8.2cm","width":"9cm","height":"3cm","fill":"none"}}
-]
-BATCH
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s1-desc' \
+  --prop text='让智能体为你工作' \
+  --prop font='Noto Serif' \
+  --prop size=18 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=12cm --prop width=26cm --prop height=2cm
 
-# ===================== SLIDE 4: evidence =====================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFDF7 --prop transition=morph
+# Pre-create all other slide text content (off-canvas)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s2-title' \
+  --prop text='从自动化到自主化' \
+  --prop font='LXGW WenKai' \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5.5cm --prop width=30cm --prop height=4cm
 
-cat <<'BATCH' | officecli batch "$DECK"
-[
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.35","rotation":"8",
-    "x":"0cm","y":"1cm","width":"18cm","height":"17cm","line":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "preset":"ellipse","fill":"E8A87C","opacity":"0.30","rotation":"-12",
-    "x":"18cm","y":"0cm","width":"16cm","height":"14cm","line":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "preset":"ellipse","fill":"C5B3D1","opacity":"0.08","rotation":"5",
-    "x":"26cm","y":"12cm","width":"10cm","height":"10cm","line":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "preset":"ellipse","fill":"9BC4A8","opacity":"0.06","rotation":"-6",
-    "x":"14cm","y":"14cm","width":"8cm","height":"6cm","line":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "preset":"ellipse","fill":"F2C0A2","opacity":"0.05","rotation":"10",
-    "x":"30cm","y":"0cm","width":"6cm","height":"6cm","line":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.04","rotation":"-4",
-    "x":"10cm","y":"15cm","width":"5cm","height":"5cm","line":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s2-desc' \
+  --prop text='AI Agent 正在重新定义人机协作的边界' \
+  --prop font='Noto Serif' \
+  --prop size=18 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10.5cm --prop width=26cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"平台数据","font":"LXGW WenKai",
-    "size":"36","bold":"true","color":"5A7A6A","align":"left",
-    "x":"1.2cm","y":"0.8cm","width":"20cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-title' \
+  --prop text='三大核心能力' \
+  --prop font='LXGW WenKai' \
+  --prop size=36 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=left \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=0.8cm --prop width=20cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"10M+","font":"LXGW WenKai",
-    "size":"72","bold":"true","color":"FFFFFF","align":"center",
-    "x":"1.2cm","y":"5cm","width":"14cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"智能体调用次数","font":"Noto Serif",
-    "size":"18","color":"FFFFFF","align":"center","opacity":"0.9",
-    "x":"1.2cm","y":"9cm","width":"14cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p1-num' \
+  --prop text='01' \
+  --prop font='LXGW WenKai' \
+  --prop size=44 \
+  --prop bold=true \
+  --prop color=$BLUE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=3.8cm --prop width=9cm --prop height=2.5cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"99.95%","font":"LXGW WenKai",
-    "size":"56","bold":"true","color":"5A3A2A","align":"center",
-    "x":"19cm","y":"3cm","width":"14cm","height":"3.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"平台可用性","font":"Noto Serif",
-    "size":"18","color":"6A5A4A","align":"center",
-    "x":"19cm","y":"6.5cm","width":"14cm","height":"2cm","fill":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p1-title' \
+  --prop text='感知' \
+  --prop font='LXGW WenKai' \
+  --prop size=24 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=6.2cm --prop width=9cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"50ms","font":"LXGW WenKai",
-    "size":"44","bold":"true","color":"5A3A2A","align":"center",
-    "x":"19cm","y":"10cm","width":"14cm","height":"3cm","fill":"none"}},
-  {"command":"add","parent":"/slide[4]","type":"shape","props":{
-    "text":"平均响应延迟","font":"Noto Serif",
-    "size":"18","color":"6A5A4A","align":"center",
-    "x":"19cm","y":"13cm","width":"14cm","height":"2cm","fill":"none"}}
-]
-BATCH
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p1-desc' \
+  --prop text='多模态输入理解
+实时环境感知' \
+  --prop font='Noto Serif' \
+  --prop size=16 \
+  --prop color=$BROWN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8.2cm --prop width=9cm --prop height=3cm
 
-# ===================== SLIDE 5: cta =====================
-officecli add "$DECK" '/' --type slide --prop layout=blank --prop background=FFFDF7 --prop transition=morph
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p2-num' \
+  --prop text='02' \
+  --prop font='LXGW WenKai' \
+  --prop size=44 \
+  --prop bold=true \
+  --prop color=$ORANGE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=3.8cm --prop width=9cm --prop height=2.5cm
 
-cat <<'BATCH' | officecli batch "$DECK"
-[
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.09","rotation":"12",
-    "x":"22cm","y":"8cm","width":"16cm","height":"14cm","line":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "preset":"ellipse","fill":"E8A87C","opacity":"0.07","rotation":"-14",
-    "x":"0cm","y":"0cm","width":"14cm","height":"12cm","line":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "preset":"ellipse","fill":"C5B3D1","opacity":"0.10","rotation":"7",
-    "x":"8cm","y":"10cm","width":"15cm","height":"16cm","line":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "preset":"ellipse","fill":"9BC4A8","opacity":"0.06","rotation":"-10",
-    "x":"26cm","y":"0cm","width":"12cm","height":"10cm","line":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "preset":"ellipse","fill":"F2C0A2","opacity":"0.11","rotation":"16",
-    "x":"0cm","y":"12cm","width":"14cm","height":"14cm","line":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "preset":"ellipse","fill":"7AADCF","opacity":"0.05","rotation":"-8",
-    "x":"16cm","y":"0cm","width":"13cm","height":"11cm","line":"none"}},
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p2-title' \
+  --prop text='推理' \
+  --prop font='LXGW WenKai' \
+  --prop size=24 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=6.2cm --prop width=9cm --prop height=2cm
 
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "text":"开始构建你的智能体","font":"LXGW WenKai",
-    "size":"48","bold":"true","color":"5A7A6A","align":"center",
-    "x":"4cm","y":"4.5cm","width":"26cm","height":"4.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[5]","type":"shape","props":{
-    "text":"platform.ai/agents  |  立即体验","font":"Noto Serif",
-    "size":"18","color":"8A7A6A","align":"center",
-    "x":"4cm","y":"10cm","width":"26cm","height":"2cm","fill":"none"}}
-]
-BATCH
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p2-desc' \
+  --prop text='链式思维规划
+动态策略生成' \
+  --prop font='Noto Serif' \
+  --prop size=16 \
+  --prop color=$BROWN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8.2cm --prop width=9cm --prop height=3cm
 
-# ===================== VALIDATE =====================
-officecli validate "$DECK"
-officecli view "$DECK" outline
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p3-num' \
+  --prop text='03' \
+  --prop font='LXGW WenKai' \
+  --prop size=44 \
+  --prop bold=true \
+  --prop color=$PURPLE \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=3.8cm --prop width=9cm --prop height=2.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p3-title' \
+  --prop text='执行' \
+  --prop font='LXGW WenKai' \
+  --prop size=24 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=6.2cm --prop width=9cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s3-p3-desc' \
+  --prop text='工具调用编排
+闭环反馈迭代' \
+  --prop font='Noto Serif' \
+  --prop size=16 \
+  --prop color=$BROWN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=8.2cm --prop width=9cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-title' \
+  --prop text='平台数据' \
+  --prop font='LXGW WenKai' \
+  --prop size=36 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=left \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=0.8cm --prop width=20cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-num1' \
+  --prop text='10M+' \
+  --prop font='LXGW WenKai' \
+  --prop size=72 \
+  --prop bold=true \
+  --prop color=FFFFFF \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=5cm --prop width=14cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-label1' \
+  --prop text='智能体调用次数' \
+  --prop font='Noto Serif' \
+  --prop size=18 \
+  --prop color=FFFFFF \
+  --prop opacity=0.9 \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=9cm --prop width=14cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-num2' \
+  --prop text='99.95%' \
+  --prop font='LXGW WenKai' \
+  --prop size=56 \
+  --prop bold=true \
+  --prop color=5A3A2A \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=3cm --prop width=14cm --prop height=3.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-label2' \
+  --prop text='平台可用性' \
+  --prop font='Noto Serif' \
+  --prop size=18 \
+  --prop color=$BROWN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=6.5cm --prop width=14cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-num3' \
+  --prop text='50ms' \
+  --prop font='LXGW WenKai' \
+  --prop size=44 \
+  --prop bold=true \
+  --prop color=5A3A2A \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10cm --prop width=14cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s4-label3' \
+  --prop text='平均响应延迟' \
+  --prop font='Noto Serif' \
+  --prop size=18 \
+  --prop color=$BROWN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=13cm --prop width=14cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s5-title' \
+  --prop text='开始构建你的智能体' \
+  --prop font='LXGW WenKai' \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$DARK_GREEN \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=4.5cm --prop width=26cm --prop height=4.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=#s5-link' \
+  --prop text='platform.ai/agents  |  立即体验' \
+  --prop font='Noto Serif' \
+  --prop size=18 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=$OFFSCREEN --prop y=10cm --prop width=26cm --prop height=2cm
+
+# ============================================
+# SLIDE 2 - STATEMENT
+# ============================================
+echo "Building Slide 2: Statement..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[2]' --prop transition=morph
+
+# Morph watercolor ellipses - slow drift
+officecli set "$OUTPUT" '/slide[2]/shape[1]' --prop x=3cm --prop y=2cm --prop rotation=13 --prop opacity=0.09
+officecli set "$OUTPUT" '/slide[2]/shape[2]' --prop x=16cm --prop y=4cm --prop rotation=-12 --prop opacity=0.07
+officecli set "$OUTPUT" '/slide[2]/shape[3]' --prop x=12cm --prop y=3cm --prop rotation=8 --prop opacity=0.08
+officecli set "$OUTPUT" '/slide[2]/shape[4]' --prop x=22cm --prop y=2cm --prop rotation=-5 --prop opacity=0.06
+officecli set "$OUTPUT" '/slide[2]/shape[5]' --prop x=2cm --prop y=8cm --prop rotation=18 --prop opacity=0.10
+officecli set "$OUTPUT" '/slide[2]/shape[6]' --prop x=20cm --prop y=10cm --prop rotation=-10 --prop opacity=0.06
+
+# Hide slide 1 content, show slide 2 content
+officecli set "$OUTPUT" '/slide[2]/shape[7]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[2]/shape[8]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[2]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[2]/shape[10]' --prop x=2cm --prop y=5.5cm
+officecli set "$OUTPUT" '/slide[2]/shape[11]' --prop x=4cm --prop y=10.5cm
+
+# ============================================
+# SLIDE 3 - PILLARS
+# ============================================
+echo "Building Slide 3: Pillars..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[3]' --prop transition=morph
+
+# Morph watercolor ellipses
+officecli set "$OUTPUT" '/slide[3]/shape[1]' --prop x=0cm --prop y=4cm --prop width=13cm --prop height=14cm --prop rotation=6 --prop opacity=0.10
+officecli set "$OUTPUT" '/slide[3]/shape[2]' --prop x=10cm --prop y=3cm --prop width=14cm --prop height=15cm --prop rotation=-10 --prop opacity=0.08
+officecli set "$OUTPUT" '/slide[3]/shape[3]' --prop x=22cm --prop y=2cm --prop width=13cm --prop height=16cm --prop rotation=12 --prop opacity=0.09
+officecli set "$OUTPUT" '/slide[3]/shape[4]' --prop x=28cm --prop y=14cm --prop width=8cm --prop height=8cm --prop rotation=-3 --prop opacity=0.05
+officecli set "$OUTPUT" '/slide[3]/shape[5]' --prop x=0cm --prop y=14cm --prop width=10cm --prop height=8cm --prop rotation=15 --prop opacity=0.07
+officecli set "$OUTPUT" '/slide[3]/shape[6]' --prop x=15cm --prop y=12cm --prop width=12cm --prop height=10cm --prop rotation=-7 --prop opacity=0.04
+
+# Hide previous content, show slide 3 content
+officecli set "$OUTPUT" '/slide[3]/shape[7]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[8]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[11]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[3]/shape[12]' --prop x=1.2cm --prop y=0.8cm
+officecli set "$OUTPUT" '/slide[3]/shape[13]' --prop x=1.2cm --prop y=3.8cm
+officecli set "$OUTPUT" '/slide[3]/shape[14]' --prop x=1.2cm --prop y=6.2cm
+officecli set "$OUTPUT" '/slide[3]/shape[15]' --prop x=1.2cm --prop y=8.2cm
+officecli set "$OUTPUT" '/slide[3]/shape[16]' --prop x=12.5cm --prop y=3.8cm
+officecli set "$OUTPUT" '/slide[3]/shape[17]' --prop x=12.5cm --prop y=6.2cm
+officecli set "$OUTPUT" '/slide[3]/shape[18]' --prop x=12.5cm --prop y=8.2cm
+officecli set "$OUTPUT" '/slide[3]/shape[19]' --prop x=23.8cm --prop y=3.8cm
+officecli set "$OUTPUT" '/slide[3]/shape[20]' --prop x=23.8cm --prop y=6.2cm
+officecli set "$OUTPUT" '/slide[3]/shape[21]' --prop x=23.8cm --prop y=8.2cm
+
+# ============================================
+# SLIDE 4 - EVIDENCE
+# ============================================
+echo "Building Slide 4: Evidence..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[4]' --prop transition=morph
+
+# Morph watercolor ellipses - larger opacities for evidence
+officecli set "$OUTPUT" '/slide[4]/shape[1]' --prop x=0cm --prop y=1cm --prop width=18cm --prop height=17cm --prop rotation=8 --prop opacity=0.35
+officecli set "$OUTPUT" '/slide[4]/shape[2]' --prop x=18cm --prop y=0cm --prop width=16cm --prop height=14cm --prop rotation=-12 --prop opacity=0.30
+officecli set "$OUTPUT" '/slide[4]/shape[3]' --prop x=26cm --prop y=12cm --prop width=10cm --prop height=10cm --prop rotation=5 --prop opacity=0.08
+officecli set "$OUTPUT" '/slide[4]/shape[4]' --prop x=14cm --prop y=14cm --prop width=8cm --prop height=6cm --prop rotation=-6 --prop opacity=0.06
+officecli set "$OUTPUT" '/slide[4]/shape[5]' --prop x=30cm --prop y=0cm --prop width=6cm --prop height=6cm --prop rotation=10 --prop opacity=0.05
+officecli set "$OUTPUT" '/slide[4]/shape[6]' --prop x=10cm --prop y=15cm --prop width=5cm --prop height=5cm --prop rotation=-4 --prop opacity=0.04
+
+# Hide previous content, show slide 4 content
+officecli set "$OUTPUT" '/slide[4]/shape[7]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[8]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[11]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[12]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[13]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[14]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[15]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[16]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[17]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[18]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[19]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[20]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[21]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[4]/shape[22]' --prop x=1.2cm --prop y=0.8cm
+officecli set "$OUTPUT" '/slide[4]/shape[23]' --prop x=1.2cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[24]' --prop x=1.2cm --prop y=9cm
+officecli set "$OUTPUT" '/slide[4]/shape[25]' --prop x=19cm --prop y=3cm
+officecli set "$OUTPUT" '/slide[4]/shape[26]' --prop x=19cm --prop y=6.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[27]' --prop x=19cm --prop y=10cm
+officecli set "$OUTPUT" '/slide[4]/shape[28]' --prop x=19cm --prop y=13cm
+
+# ============================================
+# SLIDE 5 - CTA
+# ============================================
+echo "Building Slide 5: CTA..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[5]' --prop transition=morph
+
+# Morph watercolor ellipses - final drift
+officecli set "$OUTPUT" '/slide[5]/shape[1]' --prop x=22cm --prop y=8cm --prop width=16cm --prop height=14cm --prop rotation=12 --prop opacity=0.09
+officecli set "$OUTPUT" '/slide[5]/shape[2]' --prop x=0cm --prop y=0cm --prop width=14cm --prop height=12cm --prop rotation=-14 --prop opacity=0.07
+officecli set "$OUTPUT" '/slide[5]/shape[3]' --prop x=8cm --prop y=10cm --prop width=15cm --prop height=16cm --prop rotation=7 --prop opacity=0.10
+officecli set "$OUTPUT" '/slide[5]/shape[4]' --prop x=26cm --prop y=0cm --prop width=12cm --prop height=10cm --prop rotation=-10 --prop opacity=0.06
+officecli set "$OUTPUT" '/slide[5]/shape[5]' --prop x=0cm --prop y=12cm --prop width=14cm --prop height=14cm --prop rotation=16 --prop opacity=0.11
+officecli set "$OUTPUT" '/slide[5]/shape[6]' --prop x=16cm --prop y=0cm --prop width=13cm --prop height=11cm --prop rotation=-8 --prop opacity=0.05
+
+# Hide previous content, show slide 5 content
+officecli set "$OUTPUT" '/slide[5]/shape[7]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[8]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[9]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[10]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[11]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[12]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[13]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[14]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[15]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[16]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[17]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[18]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[19]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[20]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[21]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[22]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[23]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[24]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[25]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[26]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[27]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[28]' --prop x=$OFFSCREEN
+officecli set "$OUTPUT" '/slide[5]/shape[29]' --prop x=4cm --prop y=4.5cm
+officecli set "$OUTPUT" '/slide[5]/shape[30]' --prop x=4cm --prop y=10cm
+
+# ============================================
+# VALIDATE & COMPLETE
+# ============================================
+echo "Validating..."
+bash "$(dirname "$0")/../../morph-helpers.sh" validate "$OUTPUT"
+
+echo "✅ Build complete: $OUTPUT"

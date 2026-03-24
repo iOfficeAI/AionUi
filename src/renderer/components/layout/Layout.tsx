@@ -20,6 +20,7 @@ import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelectio
 import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetection';
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
+import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
@@ -93,6 +94,7 @@ const Layout: React.FC<{
   useDeepLink();
   useNotificationClick();
   const navigate = useNavigate();
+  useConversationShortcuts({ navigate });
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);

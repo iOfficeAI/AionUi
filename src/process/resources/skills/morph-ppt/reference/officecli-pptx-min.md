@@ -10,18 +10,30 @@ description: OfficeCli Command Reference — PPT generation and validation comma
 **Every time before using officecli, run this check:**
 
 ```bash
-# 1. Check if installed
+# Check if installed
 if ! command -v officecli &> /dev/null; then
+    echo "Installing officecli..."
     # macOS/Linux
     curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash
     # Windows: irm https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.ps1 | iex
+else
+    # Check if update needed
+    CURRENT=$(officecli --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    LATEST=$(curl -fsSL https://api.github.com/repos/iOfficeAI/OfficeCLI/releases/latest | grep '"tag_name"' | sed -E 's/.*"v?([0-9.]+)".*/\1/')
+
+    if [ "$CURRENT" != "$LATEST" ]; then
+        echo "Upgrading officecli $CURRENT → $LATEST..."
+        curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCli/main/install.sh | bash
+    else
+        echo "officecli $CURRENT is up to date"
+    fi
 fi
 
-# 2. Verify version (should be >= 1.0.14 for HTML preview)
+# Verify version
 officecli --version
 ```
 
-**Why:** OfficeCli auto-updates daily in background, but you should ensure latest version before starting work.
+**Why:** This ensures you have the latest features and bug fixes before starting work.
 
 ---
 
@@ -148,24 +160,15 @@ officecli get deck.pptx '/slide[1]' --depth 1
 - **After add:** New shape gets next index (if slide has 8 shapes, new = `shape[9]`)
 - **After remove:** Indices shift down (remove `shape[3]` → old `shape[4]` becomes `shape[3]`)
 
-### Morph Animation (Unique Domain Knowledge)
+### Morph Animation
 
 `transition=morph` creates smooth animations by **matching shapes by name** across adjacent slides.
 
-**Critical rules:**
+**How it works:**
 
 1. Adjacent slides must have shapes with **identical names** for morphing
-2. If names don't match → only fade in/out (no morph effect)
-3. **Best practice workflow:**
-   - Define all shapes on slide 1 with fixed names (e.g., `!!bg-circle`, `!!dot-main`)
-   - Clone slide 1 to create slide 2
-   - Modify properties (position, color, size) but **keep names unchanged**
-   - Repeat for more slides
-
-**Ghost technique:**
-
-- Shapes not visible on a slide? Move off-screen (`x=36cm`) — **don't delete**
-- Deleting breaks morph pairing across slides
+2. PowerPoint matches by name and animates position/size/color changes
+3. If names don't match → only fade in/out (no morph effect)
 
 **Morph variants:**
 
@@ -175,13 +178,21 @@ officecli get deck.pptx '/slide[1]' --depth 1
 --prop transition=morph-byChar   # Character-by-character text animation
 ```
 
-### Shell Script Rules (for build.sh)
+**For complete Morph workflow** (naming conventions, ghosting, helpers), see `SKILL.md` Phase 3.
 
-- **Multi-line text:** Use `\\n` (double-escaped) or split into multiple textboxes
-- **Line continuation `\`:** No trailing spaces after backslash
-- **Chinese filenames:** May cause encoding issues in some shells — use English names
+### Script Best Practices
 
-### Batch JSON Rules
+- **Multi-line text:** Use `\\n` (double-escaped in bash) or split into multiple textboxes
+- **Line continuation (bash):** No trailing spaces after backslash `\`
+- **Filenames:** Use English names to avoid encoding issues
+- **Language choice:** Use bash/python/powershell — whatever executes `officecli` commands clearly
+
+### Batch JSON Mode (NOT RECOMMENDED for Morph)
+
+**Do NOT use** `officecli batch --input commands.json` for Morph presentations.
+Reason: Morph requires careful step-by-step control that's hard to debug in JSON.
+
+If you must use batch mode for non-Morph tasks:
 
 - **Booleans as strings:** `{"props":{"bold":"true"}}` not `{"bold":true}`
 - **Escape quotes:** `{"props":{"text":"It\\'s working"}}`

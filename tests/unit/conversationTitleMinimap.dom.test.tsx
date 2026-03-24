@@ -61,6 +61,13 @@ const mockMessages = [
   },
 ];
 
+const setElectronAPI = (value?: object) => {
+  Object.defineProperty(window, 'electronAPI', {
+    configurable: true,
+    value,
+  });
+};
+
 const openSearchInput = async () => {
   render(<ConversationTitleMinimap conversationId='conversation-1' />);
 
@@ -81,6 +88,7 @@ describe('ConversationTitleMinimap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     minimapMocks.getConversationMessages.mockResolvedValue(mockMessages);
+    setElectronAPI(undefined);
   });
 
   it('exits search mode on blur when the keyword is empty', async () => {
@@ -144,5 +152,21 @@ describe('ConversationTitleMinimap', () => {
     await waitFor(() => {
       expect(screen.queryByRole('textbox', { name: 'Search conversation' })).not.toBeInTheDocument();
     });
+  });
+
+  it('does not open the minimap on Cmd/Ctrl+Shift+F', async () => {
+    setElectronAPI({});
+
+    render(<ConversationTitleMinimap conversationId='conversation-1' />);
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'F', ctrlKey: true, shiftKey: true });
+    });
+
+    expect(screen.queryByRole('textbox', { name: 'Search conversation' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search conversation', { selector: 'span[role="button"]' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 });

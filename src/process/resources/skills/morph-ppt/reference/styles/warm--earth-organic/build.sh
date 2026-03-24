@@ -1,222 +1,462 @@
 #!/bin/bash
 set -e
 
-# Build script for 04-earth-organic
-# Auto-extracted from agent output
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT="$SCRIPT_DIR/warm__earth_organic.pptx"
 
-mkdir -p /Users/veryliu/Documents/GitHub/OfficeCli/morph-templates/04-earth-organic
+echo "Building: warm--earth-organic (Sustainable Growth)"
+rm -f "$OUTPUT"
+officecli create "$OUTPUT"
 
-officecli --version
+# Colors
+BG=F5F0E8
+BROWN=8B6F47
+SAGE=A8C686
+TERRA=D4956B
+SAND=C2A878
+FOREST=6B8E6B
+CREAM=E8D5B0
+GRAY=9E8E7A
 
-officecli create morph-templates/04-earth-organic/template.pptx
+# Off-canvas position
+OFFSCREEN=36cm
 
-officecli add morph-templates/04-earth-organic/template.pptx '/' --type slide --prop layout=blank --prop background=F5F0E8
+# ============================================
+# SLIDE 1 - HERO
+# ============================================
+echo "Building Slide 1: Hero..."
 
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!leaf-brown","preset":"ellipse","fill":"8B6F47","opacity":"0.3",
-    "x":"1.2cm","y":"1cm","width":"6cm","height":"5cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!leaf-sage","preset":"ellipse","fill":"A8C686","opacity":"0.25",
-    "x":"25cm","y":"12cm","width":"8cm","height":"6cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stone-terra","preset":"roundRect","fill":"D4956B","opacity":"0.2",
-    "x":"27cm","y":"0.8cm","width":"5cm","height":"4cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!stone-sand","preset":"roundRect","fill":"C2A878","opacity":"0.3",
-    "x":"0.8cm","y":"13cm","width":"7cm","height":"5cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!seed-forest","preset":"ellipse","fill":"6B8E6B",
-    "x":"30cm","y":"8cm","width":"3cm","height":"2.5cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!seed-cream","preset":"ellipse","fill":"E8D5B0","opacity":"0.5",
-    "x":"3cm","y":"8cm","width":"2cm","height":"2cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pebble-1","preset":"ellipse","fill":"8B6F47","opacity":"0.4",
-    "x":"15cm","y":"16cm","width":"1.5cm","height":"1.2cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!pebble-2","preset":"ellipse","fill":"A8C686","opacity":"0.35",
-    "x":"22cm","y":"1.5cm","width":"1.8cm","height":"1.5cm"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-title","text":"Sustainable Growth","font":"Segoe UI","size":"64","bold":"true","color":"3C2415",
-    "x":"4cm","y":"5cm","width":"26cm","height":"4cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!hero-sub","text":"Building a Better Tomorrow","font":"Segoe UI Light","size":"24","color":"6B5B4A",
-    "x":"4cm","y":"9.5cm","width":"26cm","height":"2.5cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-1-num","text":"01","font":"Segoe UI","size":"48","bold":"true","color":"D4956B",
-    "x":"-3cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-1-title","text":"Reduce","font":"Segoe UI","size":"28","bold":"true","color":"3C2415",
-    "x":"-3cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-1-desc","text":"Minimize waste at every step of the supply chain","font":"Segoe UI Light","size":"16","color":"6B5B4A",
-    "x":"-3cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-2-num","text":"02","font":"Segoe UI","size":"48","bold":"true","color":"A8C686",
-    "x":"10cm","y":"-3cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-2-title","text":"Reuse","font":"Segoe UI","size":"28","bold":"true","color":"3C2415",
-    "x":"22cm","y":"-3cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-2-desc","text":"Extend product lifecycles through circular design","font":"Segoe UI Light","size":"16","color":"6B5B4A",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-3-num","text":"03","font":"Segoe UI","size":"48","bold":"true","color":"6B8E6B",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-3-title","text":"Regenerate","font":"Segoe UI","size":"28","bold":"true","color":"3C2415",
-    "x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-3-desc","text":"Restore ecosystems and build for the future","font":"Segoe UI Light","size":"16","color":"6B5B4A",
-    "x":"-3cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-text","text":"Join Our Mission","font":"Segoe UI","size":"40","bold":"true","color":"3C2415",
-    "x":"-3cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/' --type slide --prop layout=blank --prop background=$BG
 
-echo '[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-1-num","text":"01","font":"Segoe UI","size":"48","bold":"true","color":"D4956B",
-    "x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-1-title","text":"Reduce","font":"Segoe UI","size":"28","bold":"true","color":"3C2415",
-    "x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-1-desc","text":"Minimize waste at every step of the supply chain","font":"Segoe UI Light","size":"16","color":"6B5B4A",
-    "x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-2-num","text":"02","font":"Segoe UI","size":"48","bold":"true","color":"A8C686",
-    "x":"10cm","y":"22cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-2-title","text":"Reuse","font":"Segoe UI","size":"28","bold":"true","color":"3C2415",
-    "x":"22cm","y":"22cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!card-3-desc","text":"Restore ecosystems and build for the future","font":"Segoe UI Light","size":"16","color":"6B5B4A",
-    "x":"36cm","y":"6cm","width":"0.1cm","height":"0.1cm","fill":"none"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{
-    "name":"!!cta-text","text":"Join Our Mission","font":"Segoe UI","size":"40","bold":"true","color":"3C2415",
-    "x":"36cm","y":"14cm","width":"0.1cm","height":"0.1cm","fill":"none"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+# Scene actors: organic shapes
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!leaf-brown' \
+  --prop preset=ellipse \
+  --prop fill=$BROWN \
+  --prop opacity=0.3 \
+  --prop x=1.2cm --prop y=1cm --prop width=6cm --prop height=5cm
 
-echo '[
-  {"command":"set","path":"/slide[1]/shape[9]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[1]/shape[10]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!leaf-sage' \
+  --prop preset=ellipse \
+  --prop fill=$SAGE \
+  --prop opacity=0.25 \
+  --prop x=25cm --prop y=12cm --prop width=8cm --prop height=6cm
 
-officecli add morph-templates/04-earth-organic/template.pptx '/' --from '/slide[1]' && \
-officecli add morph-templates/04-earth-organic/template.pptx '/' --from '/slide[1]' && \
-officecli add morph-templates/04-earth-organic/template.pptx '/' --from '/slide[1]' && \
-officecli add morph-templates/04-earth-organic/template.pptx '/' --from '/slide[1]'
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stone-terra' \
+  --prop preset=roundRect \
+  --prop fill=$TERRA \
+  --prop opacity=0.2 \
+  --prop x=27cm --prop y=0.8cm --prop width=5cm --prop height=4cm
 
-echo '[
-  {"command":"set","path":"/slide[2]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[3]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[4]","props":{"transition":"morph"}},
-  {"command":"set","path":"/slide[5]","props":{"transition":"morph"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!stone-sand' \
+  --prop preset=roundRect \
+  --prop fill=$SAND \
+  --prop opacity=0.3 \
+  --prop x=0.8cm --prop y=13cm --prop width=7cm --prop height=5cm
 
-officecli view morph-templates/04-earth-organic/template.pptx outline
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!seed-forest' \
+  --prop preset=ellipse \
+  --prop fill=$FOREST \
+  --prop x=30cm --prop y=8cm --prop width=3cm --prop height=2.5cm
 
-for i in $(seq 1 20); do echo "shape[$i]:"; officecli view morph-templates/04-earth-organic/template.pptx "/slide[1]/shape[$i]" 2>/dev/null || echo "  (not found)"; done
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!seed-cream' \
+  --prop preset=ellipse \
+  --prop fill=$CREAM \
+  --prop opacity=0.5 \
+  --prop x=3cm --prop y=8cm --prop width=2cm --prop height=2cm
 
-officecli view morph-templates/04-earth-organic/template.pptx "/slide[1]" annotated 2>/dev/null || officecli view morph-templates/04-earth-organic/template.pptx annotated 2>/dev/null
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pebble-1' \
+  --prop preset=ellipse \
+  --prop fill=$BROWN \
+  --prop opacity=0.4 \
+  --prop x=15cm --prop y=16cm --prop width=1.5cm --prop height=1.2cm
 
-echo '[
-  {"command":"set","path":"/slide[2]/shape[1]","props":{"x":"24cm","y":"10cm","width":"7cm","height":"5.5cm"}},
-  {"command":"set","path":"/slide[2]/shape[2]","props":{"x":"2cm","y":"2cm","width":"9cm","height":"7cm"}},
-  {"command":"set","path":"/slide[2]/shape[3]","props":{"x":"1.2cm","y":"14cm","width":"6cm","height":"4.5cm"}},
-  {"command":"set","path":"/slide[2]/shape[4]","props":{"x":"28cm","y":"1cm","width":"5cm","height":"4cm"}},
-  {"command":"set","path":"/slide[2]/shape[5]","props":{"x":"14cm","y":"15cm","width":"3.5cm","height":"3cm"}},
-  {"command":"set","path":"/slide[2]/shape[6]","props":{"x":"30cm","y":"6cm","width":"2.5cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[2]/shape[7]","props":{"x":"20cm","y":"2cm","width":"1.8cm","height":"1.4cm"}},
-  {"command":"set","path":"/slide[2]/shape[8]","props":{"x":"10cm","y":"16cm","width":"2cm","height":"1.6cm"}},
-  {"command":"set","path":"/slide[2]/shape[9]","props":{"text":"Nature Knows Best","size":"72"}},
-  {"command":"set","path":"/slide[2]/shape[10]","props":{"text":"Let the earth guide our innovation","y":"10.5cm"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!pebble-2' \
+  --prop preset=ellipse \
+  --prop fill=$SAGE \
+  --prop opacity=0.35 \
+  --prop x=22cm --prop y=1.5cm --prop width=1.8cm --prop height=1.5cm
 
-echo '[
-  {"command":"set","path":"/slide[3]/shape[1]","props":{"x":"1.2cm","y":"5cm","width":"9.5cm","height":"13cm","preset":"roundRect","opacity":"0.12"}},
-  {"command":"set","path":"/slide[3]/shape[2]","props":{"x":"12.2cm","y":"5cm","width":"9.5cm","height":"13cm","preset":"roundRect","opacity":"0.12"}},
-  {"command":"set","path":"/slide[3]/shape[3]","props":{"x":"23.2cm","y":"5cm","width":"9.5cm","height":"13cm","preset":"roundRect","opacity":"0.12"}},
-  {"command":"set","path":"/slide[3]/shape[4]","props":{"x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[5]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[6]","props":{"x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[7]","props":{"x":"10cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[8]","props":{"x":"22cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[3]/shape[9]","props":{"text":"Three Pillars of Change","size":"40","x":"1.2cm","y":"1cm","width":"26cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[10]","props":{"text":"Our framework for sustainable impact","size":"18","x":"1.2cm","y":"3.2cm","width":"20cm","height":"1.5cm"}},
-  {"command":"set","path":"/slide[3]/shape[14]","props":{"x":"2.8cm","y":"6cm","width":"6.5cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[15]","props":{"x":"2.8cm","y":"9cm","width":"6.5cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[3]/shape[16]","props":{"x":"2.8cm","y":"11.5cm","width":"6.5cm","height":"4cm"}},
-  {"command":"set","path":"/slide[3]/shape[17]","props":{"x":"13.8cm","y":"6cm","width":"6.5cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[18]","props":{"x":"13.8cm","y":"9cm","width":"6.5cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[3]/shape[11]","props":{"x":"13.8cm","y":"11.5cm","width":"6.5cm","height":"4cm"}},
-  {"command":"set","path":"/slide[3]/shape[12]","props":{"x":"24.8cm","y":"6cm","width":"6.5cm","height":"3cm"}},
-  {"command":"set","path":"/slide[3]/shape[13]","props":{"x":"24.8cm","y":"9cm","width":"6.5cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[3]/shape[19]","props":{"x":"24.8cm","y":"11.5cm","width":"6.5cm","height":"4cm"}},
-  {"command":"set","path":"/slide[3]/shape[20]","props":{"x":"36cm","y":"14cm","width":"0.1cm","height":"0.1cm"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+# Hero text (visible)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!hero-title' \
+  --prop text="Sustainable Growth" \
+  --prop font="Segoe UI" \
+  --prop size=64 \
+  --prop bold=true \
+  --prop color=3C2415 \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=5cm --prop width=26cm --prop height=4cm
 
-echo '[
-  {"command":"set","path":"/slide[3]/shape[9]/paragraph[1]","props":{"align":"left"}},
-  {"command":"set","path":"/slide[3]/shape[10]/paragraph[1]","props":{"align":"left"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!hero-sub' \
+  --prop text="Building a Better Tomorrow" \
+  --prop font="Segoe UI Light" \
+  --prop size=24 \
+  --prop color=6B5B4A \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=4cm --prop y=9.5cm --prop width=26cm --prop height=2.5cm
 
-echo '[
-  {"command":"set","path":"/slide[4]/shape[1]","props":{"x":"1.2cm","y":"2cm","width":"14cm","height":"12cm","preset":"ellipse","opacity":"0.4"}},
-  {"command":"set","path":"/slide[4]/shape[2]","props":{"x":"18cm","y":"1cm","width":"15cm","height":"10cm","preset":"ellipse","opacity":"0.35"}},
-  {"command":"set","path":"/slide[4]/shape[3]","props":{"x":"20cm","y":"12cm","width":"12cm","height":"6.5cm","preset":"roundRect","opacity":"0.25"}},
-  {"command":"set","path":"/slide[4]/shape[4]","props":{"x":"30cm","y":"16cm","width":"3cm","height":"2.5cm","opacity":"0.2"}},
-  {"command":"set","path":"/slide[4]/shape[5]","props":{"x":"1.2cm","y":"15cm","width":"2.5cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[6]","props":{"x":"5cm","y":"16cm","width":"1.5cm","height":"1.5cm"}},
-  {"command":"set","path":"/slide[4]/shape[7]","props":{"x":"16cm","y":"0.8cm","width":"1.2cm","height":"1cm"}},
-  {"command":"set","path":"/slide[4]/shape[8]","props":{"x":"8cm","y":"15cm","width":"1.5cm","height":"1.2cm"}},
-  {"command":"set","path":"/slide[4]/shape[9]","props":{"text":"Our Impact","size":"40","x":"1.2cm","y":"0.8cm","width":"14cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[4]/shape[10]","props":{"text":"Measurable results that matter","size":"16","color":"9E8E7A","x":"1.2cm","y":"3cm","width":"14cm","height":"1.5cm"}},
-  {"command":"set","path":"/slide[4]/shape[14]","props":{"text":"40%","size":"64","color":"8B6F47","x":"3cm","y":"5cm","width":"10cm","height":"4cm"}},
-  {"command":"set","path":"/slide[4]/shape[15]","props":{"text":"Less Waste","size":"24","x":"3cm","y":"9cm","width":"10cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[16]","props":{"text":"Reduction in operational waste across all facilities","size":"14","x":"3cm","y":"11cm","width":"10cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[17]","props":{"text":"2M","size":"64","color":"A8C686","x":"20cm","y":"2.5cm","width":"11cm","height":"4cm"}},
-  {"command":"set","path":"/slide[4]/shape[18]","props":{"text":"Trees Planted","size":"24","x":"20cm","y":"6.5cm","width":"11cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[11]","props":{"text":"Reforestation efforts spanning three continents","size":"14","x":"20cm","y":"8.5cm","width":"11cm","height":"2cm"}},
-  {"command":"set","path":"/slide[4]/shape[12]","props":{"text":"Carbon","size":"48","color":"6B8E6B","x":"21cm","y":"13cm","width":"10cm","height":"3cm"}},
-  {"command":"set","path":"/slide[4]/shape[13]","props":{"text":"Neutral","size":"48","color":"6B8E6B","x":"21cm","y":"15.5cm","width":"10cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[4]/shape[19]","props":{"text":"Certified carbon neutral since 2024","size":"14","x":"21cm","y":"17.5cm","width":"10cm","height":"1.2cm"}},
-  {"command":"set","path":"/slide[4]/shape[20]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+# Pillar card elements (hidden)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-1-num' \
+  --prop text="01" \
+  --prop font="Segoe UI" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$TERRA \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=6cm --prop width=6.5cm --prop height=3cm
 
-echo '[
-  {"command":"set","path":"/slide[5]/shape[1]","props":{"x":"26cm","y":"2cm","width":"6cm","height":"5cm","preset":"ellipse","opacity":"0.3"}},
-  {"command":"set","path":"/slide[5]/shape[2]","props":{"x":"1.2cm","y":"13cm","width":"8cm","height":"5.5cm","preset":"ellipse","opacity":"0.25"}},
-  {"command":"set","path":"/slide[5]/shape[3]","props":{"x":"2cm","y":"1cm","width":"5cm","height":"4cm","preset":"roundRect","opacity":"0.2"}},
-  {"command":"set","path":"/slide[5]/shape[4]","props":{"x":"20cm","y":"14cm","width":"7cm","height":"4.5cm","preset":"roundRect","opacity":"0.3"}},
-  {"command":"set","path":"/slide[5]/shape[5]","props":{"x":"30cm","y":"14cm","width":"3cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[5]/shape[6]","props":{"x":"28cm","y":"8cm","width":"2cm","height":"2cm","opacity":"0.5"}},
-  {"command":"set","path":"/slide[5]/shape[7]","props":{"x":"8cm","y":"1cm","width":"1.5cm","height":"1.2cm"}},
-  {"command":"set","path":"/slide[5]/shape[8]","props":{"x":"15cm","y":"16cm","width":"1.8cm","height":"1.5cm"}},
-  {"command":"set","path":"/slide[5]/shape[9]","props":{"text":"Join Our Mission","size":"64","x":"4cm","y":"4.5cm","width":"26cm","height":"4cm"}},
-  {"command":"set","path":"/slide[5]/shape[10]","props":{"text":"Together, we can build a sustainable future","size":"24","x":"4cm","y":"9.5cm","width":"26cm","height":"2.5cm"}},
-  {"command":"set","path":"/slide[5]/shape[20]","props":{"text":"www.earthandsage.org","size":"18","color":"9E8E7A","x":"4cm","y":"13cm","width":"26cm","height":"2cm"}},
-  {"command":"set","path":"/slide[5]/shape[14]","props":{"x":"36cm","y":"2cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[15]","props":{"x":"36cm","y":"10cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[16]","props":{"x":"36cm","y":"17cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[17]","props":{"x":"10cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[18]","props":{"x":"22cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[11]","props":{"x":"36cm","y":"6cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[12]","props":{"x":"36cm","y":"14cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[13]","props":{"x":"10cm","y":"22cm","width":"0.1cm","height":"0.1cm"}},
-  {"command":"set","path":"/slide[5]/shape[19]","props":{"x":"22cm","y":"22cm","width":"0.1cm","height":"0.1cm"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-1-title' \
+  --prop text="Reduce" \
+  --prop font="Segoe UI" \
+  --prop size=28 \
+  --prop bold=true \
+  --prop color=3C2415 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=9cm --prop width=6.5cm --prop height=2.5cm
 
-echo '[
-  {"command":"set","path":"/slide[5]/shape[9]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[5]/shape[10]/paragraph[1]","props":{"align":"center"}},
-  {"command":"set","path":"/slide[5]/shape[20]/paragraph[1]","props":{"align":"center"}}
-]' | officecli batch morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-1-desc' \
+  --prop text="Minimize waste at every step of the supply chain" \
+  --prop font="Segoe UI Light" \
+  --prop size=16 \
+  --prop color=6B5B4A \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=11.5cm --prop width=6.5cm --prop height=4cm
 
-officecli validate morph-templates/04-earth-organic/template.pptx
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-2-num' \
+  --prop text="02" \
+  --prop font="Segoe UI" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$SAGE \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=6cm --prop width=6.5cm --prop height=3cm
 
-officecli view morph-templates/04-earth-organic/template.pptx outline
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-2-title' \
+  --prop text="Reuse" \
+  --prop font="Segoe UI" \
+  --prop size=28 \
+  --prop bold=true \
+  --prop color=3C2415 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=9cm --prop width=6.5cm --prop height=2.5cm
 
-officecli view morph-templates/04-earth-organic/template.pptx annotated
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-2-desc' \
+  --prop text="Extend product lifecycles through circular design" \
+  --prop font="Segoe UI Light" \
+  --prop size=16 \
+  --prop color=6B5B4A \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=11.5cm --prop width=6.5cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-3-num' \
+  --prop text="03" \
+  --prop font="Segoe UI" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$FOREST \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=6cm --prop width=6.5cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-3-title' \
+  --prop text="Regenerate" \
+  --prop font="Segoe UI" \
+  --prop size=28 \
+  --prop bold=true \
+  --prop color=3C2415 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=9cm --prop width=6.5cm --prop height=2.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!card-3-desc' \
+  --prop text="Restore ecosystems and build for the future" \
+  --prop font="Segoe UI Light" \
+  --prop size=16 \
+  --prop color=6B5B4A \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=11.5cm --prop width=6.5cm --prop height=4cm
+
+# Impact metrics (hidden)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-1-num' \
+  --prop text="40%" \
+  --prop font="Segoe UI" \
+  --prop size=64 \
+  --prop bold=true \
+  --prop color=$BROWN \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=5cm --prop width=10cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-1-title' \
+  --prop text="Less Waste" \
+  --prop font="Segoe UI" \
+  --prop size=24 \
+  --prop color=3C2415 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=9cm --prop width=10cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-1-desc' \
+  --prop text="Reduction in operational waste across all facilities" \
+  --prop font="Segoe UI Light" \
+  --prop size=14 \
+  --prop color=6B5B4A \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=11cm --prop width=10cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-2-num' \
+  --prop text="2M" \
+  --prop font="Segoe UI" \
+  --prop size=64 \
+  --prop bold=true \
+  --prop color=$SAGE \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=2.5cm --prop width=11cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-2-title' \
+  --prop text="Trees Planted" \
+  --prop font="Segoe UI" \
+  --prop size=24 \
+  --prop color=3C2415 \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=6.5cm --prop width=11cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-2-desc' \
+  --prop text="Reforestation efforts spanning three continents" \
+  --prop font="Segoe UI Light" \
+  --prop size=14 \
+  --prop color=6B5B4A \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=8.5cm --prop width=11cm --prop height=2cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-3-num-1' \
+  --prop text="Carbon" \
+  --prop font="Segoe UI" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$FOREST \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=13cm --prop width=10cm --prop height=3cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-3-num-2' \
+  --prop text="Neutral" \
+  --prop font="Segoe UI" \
+  --prop size=48 \
+  --prop bold=true \
+  --prop color=$FOREST \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=15.5cm --prop width=10cm --prop height=2.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!metric-3-desc' \
+  --prop text="Certified carbon neutral since 2024" \
+  --prop font="Segoe UI Light" \
+  --prop size=14 \
+  --prop color=6B5B4A \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=17.5cm --prop width=10cm --prop height=1.2cm
+
+# CTA elements (hidden)
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-title' \
+  --prop text="Join Our Mission" \
+  --prop font="Segoe UI" \
+  --prop size=64 \
+  --prop bold=true \
+  --prop color=3C2415 \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=4.5cm --prop width=26cm --prop height=4cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-sub' \
+  --prop text="Together, we can build a sustainable future" \
+  --prop font="Segoe UI Light" \
+  --prop size=24 \
+  --prop color=6B5B4A \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=9.5cm --prop width=26cm --prop height=2.5cm
+
+officecli add "$OUTPUT" '/slide[1]' --type shape \
+  --prop 'name=!!cta-web' \
+  --prop text="www.earthandsage.org" \
+  --prop font="Segoe UI Light" \
+  --prop size=18 \
+  --prop color=$GRAY \
+  --prop align=center \
+  --prop fill=none \
+  --prop x=${OFFSCREEN} --prop y=13cm --prop width=26cm --prop height=2cm
+
+# ============================================
+# SLIDE 2 - STATEMENT
+# ============================================
+echo "Building Slide 2: Statement..."
+
+officecli add "$OUTPUT" '/' --from '/slide[1]'
+officecli set "$OUTPUT" '/slide[2]' --prop transition=morph
+
+# Move scene actors
+officecli set "$OUTPUT" '/slide[2]/shape[1]' --prop x=24cm --prop y=10cm --prop width=7cm --prop height=5.5cm
+officecli set "$OUTPUT" '/slide[2]/shape[2]' --prop x=2cm --prop y=2cm --prop width=9cm --prop height=7cm
+officecli set "$OUTPUT" '/slide[2]/shape[3]' --prop x=1.2cm --prop y=14cm --prop width=6cm --prop height=4.5cm
+officecli set "$OUTPUT" '/slide[2]/shape[4]' --prop x=28cm --prop y=1cm --prop width=5cm --prop height=4cm
+officecli set "$OUTPUT" '/slide[2]/shape[5]' --prop x=14cm --prop y=15cm --prop width=3.5cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[2]/shape[6]' --prop x=30cm --prop y=6cm --prop width=2.5cm --prop height=2.5cm
+officecli set "$OUTPUT" '/slide[2]/shape[7]' --prop x=20cm --prop y=2cm --prop width=1.8cm --prop height=1.4cm
+officecli set "$OUTPUT" '/slide[2]/shape[8]' --prop x=10cm --prop y=16cm --prop width=2cm --prop height=1.6cm
+
+# Update hero text to statement
+officecli set "$OUTPUT" '/slide[2]/shape[9]' --prop text="Nature Knows Best" --prop size=72
+officecli set "$OUTPUT" '/slide[2]/shape[10]' --prop text="Let the earth guide our innovation" --prop y=10.5cm
+
+# ============================================
+# SLIDE 3 - PILLARS
+# ============================================
+echo "Building Slide 3: Pillars..."
+
+officecli add "$OUTPUT" '/' --from '/slide[2]'
+officecli set "$OUTPUT" '/slide[3]' --prop transition=morph
+
+# Move scene actors to create pillar card backgrounds
+officecli set "$OUTPUT" '/slide[3]/shape[1]' --prop preset=roundRect --prop x=1.2cm --prop y=5cm --prop width=9.5cm --prop height=13cm --prop opacity=0.12
+officecli set "$OUTPUT" '/slide[3]/shape[2]' --prop preset=roundRect --prop x=12.2cm --prop y=5cm --prop width=9.5cm --prop height=13cm --prop opacity=0.12
+officecli set "$OUTPUT" '/slide[3]/shape[3]' --prop preset=roundRect --prop x=23.2cm --prop y=5cm --prop width=9.5cm --prop height=13cm --prop opacity=0.12
+officecli set "$OUTPUT" '/slide[3]/shape[4]' --prop x=${OFFSCREEN} --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[3]/shape[5]' --prop x=${OFFSCREEN} --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[3]/shape[6]' --prop x=${OFFSCREEN} --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[3]/shape[7]' --prop x=${OFFSCREEN} --prop width=0.1cm --prop height=0.1cm
+officecli set "$OUTPUT" '/slide[3]/shape[8]' --prop x=${OFFSCREEN} --prop width=0.1cm --prop height=0.1cm
+
+# Update hero to section title
+officecli set "$OUTPUT" '/slide[3]/shape[9]' --prop text="Three Pillars of Change" --prop size=40 --prop align=left --prop x=1.2cm --prop y=1cm --prop width=26cm --prop height=3cm
+officecli set "$OUTPUT" '/slide[3]/shape[10]' --prop text="Our framework for sustainable impact" --prop size=18 --prop align=left --prop x=1.2cm --prop y=3.2cm --prop width=20cm --prop height=1.5cm
+
+# Show pillar 1 cards
+officecli set "$OUTPUT" '/slide[3]/shape[11]' --prop x=2.8cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[3]/shape[12]' --prop x=2.8cm --prop y=9cm
+officecli set "$OUTPUT" '/slide[3]/shape[13]' --prop x=2.8cm --prop y=11.5cm
+
+# Show pillar 2 cards
+officecli set "$OUTPUT" '/slide[3]/shape[14]' --prop x=13.8cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[3]/shape[15]' --prop x=13.8cm --prop y=9cm
+officecli set "$OUTPUT" '/slide[3]/shape[16]' --prop x=13.8cm --prop y=11.5cm
+
+# Show pillar 3 cards
+officecli set "$OUTPUT" '/slide[3]/shape[17]' --prop x=24.8cm --prop y=6cm
+officecli set "$OUTPUT" '/slide[3]/shape[18]' --prop x=24.8cm --prop y=9cm
+officecli set "$OUTPUT" '/slide[3]/shape[19]' --prop x=24.8cm --prop y=11.5cm
+
+# ============================================
+# SLIDE 4 - EVIDENCE
+# ============================================
+echo "Building Slide 4: Evidence..."
+
+officecli add "$OUTPUT" '/' --from '/slide[3]'
+officecli set "$OUTPUT" '/slide[4]' --prop transition=morph
+
+# Move scene actors
+officecli set "$OUTPUT" '/slide[4]/shape[1]' --prop preset=ellipse --prop x=1.2cm --prop y=2cm --prop width=14cm --prop height=12cm --prop opacity=0.4
+officecli set "$OUTPUT" '/slide[4]/shape[2]' --prop preset=ellipse --prop x=18cm --prop y=1cm --prop width=15cm --prop height=10cm --prop opacity=0.35
+officecli set "$OUTPUT" '/slide[4]/shape[3]' --prop preset=roundRect --prop x=20cm --prop y=12cm --prop width=12cm --prop height=6.5cm --prop opacity=0.25
+officecli set "$OUTPUT" '/slide[4]/shape[4]' --prop x=30cm --prop y=16cm --prop width=3cm --prop height=2.5cm --prop opacity=0.2
+officecli set "$OUTPUT" '/slide[4]/shape[5]' --prop x=1.2cm --prop y=15cm --prop width=2.5cm --prop height=2cm
+officecli set "$OUTPUT" '/slide[4]/shape[6]' --prop x=5cm --prop y=16cm --prop width=1.5cm --prop height=1.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[7]' --prop x=16cm --prop y=0.8cm --prop width=1.2cm --prop height=1cm
+officecli set "$OUTPUT" '/slide[4]/shape[8]' --prop x=8cm --prop y=15cm --prop width=1.5cm --prop height=1.2cm
+
+# Update title to impact
+officecli set "$OUTPUT" '/slide[4]/shape[9]' --prop text="Our Impact" --prop size=40 --prop x=1.2cm --prop y=0.8cm --prop width=14cm --prop height=2.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[10]' --prop text="Measurable results that matter" --prop size=16 --prop color=$GRAY --prop x=1.2cm --prop y=3cm --prop width=14cm --prop height=1.5cm
+
+# Hide pillar cards
+officecli set "$OUTPUT" '/slide[4]/shape[11]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[12]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[13]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[14]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[15]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[16]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[17]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[18]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[4]/shape[19]' --prop x=${OFFSCREEN}
+
+# Show metrics
+officecli set "$OUTPUT" '/slide[4]/shape[20]' --prop x=3cm --prop y=5cm
+officecli set "$OUTPUT" '/slide[4]/shape[21]' --prop x=3cm --prop y=9cm
+officecli set "$OUTPUT" '/slide[4]/shape[22]' --prop x=3cm --prop y=11cm
+officecli set "$OUTPUT" '/slide[4]/shape[23]' --prop x=20cm --prop y=2.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[24]' --prop x=20cm --prop y=6.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[25]' --prop x=20cm --prop y=8.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[26]' --prop x=21cm --prop y=13cm
+officecli set "$OUTPUT" '/slide[4]/shape[27]' --prop x=21cm --prop y=15.5cm
+officecli set "$OUTPUT" '/slide[4]/shape[28]' --prop x=21cm --prop y=17.5cm
+
+# ============================================
+# SLIDE 5 - CTA
+# ============================================
+echo "Building Slide 5: CTA..."
+
+officecli add "$OUTPUT" '/' --from '/slide[4]'
+officecli set "$OUTPUT" '/slide[5]' --prop transition=morph
+
+# Move scene actors
+officecli set "$OUTPUT" '/slide[5]/shape[1]' --prop preset=ellipse --prop x=26cm --prop y=2cm --prop width=6cm --prop height=5cm --prop opacity=0.3
+officecli set "$OUTPUT" '/slide[5]/shape[2]' --prop preset=ellipse --prop x=1.2cm --prop y=13cm --prop width=8cm --prop height=5.5cm --prop opacity=0.25
+officecli set "$OUTPUT" '/slide[5]/shape[3]' --prop preset=roundRect --prop x=2cm --prop y=1cm --prop width=5cm --prop height=4cm --prop opacity=0.2
+officecli set "$OUTPUT" '/slide[5]/shape[4]' --prop preset=roundRect --prop x=20cm --prop y=14cm --prop width=7cm --prop height=4.5cm --prop opacity=0.3
+officecli set "$OUTPUT" '/slide[5]/shape[5]' --prop x=30cm --prop y=14cm --prop width=3cm --prop height=2.5cm
+officecli set "$OUTPUT" '/slide[5]/shape[6]' --prop x=28cm --prop y=8cm --prop width=2cm --prop height=2cm
+officecli set "$OUTPUT" '/slide[5]/shape[7]' --prop x=8cm --prop y=1cm --prop width=1.5cm --prop height=1.2cm
+officecli set "$OUTPUT" '/slide[5]/shape[8]' --prop x=15cm --prop y=16cm --prop width=1.8cm --prop height=1.5cm
+
+# Hide impact title and update hero to CTA
+officecli set "$OUTPUT" '/slide[5]/shape[9]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[10]' --prop x=${OFFSCREEN}
+
+# Hide metrics
+officecli set "$OUTPUT" '/slide[5]/shape[20]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[21]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[22]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[23]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[24]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[25]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[26]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[27]' --prop x=${OFFSCREEN}
+officecli set "$OUTPUT" '/slide[5]/shape[28]' --prop x=${OFFSCREEN}
+
+# Show CTA elements
+officecli set "$OUTPUT" '/slide[5]/shape[29]' --prop x=4cm --prop y=4.5cm
+officecli set "$OUTPUT" '/slide[5]/shape[30]' --prop x=4cm --prop y=9.5cm
+officecli set "$OUTPUT" '/slide[5]/shape[31]' --prop x=4cm --prop y=13cm
+
+# ============================================
+# FINAL VALIDATION
+# ============================================
+officecli validate "$OUTPUT"
+officecli view "$OUTPUT" outline
+
+echo "✅ Build complete: $OUTPUT"

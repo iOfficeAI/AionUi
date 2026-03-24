@@ -25,7 +25,7 @@ export type AssistantPreset = {
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
     id: 'morph-ppt',
-    avatar: '🎬',
+    avatar: '✨',
     presetAgentType: 'gemini',
     resourceDir: 'src/process/resources/assistant/morph-ppt',
     ruleFiles: {

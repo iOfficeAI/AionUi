@@ -270,7 +270,7 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
       if ((event as unknown as { isComposing?: boolean }).isComposing) return;
       const key = event.key.toLowerCase();
       const isCmdOrCtrl = event.metaKey || event.ctrlKey;
-      if (!isCmdOrCtrl || key !== 'f' || event.altKey) return;
+      if (!isCmdOrCtrl || event.shiftKey || key !== 'f' || event.altKey) return;
       // Keep browser/native find behavior in WebUI; intercept only desktop runtime.
       if (typeof window !== 'undefined' && !window.electronAPI) return;
       event.preventDefault();

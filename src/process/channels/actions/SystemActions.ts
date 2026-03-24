@@ -83,7 +83,10 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           (p) => p.platform === 'gemini' && p.apiKey && p.model?.includes(savedModel.useModel)
         );
         if (fallback) {
-          return { ...fallback, useModel: savedModel.useModel } as TProviderWithModel;
+          return {
+            ...fallback,
+            useModel: savedModel.useModel,
+          } as TProviderWithModel;
         }
         // Otherwise fall through to general fallback below
       } else {
@@ -165,7 +168,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
       }
     }
   }
-  sessionManager.clearSession(context.channelUser.id, context.chatId);
+  await sessionManager.clearSession(context.channelUser.id, context.chatId);
 
   const platform = context.platform;
   const source = platform === 'lark' ? 'lark' : platform === 'dingtalk' ? 'dingtalk' : 'telegram';
@@ -250,7 +253,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   // Create session with the new conversation ID (scoped by chatId)
   const agentType = convType as ChannelAgentType;
-  const session = sessionManager.createSessionWithConversation(
+  const session = await sessionManager.createSessionWithConversation(
     context.channelUser,
     newConversation.id,
     agentType,
@@ -645,10 +648,10 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
       }
     }
   }
-  sessionManager.clearSession(context.channelUser.id, context.chatId);
+  await sessionManager.clearSession(context.channelUser.id, context.chatId);
 
   // Create new session with the selected agent type (scoped by chatId)
-  const session = sessionManager.createSession(context.channelUser, newAgentType, undefined, context.chatId);
+  const session = await sessionManager.createSession(context.channelUser, newAgentType, undefined, context.chatId);
 
   const markup =
     context.platform === 'lark'

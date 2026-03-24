@@ -325,6 +325,25 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     }
   }, [disabled]);
 
+  useEffect(() => {
+    const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if ((event as unknown as { isComposing?: boolean }).isComposing) return;
+      const key = event.key.toLowerCase();
+      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
+      if (!isCmdOrCtrl || !event.shiftKey || key !== 'f' || event.altKey) return;
+      // Preserve browser behavior in WebUI; only intercept in the desktop runtime.
+      if (typeof window !== 'undefined' && !window.electronAPI) return;
+      event.preventDefault();
+      handleOpen();
+    };
+
+    document.addEventListener('keydown', handleGlobalSearchShortcut, true);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalSearchShortcut, true);
+    };
+  }, [handleOpen]);
+
   const triggerAriaLabel = t('conversation.historySearch.tooltip');
 
   const resultContent = useMemo(() => {

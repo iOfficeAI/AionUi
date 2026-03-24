@@ -34,6 +34,7 @@ import { initWebuiBridge } from './webuiBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
+import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initExtensionsBridge } from './extensionsBridge';
 
 export interface BridgeDependencies {
@@ -63,6 +64,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initMcpBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();
+  initPptPreviewBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
@@ -107,6 +109,7 @@ export {
   initMcpBridge,
   initModelBridge,
   initNotificationBridge,
+  initPptPreviewBridge,
   initPreviewHistoryBridge,
   initShellBridge,
   initStarOfficeBridge,
@@ -116,7 +119,5 @@ export {
   initWebuiBridge,
   initWindowControlsBridge,
 };
-export { setMainWindow } from './notificationBridge';
-
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

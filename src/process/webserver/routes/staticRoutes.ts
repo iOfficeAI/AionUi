@@ -9,7 +9,7 @@ import express from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { AUTH_CONFIG } from '../config/constants';
 import { createRateLimiter } from '../middleware/security';
@@ -22,8 +22,12 @@ const VITE_DEV_PORT = 5173;
 /**
  * Try to resolve built renderer assets path, return null if not found
  */
-const resolveRendererPath = (): { staticRoot: string; indexHtml: string } | null => {
-  const appPath = app.getAppPath();
+const resolveRendererPath = (): {
+  staticRoot: string;
+  indexHtml: string;
+} | null => {
+  const appPath = getPlatformServices().paths.getAppPath();
+  if (!appPath) return null;
 
   const candidates = [
     {
@@ -100,14 +104,14 @@ function registerProductionStaticRoutes(expressApp: Express, staticRoot: string,
     message: 'Too many requests, please try again later',
   });
 
-  const serveApplication = (req: Request, res: Response) => {
+  const serveApplication = async (req: Request, res: Response) => {
     try {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
 
       const token = TokenMiddleware.extractToken(req);
-      if (token && !TokenMiddleware.isTokenValid(token)) {
+      if (token && !(await TokenMiddleware.isTokenValid(token))) {
         res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
       }
 
