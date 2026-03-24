@@ -73,7 +73,6 @@ export default defineConfig(({ mode }) => {
                 structured: false,
                 targets: [
                   { src: 'src/process/resources/skills/**', dest: 'skills' },
-                  { src: 'rules/**', dest: 'rules' },
                   { src: 'src/process/resources/assistant/**', dest: 'assistant' },
                   { src: 'src/renderer/assets/logos/**', dest: 'static/images' },
                 ],

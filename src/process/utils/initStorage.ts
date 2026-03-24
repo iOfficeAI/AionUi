@@ -390,31 +390,24 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     const appPath = app.getAppPath();
     let candidates: string[];
     if (app.isPackaged) {
-      // asarUnpack extracts files to app.asar.unpacked directory
-      // asarUnpack 会将文件解压到 app.asar.unpacked 目录
+      // In production, viteStaticCopy maps src/process/resources/* to root-level dirs in the asar.
+      // asarUnpack extracts matching paths to app.asar.unpacked for fs.readdir with withFileTypes.
       const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
-      // In production, viteStaticCopy places resources without src/ prefix,
-      // but direct file inclusion keeps the src/ prefix
-      const legacyPath = dirPath.startsWith('src/') ? dirPath.slice(4) : dirPath;
+      const RESOURCES_PREFIX = 'src/process/resources/';
+      const prodPath = dirPath.startsWith(RESOURCES_PREFIX) ? dirPath.slice(RESOURCES_PREFIX.length) : dirPath;
       candidates = [
-        path.join(unpackedPath, legacyPath), // viteStaticCopy output (preferred)
-        path.join(unpackedPath, dirPath), // Direct inclusion from src/
-        path.join(appPath, legacyPath), // Fallback to asar path (viteStaticCopy)
-        path.join(appPath, dirPath), // Fallback to asar path (direct)
+        path.join(unpackedPath, prodPath), // asarUnpack extracted path (preferred)
+        path.join(appPath, prodPath), // asar path
       ];
     } else {
-      // In dev, viteStaticCopy doesn't run; map virtual paths to real source locations
-      const dirPaths = [dirPath];
-      if (dirPath === 'src/skills') {
-        dirPaths.push('src/process/resources/skills');
-      }
-      candidates = dirPaths.flatMap((dp) => [
-        path.join(appPath, dp),
-        path.join(appPath, '..', dp),
-        path.join(appPath, '..', '..', dp),
-        path.join(appPath, '..', '..', '..', dp),
-        path.join(process.cwd(), dp),
-      ]);
+      // In dev, viteStaticCopy doesn't run; resolve source paths directly
+      candidates = [
+        path.join(appPath, dirPath),
+        path.join(appPath, '..', dirPath),
+        path.join(appPath, '..', '..', dirPath),
+        path.join(appPath, '..', '..', '..', dirPath),
+        path.join(process.cwd(), dirPath),
+      ];
     }
 
     for (const candidate of candidates) {
@@ -431,7 +424,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     (preset) => !preset.resourceDir && Object.keys(preset.ruleFiles).length > 0
   );
   const rulesDir = presetsNeedDefaultRulesDir ? resolveBuiltinDir('rules') : '';
-  const builtinSkillsDir = resolveBuiltinDir('src/skills');
+  const builtinSkillsDir = resolveBuiltinDir('src/process/resources/skills');
   const userSkillsDir = getSkillsDir();
 
   // 复制技能脚本目录到用户配置目录
