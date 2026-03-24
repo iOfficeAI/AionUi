@@ -483,12 +483,16 @@ const SkillsHubSettings: React.FC = () => {
                                         hide();
                                         if (result.success) {
                                           Message.success(
-                                            t('settings.skillsHub.exportSuccess', { defaultValue: 'Skill exported successfully' })
+                                            t('settings.skillsHub.exportSuccess', {
+                                              defaultValue: 'Skill exported successfully',
+                                            })
                                           );
                                         } else {
                                           Message.error(
                                             result.msg ||
-                                              t('settings.skillsHub.exportFailed', { defaultValue: 'Failed to export skill' })
+                                              t('settings.skillsHub.exportFailed', {
+                                                defaultValue: 'Failed to export skill',
+                                              })
                                           );
                                         }
                                       } catch (error) {
@@ -542,7 +546,9 @@ const SkillsHubSettings: React.FC = () => {
                 <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed relative z-10'>
                   {loading
                     ? t('common.loading', { defaultValue: 'Please wait...' })
-                    : t('settings.skillsHub.noSkills', { defaultValue: 'No skills found. Import some to get started.' })}
+                    : t('settings.skillsHub.noSkills', {
+                        defaultValue: 'No skills found. Import some to get started.',
+                      })}
                 </div>
               )}
             </div>
