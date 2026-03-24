@@ -238,6 +238,7 @@
   "webui.qrLoginHint": "휴대폰으로 QR 코드를 스캔하여 모바일 브라우저에서 자동 로그인",
   "webui.qrExpires": "{{time}}에 만료",
   "webui.refreshQr": "QR 코드 새로고침",
+  "webui.copyQrLink": "링크 복사",
   "webui.qrGenerateFailed": "QR 코드 생성 실패",
   "webui.accountInfo": "계정 정보",
   "webui.username": "사용자 이름",

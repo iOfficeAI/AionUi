@@ -1235,6 +1235,7 @@ export type I18nKey =
   | 'settings.webui.confirmPasswordPlaceholder'
   | 'settings.webui.confirmPasswordRequired'
   | 'settings.webui.copyPasswordTooltip'
+  | 'settings.webui.copyQrLink'
   | 'settings.webui.currentPassword'
   | 'settings.webui.currentPasswordPlaceholder'
   | 'settings.webui.currentPasswordRequired'

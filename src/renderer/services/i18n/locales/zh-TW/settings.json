@@ -238,6 +238,7 @@
   "webui.qrLoginHint": "使用手機掃描 QR 碼，即可在手機瀏覽器中自動登入",
   "webui.qrExpires": "有效期至 {{time}}",
   "webui.refreshQr": "重新整理 QR 碼",
+  "webui.copyQrLink": "複製連結",
   "webui.qrGenerateFailed": "產生 QR 碼失敗",
   "webui.accountInfo": "帳戶資訊",
   "webui.username": "使用者名稱",

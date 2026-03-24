@@ -1,0 +1,8 @@
+__tests__/
+coverage/
+.vscode/
+.idea/
+dist/
+*.tsbuildinfo
+build-*.ipa
+build-*.apk
