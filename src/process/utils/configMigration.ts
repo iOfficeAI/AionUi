@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from 'fs'
-import os from 'os'
-import path from 'path'
-import type { IConfigStorageRefer, IMcpServer } from '@/common/config/storage'
+import { existsSync, readFileSync } from 'fs';
+import os from 'os';
+import path from 'path';
+import type { IConfigStorageRefer, IMcpServer } from '@/common/config/storage';
 
 // Keys allowed to migrate from Electron config to server config.
 // UI-only keys (theme, language, webui.desktop.*) and caches (acp.cachedModels)
@@ -13,15 +13,12 @@ export const MIGRATABLE_KEYS: ReadonlyArray<keyof IConfigStorageRefer> = [
   'tools.imageGenerationModel',
   'mcp.config',
   'acp.customAgents',
-] as const
+] as const;
 
 // Minimal interface for the config store — enables testing without real files.
 export interface ConfigStore {
-  get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>
-  set<K extends keyof IConfigStorageRefer>(
-    key: K,
-    value: IConfigStorageRefer[K],
-  ): Promise<IConfigStorageRefer[K]>
+  get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>;
+  set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<IConfigStorageRefer[K]>;
 }
 
 /**
@@ -30,26 +27,25 @@ export interface ConfigStore {
  * cannot determine which Electron build the user ran.
  */
 export function getElectronConfigCandidatePaths(): string[] {
-  const home = os.homedir()
+  const home = os.homedir();
   if (process.platform === 'darwin') {
     return [
       path.join(home, '.aionui-config', 'aionui-config.txt'),
       path.join(home, '.aionui-config-dev', 'aionui-config.txt'),
-    ]
+    ];
   }
   if (process.platform === 'win32') {
-    const appData =
-      process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming')
+    const appData = process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming');
     return [
       path.join(appData, 'AionUi', 'config', 'aionui-config.txt'),
       path.join(appData, 'AionUi-Dev', 'config', 'aionui-config.txt'),
-    ]
+    ];
   }
   // Linux and other platforms
   return [
     path.join(home, '.config', 'AionUi', 'config', 'aionui-config.txt'),
     path.join(home, '.config', 'AionUi-Dev', 'config', 'aionui-config.txt'),
-  ]
+  ];
 }
 
 /**
@@ -58,13 +54,13 @@ export function getElectronConfigCandidatePaths(): string[] {
  */
 export function decodeConfigFile(filePath: string): Partial<IConfigStorageRefer> {
   try {
-    const raw = readFileSync(filePath, 'utf8').trim()
-    if (!raw) return {}
-    const decoded = decodeURIComponent(atob(raw))
-    if (!decoded.trim()) return {}
-    return JSON.parse(decoded) as Partial<IConfigStorageRefer>
+    const raw = readFileSync(filePath, 'utf8').trim();
+    if (!raw) return {};
+    const decoded = decodeURIComponent(atob(raw));
+    if (!decoded.trim()) return {};
+    return JSON.parse(decoded) as Partial<IConfigStorageRefer>;
   } catch {
-    return {}
+    return {};
   }
 }
 
@@ -73,7 +69,7 @@ export function decodeConfigFile(filePath: string): Partial<IConfigStorageRefer>
  * and are recreated by ensureBuiltinMcpServers on every startup anyway).
  */
 function filterMcpConfig(servers: IMcpServer[]): IMcpServer[] {
-  return servers.filter((s) => !s.builtin)
+  return servers.filter((s) => !s.builtin);
 }
 
 /**
@@ -84,47 +80,45 @@ function filterMcpConfig(servers: IMcpServer[]): IMcpServer[] {
 export async function migrateFromElectronConfig(configStore: ConfigStore): Promise<void> {
   try {
     // Already migrated — skip
-    const alreadyMigrated = await configStore
-      .get('migration.electronConfigImported')
-      .catch(() => undefined)
-    if (alreadyMigrated) return
+    const alreadyMigrated = await configStore.get('migration.electronConfigImported').catch((): undefined => undefined);
+    if (alreadyMigrated) return;
 
     // Find the first existing Electron config file
-    const candidates = getElectronConfigCandidatePaths()
-    const sourcePath = candidates.find((p) => existsSync(p))
-    if (!sourcePath) return
+    const candidates = getElectronConfigCandidatePaths();
+    const sourcePath = candidates.find((p) => existsSync(p));
+    if (!sourcePath) return;
 
     // Decode — if result is empty, the file is missing/corrupted; do NOT set flag
-    const sourceData = decodeConfigFile(sourcePath)
+    const sourceData = decodeConfigFile(sourcePath);
     if (Object.keys(sourceData).length === 0) {
-      console.warn('[AionUi] Config migration: source file appears empty or corrupted, will retry next startup')
-      return
+      console.warn('[AionUi] Config migration: source file appears empty or corrupted, will retry next startup');
+      return;
     }
 
     // Copy whitelisted keys that are absent in the server config
     for (const key of MIGRATABLE_KEYS) {
-      const sourceValue = sourceData[key]
-      if (sourceValue === undefined) continue
+      const sourceValue = sourceData[key];
+      if (sourceValue === undefined) continue;
 
-      const existing = await configStore.get(key).catch(() => undefined)
-      if (existing !== undefined && existing !== null) continue
+      const existing = await configStore.get(key).catch((): undefined => undefined);
+      if (existing !== undefined && existing !== null) continue;
 
       // Special handling: filter builtin MCP entries
       if (key === 'mcp.config' && Array.isArray(sourceValue)) {
-        const filtered = filterMcpConfig(sourceValue as IMcpServer[])
+        const filtered = filterMcpConfig(sourceValue as IMcpServer[]);
         if (filtered.length > 0) {
-          await configStore.set(key, filtered as IConfigStorageRefer[typeof key])
+          await configStore.set(key, filtered as IConfigStorageRefer[typeof key]);
         }
-        continue
+        continue;
       }
 
-      await configStore.set(key, sourceValue as IConfigStorageRefer[typeof key])
+      await configStore.set(key, sourceValue as IConfigStorageRefer[typeof key]);
     }
 
-    await configStore.set('migration.electronConfigImported', true)
-    console.log('[AionUi] Config migrated from Electron desktop config:', sourcePath)
+    await configStore.set('migration.electronConfigImported', true);
+    console.log('[AionUi] Config migrated from Electron desktop config:', sourcePath);
   } catch (error) {
-    console.warn('[AionUi] Config migration from Electron failed:', error)
+    console.warn('[AionUi] Config migration from Electron failed:', error);
   }
 }
 
@@ -138,48 +132,45 @@ export async function migrateFromElectronConfig(configStore: ConfigStore): Promi
 export async function importConfigFromFile(
   sourcePath: string,
   overwrite: boolean,
-  configStore: ConfigStore,
+  configStore: ConfigStore
 ): Promise<void> {
   try {
     // Warn on relative paths and resolve them
     if (!path.isAbsolute(sourcePath)) {
-      const resolved = path.resolve(process.cwd(), sourcePath)
-      console.warn(
-        '[AionUi] IMPORT_CONFIG_FROM: relative path provided, resolving to:',
-        resolved,
-      )
-      sourcePath = resolved
+      const resolved = path.resolve(process.cwd(), sourcePath);
+      console.warn('[AionUi] IMPORT_CONFIG_FROM: relative path provided, resolving to:', resolved);
+      sourcePath = resolved;
     }
 
-    const sourceData = decodeConfigFile(sourcePath)
+    const sourceData = decodeConfigFile(sourcePath);
     if (Object.keys(sourceData).length === 0) {
-      console.warn('[AionUi] IMPORT_CONFIG_FROM: file is missing, empty, or corrupted:', sourcePath)
-      return
+      console.warn('[AionUi] IMPORT_CONFIG_FROM: file is missing, empty, or corrupted:', sourcePath);
+      return;
     }
 
     for (const key of MIGRATABLE_KEYS) {
-      const sourceValue = sourceData[key]
-      if (sourceValue === undefined) continue
+      const sourceValue = sourceData[key];
+      if (sourceValue === undefined) continue;
 
       if (!overwrite) {
-        const existing = await configStore.get(key).catch(() => undefined)
-        if (existing !== undefined && existing !== null) continue
+        const existing = await configStore.get(key).catch((): undefined => undefined);
+        if (existing !== undefined && existing !== null) continue;
       }
 
       // Special handling: filter builtin MCP entries
       if (key === 'mcp.config' && Array.isArray(sourceValue)) {
-        const filtered = filterMcpConfig(sourceValue as IMcpServer[])
+        const filtered = filterMcpConfig(sourceValue as IMcpServer[]);
         if (filtered.length > 0) {
-          await configStore.set(key, filtered as IConfigStorageRefer[typeof key])
+          await configStore.set(key, filtered as IConfigStorageRefer[typeof key]);
         }
-        continue
+        continue;
       }
 
-      await configStore.set(key, sourceValue as IConfigStorageRefer[typeof key])
+      await configStore.set(key, sourceValue as IConfigStorageRefer[typeof key]);
     }
 
-    console.log('[AionUi] Config imported from:', sourcePath, '(overwrite:', overwrite, ')')
+    console.log('[AionUi] Config imported from:', sourcePath, '(overwrite:', overwrite, ')');
   } catch (error) {
-    console.warn('[AionUi] IMPORT_CONFIG_FROM failed:', error)
+    console.warn('[AionUi] IMPORT_CONFIG_FROM failed:', error);
   }
 }
