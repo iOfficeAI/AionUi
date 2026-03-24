@@ -2,13 +2,15 @@
  * AssistantEditDrawer — Drawer for creating/editing an assistant.
  * Contains name/avatar fields, agent selector, rules editor, and skills section.
  */
+import type { AssistantSkillConfig } from '@process/skills/types';
 import type { AssistantListItem, SkillInfo } from './types';
 import { hasBuiltinSkills } from './assistantUtils';
+import AssistantSkillPanel from './AssistantSkillPanel';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
 import { Close, Delete, Plus, Robot } from '@icon-park/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type AssistantEditDrawerProps = {
@@ -96,6 +98,19 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const { t } = useTranslation();
   const textareaWrapperRef = useRef<HTMLDivElement>(null);
   const [drawerWidth, setDrawerWidth] = useState(500);
+
+  // Derive AssistantSkillConfig from the legacy selectedSkills array
+  const skillConfig: AssistantSkillConfig = useMemo(
+    () => ({ added: selectedSkills, blocked: [] as string[] }),
+    [selectedSkills]
+  );
+
+  const handleSkillConfigChange = useCallback(
+    (updated: AssistantSkillConfig) => {
+      setSelectedSkills(updated.added);
+    },
+    [setSelectedSkills]
+  );
 
   // Auto focus textarea when drawer opens in edit mode
   useEffect(() => {
@@ -519,6 +534,22 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                       {t('settings.noBuiltinSkills', { defaultValue: 'No builtin skills available' })}
                     </div>
                   )}
+                </Collapse.Item>
+
+                {/* Skill System Panel (new skill management) */}
+                <Collapse.Item
+                  header={
+                    <span className='text-13px font-medium'>
+                      {t('settings.skillPanel.title', { defaultValue: 'Skill Toggles' })}
+                    </span>
+                  }
+                  name='skill-panel'
+                >
+                  <AssistantSkillPanel
+                    skillConfig={skillConfig}
+                    onChange={handleSkillConfigChange}
+                    readonly={isReadonlyAssistant}
+                  />
                 </Collapse.Item>
               </Collapse>
             </div>

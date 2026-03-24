@@ -30,6 +30,8 @@ import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '../platforms/gemini/useGeminiModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
+import ChatSkillBadge from './ChatSkillBadge';
+import { normalizeSkillConfig } from '@process/skills/normalize';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -153,7 +155,12 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
-    headerExtra: <CronJobManager conversationId={conversation.id} />,
+    headerExtra: (
+      <div className='flex items-center gap-8px'>
+        <ChatSkillBadge skillConfig={normalizeSkillConfig((conversation.extra as Record<string, unknown>) || {})} />
+        <CronJobManager conversationId={conversation.id} />
+      </div>
+    ),
     workspaceEnabled,
     backend: 'gemini' as const,
     // 传递预设助手信息 / Pass preset assistant info
@@ -290,8 +297,14 @@ const ChatConversation: React.FC<{
           agentName: (conversation?.extra as { agentName?: string })?.agentName,
         };
 
+  const conversationSkillConfig = useMemo(
+    () => (conversation?.extra ? normalizeSkillConfig(conversation.extra as Record<string, unknown>) : null),
+    [conversation?.extra]
+  );
+
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      <ChatSkillBadge skillConfig={conversationSkillConfig} />
       {conversation?.type === 'openclaw-gateway' && (
         <div className='shrink-0'>
           <StarOfficeMonitorCard
