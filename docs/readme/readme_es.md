@@ -84,6 +84,19 @@ AionUi viene con un motor de Agent AI completo. A diferencia de las herramientas
   <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
 </p>
 
+### **Demo de Morph PPT — Transiciones fluidas con una sola frase**
+
+_AionUi incluye un asistente dedicado de Morph PPT. No se limita a maquetar diapositivas estáticas: convierte tu contenido en una presentación dinámica y narrativa. Con un tema/esquema (o una referencia de estilo), genera un deck Morph con transiciones coherentes._
+
+- **No es un generador de PPT común** — se centra en narrativa con Morph y continuidad entre diapositivas
+- **Flujo de trabajo integrado** — planificación, generación, control de calidad e iteración
+- **Alineación de estilo** — usa imágenes/estilos de referencia para acercarse rápido a tu estética
+- **Generar y previsualizar al instante** — abre `.ppt` / `.pptx` en AionUi sin cambiar de app
+
+<p align="center">
+  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
+</p>
+
 ---
 
 ## Modo Multi-Agent — ¿Ya tienes CLI Agents? Tráelos

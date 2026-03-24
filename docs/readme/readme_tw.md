@@ -84,6 +84,19 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
   <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
 </p>
 
+### **Morph PPT 動畫展示 — 一句話生成絲滑轉場**
+
+_AionUi 內建 Morph PPT 助手：不只是做靜態排版，而是把內容變成可講述的動態演示。輸入主題/大綱（或參考風格），即可生成連貫轉場的 Morph 簡報。_
+
+- **不是一般 PPT 生成** — 聚焦 Morph 動畫敘事，強調頁面之間的連續變化
+- **內建完整工作流** — 規劃、生成、質檢、迭代一體化
+- **支援風格對齊** — 輸入參考圖/參考風格，快速貼近你的審美
+- **生成即預覽** — 直接查看 `.ppt` / `.pptx`，從創作到檢查無需切換應用
+
+<p align="center">
+  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
+</p>
+
 ---
 
 ## 多 Agent 模式 — 已有 CLI 工具？一起用起來

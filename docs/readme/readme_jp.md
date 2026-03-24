@@ -84,6 +84,19 @@ AionUi には完全な AI Agent エンジンが内蔵されています。CLI Ag
   <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
 </p>
 
+### **Morph PPT アニメーションデモ — 一言で滑らかな遷移**
+
+_AionUi には専用の Morph PPT アシスタントが内蔵されています。静的なスライドを作るだけでなく、内容を“語れる”動的プレゼンに変えます。テーマ/アウトライン（または参考スタイル）を入力するだけで、連続感のある Morph プレゼンを生成できます。_
+
+- **普通の PPT 生成とは違う** — Morph によるストーリー表現とスライド間の連続的な動きに特化
+- **ワークフローを内蔵** — 企画、生成、品質チェック、反復を一体化
+- **スタイル合わせに対応** — 参考画像/参考スタイルで見た目を素早く調整
+- **生成してすぐ確認** — `.ppt` / `.pptx` を AionUi 上でそのままプレビュー
+
+<p align="center">
+  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
+</p>
+
 ---
 
 ## マルチ Agent モード — すでに CLI Agent をお持ちですか？一緒に使えます
