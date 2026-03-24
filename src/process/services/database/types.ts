@@ -103,6 +103,17 @@ export interface IConfigRow {
   updated_at: number;
 }
 
+const parseJson = <T>(raw: string | undefined, fallback: T): T => {
+  if (!raw) {
+    return fallback;
+  }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+};
+
 /**
  * ======================
  * 类型转换函数
@@ -144,12 +155,21 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
   };
 
   // Gemini type has model field
-  if (row.type === 'gemini' && row.model) {
+  if (row.type === 'gemini') {
+    const fallbackModel = {
+      id: 'legacy-gemini',
+      platform: 'gemini',
+      name: 'Legacy Gemini',
+      baseUrl: '',
+      apiKey: '',
+      useModel: 'unknown',
+    };
+
     return {
       ...base,
       type: 'gemini' as const,
-      extra: JSON.parse(row.extra),
-      model: JSON.parse(row.model),
+      extra: parseJson(row.extra, {}),
+      model: parseJson(row.model, fallbackModel),
     } as TChatConversation;
   }
 
@@ -158,7 +178,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     return {
       ...base,
       type: 'acp' as const,
-      extra: JSON.parse(row.extra),
+      extra: parseJson(row.extra, {}),
     } as TChatConversation;
   }
 
@@ -167,7 +187,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     return {
       ...base,
       type: 'codex' as const,
-      extra: JSON.parse(row.extra),
+      extra: parseJson(row.extra, {}),
     } as TChatConversation;
   }
 
@@ -176,7 +196,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     return {
       ...base,
       type: 'openclaw-gateway' as const,
-      extra: JSON.parse(row.extra),
+      extra: parseJson(row.extra, {}),
     } as TChatConversation;
   }
 
@@ -185,7 +205,7 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     return {
       ...base,
       type: 'nanobot' as const,
-      extra: JSON.parse(row.extra),
+      extra: parseJson(row.extra, {}),
     } as TChatConversation;
   }
 

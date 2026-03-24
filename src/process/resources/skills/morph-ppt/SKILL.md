@@ -76,6 +76,18 @@ Ask only when topic is unclear, otherwise proceed directly.
 
 Follow the installation check in `reference/officecli-pptx-min.md` section 0 (checks version and upgrades only if needed).
 
+**SECOND: Resolve style references from OfficeCli remote repository (on demand)**
+
+Follow `reference/remote-style-source.md` to:
+
+- Discover style candidates from OfficeCli `Styles/`
+- Download only the selected style's `style.md` (and `build.sh` only if needed)
+- Store files in a temporary session directory and delete it after generation
+
+Do not pre-download all styles and do not keep persistent local style caches.
+
+If remote styles are unavailable, proceed without style references and use your own design direction. Keep all Morph and quality requirements in this skill strictly enforced (`!!`/`#sN-` naming, ghosting, `transition=morph`, per-slide checks, final validation).
+
 **IMPORTANT: Use morph-helpers for reliable workflow**
 
 Generate a bash script that uses `reference/morph-helpers.sh` — this provides helper functions with built-in verification.
@@ -200,7 +212,7 @@ echo "✅ Build complete! Open $OUTPUT in PowerPoint to see morph animations."
 
 - `reference/pptx-design.md` — Design principles (Canvas, Fonts, Colors, Scene Actors, Page Types, Style References)
 - `reference/officecli-pptx-min.md` — Command syntax
-- `reference/styles/<name>/` — Visual style examples (optional inspiration, browse by use case in `styles/INDEX.md`)
+- `reference/remote-style-source.md` — OfficeCli remote style source (discover + fetch selected style only)
 
 ---
 
@@ -284,7 +296,7 @@ Ask user for feedback, support quick adjustments.
 - `reference/decision-rules.md` — Planning logic, Pyramid Principle
 - `reference/pptx-design.md` — Design principles (Canvas, Fonts, Colors, Scene Actors, Page Types)
 - `reference/officecli-pptx-min.md` — Tool syntax
-- `reference/styles/INDEX.md` — Visual style examples organized by use case
+- `reference/remote-style-source.md` — Remote style discovery and one-shot fetch workflow
 
 ---
 

@@ -106,7 +106,7 @@ Background → Decorative Shapes → Content (text/data)
 
 **Create unique palettes based on topic mood** — there are no universal formulas.
 
-**Need inspiration?** Browse `reference/styles/` for color combinations across different moods (dark, light, warm, vivid, bw, mixed).
+**Need inspiration?** Use OfficeCli remote `Styles/` as the source of truth. Follow `reference/remote-style-source.md` to discover and fetch only the selected style files.
 
 ---
 
@@ -233,7 +233,7 @@ Mix these to create rhythm. Each serves a different narrative purpose:
 
 ## 6) Style References
 
-Browse `reference/styles/` for design inspiration. See `reference/styles/INDEX.md` for a complete catalog organized by use case.
+Use OfficeCli remote `Styles/` for design inspiration and style selection. Do one-shot fetch for the chosen style only (`style.md` first, `build.sh` if needed), then clean up temporary files after generation. See `reference/remote-style-source.md`.
 
 ---
 
