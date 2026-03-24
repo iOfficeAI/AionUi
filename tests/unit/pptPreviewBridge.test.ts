@@ -135,6 +135,7 @@ async function emitWatchReady(child: ReturnType<typeof createMockChildProcess>) 
 
 let initPptPreviewBridge: typeof import('../../src/process/bridge/pptPreviewBridge').initPptPreviewBridge;
 let stopAllWatchSessions: typeof import('../../src/process/bridge/pptPreviewBridge').stopAllWatchSessions;
+let isActivePreviewPort: typeof import('../../src/process/bridge/pptPreviewBridge').isActivePreviewPort;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -145,6 +146,7 @@ beforeEach(async () => {
   const mod = await import('../../src/process/bridge/pptPreviewBridge');
   initPptPreviewBridge = mod.initPptPreviewBridge;
   stopAllWatchSessions = mod.stopAllWatchSessions;
+  isActivePreviewPort = mod.isActivePreviewPort;
 });
 
 afterEach(() => {
@@ -382,6 +384,57 @@ describe('pptPreviewBridge', () => {
       await vi.advanceTimersByTimeAsync(6000);
 
       expect(statusEmitMock).not.toHaveBeenCalledWith({ state: 'installing' });
+      vi.useRealTimers();
+    });
+  });
+
+  describe('isActivePreviewPort', () => {
+    it('returns false for an unknown port', () => {
+      initPptPreviewBridge();
+      expect(isActivePreviewPort(9999)).toBe(false);
+    });
+
+    it('returns true for an active session port', async () => {
+      initPptPreviewBridge();
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await emitWatchReady(child);
+      await promise;
+
+      expect(isActivePreviewPort(55555)).toBe(true);
+    });
+
+    it('returns false after the session process exits', async () => {
+      initPptPreviewBridge();
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await emitWatchReady(child);
+      await promise;
+
+      child.exitCode = 0;
+      expect(isActivePreviewPort(55555)).toBe(false);
+    });
+
+    it('returns false after the session is stopped', async () => {
+      vi.useFakeTimers();
+      initPptPreviewBridge();
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await vi.advanceTimersByTimeAsync(0);
+      child.stdout.emit('data', Buffer.from('Watch: started'));
+      await vi.advanceTimersByTimeAsync(0);
+      await promise;
+
+      await stopHandler.fn!({ filePath: '/test/file.pptx' });
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(isActivePreviewPort(55555)).toBe(false);
       vi.useRealTimers();
     });
   });
