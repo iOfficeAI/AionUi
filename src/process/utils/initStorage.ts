@@ -382,11 +382,6 @@ const getBuiltinSkillsDir = () => {
  * Initialize builtin assistant rule and skill files to user directory
  */
 const initBuiltinAssistantRules = async (): Promise<void> => {
-  if (!hasElectronAppPath()) {
-    // Standalone mode: no packaged app bundle to copy rules from
-    return;
-  }
-
   const assistantsDir = getAssistantsDir();
 
   // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
