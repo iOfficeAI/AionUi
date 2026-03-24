@@ -48,7 +48,6 @@ async function findBuiltinResourceDirNode(resourceType: ResourceType): Promise<s
   return candidates[0];
 }
 
-
 /**
  * Copy directory recursively
  * 递归复制目录
