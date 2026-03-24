@@ -4,41 +4,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IDirOrFile } from "@/common/adapter/ipcBridge";
-import { getPlatformServices } from "@/common/platform";
-import { getEnvAwareName } from "@/common/config/appEnv";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readlinkSync,
-  symlinkSync,
-  unlinkSync,
-} from "fs";
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { getPlatformServices } from '@/common/platform';
+import { getEnvAwareName } from '@/common/config/appEnv';
+import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
+import fs from 'fs/promises';
+import os from 'os';
+import path from 'path';
 export const hasElectronAppPath = (): boolean => {
-  return getPlatformServices().paths.getAppPath() !== null;
+  return typeof process.versions.electron === 'string';
 };
 
-const getElectronPathOrFallback = (
-  name: "temp" | "home" | "userData",
-): string => {
+const getElectronPathOrFallback = (name: 'temp' | 'home' | 'userData'): string => {
   const paths = getPlatformServices().paths;
   switch (name) {
-    case "temp":
+    case 'temp':
       return paths.getTempDir();
-    case "home":
+    case 'home':
       return paths.getHomeDir();
-    case "userData":
+    case 'userData':
       return paths.getDataDir();
   }
 };
 
 export const getTempPath = () => {
-  const rootPath = getElectronPathOrFallback("temp");
-  return path.join(rootPath, "aionui");
+  const rootPath = getElectronPathOrFallback('temp');
+  return path.join(rootPath, 'aionui');
 };
 
 /**
@@ -50,17 +41,14 @@ export const getTempPath = () => {
  * 在 macOS 上，在用户目录创建符号链接以避免路径中的空格。
  * CLI 工具如 Qwen 无法正确处理路径中的空格。
  */
-const ensureCliSafeSymlink = (
-  targetPath: string,
-  symlinkName: string,
-): string => {
+const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
   // Only needed when the platform explicitly requires CLI-safe symlinks
   // (Electron on macOS, where userData lives under "Application Support" which contains spaces)
   if (!getPlatformServices().paths.needsCliSafeSymlinks()) {
     return targetPath;
   }
 
-  const homePath = getElectronPathOrFallback("home");
+  const homePath = getElectronPathOrFallback('home');
   const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
@@ -108,9 +96,9 @@ const ensureCliSafeSymlink = (
  * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
  */
 export const getDataPath = (): string => {
-  const rootPath = getElectronPathOrFallback("userData");
-  const dataPath = path.join(rootPath, "aionui");
-  return ensureCliSafeSymlink(dataPath, getEnvAwareName(".aionui"));
+  const rootPath = getElectronPathOrFallback('userData');
+  const dataPath = path.join(rootPath, 'aionui');
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
 
 /**
@@ -120,9 +108,9 @@ export const getDataPath = (): string => {
  * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
  */
 export const getConfigPath = (): string => {
-  const rootPath = getElectronPathOrFallback("userData");
-  const configPath = path.join(rootPath, "config");
-  return ensureCliSafeSymlink(configPath, getEnvAwareName(".aionui-config"));
+  const rootPath = getElectronPathOrFallback('userData');
+  const configPath = path.join(rootPath, 'config');
+  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };
 
 export const generateHashWithFullName = (fullName: string): string => {
@@ -133,7 +121,7 @@ export const generateHashWithFullName = (fullName: string): string => {
     hash = hash & hash; // Convert to 32bit integer
   }
   // 取绝对值并转换为16进制，然后取前8位
-  return Math.abs(hash).toString(16).padStart(8, "0"); //.slice(0, 8);
+  return Math.abs(hash).toString(16).padStart(8, '0'); //.slice(0, 8);
 };
 
 // 递归读取目录内容，返回树状结构
@@ -146,35 +134,18 @@ export async function readDirectoryRecursive(
     maxDepth?: number;
     search?: {
       text: string;
-      onProcess?(result: {
-        file: number;
-        dir: number;
-        match?: IDirOrFile;
-      }): void;
+      onProcess?(result: { file: number; dir: number; match?: IDirOrFile }): void;
       process?: { file: number; dir: number };
     };
-  },
+  }
 ): Promise<IDirOrFile> {
-  const {
-    root = dirPath,
-    maxDepth = 1,
-    fileService,
-    search,
-    abortController,
-  } = options || {};
-  const {
-    text: searchText,
-    onProcess: onSearchProcess = () => {},
-    process = { file: 0, dir: 1 },
-  } = search || {};
+  const { root = dirPath, maxDepth = 1, fileService, search, abortController } = options || {};
+  const { text: searchText, onProcess: onSearchProcess = () => {}, process = { file: 0, dir: 1 } } = search || {};
 
-  const matchSearch = searchText
-    ? (fullPath: string) => fullPath.includes(searchText)
-    : (_: string) => false;
+  const matchSearch = searchText ? (fullPath: string) => fullPath.includes(searchText) : (_: string) => false;
 
   const checkStatus = () => {
-    if (abortController.signal.aborted)
-      throw new Error("readDirectoryRecursive aborted!");
+    if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
   };
 
   try {
@@ -212,7 +183,7 @@ export async function readDirectoryRecursive(
 
   for (const item of items) {
     checkStatus();
-    if (item === "node_modules") continue;
+    if (item === 'node_modules') continue;
     const itemPath = path.join(dirPath, item);
     if (fileService && fileService.shouldIgnoreFile(itemPath)) continue;
 
@@ -234,11 +205,7 @@ export async function readDirectoryRecursive(
           process,
           onProcess(searchResult) {
             if (searchResult.match) {
-              if (
-                !result.children.find(
-                  (v) => v.fullPath === searchResult.match.fullPath,
-                )
-              ) {
+              if (!result.children.find((v) => v.fullPath === searchResult.match.fullPath)) {
                 result.children.push(searchResult.match);
               }
               onSearchProcess({ ...process, match: result });
@@ -288,21 +255,13 @@ interface CopyOptions {
   overwrite?: boolean;
 }
 
-export async function copyDirectoryRecursively(
-  src: string,
-  dest: string,
-  options: CopyOptions = {},
-) {
+export async function copyDirectoryRecursively(src: string, dest: string, options: CopyOptions = {}) {
   const { overwrite = true } = options;
 
   // 标准化路径：Windows 转小写（不区分大小写），Unix/macOS 保持原样（区分大小写）
-  const isWindows = process.platform === "win32";
-  const normalizedSrc = isWindows
-    ? path.resolve(src).toLowerCase()
-    : path.resolve(src);
-  const normalizedDest = isWindows
-    ? path.resolve(dest).toLowerCase()
-    : path.resolve(dest);
+  const isWindows = process.platform === 'win32';
+  const normalizedSrc = isWindows ? path.resolve(src).toLowerCase() : path.resolve(src);
+  const normalizedDest = isWindows ? path.resolve(dest).toLowerCase() : path.resolve(dest);
 
   // 防止复制到自身 (F:\code -> F:\code)
   if (normalizedSrc === normalizedDest) {
@@ -311,16 +270,12 @@ export async function copyDirectoryRecursively(
 
   // 防止复制到子目录 (F:\code -> F:\code\cache) - 会导致无限递归
   if (normalizedDest.startsWith(normalizedSrc + path.sep)) {
-    throw new Error(
-      `Cannot copy directory into its subdirectory: ${src} -> ${dest}`,
-    );
+    throw new Error(`Cannot copy directory into its subdirectory: ${src} -> ${dest}`);
   }
 
   // 防止复制到父目录 (F:\code\cache -> F:\code)
   if (normalizedSrc.startsWith(normalizedDest + path.sep)) {
-    throw new Error(
-      `Cannot copy parent directory into child directory: ${src} -> ${dest}`,
-    );
+    throw new Error(`Cannot copy parent directory into child directory: ${src} -> ${dest}`);
   }
 
   if (!existsSync(dest)) {
@@ -349,10 +304,7 @@ export async function copyDirectoryRecursively(
 }
 
 // 验证两个目录的文件名结构是否相同
-export async function verifyDirectoryFiles(
-  dir1: string,
-  dir2: string,
-): Promise<boolean> {
+export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<boolean> {
   try {
     if (!existsSync(dir1) || !existsSync(dir2)) {
       return false;
@@ -372,10 +324,7 @@ export async function verifyDirectoryFiles(
       const entry1 = entries1[i];
       const entry2 = entries2[i];
 
-      if (
-        entry1.name !== entry2.name ||
-        entry1.isDirectory() !== entry2.isDirectory()
-      ) {
+      if (entry1.name !== entry2.name || entry1.isDirectory() !== entry2.isDirectory()) {
         return false;
       }
 
@@ -390,7 +339,7 @@ export async function verifyDirectoryFiles(
 
     return true;
   } catch (error) {
-    console.warn("[AionUi] Error verifying directory files:", error);
+    console.warn('[AionUi] Error verifying directory files:', error);
     return false;
   }
 }
@@ -399,11 +348,11 @@ export const copyFilesToDirectory = async (
   dir: string,
   files?: string[],
   skipCleanup = false,
-  cacheDir?: string,
+  cacheDir?: string
 ): Promise<string[]> => {
   if (!files) return [];
 
-  const tempDir = cacheDir ? path.join(cacheDir, "temp") : null;
+  const tempDir = cacheDir ? path.join(cacheDir, 'temp') : null;
   const copiedFiles: string[] = [];
   const resolvedDir = path.resolve(dir);
 
@@ -415,9 +364,7 @@ export const copyFilesToDirectory = async (
     try {
       await fs.access(absoluteFilePath);
     } catch (error) {
-      console.warn(
-        `[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`,
-      );
+      console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
       console.warn(`[AionUi] Original path: ${file}`);
       // 跳过不存在的文件，而不是抛出错误
       continue;
@@ -449,10 +396,7 @@ export const copyFilesToDirectory = async (
       await fs.copyFile(absoluteFilePath, destPath);
       copiedFiles.push(destPath);
     } catch (error) {
-      console.error(
-        `[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`,
-        error,
-      );
+      console.error(`[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
       // 继续处理其他文件，而不是完全失败
     }
 
