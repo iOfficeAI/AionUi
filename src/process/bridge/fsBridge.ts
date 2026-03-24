@@ -12,7 +12,7 @@ import https from 'node:https';
 import http from 'node:http';
 import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
-import { getSystemDir, getAssistantsDir, getSkillsDir, getBuiltinSkillsDir } from '@process/utils/initStorage';
+import { getSystemDir, getAssistantsDir, getSkillsDir, getBuiltinSkillsCopyDir } from '@process/utils/initStorage';
 import { readDirectoryRecursive } from '@process/utils';
 
 // ============================================================================
@@ -22,6 +22,11 @@ import { readDirectoryRecursive } from '@process/utils';
 
 type ResourceType = 'rules' | 'skills' | 'assistant';
 
+/**
+ * Resolve builtin resource directory without Electron.
+ * In development and standalone server mode: searches relative to process.cwd().
+ * Returns first existing candidate, falling back to first candidate path.
+ */
 /**
  * Resolve builtin resource directory without Electron.
  * In development and standalone server mode: searches relative to process.cwd().
@@ -829,8 +834,8 @@ export function initFsBridge(): void {
         }
       };
 
-      // 读取内置 skills (isCustom: false)
-      const builtinSkillsDir = getBuiltinSkillsDir();
+      // Read builtin skills from the dedicated builtin-skills/ directory (isCustom: false)
+      const builtinSkillsDir = getBuiltinSkillsCopyDir();
       const builtinCountBefore = skills.length;
       await readSkillsFromDir(builtinSkillsDir, false);
       const builtinCount = skills.length - builtinCountBefore;
@@ -841,38 +846,19 @@ export function initFsBridge(): void {
       await readSkillsFromDir(userSkillsDir, true);
       const userCount = skills.length - userCountBefore;
 
-      // 去重：如果 custom skill 和 builtin skill 同名，只保留 builtin
-      // Deduplicate: if custom and builtin skills have same name, keep only builtin
-      const skillMap = new Map<
-        string,
-        {
-          name: string;
-          description: string;
-          location: string;
-          isCustom: boolean;
-        }
-      >();
+      // Deduplicate: if a custom skill has the same name as a builtin, keep builtin
+      const skillMap = new Map<string, { name: string; description: string; location: string; isCustom: boolean }>();
       for (const skill of skills) {
         const existing = skillMap.get(skill.name);
-        // 如果已存在且当前是 builtin，或者不存在，则添加/更新
-        // Add/update if: already exists and current is builtin, or doesn't exist yet
         if (!existing || !skill.isCustom) {
           skillMap.set(skill.name, skill);
         }
       }
-      const deduplicatedSkills = Array.from(skillMap.values());
+      const result = Array.from(skillMap.values());
 
-      console.log(
-        `[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`
-      );
-      console.log(`  - Builtin skills (${builtinCount}): ${builtinSkillsDir}`);
-      console.log(`  - User skills (${userCount}): ${userSkillsDir}`);
-      console.log(
-        `  - Skills breakdown:`,
-        deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', ')
-      );
+      console.log(`[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, custom=${userCount}`);
 
-      return deduplicatedSkills;
+      return result;
     } catch (error) {
       console.error('[fsBridge] Failed to list available skills:', error);
       return [];
@@ -959,9 +945,8 @@ export function initFsBridge(): void {
       const userSkillsDir = getSkillsDir();
       const targetDir = path.join(userSkillsDir, skillName);
 
-      // 检查是否已存在同名 skill（同时检查内置和用户目录）/ Check if skill already exists in both builtin and user directories
-      const builtinSkillsDir = getBuiltinSkillsDir();
-      const builtinTargetDir = path.join(builtinSkillsDir, skillName);
+      // Check if skill already exists in both builtin and user directories
+      const builtinTargetDir = path.join(getBuiltinSkillsCopyDir(), skillName);
 
       try {
         await fs.access(targetDir);
@@ -1418,7 +1403,7 @@ export function initFsBridge(): void {
   // 获取技能存储路径 / Get skill storage paths
   ipcBridge.fs.getSkillPaths.provider(async () => ({
     userSkillsDir: getSkillsDir(),
-    builtinSkillsDir: getBuiltinSkillsDir(),
+    builtinSkillsDir: getBuiltinSkillsCopyDir(),
   }));
 
   // 将 skill 同步导出到外部目录 / Export skill to external directory via symlink
@@ -1458,8 +1443,8 @@ export function initFsBridge(): void {
   // Skills Market: inject the aionui-skills builtin skill
   ipcBridge.fs.enableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
-      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      const { getAutoSkillsDir } = await import('@process/utils/initStorage');
+      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.mkdir(skillDir, { recursive: true });
 
       // Copy the bundled SKILL.md (concise entry-point version)
@@ -1484,8 +1469,8 @@ export function initFsBridge(): void {
   // Skills Market: remove the aionui-skills builtin skill
   ipcBridge.fs.disableSkillsMarket.provider(async () => {
     try {
-      const { getBuiltinSkillsDir } = await import('@process/utils/initStorage');
-      const skillDir = path.join(getBuiltinSkillsDir(), 'aionui-skills');
+      const { getAutoSkillsDir } = await import('@process/utils/initStorage');
+      const skillDir = path.join(getAutoSkillsDir(), 'aionui-skills');
       await fs.rm(skillDir, { recursive: true, force: true });
 
       // Reset AcpSkillManager singleton so it re-discovers builtin skills
@@ -1513,7 +1498,7 @@ export function initFsBridge(): void {
  */
 async function readBundledSkillsMarketMd(): Promise<string> {
   try {
-    const fallbackPath = path.join(getBuiltinSkillsDir(), 'aionui-skills', 'SKILL.md');
+    const fallbackPath = path.join(getBuiltinSkillsCopyDir(), 'aionui-skills', 'SKILL.md');
     return await fs.readFile(fallbackPath, 'utf-8');
   } catch (error) {
     console.warn('[fsBridge] Failed to read bundled aionui-skills SKILL.md:', error);

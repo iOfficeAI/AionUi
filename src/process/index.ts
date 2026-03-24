@@ -23,7 +23,11 @@ import { getChannelManager } from '@process/channels';
 import { ExtensionRegistry } from '@process/extensions';
 
 export const initializeProcess = async () => {
+  const t0 = performance.now();
+  const mark = (label: string) => console.log(`[AionUi:process] ${label} +${Math.round(performance.now() - t0)}ms`);
+
   await initStorage();
+  mark('initStorage');
 
   // Initialize Extension Registry (scan and resolve all extensions)
   try {
@@ -32,6 +36,7 @@ export const initializeProcess = async () => {
     console.error('[Process] Failed to initialize ExtensionRegistry:', error);
     // Don't fail app startup if extensions fail to initialize
   }
+  mark('ExtensionRegistry');
 
   // Initialize Channel subsystem
   try {
@@ -40,4 +45,5 @@ export const initializeProcess = async () => {
     console.error('[Process] Failed to initialize ChannelManager:', error);
     // Don't fail app startup if channel fails to initialize
   }
+  mark('ChannelManager');
 };
