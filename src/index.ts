@@ -66,12 +66,14 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 // When a second instance starts (e.g. from protocol URL), it sends its data
 // to the first instance via second-instance event, then quits.
 const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
+const isDevWebUiMode = !app.isPackaged && process.argv.includes('--webui');
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
-const gotTheLock = isE2ETestMode ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+const shouldUseSingleInstanceLock = !isE2ETestMode && !isDevWebUiMode;
+const gotTheLock = shouldUseSingleInstanceLock ? app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv }) : true;
 if (!gotTheLock) {
   console.warn('[AionUi] Another instance is already running; current process will exit.');
   app.quit();
-} else {
+} else if (shouldUseSingleInstanceLock) {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
     const deepLinkUrl =

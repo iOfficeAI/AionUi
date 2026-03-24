@@ -9,7 +9,7 @@ import { getActivityTime, getTimelineLabel } from '@/renderer/utils/chat/timelin
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
 
-import type { GroupedHistoryResult, TimelineItem, TimelineSection, WorkspaceGroup } from '../types';
+import type { GroupedHistoryResult, TimelineItem, TimelineSection, WorkspaceGroup, WorkspaceNode } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
 
 export const getConversationTimelineLabel = (conversation: TChatConversation, t: (key: string) => string): string => {
@@ -37,11 +37,22 @@ export const groupConversationsByTimelineAndWorkspace = (
   const allWorkspaceGroups = new Map<string, TChatConversation[]>();
   const withoutWorkspaceConvs: TChatConversation[] = [];
 
+  // Filter out team children — they'll be nested under their parent
+  const teamChildIds = new Set<string>();
   conversations.forEach((conv) => {
-    const workspace = conv.extra?.workspace;
-    const customWorkspace = conv.extra?.customWorkspace;
+    const teamId = (conv.extra as { teamId?: string })?.teamId;
+    if (teamId) {
+      teamChildIds.add(conv.id);
+    }
+  });
 
-    if (customWorkspace && workspace) {
+  conversations.forEach((conv) => {
+    // Skip team children — they'll appear nested under their team parent
+    if (teamChildIds.has(conv.id)) return;
+
+    const workspace = conv.extra?.workspace;
+
+    if (workspace) {
       if (!allWorkspaceGroups.has(workspace)) {
         allWorkspaceGroups.set(workspace, []);
       }
@@ -66,6 +77,7 @@ export const groupConversationsByTimelineAndWorkspace = (
       workspace,
       displayName: getWorkspaceDisplayName(workspace),
       conversations: sortedConvs,
+      nodes: buildWorkspaceNodes(sortedConvs, conversations),
     });
   });
 
@@ -147,3 +159,27 @@ export const buildGroupedHistory = (
     timelineSections: groupConversationsByTimelineAndWorkspace(normalConversations, t),
   };
 };
+
+/**
+ * Build structured workspace nodes from a list of conversations in one workspace.
+ * agent-team parents get their children nested; standalone conversations stay flat.
+ * @param workspaceConvs - conversations already filtered to this workspace (top-level only, no team children)
+ * @param allConversations - full conversation list for looking up team children by teamId
+ */
+function buildWorkspaceNodes(workspaceConvs: TChatConversation[], allConversations: TChatConversation[]): WorkspaceNode[] {
+  const nodes: WorkspaceNode[] = [];
+
+  for (const conv of workspaceConvs) {
+    if (conv.type === 'agent-team') {
+      // Find children by teamId
+      const members = (conv.extra as { members?: Array<{ conversationId: string }> })?.members || [];
+      const childIds = new Set(members.map((m) => m.conversationId));
+      const children = allConversations.filter((c) => childIds.has(c.id));
+      nodes.push({ kind: 'team', teamConversation: conv, children });
+    } else {
+      nodes.push({ kind: 'conversation', conversation: conv });
+    }
+  }
+
+  return nodes;
+}

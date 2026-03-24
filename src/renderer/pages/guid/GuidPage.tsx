@@ -23,6 +23,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
+import TeamBuilder from './components/TeamBuilder';
 import { ConfigProvider } from '@arco-design/web-react';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -315,52 +316,64 @@ const GuidPage: React.FC = () => {
             />
           ) : null}
 
-          <GuidInputCard
-            input={guidInput.input}
-            onInputChange={handleInputChange}
-            onKeyDown={handleInputKeyDown}
-            onPaste={guidInput.onPaste}
-            onFocus={guidInput.handleTextareaFocus}
-            onBlur={guidInput.handleTextareaBlur}
-            placeholder={`${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
-            isInputActive={guidInput.isInputFocused}
-            isFileDragging={guidInput.isFileDragging}
-            activeBorderColor={activeBorderColor}
-            inactiveBorderColor={inactiveBorderColor}
-            activeShadow={activeShadow}
-            dragHandlers={guidInput.dragHandlers}
-            mentionOpen={mention.mentionOpen}
-            mentionSelectorBadge={
-              <MentionSelectorBadge
-                visible={mention.mentionSelectorVisible}
-                open={mention.mentionSelectorOpen}
-                onOpenChange={mention.setMentionSelectorOpen}
-                agentLabel={mention.selectedAgentLabel}
-                mentionMenu={mentionDropdownNode}
-                onResetQuery={() => mention.setMentionQuery(null)}
-              />
-            }
-            mentionDropdown={mentionDropdownNode}
-            files={guidInput.files}
-            onRemoveFile={guidInput.handleRemoveFile}
-            dir={guidInput.dir}
-            onClearDir={() => guidInput.setDir('')}
-            actionRow={actionRowNode}
-          />
-
-          {agentSelection.availableAgents === undefined ? (
-            <AssistantsSkeleton />
-          ) : (
-            <AssistantSelectionArea
-              isPresetAgent={agentSelection.isPresetAgent}
-              selectedAgentInfo={agentSelection.selectedAgentInfo}
-              customAgents={agentSelection.customAgents}
-              localeKey={localeKey}
-              currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
-              onSelectAssistant={handleSelectAssistant}
-              onSetInput={guidInput.setInput}
-              onFocusInput={guidInput.handleTextareaFocus}
+          {agentSelection.selectedAgentKey === 'agent-team' ? (
+            <TeamBuilder
+              availableAgents={agentSelection.availableAgents || []}
+              initialWorkspace={guidInput.dir}
+              onTeamCreated={(teamConversation) => {
+                navigate(`/conversation/${teamConversation.id}`);
+              }}
             />
+          ) : (
+            <>
+              <GuidInputCard
+                input={guidInput.input}
+                onInputChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
+                onPaste={guidInput.onPaste}
+                onFocus={guidInput.handleTextareaFocus}
+                onBlur={guidInput.handleTextareaBlur}
+                placeholder={`${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
+                isInputActive={guidInput.isInputFocused}
+                isFileDragging={guidInput.isFileDragging}
+                activeBorderColor={activeBorderColor}
+                inactiveBorderColor={inactiveBorderColor}
+                activeShadow={activeShadow}
+                dragHandlers={guidInput.dragHandlers}
+                mentionOpen={mention.mentionOpen}
+                mentionSelectorBadge={
+                  <MentionSelectorBadge
+                    visible={mention.mentionSelectorVisible}
+                    open={mention.mentionSelectorOpen}
+                    onOpenChange={mention.setMentionSelectorOpen}
+                    agentLabel={mention.selectedAgentLabel}
+                    mentionMenu={mentionDropdownNode}
+                    onResetQuery={() => mention.setMentionQuery(null)}
+                  />
+                }
+                mentionDropdown={mentionDropdownNode}
+                files={guidInput.files}
+                onRemoveFile={guidInput.handleRemoveFile}
+                dir={guidInput.dir}
+                onClearDir={() => guidInput.setDir('')}
+                actionRow={actionRowNode}
+              />
+
+              {agentSelection.availableAgents === undefined ? (
+                <AssistantsSkeleton />
+              ) : (
+                <AssistantSelectionArea
+                  isPresetAgent={agentSelection.isPresetAgent}
+                  selectedAgentInfo={agentSelection.selectedAgentInfo}
+                  customAgents={agentSelection.customAgents}
+                  localeKey={localeKey}
+                  currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
+                  onSelectAssistant={handleSelectAssistant}
+                  onSetInput={guidInput.setInput}
+                  onFocusInput={guidInput.handleTextareaFocus}
+                />
+              )}
+            </>
           )}
         </div>
 

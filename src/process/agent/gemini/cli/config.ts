@@ -97,13 +97,19 @@ export async function loadCliConfig({
     yolo: yoloMode,
   };
 
-  // Map 'auto' to the correct aioncli-core model alias
-  // aioncli-core expects 'auto-gemini-3' or 'auto-gemini-2.5', not plain 'auto'
+  // Map legacy placeholders to valid aioncli-core model aliases.
+  // aioncli-core expects concrete aliases like 'auto-gemini-3' or 'auto-gemini-2.5'.
+  // Older AionUi conversations may still persist Gemini Google Auth as useModel='default'.
   // Config internally calls resolveModel(model, getGemini31LaunchedSync()) to resolve to gemini-3.1-pro-preview
-  // 将 'auto' 映射到正确的 aioncli-core 模型别名
-  // aioncli-core 需要 'auto-gemini-3' 或 'auto-gemini-2.5'，而不是纯 'auto'
+  // 将旧占位值映射到正确的 aioncli-core 模型别名
+  // aioncli-core 需要 'auto-gemini-3' 或 'auto-gemini-2.5'，而不是纯 'auto' 或历史遗留的 'default'
   // Config 内部会调用 resolveModel(model, getGemini31LaunchedSync()) 解析为 gemini-3.1-pro-preview
-  const resolvedModel = model === 'auto' ? PREVIEW_GEMINI_MODEL_AUTO : model;
+  const resolvedModel =
+    model === 'auto'
+      ? PREVIEW_GEMINI_MODEL_AUTO
+      : model === 'default'
+        ? PREVIEW_GEMINI_MODEL_AUTO
+        : model;
 
   const debugMode =
     argv.debug || [process.env.DEBUG, process.env.DEBUG_MODE].some((v) => v === 'true' || v === '1') || false;

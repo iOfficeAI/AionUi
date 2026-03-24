@@ -152,6 +152,16 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         onNetworkError: (error) => {
           this.handleNetworkError(error);
         },
+        resumeSessionId: data.codexNativeSessionId,
+        onSessionConfigured: (sessionId) => {
+          // Persist native session ID back to conversation extra for resume
+          const existing = getDatabase().getConversation(this.conversation_id);
+          if (existing.success && existing.data) {
+            getDatabase().updateConversation(this.conversation_id, {
+              extra: { ...existing.data.extra, codexNativeSessionId: sessionId },
+            } as any);
+          }
+        },
       });
 
       await this.startWithSessionManagement();

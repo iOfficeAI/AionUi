@@ -164,6 +164,30 @@ export interface TokenUsageData {
   totalTokens: number;
 }
 
+/** Dispatch policy for routing coord messages to team members */
+export type AgentTeamDispatchPolicy = 'queue' | 'interrupt' | 'user-priority';
+
+/** Default view mode for team conversation UI */
+export type AgentTeamDefaultView = 'timeline' | 'agents';
+
+/** Agent Team member definition */
+export type IAgentTeamMember = {
+  /** Unique member identifier within the team */
+  memberId: string;
+  /** Member agent type: acp for Claude/Codex/etc, gemini for Gemini */
+  type: 'acp' | 'gemini';
+  /** Backend identifier (e.g. 'claude', 'codex', 'qwen') */
+  backend?: string;
+  /** Display name for this member */
+  name: string;
+  /** Conversation ID of the child conversation */
+  conversationId: string;
+  /** Custom agent UUID if using a custom agent */
+  customAgentId?: string;
+  /** Preset assistant ID if using a preset assistant */
+  presetAssistantId?: string;
+};
+
 export type TChatConversation =
   | IChatConversation<
       'gemini',
@@ -188,6 +212,8 @@ export type TChatConversation =
         sessionMode?: string;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
+        /** Parent team conversation ID when this is a team child / 所属 Agent Team 的会话 ID */
+        teamId?: string;
       }
     >
   | Omit<
@@ -223,6 +249,8 @@ export type TChatConversation =
           currentModelId?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Parent team conversation ID when this is a team child / 所属 Agent Team 的会话 ID */
+          teamId?: string;
         }
       >,
       'model'
@@ -248,8 +276,12 @@ export type TChatConversation =
           sessionMode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
+          /** Codex native session/conversation ID for resume across rebuilds */
+          codexNativeSessionId?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Parent team conversation ID when this is a team child / 所属 Agent Team 的会话 ID */
+          teamId?: string;
         }
       >,
       'model'
@@ -293,6 +325,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Parent team conversation ID when this is a team child / 所属 Agent Team 的会话 ID */
+          teamId?: string;
         }
       >,
       'model'
@@ -313,6 +347,37 @@ export type TChatConversation =
           pinnedAt?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
+          /** Parent team conversation ID when this is a team child / 所属 Agent Team 的会话 ID */
+          teamId?: string;
+        }
+      >,
+      'model'
+    >
+  | Omit<
+      IChatConversation<
+        'agent-team',
+        {
+          /** Shared workspace for all team members */
+          workspace: string;
+          customWorkspace?: boolean;
+          /** Path to coord directory, defaults to <workspace>/.agents/coord */
+          coordDir: string;
+          /** Dispatch policy for routing coord messages to agents */
+          dispatchPolicy: AgentTeamDispatchPolicy;
+          /** Default view mode for the team conversation UI */
+          defaultView: AgentTeamDefaultView;
+          /** Team member definitions */
+          members: IAgentTeamMember[];
+          /** Consensus tracking state */
+          consensus?: {
+            required: boolean;
+            decisionMessageId?: string;
+            activeAgents?: string[];
+          };
+          /** 是否置顶会话 / Whether this conversation is pinned */
+          pinned?: boolean;
+          /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
+          pinnedAt?: number;
         }
       >,
       'model'

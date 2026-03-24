@@ -331,6 +331,8 @@ export interface CodexAgentManagerData {
   sessionMode?: string;
   /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
   codexModel?: string;
+  /** Codex native session/conversation ID for resume across rebuilds */
+  codexNativeSessionId?: string;
 }
 
 export interface ElicitationCreateData {

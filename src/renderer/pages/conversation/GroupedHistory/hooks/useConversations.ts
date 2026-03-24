@@ -13,8 +13,22 @@ import { useConversationListSync } from './useConversationListSync';
 import { buildGroupedHistory } from '../utils/groupingHelpers';
 
 const EXPANSION_STORAGE_KEY = 'aionui_workspace_expansion';
+const HIDDEN_WORKSPACES_KEY = 'aionui_hidden_workspaces';
 
 export const useConversations = () => {
+  const [hiddenWorkspaces, setHiddenWorkspaces] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(HIDDEN_WORKSPACES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem(EXPANSION_STORAGE_KEY);
@@ -107,6 +121,30 @@ export const useConversations = () => {
     });
   }, [timelineSections]);
 
+  // Persist hidden workspaces
+  useEffect(() => {
+    try {
+      localStorage.setItem(HIDDEN_WORKSPACES_KEY, JSON.stringify(hiddenWorkspaces));
+    } catch {
+      // ignore
+    }
+  }, [hiddenWorkspaces]);
+
+  // Filter out hidden workspaces from timeline sections
+  const visibleTimelineSections = useMemo(() => {
+    if (hiddenWorkspaces.length === 0) return timelineSections;
+    const hiddenSet = new Set(hiddenWorkspaces);
+    return timelineSections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (item.type === 'workspace' && item.workspaceGroup) {
+          return !hiddenSet.has(item.workspaceGroup.workspace);
+        }
+        return true;
+      }),
+    })).filter((section) => section.items.length > 0);
+  }, [timelineSections, hiddenWorkspaces]);
+
   const handleToggleWorkspace = useCallback((workspace: string) => {
     setExpandedWorkspaces((prev) => {
       if (prev.includes(workspace)) {
@@ -116,13 +154,36 @@ export const useConversations = () => {
     });
   }, []);
 
+  const handleHideWorkspace = useCallback((workspace: string) => {
+    setHiddenWorkspaces((prev) => prev.includes(workspace) ? prev : [...prev, workspace]);
+  }, []);
+
+  const handleUnhideWorkspace = useCallback((workspace: string) => {
+    setHiddenWorkspaces((prev) => prev.filter((ws) => ws !== workspace));
+  }, []);
+
+  const handleUnhideAll = useCallback(() => {
+    setHiddenWorkspaces([]);
+  }, []);
+
   return {
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
     expandedWorkspaces,
-    pinnedConversations,
-    timelineSections,
+    pinnedConversations: useMemo(() => {
+      if (hiddenWorkspaces.length === 0) return pinnedConversations;
+      const hiddenSet = new Set(hiddenWorkspaces);
+      return pinnedConversations.filter((conv) => {
+        const ws = conv.extra?.workspace;
+        return !ws || !hiddenSet.has(ws);
+      });
+    }, [pinnedConversations, hiddenWorkspaces]),
+    timelineSections: visibleTimelineSections,
+    hiddenWorkspaces,
     handleToggleWorkspace,
+    handleHideWorkspace,
+    handleUnhideWorkspace,
+    handleUnhideAll,
   };
 };

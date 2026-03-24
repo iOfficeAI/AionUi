@@ -104,7 +104,7 @@ export class ActivitySnapshotBuilder {
   build(): IExtensionAgentActivitySnapshot {
     const conversations = this.repo
       .getUserConversations(undefined, 0, 10000)
-      .data.filter((conv) => !conv.extra?.isHealthCheck);
+      .data.filter((conv) => conv.type !== 'agent-team' && !(conv.extra as { isHealthCheck?: boolean })?.isHealthCheck);
 
     const byAgent = new Map<string, IExtensionAgentActivityItem>();
     let runningConversations = 0;

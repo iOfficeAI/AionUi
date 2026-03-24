@@ -6,10 +6,44 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 
+/** A single conversation in a workspace (not a team child) */
+export type ConversationNode = {
+  kind: 'conversation';
+  conversation: TChatConversation;
+};
+
+/** An agent-team parent with its nested child conversations */
+export type TeamNode = {
+  kind: 'team';
+  teamConversation: TChatConversation;
+  children: TChatConversation[];
+};
+
+/** A node inside a workspace group — either a standalone conversation or a team with children */
+export type WorkspaceNode = ConversationNode | TeamNode;
+
+/** A single conversation in a workspace (not a team child) */
+export type ConversationNode = {
+  kind: 'conversation';
+  conversation: TChatConversation;
+};
+
+/** An agent-team parent with its nested child conversations */
+export type TeamNode = {
+  kind: 'team';
+  teamConversation: TChatConversation;
+  children: TChatConversation[];
+};
+
+/** A node inside a workspace group — either a standalone conversation or a team with children */
+export type WorkspaceNode = ConversationNode | TeamNode;
+
 export type WorkspaceGroup = {
   workspace: string;
   displayName: string;
   conversations: TChatConversation[];
+  /** Structured nodes: standalone conversations + team parents with nested children */
+  nodes: WorkspaceNode[];
 };
 
 export type TimelineItem = {

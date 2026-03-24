@@ -8,9 +8,11 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AcpBackend, AvailableAgent } from '../types';
-import { Robot } from '@icon-park/react';
+import { Robot, Peoples } from '@icon-park/react';
 import React from 'react';
 import styles from '../index.module.css';
+
+const AGENT_TEAM_KEY = 'agent-team';
 
 type AgentPillBarProps = {
   availableAgents: AvailableAgent[];
@@ -101,6 +103,38 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               </React.Fragment>
             );
           })}
+
+        {/* Agent Team entry */}
+        {!isMobile && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
+        <div
+          data-agent-pill='true'
+          data-agent-key={AGENT_TEAM_KEY}
+          data-agent-selected={selectedAgentKey === AGENT_TEAM_KEY ? 'true' : 'false'}
+          className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${selectedAgentKey === AGENT_TEAM_KEY ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
+          style={
+            selectedAgentKey === AGENT_TEAM_KEY
+              ? isMobile
+                ? { animation: 'none', transition: 'opacity 0.2s ease, background-color 0.2s ease' }
+                : undefined
+              : { transition: 'opacity 0.2s ease' }
+          }
+          onClick={() => onSelectAgent(AGENT_TEAM_KEY)}
+        >
+          <Peoples theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
+          <span
+            className={`font-medium text-14px ${selectedAgentKey === AGENT_TEAM_KEY ? 'font-semibold ml-4px' : isMobile ? 'max-w-0 opacity-0 overflow-hidden' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+            style={{
+              color: 'var(--text-primary)',
+              transition: selectedAgentKey === AGENT_TEAM_KEY
+                ? 'color 0.2s ease, font-weight 0.2s ease'
+                : isMobile
+                  ? 'none'
+                  : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+            }}
+          >
+            Agent Team
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const placeholderModel = currentModel || {
         id: 'gemini-placeholder',
         name: 'Gemini',
-        useModel: 'default',
+        useModel: 'auto-gemini-3',
         platform: 'gemini-with-google-auth' as const,
         baseUrl: '',
         apiKey: '',

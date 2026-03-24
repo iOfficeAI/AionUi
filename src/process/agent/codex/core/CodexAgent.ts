@@ -40,6 +40,10 @@ export interface CodexAgentConfig {
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
   /** Yolo mode: skip confirmation prompts while keeping sandbox protection (for cron jobs) */
   yoloMode?: boolean;
+  /** Callback when Codex returns a native session ID (for persistence/resume) */
+  onSessionConfigured?: (sessionId: string) => void;
+  /** Pre-existing native session ID to resume (from previous app run) */
+  resumeSessionId?: string;
 }
 
 /**
@@ -56,6 +60,7 @@ export class CodexAgent {
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
   private readonly yoloMode: boolean;
+  private readonly onSessionConfigured?: (sessionId: string) => void;
   private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
@@ -75,6 +80,10 @@ export class CodexAgent {
     this.onNetworkError = cfg.onNetworkError;
     this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
     this.yoloMode = cfg.yoloMode || false;
+    this.onSessionConfigured = cfg.onSessionConfigured;
+    if (cfg.resumeSessionId) {
+      this.conversationId = cfg.resumeSessionId;
+    }
   }
 
   async start(): Promise<void> {
@@ -308,6 +317,7 @@ export class CodexAgent {
 
       if (msg.type === 'session_configured' && msg.session_id) {
         this.conversationId = String(msg.session_id);
+        this.onSessionConfigured?.(String(msg.session_id));
       }
       return;
     }

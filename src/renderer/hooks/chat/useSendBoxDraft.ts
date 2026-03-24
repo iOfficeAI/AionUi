@@ -54,6 +54,7 @@ const store: SendBoxDraftStore = {
   codex: new Map(),
   'openclaw-gateway': new Map(),
   nanobot: new Map(),
+  'agent-team': new Map() as Map<string, never>,
 };
 
 const setDraft = <K extends TChatConversation['type']>(

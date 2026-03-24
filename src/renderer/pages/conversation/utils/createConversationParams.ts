@@ -113,7 +113,7 @@ export async function buildCliAgentParams(
       ? {
           id: 'gemini-placeholder',
           name: 'Gemini',
-          useModel: 'default',
+          useModel: 'auto-gemini-3',
           platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
           baseUrl: '',
           apiKey: '',

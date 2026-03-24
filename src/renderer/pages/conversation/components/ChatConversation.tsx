@@ -24,6 +24,7 @@ import ChatSider from './ChatSider';
 import CodexChat from '../platforms/codex/CodexChat';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
+import AgentTeamChat from '../platforms/agent-team/AgentTeamChat';
 import GeminiChat from '../platforms/gemini/GeminiChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
@@ -220,6 +221,14 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
           />
         );
+      case 'agent-team':
+        return (
+          <AgentTeamChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+          />
+        );
       default:
         return null;
     }
@@ -244,6 +253,7 @@ const ChatConversation: React.FC<{
   // NOTE: This must be placed before the Gemini early return to maintain consistent hook order.
   const modelSelector = useMemo(() => {
     if (!conversation || isGeminiConversation) return undefined;
+    if (conversation.type === 'agent-team') return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; currentModelId?: string };
       return (
@@ -302,7 +312,7 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
-      {conversation ? (
+      {conversation && conversation.type !== 'agent-team' ? (
         <div className='shrink-0'>
           <CronJobManager conversationId={conversation.id} />
         </div>

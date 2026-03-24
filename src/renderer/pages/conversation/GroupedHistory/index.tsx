@@ -10,12 +10,12 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { Button, Empty, Input, Modal, Tooltip } from '@arco-design/web-react';
+import { FolderOpen, Add, DeleteOne, Eyes } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -37,6 +37,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 }) => {
   const { id } = useParams();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
   // Sync active conversation ref when route changes (for URL navigation)
@@ -54,7 +55,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    hiddenWorkspaces,
     handleToggleWorkspace,
+    handleHideWorkspace,
+    handleUnhideWorkspace,
+    handleUnhideAll,
   } = useConversations();
 
   const {
@@ -357,10 +362,26 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 <div className='min-w-0'>
                   {pinnedConversations.map((conversation) => {
                     const props = getConversationRowProps(conversation);
-                    return isDragEnabled ? (
-                      <SortableConversationRow key={conversation.id} {...props} />
-                    ) : (
-                      <ConversationRow key={conversation.id} {...props} />
+                    const isTeam = conversation.type === 'agent-team';
+                    const teamChildren = isTeam
+                      ? ((conversation.extra as { members?: Array<{ conversationId: string }> })?.members || [])
+                          .map((m) => conversations.find((c) => c.id === m.conversationId))
+                          .filter((c): c is TChatConversation => Boolean(c))
+                      : [];
+
+                    return (
+                      <div key={conversation.id}>
+                        {isDragEnabled ? (
+                          <SortableConversationRow {...props} />
+                        ) : (
+                          <ConversationRow {...props} />
+                        )}
+                        {teamChildren.length > 0 && (
+                          <div className='ml-16px flex flex-col gap-2px'>
+                            {teamChildren.map((child) => renderConversation(child))}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -391,15 +412,51 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       onToggle={() => handleToggleWorkspace(group.workspace)}
                       siderCollapsed={collapsed}
                       header={
-                        <div className='flex items-center gap-8px text-14px min-w-0'>
+                        <div className='group flex items-center gap-8px text-14px min-w-0'>
                           <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
                             {group.displayName}
                           </span>
+                          {!collapsed && (
+                            <div className='flex items-center gap-2px shrink-0' onClick={(e) => e.stopPropagation()}>
+                              <Tooltip content='New conversation in this workspace' mini>
+                                <button
+                                  type='button'
+                                  className='p-2px rd-4px opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-fill-2 transition-opacity'
+                                  onClick={() => navigate('/guid', { state: { workspace: group.workspace } })}
+                                >
+                                  <Add size={14} />
+                                </button>
+                              </Tooltip>
+                              <Tooltip content='Hide this workspace' mini>
+                                <button
+                                  type='button'
+                                  className='p-2px rd-4px opacity-0 group-hover:opacity-60 hover:opacity-100 hover:bg-fill-2 transition-opacity'
+                                  onClick={() => handleHideWorkspace(group.workspace)}
+                                >
+                                  <DeleteOne size={14} />
+                                </button>
+                              </Tooltip>
+                            </div>
+                          )}
                         </div>
                       }
                     >
                       <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>
-                        {group.conversations.map((conversation) => renderConversation(conversation))}
+                        {(group.nodes || []).map((node) => {
+                          if (node.kind === 'team') {
+                            return (
+                              <div key={node.teamConversation.id}>
+                                {renderConversation(node.teamConversation)}
+                                {node.children.length > 0 && (
+                                  <div className='ml-16px flex flex-col gap-2px'>
+                                    {node.children.map((child) => renderConversation(child))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return renderConversation(node.conversation);
+                        })}
                       </div>
                     </WorkspaceCollapse>
                   </div>
@@ -414,6 +471,19 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             })}
           </div>
         ))}
+        {/* Show hidden workspaces recovery */}
+        {hiddenWorkspaces.length > 0 && !collapsed && (
+          <div className='px-12px py-8px'>
+            <button
+              type='button'
+              className='flex items-center gap-4px text-12px text-t-secondary opacity-60 hover:opacity-100 transition-opacity cursor-pointer bg-transparent border-none p-0'
+              onClick={handleUnhideAll}
+            >
+              <Eyes size={14} />
+              <span>{hiddenWorkspaces.length} hidden workspace{hiddenWorkspaces.length > 1 ? 's' : ''}</span>
+            </button>
+          </div>
+        )}
       </div>
     </FlexFullContainer>
   );

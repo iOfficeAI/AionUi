@@ -308,11 +308,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return; // Don't process further / 不需要继续处理
           }
 
-          // Mark as finished when content is output (visible to user)
+          // Mark as running when content is being produced (visible to user)
           // ACP uses: content, agent_status, acp_tool_call, plan
+          // Note: do NOT set 'finished' here — that causes premature busy-release
+          // in CoordDispatcher, leading to overlapping prompts and "Prompt is too long".
+          // Status is set to 'finished' in the 'finish' signal handler below.
           const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
           if (contentTypes.includes(message.type)) {
-            this.status = 'finished';
+            this.status = 'running';
           }
 
           // Emit request trace on each model generation start
@@ -434,8 +437,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return;
           }
 
-          // Clear busy guard when turn ends
+          // Clear busy guard and mark status as finished when turn ends
           if (v.type === 'finish') {
+            this.status = 'finished';
             cronBusyGuard.setProcessing(this.conversation_id, false);
           }
 

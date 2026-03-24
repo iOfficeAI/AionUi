@@ -31,6 +31,25 @@ import {
 import { mainLog, mainWarn } from '@process/utils/mainLogger';
 
 const execFile = promisify(execFileCb);
+const CODEX_ACP_BINARY_ENV = 'AIONUI_CODEX_ACP_BINARY';
+
+/** Try to find a locally installed codex-acp binary (v0.10.0+) for stable session/load. */
+async function findLocalCodexAcpBinary(): Promise<string | undefined> {
+  const candidates = [
+    path.join(os.homedir(), '.aionui-dev', 'bin', 'codex-acp-0.10.0'),
+    path.join(os.homedir(), '.aionui', 'bin', 'codex-acp'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      mainLog('[ACP codex]', 'Found local codex-acp binary', { path: candidate });
+      return candidate;
+    } catch {
+      // Not found, try next
+    }
+  }
+  return undefined;
+}
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 export const ACP_PERF_LOG = process.env.ACP_PERF === '1';
@@ -304,6 +323,26 @@ async function prepareCodex(): Promise<NpxPrepareResult> {
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
+async function prepareCodexBinaryOverride(): Promise<{ cleanEnv: Record<string, string | undefined>; cliPath: string }> {
+  const cleanEnv = prepareCleanEnv();
+  ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
+
+  const cliPath = cleanEnv[CODEX_ACP_BINARY_ENV]?.trim();
+  if (!cliPath) {
+    throw new Error(`${CODEX_ACP_BINARY_ENV} is not set`);
+  }
+
+  await fs.access(cliPath);
+
+  mainLog('[ACP codex]', 'Using local Codex ACP binary override', {
+    bridgeBinary: cliPath,
+    fallbackNpmPackage: CODEX_ACP_NPX_PACKAGE,
+    bridgeVersion: CODEX_ACP_BRIDGE_VERSION,
+  });
+
+  return { cleanEnv, cliPath };
+}
+
 /** Prepare clean env + resolve npx + load MCP config for CodeBuddy. */
 async function prepareCodebuddy(): Promise<NpxPrepareResult> {
   const cleanEnv = prepareCleanEnv();
@@ -335,7 +374,8 @@ export async function spawnGenericBackend(
   cliPath: string,
   workingDir: string,
   acpArgs?: string[],
-  customEnv?: Record<string, string>
+  customEnv?: Record<string, string>,
+  prebuiltEnv?: Record<string, string>
 ): Promise<SpawnResult> {
   try {
     await fs.mkdir(workingDir, { recursive: true });
@@ -343,7 +383,7 @@ export async function spawnGenericBackend(
     // best-effort: if mkdir fails, let spawn report the actual error
   }
 
-  const cleanEnv = prepareCleanEnv();
+  const cleanEnv = prebuiltEnv ?? prepareCleanEnv();
   if (customEnv) {
     Object.assign(cleanEnv, customEnv);
   }
@@ -424,7 +464,23 @@ export function connectClaude(workingDir: string, hooks: NpxConnectHooks): Promi
 }
 
 /** Connect to Codex ACP bridge via npx. */
-export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promise<void> {
+export async function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promise<void> {
+  // Prefer v0.10.0+ binary for stable session/load (cross-process resume).
+  // v0.7.4 npm package only supports in-process session/load.
+  const override = process.env[CODEX_ACP_BINARY_ENV]?.trim() || await findLocalCodexAcpBinary();
+  if (override) {
+    process.env[CODEX_ACP_BINARY_ENV] = override;
+    try {
+      const { cleanEnv, cliPath } = await prepareCodexBinaryOverride();
+      await hooks.setup(
+        await spawnGenericBackend('codex', cliPath, workingDir, [], undefined, cleanEnv as Record<string, string>)
+      );
+      return;
+    } catch (error) {
+      mainWarn('[ACP codex]', `Binary override unavailable, falling back to npm bridge`, error);
+    }
+  }
+
   return connectNpxBackend({
     backend: 'codex',
     npxPackage: CODEX_ACP_NPX_PACKAGE,
