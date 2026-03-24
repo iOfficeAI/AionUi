@@ -468,13 +468,18 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         path.join(appPath, dirPath), // Fallback to asar path (direct)
       ];
     } else {
-      candidates = [
-        path.join(appPath, dirPath),
-        path.join(appPath, "..", dirPath),
-        path.join(appPath, "..", "..", dirPath),
-        path.join(appPath, "..", "..", "..", dirPath),
-        path.join(process.cwd(), dirPath),
-      ];
+      // In dev, viteStaticCopy doesn't run; map virtual paths to real source locations
+      const dirPaths = [dirPath];
+      if (dirPath === "src/skills") {
+        dirPaths.push("src/process/resources/skills");
+      }
+      candidates = dirPaths.flatMap((dp) => [
+        path.join(appPath, dp),
+        path.join(appPath, "..", dp),
+        path.join(appPath, "..", "..", dp),
+        path.join(appPath, "..", "..", "..", dp),
+        path.join(process.cwd(), dp),
+      ]);
     }
 
     for (const candidate of candidates) {
@@ -660,6 +665,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
     const enabledByDefault =
+      preset.id === "morph-ppt" ||
       preset.id === "cowork" ||
       preset.id === "openclaw-setup" ||
       preset.id === "star-office-helper" ||

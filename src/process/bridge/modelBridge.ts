@@ -355,6 +355,11 @@ export function initModelBridge(): void {
       }
     }
 
+    // Validate API key before creating OpenAI client to avoid unhandled 'Missing credentials' error
+    if (!actualApiKey) {
+      return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
+    }
+
     const openai = new OpenAI({
       baseURL: base_url,
       apiKey: actualApiKey,
@@ -398,7 +403,12 @@ export function initModelBridge(): void {
 
       // 用户输入的 URL 已经请求失败，按优先级尝试多种可能的 URL 格式
       // User's URL request failed, try multiple possible URL formats with priority
-      const url = new URL(base_url);
+      let url: URL;
+      try {
+        url = new URL(base_url);
+      } catch {
+        return { success: false, msg: `Invalid URL: ${base_url}` };
+      }
       const pathname = url.pathname.replace(/\/+$/, ''); // 移除末尾斜杠 / Remove trailing slashes
       const base = `${url.protocol}//${url.host}`;
 

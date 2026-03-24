@@ -120,6 +120,61 @@ describe('readDirectoryRecursive', () => {
     expect(subDir.children).toEqual([]);
   });
 
+  it('returns result with empty children when readdir throws EPERM (Fixes ELECTRON-H, ELECTRON-6T)', async () => {
+    // Create a real directory with a subdirectory
+    const restrictedDir = path.join(tmpDir, 'restricted');
+    await fsp.mkdir(restrictedDir);
+    await fsp.writeFile(path.join(restrictedDir, 'secret.txt'), 'secret');
+
+    // Mock readdir to throw EPERM for the restricted subdirectory
+    const originalReaddir = fsp.readdir;
+    const readdirSpy = vi.spyOn(fsp, 'readdir').mockImplementation(async (dirPath, ...args) => {
+      if (String(dirPath) === restrictedDir) {
+        const err = new Error('EPERM: operation not permitted, scandir') as NodeJS.ErrnoException;
+        err.code = 'EPERM';
+        throw err;
+      }
+      return originalReaddir(dirPath, ...args);
+    });
+
+    const ac = new AbortController();
+    const result = await readDirectoryRecursive(tmpDir, { maxDepth: 2, abortController: ac });
+
+    // Should not crash — the restricted dir should be returned with empty children
+    expect(result).not.toBeNull();
+    const restricted = result.children.find((c) => c.name === 'restricted');
+    expect(restricted).toBeDefined();
+    expect(restricted.isDir).toBe(true);
+    expect(restricted.children).toEqual([]);
+
+    readdirSpy.mockRestore();
+  });
+
+  it('returns result with empty children when readdir throws EACCES', async () => {
+    const noAccessDir = path.join(tmpDir, 'no-access');
+    await fsp.mkdir(noAccessDir);
+
+    const originalReaddir = fsp.readdir;
+    const readdirSpy = vi.spyOn(fsp, 'readdir').mockImplementation(async (dirPath, ...args) => {
+      if (String(dirPath) === noAccessDir) {
+        const err = new Error('EACCES: permission denied, scandir') as NodeJS.ErrnoException;
+        err.code = 'EACCES';
+        throw err;
+      }
+      return originalReaddir(dirPath, ...args);
+    });
+
+    const ac = new AbortController();
+    const result = await readDirectoryRecursive(tmpDir, { maxDepth: 2, abortController: ac });
+
+    expect(result).not.toBeNull();
+    const noAccess = result.children.find((c) => c.name === 'no-access');
+    expect(noAccess).toBeDefined();
+    expect(noAccess.children).toEqual([]);
+
+    readdirSpy.mockRestore();
+  });
+
   it('skips node_modules directory', async () => {
     await fsp.mkdir(path.join(tmpDir, 'node_modules'));
     await fsp.writeFile(path.join(tmpDir, 'node_modules', 'pkg.js'), '');

@@ -71,25 +71,14 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
   const loadWorkspace = useCallback(
     (path: string, search?: string) => {
       const seq = ++loadSeqRef.current;
-      console.warn('[WS_DEBUG] loadWorkspace called', { seq, path, workspace, conversation_id, search });
       setLoadingHandler(true);
       return ipcBridge.conversation.getWorkspace
         .invoke({ path, workspace, conversation_id, search: search || '' })
         .then((res) => {
-          const childCount = res?.[0]?.children?.length ?? 0;
-          console.warn('[WS_DEBUG] getWorkspace returned', {
-            seq,
-            current: loadSeqRef.current,
-            resLength: res?.length,
-            childCount,
-            rootName: res?.[0]?.name,
-          });
-
           // Ignore stale responses from aborted requests:
           // The backend aborts previous getWorkspace calls, returning [].
           // Only apply the result from the latest request.
           if (seq !== loadSeqRef.current) {
-            console.warn('[WS_DEBUG] ignoring stale response', { seq, current: loadSeqRef.current });
             return res;
           }
 
@@ -100,9 +89,17 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
             setTreeKey(Math.random());
           }
 
-          // 只展开第一层文件夹（根节点）
-          // Only expand first level folders (root node)
-          setExpandedKeys(getFirstLevelKeys(res));
+          // 首次加载时展开第一层，后续刷新时保留用户已展开的目录
+          // On first load expand first level; on subsequent refreshes preserve user-expanded dirs
+          if (isFirstLoadRef.current) {
+            setExpandedKeys(getFirstLevelKeys(res));
+          } else {
+            setExpandedKeys((prev) => {
+              const firstLevel = getFirstLevelKeys(res);
+              // Merge: keep user-expanded keys + ensure first level is always expanded
+              return [...new Set([...prev, ...firstLevel])];
+            });
+          }
 
           // 根据是否有文件决定工作空间面板的展开/折叠状态
           // Determine workspace panel expand/collapse state based on files
