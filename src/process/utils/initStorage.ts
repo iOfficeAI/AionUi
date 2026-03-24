@@ -819,10 +819,13 @@ const cleanupOrphanedHealthCheckConversations = () => {
 };
 
 const initStorage = async () => {
-  console.log('[AionUi] Starting storage initialization...');
+  const t0 = performance.now();
+  const mark = (label: string) => console.log(`[AionUi:init] ${label} +${Math.round(performance.now() - t0)}ms`);
+  mark('start');
 
   // 1. 先执行数据迁移（在任何目录创建之前）
   await migrateLegacyData();
+  mark('1. migrateLegacyData');
 
   // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
   // Use ensureDirectory to handle cases where a regular file blocks the path (#841)
@@ -834,6 +837,7 @@ const initStorage = async () => {
   ChatStorage.interceptor(chatFile);
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
+  mark('3. storage interceptors');
 
   // 4. 初始化 MCP 配置（为所有用户提供默认配置）
   try {
@@ -851,12 +855,14 @@ const initStorage = async () => {
 
   // 4.1 Ensure built-in MCP servers exist and are up-to-date
   await ensureBuiltinMcpServers();
+  mark('4. MCP config');
 
   // 5. 初始化内置助手（Assistants）
   try {
     // 5.1 初始化内置助手的规则文件到用户目录
     // Initialize builtin assistant rule files to user directory
     await initBuiltinAssistantRules();
+    mark('5.1 initBuiltinAssistantRules');
 
     // 5.2 初始化助手配置（只包含元数据，不包含 context）
     // Initialize assistant config (metadata only, no context)
@@ -972,6 +978,7 @@ const initStorage = async () => {
     if (needsPromptsI18nMigration) {
       await configFile.set(PROMPTS_I18N_MIGRATION_KEY, true);
     }
+    mark('5.2 assistant config + migrations');
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);
   }
@@ -983,10 +990,12 @@ const initStorage = async () => {
   } catch (error) {
     console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
   }
+  mark('6. database');
 
   application.systemInfo.provider(() => {
     return Promise.resolve(getSystemDir());
   });
+  mark('done');
 };
 
 export const ProcessConfig = configFile;

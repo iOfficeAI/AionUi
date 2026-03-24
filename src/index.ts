@@ -349,7 +349,9 @@ const createWindow = (): void => {
 };
 
 const handleAppReady = async (): Promise<void> => {
-  console.log('[AionUi] app.whenReady resolved');
+  const t0 = performance.now();
+  const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
+  mark('start');
 
   // CLI mode: print app version and exit immediately (used by CI smoke tests)
   if (isVersionMode) {
@@ -392,6 +394,7 @@ const handleAppReady = async (): Promise<void> => {
 
   try {
     await initializeProcess();
+    mark('initializeProcess');
   } catch (error) {
     console.error('Failed to initialize process:', error);
     app.exit(1);
@@ -439,8 +442,10 @@ const handleAppReady = async (): Promise<void> => {
     // condition where the renderer fetches getAvailableAgents before detection
     // finishes, caching an empty result via SWR.
     await initializeAcpDetector();
+    mark('initializeAcpDetector');
 
     createWindow();
+    mark('createWindow');
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
