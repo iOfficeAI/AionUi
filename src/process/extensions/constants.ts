@@ -5,9 +5,8 @@
  */
 
 import * as path from 'path';
-import * as os from 'os';
 import { getPlatformServices } from '@/common/platform';
-import { getEnvAwareName } from '@/common/config/appEnv';
+import { getDataPath } from '@process/utils';
 
 export const AIONUI_EXTENSIONS_PATH_ENV = 'AIONUI_EXTENSIONS_PATH';
 export const AIONUI_STRICT_ENV_ENV = 'AIONUI_STRICT_ENV';
@@ -16,7 +15,7 @@ export const EXTENSIONS_DIR_NAME = 'extensions';
 export const PATH_SEPARATOR = process.platform === 'win32' ? ';' : ':';
 
 export function getUserExtensionsDir(): string {
-  return path.join(os.homedir(), getEnvAwareName('.aionui'), EXTENSIONS_DIR_NAME);
+  return path.join(getDataPath(), EXTENSIONS_DIR_NAME);
 }
 
 export function getAppDataExtensionsDir(): string {
