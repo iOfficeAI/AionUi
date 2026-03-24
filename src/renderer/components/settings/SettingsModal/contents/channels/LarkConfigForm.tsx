@@ -369,7 +369,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         required
       >
         {hasExistingUsers ? (
-          <Tooltip content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying the configuration')}>
+          <Tooltip
+            content={t(
+              'settings.assistant.tokenLocked',
+              'Please close the Channel and delete all authorized users before modifying the configuration'
+            )}
+          >
             <span>
               <Input
                 value={appId}
@@ -422,7 +427,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         required
       >
         {hasExistingUsers ? (
-          <Tooltip content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying the configuration')}>
+          <Tooltip
+            content={t(
+              'settings.assistant.tokenLocked',
+              'Please close the Channel and delete all authorized users before modifying the configuration'
+            )}
+          >
             <span>
               <Input.Password
                 value={appSecret}
@@ -485,7 +495,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           >
             {hasExistingUsers ? (
               <Tooltip
-                content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying the configuration')}
+                content={t(
+                  'settings.assistant.tokenLocked',
+                  'Please close the Channel and delete all authorized users before modifying the configuration'
+                )}
               >
                 <span>
                   <Input.Password
@@ -526,7 +539,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           >
             {hasExistingUsers ? (
               <Tooltip
-                content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying the configuration')}
+                content={t(
+                  'settings.assistant.tokenLocked',
+                  'Please close the Channel and delete all authorized users before modifying the configuration'
+                )}
               >
                 <span>
                   <Input.Password
@@ -646,7 +662,11 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         <GeminiModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
-          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running') : undefined}
+          label={
+            !isGeminiAgent
+              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
+              : undefined
+          }
           variant='settings'
         />
       </PreferenceRow>

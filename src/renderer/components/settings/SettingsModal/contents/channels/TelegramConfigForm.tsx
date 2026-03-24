@@ -336,7 +336,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         <div className='flex items-center gap-8px'>
           {authorizedUsers.length > 0 ? (
             <Tooltip
-              content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying the configuration')}
+              content={t(
+                'settings.assistant.tokenLocked',
+                'Please close the Channel and delete all authorized users before modifying the configuration'
+              )}
             >
               <span>
                 <Input.Password
@@ -365,7 +368,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           )}
           {authorizedUsers.length > 0 ? (
             <Tooltip
-              content={t('settings.assistant.tokenLocked', 'Please close the Channel and delete all authorized users before modifying the configuration')}
+              content={t(
+                'settings.assistant.tokenLocked',
+                'Please close the Channel and delete all authorized users before modifying the configuration'
+              )}
             >
               <span>
                 <Button
@@ -458,7 +464,11 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         <GeminiModelSelector
           selection={isGeminiAgent ? modelSelection : undefined}
           disabled={!isGeminiAgent}
-          label={!isGeminiAgent ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running') : undefined}
+          label={
+            !isGeminiAgent
+              ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
+              : undefined
+          }
           variant='settings'
         />
       </PreferenceRow>

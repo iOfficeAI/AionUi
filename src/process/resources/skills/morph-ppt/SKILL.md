@@ -69,7 +69,8 @@ Ask only when topic is unclear, otherwise proceed directly.
 **Before generation starts, always remind the user:**
 
 - The PPT file may be rewritten multiple times during build.
-- Please do **not** open the target PPT while generation is running, to avoid file lock / write conflicts.
+- Once the PPT file appears in the workspace, the user can preview the live generation progress directly in AionUi.
+- Do **not** click "Open with system app" during generation, to avoid file lock / write conflicts.
 - Use clear, direct language and make this a concrete warning, not an optional suggestion.
 
 **FIRST: Ensure latest officecli version**

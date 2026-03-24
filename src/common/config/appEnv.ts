@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from 'electron';
+import { getPlatformServices } from '@/common/platform';
 
 /**
  * Returns baseName unchanged in release builds, or baseName + '-dev' in dev builds.
@@ -15,5 +15,5 @@ import { app } from 'electron';
  * getEnvAwareName('.aionui-config') // release → '.aionui-config', dev → '.aionui-config-dev'
  */
 export function getEnvAwareName(baseName: string): string {
-  return app?.isPackaged === true ? baseName : `${baseName}-dev`;
+  return getPlatformServices().paths.isPackaged() === true ? baseName : `${baseName}-dev`;
 }

@@ -70,34 +70,42 @@ describe('UserRepository.updateUsername', () => {
 
   it('does not throw when db.updateUserUsername succeeds', async () => {
     vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() => ({
-        updateUserUsername: vi.fn(() => ({ success: true, data: true })),
-      })),
+      getDatabase: vi.fn(() =>
+        Promise.resolve({
+          updateUserUsername: vi.fn(() => ({ success: true, data: true })),
+        })
+      ),
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
-    expect(() => UserRepository.updateUsername('user-123', 'newname')).not.toThrow();
+    await expect(UserRepository.updateUsername('user-123', 'newname')).resolves.not.toThrow();
   });
 
   it('throws when db.updateUserUsername returns failure', async () => {
     vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() => ({
-        updateUserUsername: vi.fn(() => ({ success: false, error: 'UNIQUE constraint failed', data: false })),
-      })),
+      getDatabase: vi.fn(() =>
+        Promise.resolve({
+          updateUserUsername: vi.fn(() => ({
+            success: false,
+            error: 'UNIQUE constraint failed',
+            data: false,
+          })),
+        })
+      ),
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
-    expect(() => UserRepository.updateUsername('user-123', 'taken')).toThrow('UNIQUE constraint failed');
+    await expect(UserRepository.updateUsername('user-123', 'taken')).rejects.toThrow('UNIQUE constraint failed');
   });
 
   it('calls db.updateUserUsername with correct arguments', async () => {
     const updateUserUsernameMock = vi.fn(() => ({ success: true, data: true }));
     vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() => ({ updateUserUsername: updateUserUsernameMock })),
+      getDatabase: vi.fn(() => Promise.resolve({ updateUserUsername: updateUserUsernameMock })),
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
-    UserRepository.updateUsername('user-123', 'newname');
+    await UserRepository.updateUsername('user-123', 'newname');
     expect(updateUserUsernameMock).toHaveBeenCalledWith('user-123', 'newname');
   });
 });
@@ -160,7 +168,10 @@ describe('WebuiService.changeUsername', () => {
     }));
     vi.doMock('@process/webserver/auth/service/AuthService', () => ({
       AuthService: {
-        validateUsername: vi.fn(() => ({ isValid: false, errors: ['Username must be at least 3 characters long'] })),
+        validateUsername: vi.fn(() => ({
+          isValid: false,
+          errors: ['Username must be at least 3 characters long'],
+        })),
         invalidateAllTokens: vi.fn(),
       },
     }));

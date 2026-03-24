@@ -95,7 +95,7 @@ export const handlePairingShow: ActionHandler = async (context) => {
   const platform = context.platform;
 
   // Check if user is already authorized
-  if (pairingService.isUserAuthorized(context.userId, platform)) {
+  if (await pairingService.isUserAuthorized(context.userId, platform)) {
     return createSuccessResponse({
       type: 'text',
       text: [
@@ -148,7 +148,7 @@ export const handlePairingRefresh: ActionHandler = async (context) => {
   const platform = context.platform;
 
   // Check if user is already authorized
-  if (pairingService.isUserAuthorized(context.userId, platform)) {
+  if (await pairingService.isUserAuthorized(context.userId, platform)) {
     return createSuccessResponse({
       type: 'text',
       text: '✅ You are already paired. No need to refresh the pairing code.',
@@ -190,7 +190,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
   const platform = context.platform;
 
   // Check if user is already authorized
-  if (pairingService.isUserAuthorized(context.userId, platform)) {
+  if (await pairingService.isUserAuthorized(context.userId, platform)) {
     return createSuccessResponse({
       type: 'text',
       text: [
@@ -206,7 +206,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
   }
 
   // Check for pending request
-  const pendingRequest = pairingService.getPendingRequestForUser(context.userId, platform);
+  const pendingRequest = await pairingService.getPendingRequestForUser(context.userId, platform);
 
   if (pendingRequest) {
     const expiresInMinutes = Math.ceil((pendingRequest.expiresAt - Date.now()) / 1000 / 60);

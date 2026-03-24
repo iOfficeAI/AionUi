@@ -94,6 +94,14 @@ vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({ PATH: '/usr/bin' })),
 }));
 
+vi.mock('../../src/common/platform/index', () => ({
+  getPlatformServices: vi.fn(() => ({
+    paths: {
+      getDataDir: vi.fn(() => '/mock/data'),
+    },
+  })),
+}));
+
 // --- Helpers ---
 
 function createMockChildProcess() {

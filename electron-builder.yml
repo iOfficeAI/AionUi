@@ -22,9 +22,6 @@ files:
   - out/renderer/**/*
   # Static resources — use explicit directory inclusion to prevent resource loss
   - public/**/*
-  - rules/**/*
-  - src/skills/**/*
-  - src/assistant/**/*
   - package.json
   # Native modules and their runtime dependencies
   - node_modules/better-sqlite3/**/*
@@ -96,6 +93,14 @@ files:
   - 'out/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
   # Ensure vendor chunks from manual splitting are included
   - 'out/renderer/**/vendor-*.js'
+  # Remap viteStaticCopy output (out/main/skills/, out/main/assistant/, out/main/static/)
+  # to root-level directories inside the asar, so runtime path resolution stays simple.
+  - from: out/main/skills
+    to: skills
+  - from: out/main/assistant
+    to: assistant
+  - from: out/main/static
+    to: static
 
 extraResources:
   - from: public
@@ -198,11 +203,9 @@ asarUnpack:
   # tree-sitter WASM files need to be unpacked for fs.readFile access
   - '**/node_modules/web-tree-sitter/**/*'
   - '**/node_modules/tree-sitter-bash/**/*'
-  # Builtin resources need to be unpacked for fs.readdir with withFileTypes
-  # Required for Homebrew installations where asar paths may have issues
-  - 'rules/**/*'
-  - 'skills/**/*'
-  - 'src/skills/**/*'
+  # skills/ and assistant/ no longer need asarUnpack:
+  # initStorage copies them from asar to config/builtin-skills/ and config/assistants/
+  # at startup, so all runtime reads go through the user directory, not asar.
   # Builtin MCP server scripts must be unpacked so external node processes can execute them
   - 'out/main/builtin-mcp-image-gen.js'
 

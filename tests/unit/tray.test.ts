@@ -53,22 +53,28 @@ class MockTray {
   }
 }
 
+const mockApp = {
+  isPackaged: false,
+  relaunch: vi.fn(),
+  exit: vi.fn(),
+  quit: vi.fn(),
+  dock: mockDock,
+};
+
 const mockModules = () => {
-  vi.doMock('electron', () => ({
-    app: {
-      isPackaged: false,
-      relaunch: vi.fn(),
-      exit: vi.fn(),
-      quit: vi.fn(),
-      dock: mockDock,
-    },
-    Tray: MockTray,
-    Menu: {
+  vi.doMock('@/common/electronSafe', () => ({
+    electronApp: mockApp,
+    electronTray: MockTray,
+    electronMenu: {
       buildFromTemplate: mockBuildFromTemplate,
     },
-    nativeImage: {
+    electronNativeImage: {
       createFromPath: vi.fn(() => mockNativeImage),
     },
+    electronBrowserWindow: null,
+    electronNotification: null,
+    electronUtilityProcess: null,
+    electronPowerSaveBlocker: null,
   }));
 
   vi.doMock('@/common', () => ({
@@ -96,13 +102,19 @@ describe('tray module', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, 'platform', {
+      value: originalPlatform,
+      configurable: true,
+    });
     mockModules();
   });
 
   afterEach(() => {
-    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
-    vi.doUnmock('electron');
+    Object.defineProperty(process, 'platform', {
+      value: originalPlatform,
+      configurable: true,
+    });
+    vi.doUnmock('@/common/electronSafe');
     vi.doUnmock('@/common');
     vi.doUnmock('@process/services/i18n');
     vi.doUnmock('@process/task/workerTaskManagerSingleton');
@@ -168,16 +180,20 @@ describe('tray module', () => {
 
     it('should handle Tray constructor failure gracefully', async () => {
       // Re-mock with a throwing Tray constructor
-      vi.doUnmock('electron');
-      vi.doMock('electron', () => ({
-        app: { isPackaged: false, relaunch: vi.fn(), exit: vi.fn(), quit: vi.fn() },
-        Tray: class {
+      vi.doUnmock('@/common/electronSafe');
+      vi.doMock('@/common/electronSafe', () => ({
+        electronApp: mockApp,
+        electronTray: class {
           constructor() {
             throw new Error('Tray init failed');
           }
         },
-        Menu: { buildFromTemplate: vi.fn(() => mockMenuInstance) },
-        nativeImage: { createFromPath: vi.fn(() => mockNativeImage) },
+        electronMenu: { buildFromTemplate: vi.fn(() => mockMenuInstance) },
+        electronNativeImage: { createFromPath: vi.fn(() => mockNativeImage) },
+        electronBrowserWindow: null,
+        electronNotification: null,
+        electronUtilityProcess: null,
+        electronPowerSaveBlocker: null,
       }));
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -257,7 +273,7 @@ describe('tray module', () => {
 
     const getTemplateFromRefresh = async () => {
       // Pre-import mocked modules to ensure doMock is resolved before tray imports them
-      await import('electron');
+      await import('@/common/electronSafe');
       await import('@process/services/database');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@process/utils/tray');
       createOrUpdateTray();
@@ -285,7 +301,12 @@ describe('tray module', () => {
     it('should truncate long conversation titles to 20 chars', async () => {
       setupWithOverrides();
       mockGetUserConversations.mockReturnValue({
-        data: [{ id: '1', name: 'A very long conversation title that exceeds twenty characters' }],
+        data: [
+          {
+            id: '1',
+            name: 'A very long conversation title that exceeds twenty characters',
+          },
+        ],
       });
 
       const expectedTitle = 'A very long conversation title that exceeds twenty characters'.slice(0, 20) + '...';
@@ -318,7 +339,10 @@ describe('tray module', () => {
 
     it('should hide window and dock when hide-to-tray is clicked on macOS', async () => {
       setupWithOverrides();
-      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        configurable: true,
+      });
       const { setTrayMainWindow } = await import('@process/utils/tray');
       const mockWindow = createMockWindow();
       setTrayMainWindow(mockWindow);
@@ -334,7 +358,10 @@ describe('tray module', () => {
 
     it('should restore window and show dock when show-window is clicked on macOS', async () => {
       setupWithOverrides();
-      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin',
+        configurable: true,
+      });
       const { setTrayMainWindow } = await import('@process/utils/tray');
       const mockWindow = createMockWindow();
       mockWindow.isMinimized.mockReturnValue(true);

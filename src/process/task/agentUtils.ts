@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getSkillsDir, loadSkillsContent } from '@process/utils/initStorage';
+import { getSkillsDir, getBuiltinSkillsCopyDir, loadSkillsContent } from '@process/utils/initStorage';
 import { AcpSkillManager, buildSkillsIndexText } from './AcpSkillManager';
 
 /**
@@ -107,7 +107,8 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
       // getSkillsDir() already returns CLI-safe path (symlink on macOS)
       // getSkillsDir() 已返回 CLI 安全路径（macOS 上使用符号链接）
       const skillsDir = getSkillsDir();
-      const builtinSkillsDir = skillsDir + '/_builtin';
+      const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
+      const builtinSkillsDir = builtinSkillsCopyDir + '/_builtin';
       const indexText = buildSkillsIndexText(skillsIndex);
 
       // 告诉 Agent skills 文件的位置，让它按需读取
@@ -115,16 +116,17 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
       const skillsInstruction = `${indexText}
 
 [Skills Location]
-Skills are stored in two locations:
+Skills are stored in three locations:
 - Builtin skills (auto-enabled): ${builtinSkillsDir}/{skill-name}/SKILL.md
-- Optional skills: ${skillsDir}/{skill-name}/SKILL.md
+- Bundled skills: ${builtinSkillsCopyDir}/{skill-name}/SKILL.md
+- User custom skills: ${skillsDir}/{skill-name}/SKILL.md
 
 Each skill has a SKILL.md file containing detailed instructions.
 To use a skill, read its SKILL.md file when needed.
 
 For example:
 - Builtin "cron" skill: ${builtinSkillsDir}/cron/SKILL.md
-- Optional "pptx" skill: ${skillsDir}/pptx/SKILL.md`;
+- Bundled "pptx" skill: ${builtinSkillsCopyDir}/pptx/SKILL.md`;
 
       instructions.push(skillsInstruction);
     }

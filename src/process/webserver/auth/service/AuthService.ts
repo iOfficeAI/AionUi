@@ -149,7 +149,7 @@ export class AuthService {
    * JWT secret 存储在 users 表的 admin 用户中
    * JWT secret is stored in the admin user's row in users table
    */
-  public static getJwtSecret(): string {
+  public static async getJwtSecret(): Promise<string> {
     if (this.jwtSecret) {
       return this.jwtSecret;
     }
@@ -163,7 +163,7 @@ export class AuthService {
     try {
       // 从数据库读取 admin 用户的 jwt_secret
       // Read jwt_secret from admin user in database
-      const systemUser = UserRepository.getSystemUser();
+      const systemUser = await UserRepository.getSystemUser();
       if (systemUser && systemUser.jwt_secret) {
         this.jwtSecret = systemUser.jwt_secret;
         return this.jwtSecret;
@@ -173,7 +173,7 @@ export class AuthService {
       // Generate new secret and save to admin user
       if (systemUser) {
         const newSecret = this.generateSecretKey();
-        UserRepository.updateJwtSecret(systemUser.id, newSecret);
+        await UserRepository.updateJwtSecret(systemUser.id, newSecret);
         this.jwtSecret = newSecret;
         return this.jwtSecret;
       }
@@ -193,16 +193,16 @@ export class AuthService {
    * 通过旋转密钥的方式让所有现有 Token 失效
    * Rotate the JWT secret to invalidate all existing tokens
    */
-  public static invalidateAllTokens(): void {
+  public static async invalidateAllTokens(): Promise<void> {
     try {
-      const systemUser = UserRepository.getSystemUser();
+      const systemUser = await UserRepository.getSystemUser();
       if (!systemUser) {
         console.warn('[AuthService] System WebUI user not found, cannot invalidate tokens');
         return;
       }
 
       const newSecret = this.generateSecretKey();
-      UserRepository.updateJwtSecret(systemUser.id, newSecret);
+      await UserRepository.updateJwtSecret(systemUser.id, newSecret);
       this.jwtSecret = newSecret;
     } catch (error) {
       console.error('Failed to invalidate tokens:', error);
@@ -229,13 +229,13 @@ export class AuthService {
    * 生成 WebUI 使用的标准会话 Token
    * Generate standard WebUI session token
    */
-  public static generateToken(user: Pick<AuthUser, 'id' | 'username'>): string {
+  public static async generateToken(user: Pick<AuthUser, 'id' | 'username'>): Promise<string> {
     const payload: TokenPayload = {
       userId: user.id,
       username: user.username,
     };
 
-    return jwt.sign(payload, this.getJwtSecret(), {
+    return jwt.sign(payload, await this.getJwtSecret(), {
       expiresIn: this.TOKEN_EXPIRY,
       issuer: 'aionui',
       audience: 'aionui-webui',
@@ -259,14 +259,14 @@ export class AuthService {
    * 验证 WebUI 会话 Token 是否有效
    * Verify standard WebUI session token validity
    */
-  public static verifyToken(token: string): TokenPayload | null {
+  public static async verifyToken(token: string): Promise<TokenPayload | null> {
     try {
       // 先检查黑名单 / Check blacklist first
       if (this.isTokenBlacklisted(token)) {
         return null;
       }
 
-      const decoded = jwt.verify(token, this.getJwtSecret(), {
+      const decoded = jwt.verify(token, await this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-webui',
       }) as RawTokenPayload;
@@ -297,14 +297,14 @@ export class AuthService {
    * @param token - JWT token string
    * @returns Token payload if valid, null otherwise
    */
-  public static verifyWebSocketToken(token: string): TokenPayload | null {
+  public static async verifyWebSocketToken(token: string): Promise<TokenPayload | null> {
     try {
       // 先检查黑名单 / Check blacklist first
       if (this.isTokenBlacklisted(token)) {
         return null;
       }
 
-      const decoded = jwt.verify(token, this.getJwtSecret(), {
+      const decoded = jwt.verify(token, await this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-webui', // 使用与 Web 登录相同的 audience
       }) as RawTokenPayload;
@@ -328,8 +328,8 @@ export class AuthService {
    * 刷新会话 Token（不检查原 Token 是否过期）
    * Refresh a session token without enforcing expiry check
    */
-  public static refreshToken(token: string): string | null {
-    const decoded = this.verifyToken(token);
+  public static async refreshToken(token: string): Promise<string | null> {
+    const decoded = await this.verifyToken(token);
     if (!decoded) {
       return null;
     }

@@ -1,0 +1,690 @@
+<h2>WebUI 消息流转架构</h2>
+<p class="subtitle">浏览器 → WebSocket → Main Process Bridge → 业务层 → 推送回浏览器 · 同时兼容 Electron IPC 模式</p>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  .arch-root {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #e2e8f0;
+  }
+  .arch-layer {
+    border: 2px solid #334155;
+    border-radius: 10px;
+    padding: 14px 18px;
+    background: #0f172a;
+  }
+  .arch-layer.browser {
+    border-color: #06b6d4;
+    background: #083344;
+  }
+  .arch-layer.adapter {
+    border-color: #6366f1;
+    background: #13111c;
+  }
+  .arch-layer.ws {
+    border-color: #f59e0b;
+    background: #1c1003;
+  }
+  .arch-layer.bridge {
+    border-color: #a855f7;
+    background: #1a0533;
+  }
+  .arch-layer.business {
+    border-color: #22c55e;
+    background: #052e16;
+  }
+  .arch-layer.workers {
+    border-color: #64748b;
+    background: #0d1117;
+  }
+  .arch-layer.ipc {
+    border-color: #f43f5e;
+    background: #1f0010;
+  }
+  .arch-layer.legend {
+    border-color: #334155;
+    background: #0f172a;
+    padding: 10px 16px;
+  }
+
+  .layer-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0.85;
+  }
+  .module-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mod {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: default;
+    transition: all 0.15s;
+    color: #e2e8f0;
+    line-height: 1.4;
+  }
+  .mod:hover {
+    background: #334155;
+    transform: translateY(-1px);
+  }
+  .mod.key {
+    background: #1e3a4a;
+    border-color: #06b6d4;
+  }
+  .mod.entry {
+    background: #312e81;
+    border-color: #6366f1;
+  }
+  .mod.ws-mod {
+    background: #1c1a03;
+    border-color: #f59e0b;
+  }
+  .mod.bridge-mod {
+    background: #2a1a3a;
+    border-color: #a855f7;
+  }
+  .mod.biz {
+    background: #1a2a1a;
+    border-color: #22c55e;
+  }
+  .mod.ipc-mod {
+    background: #2a0a18;
+    border-color: #f43f5e;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .badge.gray {
+    background: #374151;
+    color: #9ca3af;
+  }
+  .badge.cyan {
+    background: #0e3a4a;
+    color: #5eead4;
+  }
+  .badge.amber {
+    background: #451a03;
+    color: #fcd34d;
+  }
+  .badge.green {
+    background: #0f2a0f;
+    color: #86efac;
+  }
+  .badge.purple {
+    background: #2a1040;
+    color: #d8b4fe;
+  }
+  .badge.red {
+    background: #3a0a18;
+    color: #fca5a5;
+  }
+  .badge.indigo {
+    background: #1e1b4b;
+    color: #a5b4fc;
+  }
+
+  .arrow-row {
+    text-align: center;
+    font-size: 20px;
+    opacity: 0.35;
+    margin: -4px 0;
+    letter-spacing: 6px;
+  }
+  .flow-arrow {
+    text-align: center;
+    font-size: 12px;
+    margin: -6px 0;
+    opacity: 0.7;
+  }
+  .note {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 8px;
+    padding-left: 2px;
+  }
+  .note.good {
+    color: #4ade80;
+  }
+  .note.warn {
+    color: #fbbf24;
+  }
+  .note.cyan {
+    color: #67e8f9;
+  }
+  .note.red {
+    color: #f87171;
+  }
+
+  .row-section {
+    display: flex;
+    gap: 12px;
+  }
+  .row-section > * {
+    flex: 1;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1.5px solid;
+  }
+
+  .flow-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .flow-table th {
+    text-align: left;
+    padding: 4px 10px;
+    color: #94a3b8;
+    font-weight: 600;
+    border-bottom: 1px solid #334155;
+  }
+  .flow-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #1e293b;
+    vertical-align: top;
+    font-size: 11.5px;
+  }
+  .flow-table tr:last-child td {
+    border-bottom: none;
+  }
+  .flow-table td:first-child {
+    color: #fbbf24;
+    font-family: monospace;
+    white-space: nowrap;
+  }
+  .flow-table td:nth-child(2) {
+    color: #94a3b8;
+  }
+  .flow-table td:nth-child(3) {
+    color: #5eead4;
+    font-family: monospace;
+  }
+
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #1e3a4a;
+    border: 1px solid #06b6d4;
+    color: #67e8f9;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 5px;
+  }
+
+  .dual-mode {
+    display: flex;
+    gap: 2px;
+    margin-top: 8px;
+  }
+  .mode-block {
+    flex: 1;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11.5px;
+  }
+  .mode-block.electron {
+    background: #1a0533;
+    border: 1px dashed #a855f7;
+  }
+  .mode-block.webui {
+    background: #083344;
+    border: 1px dashed #06b6d4;
+  }
+  .mode-block .mode-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+</style>
+
+<div class="arch-root">
+  <!-- Legend -->
+  <div class="arch-layer legend">
+    <div class="layer-title" style="color: #94a3b8; margin-bottom: 6px">图例</div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #083344; border-color: #06b6d4"></div>
+        浏览器层 (Browser)
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #13111c; border-color: #6366f1"></div>
+        适配器层 (Adapter)
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #1c1003; border-color: #f59e0b"></div>
+        WebSocket 传输层
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #1a0533; border-color: #a855f7"></div>
+        IPC Bridge 层
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #052e16; border-color: #22c55e"></div>
+        业务逻辑层
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #1f0010; border-color: #f43f5e"></div>
+        Electron IPC (备用路径)
+      </div>
+    </div>
+  </div>
+
+  <!-- ① Browser Layer -->
+  <div class="arch-layer browser">
+    <div class="layer-title" style="color: #67e8f9">
+      ① 浏览器层 / Browser (src/renderer/ · src/common/adapter/browser.ts)
+    </div>
+    <div class="module-grid">
+      <div class="mod key">React 组件 <span class="badge cyan">用户操作</span></div>
+      <div class="mod key">@office-ai/platform bridge <span class="badge cyan">统一 API</span></div>
+      <div class="mod">Zustand / Context <span class="badge gray">状态管理</span></div>
+      <div class="mod">bridge.emit(name, data) <span class="badge amber">发送</span></div>
+      <div class="mod">bridge.on(emitter) <span class="badge green">订阅推送</span></div>
+    </div>
+    <div class="note cyan">bridge API 对传输方式透明 — 同一套代码同时运行在 Electron 和纯浏览器中</div>
+
+    <!-- Dual Mode -->
+    <div class="dual-mode">
+      <div class="mode-block electron">
+        <div class="mode-title" style="color: #d8b4fe">Electron 模式</div>
+        <div style="color: #c4b5fd">window.electronAPI 存在</div>
+        <div style="color: #94a3b8; margin-top: 4px">emit → ipcRenderer.invoke<br />on → ipcRenderer.on</div>
+      </div>
+      <div style="display: flex; align-items: center; color: #475569; font-size: 18px; padding: 0 4px">⟷</div>
+      <div class="mode-block webui">
+        <div class="mode-title" style="color: #67e8f9">WebUI 模式 (浏览器)</div>
+        <div style="color: #5eead4">window.electronAPI 不存在</div>
+        <div style="color: #94a3b8; margin-top: 4px">emit → WebSocket.send<br />on → WebSocket.onmessage</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="color: #06b6d4">▼ WebSocket (ws:// · JWT Token 认证) ▼</div>
+
+  <!-- ② WebSocket Transport -->
+  <div class="arch-layer ws">
+    <div class="layer-title" style="color: #fbbf24">② WebSocket 传输层 (src/process/webserver/)</div>
+    <div class="module-grid">
+      <div class="mod ws-mod">WebSocketManager <span class="badge amber">连接管理</span></div>
+      <div class="mod ws-mod">TokenMiddleware <span class="badge amber">JWT 验证</span></div>
+      <div class="mod ws-mod">AuthService <span class="badge gray">bcrypt</span></div>
+      <div class="mod ws-mod">heartbeat <span class="badge gray">30s ping/pong</span></div>
+      <div class="mod ws-mod">auth-expired <span class="badge red">强制跳转登录</span></div>
+    </div>
+    <div class="note warn">
+      消息路由规则：pong → 更新心跳 ｜ subscribe-show-open → 文件选择（直接回写客户端）｜ 其他 → 转发 bridge emitter
+    </div>
+
+    <div style="margin-top: 10px">
+      <div
+        style="font-size: 11px; color: #f59e0b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px"
+      >
+        HTTP REST 端点 (src/process/webserver/routes/)
+      </div>
+      <div class="module-grid">
+        <div class="mod ws-mod">POST /api/upload <span class="badge gray">文件上传 multipart</span></div>
+        <div class="mod ws-mod">GET /api/directory/* <span class="badge gray">目录浏览</span></div>
+        <div class="mod ws-mod">POST /auth/login <span class="badge gray">账号密码</span></div>
+        <div class="mod ws-mod">GET /qr-login <span class="badge amber">二维码登录</span></div>
+        <div class="mod ws-mod">GET /api/ext-asset <span class="badge gray">扩展静态资源</span></div>
+        <div class="mod ws-mod">Extension API Routes <span class="badge gray">动态加载</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="color: #f59e0b">▼ adapter.ts → getBridgeEmitter().emit(name, data) ▼</div>
+
+  <!-- ③ Adapter / Glue Layer -->
+  <div class="arch-layer adapter">
+    <div class="layer-title" style="color: #a5b4fc">
+      ③ 适配器粘合层 / Adapter (src/common/adapter/main.ts + src/process/webserver/adapter.ts)
+    </div>
+    <div class="module-grid">
+      <div class="mod entry">bridge.adapter({ emit, on }) <span class="badge indigo">统一出口</span></div>
+      <div class="mod entry">registerWebSocketBroadcaster <span class="badge indigo">注册广播</span></div>
+      <div class="mod entry">getBridgeEmitter <span class="badge indigo">暴露 emitter</span></div>
+      <div class="mod entry">initMainAdapterWithWindow <span class="badge indigo">绑定 BrowserWindow</span></div>
+    </div>
+    <div class="note" style="color: #818cf8; margin-top: 10px">bridge.adapter.emit(name, data) 同时发往两个目标：</div>
+    <div class="row-section" style="margin-top: 8px">
+      <div
+        style="
+          background: #1a0533;
+          border: 1px dashed #a855f7;
+          border-radius: 6px;
+          padding: 8px 12px;
+          font-size: 11.5px;
+        "
+      >
+        <div style="color: #d8b4fe; font-weight: 700; margin-bottom: 4px">→ Electron BrowserWindow</div>
+        <div style="color: #94a3b8">win.webContents.send(IPC_KEY, { name, data })</div>
+      </div>
+      <div
+        style="
+          background: #083344;
+          border: 1px dashed #06b6d4;
+          border-radius: 6px;
+          padding: 8px 12px;
+          font-size: 11.5px;
+        "
+      >
+        <div style="color: #67e8f9; font-weight: 700; margin-bottom: 4px">→ WebSocket Clients</div>
+        <div style="color: #94a3b8">wsManager.broadcast(name, data) → 所有已认证连接</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="color: #a855f7">▼ @office-ai/platform bridge 内部路由 ▼</div>
+
+  <!-- ④ IPC Bridge Layer -->
+  <div class="arch-layer bridge">
+    <div class="layer-title" style="color: #d8b4fe">④ IPC 桥接层 / Bridge Handlers (src/process/bridge/)</div>
+    <div class="module-grid">
+      <div class="mod bridge-mod">taskBridge <span class="badge purple">任务管理</span></div>
+      <div class="mod bridge-mod">databaseBridge <span class="badge purple">对话/消息</span></div>
+      <div class="mod bridge-mod">webuiBridge <span class="badge purple">WebUI 控制</span></div>
+      <div class="mod bridge-mod">cronBridge <span class="badge purple">定时任务</span></div>
+      <div class="mod bridge-mod">geminiBridge</div>
+      <div class="mod bridge-mod">mcpBridge</div>
+      <div class="mod bridge-mod">channelBridge</div>
+      <div class="mod bridge-mod">authBridge</div>
+      <div class="mod bridge-mod">bedrockBridge</div>
+      <div class="mod bridge-mod">extensionsBridge</div>
+      <div class="mod bridge-mod">fsBridge</div>
+      <div class="mod bridge-mod">shellBridge</div>
+      <div class="mod bridge-mod">dialogBridge</div>
+      <div class="mod bridge-mod">notificationBridge</div>
+      <div class="mod bridge-mod">systemSettingsBridge</div>
+      <div class="mod bridge-mod">applicationBridge</div>
+      <div class="mod bridge-mod">updateBridge</div>
+      <div class="mod bridge-mod">windowControlsBridge</div>
+      <div class="mod bridge-mod">previewHistoryBridge</div>
+    </div>
+    <div class="note" style="color: #a78bfa">
+      每个 Bridge 通过 xxx.provider(async data =&gt; result) 注册处理器；结果通过 xxx.emit(result) 推送， 由上层
+      adapter.emit 广播给浏览器
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="color: #22c55e">▼ 调用具体业务实现 ▼</div>
+
+  <!-- ⑤ Business Logic -->
+  <div class="arch-layer business">
+    <div class="layer-title" style="color: #4ade80">⑤ 业务逻辑层 (src/process/services/ + src/process/task/)</div>
+
+    <div class="row-section">
+      <div>
+        <div
+          style="font-size: 11px; color: #4ade80; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px"
+        >
+          服务层 / Services
+        </div>
+        <div class="module-grid">
+          <div class="mod biz">ConversationServiceImpl</div>
+          <div class="mod biz">CronService</div>
+          <div class="mod biz">McpService <span class="badge gray">MCP 协议</span></div>
+          <div class="mod biz">McpOAuthService</div>
+          <div class="mod biz">previewHistoryService</div>
+          <div class="mod biz">geminiSubscription</div>
+          <div class="mod biz">conversionService</div>
+          <div class="mod biz">autoUpdaterService</div>
+        </div>
+      </div>
+      <div>
+        <div
+          style="font-size: 11px; color: #4ade80; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px"
+        >
+          任务管理 / Task
+        </div>
+        <div class="module-grid">
+          <div class="mod biz">WorkerTaskManager</div>
+          <div class="mod biz">AgentFactory</div>
+          <div class="mod biz">GeminiAgentManager</div>
+          <div class="mod biz">CodexAgentManager</div>
+          <div class="mod biz">OpenClawAgentManager</div>
+          <div class="mod biz">NanoBotAgentManager</div>
+          <div class="mod biz">MessageMiddleware</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 10px">
+      <div
+        style="font-size: 11px; color: #4ade80; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.8px"
+      >
+        存储层 / Database
+      </div>
+      <div class="module-grid">
+        <div class="mod biz">SQLite (better-sqlite3) <span class="badge gray">持久化</span></div>
+        <div class="mod biz">SqliteConversationRepository</div>
+        <div class="mod biz">SqliteChannelRepository</div>
+        <div class="mod biz">SqliteCronRepository</div>
+        <div class="mod biz">StreamingMessageBuffer</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="color: #64748b">▼ fork() 子进程 ▼</div>
+
+  <!-- ⑥ Worker Processes -->
+  <div class="arch-layer workers">
+    <div class="layer-title" style="color: #94a3b8">⑥ Worker 子进程 (src/process/worker/) — AI 任务执行</div>
+    <div class="module-grid">
+      <div class="mod">gemini.ts <span class="badge gray">Gemini CLI</span></div>
+      <div class="mod">codex.ts <span class="badge gray">OpenAI Codex</span></div>
+      <div class="mod">acp.ts <span class="badge gray">ACP 协议</span></div>
+      <div class="mod">nanobot.ts <span class="badge gray">NanoBot</span></div>
+      <div class="mod">openclaw-gateway.ts <span class="badge gray">OpenClaw</span></div>
+      <div class="mod">fork/ <span class="badge gray">ForkTask pipe</span></div>
+    </div>
+    <div class="note">Worker 通过 process.send/on 与主进程通信；流式响应通过 IpcAgentEventEmitter 逐块推送给前端</div>
+  </div>
+
+  <div class="arrow-row">↕ 响应路径 (与请求路径完全对称，数据经 bridge.emit → adapter → WS broadcast → 浏览器) ↕</div>
+
+  <!-- Electron IPC path (alternative) -->
+  <div class="arch-layer ipc">
+    <div class="layer-title" style="color: #fb7185">Electron IPC 路径 (备用 / src/preload.ts)</div>
+    <div class="module-grid">
+      <div class="mod ipc-mod">
+        contextBridge.exposeInMainWorld('electronAPI') <span class="badge red">安全沙箱</span>
+      </div>
+      <div class="mod ipc-mod">ipcRenderer.invoke(IPC_KEY, { name, data }) <span class="badge red">渲染→主</span></div>
+      <div class="mod ipc-mod">ipcMain.handle(IPC_KEY, emitter.emit) <span class="badge red">主→处理</span></div>
+      <div class="mod ipc-mod">
+        win.webContents.send(IPC_KEY, { name, data }) <span class="badge red">主→渲染</span>
+      </div>
+      <div class="mod ipc-mod">webui-direct-* <span class="badge gray">绕过 bridge 的直接 IPC</span></div>
+    </div>
+    <div class="note red">Electron 本地模式专用；WebUI 模式下此路径不走，由 WebSocket 替代</div>
+  </div>
+</div>
+
+<!-- 消息流转步骤说明 -->
+<div style="margin-top: 20px; padding: 14px 18px; background: #1e293b; border-radius: 8px; border: 1px solid #334155">
+  <p style="margin: 0 0 12px; font-size: 13px; color: #e2e8f0; font-weight: 600">
+    端到端消息流转（以"发送 AI 对话"为例）
+  </p>
+
+  <table class="flow-table">
+    <tr>
+      <th>步骤</th>
+      <th>位置</th>
+      <th>关键调用</th>
+    </tr>
+    <tr>
+      <td>① 用户输入</td>
+      <td>React 组件 (renderer)</td>
+      <td>bridge.emit('task:send', { message })</td>
+    </tr>
+    <tr>
+      <td>② 浏览器适配</td>
+      <td>src/common/adapter/browser.ts</td>
+      <td>socket.send(JSON.stringify({ name, data }))</td>
+    </tr>
+    <tr>
+      <td>③ WS 接收</td>
+      <td>WebSocketManager.onmessage</td>
+      <td>JSON.parse → onMessage(name, data, ws)</td>
+    </tr>
+    <tr>
+      <td>④ 注入 bridge</td>
+      <td>src/process/webserver/adapter.ts</td>
+      <td>getBridgeEmitter().emit('task:send', data)</td>
+    </tr>
+    <tr>
+      <td>⑤ 路由到 handler</td>
+      <td>src/common/adapter/main.ts bridge.on</td>
+      <td>ipcMain emitter.emit → taskBridge.provider</td>
+    </tr>
+    <tr>
+      <td>⑥ 任务调度</td>
+      <td>WorkerTaskManager</td>
+      <td>AgentFactory.create() → worker.fork()</td>
+    </tr>
+    <tr>
+      <td>⑦ AI 流式输出</td>
+      <td>Worker 子进程</td>
+      <td>process.send({ chunk }) → IpcAgentEventEmitter</td>
+    </tr>
+    <tr>
+      <td>⑧ 推送 bridge</td>
+      <td>taskBridge / IpcAgentEventEmitter</td>
+      <td>bridge.emit('task:chunk', { chunk })</td>
+    </tr>
+    <tr>
+      <td>⑨ 广播出口</td>
+      <td>src/common/adapter/main.ts bridge.adapter.emit</td>
+      <td>wsManager.broadcast + win.webContents.send</td>
+    </tr>
+    <tr>
+      <td>⑩ 浏览器接收</td>
+      <td>src/common/adapter/browser.ts socket.onmessage</td>
+      <td>emitter.emit('task:chunk', data) → React 组件更新</td>
+    </tr>
+  </table>
+</div>
+
+<!-- QR Login flow -->
+<div style="margin-top: 14px; padding: 14px 18px; background: #1e293b; border-radius: 8px; border: 1px solid #334155">
+  <p style="margin: 0 0 12px; font-size: 13px; color: #e2e8f0; font-weight: 600">WebUI 认证流程（二维码登录）</p>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap">
+    <div
+      style="
+        flex: 1;
+        min-width: 200px;
+        background: #0f172a;
+        border-radius: 6px;
+        padding: 10px 14px;
+        border: 1px solid #334155;
+      "
+    >
+      <div
+        style="
+          color: #fbbf24;
+          font-size: 11px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+        "
+      >
+        传统账号密码
+      </div>
+      <div class="step-row"><span class="step-num">1</span><span>POST /auth/login { username, password }</span></div>
+      <div class="step-row"><span class="step-num">2</span><span>AuthService.verifyPassword (bcrypt)</span></div>
+      <div class="step-row"><span class="step-num">3</span><span>返回 JWT sessionToken</span></div>
+      <div class="step-row">
+        <span class="step-num">4</span><span>后续请求 Header: Authorization: Bearer &lt;token&gt;</span>
+      </div>
+    </div>
+    <div
+      style="
+        flex: 1;
+        min-width: 200px;
+        background: #0f172a;
+        border-radius: 6px;
+        padding: 10px 14px;
+        border: 1px solid #334155;
+      "
+    >
+      <div
+        style="
+          color: #67e8f9;
+          font-size: 11px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+        "
+      >
+        二维码扫码登录
+      </div>
+      <div class="step-row">
+        <span class="step-num">1</span><span>Electron 端生成 32 字节随机 QR Token (5min TTL)</span>
+      </div>
+      <div class="step-row">
+        <span class="step-num">2</span><span>构建 http://&lt;host&gt;:&lt;port&gt;/qr-login?token=xxx</span>
+      </div>
+      <div class="step-row"><span class="step-num">3</span><span>手机扫码 → GET /qr-login?token=xxx</span></div>
+      <div class="step-row">
+        <span class="step-num">4</span><span>verifyQRTokenDirect → 验证 TTL + 本地 IP 限制 + 一次性</span>
+      </div>
+      <div class="step-row">
+        <span class="step-num">5</span><span>AuthService.generateToken → 返回 JWT sessionToken</span>
+      </div>
+    </div>
+  </div>
+</div>

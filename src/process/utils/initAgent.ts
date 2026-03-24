@@ -8,9 +8,10 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { PresetAgentType } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { getSkillsDir, getSystemDir } from './initStorage';
+import { getSkillsDir, getBuiltinSkillsCopyDir, getSystemDir } from './initStorage';
 import { computeOpenClawIdentityHash } from './openclawUtils';
 
 /**
@@ -68,7 +69,10 @@ export async function setupAssistantWorkspace(
       // Skip builtin skills (auto-injected via SkillManager / virtual extension)
       if (skillName === 'cron') continue;
 
-      const sourceSkillDir = path.join(userSkillsDir, skillName);
+      // Try builtin-skills/ first, then user skills/
+      const builtinCandidate = path.join(getBuiltinSkillsCopyDir(), skillName);
+      const userCandidate = path.join(userSkillsDir, skillName);
+      const sourceSkillDir = existsSync(builtinCandidate) ? builtinCandidate : userCandidate;
       const targetSkillDir = path.join(targetSkillsDir, skillName);
 
       try {
