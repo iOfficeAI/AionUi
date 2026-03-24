@@ -865,8 +865,10 @@ const initStorage = async () => {
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
 
-  // Config migration only makes sense in standalone server mode (not inside Electron itself)
-  if (!hasElectronAppPath()) {
+  // Config migration only makes sense in standalone server mode (not inside Electron itself).
+  // process.versions.electron is defined only inside an Electron process.
+  const isElectronProcess = typeof process.versions.electron === 'string';
+  if (!isElectronProcess) {
     // Migrate config from Electron desktop app (once, after storage is ready)
     await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
 
