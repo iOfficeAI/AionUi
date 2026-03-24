@@ -12,11 +12,12 @@ import { app } from 'electron';
 if (app.isPackaged) {
   process.env.PREBUILDS_ONLY = '1';
 }
-import initStorage from './utils/initStorage';
+import initStorage, { getSystemDir, getSkillsDir, getBuiltinSkillsDir } from './utils/initStorage';
 import './utils/initBridge';
 import './services/i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@process/channels';
 import { ExtensionRegistry } from '@process/extensions';
+import { needsPhase1Migration, runPhase1Migration, SkillRepository, WatchedImportBridge } from '@process/skills';
 
 export const initializeProcess = async () => {
   await initStorage();
@@ -27,6 +28,25 @@ export const initializeProcess = async () => {
   } catch (error) {
     console.error('[Process] Failed to initialize ExtensionRegistry:', error);
     // Don't fail app startup if extensions fail to initialize
+  }
+
+  // Skill System: Phase 1 migration + WatchedImportBridge startup
+  try {
+    const { workDir } = getSystemDir();
+    if (await needsPhase1Migration(workDir)) {
+      console.info('[SkillSystem] Running Phase 1 migration...');
+      await runPhase1Migration(workDir, getBuiltinSkillsDir(), getSkillsDir(), workDir);
+      console.info('[SkillSystem] Phase 1 migration complete.');
+    }
+    // Ensure SkillRepository singleton is created (loads cache from disk)
+    SkillRepository.getInstance();
+    // Start watching CLI skill directories for auto-import
+    const bridge = new WatchedImportBridge();
+    await bridge.start();
+    console.info('[SkillSystem] WatchedImportBridge started.');
+  } catch (error) {
+    console.error('[SkillSystem] Failed to initialize skill system:', error);
+    // Don't fail app startup if skill system fails
   }
 
   // Initialize Channel subsystem
