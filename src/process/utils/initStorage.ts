@@ -865,18 +865,21 @@ const initStorage = async () => {
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
 
-  // Migrate config from Electron desktop app (once, after storage is ready)
-  await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
+  // Config migration only makes sense in standalone server mode (not inside Electron itself)
+  if (!hasElectronAppPath()) {
+    // Migrate config from Electron desktop app (once, after storage is ready)
+    await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
 
-  // Manual import from specified path (if env var present)
-  const importFrom = process.env.IMPORT_CONFIG_FROM;
-  if (importFrom) {
-    const overwrite = process.env.IMPORT_CONFIG_OVERWRITE === 'true';
-    await importConfigFromFile(
-      importFrom,
-      overwrite,
-      configFile as unknown as Parameters<typeof importConfigFromFile>[2]
-    );
+    // Manual import from specified path (if env var present)
+    const importFrom = process.env.IMPORT_CONFIG_FROM;
+    if (importFrom) {
+      const overwrite = process.env.IMPORT_CONFIG_OVERWRITE === 'true';
+      await importConfigFromFile(
+        importFrom,
+        overwrite,
+        configFile as unknown as Parameters<typeof importConfigFromFile>[2]
+      );
+    }
   }
 
   // 4. 初始化 MCP 配置（为所有用户提供默认配置）
