@@ -86,7 +86,7 @@ AionUi ships with a complete AI agent engine. Unlike tools that require you to i
 
 ### **Morph PPT Animation Demo — Smooth Transitions from One Prompt**
 
-_AionUi includes a dedicated Morph PPT assistant. It doesn't just build static slides — it turns your content into dynamic, story-driven presentations. Provide a topic/outline (or style reference), and get a Morph deck with coherent transitions._
+_AionUi includes a dedicated Morph PPT assistant. It doesn't just build static slides — it turns your content into dynamic, story-driven presentations. Provide a topic/outline (or style reference), and get a Morph deck with coherent transitions. Powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#)._
 
 - **Not a typical PPT generator** — focuses on Morph storytelling with continuous slide-to-slide motion
 - **Built-in end-to-end workflow** — planning, generation, quality checks, and iteration

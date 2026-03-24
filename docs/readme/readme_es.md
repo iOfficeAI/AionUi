@@ -86,7 +86,7 @@ AionUi viene con un motor de Agent AI completo. A diferencia de las herramientas
 
 ### **Demo de Morph PPT — Transiciones fluidas con una sola frase**
 
-_AionUi incluye un asistente dedicado de Morph PPT. No se limita a maquetar diapositivas estáticas: convierte tu contenido en una presentación dinámica y narrativa. Con un tema/esquema (o una referencia de estilo), genera un deck Morph con transiciones coherentes._
+_AionUi incluye un asistente dedicado de Morph PPT. No se limita a maquetar diapositivas estáticas: convierte tu contenido en una presentación dinámica y narrativa. Con un tema/esquema (o una referencia de estilo), genera un deck Morph con transiciones coherentes. Está impulsado por [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#)._
 
 - **No es un generador de PPT común** — se centra en narrativa con Morph y continuidad entre diapositivas
 - **Flujo de trabajo integrado** — planificación, generación, control de calidad e iteración
