@@ -244,3 +244,133 @@ describe('migrateFromElectronConfig', () => {
     expect((writtenMcp[0] as any).id).toBe('user-mcp');
   });
 });
+
+describe('importConfigFromFile', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it('skips import when file decodes to {}', async () => {
+    const store: Record<string, unknown> = {};
+    const configStore = {
+      get: vi.fn(async (key: string) => store[key]),
+      set: vi.fn(async (key: string, value: unknown) => {
+        store[key] = value;
+        return value;
+      }),
+    };
+    vi.doMock('fs', () => ({
+      existsSync: vi.fn().mockReturnValue(false),
+      readFileSync: vi.fn().mockReturnValue(''),
+    }));
+    const { importConfigFromFile } = await import('../../../../src/process/utils/configMigration');
+    await importConfigFromFile('/nonexistent/path.txt', false, configStore as any);
+    expect(configStore.set).not.toHaveBeenCalled();
+  });
+
+  it('skips existing keys when overwrite=false', async () => {
+    const sourceData = { 'model.config': [{ id: 'new' }], 'gemini.config': { authType: 'oauth', proxy: '' } };
+    const encodedSource = Buffer.from(encodeURIComponent(JSON.stringify(sourceData))).toString('base64');
+    const store: Record<string, unknown> = { 'model.config': [{ id: 'existing' }] };
+    const configStore = {
+      get: vi.fn(async (key: string) => store[key]),
+      set: vi.fn(async (key: string, value: unknown) => {
+        store[key] = value;
+        return value;
+      }),
+    };
+    vi.doMock('fs', () => ({
+      existsSync: vi.fn().mockReturnValue(true),
+      readFileSync: vi.fn().mockReturnValue(encodedSource),
+    }));
+    const { importConfigFromFile } = await import('../../../../src/process/utils/configMigration');
+    await importConfigFromFile('/path/aionui-config.txt', false, configStore as any);
+    expect(configStore.set).not.toHaveBeenCalledWith('model.config', expect.anything());
+    expect(configStore.set).toHaveBeenCalledWith('gemini.config', sourceData['gemini.config']);
+  });
+
+  it('overwrites existing keys when overwrite=true', async () => {
+    const sourceData = { 'model.config': [{ id: 'new' }] };
+    const encodedSource = Buffer.from(encodeURIComponent(JSON.stringify(sourceData))).toString('base64');
+    const store: Record<string, unknown> = { 'model.config': [{ id: 'existing' }] };
+    const configStore = {
+      get: vi.fn(async (key: string) => store[key]),
+      set: vi.fn(async (key: string, value: unknown) => {
+        store[key] = value;
+        return value;
+      }),
+    };
+    vi.doMock('fs', () => ({
+      existsSync: vi.fn().mockReturnValue(true),
+      readFileSync: vi.fn().mockReturnValue(encodedSource),
+    }));
+    const { importConfigFromFile } = await import('../../../../src/process/utils/configMigration');
+    await importConfigFromFile('/path/aionui-config.txt', true, configStore as any);
+    expect(configStore.set).toHaveBeenCalledWith('model.config', sourceData['model.config']);
+  });
+
+  it('always filters builtin:true from mcp.config regardless of overwrite', async () => {
+    const sourceData = {
+      'mcp.config': [
+        {
+          id: 'builtin',
+          builtin: true,
+          name: 'b',
+          enabled: false,
+          transport: { type: 'stdio', command: 'node', args: [] },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+        {
+          id: 'user',
+          builtin: false,
+          name: 'u',
+          enabled: true,
+          transport: { type: 'stdio', command: 'npx', args: ['mcp'] },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+    };
+    const encodedSource = Buffer.from(encodeURIComponent(JSON.stringify(sourceData))).toString('base64');
+    const store: Record<string, unknown> = {};
+    const configStore = {
+      get: vi.fn(async (key: string) => store[key]),
+      set: vi.fn(async (key: string, value: unknown) => {
+        store[key] = value;
+        return value;
+      }),
+    };
+    vi.doMock('fs', () => ({
+      existsSync: vi.fn().mockReturnValue(true),
+      readFileSync: vi.fn().mockReturnValue(encodedSource),
+    }));
+    const { importConfigFromFile } = await import('../../../../src/process/utils/configMigration');
+    await importConfigFromFile('/path/aionui-config.txt', true, configStore as any);
+    const written = (configStore.set as ReturnType<typeof vi.fn>).mock.calls.find(
+      ([k]) => k === 'mcp.config'
+    )?.[1] as unknown[];
+    expect(written).toHaveLength(1);
+    expect((written[0] as any).id).toBe('user');
+  });
+
+  it('resolves relative path and warns', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const store: Record<string, unknown> = {};
+    const configStore = {
+      get: vi.fn(async (key: string) => store[key]),
+      set: vi.fn(async (key: string, value: unknown) => {
+        store[key] = value;
+        return value;
+      }),
+    };
+    vi.doMock('fs', () => ({
+      existsSync: vi.fn().mockReturnValue(false),
+      readFileSync: vi.fn().mockReturnValue(''),
+    }));
+    const { importConfigFromFile } = await import('../../../../src/process/utils/configMigration');
+    await importConfigFromFile('relative/path.txt', false, configStore as any);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('relative path'), expect.any(String));
+    warnSpy.mockRestore();
+  });
+});
